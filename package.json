@@ -17,6 +17,9 @@
     "dev": "rollup -c rollup.config.mjs -w",
     "build": "rimraf dist && rollup -c rollup.config.mjs --environment production",
     "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "prepublishOnly": "npm run build && npm run type-check"
   },
   "keywords": [
@@ -41,11 +44,13 @@
     "@rollup/plugin-typescript": "^11.1.6",
     "@types/node": "^20.11.17",
     "@types/html-escaper": "^3.0.2",
+    "@vitest/coverage-v8": "^1.2.0",
     "rimraf": "^5.0.5",
     "rollup": "^4.9.6",
     "rollup-plugin-dts": "^6.1.0",
     "tslib": "^2.6.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
   },
   "engines": {
     "node": ">=16.0.0",
