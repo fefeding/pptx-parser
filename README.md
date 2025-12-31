@@ -15,7 +15,7 @@
 ## 安装
 
 ```bash
-npm install ppt-parser
+npm install @fefeding/ppt-parser
 ```
 
 或者直接下载 [`dist`](./dist) 目录下的文件使用。
@@ -25,7 +25,7 @@ npm install ppt-parser
 ### 解析 PPTX 文件
 
 ```typescript
-import PptParserCore from 'ppt-parser';
+import PptParserCore from '@fefeding/ppt-parser';
 
 // 上传并解析 PPTX 文件
 const fileInput = document.querySelector('#ppt-upload') as HTMLInputElement;
@@ -42,7 +42,7 @@ fileInput.addEventListener('change', async (e) => {
 ### 导出 PPTX 文件
 
 ```typescript
-import PptParserCore from 'ppt-parser';
+import PptParserCore from '@fefeding/ppt-parser';
 
 async function exportPptx(pptJson) {
   const pptBlob = await PptParserCore.serialize(pptJson);
@@ -59,7 +59,7 @@ async function exportPptx(pptJson) {
 ### 使用工具函数
 
 ```typescript
-import PptParserCore from 'ppt-parser';
+import PptParserCore from '@fefeding/ppt-parser';
 
 const { utils } = PptParserCore;
 
@@ -117,7 +117,7 @@ const id = utils.generateId('slide');
 ## Node.js 支持
 
 ```javascript
-const PptParserCore = require('ppt-parser');
+const PptParserCore = require('@fefeding/ppt-parser');
 
 // 解析本地文件
 const fs = require('fs');
@@ -128,7 +128,7 @@ const pptJson = await PptParserCore.parse(fs.readFileSync('presentation.pptx'));
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/ppt-parser.git
+git clone https://github.com/fefeding/pptx-parser.git
 
 # 安装依赖
 npm install
