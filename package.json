@@ -13,6 +13,14 @@
       "types": "./dist/types/index.d.ts"
     }
   },
+  "homepage": "https://github.com/fefeding/pptx-parser#readme",
+  "bugs": {
+    "url": "https://github.com/fefeding/pptx-parser/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fefeding/pptx-parser.git"
+  },
   "scripts": {
     "dev": "rollup -c rollup.config.mjs -w",
     "build": "rimraf dist && rollup -c rollup.config.mjs --environment production",
@@ -59,6 +67,8 @@
   "files": [
     "dist",
     "src",
+    "docs",
+    "examples",
     "tsconfig.json",
     "README.md"
   ]
