@@ -1,0 +1,9 @@
+._config.yml
+.travis.yml
+docs
+test
+node_modules
+templates
+.DS_Store
+cmaps
+standard_fonts

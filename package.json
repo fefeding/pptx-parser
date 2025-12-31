@@ -1,0 +1,60 @@
+{
+  "name": "ppt-parser",
+  "version": "1.0.0",
+  "description": "PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖",
+  "main": "./dist/ppt-parser.cjs.js",
+  "module": "./dist/ppt-parser.esm.js",
+  "types": "./dist/types/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/ppt-parser.esm.js",
+      "require": "./dist/ppt-parser.cjs.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "rollup -c rollup.config.mjs -w",
+    "build": "rimraf dist && rollup -c rollup.config.mjs --environment production",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run type-check"
+  },
+  "keywords": [
+    "pptx",
+    "ppt解析",
+    "ppt导出",
+    "pptx parser",
+    "pptx serializer",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "xlsx": "^0.18.5",
+    "html-escaper": "^3.0.3"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/node": "^20.11.17",
+    "@types/html-escaper": "^3.0.2",
+    "rimraf": "^5.0.5",
+    "rollup": "^4.9.6",
+    "rollup-plugin-dts": "^6.1.0",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md"
+  ]
+}
