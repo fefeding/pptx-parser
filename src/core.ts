@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { unescape } from 'html-escaper';
-import type { PptDocument, PptSlide, PptElement, XmlSlide, XmlElement, PptRect, PptStyle } from './types'; // ✅ 去掉.ts后缀
+import type { PptDocument, PptSlide, PptElement, XmlSlide, XmlElement, PptRect, PptStyle, PptTransform, PptTextParagraph, PptFill, PptBorder, PptShadow } from './types';
 
 /**
  * PPT解析核心工具函数 - 纯TS，无副作用，无耦合
