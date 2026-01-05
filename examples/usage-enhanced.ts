@@ -4,7 +4,7 @@
  * 演示如何使用增强版的 parsePptx 函数解析PPTX文件
  */
 
-import { parsePptxEnhanced, type PptxParseResult } from '../src/parser-enhanced';
+import { parsePptx, type PptxParseResult } from '../src/core/parser';
 import type { ParseOptions } from '../src/types-enhanced';
 
 // ============ 基础使用示例 ============
@@ -15,7 +15,7 @@ import type { ParseOptions } from '../src/types-enhanced';
  */
 async function example1_BasicUsage(file: File) {
   // 最简单的调用方式
-  const result = await parsePptxEnhanced(file);
+  const result = await parsePptx(file);
 
   console.log('PPT标题:', result.title);
   console.log('作者:', result.author);
@@ -34,7 +34,7 @@ async function example2_WithOptions(file: File) {
     verbose: true          // 详细日志输出（默认false）
   };
 
-  const result = await parsePptxEnhanced(file, options);
+  const result = await parsePptx(file, options);
   console.log('解析完成，包含', result.slides.length, '页幻灯片');
 }
 
@@ -44,7 +44,7 @@ async function example2_WithOptions(file: File) {
  * 示例3：遍历所有幻灯片和元素
  */
 async function example3_TraverseSlides(file: File) {
-  const result = await parsePptxEnhanced(file);
+  const result = await parsePptx(file);
 
   result.slides.forEach((slide, slideIndex) => {
     console.log(`\n=== 幻灯片 ${slideIndex + 1}: ${slide.title} ===`);
@@ -76,7 +76,7 @@ async function example3_TraverseSlides(file: File) {
  * 示例4：搜索包含特定文本的元素
  */
 async function example4_SearchText(file: File, searchText: string) {
-  const result = await parsePptxEnhanced(file);
+  const result = await parsePptx(file);
   const matches: Array<{ slideIndex: number; element: any }> = [];
 
   result.slides.forEach((slide, slideIndex) => {
@@ -97,7 +97,7 @@ async function example4_SearchText(file: File, searchText: string) {
  * 示例5：过滤特定类型的元素
  */
 async function example5_FilterByType(file: File) {
-  const result = await parsePptxEnhanced(file);
+  const result = await parsePptx(file);
 
   // 获取所有图片元素
   const images = result.slides.flatMap(slide =>
@@ -126,7 +126,7 @@ async function example5_FilterByType(file: File) {
  * 示例6：提取所有图片
  */
 async function example6_ExtractImages(file: File) {
-  const result = await parsePptxEnhanced(file, {
+  const result = await parsePptx(file, {
     parseImages: true // 启用图片解析
   });
 
@@ -181,7 +181,7 @@ function saveImage(base64Data: string, filename: string) {
  * 示例7：获取PPT元数据
  */
 async function example7_GetMetadata(file: File) {
-  const result = await parsePptxEnhanced(file);
+  const result = await parsePptx(file);
 
   console.log('=== PPT元数据 ===');
   console.log('标题:', result.title);
@@ -201,7 +201,7 @@ async function example7_GetMetadata(file: File) {
  * 示例8：递归处理分组元素
  */
 async function example8_HandleGroups(file: File) {
-  const result = await parsePptxEnhanced(file);
+  const result = await parsePptx(file);
 
   function processElement(element: any, depth: number = 0): void {
     const indent = '  '.repeat(depth);
@@ -225,7 +225,7 @@ async function example8_HandleGroups(file: File) {
  */
 async function example9_ErrorHandling(file: File) {
   try {
-    const result = await parsePptxEnhanced(file);
+    const result = await parsePptx(file);
 
     if (!result || result.slides.length === 0) {
       console.warn('警告: PPT文件没有幻灯片');
@@ -251,7 +251,7 @@ async function example9_ErrorHandling(file: File) {
 /**
  * 示例10：在Vue组件中使用
  */
-// import { parsePptxEnhanced } from 'pptx-parser';
+// import { parsePptx } from 'pptx-parser';
 //
 // export default {
 //   data() {
@@ -268,7 +268,7 @@ async function example9_ErrorHandling(file: File) {
 //
 //       this.loading = true;
 //       try {
-//         this.pptxResult = await parsePptxEnhanced(file, {
+//         this.pptxResult = await parsePptx(file, {
 //           parseImages: true,
 //           verbose: true
 //         });

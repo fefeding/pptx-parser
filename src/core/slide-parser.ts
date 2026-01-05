@@ -1,34 +1,30 @@
 /**
- * PPTX幻灯片解析核心函数
- * 遵循 ECMA-376 OpenXML 标准，完整解析 slide.xml 中的所有元素
- *
- * 核心功能：
- * 1. 完整解析 <p:spTree> 下的4类核心节点：p:sp, p:pic, p:graphicFrame, p:grpSp
- * 2. 支持命名空间查询，避免错误匹配
- * 3. 完善的容错处理，节点不存在时返回默认值
- * 4. 解析文本内容、位置尺寸、关联关系等核心属性
- * 5. 返回可调用toHTML的元素实例
+ * 幻灯片解析器
+ * 处理单个和多个幻灯片的解析
  */
 
-import { NS } from './constants';
+import JSZip from 'jszip';
+import { PATHS, NS } from '../constants';
 import {
   getChildrenByTagNS,
   getFirstChildByTagNS,
   generateId,
   log
-} from './utils';
-import type {
-  SlideParseResult,
-  RelsMap
-} from './types-enhanced';
+} from '../utils';
 import {
   ShapeElement,
   ImageElement,
   OleElement,
   ChartElement,
   GroupElement,
+  TableElement,
+  DiagramElement,
   type BaseElement
-} from './elements';
+} from '../elements';
+import { parseSlideRels } from './relationships-parser';
+import type { ParseOptions, RelsMap, SlideParseResult } from './types';
+
+
 
 /**
  * 解析单个幻灯片（核心函数）
@@ -54,8 +50,8 @@ export function parseSlide(
       return createEmptySlide(slideIndex);
     }
 
-    // 解析背景色
-    const background = parseSlideBackground(root);
+    // 解析背景（支持颜色和图片）
+    const background = parseSlideBackground(root, relsMap);
 
     // 解析幻灯片标题
     const title = parseSlideTitle(root, slideIndex);
@@ -69,7 +65,7 @@ export function parseSlide(
       id: generateId('slide'),
       title,
       background,
-      elements: elements.map(el => el.toParsedElement ? el.toParsedElement() : el),
+      elements: elements.map(el => el),  // 直接返回元素实例，保留toHTML方法
       relsMap
     };
   } catch (error) {
@@ -107,21 +103,23 @@ export function parseSlideElements(root: Element, relsMap: RelsMap): BaseElement
     if (child.nodeType !== 1) return; // 跳过非元素节点
 
     const tagName = child.tagName;
-    log('info', `Processing element ${index}: ${tagName}`);
+    const localName = child.localName || tagName.split(':').pop() || tagName;
+    log('info', `Processing element ${index}: tagName=${tagName}, localName=${localName}`);
 
     // 根据标签类型分发解析，返回元素实例
     let element: BaseElement | null = null;
 
-    if (tagName === 'p:sp' || tagName === 'sp') {
+    // 使用本地名称进行判断
+    if (localName === 'sp') {
       element = ShapeElement.fromNode(child, relsMap);
-    } else if (tagName === 'p:pic' || tagName === 'pic') {
+    } else if (localName === 'pic') {
       element = ImageElement.fromNode(child, relsMap);
-    } else if (tagName === 'p:graphicFrame' || tagName === 'graphicFrame') {
+    } else if (localName === 'graphicFrame') {
       element = parseGraphicFrameElement(child, relsMap);
-    } else if (tagName === 'p:grpSp' || tagName === 'grpSp') {
+    } else if (localName === 'grpSp') {
       element = GroupElement.fromNode(child, relsMap);
     } else {
-      log('info', `Skipping unknown element type: ${tagName}`);
+      log('info', `Skipping unknown element type: tagName=${tagName}, localName=${localName}`);
     }
 
     if (element) {
@@ -135,8 +133,73 @@ export function parseSlideElements(root: Element, relsMap: RelsMap): BaseElement
 }
 
 /**
+ * 解析所有幻灯片
+ * @param zip JSZip对象
+ * @param options 解析选项
+ * @returns 幻灯片数组
+ */
+export async function parseAllSlides(
+  zip: JSZip,
+  options: ParseOptions
+): Promise<SlideParseResult[]> {
+  try {
+    // 获取所有幻灯片文件
+    const slideFiles = Object.keys(zip.files)
+      .filter(path => path.startsWith(PATHS.SLIDES))
+      .filter(path => path.endsWith('.xml'))
+      .filter(path => !path.includes('_rels'))
+      .sort((a, b) => {
+        // 按文件名数字排序
+        const numA = parseInt(a.match(/slide(\d+)\.xml/)?.[1] || '0', 10);
+        const numB = parseInt(b.match(/slide(\d+)\.xml/)?.[1] || '0', 10);
+        return numA - numB;
+      });
+
+    log('info', `Found ${slideFiles.length} slide files`);
+
+    const slides: SlideParseResult[] = [];
+
+    for (let i = 0; i < slideFiles.length; i++) {
+      const slidePath = slideFiles[i];
+      log('info', `Parsing slide ${i + 1}: ${slidePath}`);
+
+      // 读取幻灯片XML
+      const slideXml = await zip.file(slidePath)?.async('string');
+      if (!slideXml) {
+        log('warn', `Failed to read slide: ${slidePath}`);
+        continue;
+      }
+
+      // 读取幻灯片的关联关系文件
+      const slideNumber = slidePath.match(/slide(\d+)\.xml/)?.[1];
+      let relsMap: RelsMap = {};
+
+      if (slideNumber) {
+        relsMap = await parseSlideRels(zip, slideNumber);
+        log('info', `Loaded ${Object.keys(relsMap).length} relationships for slide ${slideNumber}`);
+      }
+
+      // 解析幻灯片
+      const slide = parseSlide(slideXml, relsMap, i);
+
+      // 保存原始XML（如果需要）
+      if (options.keepRawXml) {
+        slide.rawXml = slideXml;
+      }
+
+      slides.push(slide);
+    }
+
+    return slides;
+  } catch (error) {
+    log('error', 'Failed to parse slides', error);
+    return [];
+  }
+}
+
+/**
  * 解析图形框元素（<p:graphicFrame>）
- * 判断是OLE对象还是图表，并返回对应的元素实例
+ * 判断是OLE对象、图表、表格还是图解，并返回对应的元素实例
  */
 function parseGraphicFrameElement(
   graphicFrameNode: Element,
@@ -159,6 +222,10 @@ function parseGraphicFrameElement(
       return OleElement.fromNode(graphicFrameNode, relsMap);
     } else if (uri.includes('chart')) {
       return ChartElement.fromNode(graphicFrameNode, relsMap);
+    } else if (uri.includes('diagram')) {
+      return DiagramElement.fromNode(graphicFrameNode, relsMap);
+    } else if (uri.includes('table')) {
+      return TableElement.fromNode(graphicFrameNode, relsMap);
     } else {
       log('info', `Unknown graphicFrame type: ${uri}`);
       return null;
@@ -170,36 +237,58 @@ function parseGraphicFrameElement(
 }
 
 /**
- * 解析幻灯片背景色
+ * 解析幻灯片背景（支持颜色和图片）
  * @param root 幻灯片根元素
- * @returns 背景颜色（十六进制）
+ * @param relsMap 关联关系映射表
+ * @returns 背景对象 { type: 'color'|'image', value: string }
  */
-function parseSlideBackground(root: Element): string {
+function parseSlideBackground(root: Element, relsMap: RelsMap = {}): { type: 'color' | 'image' | 'none'; value?: string; relId?: string } {
   // 查找 <p:bgPr> 节点
   const bgPr = getFirstChildByTagNS(root, 'bgPr', NS.p);
   if (!bgPr) {
-    return '#ffffff'; // 默认白色
+    return { type: 'color', value: '#ffffff' }; // 默认白色
   }
 
-  // 查找填充类型
+  // 1. 检查图片填充 <a:blipFill>
+  const blipFill = getFirstChildByTagNS(bgPr, 'blipFill', NS.a);
+  if (blipFill) {
+    const blip = getFirstChildByTagNS(blipFill, 'blip', NS.a);
+    if (blip) {
+      const relId = blip.getAttributeNS(NS.r, 'id') || blip.getAttribute('r:id');
+      if (relId && relsMap[relId]) {
+        return {
+          type: 'image',
+          value: relsMap[relId].target,
+          relId
+        };
+      }
+    }
+  }
+
+  // 2. 检查纯色填充 <a:solidFill>
   const solidFill = getFirstChildByTagNS(bgPr, 'solidFill', NS.a);
-  if (!solidFill) {
-    return '#ffffff';
+  if (solidFill) {
+    // 提取颜色值
+    const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
+    if (srgbClr?.getAttribute('val')) {
+      return { type: 'color', value: `#${srgbClr.getAttribute('val')}` };
+    }
+
+    // 检查方案引用
+    const schemeClr = getFirstChildByTagNS(solidFill, 'schemeClr', NS.a);
+    if (schemeClr?.getAttribute('val')) {
+      return { type: 'color', value: schemeClr.getAttribute('val') || '#ffffff' };
+    }
   }
 
-  // 提取颜色值
-  const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
-  if (srgbClr?.getAttribute('val')) {
-    return `#${srgbClr.getAttribute('val')}`;
+  // 3. 检查渐变填充 <a:gradFill>
+  const gradFill = getFirstChildByTagNS(bgPr, 'gradFill', NS.a);
+  if (gradFill) {
+    // 简化处理：渐变背景返回白色
+    return { type: 'color', value: '#ffffff' };
   }
 
-  // 检查方案引用
-  const schemeClr = getFirstChildByTagNS(solidFill, 'schemeClr', NS.a);
-  if (schemeClr?.getAttribute('val')) {
-    return schemeClr.getAttribute('val') || '#ffffff';
-  }
-
-  return '#ffffff';
+  return { type: 'color', value: '#ffffff' };
 }
 
 /**
@@ -289,8 +378,3 @@ function createEmptySlide(slideIndex: number): SlideParseResult {
     relsMap: {}
   };
 }
-
-// 导出类型
-export type {
-  SlideParseResult
-};

@@ -61,7 +61,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { parsePptxEnhanced, ShapeElement, ImageElement, OleElement, ChartElement, GroupElement, type BaseElement } from 'pptx-parser'
+import { parsePptx } from 'pptx-parser'
 import type { PptxParseResult } from 'pptx-parser'
 
 const loading = ref(false)
@@ -79,7 +79,7 @@ const currentSlide = computed(() => {
 const currentSlideHTML = computed(() => {
   if (!parsedData.value || !currentSlide.value) return ''
 
-  // 使用元素的toHTML方法渲染
+  // 直接使用元素实例的toHTML方法渲染
   const slide = currentSlide.value
   const containerStyle = [
     `width: 100%`,
@@ -90,9 +90,8 @@ const currentSlideHTML = computed(() => {
   ].join('; ')
 
   const elementsHTML = slide.elements.map((element: any) => {
-    // 创建元素实例并调用toHTML
-    const el = createElementFromData(element)
-    return el?.toHTML() || ''
+    // 元素已经是BaseElement实例，直接调用toHTML
+    return element.toHTML ? element.toHTML() : ''
   }).join('\n')
 
   return `<div style="${containerStyle}">
@@ -109,43 +108,6 @@ const slideStyle = computed(() => {
   }
 })
 
-// 从解析后的数据创建元素实例
-function createElementFromData(data: any): BaseElement | null {
-  if (!data || !data.type) return null
-
-  switch (data.type) {
-    case 'shape':
-    case 'text': {
-      const element = new ShapeElement(data.id, data.type, data.rect, data.content, data.props, {})
-      Object.assign(element, data)
-      return element
-    }
-    case 'image': {
-      const element = new ImageElement(data.id, data.rect, data.src, data.relId, data.props, {})
-      Object.assign(element, data)
-      return element
-    }
-    case 'ole': {
-      const element = new OleElement(data.id, data.rect, data.progId, data.relId, data.props, {})
-      Object.assign(element, data)
-      return element
-    }
-    case 'chart': {
-      const element = new ChartElement(data.id, data.rect, data.chartType, data.relId, data.props, {})
-      Object.assign(element, data)
-      return element
-    }
-    case 'group': {
-      const children = (data.children || []).map((child: any) => createElementFromData(child)).filter(Boolean) as BaseElement[]
-      const element = new GroupElement(data.id, data.rect, children, data.props, {})
-      Object.assign(element, data)
-      return element
-    }
-    default:
-      return null
-  }
-}
-
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -156,7 +118,7 @@ async function handleFileUpload(event: Event) {
 
   try {
     const arrayBuffer = await file.arrayBuffer()
-    const data = await parsePptxEnhanced(arrayBuffer, {
+    const data = await parsePptx(arrayBuffer, {
       parseImages: true,
       keepRawXml: false,
       verbose: true
@@ -185,8 +147,7 @@ function exportHTML() {
     ].join('; ')
 
     const elementsHTML = slide.elements.map((element: any) => {
-      const el = createElementFromData(element)
-      return el?.toHTML() || ''
+      return element.toHTML ? element.toHTML() : ''
     }).join('\n')
 
     return `<div class="ppt-slide" style="${containerStyle}" data-slide-id="${slide.id}">

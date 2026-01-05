@@ -17,7 +17,7 @@
 
 #### 2. 完善核心解析入口
 - ✅ 文件位置：`src/parser-enhanced.ts`
-- ✅ 保留原有 `parsePptx` API（`parsePptxEnhanced` 作为增强版本）
+- ✅ 保留原有 `parsePptx` API（功能已合并到 `parsePptx`）
 - ✅ 复用解压逻辑（JSZip）
 - ✅ 遍历所有 `ppt/slides/slide*.xml` 文件
 - ✅ 调用重构后的 `parseSlide` 函数
@@ -102,7 +102,7 @@ import { parsePptx } from 'pptx-parser';
 
 ### 增强版 API（新功能）
 ```typescript
-import { parsePptxEnhanced } from 'pptx-parser';
+import { parsePptx } from 'pptx-parser';
 // ✅ 新增，提供完整解析能力
 ```
 
@@ -220,9 +220,9 @@ function parseGroupElement(node: Element): ParsedGroupElement | null {
 
 ### 快速开始
 ```typescript
-import { parsePptxEnhanced } from 'pptx-parser';
+import { parsePptx } from 'pptx-parser';
 
-const result = await parsePptxEnhanced(file, {
+const result = await parsePptx(file, {
   parseImages: true,
   verbose: true
 });
@@ -265,15 +265,15 @@ import { parsePptx } from 'pptx-parser';
 const result = await parsePptx(file);
 
 // 方式2：使用增强版（新功能）
-import { parsePptxEnhanced as parsePptx } from 'pptx-parser';
+import { parsePptx } from 'pptx-parser';
 const result = await parsePptx(file);
 ```
 
 ### 访问新功能
 ```typescript
-import { parsePptxEnhanced } from 'pptx-parser';
+import { parsePptx } from 'pptx-parser';
 
-const result = await parsePptxEnhanced(file);
+const result = await parsePptx(file);
 
 // 新增属性
 console.log('作者:', result.author);

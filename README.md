@@ -44,7 +44,7 @@ fileInput.addEventListener('change', async (e) => {
 > 💡 **增强版**提供完整的PPTX解析能力，支持标准PPTX文件的所有元素类型，包括OLE对象、分组元素、图片Base64解析等
 
 ```typescript
-import { parsePptxEnhanced } from '@fefeding/ppt-parser';
+import { parsePptx } from 'pptx-parser';
 
 // 上传并解析 PPTX 文件（增强版）
 const fileInput = document.querySelector('#ppt-upload') as HTMLInputElement;
@@ -53,7 +53,7 @@ fileInput.addEventListener('change', async (e) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
 
-  const result = await parsePptxEnhanced(file, {
+  const result = await parsePptx(file, {
     parseImages: true,    // 解析图片为Base64
     verbose: true          // 详细日志
   });
@@ -138,7 +138,7 @@ const id = utils.generateId('slide');
 
 ## 增强版功能
 
-增强版 `parsePptxEnhanced` 提供以下额外功能：
+增强版 `parsePptx` 提供以下额外功能：
 
 - ✅ **完整元素解析** - 支持形状、图片、OLE对象、图表、分组等所有标准元素
 - ✅ **命名空间处理** - 遵循 ECMA-376 OpenXML 标准

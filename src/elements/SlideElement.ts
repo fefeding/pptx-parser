@@ -3,7 +3,7 @@
  * 封装幻灯片的完整信息，包括toHTML能力
  */
 
-import type { SlideParseResult } from '../types-enhanced';
+import type { SlideParseResult } from '../core/types';
 import type { BaseElement } from './BaseElement';
 
 /**

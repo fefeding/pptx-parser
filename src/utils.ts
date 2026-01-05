@@ -52,10 +52,11 @@ export function getAttrs(node: Element): Record<string, string> {
  * @returns 子元素数组
  */
 export function getChildrenByTagNS(
-  parent: Element,
+  parent: Element | null,
   tagName: string,
   namespaceURI: string
 ): Element[] {
+  if (!parent) return [];
   return Array.from(parent.getElementsByTagNameNS(namespaceURI, tagName));
 }
 
@@ -67,10 +68,11 @@ export function getChildrenByTagNS(
  * @returns 子元素或null
  */
 export function getFirstChildByTagNS(
-  parent: Element,
+  parent: Element | null,
   tagName: string,
   namespaceURI: string
 ): Element | null {
+  if (!parent) return null;
   return parent.getElementsByTagNameNS(namespaceURI, tagName)[0] || null;
 }
 

@@ -3,9 +3,9 @@
  */
 
 import { BaseElement } from './BaseElement';
-import { getFirstChildByTagNS, getAttrSafe, getBoolAttr } from '../utils';
+import { getFirstChildByTagNS, getAttrSafe, getBoolAttr, emu2px } from '../utils';
 import { NS } from '../constants';
-import type { ParsedOleElement, RelsMap } from '../types-enhanced';
+import type { ParsedOleElement, RelsMap } from '../types';
 import { ImageElement } from './ImageElement';
 
 /**
@@ -64,7 +64,7 @@ export class OleElement extends BaseElement {
       const progId = oleObj.getAttribute('progId') || '';
       const relId = oleObj.getAttributeNS(NS.r, 'id') || oleObj.getAttribute('r:id') || '';
 
-      const element = new OleElement('', { x: 0, y: 0, width: 0, height: 0 }, progId, relId, {}, relsMap);
+      const element = new OleElement('', { x: 0, y: 0, width: 0, height: 0 }, progId, relId, {}, {}, relsMap);
 
       // 解析ID和名称
       const nvGraphicFramePr = getFirstChildByTagNS(node, 'nvGraphicFramePr', NS.p);
@@ -82,10 +82,10 @@ export class OleElement extends BaseElement {
         const ext = getFirstChildByTagNS(xfrm, 'ext', NS.a);
 
         if (off && ext) {
-          element.rect.x = parseInt(off.getAttribute('x') || '0') / 914400;
-          element.rect.y = parseInt(off.getAttribute('y') || '0') / 914400;
-          element.rect.width = parseInt(ext.getAttribute('cx') || '0') / 914400;
-          element.rect.height = parseInt(ext.getAttribute('cy') || '0') / 914400;
+          element.rect.x = emu2px(off.getAttribute('x') || '0');
+          element.rect.y = emu2px(off.getAttribute('y') || '0');
+          element.rect.width = emu2px(ext.getAttribute('cx') || '0');
+          element.rect.height = emu2px(ext.getAttribute('cy') || '0');
         }
       }
 

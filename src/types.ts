@@ -428,3 +428,104 @@ export interface Relationship {
 export interface RelationshipMap {
   [key: string]: Relationship;
 }
+
+/** 关系映射表（解析时使用） */
+export interface RelsMap {
+  [key: string]: {
+    id: string;
+    type: string;
+    target: string;
+  };
+}
+
+/** 幻灯片解析结果 */
+export interface SlideParseResult {
+  slideId: string;
+  slideLayout?: string;
+  elements: any[];
+  width?: number;
+  height?: number;
+}
+
+// ============ 解析后的元素类型 ============
+/** 解析后的形状元素 */
+export interface ParsedShapeElement {
+  id: string;
+  type: 'shape';
+  rect: PptRect;
+  style: PptStyle;
+  content: any;
+  props: any;
+  name?: string;
+  hidden?: boolean;
+  shapeType?: string;
+  placeholderType?: 'title' | 'body' | 'dateTime' | 'slideNumber' | 'footer' | 'other';
+  text?: string;
+  attrs?: Record<string, string>;
+  rawNode?: Element;
+}
+
+/** 解析后的图片元素 */
+export interface ParsedImageElement {
+  id: string;
+  type: 'image';
+  rect: PptRect;
+  style: PptStyle;
+  content: any;
+  props: any;
+  name?: string;
+  hidden?: boolean;
+  src?: string;
+  mediaType?: 'image' | 'video' | 'audio';
+  relId?: string;
+  attrs?: Record<string, string>;
+  rawNode?: Element;
+}
+
+/** 解析后的图表元素 */
+export interface ParsedChartElement {
+  id: string;
+  type: 'chart';
+  rect: PptRect;
+  style: PptStyle;
+  content: any;
+  props: any;
+  name?: string;
+  hidden?: boolean;
+  relId?: string;
+  chartType?: 'lineChart' | 'barChart' | 'pieChart' | 'pie3DChart' | 'areaChart' | 'scatterChart' | 'unknown';
+  attrs?: Record<string, string>;
+  rawNode?: Element;
+}
+
+/** 解析后的OLE对象元素 */
+export interface ParsedOleElement {
+  id: string;
+  type: 'ole';
+  rect: PptRect;
+  style: PptStyle;
+  content: any;
+  props: any;
+  name?: string;
+  hidden?: boolean;
+  src?: string;
+  relId?: string;
+  attrs?: Record<string, string>;
+  rawNode?: Element;
+}
+
+/** 解析后的分组元素 */
+export interface ParsedGroupElement {
+  id: string;
+  type: 'group';
+  rect: PptRect;
+  style: PptStyle;
+  content: any;
+  props: any;
+  name?: string;
+  hidden?: boolean;
+  children?: any[];
+  childOffset?: { x: number; y: number };
+  attrs?: Record<string, string>;
+  rawNode?: Element;
+}
