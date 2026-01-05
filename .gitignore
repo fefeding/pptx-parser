@@ -12,3 +12,4 @@ run/
 .tsbuildinfo
 .tsbuildinfo.*
 pnpm-lock.yaml
+examples/PPTXjs

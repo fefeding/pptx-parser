@@ -39,6 +39,41 @@ fileInput.addEventListener('change', async (e) => {
 });
 ```
 
+### 增强版解析（推荐使用）
+
+> 💡 **增强版**提供完整的PPTX解析能力，支持标准PPTX文件的所有元素类型，包括OLE对象、分组元素、图片Base64解析等
+
+```typescript
+import { parsePptxEnhanced } from '@fefeding/ppt-parser';
+
+// 上传并解析 PPTX 文件（增强版）
+const fileInput = document.querySelector('#ppt-upload') as HTMLInputElement;
+
+fileInput.addEventListener('change', async (e) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  const result = await parsePptxEnhanced(file, {
+    parseImages: true,    // 解析图片为Base64
+    verbose: true          // 详细日志
+  });
+
+  console.log('PPT标题:', result.title);
+  console.log('作者:', result.author);
+  console.log('幻灯片数量:', result.slides.length);
+
+  // 遍历所有元素
+  result.slides.forEach((slide, index) => {
+    console.log(`幻灯片 ${index + 1}: ${slide.title}`);
+    slide.elements.forEach(element => {
+      console.log(`  ${element.type}: ${element.text || ''}`);
+    });
+  });
+});
+```
+
+📖 **查看增强版文档**：[ENHANCED_README.md](./docs/ENHANCED_README.md) | [ENHANCED_GUIDE.md](./docs/ENHANCED_GUIDE.md)
+
 ### 导出 PPTX 文件
 
 ```typescript
@@ -100,6 +135,22 @@ const id = utils.generateId('slide');
 ```
 
 详细类型定义请查看 [docs/API.md](./docs/API.md)。
+
+## 增强版功能
+
+增强版 `parsePptxEnhanced` 提供以下额外功能：
+
+- ✅ **完整元素解析** - 支持形状、图片、OLE对象、图表、分组等所有标准元素
+- ✅ **命名空间处理** - 遵循 ECMA-376 OpenXML 标准
+- ✅ **图片Base64** - 自动解析图片为Base64格式
+- ✅ **文本样式** - 解析字体大小、颜色、加粗、斜体等样式
+- ✅ **元数据提取** - 提取标题、作者、创建时间等信息
+- ✅ **关联关系** - 解析rels文件，正确引用资源
+- ✅ **完善容错** - 节点不存在时返回默认值，不抛异常
+
+详细文档请查看：
+- [增强版文档](./docs/ENHANCED_README.md) - 完整API和功能说明
+- [使用指南](./docs/ENHANCED_GUIDE.md) - 实战示例和最佳实践
 
 ## 功能特性
 

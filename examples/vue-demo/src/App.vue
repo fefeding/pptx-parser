@@ -2,7 +2,7 @@
   <div id="app">
     <header class="header">
       <h1>PPTX Parser Demo</h1>
-      <p>上传PPTX文件查看解析结果</p>
+      <p>上传PPTX文件查看解析结果（使用toHTML渲染）</p>
     </header>
 
     <main class="main">
@@ -27,6 +27,9 @@
           <button @click="currentSlideIndex = Math.min(parsedData.slides.length - 1, currentSlideIndex + 1)" :disabled="currentSlideIndex === parsedData.slides.length - 1">
             下一页 →
           </button>
+          <button @click="exportHTML" style="margin-left: 1rem; background: #10b981;">
+            导出HTML
+          </button>
         </div>
 
         <div class="slide-thumbnails">
@@ -42,9 +45,7 @@
         </div>
 
         <div class="slide-viewer">
-          <div class="slide" :style="slideStyle">
-            <SlideRenderer :slide="currentSlide" />
-          </div>
+          <div class="slide" :style="slideStyle" v-html="currentSlideHTML"></div>
         </div>
 
         <div class="raw-data">
@@ -60,13 +61,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { parsePptx } from 'pptx-parser'
-import SlideRenderer from './components/SlideRenderer.vue'
-import type { PptDocument } from 'pptx-parser'
+import { parsePptxEnhanced, ShapeElement, ImageElement, OleElement, ChartElement, GroupElement, type BaseElement } from 'pptx-parser'
+import type { PptxParseResult } from 'pptx-parser'
 
 const loading = ref(false)
 const error = ref('')
-const parsedData = ref<PptDocument | null>(null)
+const parsedData = ref<PptxParseResult | null>(null)
 const currentSlideIndex = ref(0)
 
 const currentSlide = computed(() => {
@@ -76,14 +76,75 @@ const currentSlide = computed(() => {
   return parsedData.value.slides[currentSlideIndex.value]
 })
 
+const currentSlideHTML = computed(() => {
+  if (!parsedData.value || !currentSlide.value) return ''
+
+  // 使用元素的toHTML方法渲染
+  const slide = currentSlide.value
+  const containerStyle = [
+    `width: 100%`,
+    `height: 100%`,
+    `position: relative`,
+    `background-color: ${slide.background || '#ffffff'}`,
+    `overflow: hidden`
+  ].join('; ')
+
+  const elementsHTML = slide.elements.map((element: any) => {
+    // 创建元素实例并调用toHTML
+    const el = createElementFromData(element)
+    return el?.toHTML() || ''
+  }).join('\n')
+
+  return `<div style="${containerStyle}">
+${elementsHTML}
+    </div>`
+})
+
 const slideStyle = computed(() => {
   if (!parsedData.value) return {}
-  const { width, height } = parsedData.value
+  const { width, height } = parsedData.value.props
   return {
     width: `${width}px`,
     height: `${height}px`
   }
 })
+
+// 从解析后的数据创建元素实例
+function createElementFromData(data: any): BaseElement | null {
+  if (!data || !data.type) return null
+
+  switch (data.type) {
+    case 'shape':
+    case 'text': {
+      const element = new ShapeElement(data.id, data.type, data.rect, data.content, data.props, {})
+      Object.assign(element, data)
+      return element
+    }
+    case 'image': {
+      const element = new ImageElement(data.id, data.rect, data.src, data.relId, data.props, {})
+      Object.assign(element, data)
+      return element
+    }
+    case 'ole': {
+      const element = new OleElement(data.id, data.rect, data.progId, data.relId, data.props, {})
+      Object.assign(element, data)
+      return element
+    }
+    case 'chart': {
+      const element = new ChartElement(data.id, data.rect, data.chartType, data.relId, data.props, {})
+      Object.assign(element, data)
+      return element
+    }
+    case 'group': {
+      const children = (data.children || []).map((child: any) => createElementFromData(child)).filter(Boolean) as BaseElement[]
+      const element = new GroupElement(data.id, data.rect, children, data.props, {})
+      Object.assign(element, data)
+      return element
+    }
+    default:
+      return null
+  }
+}
 
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
@@ -95,15 +156,86 @@ async function handleFileUpload(event: Event) {
 
   try {
     const arrayBuffer = await file.arrayBuffer()
-    const data = await parsePptx(arrayBuffer)
+    const data = await parsePptxEnhanced(arrayBuffer, {
+      parseImages: true,
+      keepRawXml: false,
+      verbose: true
+    })
     parsedData.value = data
     currentSlideIndex.value = 0
+    console.log('解析结果:', data)
   } catch (err) {
     error.value = err instanceof Error ? err.message : '解析失败，请检查文件格式'
     console.error('Parse error:', err)
   } finally {
     loading.value = false
   }
+}
+
+function exportHTML() {
+  if (!parsedData.value) return
+
+  const slidesHTML = parsedData.value.slides.map((slide: any) => {
+    const containerStyle = [
+      `width: 100%`,
+      `height: 100%`,
+      `position: relative`,
+      `background-color: ${slide.background || '#ffffff'}`,
+      `overflow: hidden`
+    ].join('; ')
+
+    const elementsHTML = slide.elements.map((element: any) => {
+      const el = createElementFromData(element)
+      return el?.toHTML() || ''
+    }).join('\n')
+
+    return `<div class="ppt-slide" style="${containerStyle}" data-slide-id="${slide.id}">
+${elementsHTML}
+    </div>`
+  }).join('\n\n')
+
+  const { width, height } = parsedData.value.props
+  const htmlContent = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${parsedData.value.title || 'PPTX Presentation'}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+      font-family: Arial, sans-serif;
+    }
+    .ppt-container {
+      max-width: ${width}px;
+      margin: 0 auto;
+    }
+    .ppt-slide {
+      width: ${width}px;
+      height: ${height}px;
+      background: white;
+      margin: 20px auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="ppt-container">
+    <h1 style="text-align: center; margin-bottom: 30px;">${parsedData.value.title || 'PPTX Presentation'}</h1>
+${slidesHTML}
+  </div>
+</body>
+</html>`
+
+  const blob = new Blob([htmlContent], { type: 'text/html' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${parsedData.value.title || 'presentation'}.html`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 </script>
 
