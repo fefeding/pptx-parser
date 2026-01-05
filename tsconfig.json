@@ -22,5 +22,5 @@
     "noEmit": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "rollup.config.mjs"]
+  "exclude": ["node_modules", "dist", "rollup.config.mjs", "examples", "docs"]
 }
