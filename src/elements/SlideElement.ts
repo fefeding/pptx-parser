@@ -4,7 +4,9 @@
  */
 
 import type { SlideParseResult } from '../core/types';
-import type { BaseElement } from './BaseElement';
+import { BaseElement } from './BaseElement';
+import { applyStyleInheritance } from '../core/style-inheritance';
+import type { SlideLayoutResult, MasterSlideResult } from '../core/types';
 
 /**
  * 幻灯片元素类
@@ -25,33 +27,124 @@ export class SlideElement {
   /** 原始解析结果 */
   rawResult: SlideParseResult;
 
-  constructor(result: SlideParseResult, elements: BaseElement[]) {
+  /** 布局对象 */
+  layout?: SlideLayoutResult;
+
+  /** 母版对象 */
+  master?: MasterSlideResult;
+
+  constructor(
+    result: SlideParseResult,
+    elements: BaseElement[],
+    layout?: SlideLayoutResult,
+    master?: MasterSlideResult
+  ) {
     this.id = result.id;
     this.title = result.title;
     this.background = typeof result.background === 'string' ? result.background : '';
     this.elements = elements;
     this.rawResult = result;
+    this.layout = layout;
+    this.master = master;
   }
 
   /**
    * 转换为HTML
+   * 支持 layout 和 master 样式继承
    */
   toHTML(): string {
+    // 确保样式已应用（从 layout 和 master 继承）
+    if (!this.rawResult.styleApplied && this.layout) {
+      applyStyleInheritance(this.rawResult, this.layout, this.master);
+      this.rawResult.styleApplied = true;
+    }
+
+    // 获取背景样式
+    const background = this.getSlideBackground();
+
+    // 获取幻灯片尺寸
+    const size = { width: 960, height: 540 };
+
     const slideStyle = [
-      `width: 100%`,
-      `height: 100%`,
+      `width: ${size.width}px`,
+      `height: ${size.height}px`,
       `position: relative`,
-      `background-color: ${this.background}`,
+      background,
       `overflow: hidden`
     ].join('; ');
 
+    // 渲染布局和母版元素
+    const layoutElementsHTML = this.renderLayoutElements();
+
+    // 渲染幻灯片元素
     const elementsHTML = this.elements
       .map(element => element.toHTML())
       .join('\n');
 
     return `<div class="ppt-slide" style="${slideStyle}" data-slide-id="${this.id}" data-slide-title="${this.escapeHtml(this.title)}">
+${layoutElementsHTML}
 ${elementsHTML}
     </div>`;
+  }
+
+  /**
+   * 渲染布局和母版元素
+   */
+  private renderLayoutElements(): string {
+    const elements: string[] = [];
+
+    // 渲染母版元素（如页脚、页码等）
+    if (this.master?.elements && this.master.elements.length > 0) {
+      this.master.elements.forEach(el => {
+        if (el instanceof BaseElement) {
+          // 只渲染未隐藏的元素
+          if (!el.hidden) {
+            elements.push(`<div class="ppt-master-element">${el.toHTML()}</div>`);
+          }
+        }
+      });
+    }
+
+    // 渲染布局元素（占位符）
+    if (this.layout?.elements && this.layout.elements.length > 0) {
+      this.layout.elements.forEach(el => {
+        if (el instanceof BaseElement) {
+          // 只渲染占位符（且未被 slide 元素覆盖）
+          if (el.isPlaceholder && !el.hidden) {
+            elements.push(`<div class="ppt-layout-element">${el.toHTML()}</div>`);
+          }
+        }
+      });
+    }
+
+    return elements.join('\n');
+  }
+
+  /**
+   * 获取幻灯片背景样式
+   */
+  private getSlideBackground(): string {
+    const bg = this.rawResult.background;
+
+    if (!bg) {
+      return 'background-color: #ffffff;';
+    }
+
+    if (typeof bg === 'string') {
+      return `background-color: ${bg};`;
+    }
+
+    // 背景对象
+    if (bg.type === 'color' && bg.value) {
+      return `background-color: ${bg.value};`;
+    }
+
+    if (bg.type === 'image' && bg.relId) {
+      // 图片背景需要从 relsMap 获取实际 URL
+      return `background-image: url('${bg.relId}'); background-size: cover; background-position: center;`;
+    }
+
+    return 'background-color: #ffffff;';
   }
 
   /**
@@ -129,6 +222,33 @@ export class PptxDocument {
     this.height = height;
     this.ratio = width / height;
     this.author = author;
+  }
+
+  /**
+   * 从 PptxParseResult 创建 PptxDocument
+   */
+  static fromParseResult(result: any): PptxDocument {
+    const slides = result.slides.map((slide: any) => {
+      // 将 slide.elements 转换为 BaseElement 实例
+      const { createElementFromData } = require('../elements');
+      const elements = (slide.elements || []).map((el: any) => {
+        if (el instanceof BaseElement) {
+          return el;
+        }
+        return createElementFromData(el, slide.relsMap || {});
+      }).filter((el: any) => el !== null);
+
+      return new SlideElement(slide, elements, slide.layout, slide.master);
+    });
+
+    return new PptxDocument(
+      result.id,
+      result.title,
+      slides,
+      result.props.width || 960,
+      result.props.height || 540,
+      result.author
+    );
   }
 
   /**

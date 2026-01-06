@@ -7,67 +7,7 @@
 import JSZip from 'jszip';
 import { getFirstChildByTagNS, getAttrSafe, emu2px, log } from '../utils';
 import { NS } from '../constants';
-import type { RelsMap } from './types';
-
-/**
- * 图表数据系列
- */
-export interface ChartSeries {
-  name?: string;
-  idx?: number;
-  order?: number;
-  points?: ChartDataPoint[];
-  color?: string;
-}
-
-/**
- * 图表数据点
- */
-export interface ChartDataPoint {
-  idx?: number;
-  value?: number;
-  category?: string;
-}
-
-/**
- * 图表解析结果
- */
-export interface ChartResult {
-  id: string;
-  chartType: 'lineChart' | 'barChart' | 'pieChart' | 'pie3DChart' | 'areaChart' | 'scatterChart' | 'unknown';
-  title?: string;
-  series?: ChartSeries[];
-  categories?: string[];
-  xTitle?: string;
-  yTitle?: string;
-  showLegend?: boolean;
-  showDataLabels?: boolean;
-  relsMap: RelsMap;
-}
-
-/**
- * SmartArt/Diagram 解析结果
- */
-export interface DiagramResult {
-  id: string;
-  diagramType?: string;
-  layout?: string;
-  colors?: Record<string, string>;
-  data?: Record<string, any>;
-  shapes?: DiagramShape[];
-  relsMap: RelsMap;
-}
-
-/**
- * Diagram 形状
- */
-export interface DiagramShape {
-  id: string;
-  type: string;
-  position?: { x: number; y: number };
-  size?: { width: number; height: number };
-  text?: string;
-}
+import type { RelsMap, ChartResult, DiagramResult, ChartSeries, ChartDataPoint, DiagramShape } from './types';
 
 /**
  * 解析所有图表

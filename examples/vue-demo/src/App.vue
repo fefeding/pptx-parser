@@ -162,12 +162,13 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { parsePptx, slide2HTML, ppt2HTMLDocument } from 'pptx-parser'
-import type { PptxParseResult, SlideParseResult } from 'pptx-parser'
+import { parsePptx, createDocument } from 'pptx-parser'
+import type { PptxParseResult, SlideParseResult, HtmlRenderOptions } from 'pptx-parser'
 
 const loading = ref(false)
 const error = ref('')
 const parsedData = ref<PptxParseResult | null>(null)
+const documentElement = ref<any>(null)
 const currentSlideIndex = ref(0)
 
 const currentSlide = computed(() => {
@@ -178,21 +179,18 @@ const currentSlide = computed(() => {
 })
 
 const currentSlideHTML = computed(() => {
-  if (!parsedData.value || !currentSlide.value) return ''
+  if (!documentElement.value || !currentSlide.value) return ''
 
-  // 使用新库提供的 slide2HTML 函数
-  return slide2HTML(currentSlide.value, {
-    includeLayoutElements: true, // 包含布局和母版元素
-    includeStyles: true // 包含样式
-  })
+  // 使用 DocumentElement 的 toHTML 方法
+  const slide = documentElement.value.getSlide(currentSlideIndex.value)
+  return slide ? slide.toHTML() : ''
 })
 
 const slideStyle = computed(() => {
-  if (!parsedData.value) return {}
-  const { width, height } = parsedData.value.props
+  if (!documentElement.value) return {}
   return {
-    width: `${width}px`,
-    height: `${height}px`
+    width: `${documentElement.value.width}px`,
+    height: `${documentElement.value.height}px`
   }
 })
 
@@ -208,6 +206,8 @@ async function handleFileUpload(event: Event) {
     const buffer = await file.arrayBuffer()
     const result = await parsePptx(buffer)
     parsedData.value = result
+    // 创建文档元素
+    documentElement.value = createDocument(result)
     currentSlideIndex.value = 0
   } catch (e) {
     error.value = e instanceof Error ? e.message : '解析失败'
@@ -217,20 +217,22 @@ async function handleFileUpload(event: Event) {
 }
 
 function exportHTML() {
-  if (!parsedData.value) return
+  if (!documentElement.value) return
 
-  // 使用新库提供的 ppt2HTMLDocument 函数导出完整 HTML
-  const html = ppt2HTMLDocument(parsedData.value, {
+  // 使用 DocumentElement 的 toHTML 方法导出完整 HTML
+  const options: HtmlRenderOptions = {
     includeStyles: true,
-    includeLayoutElements: true
-  })
+    includeLayoutElements: true,
+    withNavigation: false // 导出静态版本
+  }
+  const html = documentElement.value.toHTML(options)
 
   // 创建下载链接
   const blob = new Blob([html], { type: 'text/html' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `${parsedData.value.title || 'presentation'}.html`
+  a.download = `${documentElement.value.title || 'presentation'}.html`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)

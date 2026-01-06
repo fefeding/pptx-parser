@@ -38,6 +38,9 @@ export abstract class BaseElement {
   /** 原始XML节点 */
   rawNode?: Element;
 
+  /** 是否为占位符 */
+  isPlaceholder?: boolean;
+
   /** 关联关系映射表 */
   protected relsMap: Record<string, any>;
 

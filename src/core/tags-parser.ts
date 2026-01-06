@@ -7,44 +7,7 @@
 import JSZip from 'jszip';
 import { getFirstChildByTagNS, getAttrSafe, log } from '../utils';
 import { NS } from '../constants';
-import type { RelsMap } from './types';
-
-/**
- * 幻灯片标签
- */
-export interface SlideTag {
-  name: string;
-  value: string;
-}
-
-/**
- * 扩展数据
- */
-export interface ExtensionData {
-  uri?: string;
-  data?: any;
-}
-
-/**
- * 自定义属性
- */
-export interface CustomProperty {
-  name: string;
-  value: any;
-  type?: 'string' | 'number' | 'boolean' | 'date';
-}
-
-/**
- * 标签解析结果
- */
-export interface TagsResult {
-  id: string;
-  slideId?: string;
-  tags: SlideTag[];
-  extensions: ExtensionData[];
-  customProperties: CustomProperty[];
-  relsMap: RelsMap;
-}
+import type { RelsMap, SlideTag, ExtensionData, CustomProperty, TagsResult } from './types';
 
 /**
  * 解析所有幻灯片的标签

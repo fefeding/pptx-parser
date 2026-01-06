@@ -7,42 +7,7 @@
 import JSZip from 'jszip';
 import { getFirstChildByTagNS, getAttrSafe, emu2px, log } from '../utils';
 import { NS } from '../constants';
-import type { RelsMap } from './types';
-
-/**
- * 备注母版解析结果
- */
-export interface NotesMasterResult {
-  id: string;
-  elements: any[];
-  background?: { type: 'color' | 'image' | 'none'; value?: string; relId?: string };
-  placeholders?: Placeholder[];
-  relsMap: RelsMap;
-}
-
-/**
- * 备注页解析结果
- */
-export interface NotesSlideResult {
-  id: string;
-  slideId?: string; // 关联的幻灯片ID
-  text?: string; // 备注文本
-  elements: any[];
-  background?: { type: 'color' | 'image' | 'none'; value?: string; relId?: string };
-  relsMap: RelsMap;
-  masterRef?: string; // 引用的母版
-  master?: NotesMasterResult; // 母版对象
-}
-
-/**
- * 备注占位符定义
- */
-export interface Placeholder {
-  id: string;
-  type: 'header' | 'body' | 'dateTime' | 'slideImage' | 'footer' | 'other';
-  name?: string;
-  rect: { x: number; y: number; width: number; height: number };
-}
+import type { RelsMap, NotesMasterResult, NotesSlideResult, Placeholder } from './types';
 
 /**
  * 解析所有备注母版

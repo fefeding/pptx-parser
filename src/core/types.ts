@@ -71,6 +71,12 @@ export interface PptxParseResult {
   tags?: TagsResult[];
 }
 
+/**
+ * @deprecated 请使用 DocumentElement 替代
+ * 保留此类型仅用于向后兼容
+ */
+export type PptDocument = PptxParseResult;
+
 /** 导入SlideLayoutResult类型以便在PptxParseResult中使用 */
 /**
  * 幻灯片版式解析结果
@@ -184,6 +190,8 @@ export interface SlideParseResult {
   layout?: SlideLayoutResult;
   /** 引用的母版对象（由 parser 填充） */
   master?: MasterSlideResult;
+  /** 样式是否已应用（用于避免重复应用） */
+  styleApplied?: boolean;
 }
 
 /** 关联关系 */
@@ -196,13 +204,16 @@ export interface Relationship {
 // ============ 图表/绘图相关类型 ============
 
 /** 图表数据系列 */
-export interface ChartSeriesData {
+export interface ChartSeries {
   name?: string;
   idx?: number;
   order?: number;
   points?: ChartDataPoint[];
   color?: string;
 }
+
+/** @deprecated 请使用 ChartSeries */
+export type ChartSeriesData = ChartSeries;
 
 /** 图表数据点 */
 export interface ChartDataPoint {
@@ -216,7 +227,7 @@ export interface ChartResult {
   id: string;
   chartType: 'lineChart' | 'barChart' | 'pieChart' | 'pie3DChart' | 'areaChart' | 'scatterChart' | 'unknown';
   title?: string;
-  series?: ChartSeriesData[];
+  series?: ChartSeries[];
   categories?: string[];
   xTitle?: string;
   yTitle?: string;
@@ -226,13 +237,16 @@ export interface ChartResult {
 }
 
 /** SmartArt/Diagram 形状 */
-export interface DiagramShapeData {
+export interface DiagramShape {
   id: string;
   type: string;
   position?: { x: number; y: number };
   size?: { width: number; height: number };
   text?: string;
 }
+
+/** @deprecated 请使用 DiagramShape */
+export type DiagramShapeData = DiagramShape;
 
 /** SmartArt/Diagram 解析结果 */
 export interface DiagramResult {
@@ -241,7 +255,7 @@ export interface DiagramResult {
   layout?: string;
   colors?: Record<string, string>;
   data?: Record<string, any>;
-  shapes?: DiagramShapeData[];
+  shapes?: DiagramShape[];
   relsMap: RelsMap;
 }
 

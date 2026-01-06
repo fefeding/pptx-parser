@@ -8,10 +8,15 @@ import { ShapeElement } from './ShapeElement';
 import { ImageElement } from './ImageElement';
 import { OleElement } from './OleElement';
 import { ChartElement } from './ChartElement';
-import { TableElement } from './TableElement';
 import { DiagramElement } from './DiagramElement';
+import { TagsElement } from './TagsElement';
+import { TableElement } from './TableElement';
 import { GroupElement } from './GroupElement';
 import { SlideElement, PptxDocument } from './SlideElement';
+import { LayoutElement, PlaceholderElement } from './LayoutElement';
+import { MasterElement } from './MasterElement';
+import { NotesMasterElement, NotesSlideElement } from './NotesElement';
+import { DocumentElement, createDocument } from './DocumentElement';
 import { getFirstChildByTagNS } from '../utils';
 import { NS } from '../constants';
 
@@ -27,6 +32,14 @@ export { TableElement, type TableCell, type TableRow, type TableStyle } from './
 export { DiagramElement, type DiagramData, type DiagramShape } from './DiagramElement';
 export { GroupElement } from './GroupElement';
 export { SlideElement, PptxDocument } from './SlideElement';
+export { DocumentElement, createDocument } from './DocumentElement';
+// 布局和母版相关
+export { LayoutElement, PlaceholderElement } from './LayoutElement';
+export { MasterElement } from './MasterElement';
+// 备注相关
+export { NotesMasterElement, NotesSlideElement } from './NotesElement';
+// 标签和扩展
+export { TagsElement } from './TagsElement';
 
 /**
  * 从解析后的数据创建元素实例（用于toHTML渲染）
