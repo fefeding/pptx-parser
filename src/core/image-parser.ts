@@ -18,7 +18,31 @@ export async function parseImages(zip: JSZip, result: PptxParseResult): Promise<
 
     // 遍历所有幻灯片
     for (const slide of result.slides) {
-      // 遍历所有元素
+      // 1. 处理背景图片
+      if (slide.background && typeof slide.background !== 'string') {
+        const bg = slide.background as any;
+        if (bg.type === 'image' && bg.relId && !imageMap.has(bg.relId)) {
+          // 从relsMap获取目标路径
+          const rel = slide.relsMap[bg.relId];
+          if (rel) {
+            const imagePath = rel.target.startsWith('..')
+              ? `ppt/${rel.target.substring(3)}`
+              : rel.target;
+
+            const imageFile = await zip.file(imagePath);
+            if (imageFile) {
+              const base64 = await imageFile.async('base64');
+              const mimeType = inferMimeType(imagePath);
+              imageMap.set(bg.relId, `data:${mimeType};base64,${base64}`);
+
+              // 更新背景的value为base64 URL
+              bg.value = imageMap.get(bg.relId);
+            }
+          }
+        }
+      }
+
+      // 2. 处理元素中的图片
       for (const element of slide.elements) {
         // @ts-ignore - 类型扩展
         if (element.type === 'image') {

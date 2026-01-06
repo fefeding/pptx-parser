@@ -254,7 +254,7 @@ function parseSlideBackground(root: Element, relsMap: RelsMap = {}): { type: 'co
   if (blipFill) {
     const blip = getFirstChildByTagNS(blipFill, 'blip', NS.a);
     if (blip) {
-      const relId = blip.getAttributeNS(NS.r, 'id') || blip.getAttribute('r:id');
+      const relId = blip.getAttribute('r:embed') || blip.getAttributeNS(NS.r, 'embed');
       if (relId && relsMap[relId]) {
         return {
           type: 'image',

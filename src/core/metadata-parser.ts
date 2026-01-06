@@ -5,7 +5,7 @@
 
 import JSZip from 'jszip';
 import { PATHS } from '../constants';
-import { parseMetadata, log } from '../utils';
+import { parseMetadata, log, emu2px } from '../utils';
 import type { Metadata, SlideSize } from './types';
 
 /**
@@ -49,8 +49,8 @@ export async function parseSlideLayoutSize(zip: JSZip): Promise<SlideSize> {
 
         if (cx && cy) {
           return {
-            width: Math.round(parseInt(cx, 10) * 96 / 914400),
-            height: Math.round(parseInt(cy, 10) * 96 / 914400)
+            width: emu2px(cx),
+            height: emu2px(cy)
           };
         }
       }

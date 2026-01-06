@@ -81,11 +81,31 @@ const currentSlideHTML = computed(() => {
 
   // 直接使用元素实例的toHTML方法渲染
   const slide = currentSlide.value
+
+  // 处理背景（支持图片和颜色）
+  let backgroundStyle = 'background-color: #ffffff'
+  if (slide.background) {
+    if (typeof slide.background === 'string') {
+      // 纯色背景（旧格式兼容）
+      backgroundStyle = `background-color: ${slide.background}`
+    } else {
+      // 新格式：支持图片和颜色
+      const bg = slide.background as any
+      if (bg.type === 'image' && bg.value) {
+        // 图片背景
+        backgroundStyle = `background-image: url('${bg.value}'); background-size: cover; background-position: center; background-repeat: no-repeat`
+      } else if (bg.type === 'color' && bg.value) {
+        // 纯色背景
+        backgroundStyle = `background-color: ${bg.value}`
+      }
+    }
+  }
+
   const containerStyle = [
     `width: 100%`,
     `height: 100%`,
     `position: relative`,
-    `background-color: ${slide.background || '#ffffff'}`,
+    backgroundStyle,
     `overflow: hidden`
   ].join('; ')
 
@@ -138,11 +158,30 @@ function exportHTML() {
   if (!parsedData.value) return
 
   const slidesHTML = parsedData.value.slides.map((slide: any) => {
+    // 处理背景（支持图片和颜色）
+    let backgroundStyle = 'background-color: #ffffff'
+    if (slide.background) {
+      if (typeof slide.background === 'string') {
+        // 纯色背景（旧格式兼容）
+        backgroundStyle = `background-color: ${slide.background}`
+      } else {
+        // 新格式：支持图片和颜色
+        const bg = slide.background as any
+        if (bg.type === 'image' && bg.value) {
+          // 图片背景
+          backgroundStyle = `background-image: url('${bg.value}'); background-size: cover; background-position: center; background-repeat: no-repeat`
+        } else if (bg.type === 'color' && bg.value) {
+          // 纯色背景
+          backgroundStyle = `background-color: ${bg.value}`
+        }
+      }
+    }
+
     const containerStyle = [
       `width: 100%`,
       `height: 100%`,
       `position: relative`,
-      `background-color: ${slide.background || '#ffffff'}`,
+      backgroundStyle,
       `overflow: hidden`
     ].join('; ')
 

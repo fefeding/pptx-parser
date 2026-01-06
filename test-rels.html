@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test parseRels</title>
+</head>
+<body>
+    <script type="module">
+        // 模拟 getChildrenByTagNS 和 parseRels
+        const NS = {
+            r: 'http://schemas.openxmlformats.org/package/2006/relationships'
+        };
+
+        function getChildrenByTagNS(parent, tagName, namespaceURI) {
+            if (!parent) return [];
+            return Array.from(parent.getElementsByTagNameNS(namespaceURI, tagName));
+        }
+
+        function parseRels(relsXml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(relsXml, 'application/xml');
+
+            console.log('Root element:', doc.documentElement.tagName);
+            console.log('Root namespace:', doc.documentElement.namespaceURI);
+            console.log('NS.r constant:', NS.r);
+
+            // 测试 1: 使用当前的方式
+            const relationships1 = getChildrenByTagNS(doc.documentElement, 'Relationship', NS.r);
+            console.log('Method 1 (Relationship, NS.r):', relationships1.length, relationships1);
+
+            // 测试 2: 直接查询（不带命名空间）
+            const relationships2 = Array.from(doc.documentElement.getElementsByTagName('Relationship'));
+            console.log('Method 2 (Relationship, no NS):', relationships2.length, relationships2);
+
+            // 测试 3: 使用 '*' 查询所有带命名空间的元素
+            const relationships3 = Array.from(doc.documentElement.getElementsByTagNameNS('*', 'Relationship'));
+            console.log('Method 3 (Relationship, *):', relationships3.length, relationships3);
+
+            // 测试 4: 如果是 Relationships（复数）
+            const relationships4 = getChildrenByTagNS(doc.documentElement, 'Relationships', NS.r);
+            console.log('Method 4 (Relationships, NS.r):', relationships4.length, relationships4);
+
+            const result = {};
+            relationships1.forEach(rel => {
+                const id = rel.getAttribute('Id');
+                const type = rel.getAttribute('Type');
+                const target = rel.getAttribute('Target');
+                if (id) {
+                    result[id] = { id, type: type || '', target: target || '' };
+                }
+            });
+
+            return result;
+        }
+
+        const relsXml = `<?xml version="1.0"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image2.jpg"/>
+</Relationships>`;
+
+        const result = parseRels(relsXml);
+        console.log('Final result:', result);
+    </script>
+</body>
+</html>

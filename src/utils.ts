@@ -206,7 +206,10 @@ export function parsePosition(spPr: Element): { x: number; y: number; width: num
 export function parseRels(relsXml: string): Record<string, { id: string; type: string; target: string }> {
   const parser = new DOMParser();
   const doc = parser.parseFromString(relsXml, 'application/xml');
-  const relationships = getChildrenByTagNS(doc.documentElement, 'Relationship', NS.r);
+
+  // 根元素是 <Relationships>，子元素是 <Relationship>
+  // 使用不带命名空间前缀的方式查询，因为子元素继承父元素的默认命名空间
+  const relationships = Array.from(doc.documentElement.children);
 
   const relsMap: Record<string, { id: string; type: string; target: string }> = {};
 
@@ -349,7 +352,9 @@ export function generateId(prefix: string = 'ppt-node'): string {
  * @param data 附加数据
  */
 export function log(level: 'info' | 'warn' | 'error', message: string, data?: unknown): void {
-  if (typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') {
+    // @ts-ignore
+    const showLog = (typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') || (import.meta?.env?.NODE_ENV === 'development');
+  if (showLog) {
     const prefix = `[pptx-parser ${level.toUpperCase()}]`;
     if (data !== undefined) {
       console[level](prefix, message, data);

@@ -8,7 +8,7 @@ import JSZip from 'jszip';
 
 
 import { NS } from '../constants';
-import { generateId, log } from '../utils';
+import { generateId, log, emu2px, px2emu } from '../utils';
 import { parseCoreProperties, parseSlideLayoutSize, inferPageSize } from './metadata-parser';
 import { parseAllSlides } from './slide-parser';
 import { parseGlobalRels } from './relationships-parser';
@@ -22,16 +22,16 @@ import type { PptDocument } from '../types';
  */
 export const PptParseUtils = {
   /** 生成唯一ID */
-  generateId: (prefix = 'ppt-node'): string => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+  generateId,
 
   /** XML文本节点解析 - 处理XML转义字符 */
   parseXmlText: (text: string): string => unescape(text || '').trim(),
 
   /** 反向转换：前端PX转PPT的EMU单位（序列化时用） */
-  px2emu: (px: number): number => Math.round(px * 914400 / 96),
+  px2emu,
 
   /** EMU转PX */
-  emu2px: (emu: number): number => Math.round(emu / 914400 * 96),
+  emu2px,
 
   /** 解析XML字符串为树结构 */
   parseXmlToTree: (xmlStr: string): any => {
@@ -64,12 +64,11 @@ export const PptParseUtils = {
 
   /** 解析矩形属性 */
   parseXmlRect: (attrs: Record<string, string>): { x: number; y: number; width: number; height: number } => {
-    const emu2px = (emu: string): number => Math.round(parseInt(emu || '0') / 914400 * 96);
     return {
-      x: emu2px(attrs['x']),
-      y: emu2px(attrs['y']),
-      width: emu2px(attrs['cx']),
-      height: emu2px(attrs['cy']),
+      x: emu2px(attrs['x'] || '0'),
+      y: emu2px(attrs['y'] || '0'),
+      width: emu2px(attrs['cx'] || '0'),
+      height: emu2px(attrs['cy'] || '0'),
     };
   },
 
@@ -175,7 +174,7 @@ export async function parsePptx(
   };
 
   const zip = await JSZip.loadAsync(file);
-
+debugger
   // 简单模式（返回 PptDocument）
   if (opts.returnFormat === 'simple') {
     return parseSimpleMode(zip, opts);
