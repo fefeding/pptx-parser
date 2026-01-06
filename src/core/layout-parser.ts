@@ -8,12 +8,21 @@ import { NS } from '../constants';
 import { PATHS as CONSTANTS_PATHS } from '../constants';
 import {
   getFirstChildByTagNS,
+  getChildrenByTagNS,
   generateId,
   log,
-  parseRels
+  parseRels,
+  parseRelsWithBase
 } from '../utils';
 import { parseSlideBackground } from './slide-parser';
 import type { RelsMap, SlideLayoutResult, TextStyles } from './types';
+import { ShapeElement } from '../elements/ShapeElement';
+import { ImageElement } from '../elements/ImageElement';
+import { GroupElement } from '../elements/GroupElement';
+import { TableElement } from '../elements/TableElement';
+import { ChartElement } from '../elements/ChartElement';
+import { DiagramElement } from '../elements/DiagramElement';
+import type { BaseElement } from '../elements/BaseElement';
 
 // 本地PATHS常量，避免循环引用
 const PATHS = {
@@ -66,8 +75,8 @@ export function parseSlideLayout(
     // 解析文本样式（关键：PPTXjs 的样式继承）
     const textStyles = parseLayoutTextStyles(root);
 
-    // 解析布局中的元素（暂时简化，主要关注背景）
-    const elements: any[] = [];
+    // 解析布局中的实际元素（形状、图片等）
+    const elements = parseLayoutElements(root, relsMap);
 
     // 解析布局占位符（关键：PPTXjs 核心能力）
     const placeholders = parseLayoutPlaceholders(root);
@@ -142,7 +151,7 @@ export async function parseAllSlideLayouts(zip: JSZip): Promise<Record<string, S
         try {
           const relsXml = await zip.file(relsPath)?.async('string');
           if (relsXml) {
-            relsMap = parseRels(relsXml);
+            relsMap = parseRelsWithBase(relsXml, relsPath);
             log('info', `Loaded ${Object.keys(relsMap).length} relationships for layout ${layoutNumber}`);
             // 打印关系链
             Object.entries(relsMap).forEach(([id, rel]) => {
@@ -318,6 +327,89 @@ export function mergeBackgrounds(
 
   // 默认白色背景
   return { type: 'color', value: '#ffffff' };
+}
+
+/**
+ * 解析布局中的实际元素（形状、图片等）
+ * 对应 PPTXjs 中 layout 的元素渲染
+ */
+function parseLayoutElements(root: Element, relsMap: RelsMap): any[] {
+  const elements: any[] = [];
+
+  const cSld = getFirstChildByTagNS(root, 'cSld', NS.p);
+  if (!cSld) return elements;
+
+  const spTree = getFirstChildByTagNS(cSld, 'spTree', NS.p);
+  if (!spTree) return elements;
+
+  // 遍历所有子元素
+  Array.from(spTree.children).forEach((child: any) => {
+    if (child.nodeType !== 1) return;
+
+    const localName = child.localName || child.tagName.split(':').pop();
+
+    // 只处理特定类型的元素，跳过占位符定义
+    if (localName === 'sp') {
+      // 检查是否是占位符
+      const nvPr = getFirstChildByTagNS(child, 'nvPr', NS.p);
+      const ph = nvPr ? getFirstChildByTagNS(nvPr, 'ph', NS.p) : null;
+
+      // 只解析非占位符的形状
+      if (!ph) {
+        const element = ShapeElement.fromNode(child, relsMap);
+        if (element) {
+          elements.push(element);
+        }
+      }
+    } else if (localName === 'pic') {
+      const element = ImageElement.fromNode(child, relsMap);
+      if (element) {
+        elements.push(element);
+      }
+    } else if (localName === 'grpSp') {
+      const element = GroupElement.fromNode(child, relsMap);
+      if (element) {
+        elements.push(element);
+      }
+    } else if (localName === 'graphicFrame') {
+      // 解析 graphicFrame（表格、图表、图解等）
+      const element = parseLayoutGraphicFrame(child, relsMap);
+      if (element) {
+        elements.push(element);
+      }
+    }
+  });
+
+  return elements;
+}
+
+/**
+ * 解析布局中的 graphicFrame 元素
+ */
+function parseLayoutGraphicFrame(graphicFrameNode: Element, relsMap: RelsMap): BaseElement | null {
+  try {
+    const graphic = getFirstChildByTagNS(graphicFrameNode, 'graphic', NS.a);
+    const graphicData = graphic ? getFirstChildByTagNS(graphic, 'graphicData', NS.a) : null;
+
+    if (!graphicData) {
+      return null;
+    }
+
+    const uri = graphicData.getAttribute('uri') || '';
+
+    if (uri.includes('table')) {
+      return TableElement.fromNode(graphicFrameNode, relsMap);
+    } else if (uri.includes('chart')) {
+      return ChartElement.fromNode(graphicFrameNode, relsMap);
+    } else if (uri.includes('diagram')) {
+      return DiagramElement.fromNode(graphicFrameNode, relsMap);
+    }
+
+    return null;
+  } catch (error) {
+    log('warn', 'Failed to parse layout graphicFrame element', error);
+    return null;
+  }
 }
 
 /**

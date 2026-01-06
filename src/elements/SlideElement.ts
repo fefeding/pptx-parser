@@ -7,6 +7,7 @@ import type { SlideParseResult } from '../core/types';
 import { BaseElement } from './BaseElement';
 import { applyStyleInheritance } from '../core/style-inheritance';
 import type { SlideLayoutResult, MasterSlideResult } from '../core/types';
+import { createElementFromData } from './element-factory';
 
 /**
  * 幻灯片元素类
@@ -33,11 +34,15 @@ export class SlideElement {
   /** 母版对象 */
   master?: MasterSlideResult;
 
+  /** 媒体资源映射表 */
+  mediaMap?: Map<string, string>;
+
   constructor(
     result: SlideParseResult,
     elements: BaseElement[],
     layout?: SlideLayoutResult,
-    master?: MasterSlideResult
+    master?: MasterSlideResult,
+    mediaMap?: Map<string, string>
   ) {
     this.id = result.id;
     this.title = result.title;
@@ -46,6 +51,7 @@ export class SlideElement {
     this.rawResult = result;
     this.layout = layout;
     this.master = master;
+    this.mediaMap = mediaMap;
   }
 
   /**
@@ -89,30 +95,44 @@ ${elementsHTML}
 
   /**
    * 渲染布局和母版元素
+   * PPTXjs 中，layout 和 master 中的元素会被渲染到 slide 上
+   * 渲染顺序：master elements -> layout elements -> slide elements
    */
   private renderLayoutElements(): string {
     const elements: string[] = [];
 
-    // 渲染母版元素（如页脚、页码等）
+    // 渲染母版元素（如页脚、页码、背景图片等）
     if (this.master?.elements && this.master.elements.length > 0) {
       this.master.elements.forEach(el => {
-        if (el instanceof BaseElement) {
-          // 只渲染未隐藏的元素
-          if (!el.hidden) {
-            elements.push(`<div class="ppt-master-element">${el.toHTML()}</div>`);
+        // 将原始数据转换为 BaseElement 实例（如果还没有转换）
+        if (!(el instanceof BaseElement)) {
+          const relsMap = (this.master as any).relsMap || {};
+          const element = createElementFromData(el, relsMap, this.mediaMap);
+          // 只渲染非隐藏的元素
+          if (element && !el.hidden) {
+            const html = element.toHTML();
+            elements.push(`<div class="ppt-master-element">${html}</div>`);
           }
+        } else if (!el.hidden) {
+          elements.push(`<div class="ppt-master-element">${el.toHTML()}</div>`);
         }
       });
     }
 
-    // 渲染布局元素（占位符）
+    // 渲染布局元素（如果有实际的形状元素，而不仅仅是占位符定义）
     if (this.layout?.elements && this.layout.elements.length > 0) {
       this.layout.elements.forEach(el => {
-        if (el instanceof BaseElement) {
-          // 只渲染占位符（且未被 slide 元素覆盖）
-          if (el.isPlaceholder && !el.hidden) {
-            elements.push(`<div class="ppt-layout-element">${el.toHTML()}</div>`);
+        // 将原始数据转换为 BaseElement 实例（如果还没有转换）
+        if (!(el instanceof BaseElement)) {
+          const relsMap = (this.layout as any).relsMap || {};
+          const element = createElementFromData(el, relsMap, this.mediaMap);
+          // 只渲染有 type 属性的元素（形状、图片等），跳过纯占位符定义
+          if (element && el.type && !el.hidden && !el.isPlaceholder) {
+            const html = element.toHTML();
+            elements.push(`<div class="ppt-layout-element">${html}</div>`);
           }
+        } else if (!el.isPlaceholder && !el.hidden) {
+          elements.push(`<div class="ppt-layout-element">${el.toHTML()}</div>`);
         }
       });
     }
@@ -139,9 +159,12 @@ ${elementsHTML}
       return `background-color: ${bg.value};`;
     }
 
-    if (bg.type === 'image' && bg.relId) {
-      // 图片背景需要从 relsMap 获取实际 URL
-      return `background-image: url('${bg.relId}'); background-size: cover; background-position: center;`;
+    if (bg.type === 'image') {
+      // 图片背景，优先使用解析后的 base64 URL，否则使用 relId
+      const imageUrl = bg.value || bg.relId;
+      if (imageUrl) {
+        return `background-image: url('${imageUrl}'); background-size: cover; background-position: center;`;
+      }
     }
 
     return 'background-color: #ffffff;';

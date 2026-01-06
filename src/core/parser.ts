@@ -180,7 +180,7 @@ export async function parsePptx(
   };
 
   const zip = await JSZip.loadAsync(file);
-debugger
+
   // 简单模式（返回 PptDocument）
   if (opts.returnFormat === 'simple') {
     return parseSimpleMode(zip, opts);

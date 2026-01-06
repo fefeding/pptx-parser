@@ -5,6 +5,7 @@
 
 import { BaseElement } from './BaseElement';
 import { PlaceholderElement } from './LayoutElement';
+import { createElementFromData } from './element-factory';
 import type { MasterSlideResult } from '../core/types';
 
 /**
@@ -61,8 +62,10 @@ export class MasterElement extends BaseElement {
       return phEl;
     });
 
-    // TODO: 将 result.elements 转换为 BaseElement 实例
-    const elements: BaseElement[] = [];
+    // 将 result.elements 转换为 BaseElement 实例
+    const elements: BaseElement[] = (result.elements || []).map(elementData => 
+      createElementFromData(elementData, result.relsMap)
+    ).filter((el): el is BaseElement => el !== null);
 
     return new MasterElement(
       result.id,

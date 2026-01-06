@@ -10,6 +10,30 @@ import { NS } from '../constants';
 import type { RelsMap, PptRect } from '../types';
 
 /**
+ * 解析关系ID字符串
+ */
+interface RelIds {
+  colors?: string;
+  data?: string;
+  layout?: string;
+  quickStyle?: string;
+}
+
+/**
+ * 颜色数据
+ */
+interface ColorData {
+  colorScheme?: Record<string, string>;
+}
+
+/**
+ * 布局数据
+ */
+interface LayoutData {
+  layoutDef?: string;
+}
+
+/**
  * Diagram 数据模型
  */
 export interface DiagramData {
@@ -136,14 +160,21 @@ export class DiagramElement extends BaseElement {
   private parseDiagramData(dgm: Element, relsMap: RelsMap): DiagramData {
     const data: DiagramData = {};
 
-    // 需要读取多个XML文件：colors#.xml, data#.xml, layout#.xml, quickStyle#.xml
-    // 由于当前架构限制，先解析基础信息
+    // 解析关系ID
+    const relIdsAttr = dgm.getAttributeNS(NS.d, 'relIds') || '';
+    const relIds = this.parseRelIds(relIdsAttr);
 
-    const relIds = dgm.getAttributeNS(NS.d, 'relIds') || '';
-    if (relIds) {
-      // 解析关系ID
-      const ids = relIds.split(',').map(id => id.trim());
-      // TODO: 根据关系ID获取颜色、数据、布局等信息
+    // 根据关系ID获取相关数据
+    if (relIds.colors && this.relsMap[relIds.colors]) {
+      data.colors = this.fetchColorData(this.relsMap[relIds.colors].target);
+    }
+
+    if (relIds.data && this.relsMap[relIds.data]) {
+      data.data = this.fetchLayoutData(this.relsMap[relIds.data].target);
+    }
+
+    if (relIds.layout && this.relsMap[relIds.layout]) {
+      data.layout = this.relsMap[relIds.layout].target;
     }
 
     // 尝试从dgm节点中提取形状信息
@@ -153,6 +184,86 @@ export class DiagramElement extends BaseElement {
     }
 
     return data;
+  }
+
+  /**
+   * 解析关系ID字符串
+   */
+  private parseRelIds(relIdsAttr: string): RelIds {
+    const relIds: RelIds = {};
+    
+    if (!relIdsAttr) return relIds;
+    
+    // relIds格式通常为: "rId1,rId2,rId3,rId4"
+    // 对应: colors, data, layout, quickStyle
+    const ids = relIdsAttr.split(',').map(id => id.trim());
+    
+    if (ids.length >= 1) relIds.colors = ids[0];
+    if (ids.length >= 2) relIds.data = ids[1];
+    if (ids.length >= 3) relIds.layout = ids[2];
+    if (ids.length >= 4) relIds.quickStyle = ids[3];
+    
+    return relIds;
+  }
+
+  /**
+   * 获取颜色数据
+   */
+  private async fetchColorData(target: string): Promise<Record<string, string> | undefined> {
+    try {
+      // 在实际实现中，这里需要从ZIP文件中读取对应的XML文件
+      // 由于当前是同步方法，我们先返回空对象
+      // 在实际使用中，应该通过parser传递ZIP引用或使用异步方法
+      
+      // 示例：colors1.xml 的路径通常是 ppt/diagrams/colors1.xml
+      const colorPath = target.startsWith('../') ? target.substring(3) : target;
+      
+      // 这里需要访问ZIP文件，但由于架构限制，暂时返回空
+      // 在实际项目中，可以通过构造函数传入ZIP引用或使用其他方式
+      
+      return {};
+    } catch (error) {
+      console.warn('Failed to fetch color data:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * 获取布局数据
+   */
+  private async fetchLayoutData(target: string): Promise<Record<string, any> | undefined> {
+    try {
+      // 类似地，这里需要读取data#.xml文件
+      const layoutPath = target.startsWith('../') ? target.substring(3) : target;
+      
+      // 在实际实现中，需要解析XML并返回数据结构
+      // 这里简化处理，返回空对象
+      
+      return {};
+    } catch (error) {
+      console.warn('Failed to fetch layout data:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * 同步版本的颜色数据获取（用于当前架构）
+   */
+  private fetchColorDataSync(target: string): Record<string, string> | undefined {
+    // 在当前同步架构下，我们无法直接读取ZIP文件
+    // 所以这里提供一个钩子，让调用者可以预先加载这些数据
+    // 或者在实际使用时通过其他方式注入
+    
+    // 返回一个标记，表示需要异步加载
+    return { _needsAsyncLoad: true, target };
+  }
+
+  /**
+   * 同步版本的布局数据获取
+   */
+  private fetchLayoutDataSync(target: string): Record<string, any> | undefined {
+    // 同上，同步版本无法直接读取文件
+    return { _needsAsyncLoad: true, target };
   }
 
   /**
@@ -202,6 +313,7 @@ export class DiagramElement extends BaseElement {
    */
   toHTML(): string {
     const style = this.getContainerStyle();
+    const dataAttrs = this.formatDataAttributes();
     const innerStyle = [
       `width: 100%`,
       `height: 100%`,
@@ -219,7 +331,7 @@ export class DiagramElement extends BaseElement {
 
     const diagramInfo = this.getDiagramInfo();
 
-    return `<div style="${style}">
+    return `<div ${dataAttrs} style="${style}">
       <div style="${innerStyle}">
         ${diagramInfo}
       </div>

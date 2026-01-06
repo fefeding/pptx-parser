@@ -10,6 +10,21 @@ import { NS } from '../constants';
 import type { RelsMap } from '../types';
 
 /**
+ * 表格整体样式
+ */
+interface TableWholeStyle {
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: string;
+  shadow?: {
+    color?: string;
+    blur?: number;
+    offsetX?: number;
+    offsetY?: number;
+  };
+}
+
+/**
  * 表格单元格
  */
 export interface TableCell {
@@ -331,13 +346,24 @@ export class TableElement extends BaseElement {
   private parseTableStyle(tbl: Element): TableStyle {
     const style: TableStyle = {};
 
-    // 表格边框
+    // 表格整体样式
     const wholeTbl = getFirstChildByTagNS(tbl, 'wholeTbl', NS.a);
-    if (wholeTbl) {
-      // TODO: 解析表格整体样式
+    const tableWholeStyle = this.parseTableWholeStyle(wholeTbl);
+    
+    // 将整体样式应用到表格元素的style属性
+    if (tableWholeStyle) {
+      if (tableWholeStyle.backgroundColor) {
+        this.style.backgroundColor = tableWholeStyle.backgroundColor;
+      }
+      if (tableWholeStyle.borderColor && tableWholeStyle.borderWidth) {
+        this.style.border = `${tableWholeStyle.borderWidth} solid ${tableWholeStyle.borderColor}`;
+      }
+      if (tableWholeStyle.shadow) {
+        this.style.boxShadow = this.generateBoxShadow(tableWholeStyle.shadow);
+      }
     }
 
-    // 表格背景
+    // 表格背景（作为首行样式）
     const tblBg = getFirstChildByTagNS(tbl, 'tblBg', NS.a);
     if (tblBg) {
       const fill = getFirstChildByTagNS(tblBg, 'fill', NS.a);
@@ -436,15 +462,135 @@ export class TableElement extends BaseElement {
   }
 
   /**
+   * 解析表格整体样式
+   */
+  private parseTableWholeStyle(wholeTbl: Element | null): TableWholeStyle | null {
+    if (!wholeTbl) return null;
+
+    const tableStyle: TableWholeStyle = {};
+
+    // 解析表格背景填充
+    const fill = getFirstChildByTagNS(wholeTbl, 'fill', NS.a);
+    if (fill) {
+      const solidFill = getFirstChildByTagNS(fill, 'solidFill', NS.a);
+      if (solidFill) {
+        const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
+        if (srgbClr?.getAttribute('val')) {
+          tableStyle.backgroundColor = `#${srgbClr.getAttribute('val')}`;
+        }
+
+        // 主题颜色
+        const schemeClr = getFirstChildByTagNS(solidFill, 'schemeClr', NS.a);
+        if (schemeClr?.getAttribute('val')) {
+          tableStyle.backgroundColor = schemeClr.getAttribute('val') || undefined;
+        }
+      }
+
+      // 渐变填充
+      const gradFill = getFirstChildByTagNS(fill, 'gradFill', NS.a);
+      if (gradFill) {
+        // 这里可以复用ShapeElement中的渐变解析逻辑
+        // 为了简化，暂时只处理纯色填充
+      }
+    }
+
+    // 解析表格边框
+    const ln = getFirstChildByTagNS(wholeTbl, 'ln', NS.a);
+    if (ln) {
+      const w = ln.getAttribute('w');
+      const solidFill = getFirstChildByTagNS(ln, 'solidFill', NS.a);
+      
+      if (solidFill) {
+        const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
+        if (srgbClr?.getAttribute('val')) {
+          tableStyle.borderColor = `#${srgbClr.getAttribute('val')}`;
+        }
+      }
+
+      if (w) {
+        // 宽度单位转换：EMU到像素
+        const widthEmu = parseInt(w);
+        const widthPx = Math.round(widthEmu / 9525); // 1px ≈ 9525 EMU
+        tableStyle.borderWidth = `${widthPx}px`;
+      } else {
+        tableStyle.borderWidth = '1px';
+      }
+    }
+
+    // 解析阴影效果
+    const effectLst = getFirstChildByTagNS(wholeTbl, 'effectLst', NS.a);
+    if (effectLst) {
+      const outerShdw = getFirstChildByTagNS(effectLst, 'outerShdw', NS.a);
+      if (outerShdw) {
+        tableStyle.shadow = {};
+
+        // 阴影颜色
+        const solidFill = getFirstChildByTagNS(outerShdw, 'solidFill', NS.a);
+        if (solidFill) {
+          const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
+          if (srgbClr?.getAttribute('val')) {
+            tableStyle.shadow.color = `#${srgbClr.getAttribute('val')}`;
+          }
+        }
+
+        // 模糊半径
+        const blur = outerShdw.getAttribute('blur');
+        if (blur) {
+          tableStyle.shadow.blur = Math.round(parseInt(blur) / 9525);
+        }
+
+        // 偏移
+        const dist = outerShdw.getAttribute('dist');
+        const dir = outerShdw.getAttribute('dir');
+        if (dist && dir) {
+          const distance = parseInt(dist) / 9525; // 转换为像素
+          const direction = parseInt(dir) / 60000; // 转换为角度
+          
+          // 计算X和Y偏移
+          const rad = (direction * Math.PI) / 180;
+          tableStyle.shadow.offsetX = Math.round(distance * Math.cos(rad));
+          tableStyle.shadow.offsetY = Math.round(distance * Math.sin(rad));
+        }
+      }
+    }
+
+    return Object.keys(tableStyle).length > 0 ? tableStyle : null;
+  }
+
+  /**
+   * 生成CSS box-shadow值
+   */
+  private generateBoxShadow(shadow: TableWholeStyle['shadow']): string {
+    if (!shadow) return '';
+
+    const parts = [];
+    
+    if (shadow.offsetX !== undefined) parts.push(`${shadow.offsetX}px`);
+    else parts.push('0');
+    
+    if (shadow.offsetY !== undefined) parts.push(`${shadow.offsetY}px`);
+    else parts.push('0');
+    
+    if (shadow.blur !== undefined) parts.push(`${shadow.blur}px`);
+    else parts.push('0');
+    
+    if (shadow.color) parts.push(shadow.color);
+    else parts.push('#000000');
+
+    return parts.join(' ');
+  }
+
+  /**
    * 转换为HTML
    */
   toHTML(): string {
     const style = this.getContainerStyle();
+    const dataAttrs = this.formatDataAttributes();
     const tableStyle = this.getTableStyle();
 
     const rowsHTML = this.rows.map(row => this.rowToHTML(row)).join('\n');
 
-    return `<div style="${style}">
+    return `<div ${dataAttrs} style="${style}">
       <table style="${tableStyle}">
         <tbody>
 ${rowsHTML}

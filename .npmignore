@@ -4,6 +4,7 @@ docs
 test
 node_modules
 templates
+examples
 .DS_Store
 cmaps
 standard_fonts

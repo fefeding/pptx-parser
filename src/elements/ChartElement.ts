@@ -167,6 +167,7 @@ export class ChartElement extends BaseElement {
    */
   toHTML(): string {
     const style = this.getContainerStyle();
+    const dataAttrs = this.formatDataAttributes();
     const innerStyle = [
       `width: 100%`,
       `height: 100%`,
@@ -188,7 +189,7 @@ export class ChartElement extends BaseElement {
     const hasChartData = this.chartData && Array.isArray(this.chartData.series) && this.chartData.series.length > 0;
 
     if (hasChartData) {
-      return `<div style="${style}">
+      return `<div ${dataAttrs} style="${style}">
         <div style="width: 100%;">
           <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
             ${this.chartData?.title || 'Chart'}
@@ -198,7 +199,7 @@ export class ChartElement extends BaseElement {
       </div>`;
     }
 
-    return `<div style="${style}">
+    return `<div ${dataAttrs} style="${style}">
       <div style="${innerStyle}">
         ${label}
       </div>

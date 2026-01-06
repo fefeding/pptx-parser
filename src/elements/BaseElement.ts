@@ -96,6 +96,31 @@ export abstract class BaseElement {
   }
 
   /**
+   * 获取用于调试的 data-* 属性
+   * 子类可以重写此方法以添加更多属性
+   */
+  protected getDataAttributes(): Record<string, string> {
+    const attrs: Record<string, string> = {};
+    if (this.id) {
+      attrs['data-id'] = this.id;
+    }
+    // type 是抽象属性，子类必须实现
+    attrs['data-type'] = this.type;
+    return attrs;
+  }
+
+  /**
+   * 格式化 data-* 属性为字符串，用于 HTML 输出
+   */
+  protected formatDataAttributes(): string {
+    const attrs = this.getDataAttributes();
+    const attrString = Object.entries(attrs)
+      .map(([key, value]) => `${key}="${value}"`)
+      .join(' ');
+    return attrString;
+  }
+
+  /**
    * 解析位置尺寸
    */
   protected parsePosition(node: Element, tag = 'spPr', namespace = NS.p): Position {

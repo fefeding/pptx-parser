@@ -3,7 +3,7 @@
  * 整个PPT文档的主对象，包含所有文档信息、基础样式和公共样式
  */
 
-import type { PptxParseResult } from '../core/types';
+import type { PptxParseResult, SlideLayoutResult, MasterSlideResult } from '../core/types';
 import { BaseElement } from './BaseElement';
 import { SlideElement } from './SlideElement';
 import { LayoutElement } from './LayoutElement';
@@ -89,6 +89,9 @@ export class DocumentElement extends BaseElement {
   /** 全局关联关系映射表 */
   globalRelsMap: Record<string, any>;
 
+  /** 媒体资源映射表（relId -> base64 URL） */
+  mediaMap?: Map<string, string>;
+
   constructor(
     id: string,
     title: string,
@@ -115,6 +118,7 @@ export class DocumentElement extends BaseElement {
     this.notesMasters = [];
     this.notesSlides = [];
     this.globalRelsMap = props.globalRelsMap || {};
+    this.mediaMap = props.mediaMap;
   }
 
   /**
@@ -134,7 +138,8 @@ export class DocumentElement extends BaseElement {
         description: result.description,
         created: result.created,
         modified: result.modified,
-        globalRelsMap: result.globalRelsMap
+        globalRelsMap: result.globalRelsMap,
+        mediaMap: result.mediaMap
       }
     );
 
@@ -183,22 +188,14 @@ export class DocumentElement extends BaseElement {
           if (el instanceof BaseElement) {
             return el;
           }
-          return createElementFromData(el, slide.relsMap || {});
+          return createElementFromData(el, slide.relsMap || {}, doc.mediaMap);
         }).filter((el: any) => el !== null) as BaseElement[];
 
-        // 获取布局
-        let layout: LayoutElement | undefined;
-        if (slide.layoutId && doc.layouts[slide.layoutId]) {
-          layout = doc.layouts[slide.layoutId];
-        }
+        // 使用 parser 已关联的 layout 和 master 对象（SlideLayoutResult 和 MasterSlideResult 类型）
+        const layout = slide.layout as SlideLayoutResult | undefined;
+        const master = slide.master as MasterSlideResult | undefined;
 
-        // 获取母版
-        let master: MasterElement | undefined;
-        if (slide.layout && slide.layout.masterRef) {
-          master = doc.masters.find(m => m.id === slide.layout.masterRef);
-        }
-
-        return new SlideElement(slide, elements, layout, master);
+        return new SlideElement(slide, elements, layout, master, doc.mediaMap);
       });
     }
 

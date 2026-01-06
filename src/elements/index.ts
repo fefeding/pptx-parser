@@ -17,6 +17,7 @@ import { LayoutElement, PlaceholderElement } from './LayoutElement';
 import { MasterElement } from './MasterElement';
 import { NotesMasterElement, NotesSlideElement } from './NotesElement';
 import { DocumentElement, createDocument } from './DocumentElement';
+import { createElementFromData } from './element-factory';
 import { getFirstChildByTagNS } from '../utils';
 import { NS } from '../constants';
 
@@ -40,55 +41,8 @@ export { MasterElement } from './MasterElement';
 export { NotesMasterElement, NotesSlideElement } from './NotesElement';
 // 标签和扩展
 export { TagsElement } from './TagsElement';
-
-/**
- * 从解析后的数据创建元素实例（用于toHTML渲染）
- */
-export function createElementFromData(data: any, relsMap: Record<string, any> = {}): BaseElement | null {
-  if (!data || !data.type) return null;
-
-  switch (data.type) {
-    case 'shape':
-    case 'text': {
-      const element = new ShapeElement(data.id, data.type, data.rect, data.content, data.props, relsMap);
-      Object.assign(element, data);
-      return element;
-    }
-    case 'image': {
-      const element = new ImageElement(data.id, data.rect, data.src || '', data.relId || '', data.props || {}, relsMap);
-      Object.assign(element, data);
-      return element;
-    }
-    case 'ole': {
-      const element = new OleElement(data.id, data.rect, data.progId, data.relId, data.props, relsMap);
-      Object.assign(element, data);
-      return element;
-    }
-    case 'chart': {
-      const element = new ChartElement(data.id, 'chart', data.rect, data.content, data.props, relsMap);
-      Object.assign(element, data);
-      return element;
-    }
-    case 'table': {
-      const element = new TableElement(data.id, data.rect, data.content, data.props, relsMap);
-      Object.assign(element, data);
-      return element;
-    }
-    case 'diagram': {
-      const element = new DiagramElement(data.id, data.rect, data.content, data.props, relsMap);
-      Object.assign(element, data);
-      return element;
-    }
-    case 'group': {
-      const children = (data.children || []).map((child: any) => createElementFromData(child, relsMap)).filter(Boolean) as BaseElement[];
-      const element = new GroupElement(data.id, 'group', data.rect, children, data.props, relsMap);
-      Object.assign(element, data);
-      return element;
-    }
-    default:
-      return null;
-  }
-}
+// 元素工厂函数
+export { createElementFromData } from './element-factory';
 
 /**
  * 创建元素的工厂函数（从XML节点）

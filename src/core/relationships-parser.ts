@@ -5,7 +5,7 @@
 
 import JSZip from 'jszip';
 import { PATHS } from '../constants';
-import { parseRels, log } from '../utils/index';
+import { parseRels, parseRelsWithBase, log } from '../utils/index';
 import type { RelsMap, Relationship } from './types';
 
 /**
@@ -20,7 +20,7 @@ export async function parseGlobalRels(zip: JSZip): Promise<RelsMap> {
       return {};
     }
 
-    return parseRels(relsXml);
+    return parseRelsWithBase(relsXml, '_rels/.rels');
   } catch (error) {
     log('warn', 'Failed to parse global relationships', error);
     return {};
@@ -47,7 +47,7 @@ export async function parseSlideRels(
       return {};
     }
 
-    return parseRels(relsXml);
+    return parseRelsWithBase(relsXml, '_rels/.rels');
   } catch (error) {
     log('warn', `Failed to parse ${relsBasePath}${slideId} relationships`, error);
     return {};

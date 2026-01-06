@@ -4,8 +4,16 @@
  */
 
 import JSZip from 'jszip';
-import { log, getFirstChildByTagNS, getChildrenByTagNS, parseRels } from '../utils/index';
+import { log, getFirstChildByTagNS, getChildrenByTagNS, parseRels, parseRelsWithBase } from '../utils/index';
+import { NS } from '../constants';
 import type { RelsMap, TextStyles } from './types';
+import { ShapeElement } from '../elements/ShapeElement';
+import { ImageElement } from '../elements/ImageElement';
+import { GroupElement } from '../elements/GroupElement';
+import { TableElement } from '../elements/TableElement';
+import { ChartElement } from '../elements/ChartElement';
+import { DiagramElement } from '../elements/DiagramElement';
+import type { BaseElement } from '../elements/BaseElement';
 
 export interface MasterSlideResult {
   id: string;
@@ -53,7 +61,7 @@ export async function parseAllMasterSlides(zip: JSZip): Promise<MasterSlideResul
       try {
         const relsXml = await zip.file(relsPath)?.async('string');
         if (relsXml) {
-          relsMap = parseRels(relsXml);
+          relsMap = parseRelsWithBase(relsXml, relsPath);
           log('info', `Loaded ${Object.keys(relsMap).length} relationships for master ${masterNumber}`);
           // 打印关系链
           Object.entries(relsMap).forEach(([id, rel]) => {
@@ -102,9 +110,9 @@ function parseMasterSlide(
     // 解析文本样式（关键：PPTXjs 的样式继承）
     const textStyles = parseTextStyles(root);
 
-    // 解析元素 (footer, slide numbers等)
-    const elements = parseMasterElements(root);
-    const placeholders = elements.filter(el => el.placeholder);  // 提取占位符元素
+    // 解析元素 (footer, slide numbers, shapes, images等)
+    const elements = parseMasterElements(root, relsMap);
+    const placeholders = elements.filter((el: any) => el.placeholder);  // 提取占位符元素
 
     // 获取 theme 引用（从 relsMap 中）
     let themeRef: string | undefined;
@@ -240,7 +248,7 @@ function parseMasterBackground(
  * @param root 母版根元素
  * @returns 元素数组
  */
-function parseMasterElements(root: Element): any[] {
+function parseMasterElements(root: Element, relsMap: RelsMap): any[] {
   const elements: any[] = [];
 
   const cSld = getFirstChildByTagNS(root, 'cSld', 
@@ -254,19 +262,46 @@ function parseMasterElements(root: Element): any[] {
   if (!spTree) return elements;
 
   // 遍历所有子元素
-  Array.from(spTree.children).forEach(child => {
+  Array.from(spTree.children).forEach((child: any) => {
     if (child.nodeType !== 1) return;
 
     const localName = child.localName || child.tagName.split(':').pop();
 
-    // 只处理特定类型的元素（footer, slide number等）
     if (localName === 'sp') {
-      const element = parseShapeForMaster(child);
+      // 查找占位符
+      const nvSpPr = getFirstChildByTagNS(child, 'nvSpPr', NS.p);
+      const nvPr = nvSpPr ? getFirstChildByTagNS(nvSpPr, 'nvPr', NS.p) : null;
+      const ph = nvPr ? getFirstChildByTagNS(nvPr, 'ph', NS.p) : null;
+
+      if (ph) {
+        // 占位符元素（footer, slide number等）
+        const phType = ph.getAttribute('type');
+        const supportedTypes = ['sldNum', 'ftr', 'dt'];
+        if (supportedTypes.includes(phType || '')) {
+          const element = parsePlaceholderShape(child);
+          if (element) {
+            elements.push(element);
+          }
+        }
+      } else {
+        // 非占位符的形状
+        const element = ShapeElement.fromNode(child, relsMap);
+        if (element) {
+          elements.push(element);
+        }
+      }
+    } else if (localName === 'pic') {
+      const element = ImageElement.fromNode(child, relsMap);
       if (element) {
         elements.push(element);
       }
-    } else if (localName === 'pic') {
-      const element = parsePictureForMaster(child);
+    } else if (localName === 'grpSp') {
+      const element = GroupElement.fromNode(child, relsMap);
+      if (element) {
+        elements.push(element);
+      }
+    } else if (localName === 'graphicFrame') {
+      const element = parseMasterGraphicFrame(child, relsMap);
       if (element) {
         elements.push(element);
       }
@@ -276,73 +311,6 @@ function parseMasterElements(root: Element): any[] {
   return elements;
 }
 
-/**
- * 解析母版中的形状
- * @param shapeEl 形状元素
- * @returns 形状对象
- */
-function parseShapeForMaster(shapeEl: Element): any | null {
-  // 查找占位符
-  const nvSpPr = getFirstChildByTagNS(shapeEl, 'nvSpPr',
-    'http://schemas.openxmlformats.org/presentationml/2006/main');
-
-  if (!nvSpPr) return null;
-
-  const cNvPr = getFirstChildByTagNS(nvSpPr, 'cNvPr',
-    'http://schemas.openxmlformats.org/presentationml/2006/main');
-  const id = cNvPr?.getAttribute('id');
-  const name = cNvPr?.getAttribute('name');
-
-  const nvPr = getFirstChildByTagNS(nvSpPr, 'nvPr',
-    'http://schemas.openxmlformats.org/presentationml/2006/main');
-
-  if (!nvPr) return null;
-
-  const ph = getFirstChildByTagNS(nvPr, 'ph',
-    'http://schemas.openxmlformats.org/presentationml/2006/main');
-
-  if (!ph) return null;
-
-  const phType = ph.getAttribute('type');
-
-  // 只处理特定占位符类型
-  const supportedTypes = ['sldNum', 'ftr', 'dt'];
-  if (!supportedTypes.includes(phType || '')) {
-    return null;
-  }
-
-  // 解析位置和尺寸（关键：PPTXjs 需要位置信息来渲染）
-  const spPr = getFirstChildByTagNS(shapeEl, 'spPr',
-    'http://schemas.openxmlformats.org/presentationml/2006/main');
-  const xfrm = getFirstChildByTagNS(spPr, 'xfrm',
-    'http://schemas.openxmlformats.org/drawingml/2006/main');
-
-  let rect = { x: 0, y: 0, width: 0, height: 0 };
-  if (xfrm) {
-    const off = getFirstChildByTagNS(xfrm, 'off',
-      'http://schemas.openxmlformats.org/drawingml/2006/main');
-    const ext = getFirstChildByTagNS(xfrm, 'ext',
-      'http://schemas.openxmlformats.org/drawingml/2006/main');
-
-    if (off) {
-      rect.x = parseInt(off.getAttribute('x') || '0');
-      rect.y = parseInt(off.getAttribute('y') || '0');
-    }
-    if (ext) {
-      rect.width = parseInt(ext.getAttribute('cx') || '0');
-      rect.height = parseInt(ext.getAttribute('cy') || '0');
-    }
-  }
-
-  return {
-    id,
-    name,
-    type: 'shape',
-    placeholder: phType,
-    rect,  // 添加位置尺寸信息
-    // 可以添加更多属性（样式等）
-  };
-}
 
 /**
  * 解析母版中的图片
@@ -435,4 +403,82 @@ function parseTextStyles(root: Element): TextStyles {
       'http://schemas.openxmlformats.org/presentationml/2006/main')
   };
 }
+
+/**
+ * 解析母版中的占位符形状
+ */
+function parsePlaceholderShape(shapeEl: Element): any | null {
+  const nvSpPr = getFirstChildByTagNS(shapeEl, 'nvSpPr', NS.p);
+  if (!nvSpPr) return null;
+
+  const cNvPr = getFirstChildByTagNS(nvSpPr, 'cNvPr', NS.p);
+  const id = cNvPr?.getAttribute('id');
+  const name = cNvPr?.getAttribute('name');
+
+  const nvPr = getFirstChildByTagNS(nvSpPr, 'nvPr', NS.p);
+  if (!nvPr) return null;
+
+  const ph = getFirstChildByTagNS(nvPr, 'ph', NS.p);
+  if (!ph) return null;
+
+  const phType = ph.getAttribute('type');
+
+  // 解析位置和尺寸
+  const spPr = getFirstChildByTagNS(shapeEl, 'spPr', NS.a);
+  const xfrm = getFirstChildByTagNS(spPr, 'xfrm', NS.a);
+
+  let rect = { x: 0, y: 0, width: 0, height: 0 };
+  if (xfrm) {
+    const off = getFirstChildByTagNS(xfrm, 'off', NS.a);
+    const ext = getFirstChildByTagNS(xfrm, 'ext', NS.a);
+
+    if (off) {
+      rect.x = parseInt(off.getAttribute('x') || '0');
+      rect.y = parseInt(off.getAttribute('y') || '0');
+    }
+    if (ext) {
+      rect.width = parseInt(ext.getAttribute('cx') || '0');
+      rect.height = parseInt(ext.getAttribute('cy') || '0');
+    }
+  }
+
+  return {
+    id,
+    name,
+    type: 'shape',
+    placeholder: phType,
+    rect,
+  };
+}
+
+/**
+ * 解析母版中的 graphicFrame 元素
+ */
+function parseMasterGraphicFrame(graphicFrameNode: Element, relsMap: RelsMap): BaseElement | null {
+  try {
+    const graphic = getFirstChildByTagNS(graphicFrameNode, 'graphic', NS.a);
+    const graphicData = graphic ? getFirstChildByTagNS(graphic, 'graphicData', NS.a) : null;
+
+    if (!graphicData) {
+      return null;
+    }
+
+    const uri = graphicData.getAttribute('uri') || '';
+
+    if (uri.includes('table')) {
+      return TableElement.fromNode(graphicFrameNode, relsMap);
+    } else if (uri.includes('chart')) {
+      return ChartElement.fromNode(graphicFrameNode, relsMap);
+    } else if (uri.includes('diagram')) {
+      return DiagramElement.fromNode(graphicFrameNode, relsMap);
+    }
+
+    return null;
+  } catch (error) {
+    log('warn', 'Failed to parse master graphicFrame element', error);
+    return null;
+  }
+}
+
+
 

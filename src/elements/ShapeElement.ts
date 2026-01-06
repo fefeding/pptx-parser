@@ -10,6 +10,24 @@ import { NS } from '../constants';
 import type { ParsedShapeElement, RelsMap } from '../types';
 
 /**
+ * 渐变停止点
+ */
+interface GradientStop {
+  color: string;
+  position: number; // 0-100
+}
+
+/**
+ * 渐变填充配置
+ */
+interface GradientFill {
+  type: 'linear' | 'radial' | 'path';
+  stops: GradientStop[];
+  angle?: number; // 线性渐变角度（度）
+  direction?: string; // 径向/路径渐变方向
+}
+
+/**
  * 文本运行样式
  */
 export interface TextRun {
@@ -199,7 +217,131 @@ export class ShapeElement extends BaseElement {
     // 渐变填充
     const gradFill = getFirstChildByTagNS(spPr, 'gradFill', NS.a);
     if (gradFill) {
-      // TODO: 解析渐变
+      const gradient = this.parseGradientFill(gradFill);
+      if (gradient) {
+        this.style.background = this.generateGradientCSS(gradient);
+      }
+    }
+  }
+
+  /**
+   * 解析渐变填充
+   */
+  private parseGradientFill(gradFill: Element): GradientFill | null {
+    const gradient: GradientFill = {
+      type: 'linear',
+      stops: []
+    };
+
+    // 解析渐变类型
+    const lin = getFirstChildByTagNS(gradFill, 'lin', NS.a);
+    const path = getFirstChildByTagNS(gradFill, 'path', NS.a);
+    const tileRect = getFirstChildByTagNS(gradFill, 'tileRect', NS.a);
+
+    if (lin) {
+      gradient.type = 'linear';
+      
+      // 解析角度
+      const ang = lin.getAttribute('ang');
+      if (ang) {
+        gradient.angle = (parseInt(ang) / 60000) % 360; // 60000 EMU = 1度
+      } else {
+        gradient.angle = 0; // 默认从左到右
+      }
+    } else if (path) {
+      gradient.type = 'path';
+      
+      // 解析路径方向
+      const pathAttr = path.getAttribute('path');
+      if (pathAttr) {
+        gradient.direction = pathAttr;
+      }
+    } else {
+      // 默认为径向渐变
+      gradient.type = 'radial';
+    }
+
+    // 解析渐变停止点
+    const gsLst = getFirstChildByTagNS(gradFill, 'gsLst', NS.a);
+    if (gsLst) {
+      const stops = Array.from(gsLst.children).filter(
+        child => child.tagName === 'a:gs' || child.tagName.includes(':gs')
+      );
+
+      for (const stop of stops) {
+        const color = this.parseGradientStopColor(stop);
+        const pos = stop.getAttribute('pos');
+        
+        if (color) {
+          gradient.stops.push({
+            color,
+            position: pos ? parseInt(pos) / 100000 : 0 // 位置是万分比
+          });
+        }
+      }
+    }
+
+    // 如果没有停止点，添加默认的黑白渐变
+    if (gradient.stops.length === 0) {
+      gradient.stops.push(
+        { color: '#000000', position: 0 },
+        { color: '#ffffff', position: 100 }
+      );
+    }
+
+    return gradient;
+  }
+
+  /**
+   * 解析渐变停止点颜色
+   */
+  private parseGradientStopColor(stop: Element): string | null {
+    const solidFill = getFirstChildByTagNS(stop, 'solidFill', NS.a);
+    if (!solidFill) return null;
+
+    // RGB颜色
+    const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
+    if (srgbClr?.getAttribute('val')) {
+      return `#${srgbClr.getAttribute('val')}`;
+    }
+
+    // 主题颜色
+    const schemeClr = getFirstChildByTagNS(solidFill, 'schemeClr', NS.a);
+    if (schemeClr?.getAttribute('val')) {
+      return schemeClr.getAttribute('val') || null;
+    }
+
+    // 系统颜色
+    const sysClr = getFirstChildByTagNS(solidFill, 'sysClr', NS.a);
+    if (sysClr?.getAttribute('val')) {
+      return sysClr.getAttribute('val') || null;
+    }
+
+    return null;
+  }
+
+  /**
+   * 生成CSS渐变字符串
+   */
+  private generateGradientCSS(gradient: GradientFill): string {
+    const sortedStops = [...gradient.stops].sort((a, b) => a.position - b.position);
+    const stopStrings = sortedStops.map(stop => `${stop.color} ${stop.position}%`).join(', ');
+
+    switch (gradient.type) {
+      case 'linear':
+        const angle = gradient.angle !== undefined ? gradient.angle : 0;
+        return `linear-gradient(${angle}deg, ${stopStrings})`;
+
+      case 'radial':
+        return `radial-gradient(circle, ${stopStrings})`;
+
+      case 'path':
+        // CSS不支持path渐变，回退到径向渐变
+        const direction = gradient.direction || 'circle';
+        return `radial-gradient(${direction}, ${stopStrings})`;
+
+      default:
+        return `linear-gradient(${stopStrings})`;
     }
   }
 
@@ -480,19 +622,20 @@ export class ShapeElement extends BaseElement {
     const style = this.getContainerStyle();
     const textStyle = this.getTextStyle();
     const rotationStyle = this.getRotationStyle();
+    const dataAttrs = this.formatDataAttributes();
 
     const combinedStyle = [...this.parseStyleString(style), ...this.parseStyleString(rotationStyle)].join('; ');
 
     if (this.type === 'text' && this.text) {
       // 文本框
-      return `<div style="${combinedStyle}">
+      return `<div ${dataAttrs} style="${combinedStyle}">
         <div style="${textStyle}">${this.escapeHtml(this.text)}</div>
       </div>`;
     } else {
       // 形状（矩形、圆形等）
       const shapeStyle = this.getShapeStyle();
       const finalStyle = [...this.parseStyleString(style), ...this.parseStyleString(shapeStyle), ...this.parseStyleString(rotationStyle)].join('; ');
-      return `<div style="${finalStyle}"></div>`;
+      return `<div ${dataAttrs} style="${finalStyle}"></div>`;
     }
   }
 

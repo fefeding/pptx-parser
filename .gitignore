@@ -3,7 +3,6 @@ npm-debug.log
 yarn-error.log
 node_modules/
 coverage/
-dist/
 .idea/
 run/
 .DS_Store
@@ -13,3 +12,5 @@ run/
 .tsbuildinfo.*
 pnpm-lock.yaml
 examples/PPTXjs
+examples/*.pptx
+examples/ppt

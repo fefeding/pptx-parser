@@ -127,6 +127,7 @@ export class OleElement extends BaseElement {
    */
   toHTML(): string {
     const style = this.getContainerStyle();
+    const dataAttrs = this.formatDataAttributes();
     const innerStyle = [
       `width: 100%`,
       `height: 100%`,
@@ -143,7 +144,7 @@ export class OleElement extends BaseElement {
 
     const label = this.progId || this.oleName || 'OLE Object';
 
-    return `<div style="${style}">
+    return `<div ${dataAttrs} style="${style}">
       <div style="${innerStyle}">
         ${label}
       </div>

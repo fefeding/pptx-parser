@@ -34,6 +34,64 @@ export function parseRels(relsXml: string): RelsMap {
 }
 
 /**
+ * 规范化目标路径，将其转换为相对于ZIP根目录的绝对路径
+ * @param relsFilePath 关系文件路径（如 'ppt/slides/_rels/slide1.xml.rels'）
+ * @param target 目标路径（如 '../media/image1.png'）
+ * @returns 规范化后的绝对路径（如 'ppt/media/image1.png'）
+ */
+export function normalizeTargetPath(relsFilePath: string, target: string): string {
+  // 如果目标是空字符串，直接返回
+  if (!target) return target;
+  
+  // 如果目标以 '/' 开头，视为绝对路径，去掉开头的 '/'
+  if (target.startsWith('/')) {
+    target = target.substring(1);
+  }
+  
+  // 找到 _rels/ 目录的位置
+  const relsIndex = relsFilePath.indexOf('_rels/');
+  let parentDir = relsFilePath;
+  if (relsIndex !== -1) {
+    // 截取到 _rels/ 之前的部分作为父目录
+    parentDir = relsFilePath.substring(0, relsIndex);
+  }
+  
+  // 将目标路径相对于父目录进行解析
+  const fullPath = parentDir + target;
+  
+  // 规范化路径：移除 './'，处理 '../'
+  const parts = fullPath.split('/');
+  const result: string[] = [];
+  for (const part of parts) {
+    if (part === '' || part === '.') continue;
+    if (part === '..') {
+      if (result.length > 0) {
+        result.pop();
+      }
+    } else {
+      result.push(part);
+    }
+  }
+  return result.join('/');
+}
+
+/**
+ * 解析关系文件并规范化目标路径
+ * @param relsXml 关系XML字符串
+ * @param relsFilePath 关系文件路径（用于路径解析）
+ * @returns 关系映射表 { relId: target }，其中target是绝对路径
+ */
+export function parseRelsWithBase(relsXml: string, relsFilePath: string): RelsMap {
+  const relsMap = parseRels(relsXml);
+  // 规范化每个目标路径
+  for (const relId in relsMap) {
+    const rel = relsMap[relId];
+    rel.target = normalizeTargetPath(relsFilePath, rel.target);
+  }
+  return relsMap;
+}
+
+/**
  * 解析元数据（docProps/core.xml）
  * @param coreXml 核心属性XML字符串
  * @returns 元数据对象

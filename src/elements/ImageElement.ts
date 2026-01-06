@@ -241,11 +241,46 @@ export class ImageElement extends BaseElement {
     if (path.endsWith('.wav')) return 'wav';
     if (path.endsWith('.ogg')) return 'ogg';
     return undefined;
+}
+
+  /**
+   * 获取元素在PPTX中的原始文件路径
+   */
+  getFilePath(): string {
+    // 如果是图片，通过 relId 和 relsMap 获取目标路径
+    if (this.mediaType === 'image' && this.relId && this.relsMap[this.relId]) {
+      return this.relsMap[this.relId].target;
+    }
+    // 如果是视频且为本地文件
+    if (this.mediaType === 'video' && this.videoInfo && this.videoInfo.type === 'blob') {
+      return this.videoInfo.src;
+    }
+    // 如果是音频且为本地文件
+    if (this.mediaType === 'audio' && this.audioInfo && this.audioInfo.type === 'blob') {
+      return this.audioInfo.src;
+    }
+    // 默认返回空字符串
+    return '';
   }
 
   /**
-   * 转换为HTML
+   * 获取用于调试的 data-* 属性
    */
+  getDataAttributes(): Record<string, string> {
+    const attrs = super.getDataAttributes();
+    const filePath = this.getFilePath();
+    if (filePath) {
+      attrs['data-file'] = filePath;
+    }
+    if (this.relId) {
+      attrs['data-rel-id'] = this.relId;
+    }
+    return attrs;
+  }
+
+/**
+ * 转换为HTML
+ */
   toHTML(): string {
     const style = this.getContainerStyle();
 
@@ -268,7 +303,13 @@ export class ImageElement extends BaseElement {
       `object-fit: contain`
     ].join('; ');
 
-    return `<div style="${containerStyle}">
+    // 获取调试属性
+    const dataAttrs = this.getDataAttributes();
+    const attrString = Object.entries(dataAttrs)
+      .map(([key, value]) => `${key}="${value}"`)
+      .join(' ');
+
+    return `<div ${attrString} style="${containerStyle}">
       <img src="${this.src}" alt="${this.altText || ''}" style="${imgStyle}" />
     </div>`;
   }
@@ -284,9 +325,15 @@ export class ImageElement extends BaseElement {
       `object-fit: contain`
     ].join('; ');
 
+    // 获取调试属性
+    const dataAttrs = this.getDataAttributes();
+    const attrString = Object.entries(dataAttrs)
+      .map(([key, value]) => `${key}="${value}"`)
+      .join(' ');
+
     if (video.type === 'link') {
       // YouTube, Vimeo 等外部链接
-      return `<div style="${containerStyle}">
+      return `<div ${attrString} style="${containerStyle}">
         <iframe
           src="${video.src}"
           style="${videoStyle}"
@@ -297,7 +344,7 @@ export class ImageElement extends BaseElement {
       </div>`;
     } else {
       // 本地视频
-      return `<div style="${containerStyle}">
+      return `<div ${attrString} style="${containerStyle}">
         <video
           src="${video.src}"
           style="${videoStyle}"
@@ -341,9 +388,15 @@ export class ImageElement extends BaseElement {
       `display: block`
     ].join('; ');
 
+    // 获取调试属性
+    const dataAttrs = this.getDataAttributes();
+    const attrString = Object.entries(dataAttrs)
+      .map(([key, value]) => `${key}="${value}"`)
+      .join(' ');
+
     if (audio.type === 'link') {
       // 外部链接音频
-      return `<div style="${containerStyle}">
+      return `<div ${attrString} style="${containerStyle}">
         <audio
           src="${audio.src}"
           style="${audioStyle}"
@@ -355,7 +408,7 @@ export class ImageElement extends BaseElement {
       </div>`;
     } else {
       // 本地音频
-      return `<div style="${containerStyle}">
+      return `<div ${attrString} style="${containerStyle}">
         <audio id="audio_${this.id}" style="${audioStyle}" ${audio.controls ? 'controls' : ''}>
           ${this.getAudioSourceTag(audio.format)}
         </audio>

@@ -4,6 +4,7 @@
  */
 
 import { BaseElement } from './BaseElement';
+import { createElementFromData } from './element-factory';
 import type { NotesSlideResult, NotesMasterResult } from '../core/types';
 
 /**
@@ -37,8 +38,10 @@ export class NotesMasterElement extends BaseElement {
    * 从 NotesMasterResult 创建 NotesMasterElement
    */
   static fromResult(result: NotesMasterResult): NotesMasterElement {
-    // TODO: 将 elements 转换为 BaseElement 实例
-    const elements: BaseElement[] = [];
+    // 将 elements 转换为 BaseElement 实例
+    const elements: BaseElement[] = (result.elements || []).map(elementData => 
+      createElementFromData(elementData, result.relsMap)
+    ).filter((el): el is BaseElement => el !== null);
 
     return new NotesMasterElement(
       result.id,

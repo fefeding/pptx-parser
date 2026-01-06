@@ -183,12 +183,13 @@ export class GroupElement extends BaseElement {
    */
   toHTML(): string {
     const style = this.getGroupStyle();
+    const dataAttrs = this.formatDataAttributes();
 
     const childrenHTML = this.children
       .map(child => child.toHTML())
       .join('\n');
 
-    return `<div class="ppt-group" style="${style}">
+    return `<div class="ppt-group" ${dataAttrs} style="${style}">
 ${childrenHTML}
     </div>`;
   }

@@ -69,6 +69,8 @@ export interface PptxParseResult {
   charts?: ChartResult[];
   diagrams?: DiagramResult[];
   tags?: TagsResult[];
+  /** 媒体资源映射表（relId -> base64 URL） */
+  mediaMap?: Map<string, string>;
 }
 
 /**
