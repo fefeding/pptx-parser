@@ -175,8 +175,10 @@ export async function parseAllSlides(
       let relsMap: RelsMap = {};
 
       if (slideNumber) {
-        relsMap = await parseSlideRels(zip, slideNumber);
-        log('info', `Loaded ${Object.keys(relsMap).length} relationships for slide ${slideNumber}`);
+        // 传递完整的 slide 前缀（如 slide1），而不是只有数字
+        const slideId = `slide${slideNumber}`;
+        relsMap = await parseSlideRels(zip, slideId);
+        log('info', `Loaded ${Object.keys(relsMap).length} relationships for slide ${slideId}`);
       }
 
       // 解析幻灯片

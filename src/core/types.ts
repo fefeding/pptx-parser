@@ -153,6 +153,10 @@ export interface SlideParseResult {
   rawXml?: string;
   index?: number;
   layoutId?: string;
+  /** 引用的布局对象（由 parser 填充） */
+  layout?: SlideLayoutResult;
+  /** 引用的母版对象（由 parser 填充） */
+  master?: MasterSlideResult;
 }
 
 /** 关联关系 */

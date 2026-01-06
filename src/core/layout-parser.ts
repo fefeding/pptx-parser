@@ -77,7 +77,7 @@ export function parseSlideLayout(
       const match = rel.target.match(/slideMaster(\d+)\.xml/);
       if (match) {
         masterRef = `slideMaster${match[1]}`;
-        log('info', `Layout references master: ${masterRef}`);
+        log('info', `Layout references master file: ${masterRef}`);
       }
     }
   }

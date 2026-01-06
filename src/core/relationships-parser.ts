@@ -30,17 +30,17 @@ export async function parseGlobalRels(zip: JSZip): Promise<RelsMap> {
 /**
  * 解析幻灯片关联关系
  * @param zip JSZip对象
- * @param slideNumber 幻灯片编号
+ * @param slideId 幻灯片ID（如 slide1, slide2）
  * @param relsBasePath 关联关系的基础路径（默认是slides）
  * @returns 关联关系映射表
  */
 export async function parseSlideRels(
   zip: JSZip,
-  slideNumber: string,
+  slideId: string,
   relsBasePath: string = PATHS.SLIDE_RELS
 ): Promise<RelsMap> {
   try {
-    const relsPath = `${relsBasePath}${slideNumber}.xml.rels`;
+    const relsPath = `${relsBasePath}${slideId}.xml.rels`;
     const relsXml = await zip.file(relsPath)?.async('string');
 
     if (!relsXml) {
@@ -49,7 +49,7 @@ export async function parseSlideRels(
 
     return parseRels(relsXml);
   } catch (error) {
-    log('warn', `Failed to parse ${relsBasePath}${slideNumber} relationships`, error);
+    log('warn', `Failed to parse ${relsBasePath}${slideId} relationships`, error);
     return {};
   }
 }

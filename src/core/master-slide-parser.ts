@@ -9,6 +9,8 @@ import type { RelsMap } from './types';
 
 export interface MasterSlideResult {
   id: string;
+  /** 母版文件名（如 slideMaster1） */
+  masterId?: string;
   background?: { type: 'color' | 'image' | 'none'; value?: string; relId?: string; schemeRef?: string };
   elements: any[];
   /** 母版元素（footer, slide number等）的位置和样式 */
@@ -116,6 +118,7 @@ function parseMasterSlide(
 
     return {
       id: `master-${masterNumber}`,
+      masterId: `slideMaster${masterNumber}`,
       background,
       elements,
       placeholders,
@@ -127,6 +130,7 @@ function parseMasterSlide(
     log('error', `Failed to parse master slide ${masterNumber}`, error);
     return {
       id: `master-${masterNumber}`,
+      masterId: `slideMaster${masterNumber}`,
       elements: [],
       colorMap: {}
     };

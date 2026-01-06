@@ -233,12 +233,12 @@ async function parseEnhancedMode(
     const masterSlides = await parseAllMasterSlides(zip);
     log('info', `Parsed ${masterSlides.length} master slides`);
 
-    // 建立从 masterRef 到 master 对象的映射
+    // 建立从 masterId 到 master 对象的映射（关键：使用 masterId 而不是 themeRef）
     const masterMap = new Map<string, any>();
     masterSlides.forEach(master => {
-      if (master.themeRef) {
-        masterMap.set(master.themeRef, master);
-        log('info', `Master map: ${master.themeRef} -> ${master.id}`);
+      if (master.masterId) {
+        masterMap.set(master.masterId, master);
+        log('info', `Master map: ${master.masterId} -> ${master.id}`);
       }
     });
 
@@ -283,7 +283,8 @@ async function parseEnhancedMode(
         (slide as any).layout = layout;
         (slide as any).master = layoutAny.master;
 
-        log('info', `Slide relationship chain: slide -> layout (${layoutId}) -> master (${layoutAny.masterRef})`);
+        const masterRef = (layout as any).masterRef;
+        log('info', `Slide relationship chain: slide -> layout (${layoutId}) -> master (${masterRef})`);
       } else if (layoutId) {
         log('warn', `Layout ${layoutId} referenced by slide not found in parsed layouts`);
       }
