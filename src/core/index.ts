@@ -8,3 +8,6 @@ export * from './slide-parser';
 export * from './metadata-parser';
 export * from './image-parser';
 export * from './types';
+export * from './drawings-parser';
+export * from './notes-parser';
+export * from './tags-parser';

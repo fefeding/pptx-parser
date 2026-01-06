@@ -82,6 +82,78 @@
               <p><strong>元素数量:</strong> {{ layout.elements.length }}</p>
             </div>
           </details>
+
+          <details v-if="parsedData.notesMasters && parsedData.notesMasters.length > 0">
+            <summary>备注母版 (Notes Masters: {{ parsedData.notesMasters.length }})</summary>
+            <div v-for="(master, index) in parsedData.notesMasters" :key="master.id" class="notes-master-info">
+              <h4>备注母版 {{ index + 1 }} ({{ master.id }})</h4>
+              <p><strong>背景:</strong> {{ master.background ? JSON.stringify(master.background) : '无' }}</p>
+              <p><strong>元素数量:</strong> {{ master.elements.length }}</p>
+              <p v-if="master.placeholders && master.placeholders.length > 0">
+                <strong>占位符:</strong> {{ master.placeholders.map(p => p.type).join(', ') }}
+              </p>
+            </div>
+          </details>
+
+          <details v-if="parsedData.notesSlides && parsedData.notesSlides.length > 0">
+            <summary>备注页 (Notes Slides: {{ parsedData.notesSlides.length }})</summary>
+            <div v-for="(slide, index) in parsedData.notesSlides" :key="slide.id" class="notes-slide-info">
+              <h4>备注页 {{ index + 1 }} ({{ slide.id }})</h4>
+              <p><strong>关联幻灯片:</strong> {{ slide.slideId || '无' }}</p>
+              <p v-if="slide.text"><strong>备注文本:</strong> {{ slide.text }}</p>
+              <p><strong>元素数量:</strong> {{ slide.elements.length }}</p>
+              <p><strong>母版引用:</strong> {{ slide.masterRef || '无' }}</p>
+            </div>
+          </details>
+
+          <details v-if="parsedData.charts && parsedData.charts.length > 0">
+            <summary>图表 (Charts: {{ parsedData.charts.length }})</summary>
+            <div v-for="(chart, index) in parsedData.charts" :key="chart.id" class="chart-info">
+              <h4>图表 {{ index + 1 }} ({{ chart.id }})</h4>
+              <p><strong>类型:</strong> {{ chart.chartType }}</p>
+              <p v-if="chart.title"><strong>标题:</strong> {{ chart.title }}</p>
+              <p><strong>系列数量:</strong> {{ chart.series?.length || 0 }}</p>
+              <p v-if="chart.categories"><strong>分类:</strong> {{ chart.categories.join(', ') }}</p>
+              <p v-if="chart.xTitle"><strong>X轴标题:</strong> {{ chart.xTitle }}</p>
+              <p v-if="chart.yTitle"><strong>Y轴标题:</strong> {{ chart.yTitle }}</p>
+              <p><strong>显示图例:</strong> {{ chart.showLegend ? '是' : '否' }}</p>
+              <p><strong>显示数据标签:</strong> {{ chart.showDataLabels ? '是' : '否' }}</p>
+            </div>
+          </details>
+
+          <details v-if="parsedData.diagrams && parsedData.diagrams.length > 0">
+            <summary>SmartArt/图表 (Diagrams: {{ parsedData.diagrams.length }})</summary>
+            <div v-for="(diagram, index) in parsedData.diagrams" :key="diagram.id" class="diagram-info">
+              <h4>SmartArt {{ index + 1 }} ({{ diagram.id }})</h4>
+              <p v-if="diagram.diagramType"><strong>类型:</strong> {{ diagram.diagramType }}</p>
+              <p v-if="diagram.layout"><strong>布局:</strong> {{ diagram.layout }}</p>
+              <p><strong>形状数量:</strong> {{ diagram.shapes?.length || 0 }}</p>
+            </div>
+          </details>
+
+          <details v-if="parsedData.tags && parsedData.tags.length > 0">
+            <summary>幻灯片标签 (Tags: {{ parsedData.tags.length }})</summary>
+            <div v-for="(tagSet, index) in parsedData.tags" :key="tagSet.id" class="tags-info">
+              <h4>标签集 {{ index + 1 }} ({{ tagSet.id }})</h4>
+              <p><strong>关联幻灯片:</strong> {{ tagSet.slideId || '无' }}</p>
+              <div v-if="tagSet.tags && tagSet.tags.length > 0">
+                <strong>标签:</strong>
+                <ul>
+                  <li v-for="(tag, idx) in tagSet.tags" :key="idx">
+                    {{ tag.name }}: {{ tag.value }}
+                  </li>
+                </ul>
+              </div>
+              <div v-if="tagSet.customProperties && tagSet.customProperties.length > 0">
+                <strong>自定义属性:</strong>
+                <ul>
+                  <li v-for="(prop, idx) in tagSet.customProperties" :key="idx">
+                    {{ prop.name }}: {{ prop.value }} ({{ prop.type }})
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </main>
@@ -491,4 +563,130 @@ ${slidesHTML}
   color: #666;
   font-size: 0.875rem;
 }
+
+.slide-layout-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border-left: 4px solid #764ba2;
+}
+
+.slide-layout-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.slide-layout-info p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.notes-master-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border-left: 4px solid #10b981;
+}
+
+.notes-master-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.notes-master-info p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.notes-slide-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border-left: 4px solid #f59e0b;
+}
+
+.notes-slide-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.notes-slide-info p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.chart-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border-left: 4px solid #ef4444;
+}
+
+.chart-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.chart-info p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.diagram-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border-left: 4px solid #8b5cf6;
+}
+
+.diagram-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.diagram-info p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.tags-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border-left: 4px solid #ec4899;
+}
+
+.tags-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.tags-info p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.tags-info ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  color: #666;
+}
+
+.tags-info li {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
 </style>

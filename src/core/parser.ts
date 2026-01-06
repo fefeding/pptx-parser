@@ -15,6 +15,9 @@ import { parseImages } from './image-parser';
 import { parseTheme, resolveSchemeColor } from './theme-parser';
 import { parseAllMasterSlides } from './master-slide-parser';
 import { parseAllSlideLayouts, mergeBackgrounds } from './layout-parser';
+import { parseAllNotesMasters, parseAllNotesSlides, linkNotesToMasters } from './notes-parser';
+import { parseAllCharts, parseAllDiagrams } from './drawings-parser';
+import { parseAllSlideTags } from './tags-parser';
 import type { PptxParseResult, ParseOptions, SlideLayoutResult } from './types';
 import { unescape } from 'html-escaper';
 import type { PptDocument } from '../types';
@@ -318,6 +321,18 @@ async function parseEnhancedMode(
       });
     }
 
+    // 解析备注母版和备注页
+    const notesMasters = await parseAllNotesMasters(zip);
+    const notesSlides = await parseAllNotesSlides(zip);
+    linkNotesToMasters(notesSlides, notesMasters);
+
+    // 解析图表和SmartArt
+    const charts = await parseAllCharts(zip);
+    const diagrams = await parseAllDiagrams(zip);
+
+    // 解析幻灯片标签和扩展属性
+    const tags = await parseAllSlideTags(zip, slides.length);
+
     const result: PptxParseResult = {
       id: generateId('ppt-doc'),
       title: metadata.title || '未命名PPT',
@@ -337,7 +352,12 @@ async function parseEnhancedMode(
       globalRelsMap: globalRels,
       theme: theme || undefined,
       masterSlides,
-      slideLayouts
+      slideLayouts,
+      notesMasters: notesMasters.length > 0 ? notesMasters : undefined,
+      notesSlides: notesSlides.length > 0 ? notesSlides : undefined,
+      charts: charts.length > 0 ? charts : undefined,
+      diagrams: diagrams.length > 0 ? diagrams : undefined,
+      tags: tags.length > 0 ? tags : undefined
     };
 
     // 解析图片（如果需要）

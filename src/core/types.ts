@@ -64,6 +64,11 @@ export interface PptxParseResult {
   theme?: ThemeResult;
   masterSlides?: MasterSlideResult[];
   slideLayouts?: Record<string, SlideLayoutResult>;
+  notesMasters?: NotesMasterResult[];
+  notesSlides?: NotesSlideResult[];
+  charts?: ChartResult[];
+  diagrams?: DiagramResult[];
+  tags?: TagsResult[];
 }
 
 /** 导入SlideLayoutResult类型以便在PptxParseResult中使用 */
@@ -164,4 +169,118 @@ export interface Relationship {
   id: string;
   type: string;
   target: string;
+}
+
+// ============ 图表/绘图相关类型 ============
+
+/** 图表数据系列 */
+export interface ChartSeriesData {
+  name?: string;
+  idx?: number;
+  order?: number;
+  points?: ChartDataPoint[];
+  color?: string;
+}
+
+/** 图表数据点 */
+export interface ChartDataPoint {
+  idx?: number;
+  value?: number;
+  category?: string;
+}
+
+/** 图表解析结果 */
+export interface ChartResult {
+  id: string;
+  chartType: 'lineChart' | 'barChart' | 'pieChart' | 'pie3DChart' | 'areaChart' | 'scatterChart' | 'unknown';
+  title?: string;
+  series?: ChartSeriesData[];
+  categories?: string[];
+  xTitle?: string;
+  yTitle?: string;
+  showLegend?: boolean;
+  showDataLabels?: boolean;
+  relsMap: RelsMap;
+}
+
+/** SmartArt/Diagram 形状 */
+export interface DiagramShapeData {
+  id: string;
+  type: string;
+  position?: { x: number; y: number };
+  size?: { width: number; height: number };
+  text?: string;
+}
+
+/** SmartArt/Diagram 解析结果 */
+export interface DiagramResult {
+  id: string;
+  diagramType?: string;
+  layout?: string;
+  colors?: Record<string, string>;
+  data?: Record<string, any>;
+  shapes?: DiagramShapeData[];
+  relsMap: RelsMap;
+}
+
+// ============ 讲演者备注相关类型 ============
+
+/** 备注占位符定义 */
+export interface NotesPlaceholder {
+  id: string;
+  type: 'header' | 'body' | 'dateTime' | 'slideImage' | 'footer' | 'other';
+  name?: string;
+  rect: { x: number; y: number; width: number; height: number };
+}
+
+/** 备注母版解析结果 */
+export interface NotesMasterResult {
+  id: string;
+  elements: any[];
+  background?: { type: 'color' | 'image' | 'none'; value?: string; relId?: string };
+  placeholders?: NotesPlaceholder[];
+  relsMap: RelsMap;
+}
+
+/** 备注页解析结果 */
+export interface NotesSlideResult {
+  id: string;
+  slideId?: string; // 关联的幻灯片ID
+  text?: string; // 备注文本
+  elements: any[];
+  background?: { type: 'color' | 'image' | 'none'; value?: string; relId?: string };
+  relsMap: RelsMap;
+  masterRef?: string; // 引用的母版
+  master?: NotesMasterResult; // 母版对象
+}
+
+// ============ 标签相关类型 ============
+
+/** 幻灯片标签 */
+export interface SlideTag {
+  name: string;
+  value: string;
+}
+
+/** 扩展数据 */
+export interface ExtensionData {
+  uri?: string;
+  data?: any;
+}
+
+/** 自定义属性 */
+export interface CustomProperty {
+  name: string;
+  value: any;
+  type?: 'string' | 'number' | 'boolean' | 'date';
+}
+
+/** 标签解析结果 */
+export interface TagsResult {
+  id: string;
+  slideId?: string;
+  tags: SlideTag[];
+  extensions: ExtensionData[];
+  customProperties: CustomProperty[];
+  relsMap: RelsMap;
 }
