@@ -6,8 +6,16 @@
 import type { SlideParseResult } from '../core/types';
 import { BaseElement } from './BaseElement';
 import { applyStyleInheritance } from '../core/style-inheritance';
-import type { SlideLayoutResult, MasterSlideResult } from '../core/types';
+import type { SlideLayoutResult, MasterSlideResult, Placeholder } from '../core/types';
 import { createElementFromData } from './element-factory';
+import { 
+  getSlideContainerStyle, 
+  getPlaceholderLayoutStyle, 
+  mergePlaceholderStyles, 
+  findPlaceholder 
+} from '../utils/layout-utils';
+import { mergeTextStyles } from '../utils/style-inheritance';
+import { emu2px } from '../utils';
 
 /**
  * 幻灯片元素类
@@ -56,7 +64,7 @@ export class SlideElement {
 
   /**
    * 转换为HTML
-   * 支持 layout 和 master 样式继承
+   * 完全复刻 PPTXjs 的渲染逻辑
    */
   toHTML(): string {
     // 确保样式已应用（从 layout 和 master 继承）
@@ -65,29 +73,24 @@ export class SlideElement {
       this.rawResult.styleApplied = true;
     }
 
-    // 获取背景样式
-    const background = this.getSlideBackground();
+    // 获取幻灯片尺寸（使用默认尺寸）
+    const width = 9144000; // 默认10英寸
+    const height = 6858000; // 默认7.5英寸
 
-    // 获取幻灯片尺寸
-    const size = { width: 960, height: 540 };
+    // 生成幻灯片容器样式（.slide）- 对应 PPTXjs
+    const slideStyle = getSlideContainerStyle(width, height, this.rawResult.background as any);
 
-    const slideStyle = [
-      `width: ${size.width}px`,
-      `height: ${size.height}px`,
-      `position: relative`,
-      background,
-      `overflow: hidden`
-    ].join('; ');
-
-    // 渲染布局和母版元素
+    // 渲染母版元素
+    const masterElementsHTML = this.renderMasterElements();
+    
+    // 渲染布局元素（来自 SlideLayout 的 elements）
     const layoutElementsHTML = this.renderLayoutElements();
 
-    // 渲染幻灯片元素
-    const elementsHTML = this.elements
-      .map(element => element.toHTML())
-      .join('\n');
+    // 渲染幻灯片元素（应用占位符布局）
+    const elementsHTML = this.renderSlideElementsWithLayout();
 
-    return `<div class="ppt-slide" style="${slideStyle}" data-slide-id="${this.id}" data-slide-title="${this.escapeHtml(this.title)}">
+    return `<div class="slide" style="${slideStyle}" data-slide-id="${this.id}" data-slide-title="${this.escapeHtml(this.title)}">
+${masterElementsHTML}
 ${layoutElementsHTML}
 ${elementsHTML}
     </div>`;
@@ -98,7 +101,7 @@ ${elementsHTML}
    * PPTXjs 中，layout 和 master 中的元素会被渲染到 slide 上
    * 渲染顺序：master elements -> layout elements -> slide elements
    */
-  private renderLayoutElements(): string {
+  private renderMasterElements(): string {
     const elements: string[] = [];
 
     // 渲染母版元素（如页脚、页码、背景图片等）
@@ -119,25 +122,164 @@ ${elementsHTML}
       });
     }
 
-    // 渲染布局元素（如果有实际的形状元素，而不仅仅是占位符定义）
+    return elements.join('\n');
+  }
+
+  /**
+   * 渲染布局元素（来自 SlideLayout 的 elements）
+   * 对应 PPTXjs 中布局自带的固定内容（如默认标题、页脚等）
+   */
+  private renderLayoutElements(): string {
+    const elements: string[] = [];
+
     if (this.layout?.elements && this.layout.elements.length > 0) {
       this.layout.elements.forEach(el => {
-        // 将原始数据转换为 BaseElement 实例（如果还没有转换）
         if (!(el instanceof BaseElement)) {
           const relsMap = (this.layout as any).relsMap || {};
           const element = createElementFromData(el, relsMap, this.mediaMap);
-          // 只渲染有 type 属性的元素（形状、图片等），跳过纯占位符定义
-          if (element && el.type && !el.hidden && !el.isPlaceholder) {
+          if (element && !el.hidden) {
             const html = element.toHTML();
             elements.push(`<div class="ppt-layout-element">${html}</div>`);
           }
-        } else if (!el.isPlaceholder && !el.hidden) {
+        } else if (!el.hidden) {
           elements.push(`<div class="ppt-layout-element">${el.toHTML()}</div>`);
         }
       });
     }
 
     return elements.join('\n');
+  }
+
+  /**
+   * 渲染幻灯片元素（应用布局占位符样式）
+   * 对应 PPTXjs 的核心渲染逻辑：.slide > .block > .content
+   */
+  private renderSlideElementsWithLayout(): string {
+    if (!this.layout) {
+      // 如果没有布局，直接渲染元素
+      return this.elements
+        .map(element => element.toHTML())
+        .join('\n');
+    }
+
+    const elementsHTML: string[] = [];
+
+    this.elements.forEach(element => {
+      // 查找对应的布局占位符
+      const layoutPlaceholder = findPlaceholder(
+        this.layout?.placeholders || [],
+        element.type === 'shape' ? 'body' : element.type
+      );
+
+      // 查找对应的母版占位符
+      const masterPlaceholder = findPlaceholder(
+        this.master?.placeholders || [],
+        element.type === 'shape' ? 'body' : element.type
+      );
+
+      // 合并继承样式：layout > master
+      const inheritedStyle = { ...(masterPlaceholder || {}), ...(layoutPlaceholder || {}) };
+      // 合并样式（优先级：Slide元素 > 继承样式）
+      const mergedStyle = mergePlaceholderStyles(element.style || {}, inheritedStyle);
+
+      // 生成布局类样式
+      const placeholderStyle = layoutPlaceholder
+        ? getPlaceholderLayoutStyle(layoutPlaceholder as any)
+        : { style: '', className: 'block' };
+
+      // 合并文本样式
+      let textStyle: Record<string, any> = {};
+      const mergedTextStyle = mergeTextStyles(
+        element.style,
+        layoutPlaceholder ? (layoutPlaceholder as any).style : undefined,
+        masterPlaceholder ? (masterPlaceholder as any).style : undefined
+      );
+      if (mergedTextStyle) {
+        textStyle = mergedTextStyle;
+      }
+
+      // 应用文本样式到元素
+      if (element.style) {
+        Object.assign(element.style, textStyle);
+      }
+
+      // 生成元素HTML
+      const elementHTML = element.toHTML();
+
+      // 渲染为 .block 容器结构（PPTXjs标准结构）
+      elementsHTML.push(`
+        <div class="${placeholderStyle.className}" style="${placeholderStyle.style}">
+          <div class="content slide-prgrph" style="${this.getTextContentStyle(textStyle || {}, undefined)}">
+            ${elementHTML}
+          </div>
+        </div>
+      `);
+    });
+
+    // 收集已经渲染的占位符标识 (type + idx)
+    const renderedPlaceholders = new Set<string>();
+    this.elements.forEach(element => {
+      const layoutPlaceholder = findPlaceholder(
+        this.layout?.placeholders || [],
+        element.type === 'shape' ? 'body' : element.type
+      );
+      if (layoutPlaceholder) {
+        const key = `${layoutPlaceholder.type || ''}_${layoutPlaceholder.idx ?? ''}`;
+        renderedPlaceholders.add(key);
+      }
+    });
+
+    // 渲染 layout 中未在 slide 元素中出现的占位符（保持布局结构）
+    (this.layout?.placeholders || []).forEach(placeholder => {
+      const key = `${placeholder.type || ''}_${placeholder.idx ?? ''}`;
+      if (!renderedPlaceholders.has(key)) {
+        const placeholderStyle = getPlaceholderLayoutStyle(placeholder as any);
+        elementsHTML.push( `
+          <div class="${placeholderStyle.className}" style="${placeholderStyle.style}">
+            <div class="content slide-prgrph"></div>
+          </div>
+        `);
+      }
+    });
+
+    return elementsHTML.join('');
+  }
+
+  /**
+   * 获取文本内容的样式
+   */
+  private getTextContentStyle(textStyle: any, alignmentClass?: string): string {
+    const styles = [];
+    
+    if (textStyle.fontSize) {
+      styles.push(`font-size: ${textStyle.fontSize}px`);
+    }
+    if (textStyle.color) {
+      styles.push(`color: ${textStyle.color}`);
+    }
+    if (textStyle.fontWeight) {
+      styles.push(`font-weight: ${textStyle.fontWeight}`);
+    }
+    if (textStyle.textAlign) {
+      styles.push(`text-align: ${textStyle.textAlign}`);
+    }
+    if (textStyle.backgroundColor && textStyle.backgroundColor !== 'transparent') {
+      styles.push(`background-color: ${textStyle.backgroundColor}`);
+    }
+    
+    // 添加对齐类对应的样式
+    if (alignmentClass) {
+      const [vAlign, hAlign] = alignmentClass.split('_');
+      if (vAlign === 'mid' || vAlign === 'center') {
+        styles.push('display: flex');
+        styles.push('align-items: center');
+      }
+      if (hAlign === 'mid' || hAlign === 'center') {
+        styles.push('justify-content: center');
+      }
+    }
+    
+    return styles.join('; ');
   }
 
   /**

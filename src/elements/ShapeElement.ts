@@ -626,6 +626,38 @@ export class ShapeElement extends BaseElement {
 
     const combinedStyle = [...this.parseStyleString(style), ...this.parseStyleString(rotationStyle)].join('; ');
 
+    // 处理图片类型
+    if (this.type === 'image' && this.rawData) {
+      const blipFill = this.rawData.querySelector('p\:blipFill, blipFill');
+      if (blipFill) {
+        const blip = blipFill.querySelector('a\:blip, blip');
+        if (blip) {
+          const rEmbed = blip.getAttribute('r:embed') || blip.getAttribute('embed');
+          if (rEmbed && this.relsMap) {
+            const target = this.relsMap[rEmbed]?.target;
+            if (target) {
+              // 构建正确的图片路径
+              let imageSrc = target;
+              // 如果是相对路径，确保路径正确
+              if (!imageSrc.startsWith('http') && !imageSrc.startsWith('/')) {
+                // 根据 rEmbed 判断是 slide 还是 layout 的图片
+                if (rEmbed.startsWith('rId')) {
+                  // 检查是否在 layout 中
+                  if (this.rawData.closest('p\:sldLayout, sldLayout')) {
+                    imageSrc = `ppt/slideLayouts/${target}`;
+                  } else {
+                    imageSrc = `ppt/slides/${target}`;
+                  }
+                }
+              }
+              
+              return `<img ${dataAttrs} style="${combinedStyle}" src="${imageSrc}" data-rel-id="${rEmbed}" data-file="${imageSrc}" />`;
+            }
+          }
+        }
+      }
+    }
+
     if (this.type === 'text' && this.text) {
       // 文本框
       return `<div ${dataAttrs} style="${combinedStyle}">

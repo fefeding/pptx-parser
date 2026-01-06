@@ -161,3 +161,35 @@ export function getSlideContainerStyle(
 
   return styles.join('; ');
 }
+
+/**
+ * 在占位符列表中查找匹配的占位符
+ * @param placeholders 占位符数组
+ * @param type 占位符类型
+ * @param idx 占位符索引，可选
+ * @returns 匹配的占位符或 undefined
+ */
+export function findPlaceholder(
+  placeholders: Array<{ type?: string | 'title' | 'body' | 'dateTime' | 'slideNumber' | 'footer' | 'other'; idx?: number } & Record<string, any>>,
+  type: string,
+  idx?: number
+): (Record<string, any> & { type?: string | 'title' | 'body' | 'dateTime' | 'slideNumber' | 'footer' | 'other'; idx?: number }) | undefined {
+  return placeholders.find(p => {
+    if (p.type !== type) return false;
+    if (idx !== undefined && p.idx !== idx) return false;
+    return true;
+  });
+}
+
+/**
+ * 合并占位符的基础样式与继承样式
+ * @param baseStyle 占位符自身的样式对象
+ * @param inheritedStyle 从布局或母版继承的样式对象
+ * @returns 合并后的样式对象
+ */
+export function mergePlaceholderStyles(baseStyle: Record<string, any>, inheritedStyle: Record<string, any>): Record<string, any> {
+  return {
+    ...baseStyle,
+    ...inheritedStyle
+  };
+}
