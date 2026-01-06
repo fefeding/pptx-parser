@@ -85,6 +85,8 @@ export interface SlideLayoutResult {
   placeholders?: Placeholder[];
   relsMap: RelsMap;
   colorMap?: Record<string, string>;
+  /** 文本样式（从 p:txStyles 解析） */
+  textStyles?: TextStyles;
   /** 对 master 的引用（从 layout 的 _rels 解析） */
   masterRef?: string;
   /** master 对象（由 parser 填充） */
@@ -135,9 +137,29 @@ export interface ThemeColors {
 /** 幻灯片母版解析结果 */
 export interface MasterSlideResult {
   id: string;
+  /** 母版文件名（如 slideMaster1） */
+  masterId?: string;
   background?: { type: 'color' | 'image' | 'none'; value?: string; relId?: string; schemeRef?: string };
   elements: any[];
+  /** 母版元素（footer, slide number等）的位置和样式 */
+  placeholders?: any[];
   colorMap: Record<string, string>;
+  /** 文本样式（从 p:txStyles 解析） */
+  textStyles?: TextStyles;
+  /** 对 theme 的引用（从 master 的 _rels 解析） */
+  themeRef?: string;
+  /** 关联关系映射表 */
+  relsMap?: any;
+}
+
+/** 文本样式（从 master 或 layout 的 txStyles 解析） */
+export interface TextStyles {
+  /** 标题样式 */
+  titleParaPr?: any;
+  /** 正文样式 */
+  bodyPr?: any;
+  /** 其他样式 */
+  otherPr?: any;
 }
 
 /** 幻灯片背景 */

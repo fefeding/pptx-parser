@@ -13,7 +13,7 @@ import {
   parseRels
 } from '../utils';
 import { parseSlideBackground } from './slide-parser';
-import type { RelsMap, SlideLayoutResult } from './types';
+import type { RelsMap, SlideLayoutResult, TextStyles } from './types';
 
 // 本地PATHS常量，避免循环引用
 const PATHS = {
@@ -63,6 +63,9 @@ export function parseSlideLayout(
       });
     }
 
+    // 解析文本样式（关键：PPTXjs 的样式继承）
+    const textStyles = parseLayoutTextStyles(root);
+
     // 解析布局中的元素（暂时简化，主要关注背景）
     const elements: any[] = [];
 
@@ -90,6 +93,7 @@ export function parseSlideLayout(
       placeholders,
       relsMap,
       colorMap,
+      textStyles,
       masterRef
     };
   } catch (error) {
@@ -315,3 +319,24 @@ export function mergeBackgrounds(
   // 默认白色背景
   return { type: 'color', value: '#ffffff' };
 }
+
+/**
+ * 解析布局的文本样式（从 p:txStyles）
+ * 对应 PPTXjs 的文本样式继承机制
+ * @param root 根元素
+ * @returns 文本样式对象
+ */
+function parseLayoutTextStyles(root: Element): TextStyles {
+  const txStyles = getFirstChildByTagNS(root, 'txStyles', NS.p);
+
+  if (!txStyles) {
+    return {};
+  }
+
+  return {
+    titleParaPr: getFirstChildByTagNS(txStyles, 'titleP', NS.p),
+    bodyPr: getFirstChildByTagNS(txStyles, 'body', NS.p),
+    otherPr: getFirstChildByTagNS(txStyles, 'other', NS.p)
+  };
+}
+

@@ -7,6 +7,8 @@ import { emu2px, px2emu, getAttrs, parseRels, parseMetadata } from './utils';
 import { NS, EMU_PER_INCH, PIXELS_PER_INCH } from './constants';
 import type { PptDocument, PptSlide, PptElement, PptRect, PptStyle, PptNodeType } from './types';
 import type { PptxParseResult, SlideParseResult, ParseOptions } from './core/types';
+import { slide2HTML, ppt2HTML, ppt2HTMLDocument } from './renderer/html-renderer';
+import type { HtmlRenderOptions } from './renderer/html-renderer';
 
 // 元素类导出
 export {
@@ -35,6 +37,10 @@ export default PptParserCore;
 
 // 按需导出：解构调用
 export { PptParseUtils, parsePptx, serializePptx };
+
+// 导出 HTML 渲染器
+export { slide2HTML, ppt2HTML, ppt2HTMLDocument };
+export type { HtmlRenderOptions };
 
 // 导出增强类型
 export type { PptxParseResult, SlideParseResult, ParseOptions } from './core/types';

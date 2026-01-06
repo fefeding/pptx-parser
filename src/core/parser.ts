@@ -18,6 +18,7 @@ import { parseAllSlideLayouts, mergeBackgrounds } from './layout-parser';
 import { parseAllNotesMasters, parseAllNotesSlides, linkNotesToMasters } from './notes-parser';
 import { parseAllCharts, parseAllDiagrams } from './drawings-parser';
 import { parseAllSlideTags } from './tags-parser';
+import { applyStyleInheritance } from './style-inheritance';
 import type { PptxParseResult, ParseOptions, SlideLayoutResult } from './types';
 import { unescape } from 'html-escaper';
 import type { PptDocument } from '../types';
@@ -285,6 +286,9 @@ async function parseEnhancedMode(
         (slide as any).layoutId = layoutId;
         (slide as any).layout = layout;
         (slide as any).master = layoutAny.master;
+
+        // 应用样式继承到所有元素
+        applyStyleInheritance(slide, layout, layoutAny.master, theme);
 
         const masterRef = (layout as any).masterRef;
         log('info', `Slide relationship chain: slide -> layout (${layoutId}) -> master (${masterRef})`);

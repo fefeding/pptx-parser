@@ -11,3 +11,4 @@ export * from './types';
 export * from './drawings-parser';
 export * from './notes-parser';
 export * from './tags-parser';
+export * from './style-inheritance';

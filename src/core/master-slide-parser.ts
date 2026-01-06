@@ -5,7 +5,7 @@
 
 import JSZip from 'jszip';
 import { log, getFirstChildByTagNS, getChildrenByTagNS, parseRels } from '../utils/index';
-import type { RelsMap } from './types';
+import type { RelsMap, TextStyles } from './types';
 
 export interface MasterSlideResult {
   id: string;
@@ -99,6 +99,9 @@ function parseMasterSlide(
     // 解析颜色映射
     const colorMap = parseColorMap(root);
 
+    // 解析文本样式（关键：PPTXjs 的样式继承）
+    const textStyles = parseTextStyles(root);
+
     // 解析元素 (footer, slide numbers等)
     const elements = parseMasterElements(root);
     const placeholders = elements.filter(el => el.placeholder);  // 提取占位符元素
@@ -123,6 +126,7 @@ function parseMasterSlide(
       elements,
       placeholders,
       colorMap,
+      textStyles,
       themeRef,
       relsMap
     };
@@ -407,3 +411,28 @@ function parseColorMap(root: Element): Record<string, string> {
 
   return clrMap;
 }
+
+/**
+ * 解析文本样式（从 master 或 layout 的 p:txStyles）
+ * 对应 PPTXjs 的文本样式继承机制
+ * @param root 根元素
+ * @returns 文本样式对象
+ */
+function parseTextStyles(root: Element): TextStyles {
+  const txStyles = getFirstChildByTagNS(root, 'txStyles',
+    'http://schemas.openxmlformats.org/presentationml/2006/main');
+
+  if (!txStyles) {
+    return {};
+  }
+
+  return {
+    titleParaPr: getFirstChildByTagNS(txStyles, 'titleP',
+      'http://schemas.openxmlformats.org/presentationml/2006/main'),
+    bodyPr: getFirstChildByTagNS(txStyles, 'body',
+      'http://schemas.openxmlformats.org/presentationml/2006/main'),
+    otherPr: getFirstChildByTagNS(txStyles, 'other',
+      'http://schemas.openxmlformats.org/presentationml/2006/main')
+  };
+}
+

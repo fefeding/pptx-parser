@@ -162,8 +162,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { parsePptx } from 'pptx-parser'
-import type { PptxParseResult } from 'pptx-parser'
+import { parsePptx, slide2HTML, ppt2HTMLDocument } from 'pptx-parser'
+import type { PptxParseResult, SlideParseResult } from 'pptx-parser'
 
 const loading = ref(false)
 const error = ref('')
@@ -180,44 +180,11 @@ const currentSlide = computed(() => {
 const currentSlideHTML = computed(() => {
   if (!parsedData.value || !currentSlide.value) return ''
 
-  // 直接使用元素实例的toHTML方法渲染
-  const slide = currentSlide.value
-
-  // 处理背景（支持图片和颜色）
-  let backgroundStyle = 'background-color: #ffffff'
-  if (slide.background) {
-    if (typeof slide.background === 'string') {
-      // 纯色背景（旧格式兼容）
-      backgroundStyle = `background-color: ${slide.background}`
-    } else {
-      // 新格式：支持图片和颜色
-      const bg = slide.background as any
-      if (bg.type === 'image' && bg.value) {
-        // 图片背景
-        backgroundStyle = `background-image: url('${bg.value}'); background-size: cover; background-position: center; background-repeat: no-repeat`
-      } else if (bg.type === 'color' && bg.value) {
-        // 纯色背景
-        backgroundStyle = `background-color: ${bg.value}`
-      }
-    }
-  }
-
-  const containerStyle = [
-    `width: 100%`,
-    `height: 100%`,
-    `position: relative`,
-    backgroundStyle,
-    `overflow: hidden`
-  ].join('; ')
-
-  const elementsHTML = slide.elements.map((element: any) => {
-    // 元素已经是BaseElement实例，直接调用toHTML
-    return element.toHTML ? element.toHTML() : ''
-  }).join('\n')
-
-  return `<div style="${containerStyle}">
-${elementsHTML}
-    </div>`
+  // 使用新库提供的 slide2HTML 函数
+  return slide2HTML(currentSlide.value, {
+    includeLayoutElements: true, // 包含布局和母版元素
+    includeStyles: true // 包含样式
+  })
 })
 
 const slideStyle = computed(() => {
@@ -238,18 +205,12 @@ async function handleFileUpload(event: Event) {
   error.value = ''
 
   try {
-    const arrayBuffer = await file.arrayBuffer()
-    const data = await parsePptx(arrayBuffer, {
-      parseImages: true,
-      keepRawXml: false,
-      verbose: true
-    })
-    parsedData.value = data
+    const buffer = await file.arrayBuffer()
+    const result = await parsePptx(buffer)
+    parsedData.value = result
     currentSlideIndex.value = 0
-    console.log('解析结果:', data)
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : '解析失败，请检查文件格式'
-    console.error('Parse error:', err)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '解析失败'
   } finally {
     loading.value = false
   }
@@ -258,86 +219,24 @@ async function handleFileUpload(event: Event) {
 function exportHTML() {
   if (!parsedData.value) return
 
-  const slidesHTML = parsedData.value.slides.map((slide: any) => {
-    // 处理背景（支持图片和颜色）
-    let backgroundStyle = 'background-color: #ffffff'
-    if (slide.background) {
-      if (typeof slide.background === 'string') {
-        // 纯色背景（旧格式兼容）
-        backgroundStyle = `background-color: ${slide.background}`
-      } else {
-        // 新格式：支持图片和颜色
-        const bg = slide.background as any
-        if (bg.type === 'image' && bg.value) {
-          // 图片背景
-          backgroundStyle = `background-image: url('${bg.value}'); background-size: cover; background-position: center; background-repeat: no-repeat`
-        } else if (bg.type === 'color' && bg.value) {
-          // 纯色背景
-          backgroundStyle = `background-color: ${bg.value}`
-        }
-      }
-    }
+  // 使用新库提供的 ppt2HTMLDocument 函数导出完整 HTML
+  const html = ppt2HTMLDocument(parsedData.value, {
+    includeStyles: true,
+    includeLayoutElements: true
+  })
 
-    const containerStyle = [
-      `width: 100%`,
-      `height: 100%`,
-      `position: relative`,
-      backgroundStyle,
-      `overflow: hidden`
-    ].join('; ')
-
-    const elementsHTML = slide.elements.map((element: any) => {
-      return element.toHTML ? element.toHTML() : ''
-    }).join('\n')
-
-    return `<div class="ppt-slide" style="${containerStyle}" data-slide-id="${slide.id}">
-${elementsHTML}
-    </div>`
-  }).join('\n\n')
-
-  const { width, height } = parsedData.value.props
-  const htmlContent = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${parsedData.value.title || 'PPTX Presentation'}</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      background: #f5f5f5;
-      font-family: Arial, sans-serif;
-    }
-    .ppt-container {
-      max-width: ${width}px;
-      margin: 0 auto;
-    }
-    .ppt-slide {
-      width: ${width}px;
-      height: ${height}px;
-      background: white;
-      margin: 20px auto;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-  </style>
-</head>
-<body>
-  <div class="ppt-container">
-    <h1 style="text-align: center; margin-bottom: 30px;">${parsedData.value.title || 'PPTX Presentation'}</h1>
-${slidesHTML}
-  </div>
-</body>
-</html>`
-
-  const blob = new Blob([htmlContent], { type: 'text/html' })
+  // 创建下载链接
+  const blob = new Blob([html], { type: 'text/html' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = `${parsedData.value.title || 'presentation'}.html`
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
+
 </script>
 
 <style scoped>

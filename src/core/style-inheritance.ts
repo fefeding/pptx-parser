@@ -1,0 +1,295 @@
+/**
+ * 样式继承工具
+ * 处理 master、layout 和 slide 之间的样式继承和覆盖
+ * 对齐 PPTXjs 的样式继承机制
+ */
+
+import type { TextStyles, SlideLayoutResult, MasterSlideResult } from './types';
+import { getFirstChildByTagNS } from '../utils';
+import { NS } from '../constants';
+
+/**
+ * 样式继承上下文
+ * 包含 slide、layout 和 master 的所有样式信息
+ */
+export interface StyleContext {
+  slide?: any;
+  layout?: SlideLayoutResult;
+  master?: MasterSlideResult;
+  theme?: any;
+}
+
+/**
+ * 获取占位符样式
+ * 按优先级查找：slide > layout > master > default
+ * @param element 元素对象
+ * @param context 样式继承上下文
+ * @returns 样式对象
+ */
+export function getPlaceholderStyle(element: any, context: StyleContext): any {
+  // 如果元素本身定义了文本样式，优先使用
+  if (element.textStyle || element.style) {
+    return element.textStyle || element.style;
+  }
+
+  // 检查是否是占位符
+  if (!element.isPlaceholder || !element.placeholderType) {
+    return getDefaultTextStyle();
+  }
+
+  // 根据占位符类型获取样式
+  return getPlaceholderStyleByType(element.placeholderType, context);
+}
+
+/**
+ * 根据占位符类型获取样式
+ * @param placeholderType 占位符类型
+ * @param context 样式继承上下文
+ * @returns 样式对象
+ */
+function getPlaceholderStyleByType(placeholderType: string, context: StyleContext): any {
+  // 优先级：layout > master
+  if (context.layout?.textStyles) {
+    const layoutStyle = getStyleFromTextStyles(context.layout.textStyles, placeholderType);
+    if (layoutStyle) return layoutStyle;
+  }
+
+  if (context.master?.textStyles) {
+    const masterStyle = getStyleFromTextStyles(context.master.textStyles, placeholderType);
+    if (masterStyle) return masterStyle;
+  }
+
+  // 默认样式
+  return getDefaultTextStyle();
+}
+
+/**
+ * 从文本样式对象中获取指定类型的样式
+ * @param textStyles 文本样式对象
+ * @param placeholderType 占位符类型
+ * @returns 样式对象
+ */
+function getStyleFromTextStyles(textStyles: TextStyles, placeholderType: string): any | null {
+  switch (placeholderType) {
+    case 'title':
+    case 'ctrTitle':
+    case 'subTitle':
+      return parseParagraphProperties(textStyles.titleParaPr);
+
+    case 'body':
+    case 'obj':
+    case 'chart':
+    case 'table':
+    case 'dgm':
+      return parseParagraphProperties(textStyles.bodyPr);
+
+    default:
+      return parseParagraphProperties(textStyles.otherPr);
+  }
+}
+
+/**
+ * 解析段落属性为样式对象
+ * @param paraPr 段落属性节点
+ * @returns 样式对象
+ */
+function parseParagraphProperties(paraPr: any): any {
+  if (!paraPr) return null;
+
+  const style: any = {};
+
+  // 解析默认运行属性（defaultRunProperties）
+  const defRPr = getFirstChildByTagNS(paraPr, 'defRPr', NS.a);
+  if (defRPr) {
+    // 字体大小
+    const sz = getFirstChildByTagNS(defRPr, 'sz', NS.a);
+    if (sz) {
+      const fontSize = parseInt(sz.getAttribute('val') || '0', 10) / 100; // 单位是百分之一磅
+      style.fontSize = fontSize;
+    }
+
+    // 字体颜色
+    const solidFill = getFirstChildByTagNS(defRPr, 'solidFill', NS.a);
+    if (solidFill) {
+      const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
+      if (srgbClr?.getAttribute('val')) {
+        style.color = `#${srgbClr.getAttribute('val')}`;
+      }
+
+      // 主题颜色
+      const schemeClr = getFirstChildByTagNS(solidFill, 'schemeClr', NS.a);
+      if (schemeClr?.getAttribute('val')) {
+        style.color = schemeClr.getAttribute('val');
+      }
+    }
+
+    // 字体名称
+    const latin = getFirstChildByTagNS(defRPr, 'latin', NS.a);
+    if (latin?.getAttribute('typeface')) {
+      style.fontFamily = latin.getAttribute('typeface');
+    }
+
+    // 粗体
+    const b = getFirstChildByTagNS(defRPr, 'b', NS.a);
+    if (b) {
+      style.fontWeight = b.getAttribute('val') === '1' || b.getAttribute('val') === 'true' ? 'bold' : 'normal';
+    }
+
+    // 斜体
+    const i = getFirstChildByTagNS(defRPr, 'i', NS.a);
+    if (i) {
+      style.italic = i.getAttribute('val') === '1' || i.getAttribute('val') === 'true';
+    }
+
+    // 下划线
+    const u = getFirstChildByTagNS(defRPr, 'u', NS.a);
+    if (u) {
+      style.underline = u.getAttribute('val') || 'sng';
+    }
+
+    // 删除线
+    const strike = getFirstChildByTagNS(defRPr, 'strike', NS.a);
+    if (strike) {
+      style.strike = strike.getAttribute('val') === '1' || strike.getAttribute('val') === 'true';
+    }
+  }
+
+  // 解析对齐方式
+  const align = paraPr.getAttribute('algn');
+  if (align) {
+    style.align = align;
+  }
+
+  return Object.keys(style).length > 0 ? style : null;
+}
+
+/**
+ * 获取默认文本样式
+ * @returns 默认样式对象
+ */
+function getDefaultTextStyle(): any {
+  return {
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: 'normal',
+    fontFamily: 'Arial',
+    align: 'left'
+  };
+}
+
+/**
+ * 合并样式
+ * 优先级：newStyle > baseStyle
+ * @param baseStyle 基础样式
+ * @param newStyle 新样式
+ * @returns 合并后的样式
+ */
+export function mergeStyles(baseStyle: any, newStyle: any): any {
+  if (!baseStyle) return newStyle;
+  if (!newStyle) return baseStyle;
+
+  return {
+    ...baseStyle,
+    ...newStyle
+  };
+}
+
+/**
+ * 解析颜色（支持主题颜色）
+ * @param colorNode 颜色节点
+ * @param themeColors 主题颜色映射
+ * @returns 颜色值
+ */
+export function resolveColor(colorNode: any, themeColors?: Record<string, string>): string | undefined {
+  if (!colorNode) return undefined;
+
+  // 1. 检查纯色（srgbClr）
+  const srgbClr = getFirstChildByTagNS(colorNode, 'srgbClr', NS.a);
+  if (srgbClr?.getAttribute('val')) {
+    return `#${srgbClr.getAttribute('val')}`;
+  }
+
+  // 2. 检查主题颜色（schemeClr）
+  const schemeClr = getFirstChildByTagNS(colorNode, 'schemeClr', NS.a);
+  if (schemeClr?.getAttribute('val') && themeColors) {
+    const schemeRef = schemeClr.getAttribute('val');
+    return themeColors[schemeRef];
+  }
+
+  return undefined;
+}
+
+/**
+ * 创建样式继承上下文
+ * @param slide 幻灯片对象
+ * @param layout 布局对象
+ * @param master 母版对象
+ * @param theme 主题对象
+ * @returns 样式继承上下文
+ */
+export function createStyleContext(
+  slide?: any,
+  layout?: SlideLayoutResult,
+  master?: MasterSlideResult,
+  theme?: any
+): StyleContext {
+  return {
+    slide,
+    layout,
+    master,
+    theme
+  };
+}
+
+/**
+ * 应用样式继承到 slide 的所有元素
+ * @param slide 幻灯片对象
+ * @param layout 布局对象
+ * @param master 母版对象
+ * @param theme 主题对象
+ */
+export function applyStyleInheritance(
+  slide: any,
+  layout?: SlideLayoutResult,
+  master?: MasterSlideResult,
+  theme?: any
+): void {
+  if (!slide.elements || !Array.isArray(slide.elements)) {
+    return;
+  }
+
+  const context = createStyleContext(slide, layout, master, theme);
+
+  // 遍历所有元素并应用样式继承
+  slide.elements.forEach((element: any) => {
+    // 只处理形状元素（可能包含占位符）
+    if (element.type === 'shape' || element.type === 'text') {
+      applyElementStyle(element, context);
+    }
+  });
+}
+
+/**
+ * 应用样式到单个元素
+ * @param element 元素对象
+ * @param context 样式继承上下文
+ */
+function applyElementStyle(element: any, context: StyleContext): void {
+  // 如果元素本身已经定义了样式，不需要继承
+  if (element.textStyle && element.textStyle.length > 0) {
+    return;
+  }
+
+  // 如果元素是占位符，获取继承的样式
+  if (element.isPlaceholder && element.placeholderType) {
+    const inheritedStyle = getPlaceholderStyle(element, context);
+    if (inheritedStyle) {
+      // 合并继承的样式到元素的 style 属性
+      element.style = {
+        ...element.style,
+        ...inheritedStyle
+      };
+    }
+  }
+}
+
