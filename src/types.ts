@@ -28,6 +28,9 @@ export interface PptRect {
   height: number;
 }
 
+/** 位置尺寸（兼容旧版） */
+export type Position = PptRect;
+
 /** 变换属性（旋转、翻转等） */
 export interface PptTransform {
   rotate?: number; // 旋转角度（度）
@@ -510,6 +513,8 @@ export interface ParsedOleElement {
   hidden?: boolean;
   src?: string;
   relId?: string;
+  progId?: string;
+  hasFallback?: boolean;
   attrs?: Record<string, string>;
   rawNode?: Element;
 }

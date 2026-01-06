@@ -68,7 +68,7 @@ export function createElementFromData(data: any, relsMap: Record<string, any> = 
     }
     case 'group': {
       const children = (data.children || []).map((child: any) => createElementFromData(child, relsMap)).filter(Boolean) as BaseElement[];
-      const element = new GroupElement(data.id, data.rect, children, data.props, relsMap);
+      const element = new GroupElement(data.id, 'group', data.rect, children, data.props, relsMap);
       Object.assign(element, data);
       return element;
     }

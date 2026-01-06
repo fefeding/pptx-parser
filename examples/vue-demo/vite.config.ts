@@ -13,6 +13,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['pptx-parser']
   },
+  envDir: process.cwd(),
   server: {
     port: 3000,
     open: true,

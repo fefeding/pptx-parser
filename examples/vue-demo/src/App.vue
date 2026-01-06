@@ -53,6 +53,35 @@
             <summary>查看原始数据 (JSON)</summary>
             <pre>{{ JSON.stringify(currentSlide, null, 2) }}</pre>
           </details>
+
+          <details v-if="parsedData.theme">
+            <summary>主题颜色 (Theme Colors)</summary>
+            <div class="theme-colors">
+              <div v-for="(color, key) in parsedData.theme.colors" :key="key" class="color-item">
+                <span class="color-label">{{ key }}:</span>
+                <span class="color-value">{{ color }}</span>
+              </div>
+            </div>
+          </details>
+
+          <details v-if="parsedData.masterSlides && parsedData.masterSlides.length > 0">
+            <summary>幻灯片母版 (Master Slides: {{ parsedData.masterSlides.length }})</summary>
+            <div v-for="(master, index) in parsedData.masterSlides" :key="master.id" class="master-slide-info">
+              <h4>母版 {{ index + 1 }} ({{ master.id }})</h4>
+              <p><strong>背景:</strong> {{ master.background ? JSON.stringify(master.background) : '无' }}</p>
+              <p><strong>元素数量:</strong> {{ master.elements.length }}</p>
+            </div>
+          </details>
+
+          <details v-if="parsedData.slideLayouts && Object.keys(parsedData.slideLayouts).length > 0">
+            <summary>幻灯片布局 (Slide Layouts: {{ Object.keys(parsedData.slideLayouts).length }})</summary>
+            <div v-for="(layout, layoutId) in parsedData.slideLayouts" :key="layoutId" class="slide-layout-info">
+              <h4>布局 {{ layoutId }}</h4>
+              <p><strong>名称:</strong> {{ layout.name || '未命名' }}</p>
+              <p><strong>背景:</strong> {{ layout.background ? JSON.stringify(layout.background) : '无' }}</p>
+              <p><strong>元素数量:</strong> {{ layout.elements.length }}</p>
+            </div>
+          </details>
         </div>
       </div>
     </main>
@@ -373,7 +402,6 @@ ${slidesHTML}
 }
 
 .slide-viewer {
-  display: flex;
   justify-content: center;
   margin-bottom: 2rem;
   background: #e0e0e0;
@@ -413,5 +441,54 @@ ${slidesHTML}
   overflow-x: auto;
   max-height: 500px;
   font-size: 0.75rem;
+}
+
+.raw-data details {
+  margin-bottom: 1rem;
+}
+
+.theme-colors {
+  padding: 1rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.color-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.color-label {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.color-value {
+  color: #333;
+  font-family: monospace;
+}
+
+.master-slide-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border-left: 4px solid #667eea;
+}
+
+.master-slide-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.master-slide-info p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.875rem;
 }
 </style>

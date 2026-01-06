@@ -28,7 +28,7 @@ export class SlideElement {
   constructor(result: SlideParseResult, elements: BaseElement[]) {
     this.id = result.id;
     this.title = result.title;
-    this.background = result.background;
+    this.background = typeof result.background === 'string' ? result.background : '';
     this.elements = elements;
     this.rawResult = result;
   }

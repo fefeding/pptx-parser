@@ -72,7 +72,7 @@ export class ImageElement extends BaseElement {
    */
   static fromNode(node: Element, relsMap: RelsMap): ImageElement | null {
     try {
-      const element = new ImageElement('', { x: 0, y: 0, width: 0, height: 0 }, '', '', {}, {}, relsMap);
+      const element = new ImageElement('', 'image', { x: 0, y: 0, width: 0, height: 0 }, '', {}, relsMap);
 
       // 解析ID和名称
       const nvPicPr = getFirstChildByTagNS(node, 'nvPicPr', NS.p);

@@ -14,7 +14,9 @@ export const NS = {
   /** Markup Compatibility 命名空间 - 兼容性扩展标签 */
   mc: 'http://schemas.openxmlformats.org/markup-compatibility/2006',
   /** Chart 命名空间 - 图表标签 */
-  c: 'http://schemas.openxmlformats.org/drawingml/2006/chart'
+  c: 'http://schemas.openxmlformats.org/drawingml/2006/chart',
+  /** Diagram 命名空间 - 图表标签 */
+  d: 'http://schemas.openxmlformats.org/drawingml/2006/diagram'
 } as const;
 
 /** 单位转换常量 */
@@ -41,7 +43,8 @@ export const PATHS = {
   MEDIA: 'ppt/media/',
   DOCPROPS: 'docProps/',
   THEMES: 'ppt/theme/',
-  LAYOUTS: 'ppt/slideLayouts/'
+  SLIDE_LAYOUTS: 'ppt/slideLayouts/',
+  SLIDE_MASTERS: 'ppt/slideMasters/'
 } as const;
 
 /** 元素类型常量（对应XML标签） */

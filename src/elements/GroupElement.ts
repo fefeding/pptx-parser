@@ -45,7 +45,7 @@ export class GroupElement extends BaseElement {
    */
   static fromNode(node: Element, relsMap: RelsMap): GroupElement | null {
     try {
-      const element = new GroupElement(`group_${Date.now()}`, { x: 0, y: 0, width: 0, height: 0 }, [], {}, {}, relsMap);
+      const element = new GroupElement(`group_${Date.now()}`, 'group', { x: 0, y: 0, width: 0, height: 0 }, [], {}, relsMap);
 
       // 解析分组位置尺寸和变换
       const grpSpPr = getFirstChildByTagNS(node, 'grpSpPr', NS.p);
@@ -147,8 +147,18 @@ export class GroupElement extends BaseElement {
         if (!this.childOffset) {
           this.childOffset = { x: 0, y: 0 };
         }
-        this.childOffset.x += emu2px(parseInt(off.getAttribute('x') || '0') - chx);
-        this.childOffset.y += emu2px(parseInt(off.getAttribute('y') || '0') - chy);
+        // 获取 chx 和 chy（如果 chOff 存在）
+        let chx = 0;
+        let chy = 0;
+        if (chOff) {
+          chx = parseInt(chOff.getAttribute('x') || '0');
+          chy = parseInt(chOff.getAttribute('y') || '0');
+        }
+        // 检查 off 是否存在
+        if (off) {
+          this.childOffset.x += emu2px(parseInt(off.getAttribute('x') || '0') - chx);
+          this.childOffset.y += emu2px(parseInt(off.getAttribute('y') || '0') - chy);
+        }
 
         this.rect.x = emu2px(chcx);
         this.rect.y = emu2px(chcy);

@@ -7,13 +7,15 @@
 import JSZip from 'jszip';
 
 
-import { NS } from '../constants';
-import { generateId, log, emu2px, px2emu } from '../utils';
+import { generateId, log, emu2px, px2emu } from '../utils/index';
 import { parseCoreProperties, parseSlideLayoutSize, inferPageSize } from './metadata-parser';
 import { parseAllSlides } from './slide-parser';
-import { parseGlobalRels } from './relationships-parser';
+import { parseGlobalRels, getSlideLayoutRef } from './relationships-parser';
 import { parseImages } from './image-parser';
-import type { PptxParseResult, ParseOptions } from './types';
+import { parseTheme, resolveSchemeColor } from './theme-parser';
+import { parseAllMasterSlides } from './master-slide-parser';
+import { parseAllSlideLayouts, mergeBackgrounds } from './layout-parser';
+import type { PptxParseResult, ParseOptions, SlideLayoutResult } from './types';
 import { unescape } from 'html-escaper';
 import type { PptDocument } from '../types';
 
@@ -223,8 +225,69 @@ async function parseEnhancedMode(
     // 解析幻灯片尺寸
     const slideSize = await parseSlideLayoutSize(zip);
 
-    // 解析所有幻灯片
+    // 解析主题文件（第一步：PPTXjs 中 theme 是基础）
+    const theme = await parseTheme(zip);
+    log('info', theme ? 'Theme parsed successfully' : 'Theme not found');
+
+    // 解析所有幻灯片母版（第二步：master 引用 theme）
+    const masterSlides = await parseAllMasterSlides(zip);
+    log('info', `Parsed ${masterSlides.length} master slides`);
+
+    // 建立从 masterRef 到 master 对象的映射
+    const masterMap = new Map<string, any>();
+    masterSlides.forEach(master => {
+      if (master.themeRef) {
+        masterMap.set(master.themeRef, master);
+        log('info', `Master map: ${master.themeRef} -> ${master.id}`);
+      }
+    });
+
+    // 解析所有幻灯片布局（第三步：layout 引用 master）
+    const slideLayouts = await parseAllSlideLayouts(zip);
+    log('info', `Parsed ${Object.keys(slideLayouts).length} slide layouts`);
+
+    // 将 master 对象附加到 layout 上
+    Object.entries(slideLayouts).forEach(([layoutId, layout]) => {
+      if (layout.masterRef && masterMap.has(layout.masterRef)) {
+        const layoutAny = layout as any;
+        layoutAny.master = masterMap.get(layout.masterRef);
+        log('info', `Layout ${layoutId} references master: ${layout.masterRef}`);
+      }
+    });
+
+    // 解析所有幻灯片（第四步：slide 引用 layout）
     const slides = await parseAllSlides(zip, opts);
+
+    // 合并背景和样式信息：slide > layout > master（核心：PPTXjs 样式优先级）
+    slides.forEach((slide) => {
+      // 获取slide的关联关系
+      const relsMap = slide.relsMap || {};
+
+      // 使用工具函数获取布局引用ID
+      const layoutId = getSlideLayoutRef(relsMap);
+
+      if (layoutId && slideLayouts[layoutId]) {
+        const layout = slideLayouts[layoutId];
+        const layoutAny = layout as any;
+
+        // 合并背景
+        const mergedBg = mergeBackgrounds(
+          slide.background as any,
+          layout.background,
+          layoutAny.master?.background
+        );
+        slide.background = mergedBg;
+
+        // 将布局ID和占位符信息附加到幻灯片对象（供渲染使用）
+        (slide as any).layoutId = layoutId;
+        (slide as any).layout = layout;
+        (slide as any).master = layoutAny.master;
+
+        log('info', `Slide relationship chain: slide -> layout (${layoutId}) -> master (${layoutAny.masterRef})`);
+      } else if (layoutId) {
+        log('warn', `Layout ${layoutId} referenced by slide not found in parsed layouts`);
+      }
+    });
 
     // 解析全局关联关系
     const globalRels = await parseGlobalRels(zip);
@@ -234,6 +297,25 @@ async function parseEnhancedMode(
     // 计算页面比例
     const ratio = slideSize.width / slideSize.height;
     const pageSize = inferPageSize(ratio);
+
+    // 解析背景：解析主题颜色到实际颜色
+    if (theme && theme.colors) {
+      slides.forEach((slide, index) => {
+        if (slide.background && typeof slide.background === 'object') {
+          const bg = slide.background as any;
+          // 如果是方案颜色引用，解析实际颜色
+          if (bg.schemeRef) {
+            const actualColor = resolveSchemeColor(
+              bg.schemeRef,
+              theme.colors,
+              {} // 可以添加slide的colorMap override
+            );
+            bg.value = actualColor;
+            delete bg.schemeRef;
+          }
+        }
+      });
+    }
 
     const result: PptxParseResult = {
       id: generateId('ppt-doc'),
@@ -251,7 +333,10 @@ async function parseEnhancedMode(
         ratio,
         pageSize
       },
-      globalRelsMap: globalRels
+      globalRelsMap: globalRels,
+      theme: theme || undefined,
+      masterSlides,
+      slideLayouts
     };
 
     // 解析图片（如果需要）

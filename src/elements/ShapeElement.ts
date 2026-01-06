@@ -108,7 +108,16 @@ export class ShapeElement extends BaseElement {
       const nvPr = nvSpPr ? getFirstChildByTagNS(nvSpPr, 'nvPr', NS.p) : null;
       const ph = nvPr ? getFirstChildByTagNS(nvPr, 'ph', NS.p) : null;
       element.isPlaceholder = !!ph;
-      element.placeholderType = ph?.getAttribute('type') || undefined;
+      const phType = ph?.getAttribute('type');
+      if (phType) {
+        // 映射可能的占位符类型
+        const validTypes: ('title' | 'body' | 'dateTime' | 'slideNumber' | 'footer' | 'other')[] = ['title', 'body', 'dateTime', 'slideNumber', 'footer', 'other'];
+        if (validTypes.includes(phType as any)) {
+          element.placeholderType = phType as 'title' | 'body' | 'dateTime' | 'slideNumber' | 'footer' | 'other';
+        } else {
+          element.placeholderType = 'other';
+        }
+      }
 
       // 解析位置尺寸和变换
       const spPr = getFirstChildByTagNS(node, 'spPr', NS.p);
@@ -338,12 +347,15 @@ export class ShapeElement extends BaseElement {
       const latin = getFirstChildByTagNS(rPr, 'latin', NS.a);
       const ea = getFirstChildByTagNS(rPr, 'ea', NS.a);
       const cs = getFirstChildByTagNS(rPr, 'cs', NS.a);
-      if (latin?.getAttribute('typeface')) {
-        result.fontFamily = latin.getAttribute('typeface');
-      } else if (ea?.getAttribute('typeface')) {
-        result.fontFamily = ea.getAttribute('typeface');
-      } else if (cs?.getAttribute('typeface')) {
-        result.fontFamily = cs.getAttribute('typeface');
+      const latinTypeface = latin?.getAttribute('typeface');
+      const eaTypeface = ea?.getAttribute('typeface');
+      const csTypeface = cs?.getAttribute('typeface');
+      if (latinTypeface) {
+        result.fontFamily = latinTypeface;
+      } else if (eaTypeface) {
+        result.fontFamily = eaTypeface;
+      } else if (csTypeface) {
+        result.fontFamily = csTypeface;
       }
 
       // 加粗
@@ -554,7 +566,7 @@ export class ShapeElement extends BaseElement {
    */
   private textStyleFromFontSize(): number {
     if (this.textStyle?.[0]?.fontSize) return this.textStyle[0].fontSize;
-    return this.style.fontSize;
+    return this.style.fontSize || 14;
   }
 
   /**
@@ -579,7 +591,7 @@ export class ShapeElement extends BaseElement {
   toParsedElement(): ParsedShapeElement {
     return {
       id: this.id,
-      type: this.type,
+      type: 'shape',
       rect: this.rect,
       style: this.style,
       content: this.content,

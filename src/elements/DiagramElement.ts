@@ -7,7 +7,7 @@
 import { BaseElement } from './BaseElement';
 import { getFirstChildByTagNS, getAttrSafe, getBoolAttr, emu2px } from '../utils';
 import { NS } from '../constants';
-import type { RelsMap } from '../types';
+import type { RelsMap, PptRect } from '../types';
 
 /**
  * Diagram 数据模型
@@ -83,7 +83,7 @@ export class DiagramElement extends BaseElement {
           }
       }
 
-      const element = new DiagramElement(id, rect, '', {}, {}, relsMap);
+      const element = new DiagramElement(id, rect, '', {}, relsMap);
       element.name = name;
       element.hidden = hidden;
 

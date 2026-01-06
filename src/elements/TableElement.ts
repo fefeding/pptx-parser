@@ -106,7 +106,7 @@ export class TableElement extends BaseElement {
    */
   static fromNode(node: Element, relsMap: RelsMap): TableElement | null {
     try {
-      const element = new TableElement('', { x: 0, y: 0, width: 0, height: 0 }, {}, {}, relsMap);
+      const element = new TableElement('', 'table', { x: 0, y: 0, width: 0, height: 0 }, {}, {}, relsMap);
 
       // 解析ID和名称
       const nvGraphicFramePr = getFirstChildByTagNS(node, 'nvGraphicFramePr', NS.p);

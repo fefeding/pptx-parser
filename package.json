@@ -41,18 +41,19 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "html-escaper": "^3.0.3",
     "jszip": "^3.10.1",
-    "xlsx": "^0.18.5",
-    "html-escaper": "^3.0.3"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
-    "@types/node": "^20.11.17",
     "@types/html-escaper": "^3.0.2",
+    "@types/node": "^20.11.17",
     "@vitest/coverage-v8": "^1.2.0",
+    "jsdom": "^27.4.0",
     "rimraf": "^5.0.5",
     "rollup": "^4.9.6",
     "rollup-plugin-dts": "^6.1.0",

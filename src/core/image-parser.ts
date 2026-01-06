@@ -4,7 +4,7 @@
  */
 
 import JSZip from 'jszip';
-import { log } from '../utils';
+import { log } from '../utils/index';
 import type { RelsMap, PptxParseResult } from './types';
 
 /**

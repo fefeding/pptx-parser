@@ -5,7 +5,7 @@
 
 import JSZip from 'jszip';
 import { PATHS } from '../constants';
-import { parseMetadata, log, emu2px } from '../utils';
+import { parseMetadata, log, emu2px } from '../utils/index';
 import type { Metadata, SlideSize } from './types';
 
 /**

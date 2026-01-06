@@ -64,7 +64,7 @@ export class OleElement extends BaseElement {
       const progId = oleObj.getAttribute('progId') || '';
       const relId = oleObj.getAttributeNS(NS.r, 'id') || oleObj.getAttribute('r:id') || '';
 
-      const element = new OleElement('', { x: 0, y: 0, width: 0, height: 0 }, progId, relId, {}, {}, relsMap);
+      const element = new OleElement('', { x: 0, y: 0, width: 0, height: 0 }, progId, relId, {}, relsMap);
 
       // 解析ID和名称
       const nvGraphicFramePr = getFirstChildByTagNS(node, 'nvGraphicFramePr', NS.p);
@@ -119,7 +119,7 @@ export class OleElement extends BaseElement {
     super(id, 'ole', rect, props, relsMap);
     this.progId = progId;
     this.relId = relId;
-    this.oleName = name;
+    this.oleName = '';
   }
 
   /**

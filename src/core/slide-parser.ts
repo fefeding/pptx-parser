@@ -10,7 +10,7 @@ import {
   getFirstChildByTagNS,
   generateId,
   log
-} from '../utils';
+} from '../utils/index';
 import {
   ShapeElement,
   ImageElement,
@@ -237,55 +237,90 @@ function parseGraphicFrameElement(
 }
 
 /**
+ * 解析背景引用 <p:bgRef>
+ * @param bgRef bgRef元素
+ * @param relsMap 关联关系映射表
+ * @returns 背景对象
+ */
+function parseBgRef(bgRef: Element, relsMap: RelsMap): { type: 'color' | 'image' | 'none'; value?: string; relId?: string; schemeRef?: string } {
+  // bgRef引用的是主题中的背景，返回默认白色
+  const idx = bgRef.getAttribute('idx');
+  const schemeClr = getFirstChildByTagNS(bgRef, 'schemeClr', NS.a);
+  
+  if (schemeClr) {
+    const val = schemeClr.getAttribute('val');
+    if (val) {
+      // 返回方案颜色值，后续可以解析主题文件获取实际颜色
+      return { type: 'color', value: val, schemeRef: val };
+    }
+  }
+  
+  return { type: 'color', value: '#ffffff' };
+}
+
+/**
  * 解析幻灯片背景（支持颜色和图片）
  * @param root 幻灯片根元素
  * @param relsMap 关联关系映射表
  * @returns 背景对象 { type: 'color'|'image', value: string }
  */
-function parseSlideBackground(root: Element, relsMap: RelsMap = {}): { type: 'color' | 'image' | 'none'; value?: string; relId?: string } {
-  // 查找 <p:bgPr> 节点
-  const bgPr = getFirstChildByTagNS(root, 'bgPr', NS.p);
-  if (!bgPr) {
+export function parseSlideBackground(root: Element, relsMap: RelsMap = {}): { type: 'color' | 'image' | 'none'; value?: string; relId?: string; schemeRef?: string } {
+  // 查找 <p:bg> 节点
+  const bg = getFirstChildByTagNS(root, 'bg', NS.p);
+  if (!bg) {
     return { type: 'color', value: '#ffffff' }; // 默认白色
   }
 
-  // 1. 检查图片填充 <a:blipFill>
-  const blipFill = getFirstChildByTagNS(bgPr, 'blipFill', NS.a);
-  if (blipFill) {
-    const blip = getFirstChildByTagNS(blipFill, 'blip', NS.a);
-    if (blip) {
-      const relId = blip.getAttribute('r:embed') || blip.getAttributeNS(NS.r, 'embed');
-      if (relId && relsMap[relId]) {
-        return {
-          type: 'image',
-          value: relsMap[relId].target,
-          relId
-        };
+  // 1. 检查背景引用 <p:bgRef>
+  const bgRef = getFirstChildByTagNS(bg, 'bgRef', NS.p);
+  if (bgRef) {
+    return parseBgRef(bgRef, relsMap);
+  }
+
+  // 2. 检查背景属性 <p:bgPr>
+  const bgPr = getFirstChildByTagNS(bg, 'bgPr', NS.p);
+  if (bgPr) {
+    // 检查图片填充 <a:blipFill>
+    const blipFill = getFirstChildByTagNS(bgPr, 'blipFill', NS.a);
+    if (blipFill) {
+      const blip = getFirstChildByTagNS(blipFill, 'blip', NS.a);
+      if (blip) {
+        const relId = blip.getAttribute('r:embed') || blip.getAttributeNS(NS.r, 'embed');
+        if (relId && relsMap[relId]) {
+          return {
+            type: 'image',
+            value: relsMap[relId].target,
+            relId
+          };
+        }
       }
     }
-  }
 
-  // 2. 检查纯色填充 <a:solidFill>
-  const solidFill = getFirstChildByTagNS(bgPr, 'solidFill', NS.a);
-  if (solidFill) {
-    // 提取颜色值
-    const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
-    if (srgbClr?.getAttribute('val')) {
-      return { type: 'color', value: `#${srgbClr.getAttribute('val')}` };
+    // 检查纯色填充 <a:solidFill>
+    const solidFill = getFirstChildByTagNS(bgPr, 'solidFill', NS.a);
+    if (solidFill) {
+      // 提取颜色值
+      const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
+      if (srgbClr?.getAttribute('val')) {
+        return { type: 'color', value: `#${srgbClr.getAttribute('val')}` };
+      }
+
+      // 检查方案引用
+      const schemeClr = getFirstChildByTagNS(solidFill, 'schemeClr', NS.a);
+      if (schemeClr) {
+        const val = schemeClr.getAttribute('val');
+        if (val) {
+          return { type: 'color', value: val || '#ffffff', schemeRef: val || undefined };
+        }
+      }
     }
 
-    // 检查方案引用
-    const schemeClr = getFirstChildByTagNS(solidFill, 'schemeClr', NS.a);
-    if (schemeClr?.getAttribute('val')) {
-      return { type: 'color', value: schemeClr.getAttribute('val') || '#ffffff' };
+    // 检查渐变填充 <a:gradFill>
+    const gradFill = getFirstChildByTagNS(bgPr, 'gradFill', NS.a);
+    if (gradFill) {
+      // 简化处理：渐变背景返回白色
+      return { type: 'color', value: '#ffffff' };
     }
-  }
-
-  // 3. 检查渐变填充 <a:gradFill>
-  const gradFill = getFirstChildByTagNS(bgPr, 'gradFill', NS.a);
-  if (gradFill) {
-    // 简化处理：渐变背景返回白色
-    return { type: 'color', value: '#ffffff' };
   }
 
   return { type: 'color', value: '#ffffff' };
