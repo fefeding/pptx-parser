@@ -4,18 +4,18 @@
  */
 
 import type { SlideParseResult } from '../core/types';
-import { BaseElement } from './BaseElement';
 import { applyStyleInheritance } from '../core/style-inheritance';
 import type { SlideLayoutResult, MasterSlideResult, Placeholder } from '../core/types';
-import { createElementFromData } from './element-factory';
-import { 
-  getSlideContainerStyle, 
-  getPlaceholderLayoutStyle, 
-  mergePlaceholderStyles, 
-  findPlaceholder 
+import type { LayoutElement } from './LayoutElement';
+import type { MasterElement } from './MasterElement';
+import {
+  getSlideContainerStyle,
+  getPlaceholderLayoutStyle,
+  mergePlaceholderStyles,
+  findPlaceholder
 } from '../utils/layout-utils';
 import { mergeTextStyles } from '../utils/style-inheritance';
-import { emu2px } from '../utils';
+import { BaseElement } from './BaseElement';
 
 /**
  * 幻灯片元素类
@@ -36,10 +36,16 @@ export class SlideElement {
   /** 原始解析结果 */
   rawResult: SlideParseResult;
 
-  /** 布局对象 */
+  /** 布局对象（LayoutElement 实例） */
+  layoutElement?: LayoutElement;
+
+  /** 母版对象（MasterElement 实例） */
+  masterElement?: MasterElement;
+
+  /** 原始布局解析结果（用于样式继承） */
   layout?: SlideLayoutResult;
 
-  /** 母版对象 */
+  /** 原始母版解析结果（用于样式继承） */
   master?: MasterSlideResult;
 
   /** 媒体资源映射表 */
@@ -48,8 +54,8 @@ export class SlideElement {
   constructor(
     result: SlideParseResult,
     elements: BaseElement[],
-    layout?: SlideLayoutResult,
-    master?: MasterSlideResult,
+    layout?: LayoutElement,
+    master?: MasterElement,
     mediaMap?: Map<string, string>
   ) {
     this.id = result.id;
@@ -57,8 +63,10 @@ export class SlideElement {
     this.background = typeof result.background === 'string' ? result.background : '';
     this.elements = elements;
     this.rawResult = result;
-    this.layout = layout;
-    this.master = master;
+    this.layoutElement = layout;
+    this.masterElement = master;
+    this.layout = result.layout as SlideLayoutResult | undefined;
+    this.master = result.master as MasterSlideResult | undefined;
     this.mediaMap = mediaMap;
   }
 
@@ -80,10 +88,10 @@ export class SlideElement {
     // 生成幻灯片容器样式（.slide）- 对应 PPTXjs
     const slideStyle = getSlideContainerStyle(width, height, this.rawResult.background as any);
 
-    // 渲染母版元素
+    // 渲染母版元素（使用 MasterElement.toHTML）
     const masterElementsHTML = this.renderMasterElements();
-    
-    // 渲染布局元素（来自 SlideLayout 的 elements）
+
+    // 渲染布局元素（使用 LayoutElement.toHTML）
     const layoutElementsHTML = this.renderLayoutElements();
 
     // 渲染幻灯片元素（应用占位符布局）
@@ -97,57 +105,31 @@ ${elementsHTML}
   }
 
   /**
-   * 渲染布局和母版元素
-   * PPTXjs 中，layout 和 master 中的元素会被渲染到 slide 上
-   * 渲染顺序：master elements -> layout elements -> slide elements
+   * 渲染母版元素
+   * PPTXjs 中，master 中的元素会被渲染到 slide 上
+   * 使用 MasterElement.toHTML() 来渲染整个母版
    */
   private renderMasterElements(): string {
-    const elements: string[] = [];
-
-    // 渲染母版元素（如页脚、页码、背景图片等）
-    if (this.master?.elements && this.master.elements.length > 0) {
-      this.master.elements.forEach(el => {
-        // 将原始数据转换为 BaseElement 实例（如果还没有转换）
-        if (!(el instanceof BaseElement)) {
-          const relsMap = (this.master as any).relsMap || {};
-          const element = createElementFromData(el, relsMap, this.mediaMap);
-          // 只渲染非隐藏的元素
-          if (element && !el.hidden) {
-            const html = element.toHTML();
-            elements.push(`<div class="ppt-master-element">${html}</div>`);
-          }
-        } else if (!el.hidden) {
-          elements.push(`<div class="ppt-master-element">${el.toHTML()}</div>`);
-        }
-      });
+    if (!this.masterElement) {
+      return '';
     }
 
-    return elements.join('\n');
+    // 直接使用 MasterElement.toHTML()
+    return this.masterElement.toHTML();
   }
 
   /**
-   * 渲染布局元素（来自 SlideLayout 的 elements）
+   * 渲染布局元素
    * 对应 PPTXjs 中布局自带的固定内容（如默认标题、页脚等）
+   * 使用 LayoutElement.toHTML() 来渲染整个布局
    */
   private renderLayoutElements(): string {
-    const elements: string[] = [];
-
-    if (this.layout?.elements && this.layout.elements.length > 0) {
-      this.layout.elements.forEach(el => {
-        if (!(el instanceof BaseElement)) {
-          const relsMap = (this.layout as any).relsMap || {};
-          const element = createElementFromData(el, relsMap, this.mediaMap);
-          if (element && !el.hidden) {
-            const html = element.toHTML();
-            elements.push(`<div class="ppt-layout-element">${html}</div>`);
-          }
-        } else if (!el.hidden) {
-          elements.push(`<div class="ppt-layout-element">${el.toHTML()}</div>`);
-        }
-      });
+    if (!this.layoutElement) {
+      return '';
     }
 
-    return elements.join('\n');
+    // 直接使用 LayoutElement.toHTML()
+    return this.layoutElement.toHTML();
   }
 
   /**

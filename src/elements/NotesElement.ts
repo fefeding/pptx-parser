@@ -22,6 +22,9 @@ export class NotesMasterElement extends BaseElement {
   /** 背景样式 */
   background?: { type: 'color' | 'image' | 'none'; value?: string; relId?: string };
 
+  /** 媒体资源映射表（relId -> base64 URL） */
+  mediaMap?: Map<string, string>;
+
   constructor(
     id: string,
     elements: BaseElement[] = [],
@@ -32,22 +35,23 @@ export class NotesMasterElement extends BaseElement {
     this.elements = elements;
     this.placeholders = placeholders;
     this.background = props.background;
+    this.mediaMap = props.mediaMap;
   }
 
   /**
    * 从 NotesMasterResult 创建 NotesMasterElement
    */
-  static fromResult(result: NotesMasterResult): NotesMasterElement {
+  static fromResult(result: NotesMasterResult, mediaMap?: Map<string, string>): NotesMasterElement {
     // 将 elements 转换为 BaseElement 实例
     const elements: BaseElement[] = (result.elements || []).map(elementData => 
-      createElementFromData(elementData, result.relsMap)
+      createElementFromData(elementData, result.relsMap, mediaMap)
     ).filter((el): el is BaseElement => el !== null);
 
     return new NotesMasterElement(
       result.id,
       elements,
       result.placeholders || [],
-      { background: result.background, relsMap: result.relsMap }
+      { background: result.background, relsMap: result.relsMap, mediaMap }
     );
   }
 
@@ -80,7 +84,11 @@ ${elementsHTML}
     }
 
     if (this.background.type === 'image' && this.background.relId) {
-      return `background-image: url('${this.background.relId}'); background-size: cover;`;
+      // 通过 mediaMap 解析 relId 到实际的 base64 URL
+      const imageUrl = this.mediaMap ? this.mediaMap.get(this.background.relId) : this.background.relId;
+      if (imageUrl) {
+        return `background-image: url('${imageUrl}'); background-size: cover;`;
+      }
     }
 
     return 'background-color: #ffffff;';

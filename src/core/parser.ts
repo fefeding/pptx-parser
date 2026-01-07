@@ -308,6 +308,39 @@ async function parseEnhancedMode(
 
     // 解析背景：解析主题颜色到实际颜色
     if (theme && theme.colors) {
+      // 解析 master 背景的 schemeRef
+      masterSlides.forEach(master => {
+        if (master.background && typeof master.background === 'object') {
+          const bg = master.background as any;
+          if (bg.schemeRef) {
+            const actualColor = resolveSchemeColor(
+              bg.schemeRef,
+              theme.colors,
+              master.colorMap || {}
+            );
+            bg.value = actualColor;
+            delete bg.schemeRef;
+          }
+        }
+      });
+
+      // 解析 layout 背景的 schemeRef
+      Object.values(slideLayouts).forEach(layout => {
+        if (layout.background && typeof layout.background === 'object') {
+          const bg = layout.background as any;
+          if (bg.schemeRef) {
+            const actualColor = resolveSchemeColor(
+              bg.schemeRef,
+              theme.colors,
+              layout.colorMap || {}
+            );
+            bg.value = actualColor;
+            delete bg.schemeRef;
+          }
+        }
+      });
+
+      // 解析 slide 背景的 schemeRef
       slides.forEach((slide, index) => {
         if (slide.background && typeof slide.background === 'object') {
           const bg = slide.background as any;

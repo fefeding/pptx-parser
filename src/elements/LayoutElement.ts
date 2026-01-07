@@ -6,6 +6,7 @@
 import { BaseElement } from './BaseElement';
 import type { SlideLayoutResult } from '../core/types';
 import type { TextRun } from './ShapeElement';
+import { createElementFromData } from './element-factory';
 
 /**
  * 占位符元素
@@ -147,29 +148,42 @@ export class LayoutElement extends BaseElement {
   /** 占位符列表 */
   placeholders: PlaceholderElement[];
 
+  /** 实际元素（图片、形状等，非占位符） */
+  elements: BaseElement[];
+
   /** 文本样式 */
   textStyles?: any;
 
   /** 背景样式 */
   background?: { type: 'color' | 'image' | 'none'; value?: string; relId?: string };
 
+  /** 关联关系映射表 */
+  relsMap: Record<string, any>;
+
+  /** 媒体资源映射表（relId -> base64 URL） */
+  mediaMap?: Map<string, string>;
+
   constructor(
     id: string,
     name?: string,
     placeholders: PlaceholderElement[] = [],
+    elements: BaseElement[] = [],
     props: any = {}
   ) {
     super(id, 'layout', { x: 0, y: 0, width: 960, height: 540 }, {}, props, {});
     this.name = name;
     this.placeholders = placeholders;
+    this.elements = elements;
     this.textStyles = props.textStyles;
     this.background = props.background;
+    this.relsMap = props.relsMap || {};
+    this.mediaMap = props.mediaMap;
   }
 
   /**
    * 从 SlideParseResult 创建 LayoutElement
    */
-  static fromResult(result: SlideLayoutResult): LayoutElement {
+  static fromResult(result: SlideLayoutResult, mediaMap?: Map<string, string>): LayoutElement {
     const placeholders = (result.placeholders || []).map(ph => {
       return new PlaceholderElement(
         ph.id,
@@ -179,15 +193,25 @@ export class LayoutElement extends BaseElement {
       );
     });
 
+    // 将解析的元素数据转换为 BaseElement 实例
+    const elements = (result.elements || []).map((el: any) => {
+      if (el instanceof BaseElement) {
+        return el;
+      }
+      return createElementFromData(el, result.relsMap || {}, mediaMap);
+    }).filter((el: any) => el !== null) as BaseElement[];
+
     return new LayoutElement(
       result.id,
       result.name,
       placeholders,
+      elements,
       {
         textStyles: result.textStyles,
         background: result.background,
         relsMap: result.relsMap,
-        colorMap: result.colorMap
+        colorMap: result.colorMap,
+        mediaMap
       }
     );
   }
@@ -203,8 +227,14 @@ export class LayoutElement extends BaseElement {
       .map(ph => ph.toHTML())
       .join('\n');
 
+    // 渲染实际元素（图片、形状等）
+    const elementsHTML = this.elements
+      .map(el => el.toHTML())
+      .join('\n');
+
     return `<div class="ppt-layout" style="${style}" data-layout-id="${this.id}" data-layout-name="${this.name || ''}">
 ${placeholdersHTML}
+${elementsHTML}
 </div>`;
   }
 
@@ -221,7 +251,11 @@ ${placeholdersHTML}
     }
 
     if (this.background.type === 'image' && this.background.relId) {
-      return `background-image: url('${this.background.relId}'); background-size: cover;`;
+      // 通过 mediaMap 解析 relId 到实际的 base64 URL
+      const imageUrl = this.mediaMap ? this.mediaMap.get(this.background.relId) : this.background.relId;
+      if (imageUrl) {
+        return `background-image: url('${imageUrl}'); background-size: cover;`;
+      }
     }
 
     return 'background-color: transparent;';

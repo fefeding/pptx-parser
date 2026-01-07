@@ -206,7 +206,9 @@ async function handleFileUpload(event: Event) {
     const buffer = await file.arrayBuffer()
     const result = await parsePptx(buffer)
     parsedData.value = result
+    console.log(result);
     // 创建文档元素
+    debugger
     documentElement.value = createDocument(result)
     currentSlideIndex.value = 0
   } catch (e) {

@@ -145,19 +145,19 @@ export class DocumentElement extends BaseElement {
 
     // 解析母版
     if (result.masterSlides && result.masterSlides.length > 0) {
-      doc.masters = result.masterSlides.map(master => MasterElement.fromResult(master));
+      doc.masters = result.masterSlides.map(master => MasterElement.fromResult(master, doc.mediaMap));
     }
 
     // 解析布局
     if (result.slideLayouts) {
       Object.entries(result.slideLayouts).forEach(([layoutId, layout]) => {
-        doc.layouts[layoutId] = LayoutElement.fromResult(layout);
+        doc.layouts[layout.id] = LayoutElement.fromResult(layout, doc.mediaMap);
       });
     }
 
     // 解析备注母版
     if (result.notesMasters && result.notesMasters.length > 0) {
-      doc.notesMasters = result.notesMasters.map(nm => NotesMasterElement.fromResult(nm));
+      doc.notesMasters = result.notesMasters.map(nm => NotesMasterElement.fromResult(nm, doc.mediaMap));
     }
 
     // 解析备注页
@@ -191,11 +191,23 @@ export class DocumentElement extends BaseElement {
           return createElementFromData(el, slide.relsMap || {}, doc.mediaMap);
         }).filter((el: any) => el !== null) as BaseElement[];
 
-        // 使用 parser 已关联的 layout 和 master 对象（SlideLayoutResult 和 MasterSlideResult 类型）
-        const layout = slide.layout as SlideLayoutResult | undefined;
-        const master = slide.master as MasterSlideResult | undefined;
+        // 获取对应的 layout 和 master 元素实例（来自 doc.layouts 和 doc.masters）
+        let layoutElement: LayoutElement | undefined;
+        let masterElement: MasterElement | undefined;
 
-        return new SlideElement(slide, elements, layout, master, doc.mediaMap);
+        if (slide.layout) {
+          // 根据 slide.layout.id 查找对应的 LayoutElement 实例
+          const layoutId = slide.layout.id;
+          layoutElement = doc.layouts[layoutId];
+        }
+
+        if (slide.master) {
+          // 根据 slide.master.id 查找对应的 MasterElement 实例
+          const masterId = slide.master.id;
+          masterElement = doc.masters.find(m => m.id === masterId);
+        }
+
+        return new SlideElement(slide, elements, layoutElement, masterElement, doc.mediaMap);
       });
     }
 

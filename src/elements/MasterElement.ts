@@ -5,7 +5,7 @@
 
 import { BaseElement } from './BaseElement';
 import { PlaceholderElement } from './LayoutElement';
-import { createElementFromData } from './element-factory';
+import { createElementFromData } from './index';
 import type { MasterSlideResult } from '../core/types';
 
 /**
@@ -32,6 +32,9 @@ export class MasterElement extends BaseElement {
   /** 颜色映射 */
   colorMap: Record<string, string>;
 
+  /** 媒体资源映射表（relId -> base64 URL） */
+  mediaMap?: Map<string, string>;
+
   constructor(
     id: string,
     elements: BaseElement[] = [],
@@ -45,12 +48,13 @@ export class MasterElement extends BaseElement {
     this.textStyles = props.textStyles;
     this.background = props.background;
     this.colorMap = props.colorMap || {};
+    this.mediaMap = props.mediaMap;
   }
 
   /**
    * 从 MasterSlideResult 创建 MasterElement
    */
-  static fromResult(result: MasterSlideResult): MasterElement {
+  static fromResult(result: MasterSlideResult, mediaMap?: Map<string, string>): MasterElement {
     // 解析占位符
     const placeholders = (result.placeholders || []).map((ph: any) => {
       const phEl = new PlaceholderElement(
@@ -63,8 +67,8 @@ export class MasterElement extends BaseElement {
     });
 
     // 将 result.elements 转换为 BaseElement 实例
-    const elements: BaseElement[] = (result.elements || []).map(elementData => 
-      createElementFromData(elementData, result.relsMap)
+    const elements: BaseElement[] = (result.elements || []).map(elementData =>
+      createElementFromData(elementData, result.relsMap, mediaMap)
     ).filter((el): el is BaseElement => el !== null);
 
     return new MasterElement(
@@ -76,7 +80,8 @@ export class MasterElement extends BaseElement {
         textStyles: result.textStyles,
         background: result.background,
         colorMap: result.colorMap,
-        relsMap: result.relsMap
+        relsMap: result.relsMap,
+        mediaMap
       }
     );
   }
@@ -121,7 +126,11 @@ ${elementsHTML}
     }
 
     if (this.background.type === 'image' && this.background.relId) {
-      return `background-image: url('${this.background.relId}'); background-size: cover;`;
+      // 通过 mediaMap 解析 relId 到实际的 base64 URL
+      const imageUrl = this.mediaMap ? this.mediaMap.get(this.background.relId) : this.background.relId;
+      if (imageUrl) {
+        return `background-image: url('${imageUrl}'); background-size: cover;`;
+      }
     }
 
     return 'background-color: transparent;';
