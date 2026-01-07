@@ -11,6 +11,7 @@ export { SlideElement, PptxDocument } from './SlideElement';
 export { DocumentElement, createDocument } from './DocumentElement';
 export { LayoutElement, PlaceholderElement } from './LayoutElement';
 export { MasterElement } from './MasterElement';
+export { ThemeElement, type FontScheme, type EffectScheme } from './ThemeElement';
 export { NotesMasterElement, NotesSlideElement } from './NotesElement';
 export { TagsElement } from './TagsElement';
 export { createElementFromData } from './element-factory';

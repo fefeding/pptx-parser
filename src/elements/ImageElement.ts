@@ -304,10 +304,7 @@ export class ImageElement extends BaseElement {
     ].join('; ');
 
     // 获取调试属性
-    const dataAttrs = this.getDataAttributes();
-    const attrString = Object.entries(dataAttrs)
-      .map(([key, value]) => `${key}="${value}"`)
-      .join(' ');
+    const attrString = this.formatDataAttributes();
 
     return `<div ${attrString} style="${containerStyle}">
       <img src="${this.src}" alt="${this.altText || ''}" style="${imgStyle}" />
@@ -326,10 +323,7 @@ export class ImageElement extends BaseElement {
     ].join('; ');
 
     // 获取调试属性
-    const dataAttrs = this.getDataAttributes();
-    const attrString = Object.entries(dataAttrs)
-      .map(([key, value]) => `${key}="${value}"`)
-      .join(' ');
+    const attrString = this.formatDataAttributes();
 
     if (video.type === 'link') {
       // YouTube, Vimeo 等外部链接
@@ -389,10 +383,7 @@ export class ImageElement extends BaseElement {
     ].join('; ');
 
     // 获取调试属性
-    const dataAttrs = this.getDataAttributes();
-    const attrString = Object.entries(dataAttrs)
-      .map(([key, value]) => `${key}="${value}"`)
-      .join(' ');
+    const attrString = this.formatDataAttributes();
 
     if (audio.type === 'link') {
       // 外部链接音频

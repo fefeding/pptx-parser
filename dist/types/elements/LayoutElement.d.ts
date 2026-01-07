@@ -24,14 +24,17 @@ export declare class LayoutElement extends BaseElement {
     type: 'layout';
     name?: string;
     placeholders: PlaceholderElement[];
+    elements: BaseElement[];
     textStyles?: any;
     background?: {
         type: 'color' | 'image' | 'none';
         value?: string;
         relId?: string;
     };
-    constructor(id: string, name?: string, placeholders?: PlaceholderElement[], props?: any);
-    static fromResult(result: SlideLayoutResult): LayoutElement;
+    relsMap: Record<string, any>;
+    mediaMap?: Map<string, string>;
+    constructor(id: string, name?: string, placeholders?: PlaceholderElement[], elements?: BaseElement[], props?: any);
+    static fromResult(result: SlideLayoutResult, mediaMap?: Map<string, string>): LayoutElement;
     toHTML(): string;
     private getBackgroundStyle;
 }

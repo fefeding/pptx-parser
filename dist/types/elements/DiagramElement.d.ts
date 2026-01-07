@@ -26,6 +26,11 @@ export declare class DiagramElement extends BaseElement {
     constructor(id: string, rect: PptRect, content?: any, props?: any, relsMap?: Record<string, any>);
     static fromNode(node: Element, relsMap: RelsMap): DiagramElement | null;
     private parseDiagramData;
+    private parseRelIds;
+    private fetchColorData;
+    private fetchLayoutData;
+    private fetchColorDataSync;
+    private fetchLayoutDataSync;
     private parseShapes;
     toHTML(): string;
     private getDiagramInfo;

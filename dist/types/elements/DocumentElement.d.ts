@@ -3,6 +3,7 @@ import { BaseElement } from './BaseElement';
 import { SlideElement } from './SlideElement';
 import { LayoutElement } from './LayoutElement';
 import { MasterElement } from './MasterElement';
+import { ThemeElement } from './ThemeElement';
 import { TagsElement } from './TagsElement';
 import { NotesMasterElement, NotesSlideElement } from './NotesElement';
 export interface HtmlRenderOptions {
@@ -33,6 +34,7 @@ export declare class DocumentElement extends BaseElement {
     pageSize: '4:3' | '16:9' | '16:10' | 'custom';
     globalRelsMap: Record<string, any>;
     mediaMap?: Map<string, string>;
+    theme?: ThemeElement;
     constructor(id: string, title: string, width?: number, height?: number, props?: any);
     static fromParseResult(result: PptxParseResult): DocumentElement;
     toHTML(options?: HtmlRenderOptions): string;

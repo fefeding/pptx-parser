@@ -254,7 +254,8 @@ async function parseEnhancedMode(
     Object.entries(slideLayouts).forEach(([layoutId, layout]) => {
       if (layout.masterRef && masterMap.has(layout.masterRef)) {
         const layoutAny = layout as any;
-        layoutAny.master = masterMap.get(layout.masterRef);
+        // 只保留 master 的索引引用
+        layoutAny.masterRefIndex = layout.masterRef;
         log('info', `Layout ${layoutId} references master: ${layout.masterRef}`);
       }
     });
@@ -274,21 +275,21 @@ async function parseEnhancedMode(
         const layout = slideLayouts[layoutId];
         const layoutAny = layout as any;
 
-        // 合并背景
+        // 合并背景（直接使用 layout 和 master 的 background）
         const mergedBg = mergeBackgrounds(
           slide.background as any,
           layout.background,
-          layoutAny.master?.background
+          layoutAny.masterRefIndex ? masterSlides.find(m => m.masterId === layoutAny.masterRefIndex)?.background : undefined
         );
         slide.background = mergedBg;
 
-        // 将布局ID和占位符信息附加到幻灯片对象（供渲染使用）
+        // 只保留索引引用
         (slide as any).layoutId = layoutId;
-        (slide as any).layout = layout;
-        (slide as any).master = layoutAny.master;
+        (slide as any).masterRefIndex = layoutAny.masterRefIndex;
 
-        // 应用样式继承到所有元素
-        applyStyleInheritance(slide, layout, layoutAny.master, theme);
+        // 应用样式继承到所有元素（使用引用索引）
+        const masterObj = layoutAny.masterRefIndex ? masterSlides.find(m => m.masterId === layoutAny.masterRefIndex) : undefined;
+        applyStyleInheritance(slide, layout, masterObj, theme);
 
         const masterRef = (layout as any).masterRef;
         log('info', `Slide relationship chain: slide -> layout (${layoutId}) -> master (${masterRef})`);
@@ -394,7 +395,8 @@ async function parseEnhancedMode(
       notesSlides: notesSlides.length > 0 ? notesSlides : undefined,
       charts: charts.length > 0 ? charts : undefined,
       diagrams: diagrams.length > 0 ? diagrams : undefined,
-      tags: tags.length > 0 ? tags : undefined
+      tags: tags.length > 0 ? tags : undefined,
+      mediaMap: undefined // 将在 parseImages 时填充
     };
 
     // 解析图片（如果需要）

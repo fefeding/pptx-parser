@@ -14,6 +14,8 @@ export declare abstract class BaseElement {
     constructor(id: string, type: string, rect: PptRect, content?: any, props?: any, relsMap?: Record<string, any>);
     abstract toHTML(): string;
     protected getContainerStyle(): string;
+    protected getDataAttributes(): Record<string, string>;
+    protected formatDataAttributes(): string;
     protected parsePosition(node: Element, tag?: string, namespace?: "http://schemas.openxmlformats.org/presentationml/2006/main"): Position;
     protected parseIdAndName(node: Element, nonVisualTag: string, namespace?: "http://schemas.openxmlformats.org/presentationml/2006/main"): {
         id: string;

@@ -9,8 +9,9 @@ export declare class NotesMasterElement extends BaseElement {
         value?: string;
         relId?: string;
     };
+    mediaMap?: Map<string, string>;
     constructor(id: string, elements?: BaseElement[], placeholders?: any[], props?: any);
-    static fromResult(result: NotesMasterResult): NotesMasterElement;
+    static fromResult(result: NotesMasterResult, mediaMap?: Map<string, string>): NotesMasterElement;
     toHTML(): string;
     private getBackgroundStyle;
 }

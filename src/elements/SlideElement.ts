@@ -54,8 +54,10 @@ export class SlideElement {
   constructor(
     result: SlideParseResult,
     elements: BaseElement[],
-    layout?: LayoutElement,
-    master?: MasterElement,
+    layoutElement?: LayoutElement,
+    masterElement?: MasterElement,
+    layoutResult?: SlideLayoutResult,
+    masterResult?: MasterSlideResult,
     mediaMap?: Map<string, string>
   ) {
     this.id = result.id;
@@ -63,10 +65,10 @@ export class SlideElement {
     this.background = typeof result.background === 'string' ? result.background : '';
     this.elements = elements;
     this.rawResult = result;
-    this.layoutElement = layout;
-    this.masterElement = master;
-    this.layout = result.layout as SlideLayoutResult | undefined;
-    this.master = result.master as MasterSlideResult | undefined;
+    this.layoutElement = layoutElement;
+    this.masterElement = masterElement;
+    this.layout = layoutResult;
+    this.master = masterResult;
     this.mediaMap = mediaMap;
   }
 
@@ -139,12 +141,23 @@ ${elementsHTML}
   private renderSlideElementsWithLayout(): string {
     if (!this.layout) {
       // 如果没有布局，直接渲染元素
+      // 为每个元素分配 z-index
+      this.elements.forEach((element, index) => {
+        element.zIndex = index + 1;
+        element.idx = index;
+      });
       return this.elements
         .map(element => element.toHTML())
         .join('\n');
     }
 
     const elementsHTML: string[] = [];
+
+    // 为所有元素分配 z-index（基于元素顺序）
+    this.elements.forEach((element, index) => {
+      element.zIndex = index + 1;
+      element.idx = index;
+    });
 
     this.elements.forEach(element => {
       // 查找对应的布局占位符
@@ -188,14 +201,9 @@ ${elementsHTML}
       // 生成元素HTML
       const elementHTML = element.toHTML();
 
-      // 渲染为 .block 容器结构（PPTXjs标准结构）
-      elementsHTML.push(`
-        <div class="${placeholderStyle.className}" style="${placeholderStyle.style}">
-          <div class="content slide-prgrph" style="${this.getTextContentStyle(textStyle || {}, undefined)}">
-            ${elementHTML}
-          </div>
-        </div>
-      `);
+      // 直接渲染元素，不使用 .block > .content 容器结构
+      // 元素的绝对定位是相对于 slide 容器的（slide 已设置 position: relative）
+      elementsHTML.push(elementHTML);
     });
 
     // 收集已经渲染的占位符标识 (type + idx)
@@ -211,18 +219,8 @@ ${elementsHTML}
       }
     });
 
-    // 渲染 layout 中未在 slide 元素中出现的占位符（保持布局结构）
-    (this.layout?.placeholders || []).forEach(placeholder => {
-      const key = `${placeholder.type || ''}_${placeholder.idx ?? ''}`;
-      if (!renderedPlaceholders.has(key)) {
-        const placeholderStyle = getPlaceholderLayoutStyle(placeholder as any);
-        elementsHTML.push( `
-          <div class="${placeholderStyle.className}" style="${placeholderStyle.style}">
-            <div class="content slide-prgrph"></div>
-          </div>
-        `);
-      }
-    });
+    // 不渲染 layout 中未在 slide 元素中出现的占位符
+    // PPTXjs 只渲染实际的元素内容，不渲染占位符
 
     return elementsHTML.join('');
   }

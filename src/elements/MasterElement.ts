@@ -94,9 +94,9 @@ export class MasterElement extends BaseElement {
       `position: absolute`,
       `top: 0`,
       `left: 0`,
-      background,
       `pointer-events: none`, // 母版元素不响应鼠标事件
-      `z-index: 0`
+      `z-index: 0`, // 最底层，在所有内容之下
+      background
     ].join('; ');
 
     const elementsHTML = this.elements

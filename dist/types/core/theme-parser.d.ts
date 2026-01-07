@@ -15,6 +15,7 @@ export interface ThemeColors {
 }
 export interface ThemeResult {
     colors: ThemeColors;
+    name?: string;
 }
 export declare function parseTheme(zip: JSZip, themePath?: string): Promise<ThemeResult | null>;
 export declare function parseColorMap(root: Element): Record<string, string>;

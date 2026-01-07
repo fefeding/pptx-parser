@@ -218,8 +218,15 @@ export class LayoutElement extends BaseElement {
 
   toHTML(): string {
     const background = this.getBackgroundStyle();
+    // 布局背景应该是全屏的，不受 rect 尺寸限制
     const style = [
-      this.getContainerStyle(),
+      `position: absolute`,
+      `left: 0`,
+      `top: 0`,
+      `width: 100%`,
+      `height: 100%`,
+      `pointer-events: none`, // 布局元素不响应鼠标事件
+      `z-index: 1`, // 在 master 之上，slide 之下
       background
     ].join('; ');
 

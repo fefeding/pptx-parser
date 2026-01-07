@@ -13,8 +13,9 @@ export declare class MasterElement extends BaseElement {
         relId?: string;
     };
     colorMap: Record<string, string>;
+    mediaMap?: Map<string, string>;
     constructor(id: string, elements?: BaseElement[], placeholders?: PlaceholderElement[], props?: any);
-    static fromResult(result: MasterSlideResult): MasterElement;
+    static fromResult(result: MasterSlideResult, mediaMap?: Map<string, string>): MasterElement;
     toHTML(): string;
     private getBackgroundStyle;
     getPlaceholderStyle(placeholderType: 'title' | 'body' | 'other'): any;

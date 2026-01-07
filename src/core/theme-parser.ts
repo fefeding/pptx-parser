@@ -23,6 +23,7 @@ export interface ThemeColors {
 
 export interface ThemeResult {
   colors: ThemeColors;
+  name?: string;
 }
 
 /**
@@ -46,12 +47,15 @@ export async function parseTheme(
     const doc = parser.parseFromString(themeXml, 'application/xml');
     const root = doc.documentElement;
 
+    // 解析主题名称
+    const themeName = root.getAttribute('name') || themePath.split('/').pop()?.replace('.xml', '') || 'theme1';
+
     // 解析颜色方案
     const colors = parseColorScheme(root);
 
-    log('info', `Parsed theme from ${themePath}`);
+    log('info', `Parsed theme from ${themePath}: ${themeName}`);
 
-    return { colors };
+    return { colors, name: themeName };
   } catch (error) {
     log('error', `Failed to parse theme: ${themePath}`, error);
     return null;

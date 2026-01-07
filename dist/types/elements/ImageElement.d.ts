@@ -34,6 +34,8 @@ export declare class ImageElement extends BaseElement {
     private parseImageSrc;
     private detectVideoFormat;
     private detectAudioFormat;
+    getFilePath(): string;
+    getDataAttributes(): Record<string, string>;
     toHTML(): string;
     private toImageHTML;
     private toVideoHTML;

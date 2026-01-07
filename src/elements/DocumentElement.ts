@@ -8,6 +8,7 @@ import { BaseElement } from './BaseElement';
 import { SlideElement } from './SlideElement';
 import { LayoutElement } from './LayoutElement';
 import { MasterElement } from './MasterElement';
+import { ThemeElement } from './ThemeElement';
 import { TagsElement } from './TagsElement';
 import { NotesMasterElement, NotesSlideElement } from './NotesElement';
 import { createElementFromData } from './index';
@@ -17,236 +18,240 @@ import type { BaseElement as BaseElementType } from './BaseElement';
  * HTML 渲染选项
  */
 export interface HtmlRenderOptions {
-  /** 是否包含样式 */
-  includeStyles?: boolean;
-  /** 是否包含脚本 */
-  includeScripts?: boolean;
-  /** 是否包含布局和母版元素 */
-  includeLayoutElements?: boolean;
-  /** 是否带导航 */
-  withNavigation?: boolean;
-  /** 自定义 CSS */
-  customCss?: string;
+    /** 是否包含样式 */
+    includeStyles?: boolean;
+    /** 是否包含脚本 */
+    includeScripts?: boolean;
+    /** 是否包含布局和母版元素 */
+    includeLayoutElements?: boolean;
+    /** 是否带导航 */
+    withNavigation?: boolean;
+    /** 自定义 CSS */
+    customCss?: string;
 }
 
 /**
  * 文档元素类
  */
 export class DocumentElement extends BaseElement {
-  type: 'document' = 'document';
+    type: 'document' = 'document';
 
-  /** 文档标题 */
-  title: string;
+    /** 文档标题 */
+    title: string;
 
-  /** 作者 */
-  author?: string;
+    /** 作者 */
+    author?: string;
 
-  /** 主题 */
-  subject?: string;
+    /** 主题 */
+    subject?: string;
 
-  /** 关键词 */
-  keywords?: string;
+    /** 关键词 */
+    keywords?: string;
 
-  /** 描述 */
-  description?: string;
+    /** 描述 */
+    description?: string;
 
-  /** 创建时间 */
-  created?: string;
+    /** 创建时间 */
+    created?: string;
 
-  /** 修改时间 */
-  modified?: string;
+    /** 修改时间 */
+    modified?: string;
 
-  /** 幻灯片列表 */
-  slides: SlideElement[];
+    /** 幻灯片列表 */
+    slides: SlideElement[];
 
-  /** 布局列表 */
-  layouts: Record<string, LayoutElement>;
+    /** 布局列表 */
+    layouts: Record<string, LayoutElement>;
 
-  /** 母版列表 */
-  masters: MasterElement[];
+    /** 母版列表 */
+    masters: MasterElement[];
 
-  /** 标签列表 */
-  tags: TagsElement[];
+    /** 标签列表 */
+    tags: TagsElement[];
 
-  /** 备注母版 */
-  notesMasters: NotesMasterElement[];
+    /** 备注母版 */
+    notesMasters: NotesMasterElement[];
 
-  /** 备注页 */
-  notesSlides: NotesSlideElement[];
+    /** 备注页 */
+    notesSlides: NotesSlideElement[];
 
-  /** 文档宽度（像素） */
-  width: number;
+    /** 文档宽度（像素） */
+    width: number;
 
-  /** 文档高度（像素） */
-  height: number;
+    /** 文档高度（像素） */
+    height: number;
 
-  /** 宽高比 */
-  ratio: number;
+    /** 宽高比 */
+    ratio: number;
 
-  /** 页面尺寸类型 */
-  pageSize: '4:3' | '16:9' | '16:10' | 'custom';
+    /** 页面尺寸类型 */
+    pageSize: '4:3' | '16:9' | '16:10' | 'custom';
 
-  /** 全局关联关系映射表 */
-  globalRelsMap: Record<string, any>;
+    /** 全局关联关系映射表 */
+    globalRelsMap: Record<string, any>;
 
-  /** 媒体资源映射表（relId -> base64 URL） */
-  mediaMap?: Map<string, string>;
+    /** 媒体资源映射表（relId -> base64 URL） */
+    mediaMap?: Map<string, string>;
 
-  constructor(
-    id: string,
-    title: string,
-    width: number = 960,
-    height: number = 540,
-    props: any = {}
-  ) {
-    super(id, 'document', { x: 0, y: 0, width, height }, {}, props, {});
-    this.title = title;
-    this.width = width;
-    this.height = height;
-    this.ratio = width / height;
-    this.pageSize = props.pageSize || '16:9';
-    this.author = props.author;
-    this.subject = props.subject;
-    this.keywords = props.keywords;
-    this.description = props.description;
-    this.created = props.created;
-    this.modified = props.modified;
-    this.slides = [];
-    this.layouts = {};
-    this.masters = [];
-    this.tags = [];
-    this.notesMasters = [];
-    this.notesSlides = [];
-    this.globalRelsMap = props.globalRelsMap || {};
-    this.mediaMap = props.mediaMap;
-  }
+    /** 主题元素 */
+    theme?: ThemeElement;
 
-  /**
-   * 从 PptxParseResult 创建 DocumentElement
-   */
-  static fromParseResult(result: PptxParseResult): DocumentElement {
-    const doc = new DocumentElement(
-      result.id,
-      result.title,
-      result.props.width || 960,
-      result.props.height || 540,
-      {
-        pageSize: result.props.pageSize,
-        author: result.author,
-        subject: result.subject,
-        keywords: result.keywords,
-        description: result.description,
-        created: result.created,
-        modified: result.modified,
-        globalRelsMap: result.globalRelsMap,
-        mediaMap: result.mediaMap
-      }
-    );
-
-    // 解析母版
-    if (result.masterSlides && result.masterSlides.length > 0) {
-      doc.masters = result.masterSlides.map(master => MasterElement.fromResult(master, doc.mediaMap));
+    constructor(
+        id: string,
+        title: string,
+        width: number = 960,
+        height: number = 540,
+        props: any = {}
+    ) {
+        super(id, 'document', { x: 0, y: 0, width, height }, {}, props, {});
+        this.title = title;
+        this.width = width;
+        this.height = height;
+        this.ratio = width / height;
+        this.pageSize = props.pageSize || '16:9';
+        this.author = props.author;
+        this.subject = props.subject;
+        this.keywords = props.keywords;
+        this.description = props.description;
+        this.created = props.created;
+        this.modified = props.modified;
+        this.slides = [];
+        this.layouts = {};
+        this.masters = [];
+        this.tags = [];
+        this.notesMasters = [];
+        this.notesSlides = [];
+        this.globalRelsMap = props.globalRelsMap || {};
+        this.mediaMap = props.mediaMap;
+        this.theme = undefined;
     }
 
-    // 解析布局
-    if (result.slideLayouts) {
-      Object.entries(result.slideLayouts).forEach(([layoutId, layout]) => {
-        doc.layouts[layout.id] = LayoutElement.fromResult(layout, doc.mediaMap);
-      });
-    }
+    /**
+     * 从 PptxParseResult 创建 DocumentElement
+     */
+    static fromParseResult(result: PptxParseResult): DocumentElement {
+        const doc = new DocumentElement(
+            result.id,
+            result.title,
+            result.props.width || 960,
+            result.props.height || 540,
+            {
+                pageSize: result.props.pageSize,
+                author: result.author,
+                subject: result.subject,
+                keywords: result.keywords,
+                description: result.description,
+                created: result.created,
+                modified: result.modified,
+                globalRelsMap: result.globalRelsMap,
+                mediaMap: result.mediaMap
+            }
+        );
 
-    // 解析备注母版
-    if (result.notesMasters && result.notesMasters.length > 0) {
-      doc.notesMasters = result.notesMasters.map(nm => NotesMasterElement.fromResult(nm, doc.mediaMap));
-    }
-
-    // 解析备注页
-    if (result.notesSlides && result.notesSlides.length > 0) {
-      doc.notesSlides = result.notesSlides.map(ns => {
-        const notesElement = NotesSlideElement.fromResult(ns);
-        // 设置关联的母版
-        if (ns.masterRef) {
-          const master = doc.notesMasters.find(m => m.id === ns.masterRef);
-          if (master) {
-            notesElement.setMaster(master);
-          }
-        }
-        return notesElement;
-      });
-    }
-
-    // 解析标签
-    if (result.tags && result.tags.length > 0) {
-      doc.tags = result.tags.map(tag => TagsElement.fromResult(tag));
-    }
-
-    // 解析幻灯片
-    if (result.slides && result.slides.length > 0) {
-      doc.slides = result.slides.map((slide: any) => {
-        // 将 slide.elements 转换为 BaseElement 实例
-        const elements = (slide.elements || []).map((el: any) => {
-          if (el instanceof BaseElement) {
-            return el;
-          }
-          return createElementFromData(el, slide.relsMap || {}, doc.mediaMap);
-        }).filter((el: any) => el !== null) as BaseElement[];
-
-        // 获取对应的 layout 和 master 元素实例（来自 doc.layouts 和 doc.masters）
-        let layoutElement: LayoutElement | undefined;
-        let masterElement: MasterElement | undefined;
-
-        if (slide.layout) {
-          // 根据 slide.layout.id 查找对应的 LayoutElement 实例
-          const layoutId = slide.layout.id;
-          layoutElement = doc.layouts[layoutId];
+        // 解析主题
+        if (result.theme) {
+            doc.theme = ThemeElement.fromResult(result.theme, result.theme.name || 'theme1');
         }
 
-        if (slide.master) {
-          // 根据 slide.master.id 查找对应的 MasterElement 实例
-          const masterId = slide.master.id;
-          masterElement = doc.masters.find(m => m.id === masterId);
+        // 解析母版
+        if (result.masterSlides && result.masterSlides.length > 0) {
+            doc.masters = result.masterSlides.map(master => MasterElement.fromResult(master, doc.mediaMap));
         }
 
-        return new SlideElement(slide, elements, layoutElement, masterElement, doc.mediaMap);
-      });
+        // 解析布局
+        if (result.slideLayouts) {
+            Object.entries(result.slideLayouts).forEach(([layoutId, layout]) => {
+                doc.layouts[layoutId] = LayoutElement.fromResult(layout, doc.mediaMap);
+            });
+        }
+
+        // 解析备注母版
+        if (result.notesMasters && result.notesMasters.length > 0) {
+            doc.notesMasters = result.notesMasters.map(nm => NotesMasterElement.fromResult(nm, doc.mediaMap));
+        }
+
+        // 解析备注页
+        if (result.notesSlides && result.notesSlides.length > 0) {
+            doc.notesSlides = result.notesSlides.map(ns => {
+                const notesElement = NotesSlideElement.fromResult(ns);
+                // 设置关联的母版
+                if (ns.masterRef) {
+                    const master = doc.notesMasters.find(m => m.id === ns.masterRef);
+                    if (master) {
+                        notesElement.setMaster(master);
+                    }
+                }
+                return notesElement;
+            });
+        }
+
+        // 解析标签
+        if (result.tags && result.tags.length > 0) {
+            doc.tags = result.tags.map(tag => TagsElement.fromResult(tag));
+        }
+
+        // 解析幻灯片
+        if (result.slides && result.slides.length > 0) {
+            doc.slides = result.slides.map((slide: any) => {
+                // 将 slide.elements 转换为 BaseElement 实例
+                const elements = (slide.elements || []).map((el: any) => {
+                    if (el instanceof BaseElement) {
+                        return el;
+                    }
+                    return createElementFromData(el, slide.relsMap || {}, doc.mediaMap);
+                }).filter((el: any) => el !== null) as BaseElement[];
+
+                // 获取对应的 layout 和 master 元素实例（来自 doc.layouts 和 doc.masters）
+                let layoutElement: LayoutElement | undefined;
+                let masterElement: MasterElement | undefined;
+                let layoutResult: SlideLayoutResult | undefined;
+                let masterResult: MasterSlideResult | undefined;
+
+                // 根据 slide.layoutId 查找对应的 LayoutElement 实例
+                if (slide.layoutId && doc.layouts[slide.layoutId]) {
+                    layoutElement = doc.layouts[slide.layoutId];
+                    layoutResult = result.slideLayouts?.[slide.layoutId];
+                }
+
+                // 根据 slide.masterRefIndex 查找对应的 MasterElement 实例
+                if (slide.masterRefIndex) {
+                    masterElement = doc.masters.find(m => m.masterId === slide.masterRefIndex);
+                    masterResult = result.masterSlides?.find(m => m.masterId === slide.masterRefIndex);
+                }
+
+                return new SlideElement(slide, elements, layoutElement, masterElement, layoutResult, masterResult, doc.mediaMap);
+            });
+        }
+
+        return doc;
     }
 
-    return doc;
-  }
+    /**
+     * 转换为HTML文档
+     * @param options 渲染选项
+     */
+    toHTML(options: HtmlRenderOptions = {}): string {
+        // 默认带导航
+        const withNav = options.withNavigation !== false;
 
-  /**
-   * 转换为HTML文档
-   * @param options 渲染选项
-   */
-  toHTML(options: HtmlRenderOptions = {}): string {
-    // 默认带导航
-    const withNav = options.withNavigation !== false;
+        if (withNav) {
+            return this.toHTMLWithNavigation(options);
+        }
 
-    if (withNav) {
-      return this.toHTMLWithNavigation(options);
+        return this.toHTMLDocument(options);
     }
 
-    return this.toHTMLDocument(options);
-  }
+    /**
+     * 转换为完整的HTML文档（静态展示）
+     */
+    toHTMLDocument(options: HtmlRenderOptions = {}): string {
+        const slidesHTML = this.slides
+            .map(slide => slide.toHTML())
+            .join('\n\n');
 
-  /**
-   * 转换为完整的HTML文档（静态展示）
-   */
-  toHTMLDocument(options: HtmlRenderOptions = {}): string {
-    const containerStyle = [
-      `max-width: ${this.width}px`,
-      `margin: 0 auto`,
-      `padding: 20px`,
-      `background: #f5f5f5`
-    ].join('; ');
+        const styles = options.includeStyles !== false ? this.generateStyles(options) : '';
 
-    const slidesHTML = this.slides
-      .map(slide => slide.toHTML())
-      .join('\n\n');
-
-    const styles = options.includeStyles !== false ? this.generateStyles(options) : '';
-
-    return `<!DOCTYPE html>
+        return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -255,32 +260,26 @@ export class DocumentElement extends BaseElement {
   ${styles ? '<style>\n' + styles + '\n</style>' : ''}
 </head>
 <body>
-  <div class="ppt-container" style="${containerStyle}">
-    <div class="ppt-header" style="text-align: center; padding: 20px 0; margin-bottom: 20px; border-bottom: 1px solid #ddd;">
-      <h1>${this.escapeHtml(this.title)}</h1>
-      ${this.author ? `<p style="color: #666; font-size: 14px;">作者: ${this.escapeHtml(this.author)}</p>` : ''}
-    </div>
-    <div class="ppt-slides">
+  <div class="ppt-wrapper">
 ${slidesHTML}
-    </div>
   </div>
 </body>
 </html>`;
-  }
+    }
 
-  /**
-   * 转换为带导航的HTML文档（交互式展示）
-   */
-  toHTMLWithNavigation(options: HtmlRenderOptions = {}): string {
-    const slidesHTML = this.slides.map((slide, index) => {
-      return `
+    /**
+     * 转换为带导航的HTML文档（交互式展示）
+     */
+    toHTMLWithNavigation(options: HtmlRenderOptions = {}): string {
+        const slidesHTML = this.slides.map((slide, index) => {
+            return `
         <div class="ppt-slide-page" data-index="${index}" style="display: ${index === 0 ? 'block' : 'none'};">
           ${slide.toHTML()}
         </div>
       `;
-    }).join('\n');
+        }).join('\n');
 
-    const navHTML = `
+        const navHTML = `
       <div class="ppt-navigation" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 25px;">
         <button onclick="prevSlide()" style="padding: 8px 16px; cursor: pointer; background: #fff; border: none; border-radius: 4px; font-size: 14px;">上一页</button>
         <span id="slideCounter" style="color: #fff; font-size: 14px; min-width: 60px; text-align: center;">1 / ${this.slides.length}</span>
@@ -288,7 +287,7 @@ ${slidesHTML}
       </div>
     `;
 
-    const script = `
+        const script = `
       <script>
         let currentSlide = 0;
         const slides = document.querySelectorAll('.ppt-slide-page');
@@ -328,9 +327,9 @@ ${slidesHTML}
       <\/script>
     `;
 
-    const styles = options.includeStyles !== false ? this.generateStyles(options) : this.generateNavigationStyles();
+        const styles = options.includeStyles !== false ? this.generateStyles(options) : this.generateNavigationStyles();
 
-    return `<!DOCTYPE html>
+        return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -346,149 +345,156 @@ ${navHTML}
 ${options.includeScripts !== false ? script : ''}
 </body>
 </html>`;
-  }
-
-  /**
-   * 生成CSS样式
-   * 包含 PPTXjs 的完整布局类系统
-   */
-  private generateStyles(options: HtmlRenderOptions): string {
-    const css: string[] = [
-      '/* PPTX 文档基础样式 */',
-      '* { box-sizing: border-box; margin: 0; padding: 0; }',
-      '',
-      'body {',
-      '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;',
-      '  background: #333;',
-      '  min-height: 100vh;',
-      '}',
-      '',
-      '.ppt-wrapper {',
-      '  display: flex;',
-      '  justify-content: center;',
-      '  align-items: center;',
-      '  min-height: 100vh;',
-      '  padding: 20px;',
-      '}',
-      '',
-      '.ppt-container {',
-      '  background: #fff;',
-      '  box-shadow: 0 2px 8px rgba(0,0,0,0.1);',
-      '}',
-      '',
-      '/* ===== PPTXjs 核心布局类系统 ===== */',
-      '',
-      '/* 幻灯片容器基础样式 */',
-      '.slide {',
-      '  position: relative;',
-      '  overflow: hidden;',
-      '  margin: 0 auto;',
-      '  box-sizing: border-box;',
-      '}',
-      '',
-      '/* 占位符基础样式（对应版式占位符） */',
-      '.slide div.block {',
-      '  position: absolute;',
-      '  top: 0;',
-      '  left: 0;',
-      '  width: 100%;',
-      '  line-height: 1;',
-      '  box-sizing: border-box;',
-      '  display: flex;',
-      '  flex-direction: column;',
-      '}',
-      '',
-      '/* 垂直对齐类（映射版式垂直规则） */',
-      '.slide div.v-up { justify-content: flex-start; }',
-      '.slide div.v-mid { justify-content: center; }',
-      '.slide div.v-down { justify-content: flex-end; }',
-      '',
-      '/* 水平对齐类（映射版式水平规则） */',
-      '.slide div.h-left { align-items: flex-start; text-align: left; }',
-      '.slide div.h-mid { align-items: center; text-align: center; }',
-      '.slide div.h-right { align-items: flex-end; text-align: right; }',
-      '',
-      '/* 复合对齐类（高频组合） */',
-      '.slide div.up-left { justify-content: flex-start; align-items: flex-start; }',
-      '.slide div.up-center { justify-content: flex-start; align-items: center; text-align: center; }',
-      '.slide div.up-right { justify-content: flex-start; align-items: flex-end; text-align: right; }',
-      '.slide div.center-left { justify-content: center; align-items: flex-start; }',
-      '.slide div.center-center { justify-content: center; align-items: center; text-align: center; }',
-      '.slide div.center-right { justify-content: center; align-items: flex-end; text-align: right; }',
-      '.slide div.down-left { justify-content: flex-end; align-items: flex-start; }',
-      '.slide div.down-center { justify-content: flex-end; align-items: center; text-align: center; }',
-      '.slide div.down-right { justify-content: flex-end; align-items: flex-end; text-align: right; }',
-      '',
-      '/* 内容容器 */',
-      '.content {',
-      '  width: 100%;',
-      '  height: 100%;',
-      '  box-sizing: border-box;',
-      '}',
-      '',
-      '/* 文本样式（全局字体） */',
-      '.slide-prgrph {',
-      '  font-family: Arial, sans-serif;',
-      '  font-size: 14px;',
-      '  color: #333333;',
-      '  line-height: 1.4;',
-      '}',
-      '',
-      '/* ===== 原有样式 ===== */',
-      '',
-      '/* 幻灯片样式 */',
-      '.ppt-slide {',
-      '  position: relative;',
-      '  margin: 20px auto;',
-      '  border: 1px solid #ddd;',
-      '  background: #fff;',
-      '}',
-      '',
-      '.ppt-slide-page {',
-      `  width: ${this.width}px;`,
-      `  height: ${this.height}px;`,
-      '  background: #fff;',
-      '  box-shadow: 0 4px 20px rgba(0,0,0,0.3);',
-      '}',
-      '',
-      '/* 布局和母版元素 */',
-      '.ppt-master-element,',
-      '.ppt-layout-element {',
-      '  pointer-events: none;',
-      '}',
-      '',
-      '/* 元素通用样式 */',
-      '.ppt-element {',
-      '  position: absolute;',
-      '}',
-      '',
-      '/* 文本元素 */',
-      '.ppt-text {',
-      '  overflow: hidden;',
-      '}',
-      '',
-      '/* 占位符样式 */',
-      '.ppt-placeholder {',
-      '  pointer-events: none;',
-      '  user-select: none;',
-      '}',
-      ''
-    ];
-
-    // 自定义 CSS
-    if (options.customCss) {
-      css.push('/* 自定义样式 */');
-      css.push(options.customCss);
     }
 
-    return css.join('\n');
-  }
+    /**
+     * 生成CSS样式
+     * 包含 PPTXjs 的完整布局类系统和主题样式
+     */
+    private generateStyles(options: HtmlRenderOptions): string {
+        const css: string[] = [
+            '/* PPTX 文档基础样式 */',
+            '* { box-sizing: border-box; margin: 0; padding: 0; }',
+            '',
+            'body {',
+            '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;',
+            '  background: #333;',
+            '  min-height: 100vh;',
+            '}',
+            '',
+            '.ppt-wrapper {',
+            '  display: flex;',
+            '  justify-content: center;',
+            '  align-items: center;',
+            '  min-height: 100vh;',
+            '  padding: 20px;',
+            '}',
+            '',
+            '.ppt-container {',
+            '  background: #fff;',
+            '  box-shadow: 0 2px 8px rgba(0,0,0,0.1);',
+            '}',
+            '',
+            '/* ===== PPTXjs 核心布局类系统 ===== */',
+            '',
+            '/* 幻灯片容器基础样式 */',
+            '.slide {',
+            '  position: relative;',
+            '  overflow: hidden;',
+            '  margin: 0 auto;',
+            '  box-sizing: border-box;',
+            '}',
+            '',
+            '/* 占位符基础样式（对应版式占位符） */',
+            '.slide div.block {',
+            '  position: absolute;',
+            '  top: 0;',
+            '  left: 0;',
+            '  width: 100%;',
+            '  line-height: 1;',
+            '  box-sizing: border-box;',
+            '  display: flex;',
+            '  flex-direction: column;',
+            '}',
+            '',
+            '/* 垂直对齐类（映射版式垂直规则） */',
+            '.slide div.v-up { justify-content: flex-start; }',
+            '.slide div.v-mid { justify-content: center; }',
+            '.slide div.v-down { justify-content: flex-end; }',
+            '',
+            '/* 水平对齐类（映射版式水平规则） */',
+            '.slide div.h-left { align-items: flex-start; text-align: left; }',
+            '.slide div.h-mid { align-items: center; text-align: center; }',
+            '.slide div.h-right { align-items: flex-end; text-align: right; }',
+            '',
+            '/* 复合对齐类（高频组合） */',
+            '.slide div.up-left { justify-content: flex-start; align-items: flex-start; }',
+            '.slide div.up-center { justify-content: flex-start; align-items: center; text-align: center; }',
+            '.slide div.up-right { justify-content: flex-start; align-items: flex-end; text-align: right; }',
+            '.slide div.center-left { justify-content: center; align-items: flex-start; }',
+            '.slide div.center-center { justify-content: center; align-items: center; text-align: center; }',
+            '.slide div.center-right { justify-content: center; align-items: flex-end; text-align: right; }',
+            '.slide div.down-left { justify-content: flex-end; align-items: flex-start; }',
+            '.slide div.down-center { justify-content: flex-end; align-items: center; text-align: center; }',
+            '.slide div.down-right { justify-content: flex-end; align-items: flex-end; text-align: right; }',
+            '',
+            '/* 内容容器 */',
+            '.content {',
+            '  width: 100%;',
+            '  height: 100%;',
+            '  box-sizing: border-box;',
+            '}',
+            '',
+            '/* 文本样式（全局字体） */',
+            '.slide-prgrph {',
+            '  font-family: Arial, sans-serif;',
+            '  font-size: 14px;',
+            '  color: #333333;',
+            '  line-height: 1.4;',
+            '}',
+            '',
+            '/* ===== 原有样式 ===== */',
+            '',
+            '/* 幻灯片样式 */',
+            '.ppt-slide {',
+            '  position: relative;',
+            '  margin: 20px auto;',
+            '  border: 1px solid #ddd;',
+            '  background: #fff;',
+            '}',
+            '',
+            '.ppt-slide-page {',
+            `  width: ${this.width}px;`,
+            `  height: ${this.height}px;`,
+            '  background: #fff;',
+            '  box-shadow: 0 4px 20px rgba(0,0,0,0.3);',
+            '}',
+            '',
+            '/* 布局和母版元素 */',
+            '.ppt-master-element,',
+            '.ppt-layout-element {',
+            '  pointer-events: none;',
+            '}',
+            '',
+            '/* 元素通用样式 */',
+            '.ppt-element {',
+            '  position: absolute;',
+            '}',
+            '',
+            '/* 文本元素 */',
+            '.ppt-text {',
+            '  overflow: hidden;',
+            '}',
+            '',
+            '/* 占位符样式 */',
+            '.ppt-placeholder {',
+            '  pointer-events: none;',
+            '  user-select: none;',
+            '}',
+            ''
+        ];
 
-  /**
-   * 生成导航模式样式
-   */
-  private generateNavigationStyles(): string {
-    return `* { margin: 0; padding: 0; box-sizing: border-box; }
+        // 添加主题样式
+        if (this.theme) {
+            css.push('/* ===== 主题样式 ===== */');
+            css.push(this.theme.generateThemeCSS());
+            css.push('');
+        }
+
+        // 自定义 CSS
+        if (options.customCss) {
+            css.push('/* 自定义样式 */');
+            css.push(options.customCss);
+        }
+
+        return css.join('\n');
+    }
+
+    /**
+     * 生成导航模式样式
+     */
+    private generateNavigationStyles(): string {
+        return `* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   display: flex;
   justify-content: center;
@@ -502,47 +508,47 @@ body {
   background: #fff;
   box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }`;
-  }
+    }
 
-  /**
-   * 获取指定幻灯片
-   */
-  getSlide(index: number): SlideElement | undefined {
-    return this.slides[index];
-  }
+    /**
+     * 获取指定幻灯片
+     */
+    getSlide(index: number): SlideElement | undefined {
+        return this.slides[index];
+    }
 
-  /**
-   * 获取指定布局
-   */
-  getLayout(layoutId: string): LayoutElement | undefined {
-    return this.layouts[layoutId];
-  }
+    /**
+     * 获取指定布局
+     */
+    getLayout(layoutId: string): LayoutElement | undefined {
+        return this.layouts[layoutId];
+    }
 
-  /**
-   * 获取指定母版
-   */
-  getMaster(masterId: string): MasterElement | undefined {
-    return this.masters.find(m => m.id === masterId);
-  }
+    /**
+     * 获取指定母版
+     */
+    getMaster(masterId: string): MasterElement | undefined {
+        return this.masters.find(m => m.id === masterId);
+    }
 
-  /**
-   * HTML转义
-   */
-  private escapeHtml(text: string): string {
-    const map: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-  }
+    /**
+     * HTML转义
+     */
+    private escapeHtml(text: string): string {
+        const map: Record<string, string> = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
 }
 
 /**
  * 从 PptxParseResult 创建文档元素的便捷函数
  */
 export function createDocument(result: PptxParseResult): DocumentElement {
-  return DocumentElement.fromParseResult(result);
+    return DocumentElement.fromParseResult(result);
 }

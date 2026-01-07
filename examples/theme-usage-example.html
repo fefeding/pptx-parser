@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>主题样式使用示例</title>
+  <style>
+    /* 基础样式 */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .example-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    .section h2 {
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #333;
+    }
+    .example {
+      margin: 10px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    /* ========================================
+       主题生成的CSS样式（示例）
+       主题名称: Office
+       主题ID: office
+       ======================================== */
+
+    /* ===== office 主题样式 ===== */
+    .theme-office {
+      --theme-office-bg1: #FFFFFF;
+      --theme-office-tx1: #000000;
+      --theme-office-bg2: #E7E6E6;
+      --theme-office-tx2: #44546A;
+      --theme-office-accent1: #4472C4;
+      --theme-office-accent2: #ED7D31;
+      --theme-office-accent3: #A5A5A5;
+      --theme-office-accent4: #FFC000;
+      --theme-office-accent5: #5B9BD5;
+      --theme-office-accent6: #70AD47;
+      --theme-office-hlink: #0563C1;
+      --theme-office-fol-hlink: #954F72;
+    }
+
+    /* 颜色工具类 */
+    .theme-office-bg-bg1 { background-color: var(--theme-office-bg1); }
+    .theme-office-text-bg1 { color: var(--theme-office-bg1); }
+    .theme-office-border-bg1 { border-color: var(--theme-office-bg1); }
+
+    .theme-office-bg-tx1 { background-color: var(--theme-office-tx1); }
+    .theme-office-text-tx1 { color: var(--theme-office-tx1); }
+    .theme-office-border-tx1 { border-color: var(--theme-office-tx1); }
+
+    .theme-office-bg-bg2 { background-color: var(--theme-office-bg2); }
+    .theme-office-text-bg2 { color: var(--theme-office-bg2); }
+    .theme-office-border-bg2 { border-color: var(--theme-office-bg2); }
+
+    .theme-office-bg-tx2 { background-color: var(--theme-office-tx2); }
+    .theme-office-text-tx2 { color: var(--theme-office-tx2); }
+    .theme-office-border-tx2 { border-color: var(--theme-office-tx2); }
+
+    /* 强调色类 */
+    .theme-office-bg-accent1 { background-color: var(--theme-office-accent1); }
+    .theme-office-text-accent1 { color: var(--theme-office-accent1); }
+    .theme-office-border-accent1 { border-color: var(--theme-office-accent1); }
+
+    .theme-office-bg-accent2 { background-color: var(--theme-office-accent2); }
+    .theme-office-text-accent2 { color: var(--theme-office-accent2); }
+
+    .theme-office-bg-accent3 { background-color: var(--theme-office-accent3); }
+    .theme-office-text-accent3 { color: var(--theme-office-accent3); }
+
+    .theme-office-bg-accent4 { background-color: var(--theme-office-accent4); }
+    .theme-office-text-accent4 { color: var(--theme-office-accent4); }
+
+    .theme-office-bg-accent5 { background-color: var(--theme-office-accent5); }
+    .theme-office-text-accent5 { color: var(--theme-office-accent5); }
+
+    .theme-office-bg-accent6 { background-color: var(--theme-office-accent6); }
+    .theme-office-text-accent6 { color: var(--theme-office-accent6); }
+
+    /* 链接样式 */
+    .theme-office-link {
+      color: var(--theme-office-hlink);
+      text-decoration: none;
+    }
+    .theme-office-link:hover {
+      text-decoration: underline;
+    }
+    .theme-office-link:visited {
+      color: var(--theme-office-fol-hlink);
+    }
+
+    /* 预设样式类 */
+    .theme-office-title {
+      color: var(--theme-office-tx1);
+      font-weight: bold;
+    }
+    .theme-office-body {
+      color: var(--theme-office-tx2);
+    }
+
+    /* 强调色样式 */
+    .theme-office-accent-1 { color: var(--theme-office-accent1); }
+    .theme-office-accent-2 { color: var(--theme-office-accent2); }
+    .theme-office-accent-3 { color: var(--theme-office-accent3); }
+    .theme-office-accent-4 { color: var(--theme-office-accent4); }
+    .theme-office-accent-5 { color: var(--theme-office-accent5); }
+    .theme-office-accent-6 { color: var(--theme-office-accent6); }
+  </style>
+</head>
+<body>
+  <div class="theme-office example-container">
+    <h1>Office 主题样式使用示例</h1>
+    <p>本文档演示了如何使用主题生成的 CSS 类</p>
+
+    <!-- 1. 标题和正文样式 -->
+    <div class="section">
+      <h2>1. 标题和正文样式</h2>
+      <div class="example">
+        <h3 class="theme-office-title">这是标题样式（使用 tx1 颜色）</h3>
+        <p class="theme-office-body">这是正文样式（使用 tx2 颜色），与标题颜色不同</p>
+      </div>
+    </div>
+
+    <!-- 2. 颜色工具类 -->
+    <div class="section">
+      <h2>2. 颜色工具类</h2>
+      <div class="example">
+        <p class="theme-office-text-accent1">Accent 1 文本色</p>
+        <p class="theme-office-text-accent2">Accent 2 文本色</p>
+        <p class="theme-office-text-accent3">Accent 3 文本色</p>
+        <p class="theme-office-text-accent4">Accent 4 文本色</p>
+        <p class="theme-office-text-accent5">Accent 5 文本色</p>
+        <p class="theme-office-text-accent6">Accent 6 文本色</p>
+      </div>
+    </div>
+
+    <!-- 3. 背景色类 -->
+    <div class="section">
+      <h2>3. 背景色类</h2>
+      <div class="example">
+        <div style="margin-bottom: 10px;">
+          <span class="theme-office-bg-accent1" style="padding: 10px 20px; color: white;">Accent 1 背景</span>
+          <span class="theme-office-bg-accent2" style="padding: 10px 20px; color: white;">Accent 2 背景</span>
+          <span class="theme-office-bg-accent3" style="padding: 10px 20px; color: white;">Accent 3 背景</span>
+        </div>
+        <div>
+          <span class="theme-office-bg-accent4" style="padding: 10px 20px; color: white;">Accent 4 背景</span>
+          <span class="theme-office-bg-accent5" style="padding: 10px 20px; color: white;">Accent 5 背景</span>
+          <span class="theme-office-bg-accent6" style="padding: 10px 20px; color: white;">Accent 6 背景</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 链接样式 -->
+    <div class="section">
+      <h2>4. 链接样式</h2>
+      <div class="example">
+        <p>这是一个 <a href="#" class="theme-office-link">普通链接</a></p>
+        <p>这是一个已访问的 <a href="#" class="theme-office-link" style="color: var(--theme-office-fol-hlink);">链接</a></p>
+      </div>
+    </div>
+
+    <!-- 5. 强调色样式 -->
+    <div class="section">
+      <h2>5. 强调色样式</h2>
+      <div class="example">
+        <h4 class="theme-office-accent-1">Accent 1 标题</h4>
+        <h4 class="theme-office-accent-2">Accent 2 标题</h4>
+        <h4 class="theme-office-accent-3">Accent 3 标题</h4>
+        <h4 class="theme-office-accent-4">Accent 4 标题</h4>
+        <h4 class="theme-office-accent-5">Accent 5 标题</h4>
+        <h4 class="theme-office-accent-6">Accent 6 标题</h4>
+      </div>
+    </div>
+
+    <!-- 6. 综合示例 -->
+    <div class="section">
+      <h2>6. 综合示例（模拟 PPT 幻灯片）</h2>
+      <div class="example theme-office-bg-bg2" style="min-height: 300px; padding: 30px;">
+        <h1 class="theme-office-title" style="font-size: 40px; margin-bottom: 20px;">
+          演示文稿标题
+        </h1>
+        <div class="theme-office-body" style="font-size: 18px; line-height: 1.6;">
+          <p style="margin-bottom: 15px;">这是使用 Office 主题样式构建的幻灯片内容示例。</p>
+          <ul style="margin-left: 20px;">
+            <li class="theme-office-text-accent1">要点一：使用 Accent 1 颜色</li>
+            <li class="theme-office-text-accent2">要点二：使用 Accent 2 颜色</li>
+            <li class="theme-office-text-accent3">要点三：使用 Accent 3 颜色</li>
+          </ul>
+        </div>
+        <div style="margin-top: 20px; padding: 15px; background: var(--theme-office-accent1); color: white; border-radius: 4px;">
+          <strong class="theme-office-font-major">重点提示：</strong> 使用主题变量可以实现一致的配色方案
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. CSS 变量使用 -->
+    <div class="section">
+      <h2>7. CSS 变量使用</h2>
+      <div class="example">
+        <p style="color: var(--theme-office-accent1);">直接使用 CSS 变量：var(--theme-office-accent1)</p>
+        <p style="color: var(--theme-office-accent2);">直接使用 CSS 变量：var(--theme-office-accent2)</p>
+        <p style="background: var(--theme-office-bg2); color: var(--theme-office-tx1); padding: 10px;">
+          使用背景色和文字色变量
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

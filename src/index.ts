@@ -22,7 +22,7 @@ export const slide2HTML = (slide: any, options?: HtmlRenderOptions) => {
 export const ppt2HTML = (result: PptxParseResult, options?: HtmlRenderOptions) => {
   const { createDocument } = require('./elements');
   const doc = createDocument(result);
-  return doc.slides.map(s => s.toHTML());
+  return doc.slides.map((s: any) => s.toHTML());
 };
 
 export const ppt2HTMLDocument = (result: PptxParseResult, options?: HtmlRenderOptions) => {

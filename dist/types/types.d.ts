@@ -73,6 +73,7 @@ export interface PptEffect3D {
 }
 export interface PptStyle extends PptTextStyle {
     backgroundColor?: string | PptFill;
+    background?: string;
     borderColor?: string;
     borderWidth?: number;
     borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double';
@@ -84,6 +85,15 @@ export interface PptStyle extends PptTextStyle {
     effect3d?: PptEffect3D;
     opacity?: number;
     zIndex?: number;
+    padding?: string;
+    paddingTop?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
+    paddingRight?: number;
+    marginLeft?: number;
+    marginRight?: number;
+    spaceBefore?: number;
+    spaceAfter?: number;
 }
 export interface PptTextParagraph {
     text: string;

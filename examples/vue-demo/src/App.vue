@@ -45,7 +45,7 @@
         </div>
 
         <div class="slide-viewer">
-          <div class="slide" :style="slideStyle" v-html="currentSlideHTML"></div>
+          <div class="slide" v-html="currentSlideHTML"></div>
         </div>
 
         <div class="raw-data">
@@ -179,8 +179,8 @@ const currentSlide = computed(() => {
 })
 
 const currentSlideHTML = computed(() => {
-  if (!documentElement.value || !currentSlide.value) return ''
-
+  if (!documentElement.value) return ''
+  
   // 使用 DocumentElement 的 toHTML 方法
   const slide = documentElement.value.getSlide(currentSlideIndex.value)
   return slide ? slide.toHTML() : ''
@@ -208,7 +208,6 @@ async function handleFileUpload(event: Event) {
     parsedData.value = result
     console.log(result);
     // 创建文档元素
-    debugger
     documentElement.value = createDocument(result)
     currentSlideIndex.value = 0
   } catch (e) {
@@ -386,6 +385,9 @@ function exportHTML() {
 }
 
 .slide {
+  
+  width: max-content;
+  height: max-content;
   background: white;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   position: relative;

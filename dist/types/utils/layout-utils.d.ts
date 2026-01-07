@@ -36,3 +36,11 @@ export declare function getSlideContainerStyle(width: number, height: number, ba
     value?: string;
     relId?: string;
 }, scale?: number): string;
+export declare function findPlaceholder(placeholders: Array<{
+    type?: string | 'title' | 'body' | 'dateTime' | 'slideNumber' | 'footer' | 'other';
+    idx?: number;
+} & Record<string, any>>, type: string, idx?: number): (Record<string, any> & {
+    type?: string | 'title' | 'body' | 'dateTime' | 'slideNumber' | 'footer' | 'other';
+    idx?: number;
+}) | undefined;
+export declare function mergePlaceholderStyles(baseStyle: Record<string, any>, inheritedStyle: Record<string, any>): Record<string, any>;

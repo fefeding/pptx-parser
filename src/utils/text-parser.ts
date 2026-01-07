@@ -63,9 +63,23 @@ export function parseTextStyle(rPr: Element): Record<string, unknown> {
   const style: Record<string, unknown> = {};
 
   // 字体大小 (sz单位：1/100 pt)
-  const sz = rPr.getAttribute('sz');
-  if (sz) {
-    style.fontSize = parseInt(sz, 10) / 100;
+  let fontSizePt: number | undefined;
+  const szAttr = rPr.getAttribute('sz');
+  if (szAttr) {
+    fontSizePt = parseInt(szAttr, 10) / 100;
+  } else {
+    // 检查 <a:sz> 元素
+    const szElem = getFirstChildByTagNS(rPr, 'sz', NS.a);
+    if (szElem) {
+      const val = szElem.getAttribute('val');
+      if (val) {
+        fontSizePt = parseInt(val, 10) / 100;
+      }
+    }
+  }
+  if (fontSizePt !== undefined) {
+    // 需要将磅转换为像素：1 pt = 4/3 px（96 DPI下）
+    style.fontSize = fontSizePt * (4 / 3);
   }
 
   // 字体名称

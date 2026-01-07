@@ -124,6 +124,7 @@ export interface Placeholder {
 /** 主题解析结果 */
 export interface ThemeResult {
   colors: ThemeColors;
+  name?: string;
 }
 
 /** 主题颜色方案 */

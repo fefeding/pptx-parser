@@ -78,6 +78,7 @@ interface PptEffect3D {
 }
 interface PptStyle extends PptTextStyle {
     backgroundColor?: string | PptFill;
+    background?: string;
     borderColor?: string;
     borderWidth?: number;
     borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double';
@@ -89,6 +90,15 @@ interface PptStyle extends PptTextStyle {
     effect3d?: PptEffect3D;
     opacity?: number;
     zIndex?: number;
+    padding?: string;
+    paddingTop?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
+    paddingRight?: number;
+    marginLeft?: number;
+    marginRight?: number;
+    spaceBefore?: number;
+    spaceAfter?: number;
 }
 interface PptTextParagraph {
     text: string;
@@ -367,6 +377,8 @@ declare abstract class BaseElement {
     constructor(id: string, type: string, rect: PptRect, content?: any, props?: any, relsMap?: Record<string, any>);
     abstract toHTML(): string;
     protected getContainerStyle(): string;
+    protected getDataAttributes(): Record<string, string>;
+    protected formatDataAttributes(): string;
     protected parsePosition(node: Element, tag?: string, namespace?: "http://schemas.openxmlformats.org/presentationml/2006/main"): Position;
     protected parseIdAndName(node: Element, nonVisualTag: string, namespace?: "http://schemas.openxmlformats.org/presentationml/2006/main"): {
         id: string;
@@ -451,6 +463,7 @@ interface Placeholder {
 }
 interface ThemeResult {
     colors: ThemeColors;
+    name?: string;
 }
 interface ThemeColors {
     bg1?: string;
@@ -660,6 +673,7 @@ interface TextRun {
     color?: string;
     backgroundColor?: string;
     highlight?: string;
+    letterSpacing?: number;
 }
 interface BulletStyle {
     type?: 'none' | 'char' | 'blip' | 'autoNum';
@@ -682,6 +696,10 @@ declare class ShapeElement extends BaseElement {
         lineSpacing?: number;
         spaceBefore?: number;
         spaceAfter?: number;
+        marginLeft?: number;
+        marginRight?: number;
+        paddingTop?: number;
+        paddingBottom?: number;
         rtl?: boolean;
     };
     bulletStyle?: BulletStyle;
@@ -698,10 +716,14 @@ declare class ShapeElement extends BaseElement {
     static fromNode(node: Element, relsMap: RelsMap$1): ShapeElement | null;
     private parseShapeProperties;
     private parseFill;
+    private parseGradientFill;
+    private parseGradientStopColor;
+    private generateGradientCSS;
     private parseTextBody;
     private parseParagraph;
     private parseBulletStyle;
     private parseTextRun;
+    private parseRunProperties;
     private parseColor;
     private detectShapeType;
     toHTML(): string;
@@ -749,6 +771,8 @@ declare class ImageElement extends BaseElement {
     private parseImageSrc;
     private detectVideoFormat;
     private detectAudioFormat;
+    getFilePath(): string;
+    getDataAttributes(): Record<string, string>;
     toHTML(): string;
     private toImageHTML;
     private toVideoHTML;
@@ -875,6 +899,8 @@ declare class TableElement extends BaseElement {
     private parseTableStyle;
     private parseRowStyle;
     private parseRowBackgroundColor;
+    private parseTableWholeStyle;
+    private generateBoxShadow;
     toHTML(): string;
     private getTableStyle;
     private rowToHTML;
@@ -910,6 +936,11 @@ declare class DiagramElement extends BaseElement {
     constructor(id: string, rect: PptRect, content?: any, props?: any, relsMap?: Record<string, any>);
     static fromNode(node: Element, relsMap: RelsMap$1): DiagramElement | null;
     private parseDiagramData;
+    private parseRelIds;
+    private fetchColorData;
+    private fetchLayoutData;
+    private fetchColorDataSync;
+    private fetchLayoutDataSync;
     private parseShapes;
     toHTML(): string;
     private getDiagramInfo;
@@ -932,37 +963,6 @@ declare class GroupElement extends BaseElement {
     toHTML(): string;
     private getGroupStyle;
     toParsedElement(): ParsedGroupElement;
-}
-
-declare class SlideElement {
-    id: string;
-    title: string;
-    background: string;
-    elements: BaseElement[];
-    rawResult: SlideParseResult;
-    layout?: SlideLayoutResult;
-    master?: MasterSlideResult;
-    mediaMap?: Map<string, string>;
-    constructor(result: SlideParseResult, elements: BaseElement[], layout?: SlideLayoutResult, master?: MasterSlideResult, mediaMap?: Map<string, string>);
-    toHTML(): string;
-    private renderLayoutElements;
-    private getSlideBackground;
-    toHTMLString(): string;
-    private escapeHtml;
-}
-declare class PptxDocument {
-    id: string;
-    title: string;
-    author?: string;
-    slides: SlideElement[];
-    width: number;
-    height: number;
-    ratio: number;
-    constructor(id: string, title: string, slides: SlideElement[], width?: number, height?: number, author?: string);
-    static fromParseResult(result: any): PptxDocument;
-    toHTML(): string;
-    toHTMLWithNavigation(): string;
-    private escapeHtml;
 }
 
 declare class PlaceholderElement extends BaseElement {
@@ -988,14 +988,17 @@ declare class LayoutElement extends BaseElement {
     type: 'layout';
     name?: string;
     placeholders: PlaceholderElement[];
+    elements: BaseElement[];
     textStyles?: any;
     background?: {
         type: 'color' | 'image' | 'none';
         value?: string;
         relId?: string;
     };
-    constructor(id: string, name?: string, placeholders?: PlaceholderElement[], props?: any);
-    static fromResult(result: SlideLayoutResult): LayoutElement;
+    relsMap: Record<string, any>;
+    mediaMap?: Map<string, string>;
+    constructor(id: string, name?: string, placeholders?: PlaceholderElement[], elements?: BaseElement[], props?: any);
+    static fromResult(result: SlideLayoutResult, mediaMap?: Map<string, string>): LayoutElement;
     toHTML(): string;
     private getBackgroundStyle;
 }
@@ -1012,12 +1015,88 @@ declare class MasterElement extends BaseElement {
         relId?: string;
     };
     colorMap: Record<string, string>;
+    mediaMap?: Map<string, string>;
     constructor(id: string, elements?: BaseElement[], placeholders?: PlaceholderElement[], props?: any);
-    static fromResult(result: MasterSlideResult): MasterElement;
+    static fromResult(result: MasterSlideResult, mediaMap?: Map<string, string>): MasterElement;
     toHTML(): string;
     private getBackgroundStyle;
     getPlaceholderStyle(placeholderType: 'title' | 'body' | 'other'): any;
     private parseParagraphProperties;
+}
+
+declare class SlideElement {
+    id: string;
+    title: string;
+    background: string;
+    elements: BaseElement[];
+    rawResult: SlideParseResult;
+    layoutElement?: LayoutElement;
+    masterElement?: MasterElement;
+    layout?: SlideLayoutResult;
+    master?: MasterSlideResult;
+    mediaMap?: Map<string, string>;
+    constructor(result: SlideParseResult, elements: BaseElement[], layoutElement?: LayoutElement, masterElement?: MasterElement, layoutResult?: SlideLayoutResult, masterResult?: MasterSlideResult, mediaMap?: Map<string, string>);
+    toHTML(): string;
+    private renderMasterElements;
+    private renderLayoutElements;
+    private renderSlideElementsWithLayout;
+    private getTextContentStyle;
+    private getSlideBackground;
+    toHTMLString(): string;
+    private escapeHtml;
+}
+declare class PptxDocument {
+    id: string;
+    title: string;
+    author?: string;
+    slides: SlideElement[];
+    width: number;
+    height: number;
+    ratio: number;
+    constructor(id: string, title: string, slides: SlideElement[], width?: number, height?: number, author?: string);
+    static fromParseResult(result: any): PptxDocument;
+    toHTML(): string;
+    toHTMLWithNavigation(): string;
+    private escapeHtml;
+}
+
+interface FontScheme {
+    majorFont?: {
+        latin?: string;
+        ea?: string;
+        cs?: string;
+        [script: string]: string | undefined;
+    };
+    minorFont?: {
+        latin?: string;
+        ea?: string;
+        cs?: string;
+        [script: string]: string | undefined;
+    };
+}
+interface EffectScheme {
+    fillStyles?: any[];
+    lineStyles?: any[];
+    effectStyles?: any[];
+    bgFillStyles?: any[];
+}
+declare class ThemeElement extends BaseElement {
+    type: 'theme';
+    name: string;
+    colors: ThemeColors;
+    fonts?: FontScheme;
+    effects?: EffectScheme;
+    themeId: string;
+    constructor(id: string, name: string, colors: ThemeColors, themeId?: string, fonts?: FontScheme, effects?: EffectScheme);
+    static fromResult(result: ThemeResult, themeName?: string): ThemeElement;
+    getThemeClassPrefix(): string;
+    getThemeClass(suffix: string): string;
+    private sanitizeThemeName;
+    generateThemeCSS(): string;
+    getColor(colorKey: keyof ThemeColors): string | undefined;
+    getMajorFont(): string | undefined;
+    getMinorFont(): string | undefined;
+    toHTML(): string;
 }
 
 declare class TagsElement extends BaseElement {
@@ -1045,8 +1124,9 @@ declare class NotesMasterElement extends BaseElement {
         value?: string;
         relId?: string;
     };
+    mediaMap?: Map<string, string>;
     constructor(id: string, elements?: BaseElement[], placeholders?: any[], props?: any);
-    static fromResult(result: NotesMasterResult): NotesMasterElement;
+    static fromResult(result: NotesMasterResult, mediaMap?: Map<string, string>): NotesMasterElement;
     toHTML(): string;
     private getBackgroundStyle;
 }
@@ -1095,6 +1175,7 @@ declare class DocumentElement extends BaseElement {
     pageSize: '4:3' | '16:9' | '16:10' | 'custom';
     globalRelsMap: Record<string, any>;
     mediaMap?: Map<string, string>;
+    theme?: ThemeElement;
     constructor(id: string, title: string, width?: number, height?: number, props?: any);
     static fromParseResult(result: PptxParseResult): DocumentElement;
     toHTML(options?: HtmlRenderOptions): string;

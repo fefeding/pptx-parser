@@ -15,6 +15,7 @@ import { GroupElement } from './GroupElement';
 import { SlideElement, PptxDocument } from './SlideElement';
 import { LayoutElement, PlaceholderElement } from './LayoutElement';
 import { MasterElement } from './MasterElement';
+import { ThemeElement, type FontScheme, type EffectScheme } from './ThemeElement';
 import { NotesMasterElement, NotesSlideElement } from './NotesElement';
 import { DocumentElement, createDocument } from './DocumentElement';
 import { createElementFromData } from './element-factory';
@@ -37,6 +38,8 @@ export { DocumentElement, createDocument } from './DocumentElement';
 // 布局和母版相关
 export { LayoutElement, PlaceholderElement } from './LayoutElement';
 export { MasterElement } from './MasterElement';
+// 主题相关
+export { ThemeElement, type FontScheme, type EffectScheme } from './ThemeElement';
 // 备注相关
 export { NotesMasterElement, NotesSlideElement } from './NotesElement';
 // 标签和扩展

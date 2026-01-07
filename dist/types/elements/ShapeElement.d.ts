@@ -11,6 +11,7 @@ export interface TextRun {
     color?: string;
     backgroundColor?: string;
     highlight?: string;
+    letterSpacing?: number;
 }
 export interface BulletStyle {
     type?: 'none' | 'char' | 'blip' | 'autoNum';
@@ -33,6 +34,10 @@ export declare class ShapeElement extends BaseElement {
         lineSpacing?: number;
         spaceBefore?: number;
         spaceAfter?: number;
+        marginLeft?: number;
+        marginRight?: number;
+        paddingTop?: number;
+        paddingBottom?: number;
         rtl?: boolean;
     };
     bulletStyle?: BulletStyle;
@@ -49,10 +54,14 @@ export declare class ShapeElement extends BaseElement {
     static fromNode(node: Element, relsMap: RelsMap): ShapeElement | null;
     private parseShapeProperties;
     private parseFill;
+    private parseGradientFill;
+    private parseGradientStopColor;
+    private generateGradientCSS;
     private parseTextBody;
     private parseParagraph;
     private parseBulletStyle;
     private parseTextRun;
+    private parseRunProperties;
     private parseColor;
     private detectShapeType;
     toHTML(): string;

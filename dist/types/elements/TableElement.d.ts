@@ -71,6 +71,8 @@ export declare class TableElement extends BaseElement {
     private parseTableStyle;
     private parseRowStyle;
     private parseRowBackgroundColor;
+    private parseTableWholeStyle;
+    private generateBoxShadow;
     toHTML(): string;
     private getTableStyle;
     private rowToHTML;

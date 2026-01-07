@@ -44,6 +44,12 @@ export abstract class BaseElement {
   /** 关联关系映射表 */
   protected relsMap: Record<string, any>;
 
+  /** z-index 层级（用于渲染顺序） */
+  zIndex?: number;
+
+  /** 元素索引（在幻灯片中的顺序） */
+  idx?: number;
+
   constructor(
     id: string,
     type: string,
@@ -77,16 +83,21 @@ export abstract class BaseElement {
 
   /**
    * 获取容器样式字符串
+   * PPTXjs 风格：top, left, width, height, position: absolute
    */
   protected getContainerStyle(): string {
     const { x, y, width, height } = this.rect;
     const style = [
       `position: absolute`,
-      `left: ${x}px`,
       `top: ${y}px`,
+      `left: ${x}px`,
       `width: ${width}px`,
       `height: ${height}px`
     ];
+
+    if (this.zIndex !== undefined) {
+      style.push(`z-index: ${this.zIndex}`);
+    }
 
     if (this.hidden) {
       style.push('display: none');
@@ -106,6 +117,17 @@ export abstract class BaseElement {
     }
     // type 是抽象属性，子类必须实现
     attrs['data-type'] = this.type;
+
+    // 添加索引（如果存在）
+    if (this.idx !== undefined) {
+      attrs['data-idx'] = String(this.idx);
+    }
+
+    // 添加名称（如果存在）
+    if (this.name) {
+      attrs['data-name'] = this.name;
+    }
+
     return attrs;
   }
 

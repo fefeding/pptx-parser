@@ -104,8 +104,10 @@ function parseParagraphProperties(paraPr: any): any {
     // 字体大小
     const sz = getFirstChildByTagNS(defRPr, 'sz', NS.a);
     if (sz) {
-      const fontSize = parseInt(sz.getAttribute('val') || '0', 10) / 100; // 单位是百分之一磅
-      style.fontSize = fontSize;
+      // PPTX中sz单位是百分之一磅（1/100 pt）
+      // 需要将磅转换为像素：1 pt = 4/3 px（96 DPI下）
+      const ptSize = parseInt(sz.getAttribute('val') || '0', 10) / 100;
+      style.fontSize = ptSize * (4 / 3);
     }
 
     // 字体颜色
@@ -275,12 +277,38 @@ export function applyStyleInheritance(
  * @param context 样式继承上下文
  */
 function applyElementStyle(element: any, context: StyleContext): void {
-  // 如果元素本身已经定义了样式，不需要继承
+  // 如果元素有textStyle，需要为缺失的属性应用继承样式
   if (element.textStyle && element.textStyle.length > 0) {
+    // 获取继承的样式（无论是否是占位符）
+    const inheritedStyle = getPlaceholderStyleByType(
+      element.placeholderType || 'body',
+      context
+    );
+
+    if (inheritedStyle) {
+      // 为每个文本运行应用缺失的样式
+      element.textStyle.forEach((run: any) => {
+        if (!run.fontSize && inheritedStyle.fontSize) {
+          run.fontSize = inheritedStyle.fontSize;
+        }
+        if (!run.color && inheritedStyle.color) {
+          run.color = inheritedStyle.color;
+        }
+        if (!run.fontFamily && inheritedStyle.fontFamily) {
+          run.fontFamily = inheritedStyle.fontFamily;
+        }
+        if (!run.bold && inheritedStyle.fontWeight === 'bold') {
+          run.bold = true;
+        }
+        if (!run.italic && inheritedStyle.italic) {
+          run.italic = inheritedStyle.italic;
+        }
+      });
+    }
     return;
   }
 
-  // 如果元素是占位符，获取继承的样式
+  // 如果元素是占位符且没有textStyle，获取继承的样式
   if (element.isPlaceholder && element.placeholderType) {
     const inheritedStyle = getPlaceholderStyle(element, context);
     if (inheritedStyle) {

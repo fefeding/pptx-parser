@@ -113,6 +113,7 @@ export interface PptEffect3D {
 /** 完整样式基础结构 */
 export interface PptStyle extends PptTextStyle {
   backgroundColor?: string | PptFill;
+  background?: string; // CSS background属性（用于渐变等）
   borderColor?: string;
   borderWidth?: number;
   borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double';
@@ -124,6 +125,16 @@ export interface PptStyle extends PptTextStyle {
   effect3d?: PptEffect3D;
   opacity?: number;
   zIndex?: number;
+  // 段落相关样式
+  padding?: string;
+  paddingTop?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  paddingRight?: number;
+  marginLeft?: number;
+  marginRight?: number;
+  spaceBefore?: number;
+  spaceAfter?: number;
 }
 
 // ============ 文本元素 ============

@@ -5,7 +5,7 @@
  */
 
 import { BaseElement } from './BaseElement';
-import { getFirstChildByTagNS, parseTextContent, parseTextWithStyle, getAttrSafe, getBoolAttr, emu2px } from '../utils';
+import { getFirstChildByTagNS, getChildrenByTagNS, parseTextContent, parseTextWithStyle, getAttrSafe, getBoolAttr, emu2px } from '../utils';
 import { NS } from '../constants';
 import type { ParsedShapeElement, RelsMap } from '../types';
 
@@ -41,6 +41,7 @@ export interface TextRun {
   color?: string;
   backgroundColor?: string;
   highlight?: string;
+  letterSpacing?: number;
 }
 
 /**
@@ -79,6 +80,10 @@ export class ShapeElement extends BaseElement {
     lineSpacing?: number;
     spaceBefore?: number;
     spaceAfter?: number;
+    marginLeft?: number;
+    marginRight?: number;
+    paddingTop?: number;
+    paddingBottom?: number;
     rtl?: boolean;
   };
 
@@ -121,6 +126,9 @@ export class ShapeElement extends BaseElement {
       element.id = getAttrSafe(cNvPr, 'id', element.generateId());
       element.name = getAttrSafe(cNvPr, 'name', '');
       element.hidden = getBoolAttr(cNvPr, 'hidden');
+
+      // 解析索引（idx）
+      element.idx = cNvPr ? parseInt(cNvPr.getAttribute('idx') || '0') : undefined;
 
       // 检查是否是占位符
       const nvPr = nvSpPr ? getFirstChildByTagNS(nvSpPr, 'nvPr', NS.p) : null;
@@ -350,33 +358,65 @@ export class ShapeElement extends BaseElement {
    */
   private parseTextBody(txBody: Element, shapeNode: Element, relsMap: RelsMap): void {
     // 解析段落
-    const paragraphs = Array.from(txBody.children).filter(
-      child => child.tagName === 'a:p' || child.tagName.includes(':p')
-    );
+    const paragraphs = getChildrenByTagNS(txBody, 'p', NS.a);
 
     this.textStyle = paragraphs.flatMap(p => this.parseParagraph(p, shapeNode, relsMap));
-    this.text = this.textStyle.map(t => t.text).join('');
+    this.text = this.textStyle.map((t: TextRun) => t.text).join('');
 
     // 解析段落属性
     const firstParagraph = txBody.querySelector('a\\:p, p\\:p a\\:p');
     const pPr = firstParagraph ? getFirstChildByTagNS(firstParagraph, 'pPr', NS.a) : null;
     if (pPr) {
+      // 解析段前间距（spcBef）
+      const spcBef = getFirstChildByTagNS(pPr, 'spcBef', NS.a);
+      const spaceBefore = spcBef ? parseInt(getAttrSafe(spcBef, 'spcPts', '0')) / 100 : 0;
+
+      // 解析段后间距（spcAft）
+      const spcAft = getFirstChildByTagNS(pPr, 'spcAft', NS.a);
+      const spaceAfter = spcAft ? parseInt(getAttrSafe(spcAft, 'spcPts', '0')) / 100 : 0;
+
+      // 解析行距（lnSpc）
+      const lnSpc = getFirstChildByTagNS(pPr, 'lnSpc', NS.a);
+      const lineSpacing = lnSpc ? parseInt(getAttrSafe(lnSpc, 'spcPts', '0')) / 100 : 0;
+
+      // 解析左右边距（marL, marR）
+      const marL = getFirstChildByTagNS(pPr, 'marL', NS.a);
+      const marginLeft = marL ? parseInt(marL.getAttribute('val') || '0') / 100 : 0;
+
+      const marR = getFirstChildByTagNS(pPr, 'marR', NS.a);
+      const marginRight = marR ? parseInt(marR.getAttribute('val') || '0') / 100 : 0;
+
+      // 解析上下内边距（insT, insB）
+      const insT = getFirstChildByTagNS(pPr, 'insT', NS.a);
+      const paddingTop = insT ? parseInt(insT.getAttribute('val') || '0') / 100 : 0;
+
+      const insB = getFirstChildByTagNS(pPr, 'insB', NS.a);
+      const paddingBottom = insB ? parseInt(insB.getAttribute('val') || '0') / 100 : 0;
+
+      // 解析首行缩进（indent）
+      const indent = pPr.getAttribute('indent');
+      const indentPx = indent ? parseInt(indent) / 100 : 0;
+
       this.paragraphStyle = {
         align: pPr.getAttribute('algn') as any || undefined,
-        indent: parseInt(pPr.getAttribute('indent') || '0') / 100,
-        lineSpacing: parseInt(pPr.getAttribute('lnSpc') || '0') / 100,
-        spaceBefore: parseInt(getAttrSafe(
-          getFirstChildByTagNS(pPr, 'spcBef', NS.a),
-          'spcPts',
-          '0'
-        )) / 100,
-        spaceAfter: parseInt(getAttrSafe(
-          getFirstChildByTagNS(pPr, 'spcAft', NS.a),
-          'spcPts',
-          '0'
-        )) / 100,
+        indent: indentPx,
+        lineSpacing: lineSpacing,
+        spaceBefore: spaceBefore,
+        spaceAfter: spaceAfter,
+        marginLeft: marginLeft,
+        marginRight: marginRight,
+        paddingTop: paddingTop,
+        paddingBottom: paddingBottom,
         rtl: pPr.getAttribute('rtl') === '1'
       };
+
+      // 将段落样式保存到this.style中供HTML渲染使用
+      this.style.spaceBefore = spaceBefore;
+      this.style.spaceAfter = spaceAfter;
+      this.style.paddingTop = paddingTop;
+      this.style.paddingBottom = paddingBottom;
+      this.style.marginLeft = marginLeft;
+      this.style.marginRight = marginRight;
     }
   }
 
@@ -389,14 +429,30 @@ export class ShapeElement extends BaseElement {
     // 解析项目符号
     this.bulletStyle = this.parseBulletStyle(paragraph);
 
+    // 解析段落的默认运行样式（defRPr）
+    const pPr = getFirstChildByTagNS(paragraph, 'pPr', NS.a);
+    const defRPr = pPr ? getFirstChildByTagNS(pPr, 'defRPr', NS.a) : null;
+    const defaultStyle = defRPr ? this.parseRunProperties(defRPr) : {};
+
     // 解析文本运行
-    const textRuns = Array.from(paragraph.children).filter(
-      child => child.tagName === 'a:r' || child.tagName.includes(':r')
-    );
+    const textRuns = getChildrenByTagNS(paragraph, 'r', NS.a);
 
     for (const r of textRuns) {
-      const text = this.parseTextRun(r, relsMap);
+      const text = this.parseTextRun(r, relsMap, defaultStyle);
       if (text) runs.push(text);
+    }
+
+    // 解析段落末尾运行属性（endParaRPr）
+    const endParaRPr = getFirstChildByTagNS(paragraph, 'endParaRPr', NS.a);
+    if (endParaRPr) {
+      // endParaRPr中的样式会影响段落中所有文本
+      const endStyle = this.parseRunProperties(endParaRPr);
+      // 将endParaRPr的样式应用到所有没有该属性的文本运行
+      runs.forEach(run => {
+        if (!run.fontSize && endStyle.fontSize) run.fontSize = endStyle.fontSize;
+        if (!run.fontFamily && endStyle.fontFamily) run.fontFamily = endStyle.fontFamily;
+        if (!run.color && endStyle.color) run.color = endStyle.color;
+      });
     }
 
     // 解析超链接
@@ -468,7 +524,7 @@ export class ShapeElement extends BaseElement {
   /**
    * 解析文本运行
    */
-  private parseTextRun(run: Element, relsMap: RelsMap): TextRun | null {
+  private parseTextRun(run: Element, relsMap: RelsMap, defaultStyle: Partial<TextRun> = {}): TextRun | null {
     const rPr = getFirstChildByTagNS(run, 'rPr', NS.a);
     const textElem = getFirstChildByTagNS(run, 't', NS.a);
 
@@ -476,73 +532,114 @@ export class ShapeElement extends BaseElement {
 
     const text = textElem.textContent || '';
 
-    const result: TextRun = { text };
+    // 从defRPr继承的默认样式
+    const result: TextRun = {
+      text,
+      ...defaultStyle
+    };
 
+    // 如果有直接的rPr，覆盖默认样式
     if (rPr) {
-      // 字体大小
-      const sz = rPr.getAttribute('sz');
-      if (sz) {
-        result.fontSize = parseInt(sz) / 100; // 单位是百分之一磅
-      }
-
-      // 字体家族
-      const latin = getFirstChildByTagNS(rPr, 'latin', NS.a);
-      const ea = getFirstChildByTagNS(rPr, 'ea', NS.a);
-      const cs = getFirstChildByTagNS(rPr, 'cs', NS.a);
-      const latinTypeface = latin?.getAttribute('typeface');
-      const eaTypeface = ea?.getAttribute('typeface');
-      const csTypeface = cs?.getAttribute('typeface');
-      if (latinTypeface) {
-        result.fontFamily = latinTypeface;
-      } else if (eaTypeface) {
-        result.fontFamily = eaTypeface;
-      } else if (csTypeface) {
-        result.fontFamily = csTypeface;
-      }
-
-      // 加粗
-      if (rPr.getAttribute('b') === '1') {
-        result.bold = true;
-        this.style.fontWeight = 'bold';
-      }
-
-      // 斜体
-      if (rPr.getAttribute('i') === '1') {
-        result.italic = true;
-      }
-
-      // 下划线
-      const u = rPr.getAttribute('u');
-      if (u) {
-        result.underline = u === 'none' ? 'none' : 'underline';
-      }
-
-      // 删除线
-      if (rPr.getAttribute('strike') === '1') {
-        result.strike = true;
-      }
-
-      // 颜色
-      const solidFill = getFirstChildByTagNS(rPr, 'solidFill', NS.a);
-      if (solidFill) {
-        const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
-        if (srgbClr?.getAttribute('val')) {
-          result.color = `#${srgbClr.getAttribute('val')}`;
-          this.style.color = result.color;
-        }
-      }
-
-      // 高亮
-      const highlight = getFirstChildByTagNS(rPr, 'highlight', NS.a);
-      if (highlight) {
-        const srgbClr = getFirstChildByTagNS(highlight, 'srgbClr', NS.a);
-        if (srgbClr?.getAttribute('val')) {
-          result.backgroundColor = `#${srgbClr.getAttribute('val')}`;
-        }
-      }
+      const runStyle = this.parseRunProperties(rPr);
+      Object.assign(result, runStyle);
     }
 
     return result;
+  }
+
+  /**
+   * 解析运行属性（rPr或defRPr）
+   */
+  private parseRunProperties(rPr: Element): Partial<TextRun> {
+    const style: Partial<TextRun> = {};
+
+  // 字体大小
+  let fontSizePt: number | undefined;
+  const szAttr = rPr.getAttribute('sz');
+  if (szAttr) {
+    // PPTX中sz单位是百分之一磅（1/100 pt）
+    fontSizePt = parseInt(szAttr) / 100;
+  } else {
+    // 检查 <a:sz> 元素
+    const szElem = getFirstChildByTagNS(rPr, 'sz', NS.a);
+    if (szElem) {
+      const val = szElem.getAttribute('val');
+      if (val) {
+        fontSizePt = parseInt(val) / 100;
+      }
+    }
+  }
+  if (fontSizePt !== undefined) {
+    // 需要将磅转换为像素：1 pt = 4/3 px（96 DPI下）
+    style.fontSize = fontSizePt * (4 / 3);
+  }
+
+    // 字体家族
+    const latin = getFirstChildByTagNS(rPr, 'latin', NS.a);
+    const ea = getFirstChildByTagNS(rPr, 'ea', NS.a);
+    const cs = getFirstChildByTagNS(rPr, 'cs', NS.a);
+    const latinTypeface = latin?.getAttribute('typeface');
+    const eaTypeface = ea?.getAttribute('typeface');
+    const csTypeface = cs?.getAttribute('typeface');
+    if (latinTypeface) {
+      style.fontFamily = latinTypeface;
+    } else if (eaTypeface) {
+      style.fontFamily = eaTypeface;
+    } else if (csTypeface) {
+      style.fontFamily = csTypeface;
+    }
+
+    // 加粗
+    if (rPr.getAttribute('b') === '1') {
+      style.bold = true;
+    }
+
+    // 斜体
+    if (rPr.getAttribute('i') === '1') {
+      style.italic = true;
+    }
+
+    // 下划线
+    const u = rPr.getAttribute('u');
+    if (u) {
+      style.underline = u === 'none' ? 'none' : 'underline';
+    }
+
+    // 删除线
+    if (rPr.getAttribute('strike') === '1') {
+      style.strike = true;
+    }
+
+    // 颜色
+    const solidFill = getFirstChildByTagNS(rPr, 'solidFill', NS.a);
+    if (solidFill) {
+      const srgbClr = getFirstChildByTagNS(solidFill, 'srgbClr', NS.a);
+      if (srgbClr?.getAttribute('val')) {
+        const color = `#${srgbClr.getAttribute('val')}`;
+        style.color = color;
+        this.style.color = color;
+      }
+    }
+
+    // 高亮
+    const highlight = getFirstChildByTagNS(rPr, 'highlight', NS.a);
+    if (highlight) {
+      const srgbClr = getFirstChildByTagNS(highlight, 'srgbClr', NS.a);
+      if (srgbClr?.getAttribute('val')) {
+        style.backgroundColor = `#${srgbClr.getAttribute('val')}`;
+      }
+    }
+
+    // 字间距
+    const kern = getFirstChildByTagNS(rPr, 'kern', NS.a);
+    if (kern) {
+      const kernVal = kern.getAttribute('val');
+      if (kernVal) {
+        style.letterSpacing = parseInt(kernVal) / 100; // 单位是百分之一磅
+      }
+    }
+
+    return style;
   }
 
   /**
@@ -617,58 +714,252 @@ export class ShapeElement extends BaseElement {
 
   /**
    * 转换为HTML
+   * 完全复刻 PPTXjs 的 DOM 结构
    */
   toHTML(): string {
-    const style = this.getContainerStyle();
-    const textStyle = this.getTextStyle();
-    const rotationStyle = this.getRotationStyle();
+    // 构建 data-* 属性字符串
     const dataAttrs = this.formatDataAttributes();
-
-    const combinedStyle = [...this.parseStyleString(style), ...this.parseStyleString(rotationStyle)].join('; ');
-
-    // 处理图片类型
-    if (this.type === 'image' && this.rawData) {
-      const blipFill = this.rawData.querySelector('p\:blipFill, blipFill');
-      if (blipFill) {
-        const blip = blipFill.querySelector('a\:blip, blip');
-        if (blip) {
-          const rEmbed = blip.getAttribute('r:embed') || blip.getAttribute('embed');
-          if (rEmbed && this.relsMap) {
-            const target = this.relsMap[rEmbed]?.target;
-            if (target) {
-              // 构建正确的图片路径
-              let imageSrc = target;
-              // 如果是相对路径，确保路径正确
-              if (!imageSrc.startsWith('http') && !imageSrc.startsWith('/')) {
-                // 根据 rEmbed 判断是 slide 还是 layout 的图片
-                if (rEmbed.startsWith('rId')) {
-                  // 检查是否在 layout 中
-                  if (this.rawData.closest('p\:sldLayout, sldLayout')) {
-                    imageSrc = `ppt/slideLayouts/${target}`;
-                  } else {
-                    imageSrc = `ppt/slides/${target}`;
-                  }
-                }
-              }
-              
-              return `<img ${dataAttrs} style="${combinedStyle}" src="${imageSrc}" data-rel-id="${rEmbed}" data-file="${imageSrc}" />`;
-            }
-          }
-        }
-      }
+    
+    // 构建 block 样式
+    const blockStyle = this.generateBlockStyle();
+    
+    // 构建 block 类名
+    const blockClasses = this.generateBlockClasses();
+    
+    // 构建内部结构
+    const innerHTML = this.generateInnerHTML();
+    
+    return `<div class="${blockClasses.join(' ')}" ${dataAttrs} style="${blockStyle}">
+      ${innerHTML}
+    </div>`;
+  }
+  
+  /**
+   * 生成 block 样式
+   */
+  private generateBlockStyle(): string {
+    const { x, y, width, height } = this.rect;
+    
+    const styles = [
+      `position: absolute`,
+      `top: ${y}px`,
+      `left: ${x}px`,
+      `width: ${width}px`,
+      `height: ${height}px`
+    ];
+    
+    // PPTXjs 使用固定的 border 样式
+    const hasBorder = this.style.borderWidth && parseFloat(this.style.borderWidth as any) > 0;
+    styles.push(`border: 1.3333333333333333px solid ${hasBorder ? (this.style.borderColor || 'transparent') : 'hidden'}`);
+    
+    // 背景颜色
+    if (this.style.backgroundColor && this.style.backgroundColor !== 'transparent') {
+      styles.push(`background-color: ${this.style.backgroundColor}`);
+    } else {
+      styles.push(`background-color: inherit`);
     }
-
+    
+    // z-index
+    if (this.zIndex !== undefined) {
+      styles.push(`z-index: ${this.zIndex}`);
+    } else {
+      styles.push(`z-index: 1`);
+    }
+    
+    // 旋转
+    if (this.rotation) {
+      styles.push(`transform: rotate(${this.rotation}deg)`);
+    } else {
+      styles.push(`transform: rotate(0deg)`);
+    }
+    
+    return styles.join('; ');
+  }
+  
+  /**
+   * 生成 block 类名
+   */
+  private generateBlockClasses(): string[] {
+    const classes = ['block'];
+    
+    // 垂直对齐类（根据形状位置）
+    // 简化处理：如果 y 坐标较小，可能是 v-up
+    if (this.rect.y < 100) {
+      classes.push('v-up');
+    }
+    
+    // 内容类（如果是文本或占位符）
+    if (this.type === 'text' || this.isPlaceholder) {
+      classes.push('content');
+    }
+    
+    return classes;
+  }
+  
+  /**
+   * 生成内部 HTML 结构
+   */
+  private generateInnerHTML(): string {
     if (this.type === 'text' && this.text) {
-      // 文本框
-      return `<div ${dataAttrs} style="${combinedStyle}">
-        <div style="${textStyle}">${this.escapeHtml(this.text)}</div>
+      // 文本框结构
+      const { width, height } = this.rect;
+      
+      // 对齐类
+      const alignClass = this.getAlignClass();
+      
+      // 文本容器样式
+      const textContainerStyle = [
+        `height: 100%`,
+        `direction: ${this.paragraphStyle?.rtl ? 'rtl' : 'initial'}`,
+        `overflow-wrap: break-word`,
+        `word-wrap: break-word`,
+        `width: ${width}px`
+      ].join('; ');
+      
+      // 文本内容
+      const textContent = this.renderTextContentPPTXjs();
+      
+      return `<div style="display: flex; width: ${width}px;" class="slide-prgrph ${alignClass} pregraph-ltr _css_1">
+        <div style="${textContainerStyle}">
+          ${textContent}
+        </div>
       </div>`;
     } else {
-      // 形状（矩形、圆形等）
-      const shapeStyle = this.getShapeStyle();
-      const finalStyle = [...this.parseStyleString(style), ...this.parseStyleString(shapeStyle), ...this.parseStyleString(rotationStyle)].join('; ');
-      return `<div ${dataAttrs} style="${finalStyle}"></div>`;
+      // 形状元素
+      return '';
     }
+  }
+  
+
+  
+  /**
+   * 渲染文本内容（PPTXjs 风格）
+   * 生成 <sapn class="text-block _css_2" style="...">文本</sapn> 结构
+   */
+  private renderTextContentPPTXjs(): string {
+    if (!this.textStyle || this.textStyle.length === 0) {
+      // 单个文本运行
+      return `<sapn class="text-block _css_2" style="${this.generateTextSpanStyle()}">${this.escapeHtml(this.text || '')}</sapn>`;
+    }
+    
+    // 多个文本运行
+    return this.textStyle.map(run => {
+      const runStyles = this.generateTextRunStyle(run);
+      const styleStr = runStyles.join('; ');
+      return `<sapn class="text-block _css_2" style="${styleStr}">${this.escapeHtml(run.text)}</sapn>`;
+    }).join('');
+  }
+  
+  /**
+   * 生成文本 span 样式
+   */
+  private generateTextSpanStyle(): string {
+    const styles = [
+      `font-size: ${this.style.fontSize || 14}px`,
+      `font-family: ${this.style.fontFamily || 'inherit'}`,
+      `font-weight: ${this.style.fontWeight || 'inherit'}`,
+      `font-style: ${this.style.fontStyle || 'inherit'}`,
+      `text-decoration: ${this.style.textDecoration || 'inherit'}`,
+      `text-align: ${this.paragraphStyle?.align || 'left'}`,
+      `vertical-align: baseline`
+    ];
+    
+    if (this.style.color) {
+      styles.push(`color: ${this.style.color}`);
+    }
+    
+    return styles.join('; ');
+  }
+  
+  /**
+   * 生成文本运行样式
+   */
+  private generateTextRunStyle(run: TextRun): string[] {
+    const styles: string[] = [];
+    
+    // 字体大小
+    if (run.fontSize && run.fontSize > 0) {
+      styles.push(`font-size: ${run.fontSize}px`);
+    }
+    
+    // 字体家族
+    if (run.fontFamily) {
+      styles.push(`font-family: ${run.fontFamily}`);
+    }
+    
+    // 加粗
+    styles.push(`font-weight: ${run.bold ? 'bold' : 'inherit'}`);
+    
+    // 斜体
+    styles.push(`font-style: ${run.italic ? 'italic' : 'inherit'}`);
+    
+    // 下划线
+    styles.push(`text-decoration: ${run.underline !== 'none' ? 'inherit' : 'inherit'}`);
+    
+    // 字体颜色
+    if (run.color) {
+      styles.push(`color: ${run.color}`);
+    }
+    
+    // 对齐（使用段落对齐）
+    styles.push(`text-align: ${this.paragraphStyle?.align || 'left'}`);
+    
+    // 垂直对齐
+    styles.push(`vertical-align: baseline`);
+    
+    return styles;
+  }
+
+
+
+
+
+  /**
+   * 渲染文本内容（PPTXjs 风格）
+   * 生成 <span class="text-block _css_2" style="...">文本</span> 结构
+   */
+  private renderTextContent(): string {
+    if (!this.textStyle || this.textStyle.length === 0) {
+      return `<sapn class="text-block _css_2" style="font-size:${this.style.fontSize || 14}px;">${this.escapeHtml(this.text || '')}</sapn>`;
+    }
+
+    // 为每个文本运行生成 span 标签
+    return this.textStyle.map(run => {
+      const runStyles: string[] = [];
+
+      // 字体大小
+      if (run.fontSize && run.fontSize > 0) {
+        runStyles.push(`font-size: ${run.fontSize}px`);
+      }
+
+      // 字体家族
+      if (run.fontFamily) {
+        runStyles.push(`font-family: ${run.fontFamily}`);
+      }
+
+      // 加粗
+      runStyles.push(`font-weight: ${run.bold ? 'bold' : 'inherit'}`);
+
+      // 斜体
+      runStyles.push(`font-style: ${run.italic ? 'italic' : 'inherit'}`);
+
+      // 下划线
+      runStyles.push(`text-decoration: ${run.underline !== 'none' ? 'inherit' : 'inherit'}`);
+
+      // 字体颜色
+      if (run.color) {
+        runStyles.push(`color: ${run.color}`);
+      }
+
+      // 对齐
+      runStyles.push(`text-align: ${this.paragraphStyle?.align || 'left'}`);
+
+      // 垂直对齐
+      runStyles.push(`vertical-align: baseline`);
+
+      const styleStr = runStyles.join(';');
+      return `<sapn class="text-block _css_2" style="${styleStr}">${this.escapeHtml(run.text)}</sapn>`;
+    }).join('');
   }
 
   /**
@@ -678,29 +969,103 @@ export class ShapeElement extends BaseElement {
     const styles = [
       `display: flex`,
       `align-items: center`,
-      `justify-content: this.textStyleFromAlign(this.paragraphStyle?.align)`,
-      `padding: 10px`,
-      `color: ${this.style.color}`,
-      `font-size: ${this.textStyleFromFontSize()}px`
+      `justify-content: ${this.textStyleFromAlign(this.paragraphStyle?.align)}`,
+      `width: 100%`,
+      `height: 100%`,
+      `box-sizing: border-box`
     ];
 
-    if (this.style.fontWeight === 'bold') {
-      styles.push(`font-weight: bold`);
+    // 段前间距
+    if (this.style.spaceBefore) {
+      styles.push(`padding-top: ${this.style.spaceBefore}px`);
     }
 
-    if (this.style.backgroundColor && this.style.backgroundColor !== 'transparent') {
-      styles.push(`background-color: ${this.style.backgroundColor}`);
+    // 段后间距
+    if (this.style.spaceAfter) {
+      styles.push(`padding-bottom: ${this.style.spaceAfter}px`);
     }
 
-    if (this.style.borderWidth && this.style.borderWidth > 0) {
-      styles.push(`border: ${this.style.borderWidth}px solid ${this.style.borderColor}`);
+    // 上边距
+    if (this.style.paddingTop) {
+      styles.push(`margin-top: ${this.style.paddingTop}px`);
     }
 
-    if (this.textStyle?.[0]?.fontFamily) {
-      styles.push(`font-family: ${this.textStyle[0].fontFamily}`);
+    // 下边距
+    if (this.style.paddingBottom) {
+      styles.push(`margin-bottom: ${this.style.paddingBottom}px`);
     }
 
-    return styles.join('; ');
+    // 文本内边距（从 bodyPr 获取或使用段落属性）
+    if (this.style.padding) {
+      styles.push(`padding-left: ${this.style.padding}`);
+      styles.push(`padding-right: ${this.style.padding}`);
+    } else {
+      // 使用左右边距
+      const paddingLeft = this.style.marginLeft || 10;
+      const paddingRight = this.style.marginRight || 10;
+      styles.push(`padding-left: ${paddingLeft}px`);
+      styles.push(`padding-right: ${paddingRight}px`);
+    }
+
+    // 处理每个文本运行，使用内联样式支持混合样式
+    let htmlContent = this.text || '';
+    if (this.textStyle && this.textStyle.length > 0) {
+      // 如果有多个文本运行，使用 span 标签
+      htmlContent = this.textStyle.map(run => {
+        const runStyles: string[] = [];
+
+        // 字体大小
+        if (run.fontSize && run.fontSize > 0) {
+          runStyles.push(`font-size: ${run.fontSize}px`);
+        }
+
+        // 字体颜色
+        if (run.color) {
+          runStyles.push(`color: ${run.color}`);
+        }
+
+        // 字体家族
+        if (run.fontFamily) {
+          runStyles.push(`font-family: ${run.fontFamily}`);
+        }
+
+        // 加粗
+        if (run.bold) {
+          runStyles.push(`font-weight: bold`);
+        }
+
+        // 斜体
+        if (run.italic) {
+          runStyles.push(`font-style: italic`);
+        }
+
+        // 下划线
+        if (run.underline && run.underline !== 'none') {
+          runStyles.push(`text-decoration: underline`);
+        }
+
+        // 删除线
+        if (run.strike) {
+          runStyles.push(`text-decoration: line-through`);
+        }
+
+        // 背景颜色/高亮
+        if (run.backgroundColor) {
+          runStyles.push(`background-color: ${run.backgroundColor}`);
+        }
+
+        // 字间距
+        if (run.letterSpacing) {
+          runStyles.push(`letter-spacing: ${run.letterSpacing}px`);
+        }
+
+        const styleStr = runStyles.length > 0 ? ` style="${runStyles.join('; ')}"` : '';
+        return `<span${styleStr}>${this.escapeHtml(run.text)}</span>`;
+      }).join('');
+    }
+
+    // 返回容器样式和内容
+    return styles.join('; ') + ';' + `>CONTENT`;
   }
 
   /**
@@ -735,6 +1100,19 @@ export class ShapeElement extends BaseElement {
       default: return 'flex-start';
     }
   }
+
+  /**
+   * 获取对齐类（PPTXjs 风格）
+   */
+  private getAlignClass(): string {
+    const align = this.paragraphStyle?.align || 'left';
+    switch (align) {
+      case 'center': return 'h-mid';
+      case 'right': return 'h-right';
+      default: return 'h-left';
+    }
+  }
+
 
   /**
    * 文本大小转换
@@ -783,7 +1161,6 @@ export class ShapeElement extends BaseElement {
       name: this.name,
       hidden: this.hidden,
       text: this.text,
-      textStyle: this.textStyle,
       attrs: this.getAttributes(this.rawNode!),
       rawNode: this.rawNode
     };

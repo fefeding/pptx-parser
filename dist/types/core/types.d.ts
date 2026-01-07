@@ -87,6 +87,7 @@ export interface Placeholder {
 }
 export interface ThemeResult {
     colors: ThemeColors;
+    name?: string;
 }
 export interface ThemeColors {
     bg1?: string;
