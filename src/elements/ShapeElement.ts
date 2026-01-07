@@ -748,15 +748,20 @@ export class ShapeElement extends BaseElement {
       `height: ${height}px`
     ];
     
-    // PPTXjs 使用固定的 border 样式
-    const hasBorder = this.style.borderWidth && parseFloat(this.style.borderWidth as any) > 0;
-    styles.push(`border: 1.3333333333333333px solid ${hasBorder ? (this.style.borderColor || 'transparent') : 'hidden'}`);
+    // 边框样式 - 根据实际的边框宽度和颜色设置
+    if (this.style.borderWidth && parseFloat(this.style.borderWidth as any) > 0 && this.style.borderColor) {
+      styles.push(`border: ${this.style.borderWidth}px solid ${this.style.borderColor}`);
+    } else {
+      // 文本占位符通常没有边框，或者边框透明
+      styles.push(`border: none`);
+    }
     
-    // 背景颜色
+    // 背景颜色 - 文本占位符通常透明背景
     if (this.style.backgroundColor && this.style.backgroundColor !== 'transparent') {
       styles.push(`background-color: ${this.style.backgroundColor}`);
     } else {
-      styles.push(`background-color: inherit`);
+      // 文本占位符应该是透明的，不继承父级背景
+      styles.push(`background-color: transparent`);
     }
     
     // z-index
@@ -819,8 +824,8 @@ export class ShapeElement extends BaseElement {
       // 文本内容
       const textContent = this.renderTextContentPPTXjs();
       
-      return `<div style="display: flex; width: ${width}px;" class="slide-prgrph ${alignClass} pregraph-ltr _css_1">
-        <div style="${textContainerStyle}">
+      return `<div style="display: flex; width: ${width}px;" class="slide-prgrph ${alignClass} pregraph-ltr">
+        <div style="${textContainerStyle}; background: transparent;">
           ${textContent}
         </div>
       </div>`;
@@ -834,22 +839,22 @@ export class ShapeElement extends BaseElement {
   
   /**
    * 渲染文本内容（PPTXjs 风格）
-   * 生成 <sapn class="text-block _css_2" style="...">文本</sapn> 结构
+   * 生成 <span class="text-block">文本</span> 结构
    */
   private renderTextContentPPTXjs(): string {
     if (!this.textStyle || this.textStyle.length === 0) {
       // 单个文本运行
-      return `<sapn class="text-block _css_2" style="${this.generateTextSpanStyle()}">${this.escapeHtml(this.text || '')}</sapn>`;
+      return `<span class="text-block" style="${this.generateTextSpanStyle()}">${this.escapeHtml(this.text || '')}</span>`;
     }
     
     // 多个文本运行
     return this.textStyle.map(run => {
       const runStyles = this.generateTextRunStyle(run);
       const styleStr = runStyles.join('; ');
-      return `<sapn class="text-block _css_2" style="${styleStr}">${this.escapeHtml(run.text)}</sapn>`;
+      return `<span class="text-block" style="${styleStr}">${this.escapeHtml(run.text)}</span>`;
     }).join('');
   }
-  
+
   /**
    * 生成文本 span 样式
    */
@@ -870,7 +875,7 @@ export class ShapeElement extends BaseElement {
     
     return styles.join('; ');
   }
-  
+
   /**
    * 生成文本运行样式
    */
@@ -888,13 +893,25 @@ export class ShapeElement extends BaseElement {
     }
     
     // 加粗
-    styles.push(`font-weight: ${run.bold ? 'bold' : 'inherit'}`);
+    if (run.bold !== undefined) {
+      styles.push(`font-weight: ${run.bold ? 'bold' : 'normal'}`);
+    } else if (run.fontWeight) {
+      styles.push(`font-weight: ${run.fontWeight}`);
+    }
     
     // 斜体
-    styles.push(`font-style: ${run.italic ? 'italic' : 'inherit'}`);
+    if (run.italic !== undefined) {
+      styles.push(`font-style: ${run.italic ? 'italic' : 'normal'}`);
+    } else if (run.fontStyle) {
+      styles.push(`font-style: ${run.fontStyle}`);
+    }
     
     // 下划线
-    styles.push(`text-decoration: ${run.underline !== 'none' ? 'inherit' : 'inherit'}`);
+    if (run.underline && run.underline !== 'none') {
+      styles.push(`text-decoration: underline`);
+    } else if (run.textDecoration) {
+      styles.push(`text-decoration: ${run.textDecoration}`);
+    }
     
     // 字体颜色
     if (run.color) {
@@ -916,11 +933,11 @@ export class ShapeElement extends BaseElement {
 
   /**
    * 渲染文本内容（PPTXjs 风格）
-   * 生成 <span class="text-block _css_2" style="...">文本</span> 结构
+   * 生成 <span class="text-block">文本</span> 结构
    */
   private renderTextContent(): string {
     if (!this.textStyle || this.textStyle.length === 0) {
-      return `<sapn class="text-block _css_2" style="font-size:${this.style.fontSize || 14}px;">${this.escapeHtml(this.text || '')}</sapn>`;
+      return `<span class="text-block" style="font-size:${this.style.fontSize || 14}px;">${this.escapeHtml(this.text || '')}</span>`;
     }
 
     // 为每个文本运行生成 span 标签
@@ -938,13 +955,25 @@ export class ShapeElement extends BaseElement {
       }
 
       // 加粗
-      runStyles.push(`font-weight: ${run.bold ? 'bold' : 'inherit'}`);
+      if (run.bold !== undefined) {
+        runStyles.push(`font-weight: ${run.bold ? 'bold' : 'normal'}`);
+      } else {
+        runStyles.push(`font-weight: inherit`);
+      }
 
       // 斜体
-      runStyles.push(`font-style: ${run.italic ? 'italic' : 'inherit'}`);
+      if (run.italic !== undefined) {
+        runStyles.push(`font-style: ${run.italic ? 'italic' : 'normal'}`);
+      } else {
+        runStyles.push(`font-style: inherit`);
+      }
 
       // 下划线
-      runStyles.push(`text-decoration: ${run.underline !== 'none' ? 'inherit' : 'inherit'}`);
+      if (run.underline && run.underline !== 'none') {
+        runStyles.push(`text-decoration: underline`);
+      } else {
+        runStyles.push(`text-decoration: inherit`);
+      }
 
       // 字体颜色
       if (run.color) {
@@ -958,7 +987,7 @@ export class ShapeElement extends BaseElement {
       runStyles.push(`vertical-align: baseline`);
 
       const styleStr = runStyles.join(';');
-      return `<sapn class="text-block _css_2" style="${styleStr}">${this.escapeHtml(run.text)}</sapn>`;
+      return `<span class="text-block" style="${styleStr}">${this.escapeHtml(run.text)}</span>`;
     }).join('');
   }
 

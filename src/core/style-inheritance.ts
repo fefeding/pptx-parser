@@ -19,27 +19,37 @@ export interface StyleContext {
   theme?: any;
 }
 
-/**
- * 获取占位符样式
- * 按优先级查找：slide > layout > master > default
- * @param element 元素对象
- * @param context 样式继承上下文
- * @returns 样式对象
- */
-export function getPlaceholderStyle(element: any, context: StyleContext): any {
-  // 如果元素本身定义了文本样式，优先使用
-  if (element.textStyle || element.style) {
-    return element.textStyle || element.style;
-  }
+  /**
+   * 获取占位符样式
+   * 按优先级查找：slide > layout > master > default
+   * @param element 元素对象
+   * @param context 样式继承上下文
+   * @returns 样式对象
+   */
+  export function getPlaceholderStyle(element: any, context: StyleContext): any {
+    // 如果元素本身定义了文本样式，优先使用
+    if (element.textStyle || element.style) {
+      return element.textStyle || element.style;
+    }
 
-  // 检查是否是占位符
-  if (!element.isPlaceholder || !element.placeholderType) {
-    return getDefaultTextStyle();
-  }
+    // 检查是否是占位符
+    if (!element.isPlaceholder || !element.placeholderType) {
+      return getDefaultTextStyle();
+    }
 
-  // 根据占位符类型获取样式
-  return getPlaceholderStyleByType(element.placeholderType, context);
-}
+    // 获取占位符大小属性（sz），用于确定默认字体大小
+    const placeholderSize = element.phSize || element.getAttribute?.('sz');
+
+    // 根据占位符类型和大小获取样式
+    const style = getPlaceholderStyleByType(element.placeholderType, context);
+    
+    // 如果没有继承到样式，使用基于占位符大小和类型的默认样式
+    if (!style) {
+      return getDefaultTextStyle(element.placeholderType, placeholderSize);
+    }
+    
+    return style;
+  }
 
 /**
  * 根据占位符类型获取样式
@@ -165,19 +175,44 @@ function parseParagraphProperties(paraPr: any): any {
   return Object.keys(style).length > 0 ? style : null;
 }
 
-/**
- * 获取默认文本样式
- * @returns 默认样式对象
- */
-function getDefaultTextStyle(): any {
-  return {
-    fontSize: 14,
-    color: '#333333',
-    fontWeight: 'normal',
-    fontFamily: 'Arial',
-    align: 'left'
-  };
-}
+  /**
+   * 获取默认文本样式
+   * @param placeholderType 占位符类型
+   * @param placeholderSize 占位符大小（quarter, half, full等）
+   * @returns 默认样式对象
+   */
+  function getDefaultTextStyle(placeholderType?: string, placeholderSize?: string): any {
+    // 根据占位符大小设置默认字体大小
+    let fontSize = 14; // 默认14px
+    
+    if (placeholderSize) {
+      switch (placeholderSize.toLowerCase()) {
+        case 'quarter':
+          fontSize = 40; // 30pt * 4/3 = 40px
+          break;
+        case 'half':
+          fontSize = 32; // 24pt * 4/3 = 32px
+          break;
+        case 'full':
+          fontSize = 24; // 18pt * 4/3 = 24px
+          break;
+        default:
+          fontSize = 14;
+      }
+    } else if (placeholderType === 'title') {
+      fontSize = 44; // 标题默认44px (33pt)
+    } else if (placeholderType === 'body') {
+      fontSize = 18; // 正文默认18px (13.5pt)
+    }
+    
+    return {
+      fontSize,
+      color: '#333333',
+      fontWeight: 'normal',
+      fontFamily: 'Arial',
+      align: 'left'
+    };
+  }
 
 /**
  * 合并样式
@@ -271,53 +306,58 @@ export function applyStyleInheritance(
   });
 }
 
-/**
- * 应用样式到单个元素
- * @param element 元素对象
- * @param context 样式继承上下文
- */
-function applyElementStyle(element: any, context: StyleContext): void {
-  // 如果元素有textStyle，需要为缺失的属性应用继承样式
-  if (element.textStyle && element.textStyle.length > 0) {
-    // 获取继承的样式（无论是否是占位符）
-    const inheritedStyle = getPlaceholderStyleByType(
-      element.placeholderType || 'body',
-      context
-    );
-
-    if (inheritedStyle) {
-      // 为每个文本运行应用缺失的样式
-      element.textStyle.forEach((run: any) => {
-        if (!run.fontSize && inheritedStyle.fontSize) {
-          run.fontSize = inheritedStyle.fontSize;
-        }
-        if (!run.color && inheritedStyle.color) {
-          run.color = inheritedStyle.color;
-        }
-        if (!run.fontFamily && inheritedStyle.fontFamily) {
-          run.fontFamily = inheritedStyle.fontFamily;
-        }
-        if (!run.bold && inheritedStyle.fontWeight === 'bold') {
-          run.bold = true;
-        }
-        if (!run.italic && inheritedStyle.italic) {
-          run.italic = inheritedStyle.italic;
-        }
-      });
+  /**
+   * 应用样式到单个元素
+   * @param element 元素对象
+   * @param context 样式继承上下文
+   */
+  function applyElementStyle(element: any, context: StyleContext): void {
+    // 存储占位符大小属性，用于后续样式计算
+    if (element.isPlaceholder && element.rawNode) {
+      const phNode = element.rawNode.querySelector('p\\:ph, ph');
+      if (phNode) {
+        element.phSize = phNode.getAttribute('sz');
+      }
     }
-    return;
-  }
+    
+    // 如果元素有textStyle，需要为缺失的属性应用继承样式
+    if (element.textStyle && element.textStyle.length > 0) {
+      // 获取继承的样式（无论是否是占位符）
+      const inheritedStyle = getPlaceholderStyle(element, context);
 
-  // 如果元素是占位符且没有textStyle，获取继承的样式
-  if (element.isPlaceholder && element.placeholderType) {
-    const inheritedStyle = getPlaceholderStyle(element, context);
-    if (inheritedStyle) {
-      // 合并继承的样式到元素的 style 属性
-      element.style = {
-        ...element.style,
-        ...inheritedStyle
-      };
+      if (inheritedStyle) {
+        // 为每个文本运行应用缺失的样式
+        element.textStyle.forEach((run: any) => {
+          if (!run.fontSize && inheritedStyle.fontSize) {
+            run.fontSize = inheritedStyle.fontSize;
+          }
+          if (!run.color && inheritedStyle.color) {
+            run.color = inheritedStyle.color;
+          }
+          if (!run.fontFamily && inheritedStyle.fontFamily) {
+            run.fontFamily = inheritedStyle.fontFamily;
+          }
+          if (!run.bold && inheritedStyle.fontWeight === 'bold') {
+            run.bold = true;
+          }
+          if (!run.italic && inheritedStyle.italic) {
+            run.italic = inheritedStyle.italic;
+          }
+        });
+      }
+      return;
+    }
+
+    // 如果元素是占位符且没有textStyle，获取继承的样式
+    if (element.isPlaceholder && element.placeholderType) {
+      const inheritedStyle = getPlaceholderStyle(element, context);
+      if (inheritedStyle) {
+        // 合并继承的样式到元素的 style 属性
+        element.style = {
+          ...element.style,
+          ...inheritedStyle
+        };
+      }
     }
   }
-}
 
