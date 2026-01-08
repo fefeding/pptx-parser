@@ -1,4 +1,4 @@
-import { PptxToHtmlOptions, EnvType } from "../types";
+import { PptxToHtmlOptions, EnvType } from "../types/index";
 import { PptxParser } from "../core/pptxParser";
 import { DomAdapter } from "../adapter/domAdapter";
 import { detectEnv } from "../adapter/fileReader";

@@ -1,4 +1,4 @@
-import { PptxToHtmlOptions } from "./types";
+import { PptxToHtmlOptions } from "./types/index";
 import { readPptxFile, detectEnv } from "./adapter/fileReader";
 import { PptxRenderer } from "./render/pptxRenderer";
 

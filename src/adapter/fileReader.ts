@@ -1,5 +1,5 @@
 import fs from "fs";
-import { EnvType } from "../types";
+import { EnvType } from "../types/index";
 
 /** 检测运行环境 */
 export const detectEnv = (): EnvType => {
