@@ -7,11 +7,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
-      'pptx-parser': resolve(__dirname, '../../src/index.ts')
+      '@fefeding/ppt-parser': resolve(__dirname, '../../src/index.ts')
     }
   },
   optimizeDeps: {
-    exclude: ['pptx-parser']
+    exclude: ['@fefeding/ppt-parser']
   },
   envDir: process.cwd(),
   server: {

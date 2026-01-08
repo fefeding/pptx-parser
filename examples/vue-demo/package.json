@@ -9,12 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.21"
+    "vue": "^3.4.21",
+    "@fefeding/ppt-parser": "file:../../"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
     "jszip": "^3.10.1",
-    "@fefeding/pptx-parser": "file:../../",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
     "vue-tsc": "^2.0.6"

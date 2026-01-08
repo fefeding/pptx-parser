@@ -2,7 +2,7 @@
   <div id="app">
     <header class="header">
       <h1>PPTX Parser Demo</h1>
-      <p>上传PPTX文件查看解析结果（使用toHTML渲染）</p>
+      <p>上传PPTX文件查看HTML渲染结果</p>
     </header>
 
     <main class="main">
@@ -18,142 +18,10 @@
         {{ error }}
       </div>
 
-      <div v-if="parsedData" class="preview-section">
-        <div class="controls">
-          <button @click="currentSlideIndex = Math.max(0, currentSlideIndex - 1)" :disabled="currentSlideIndex === 0">
-            ← 上一页
-          </button>
-          <span class="slide-counter">{{ currentSlideIndex + 1 }} / {{ parsedData.slides.length }}</span>
-          <button @click="currentSlideIndex = Math.min(parsedData.slides.length - 1, currentSlideIndex + 1)" :disabled="currentSlideIndex === parsedData.slides.length - 1">
-            下一页 →
-          </button>
-          <button @click="exportHTML" style="margin-left: 1rem; background: #10b981;">
-            导出HTML
-          </button>
-        </div>
-
-        <div class="slide-thumbnails">
-          <div
-            v-for="(slide, index) in parsedData.slides"
-            :key="slide.id"
-            class="thumbnail"
-            :class="{ active: index === currentSlideIndex }"
-            @click="currentSlideIndex = index"
-          >
-            <span>幻灯片 {{ index + 1 }}</span>
-          </div>
-        </div>
-
+      <div v-if="htmlContent" class="preview-section">
+        <h3>PPTX HTML预览：</h3>
         <div class="slide-viewer">
-          <div class="slide" v-html="currentSlideHTML"></div>
-        </div>
-
-        <div class="raw-data">
-          <details>
-            <summary>查看原始数据 (JSON)</summary>
-            <pre>{{ JSON.stringify(currentSlide, null, 2) }}</pre>
-          </details>
-
-          <details v-if="parsedData.theme">
-            <summary>主题颜色 (Theme Colors)</summary>
-            <div class="theme-colors">
-              <div v-for="(color, key) in parsedData.theme.colors" :key="key" class="color-item">
-                <span class="color-label">{{ key }}:</span>
-                <span class="color-value">{{ color }}</span>
-              </div>
-            </div>
-          </details>
-
-          <details v-if="parsedData.masterSlides && parsedData.masterSlides.length > 0">
-            <summary>幻灯片母版 (Master Slides: {{ parsedData.masterSlides.length }})</summary>
-            <div v-for="(master, index) in parsedData.masterSlides" :key="master.id" class="master-slide-info">
-              <h4>母版 {{ index + 1 }} ({{ master.id }})</h4>
-              <p><strong>背景:</strong> {{ master.background ? JSON.stringify(master.background) : '无' }}</p>
-              <p><strong>元素数量:</strong> {{ master.elements.length }}</p>
-            </div>
-          </details>
-
-          <details v-if="parsedData.slideLayouts && Object.keys(parsedData.slideLayouts).length > 0">
-            <summary>幻灯片布局 (Slide Layouts: {{ Object.keys(parsedData.slideLayouts).length }})</summary>
-            <div v-for="(layout, layoutId) in parsedData.slideLayouts" :key="layoutId" class="slide-layout-info">
-              <h4>布局 {{ layoutId }}</h4>
-              <p><strong>名称:</strong> {{ layout.name || '未命名' }}</p>
-              <p><strong>背景:</strong> {{ layout.background ? JSON.stringify(layout.background) : '无' }}</p>
-              <p><strong>元素数量:</strong> {{ layout.elements.length }}</p>
-            </div>
-          </details>
-
-          <details v-if="parsedData.notesMasters && parsedData.notesMasters.length > 0">
-            <summary>备注母版 (Notes Masters: {{ parsedData.notesMasters.length }})</summary>
-            <div v-for="(master, index) in parsedData.notesMasters" :key="master.id" class="notes-master-info">
-              <h4>备注母版 {{ index + 1 }} ({{ master.id }})</h4>
-              <p><strong>背景:</strong> {{ master.background ? JSON.stringify(master.background) : '无' }}</p>
-              <p><strong>元素数量:</strong> {{ master.elements.length }}</p>
-              <p v-if="master.placeholders && master.placeholders.length > 0">
-                <strong>占位符:</strong> {{ master.placeholders.map(p => p.type).join(', ') }}
-              </p>
-            </div>
-          </details>
-
-          <details v-if="parsedData.notesSlides && parsedData.notesSlides.length > 0">
-            <summary>备注页 (Notes Slides: {{ parsedData.notesSlides.length }})</summary>
-            <div v-for="(slide, index) in parsedData.notesSlides" :key="slide.id" class="notes-slide-info">
-              <h4>备注页 {{ index + 1 }} ({{ slide.id }})</h4>
-              <p><strong>关联幻灯片:</strong> {{ slide.slideId || '无' }}</p>
-              <p v-if="slide.text"><strong>备注文本:</strong> {{ slide.text }}</p>
-              <p><strong>元素数量:</strong> {{ slide.elements.length }}</p>
-              <p><strong>母版引用:</strong> {{ slide.masterRef || '无' }}</p>
-            </div>
-          </details>
-
-          <details v-if="parsedData.charts && parsedData.charts.length > 0">
-            <summary>图表 (Charts: {{ parsedData.charts.length }})</summary>
-            <div v-for="(chart, index) in parsedData.charts" :key="chart.id" class="chart-info">
-              <h4>图表 {{ index + 1 }} ({{ chart.id }})</h4>
-              <p><strong>类型:</strong> {{ chart.chartType }}</p>
-              <p v-if="chart.title"><strong>标题:</strong> {{ chart.title }}</p>
-              <p><strong>系列数量:</strong> {{ chart.series?.length || 0 }}</p>
-              <p v-if="chart.categories"><strong>分类:</strong> {{ chart.categories.join(', ') }}</p>
-              <p v-if="chart.xTitle"><strong>X轴标题:</strong> {{ chart.xTitle }}</p>
-              <p v-if="chart.yTitle"><strong>Y轴标题:</strong> {{ chart.yTitle }}</p>
-              <p><strong>显示图例:</strong> {{ chart.showLegend ? '是' : '否' }}</p>
-              <p><strong>显示数据标签:</strong> {{ chart.showDataLabels ? '是' : '否' }}</p>
-            </div>
-          </details>
-
-          <details v-if="parsedData.diagrams && parsedData.diagrams.length > 0">
-            <summary>SmartArt/图表 (Diagrams: {{ parsedData.diagrams.length }})</summary>
-            <div v-for="(diagram, index) in parsedData.diagrams" :key="diagram.id" class="diagram-info">
-              <h4>SmartArt {{ index + 1 }} ({{ diagram.id }})</h4>
-              <p v-if="diagram.diagramType"><strong>类型:</strong> {{ diagram.diagramType }}</p>
-              <p v-if="diagram.layout"><strong>布局:</strong> {{ diagram.layout }}</p>
-              <p><strong>形状数量:</strong> {{ diagram.shapes?.length || 0 }}</p>
-            </div>
-          </details>
-
-          <details v-if="parsedData.tags && parsedData.tags.length > 0">
-            <summary>幻灯片标签 (Tags: {{ parsedData.tags.length }})</summary>
-            <div v-for="(tagSet, index) in parsedData.tags" :key="tagSet.id" class="tags-info">
-              <h4>标签集 {{ index + 1 }} ({{ tagSet.id }})</h4>
-              <p><strong>关联幻灯片:</strong> {{ tagSet.slideId || '无' }}</p>
-              <div v-if="tagSet.tags && tagSet.tags.length > 0">
-                <strong>标签:</strong>
-                <ul>
-                  <li v-for="(tag, idx) in tagSet.tags" :key="idx">
-                    {{ tag.name }}: {{ tag.value }}
-                  </li>
-                </ul>
-              </div>
-              <div v-if="tagSet.customProperties && tagSet.customProperties.length > 0">
-                <strong>自定义属性:</strong>
-                <ul>
-                  <li v-for="(prop, idx) in tagSet.customProperties" :key="idx">
-                    {{ prop.name }}: {{ prop.value }} ({{ prop.type }})
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </details>
+          <div class="slide-container" v-html="htmlContent"></div>
         </div>
       </div>
     </main>
@@ -161,38 +29,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { parsePptx, createDocument } from 'pptx-parser'
-import type { PptxParseResult, SlideParseResult, HtmlRenderOptions } from 'pptx-parser'
+import { ref } from 'vue'
+import { pptxToHtml } from '@fefeding/ppt-parser'
 
 const loading = ref(false)
 const error = ref('')
-const parsedData = ref<PptxParseResult | null>(null)
-const documentElement = ref<any>(null)
-const currentSlideIndex = ref(0)
-
-const currentSlide = computed(() => {
-  if (!parsedData.value || !parsedData.value.slides[currentSlideIndex.value]) {
-    return null
-  }
-  return parsedData.value.slides[currentSlideIndex.value]
-})
-
-const currentSlideHTML = computed(() => {
-  if (!documentElement.value) return ''
-  
-  // 使用 DocumentElement 的 toHTML 方法
-  const slide = documentElement.value.getSlide(currentSlideIndex.value)
-  return slide ? slide.toHTML() : ''
-})
-
-const slideStyle = computed(() => {
-  if (!documentElement.value) return {}
-  return {
-    width: `${documentElement.value.width}px`,
-    height: `${documentElement.value.height}px`
-  }
-})
+const htmlContent = ref('')
 
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
@@ -201,45 +43,27 @@ async function handleFileUpload(event: Event) {
 
   loading.value = true
   error.value = ''
+  htmlContent.value = ''
 
   try {
-    const buffer = await file.arrayBuffer()
-    const result = await parsePptx(buffer)
-    parsedData.value = result
-    console.log(result);
-    // 创建文档元素
-    documentElement.value = createDocument(result)
-    currentSlideIndex.value = 0
+
+    // 使用新版本的API直接渲染
+    const html = await pptxToHtml({
+      pptxFileUrl: file,
+      parseImages: true,
+      verbose: true
+    })
+
+    // 获取生成的HTML内容
+    htmlContent.value = html
+
   } catch (e) {
     error.value = e instanceof Error ? e.message : '解析失败'
+    console.error('PPTX解析失败:', e)
   } finally {
     loading.value = false
   }
 }
-
-function exportHTML() {
-  if (!documentElement.value) return
-
-  // 使用 DocumentElement 的 toHTML 方法导出完整 HTML
-  const options: HtmlRenderOptions = {
-    includeStyles: true,
-    includeLayoutElements: true,
-    withNavigation: false // 导出静态版本
-  }
-  const html = documentElement.value.toHTML(options)
-
-  // 创建下载链接
-  const blob = new Blob([html], { type: 'text/html' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${documentElement.value.title || 'presentation'}.html`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
-
 </script>
 
 <style scoped>
@@ -249,26 +73,26 @@ function exportHTML() {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #4f46e5;
   color: white;
-  padding: 2rem;
+  padding: 1.5rem;
   text-align: center;
 }
 
 .header h1 {
   margin: 0 0 0.5rem 0;
-  font-size: 2rem;
+  font-size: 1.5rem;
 }
 
 .header p {
   margin: 0;
   opacity: 0.9;
+  font-size: 1rem;
 }
 
 .main {
-  max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
 }
 
 .upload-section {
@@ -281,16 +105,16 @@ function exportHTML() {
   display: inline-block;
   padding: 1rem 2rem;
   background: white;
-  border: 2px dashed #667eea;
+  border: 2px dashed #4f46e5;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s;
-  color: #667eea;
+  color: #4f46e5;
   font-weight: 600;
 }
 
 .upload-label:hover {
-  background: #667eea;
+  background: #4f46e5;
   color: white;
 }
 
@@ -303,295 +127,36 @@ function exportHTML() {
   color: #c33;
   padding: 1rem;
   border-radius: 8px;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   text-align: center;
 }
 
 .preview-section {
   background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.controls button {
-  padding: 0.5rem 1.5rem;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.controls button:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.controls button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.slide-counter {
-  font-weight: 600;
+.preview-section h3 {
+  margin: 0 0 1rem 0;
   color: #333;
-  min-width: 100px;
-  text-align: center;
-}
-
-.slide-thumbnails {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  overflow-x: auto;
-  padding: 0.5rem;
-}
-
-.thumbnail {
-  flex-shrink: 0;
-  padding: 0.5rem 1rem;
-  background: #f0f0f0;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-.thumbnail:hover {
-  background: #e0e0e0;
-}
-
-.thumbnail.active {
-  background: #667eea;
-  color: white;
 }
 
 .slide-viewer {
-  justify-content: center;
-  margin-bottom: 2rem;
-  background: #e0e0e0;
-  padding: 2rem;
-  border-radius: 8px;
-  overflow: auto;
-}
-
-.slide {
-  
-  width: max-content;
-  height: max-content;
-  background: white;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  position: relative;
-  overflow: hidden;
-}
-
-.raw-data {
-  margin-top: 2rem;
-}
-
-.raw-data details {
   background: #f8f8f8;
   padding: 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.raw-data summary {
-  font-weight: 600;
-  color: #667eea;
-}
-
-.raw-data pre {
-  margin: 1rem 0 0 0;
-  padding: 1rem;
-  background: white;
   border-radius: 4px;
-  overflow-x: auto;
-  max-height: 500px;
-  font-size: 0.75rem;
-}
-
-.raw-data details {
-  margin-bottom: 1rem;
-}
-
-.theme-colors {
-  padding: 1rem 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.5rem;
-}
-
-.color-item {
+  overflow: auto;
+  min-height: 400px;
   display: flex;
-  gap: 0.5rem;
-  padding: 0.5rem;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.slide-container {
   background: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
-  font-size: 0.875rem;
 }
-
-.color-label {
-  font-weight: 600;
-  color: #667eea;
-}
-
-.color-value {
-  color: #333;
-  font-family: monospace;
-}
-
-.master-slide-info {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: white;
-  border-radius: 4px;
-  border-left: 4px solid #667eea;
-}
-
-.master-slide-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.master-slide-info p {
-  margin: 0.25rem 0;
-  color: #666;
-  font-size: 0.875rem;
-}
-
-.slide-layout-info {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: white;
-  border-radius: 4px;
-  border-left: 4px solid #764ba2;
-}
-
-.slide-layout-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.slide-layout-info p {
-  margin: 0.25rem 0;
-  color: #666;
-  font-size: 0.875rem;
-}
-
-.notes-master-info {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: white;
-  border-radius: 4px;
-  border-left: 4px solid #10b981;
-}
-
-.notes-master-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.notes-master-info p {
-  margin: 0.25rem 0;
-  color: #666;
-  font-size: 0.875rem;
-}
-
-.notes-slide-info {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: white;
-  border-radius: 4px;
-  border-left: 4px solid #f59e0b;
-}
-
-.notes-slide-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.notes-slide-info p {
-  margin: 0.25rem 0;
-  color: #666;
-  font-size: 0.875rem;
-}
-
-.chart-info {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: white;
-  border-radius: 4px;
-  border-left: 4px solid #ef4444;
-}
-
-.chart-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.chart-info p {
-  margin: 0.25rem 0;
-  color: #666;
-  font-size: 0.875rem;
-}
-
-.diagram-info {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: white;
-  border-radius: 4px;
-  border-left: 4px solid #8b5cf6;
-}
-
-.diagram-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.diagram-info p {
-  margin: 0.25rem 0;
-  color: #666;
-  font-size: 0.875rem;
-}
-
-.tags-info {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: white;
-  border-radius: 4px;
-  border-left: 4px solid #ec4899;
-}
-
-.tags-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.tags-info p {
-  margin: 0.25rem 0;
-  color: #666;
-  font-size: 0.875rem;
-}
-
-.tags-info ul {
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-  color: #666;
-}
-
-.tags-info li {
-  margin: 0.25rem 0;
-  font-size: 0.875rem;
-}
-
 </style>
