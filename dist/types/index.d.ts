@@ -1,3 +1,5 @@
+import JSZip from 'jszip';
+
 declare function emu2px(emu: string | number): number;
 declare function px2emu(px: number): number;
 
@@ -374,6 +376,8 @@ declare abstract class BaseElement {
     rawNode?: Element;
     isPlaceholder?: boolean;
     protected relsMap: Record<string, any>;
+    zIndex?: number;
+    idx?: number;
     constructor(id: string, type: string, rect: PptRect, content?: any, props?: any, relsMap?: Record<string, any>);
     abstract toHTML(): string;
     protected getContainerStyle(): string;
@@ -662,7 +666,7 @@ declare function parsePptx(file: File | Blob | ArrayBuffer, options?: ParseOptio
 }): Promise<PptxParseResult | PptDocument>;
 declare function serializePptx(pptDoc: PptDocument): Promise<Blob>;
 
-interface TextRun {
+interface TextRun$1 {
     text: string;
     fontSize?: number;
     fontFamily?: string;
@@ -689,7 +693,7 @@ declare class ShapeElement extends BaseElement {
     type: 'shape' | 'text';
     shapeType?: string;
     text?: string;
-    textStyle?: TextRun[];
+    textStyle?: TextRun$1[];
     paragraphStyle?: {
         align?: 'left' | 'center' | 'right' | 'justify';
         indent?: number;
@@ -727,10 +731,18 @@ declare class ShapeElement extends BaseElement {
     private parseColor;
     private detectShapeType;
     toHTML(): string;
+    private generateBlockStyle;
+    private generateBlockClasses;
+    private generateInnerHTML;
+    private renderTextContentPPTXjs;
+    private generateTextSpanStyle;
+    private generateTextRunStyle;
+    private renderTextContent;
     private getTextStyle;
     private getRotationStyle;
     private getShapeStyle;
     private textStyleFromAlign;
+    private getAlignClass;
     private textStyleFromFontSize;
     private escapeHtml;
     private parseStyleString;
@@ -971,7 +983,7 @@ declare class PlaceholderElement extends BaseElement {
     idx?: number;
     name?: string;
     text?: string;
-    textStyle?: TextRun[];
+    textStyle?: TextRun$1[];
     constructor(id: string, placeholderType: 'title' | 'body' | 'dateTime' | 'slideNumber' | 'footer' | 'other', rect: {
         x: number;
         y: number;
@@ -1194,6 +1206,31 @@ declare function createElementFromData(data: any, relsMap?: Record<string, any>,
 
 declare function createElementFromNode(node: Element, relsMap: Record<string, any>): BaseElement | null;
 
+interface HtmlGenerationOptions {
+    slideType?: 'div' | 'section';
+    includeGlobalCSS?: boolean;
+    containerClass?: string;
+}
+declare class HtmlGenerator {
+    private options;
+    private styleTable;
+    private styleCounter;
+    constructor(options?: HtmlGenerationOptions);
+    generate(document: PptDocument): string;
+    private generateSlide;
+    private generateElement;
+    private generateTextElement;
+    private generateTextStyle;
+    private generateImageElement;
+    private generateBackground;
+    private generateShapeElement;
+    private generateTableElement;
+    private generateGlobalCSS;
+    private getStyleClass;
+    private escapeHtml;
+}
+declare function generateHtml(document: PptDocument, options?: HtmlGenerationOptions): string;
+
 declare const NS: {
     readonly p: "http://schemas.openxmlformats.org/presentationml/2006/main";
     readonly a: "http://schemas.openxmlformats.org/drawingml/2006/main";
@@ -1204,6 +1241,321 @@ declare const NS: {
 };
 declare const EMU_PER_INCH = 914400;
 declare const PIXELS_PER_INCH = 96;
+
+declare function base64ArrayBuffer(arrayBuffer: ArrayBuffer): string;
+declare function getImageBase64(zip: JSZip, imagePath: string): string | null;
+declare function getImageMimeType(fileName: string): string;
+declare function generateDataUrl(base64Data: string, mimeType: string): string;
+declare function safeParseInt(value: any, defaultValue?: number): number;
+declare function safeParseFloat(value: any, defaultValue?: number): number;
+declare function deepClone<T>(obj: T): T;
+declare function isRtlLanguage(lang: string): boolean;
+declare function normalizeHexColor(color: string): string;
+declare function isValidHexColor(color: string): boolean;
+declare function generateUniqueId(prefix?: string): string;
+declare function delay(ms: number): Promise<void>;
+declare function retry<T>(fn: () => Promise<T>, maxRetries?: number, delayMs?: number): Promise<T>;
+declare function unique<T>(array: T[]): T[];
+declare function deepMerge<T extends object>(target: T, ...sources: Partial<T>[]): T;
+declare function formatFileSize(bytes: number): string;
+declare function truncateString(str: string, maxLength: number, suffix?: string): string;
+declare function memoize<T extends (...args: any[]) => any>(fn: T): T;
+
+declare const PPTXJS_CONSTANTS: {
+    readonly slideFactor: number;
+    readonly fontSizeFactor: number;
+    readonly rtlLangs: readonly ["he-IL", "ar-AE", "ar-SA", "dv-MV", "fa-IR", "ur-PK"];
+    readonly standardHeight: 6858000;
+    readonly standardWidth: 9144000;
+};
+interface WarpObj {
+    zip: JSZip;
+    slideLayoutContent: any;
+    slideLayoutTables: any;
+    slideMasterContent: any;
+    slideMasterTables: any;
+    slideContent: any;
+    slideResObj: any;
+    slideMasterTextStyles: any;
+    layoutResObj: any;
+    masterResObj: any;
+    themeContent: any;
+    themeResObj: any;
+    digramFileContent?: any;
+    diagramResObj?: any;
+    defaultTextStyle: any;
+}
+interface Relationship {
+    id: string;
+    type: string;
+    target: string;
+}
+interface ContentTypes {
+    slides: string[];
+    slideLayouts: string[];
+}
+interface SlideSize {
+    width: number;
+    height: number;
+}
+interface IndexTable {
+    idTable: Record<string, any>;
+    idxTable: Record<string, any>;
+    typeTable: Record<string, any>;
+}
+declare class PptxjsCoreParser {
+    private zip;
+    private slideWidth;
+    private slideHeight;
+    private slideFactor;
+    private fontSizeFactor;
+    private defaultTextStyle;
+    private appVersion;
+    private processFullTheme;
+    private incSlide;
+    constructor(zip: JSZip, options?: {
+        processFullTheme?: boolean;
+        incSlideWidth?: number;
+        incSlideHeight?: number;
+    });
+    readXmlFile(filename: string, isSlideContent?: boolean): any;
+    private parseXml;
+    private domToJson;
+    getContentTypes(): ContentTypes;
+    getSlideSizeAndSetDefaultTextStyle(): SlideSize;
+    indexNodes(content: any): IndexTable;
+    getTextByPathList(obj: any, pathList: string[]): any;
+    getSlideWidth(): number;
+    getSlideHeight(): number;
+    getSlideFactor(): number;
+    getFontSizeFactor(): number;
+    getDefaultTextStyle(): any;
+    getAppVersion(): number;
+    getProcessFullTheme(): boolean;
+}
+declare function angleToDegrees(angle: number | undefined): number;
+declare function degreesToRadians(degrees: number): number;
+
+interface PptxjsParserOptions$1 {
+    processFullTheme?: boolean;
+    incSlideWidth?: number;
+    incSlideHeight?: number;
+    slideMode?: boolean;
+    slideType?: 'div' | 'section' | 'divs2slidesjs' | 'revealjs';
+    slidesScale?: string;
+}
+interface SlideData$1 {
+    id: number;
+    fileName: string;
+    width: number;
+    height: number;
+    bgColor?: string;
+    bgFill?: any;
+    shapes: any[];
+    images: any[];
+    tables: any[];
+    charts: any[];
+    layout?: {
+        fileName: string;
+        content: any;
+        tables: IndexTable;
+        colorMapOvr?: any;
+    };
+    master?: {
+        fileName: string;
+        content: any;
+        tables: IndexTable;
+        colorMapOvr?: any;
+    };
+    theme?: {
+        fileName: string;
+        content: any;
+    };
+    warpObj: WarpObj;
+}
+declare class PptxjsParser {
+    private zip;
+    private coreParser;
+    private options;
+    private tableStyles;
+    constructor(zip: JSZip, options?: PptxjsParserOptions$1);
+    parse(): Promise<{
+        slides: SlideData$1[];
+        size: SlideSize;
+        thumb?: string;
+        globalCSS: string;
+    }>;
+    private processSingleSlide;
+    private processNodesInSlide;
+    private processSpNode;
+    private processCxnSpNode;
+    private processPicNode;
+    private processGraphicFrameNode;
+    private processTableNode;
+    private processChartNode;
+    private processGroupSpNode;
+    private getBackground;
+    private getSlideBackgroundFill;
+    private generateGlobalCSS;
+}
+
+declare enum ColorType {
+    SOLID = "solid",
+    GRADIENT = "gradient",
+    PATTERN = "pattern",
+    NONE = "none"
+}
+interface ColorValue {
+    type: ColorType;
+    color?: string;
+    alpha?: number;
+    stops?: Array<{
+        position: number;
+        color: string;
+        alpha?: number;
+    }>;
+}
+interface ColorMap {
+    bg1?: string;
+    tx1?: string;
+    bg2?: string;
+    tx2?: string;
+    accent1?: string;
+    accent2?: string;
+    accent3?: string;
+    accent4?: string;
+    accent5?: string;
+    accent6?: string;
+    hlink?: string;
+    folHlink?: string;
+}
+declare const THEME_COLORS: Record<string, string>;
+declare function getColorValue(colorNode: any): string | null;
+declare function getThemeColor(schemeColor: string): string;
+declare function getPresetColor(presetColor: string): string;
+declare function getAlphaValue(colorNode: any): number;
+declare function applyColorMap(color: string, colorMapOvr?: ColorMap): string;
+declare function parseColorFill(fillNode: any): ColorValue | null;
+declare function generateCssColor(colorValue: ColorValue): string;
+declare function hexToRgba(hex: string, alpha: number): string;
+declare function parseColorMapOverride(slideContent: any, slideLayoutContent: any, slideMasterContent: any): {
+    slide?: ColorMap;
+    layout?: ColorMap;
+    master?: ColorMap;
+};
+declare function getTextByPathList(obj: any, pathList: string[]): any;
+
+declare enum TextAlign {
+    LEFT = "left",
+    CENTER = "center",
+    RIGHT = "right",
+    JUSTIFY = "justify",
+    DISTRIBUTED = "distributed"
+}
+declare enum VerticalAlign {
+    TOP = "top",
+    MIDDLE = "middle",
+    BOTTOM = "bottom",
+    JUSTIFY = "justify",
+    DISTRIBUTED = "distributed"
+}
+interface TextStyle {
+    fontFace?: string;
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    strike?: boolean;
+    baseline?: number;
+    textAlign?: TextAlign;
+    textVerticalAlign?: VerticalAlign;
+    lineSpacing?: number;
+    spacingBefore?: number;
+    spacingAfter?: number;
+    indent?: number;
+    marginLeft?: number;
+    marginRight?: number;
+    textHighlight?: string;
+    textShadow?: boolean;
+}
+interface TextParagraph {
+    text: string;
+    styles?: TextStyle[];
+    textAlign?: TextAlign;
+    textVerticalAlign?: VerticalAlign;
+    lineSpacing?: number;
+    spacingBefore?: number;
+    spacingAfter?: number;
+    indent?: number;
+    marginLeft?: number;
+    marginRight?: number;
+}
+declare function parseTextBoxContent(txBodyNode: any): TextParagraph[];
+declare function mergeTextStyles(baseStyle: TextStyle, ...additionalStyles: (TextStyle | undefined)[]): TextStyle;
+declare function generateTextBoxHtml(paragraphs: TextParagraph[]): string;
+declare function getDefaultTextStyle(): TextStyle;
+
+interface SlideData {
+    id: number;
+    fileName: string;
+    width: number;
+    height: number;
+    bgColor?: string;
+    bgFill?: any;
+    shapes: any[];
+    images: any[];
+    tables: any[];
+    charts: any[];
+    layout?: {
+        fileName: string;
+        content: any;
+        tables: any;
+        colorMapOvr?: any;
+    };
+    master?: {
+        fileName: string;
+        content: any;
+        tables: any;
+        colorMapOvr?: any;
+    };
+    theme?: {
+        fileName: string;
+        content: any;
+    };
+    warpObj: any;
+}
+interface PptxjsParserOptions {
+    processFullTheme?: boolean;
+    incSlideWidth?: number;
+    incSlideHeight?: number;
+    slideMode?: boolean;
+    slideType?: 'div' | 'section' | 'divs2slidesjs' | 'revealjs';
+    slidesScale?: string;
+}
+declare class Pptxjs {
+    private parser;
+    private parsedData;
+    constructor(file: ArrayBuffer | Blob | Uint8Array, options?: PptxjsParserOptions);
+    static create(file: ArrayBuffer | Blob | Uint8Array, options?: PptxjsParserOptions): Promise<Pptxjs>;
+    parse(): Promise<void>;
+    getResult(): {
+        slides: SlideData$1[];
+        size: SlideSize;
+        thumb?: string;
+        globalCSS: string;
+    } | null;
+    getSlides(): SlideData$1[];
+    getSize(): SlideSize;
+    getThumb(): string | undefined;
+    getGlobalCSS(): string;
+    generateHtml(): string;
+    private generateSlideHtml;
+    private generateShapeHtml;
+    private generateImageHtml;
+    private generateTableHtml;
+    private generateChartHtml;
+}
 
 declare const slide2HTML: (slide: any, options?: HtmlRenderOptions) => any;
 declare const ppt2HTML: (result: PptxParseResult, options?: HtmlRenderOptions) => any;
@@ -1236,5 +1588,5 @@ declare const PptParserCore: {
     serialize: typeof serializePptx;
 };
 
-export { BaseElement, ChartElement, DiagramElement, DocumentElement, EMU_PER_INCH, GroupElement, ImageElement, LayoutElement, MasterElement, NS, NotesMasterElement, NotesSlideElement, OleElement, PIXELS_PER_INCH, PlaceholderElement, PptParseUtils, PptxDocument, ShapeElement, SlideElement, TableElement, TagsElement, createDocument, createElementFromData, createElementFromNode, PptParserCore as default, emu2px, getAttrs, parseMetadata, parsePptx, parseRels, ppt2HTML, ppt2HTMLDocument, px2emu, serializePptx, slide2HTML };
-export type { HtmlRenderOptions, ParseOptions, PptDocument, PptElement, PptNodeType, PptRect, PptSlide, PptStyle, PptxParseResult, SlideParseResult };
+export { BaseElement, ChartElement, ColorType, DiagramElement, DocumentElement, EMU_PER_INCH, GroupElement, HtmlGenerator, ImageElement, LayoutElement, MasterElement, NS, NotesMasterElement, NotesSlideElement, OleElement, PIXELS_PER_INCH, PPTXJS_CONSTANTS, PlaceholderElement, PptParseUtils, PptxDocument, Pptxjs, PptxjsCoreParser, PptxjsParser, ShapeElement, SlideElement, THEME_COLORS, TableElement, TagsElement, angleToDegrees, applyColorMap, base64ArrayBuffer, createDocument, createElementFromData, createElementFromNode, deepClone, deepMerge, PptParserCore as default, degreesToRadians, delay, emu2px, formatFileSize, generateCssColor, generateDataUrl, generateHtml, generateTextBoxHtml, generateUniqueId, getAlphaValue, getAttrs, getColorValue, getDefaultTextStyle, getImageBase64, getImageMimeType, getPresetColor, getTextByPathList, getThemeColor, hexToRgba, isRtlLanguage, isValidHexColor, memoize, mergeTextStyles, normalizeHexColor, parseColorFill, parseColorMapOverride, parseMetadata, parsePptx, parseRels, parseTextBoxContent, ppt2HTML, ppt2HTMLDocument, px2emu, retry, safeParseFloat, safeParseInt, serializePptx, slide2HTML, truncateString, unique };
+export type { ColorMap, ColorValue, ContentTypes, HtmlGenerationOptions, HtmlRenderOptions, IndexTable, ParseOptions, PptDocument, PptElement, PptNodeType, PptRect, PptSlide, PptStyle, PptxParseResult, PptxjsParserOptions, Relationship, SlideData, SlideParseResult, SlideSize, WarpObj };

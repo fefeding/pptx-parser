@@ -11,6 +11,8 @@ export declare abstract class BaseElement {
     rawNode?: Element;
     isPlaceholder?: boolean;
     protected relsMap: Record<string, any>;
+    zIndex?: number;
+    idx?: number;
     constructor(id: string, type: string, rect: PptRect, content?: any, props?: any, relsMap?: Record<string, any>);
     abstract toHTML(): string;
     protected getContainerStyle(): string;

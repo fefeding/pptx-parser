@@ -65,10 +65,18 @@ export declare class ShapeElement extends BaseElement {
     private parseColor;
     private detectShapeType;
     toHTML(): string;
+    private generateBlockStyle;
+    private generateBlockClasses;
+    private generateInnerHTML;
+    private renderTextContentPPTXjs;
+    private generateTextSpanStyle;
+    private generateTextRunStyle;
+    private renderTextContent;
     private getTextStyle;
     private getRotationStyle;
     private getShapeStyle;
     private textStyleFromAlign;
+    private getAlignClass;
     private textStyleFromFontSize;
     private escapeHtml;
     private parseStyleString;

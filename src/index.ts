@@ -72,10 +72,15 @@ export { PptParseUtils, parsePptx, serializePptx };
 
 // 导出 HTML 渲染类型
 export type { HtmlRenderOptions };
+export * from './render/html-generator';
 
 // 导出增强类型
 export type { PptxParseResult, SlideParseResult, ParseOptions } from './core/types';
 export { NS, EMU_PER_INCH, PIXELS_PER_INCH } from './constants';
 export { emu2px, px2emu, getAttrs, parseRels, parseMetadata } from './utils';
 export type { PptDocument, PptSlide, PptElement, PptRect, PptStyle, PptNodeType } from './types';
+
+// 导出 PPTXjs 模块（完整的PPTXjs转译版）
+export * from './pptxjs';
+
 

@@ -7,3 +7,4 @@ export * from './drawings-parser';
 export * from './notes-parser';
 export * from './tags-parser';
 export * from './style-inheritance';
+export * from '../utils/unit-converter';

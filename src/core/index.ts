@@ -12,3 +12,6 @@ export * from './drawings-parser';
 export * from './notes-parser';
 export * from './tags-parser';
 export * from './style-inheritance';
+
+// 导出单位转换工具
+export * from '../utils/unit-converter';
