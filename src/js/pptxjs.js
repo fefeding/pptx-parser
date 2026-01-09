@@ -259,7 +259,6 @@
             if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
 
                 if (document.getElementById("all_slides_warpper") === null) {
-                    // 原生替代 jQuery wrapAll
                     var slides = document.querySelectorAll("#" + divId + " .slide");
                     if (slides.length > 0) {
                         var wrapper = document.createElement("div");
@@ -13633,7 +13632,7 @@
             if (alpha !== "") {
                 a = alpha;
             } else {
-                a = 01;
+                a = 1;
             }
             // multiply before convert to HEX
             a = ((a * 255) | 1 << 8).toString(16).slice(1)
