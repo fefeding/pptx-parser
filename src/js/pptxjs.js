@@ -9,294 +9,17 @@
  * [#16](https://github.com/meshesha/PPTXjs/issues/16)
  *
  * New:
- *  - converted to vanilla JavaScript (no jQuery dependency)
+ *  - supports both jQuery and vanilla JavaScript
  */
 
 (function () {
-    // DOM helper functions to replace jQuery
-    var $ = function(selector) {
-        if (typeof selector === 'string') {
-            if (selector[0] === '<') {
-                // Create element from HTML string
-                var tempDiv = document.createElement('div');
-                tempDiv.innerHTML = selector;
-                var elements = [];
-                for (var i = 0; i < tempDiv.childNodes.length; i++) {
-                    elements.push(tempDiv.childNodes[i]);
-                }
-                return elements.length === 1 ? elements[0] : elements;
-            } else {
-                var elements = document.querySelectorAll(selector);
-                return elements.length === 1 ? elements[0] : elements;
-            }
-        } else if (selector instanceof HTMLElement) {
-            return selector;
-        } else {
-            return [];
-        }
-    };
 
-    // Add jQuery-like methods to element
-    $.extend = function(deep, target) {
-        if (typeof deep !== 'boolean') {
-            target = deep;
-            deep = false;
-        }
-        if (!target) target = {};
-        for (var i = 2; i < arguments.length; i++) {
-            var source = arguments[i];
-            if (source) {
-                for (var key in source) {
-                    if (deep && typeof source[key] === 'object' && source[key] !== null) {
-                        target[key] = $.extend(deep, target[key] || {}, source[key]);
-                    } else {
-                        target[key] = source[key];
-                    }
-                }
-            }
-        }
-        return target;
-    };
-
-    $.getScript = function(url, callback) {
-        var script = document.createElement('script');
-        script.src = url;
-        script.onload = function() {
-            callback(null, 'success');
-        };
-        script.onerror = function() {
-            callback(new Error('Failed to load script'), 'error');
-        };
-        document.head.appendChild(script);
-    };
-
-    // Add methods to DOM elements
-    function addJQueryMethods(element) {
-        if (!element || element.jquery) return element;
-
-        element.jquery = true;
-
-        element.html = function(content) {
-            if (content === undefined) {
-                return element.innerHTML;
-            }
-            element.innerHTML = content;
-            return element;
-        };
-
-        element.text = function(content) {
-            if (content === undefined) {
-                return element.textContent;
-            }
-            element.textContent = content;
-            return element;
-        };
-
-        element.attr = function(attributes, value) {
-            if (typeof attributes === 'string') {
-                if (value === undefined) {
-                    return element.getAttribute(attributes);
-                }
-                element.setAttribute(attributes, value);
-                return element;
-            } else if (typeof attributes === 'object') {
-                for (var key in attributes) {
-                    element.setAttribute(key, attributes[key]);
-                }
-                return element;
-            }
-        };
-
-        element.css = function(property, value) {
-            if (typeof property === 'string') {
-                if (value === undefined) {
-                    return window.getComputedStyle(element)[property];
-                }
-                element.style[property] = value;
-                return element;
-            } else if (typeof property === 'object') {
-                for (var key in property) {
-                    element.style[key] = property[key];
-                }
-                return element;
-            }
-        };
-
-        element.addClass = function(className) {
-            element.classList.add(className);
-            return element;
-        };
-
-        element.removeClass = function(className) {
-            element.classList.remove(className);
-            return element;
-        };
-
-        element.hasClass = function(className) {
-            return element.classList.contains(className);
-        };
-
-        element.on = function(event, handler) {
-            element.addEventListener(event, handler);
-            return element;
-        };
-
-        element.bind = element.on;
-
-        element.off = function(event, handler) {
-            element.removeEventListener(event, handler);
-            return element;
-        };
-
-        element.append = function(content) {
-            if (typeof content === 'string') {
-                element.insertAdjacentHTML('beforeend', content);
-            } else if (content instanceof HTMLElement) {
-                element.appendChild(content);
-            } else if (Array.isArray(content)) {
-                for (var i = 0; i < content.length; i++) {
-                    if (content[i] instanceof HTMLElement) {
-                        element.appendChild(content[i]);
-                    }
-                }
-            }
-            return element;
-        };
-
-        element.prepend = function(content) {
-            if (typeof content === 'string') {
-                element.insertAdjacentHTML('afterbegin', content);
-            } else if (content instanceof HTMLElement) {
-                element.insertBefore(content, element.firstChild);
-            } else if (Array.isArray(content)) {
-                for (var i = content.length - 1; i >= 0; i--) {
-                    if (content[i] instanceof HTMLElement) {
-                        element.insertBefore(content[i], element.firstChild);
-                    }
-                }
-            }
-            return element;
-        };
-
-        element.remove = function() {
-            if (element.parentNode) {
-                element.parentNode.removeChild(element);
-            }
-            return element;
-        };
-
-        element.show = function() {
-            element.style.display = '';
-            return element;
-        };
-
-        element.hide = function() {
-            element.style.display = 'none';
-            return element;
-        };
-
-        element.width = function(value) {
-            if (value === undefined) {
-                return element.offsetWidth;
-            }
-            element.style.width = value;
-            return element;
-        };
-
-        element.height = function(value) {
-            if (value === undefined) {
-                return element.offsetHeight;
-            }
-            element.style.height = value;
-            return element;
-        };
-
-        element.outerWidth = function(includeMargin) {
-            var width = element.offsetWidth;
-            if (includeMargin) {
-                var style = window.getComputedStyle(element);
-                width += parseInt(style.marginLeft) + parseInt(style.marginRight);
-            }
-            return width;
-        };
-
-        element.outerHeight = function(includeMargin) {
-            var height = element.offsetHeight;
-            if (includeMargin) {
-                var style = window.getComputedStyle(element);
-                height += parseInt(style.marginTop) + parseInt(style.marginBottom);
-            }
-            return height;
-        };
-
-        element.find = function(selector) {
-            var elements = element.querySelectorAll(selector);
-            return elements.length === 1 ? elements[0] : elements;
-        };
-
-        element.each = function(callback) {
-            for (var i = 0; i < element.length; i++) {
-                callback.call(element[i], i, element[i]);
-            }
-            return element;
-        };
-
-        element.data = function(key, value) {
-            if (value === undefined) {
-                return element.dataset[key];
-            }
-            element.dataset[key] = value;
-            return element;
-        };
-
-        element.val = function(value) {
-            if (value === undefined) {
-                return element.value;
-            }
-            element.value = value;
-            return element;
-        };
-
-        element.is = function(selector) {
-            return element.matches(selector);
-        };
-
-        element.wrapAll = function(wrapperHtml) {
-            var wrapper = document.createElement('div');
-            wrapper.innerHTML = wrapperHtml;
-            var wrapperElement = wrapper.firstChild;
-            element.parentNode.insertBefore(wrapperElement, element);
-            wrapperElement.appendChild(element);
-            return element;
-        };
-
-        return element;
-    }
-
-    // Override $ function to add methods to elements
-    var original$ = $;
-    $ = function(selector) {
-        var result = original$(selector);
-        if (Array.isArray(result)) {
-            var results = [];
-            for (var i = 0; i < result.length; i++) {
-                results.push(addJQueryMethods(result[i]));
-            }
-            return results.length === 1 ? results[0] : results;
-        } else if (result instanceof HTMLElement) {
-            return addJQueryMethods(result);
-        }
-        return result;
-    };
-
-    // Copy static methods from original$ to new $
-    $.extend = original$.extend;
-    $.getScript = original$.getScript;
+    var $ = window.jQuery;
 
     // Main pptxToHtml function
     function pptxToHtml(element, options) {
         //var worker;
-        var $result = element.jquery ? element : $(element);
+        var $result = $(element);
         var divId = element.id || element.getAttribute("id");
 
         var isDone = false;
@@ -385,7 +108,7 @@
             }
         }
         if (settings.jsZipV2 !== false) {
-            jQuery.getScript(settings.jsZipV2);
+            $.getScript(settings.jsZipV2);
             if (localStorage.getItem('isPPTXjsReLoaded') !== 'yes') {
                 localStorage.setItem('isPPTXjsReLoaded', 'yes');
                 location.reload();
@@ -14418,7 +14141,7 @@
             return {
                 format: function (n) {
                     var ret = '';
-                    jQuery.each(arr, function () {
+                    $.each(arr, function () {
                         var num = this[0];
                         if (parseInt(num) > 0) {
                             for (; n >= num; n -= num) ret += this[1];
@@ -14553,5 +14276,5 @@
 
     // Export to global scope
     window.pptxToHtml = pptxToHtml;
-    window.$ = $;
+
 })();
