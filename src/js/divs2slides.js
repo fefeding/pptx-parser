@@ -149,11 +149,12 @@
     };
     
     var pptxjslideObj = {
-        init: function(){
+        init: function(options){
+            pptxjslideObj.data = options;
             var data = pptxjslideObj.data;
             var divId = data.divId;
             var container = document.getElementById(divId);
-            var slides = container.querySelectorAll('.slide');
+            var slides = data.slides || container.querySelectorAll('.slide');
             var isInit = data.isInit;
             
             // Hide all slides
@@ -324,7 +325,7 @@
         gotoSlide: function(idx){
             var index = idx - 1;
             var data = pptxjslideObj.data;
-            var slides = data.slides;
+            var slides = data.slides || document.getElementById(data.divId).querySelectorAll('.slide');
             var prevSlidNum = data.prevSlide;
             var transType = data.transition; /*"slid","fade","default" */
             if(transType=="random"){

@@ -8,45 +8,64 @@
 <link rel="stylesheet" href="./css/pptxjs.css">
 <link rel="stylesheet" href="./css/nv.d3.min.css">
 
-<script type="text/javascript" src="./js/jquery-1.11.3.min.js"></script>
 <script type="text/javascript" src="./js/jszip.min.js"></script>
 <script type="text/javascript" src="./js/filereader.js"></script>
 <script type="text/javascript" src="./js/d3.min.js"></script>
-<script type="text/javascript" src="./js/nv.d3.min.js"></script>
 <script type="text/javascript" src="./js/pptxjs.js"></script>
-<script type="text/javascript" src="./js/divs2slides.js"></script>
-
-<script type="text/javascript" src="./js/jquery.fullscreen-min.js"></script>
 
 <script type="text/javascript">
-    $(function() {
-		var oldWidth, oldMargin ,isFullscreenMode=false;
-		$("#fullscreen-btn").on("click", function(){
-			 			
-			if(!isFullscreenMode){
-				oldWidth = $("#result .slide").css("width");
-				oldMargin = $("#result .slide").css("margin");
-				$("#result .slide").css({
-					"width": "99%",
-					"margin": "0 auto"
-				})
-				$("#result").toggleFullScreen();
+    document.addEventListener('DOMContentLoaded', function() {
+		var oldWidth, oldMargin, isFullscreenMode = false;
+		var fullscreenBtn = document.getElementById('fullscreen-btn');
+		var resultDiv = document.getElementById('result');
+		
+		fullscreenBtn.addEventListener('click', function(){
+			if (!isFullscreenMode) {
+				var slides = document.querySelectorAll('#result .slide');
+				if (slides.length > 0) {
+					oldWidth = window.getComputedStyle(slides[0]).width;
+					oldMargin = window.getComputedStyle(slides[0]).margin;
+				}
+				slides.forEach(function(slide) {
+					slide.style.width = '99%';
+					slide.style.margin = '0 auto';
+				});
+				if (resultDiv.requestFullscreen) {
+					resultDiv.requestFullscreen();
+				} else if (resultDiv.mozRequestFullScreen) {
+					resultDiv.mozRequestFullScreen();
+				} else if (resultDiv.webkitRequestFullscreen) {
+					resultDiv.webkitRequestFullscreen();
+				} else if (resultDiv.msRequestFullscreen) {
+					resultDiv.msRequestFullscreen();
+				}
 				isFullscreenMode = true;
-			}else{
-				$("#result .slide").css({
-					"width": oldWidth,
-					"margin": oldMargin
-				})
-				$("#result").toggleFullScreen();
+			} else {
+				var slides = document.querySelectorAll('#result .slide');
+				slides.forEach(function(slide) {
+					slide.style.width = oldWidth;
+					slide.style.margin = oldMargin;
+				});
+				if (document.exitFullscreen) {
+					document.exitFullscreen();
+				} else if (document.mozCancelFullScreen) {
+					document.mozCancelFullScreen();
+				} else if (document.webkitExitFullscreen) {
+					document.webkitExitFullscreen();
+				} else if (document.msExitFullscreen) {
+					document.msExitFullscreen();
+				}
 				isFullscreenMode = false;
-			}		
+			}
 		});
-		$(document).bind("fullscreenchange", function() {
-			if(!$(document).fullScreen()){
-				$("#result .slide").css({
-					"width": oldWidth,
-  					"margin": oldMargin
-				})
+		
+		document.addEventListener('fullscreenchange', function() {
+			if (!document.fullscreenElement) {
+				var slides = document.querySelectorAll('#result .slide');
+				slides.forEach(function(slide) {
+					slide.style.width = oldWidth;
+					slide.style.margin = oldMargin;
+				});
 			}
 		});
     });
@@ -67,7 +86,7 @@
 		</div>
 	</div>
 <script>
-$("#result").pptxToHtml({
+pptxToHtml(document.getElementById('result'), {
 	fileInputId: "uploadFileInput",
 	slideMode: false,
 	keyBoardShortCut: false,
