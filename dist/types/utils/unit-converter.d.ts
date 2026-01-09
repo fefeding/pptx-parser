@@ -1,0 +1,11 @@
+export declare function emu2px(emu: number): number;
+export declare function px2emu(px: number): number;
+export declare function fontUnits2px(fontUnits: number): number;
+export declare function pt2emu(pt: number): number;
+export declare function emu2pt(emu: number): number;
+export declare function px2pt(px: number): number;
+export declare function pt2px(pt: number): number;
+export declare function percentToPx(percent: number, total: number): number;
+export declare function distanceEmu(x1: number, y1: number, x2: number, y2: number): number;
+export declare function diagonalEmu(width: number, height: number): number;
+export declare function isValidEmu(emu: number): boolean;
