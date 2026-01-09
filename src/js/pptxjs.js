@@ -12666,7 +12666,7 @@
                 if (isSvgMode) {
                     return "none";
                 } else {
-                    return "background-color: inherit;";
+                    return "background-color: transparent;";
                 }
 
             }
