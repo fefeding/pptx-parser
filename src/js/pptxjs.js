@@ -756,7 +756,7 @@
                 }
                 if (!fileEntry) {
                     // 如果仍然找不到，返回 null
-                    console.error("XML file not found:", filename);
+                    console.warn("XML file not found:", filename);
                     return null;
                 }
                 var fileContent = fileEntry.asText();
@@ -882,13 +882,13 @@
                 for (var i = 0; i < RelationshipArray.length; i++) {
                     switch (RelationshipArray[i]["attrs"]["Type"]) {
                         case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout":
-                            layoutFilename = RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/");
+                            layoutFilename = resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"]);
                             break;
                         case "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing":
-                            diagramFilename = RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/");
+                            diagramFilename = resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"]);
                             slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
                                 "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
+                                "target": resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"])
                             };
                             break;
                         case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide":
@@ -898,12 +898,12 @@
                         default:
                             slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
                                 "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
+                                "target": resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"])
                             };
                     }
                 }
             } else {
-                layoutFilename = RelationshipArray["attrs"]["Target"].replace("../", "ppt/");
+                layoutFilename = resolveRelationshipTarget(resName, RelationshipArray["attrs"]["Target"]);
             }
             //console.log(slideResObj);
             // Open slideLayoutXX.xml
@@ -928,17 +928,17 @@
                 for (var i = 0; i < RelationshipArray.length; i++) {
                     switch (RelationshipArray[i]["attrs"]["Type"]) {
                         case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster":
-                            masterFilename = RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/");
+                            masterFilename = resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray[i]["attrs"]["Target"]);
                             break;
                         default:
                             layoutResObj[RelationshipArray[i]["attrs"]["Id"]] = {
                                 "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
+                                "target": resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray[i]["attrs"]["Target"])
                             };
                     }
                 }
             } else {
-                masterFilename = RelationshipArray["attrs"]["Target"].replace("../", "ppt/");
+                masterFilename = resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray["attrs"]["Target"]);
             }
             // Open slideMasterXX.xml
             var slideMasterContent = readXmlFile(zip, masterFilename);
@@ -956,17 +956,17 @@
                 for (var i = 0; i < RelationshipArray.length; i++) {
                     switch (RelationshipArray[i]["attrs"]["Type"]) {
                         case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme":
-                            themeFilename = RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/");
+                            themeFilename = resolveRelationshipTarget(slideMasterResFilename, RelationshipArray[i]["attrs"]["Target"]);
                             break;
                         default:
                             masterResObj[RelationshipArray[i]["attrs"]["Id"]] = {
                                 "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
+                                "target": resolveRelationshipTarget(slideMasterResFilename, RelationshipArray[i]["attrs"]["Target"])
                             };
                     }
                 }
             } else {
-                themeFilename = RelationshipArray["attrs"]["Target"].replace("../", "ppt/");
+                themeFilename = resolveRelationshipTarget(slideMasterResFilename, RelationshipArray["attrs"]["Target"]);
             }
             //console.log(themeFilename)
             //Load Theme file
@@ -985,14 +985,14 @@
                             for (var i = 0; i < relationshipArray.length; i++) {
                                 themeResObj[relationshipArray[i]["attrs"]["Id"]] = {
                                     "type": relationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                    "target": relationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
+                                    "target": resolveRelationshipTarget(themeResFileName, relationshipArray[i]["attrs"]["Target"])
                                 };
                             }
                         } else {
                             //console.log("theme relationshipArray : ", relationshipArray)
                             themeResObj[relationshipArray["attrs"]["Id"]] = {
                                 "type": relationshipArray["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": relationshipArray["attrs"]["Target"].replace("../", "ppt/")
+                                "target": resolveRelationshipTarget(themeResFileName, relationshipArray["attrs"]["Target"])
                             };
                         }
                     }
@@ -1020,14 +1020,14 @@
                         for (var i = 0; i < relationshipArray.length; i++) {
                             diagramResObj[relationshipArray[i]["attrs"]["Id"]] = {
                                 "type": relationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": relationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
+                                "target": resolveRelationshipTarget(diagramResFileName, relationshipArray[i]["attrs"]["Target"])
                             };
                         }
                     } else {
                         //console.log("theme relationshipArray : ", relationshipArray)
                         diagramResObj[relationshipArray["attrs"]["Id"]] = {
                             "type": relationshipArray["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                            "target": relationshipArray["attrs"]["Target"].replace("../", "ppt/")
+                            "target": resolveRelationshipTarget(diagramResFileName, relationshipArray["attrs"]["Target"])
                         };
                     }
                 }
@@ -1038,6 +1038,7 @@
             var nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
             var warpObj = {
                 "zip": zip,
+                "sldFileName": sldFileName,
                 "slideLayoutContent": slideLayoutContent,
                 "slideLayoutTables": slideLayoutTables,
                 "slideMasterContent": slideMasterContent,
@@ -14484,6 +14485,50 @@
             */
             var urlregex = /^(https?|ftp):\/\/([a-zA-Z0-9.-]+(:[a-zA-Z0-9.&%$-]+)*@)*((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(:[0-9]+)*(\/($|[a-zA-Z0-9.,?'\\+&%$#=~_-]+))*$/;
             return urlregex.test(vdoFile);
+        }
+
+        function resolvePath(basePath, relativePath) {
+            // 如果 relativePath 已经是绝对路径（以 ppt/ 开头），直接返回
+            if (relativePath.startsWith("ppt/") || relativePath.startsWith("[Content_Types].xml") || relativePath.startsWith("docProps/")) {
+                return relativePath;
+            }
+            
+            // 标准化 basePath：移除文件名，只保留目录部分
+            var baseDir = basePath.substring(0, basePath.lastIndexOf("/") + 1);
+            
+            // 处理 relativePath 中的 ../ 和 ./
+            var parts = relativePath.split("/");
+            var resultParts = baseDir.split("/").filter(function(part) {
+                return part !== "";
+            });
+            
+            for (var i = 0; i < parts.length; i++) {
+                var part = parts[i];
+                if (part === "..") {
+                    // 上溯一级目录
+                    if (resultParts.length > 0) {
+                        resultParts.pop();
+                    }
+                } else if (part === "." || part === "") {
+                    // 当前目录或空部分，忽略
+                    continue;
+                } else {
+                    resultParts.push(part);
+                }
+            }
+            
+            // 重新构建路径
+            return resultParts.join("/");
+        }
+
+        function resolveRelationshipTarget(relFilePath, target) {
+            // 处理关系文件路径：移除 _rels/ 部分
+            var basePath = relFilePath;
+            if (basePath.indexOf("/_rels/") !== -1) {
+                // 获取 _rels 之前的目录
+                basePath = basePath.substring(0, basePath.indexOf("/_rels/")) + "/";
+            }
+            return resolvePath(basePath, target);
         }
 
         function extractFileExtension(filename) {
