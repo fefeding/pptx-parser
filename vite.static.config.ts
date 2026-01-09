@@ -8,7 +8,7 @@ export default defineConfig({
     open: true,
   },
   build: {
-    outDir: '../dist-static',
+    outDir: '../dist',
     emptyOutDir: true,
   }
 })
