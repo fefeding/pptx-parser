@@ -15,7 +15,6 @@
 (function () {
 
     var $ = window.jQuery;
-    var PPTXUtils = window.PPTXUtils || {};
     var PPTXParser = window.PPTXParser || {};
     var PPTXHtml = window.PPTXHtml || {};
 
@@ -29,23 +28,12 @@
 
         var MsgQueue = new Array();
 
-        //var slideLayoutClrOvride = "";
-
-        var defaultTextStyle = null;
-
-        var chartID = 0;
-
-        var _order = 1;
-
-        var app_verssion ;
-
-        var rtl_langs_array = ["he-IL", "ar-AE", "ar-SA", "dv-MV", "fa-IR","ur-PK"]
+        var rtl_langs_array = ["he-IL", "ar-AE", "ar-SA", "dv-MV", "fa-IR","ur-PK"];
 
         var slideFactor = 96 / 914400;
         var fontSizeFactor = 4 / 3.2;
         ////////////////////// 
         var slideWidth = 0;
-        var slideHeight = 0;
         var isSlideMode = false;
         var processFullTheme = true;
         var styleTable = {};
@@ -122,13 +110,10 @@
             $(document).bind("keydown", function (event) {
                 event.preventDefault();
                 var key = event.keyCode;
-                console.log(key, isDone)
+                console.log(key, isDone);
                 if (key == 116 && !isSlideMode) { //F5
                     isSlideMode = true;
                     initSlideMode(divId, settings);
-                } else if (key == 116 && isSlideMode) {
-                    //exit slide mode - TODO
-
                 }
             });
         }
@@ -152,7 +137,7 @@
                     });
                 });
             }catch(e){
-                console.error("file url error (" + settings.pptxFileUrl+ "0)")
+                console.error("file url error (" + settings.pptxFileUrl+ "0)");
                 var loadingMsg = document.querySelector(".slides-loadnig-msg");
                 if (loadingMsg) {
                     loadingMsg.remove();
@@ -189,9 +174,9 @@
 
         function updateProgressBar(percent) {
             //console.log("percent: ", percent)
-            var progressBarElemtnt = document.querySelector(".slides-loading-progress-bar")
+            var progressBarElemtnt = document.querySelector(".slides-loading-progress-bar");
             if (progressBarElemtnt) {
-                progressBarElemtnt.style.width = percent + "%"
+                progressBarElemtnt.style.width = percent + "%";
                 progressBarElemtnt.innerHTML = "<span style='text-align: center;'>Loading...(" + percent + "%)</span>";
             }
         }
@@ -200,14 +185,14 @@
             //'use strict';
             //console.log("file", file, "size:", file.byteLength);
             if (file.byteLength < 10){
-                console.error("file url error (" + settings.pptxFileUrl + "0)")
+                console.error("file url error (" + settings.pptxFileUrl + "0)");
                 var loadingMsg = document.querySelector(".slides-loadnig-msg");
                 if (loadingMsg) {
                     loadingMsg.remove();
                 }
                 return;
             }
-            var zip = new JSZip(), s;
+            var zip = new JSZip();
             //if (typeof file === 'string') { // Load
             zip = zip.load(file);  //zip.load(file, { base64: true });
 
@@ -230,7 +215,7 @@
                         break;
                     case "slideSize":
                         slideWidth = rslt_ary[i]["data"].width;
-                        slideHeight = rslt_ary[i]["data"].height;
+                        rslt_ary[i]["data"].height;
                         /*
                         $("#"+divId).css({
                             'width': slideWidth + 80,
@@ -265,9 +250,8 @@
                         break;
                     case "progress-update":
                         //console.log(rslt_ary[i]["data"]); //update progress bar - TODO
-                        updateProgressBar(rslt_ary[i]["data"])
+                        updateProgressBar(rslt_ary[i]["data"]);
                         break;
-                    default:
                 }
             }
             if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
@@ -584,13 +568,13 @@
 
             var bgColor = "";
             if (processFullTheme == "colorsAndImageOnly") {
-                bgColor = getSlideBackgroundFill(warpObj, index);
+                bgColor = getSlideBackgroundFill(warpObj);
             }
 
             if (settings.slideMode && settings.slideType == "revealjs") {
-                var result = "<section class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
+                var result = "<section class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>";
             } else {
-                var result = "<div class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
+                var result = "<div class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>";
             }
             result += bgResult;
             for (var nodeKey in nodes) {
@@ -626,7 +610,7 @@
                     result = processCxnSpNode(nodeValue, nodes, warpObj, source, sType);
                     break;
                 case "p:pic":    // Picture
-                    result = processPicNode(nodeValue, warpObj, source, sType);
+                    result = processPicNode(nodeValue, warpObj, source);
                     break;
                 case "p:graphicFrame":    // Chart, Diagram, Table
                     result = processGraphicFrameNode(nodeValue, warpObj, source, sType);
@@ -639,7 +623,6 @@
                     var mcFallbackNode = window.PPTXUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
                     result = processGroupSpNode(mcFallbackNode, warpObj, source);
                     break;
-                default:
                     //console.log("nodeKey: ", nodeKey)
             }
 
@@ -659,8 +642,8 @@
                 var cy = parseInt(xfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
                 var chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
                 var chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
-                var rotate = parseInt(xfrmNode["attrs"]["rot"])
-                var rotStr = ""//;" border: 3px solid black;";
+                var rotate = parseInt(xfrmNode["attrs"]["rot"]);
+                var rotStr = "";//;" border: 3px solid black;";
                 // angleToDegrees(window.PPTXUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
                 // var rotX = 0;
                 // var rotY = 0;
@@ -830,11 +813,11 @@
                 isFlipH = true;
             }
             if (isFlipH && !isFlipV) {
-                flip = " scale(-1,1)"
+                flip = " scale(-1,1)";
             } else if (!isFlipH && isFlipV) {
-                flip = " scale(1,-1)"
+                flip = " scale(1,-1)";
             } else if (isFlipH && isFlipV) {
-                flip = " scale(-1,-1)"
+                flip = " scale(-1,-1)";
             }
             /////////////////////////Amir////////////////////////
             //rotate
@@ -854,8 +837,8 @@
             //////////////////////////////////////////////////
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
                 var off = window.PPTXUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
-                var x = parseInt(off["x"]) * slideFactor;
-                var y = parseInt(off["y"]) * slideFactor;
+                parseInt(off["x"]) * slideFactor;
+                parseInt(off["y"]) * slideFactor;
 
                 var ext = window.PPTXUtils.getTextByPathList(slideXfrmNode, ["a:ext", "attrs"]);
                 var w = parseInt(ext["cx"]) * slideFactor;
@@ -871,7 +854,7 @@
                     " z-index: " + order + ";" +
                     "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";" +
                     "'>";
-                result += '<defs>'
+                result += '<defs>';
                 // Fill Color
                 var fillColor = getShapeFill(node, pNode, true, warpObj, source);
                 //console.log("genShape: fillColor: ", fillColor)
@@ -955,7 +938,7 @@
                 //////////////////////////////outerShdw///////////////////////////////////////////
                 //not support sizing the shadow
                 var outerShdwNode = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
-                var oShadowSvgUrlStr = ""
+                var oShadowSvgUrlStr = "";
                 if (outerShdwNode !== undefined) {
                     var chdwClrNode = getSolidFill(outerShdwNode, undefined, undefined, warpObj);
                     var outerShdwAttrs = outerShdwNode["attrs"];
@@ -1004,7 +987,7 @@
                         "' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>";
                     result += triangleMarker;
                 }
-                result += '</defs>'
+                result += '</defs>';
             }
             if (shapType !== undefined && custShapType === undefined) {
                 //console.log("shapType: ", shapType)
@@ -1401,7 +1384,7 @@
                     case "actionButtonMovie":
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27,
-                            g28, g29, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g40, g41, g42, g43, g44, g45, g46, g47, g48;
+                            g28, g29, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g40, g41, g42, g43, g44, g45, g46, g47;
 
                         dx2 = ss * 3 / 8;
                         g9 = vc - dx2;
@@ -1443,7 +1426,6 @@
                         g45 = g9 + g28;
                         g46 = g9 + g29;
                         g47 = g9 + g30;
-                        g48 = g9 + g31;
 
                         var d = "M" + 0 + "," + h +
                             " L" + w + "," + h +
@@ -1940,8 +1922,6 @@
                         result += " <polygon points='" + adjst_val * w + " 0,0 " + h + "," + (1 - adjst_val) * w + " " + h + "," + w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-
-                        break;
                     case "pentagon":
                         result += " <polygon points='" + (0.5 * w) + " 0,0 " + (0.375 * h) + "," + (0.15 * w) + " " + h + "," + 0.85 * w + " " + h + "," + w + " " + 0.375 * h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1950,8 +1930,7 @@
                     case "flowChartPreparation":
                         var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
-                        var vf = 115470 * slideFactor;;
-                        var cnstVal1 = 50000 * slideFactor;
+                        var vf = 115470 * slideFactor;                        var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
                         var angVal1 = 60 * Math.PI / 180;
                         if (shapAdjst !== undefined) {
@@ -2009,7 +1988,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star4":
-                        var a, iwd2, ihd2, sdx, sdy, sx1, sx2, sy1, sy2, yAdj;
+                        var a, iwd2, ihd2, sdx, sdy, sx1, sx2, sy1, sy2;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 19098 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
@@ -2032,7 +2011,6 @@
                         sx2 = hc + sdx;
                         sy1 = vc - sdy;
                         sy2 = vc + sdy;
-                        yAdj = vc - ihd2;
 
                         var d = "M0" + "," + vc +
                             " L" + sx1 + "," + sy1 +
@@ -2048,7 +2026,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star5":
-                        var a, swd2, shd2, svc, dx1, dx2, dy1, dy2, x1, x2, x3, x4, y1, y2, iwd2, ihd2, sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sy1, sy2, sy3, yAdj;
+                        var a, swd2, shd2, svc, dx1, dx2, dy1, dy2, x1, x2, x3, x4, y1, y2, iwd2, ihd2, sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sy1, sy2, sy3;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 19098 * slideFactor;
                         var hf = 105146 * slideFactor;
@@ -2070,7 +2048,7 @@
                                 } else if (name == "vf") {
                                     vf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
                                 }
-                            })
+                            });
                         }
                         a = (adj < 0) ? 0 : (adj > maxAdj) ? maxAdj : adj;
                         swd2 = wd2 * hf / cnstVal1;
@@ -2099,7 +2077,6 @@
                         sy1 = svc - sdy1;
                         sy2 = svc - sdy2;
                         sy3 = svc + ihd2;
-                        yAdj = svc - ihd2;
 
                         var d = "M" + x1 + "," + y1 +
                             " L" + sx2 + "," + sy1 +
@@ -2118,7 +2095,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star6":
-                        var a, swd2, dx1, x1, x2, y2, iwd2, ihd2, sdx2, sx1, sx2, sx3, sx4, sdy1, sy1, sy2, yAdj;
+                        var a, swd2, dx1, x1, x2, y2, iwd2, ihd2, sdx2, sx1, sx2, sx3, sx4, sdy1, sy1, sy2;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4;
                         var adj = 28868 * slideFactor;
                         var hf = 115470 * slideFactor;
@@ -2136,7 +2113,7 @@
                                 } else if (name == "hf") {
                                     hf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
                                 }
-                            })
+                            });
                         }
                         a = (adj < 0) ? 0 : (adj > maxAdj) ? maxAdj : adj;
                         swd2 = wd2 * hf / cnstVal1;
@@ -2154,7 +2131,6 @@
                         sdy1 = ihd2 * Math.sin(1.0471975512); //3600000->60->1.0471975512
                         sy1 = vc - sdy1;
                         sy2 = vc + sdy1;
-                        yAdj = vc - ihd2;
 
                         var d = "M" + x1 + "," + hd4 +
                             " L" + sx2 + "," + sy1 +
@@ -2176,7 +2152,7 @@
                         break;
                     case "star7":
                         var a, swd2, shd2, svc, dx1, dx2, dx3, dy1, dy2, dy3, x1, x2, x3, x4, x5, x6, y1, y2, y3,
-                            iwd2, ihd2, sdx1, sdx2, sdx3, sx1, sx2, sx3, sx4, sx5, sx6, sdy1, sdy2, sdy3, sy1, sy2, sy3, sy4, yAdj;
+                            iwd2, ihd2, sdx1, sdx2, sdx3, sx1, sx2, sx3, sx4, sx5, sx6, sdy1, sdy2, sdy3, sy1, sy2, sy3, sy4;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 34601 * slideFactor;
                         var hf = 102572 * slideFactor;
@@ -2198,7 +2174,7 @@
                                 } else if (name == "vf") {
                                     vf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
                                 }
-                            })
+                            });
                         }
                         a = (adj < 0) ? 0 : (adj > maxAdj) ? maxAdj : adj;
                         swd2 = wd2 * hf / cnstVal1;
@@ -2237,7 +2213,6 @@
                         sy2 = svc - sdy2;
                         sy3 = svc + sdy3;
                         sy4 = svc + ihd2;
-                        yAdj = svc - ihd2;
 
                         var d = "M" + x1 + "," + y2 +
                             " L" + sx1 + "," + sy2 +
@@ -2260,7 +2235,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star8":
-                        var a, dx1, x1, x2, dy1, y1, y2, iwd2, ihd2, sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sy1, sy2, sy3, sy4, yAdj;
+                        var a, dx1, x1, x2, dy1, y1, y2, iwd2, ihd2, sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sy1, sy2, sy3, sy4;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
@@ -2296,7 +2271,6 @@
                         sy2 = vc - sdy2;
                         sy3 = vc + sdy2;
                         sy4 = vc + sdy1;
-                        yAdj = vc - ihd2;
                         var d = "M0" + "," + vc +
                             " L" + sx1 + "," + sy2 +
                             " L" + x1 + "," + y1 +
@@ -2320,7 +2294,7 @@
 
                     case "star10":
                         var a, swd2, dx1, dx2, x1, x2, x3, x4, dy1, dy2, y1, y2, y3, y4, iwd2, ihd2,
-                            sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sx5, sx6, sy1, sy2, sy3, sy4, yAdj;
+                            sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sx5, sx6, sy1, sy2, sy3, sy4;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 42533 * slideFactor;
                         var hf = 105146 * slideFactor;
@@ -2338,7 +2312,7 @@
                                 } else if (name == "hf") {
                                     hf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
                                 }
-                            })
+                            });
                         }
                         a = (adj < 0) ? 0 : (adj > maxAdj) ? maxAdj : adj;
                         swd2 = wd2 * hf / cnstVal1;
@@ -2370,7 +2344,6 @@
                         sy2 = vc - sdy2;
                         sy3 = vc + sdy2;
                         sy4 = vc + sdy1;
-                        yAdj = vc - ihd2;
                         var d = "M" + x1 + "," + y2 +
                             " L" + sx2 + "," + sy2 +
                             " L" + x2 + "," + y1 +
@@ -2397,7 +2370,7 @@
                         break;
                     case "star12":
                         var a, dx1, dy1, x1, x3, x4, y1, y3, y4, iwd2, ihd2, sdx1, sdx2, sdx3, sdy1,
-                            sdy2, sdy3, sx1, sx2, sx3, sx4, sx5, sx6, sy1, sy2, sy3, sy4, sy5, sy6, yAdj;
+                            sdy2, sdy3, sx1, sx2, sx3, sx4, sx5, sx6, sy1, sy2, sy3, sy4, sy5, sy6;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4, wd4 = w / 4;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
@@ -2440,7 +2413,6 @@
                         sy4 = vc + sdy3;
                         sy5 = vc + sdy2;
                         sy6 = vc + sdy1;
-                        yAdj = vc - ihd2;
                         var d = "M0" + "," + vc +
                             " L" + sx1 + "," + sy3 +
                             " L" + x1 + "," + hd4 +
@@ -2472,7 +2444,7 @@
                     case "star16":
                         var a, dx1, dx2, dx3, dy1, dy2, dy3, x1, x2, x3, x4, x5, x6, y1, y2, y3, y4, y5, y6,
                             iwd2, ihd2, sdx1, sdx2, sdx3, sdx4, sdy1, sdy2, sdy3, sdy4, sx1, sx2, sx3, sx4,
-                            sx5, sx6, sx7, sx8, sy1, sy2, sy3, sy4, sy5, sy6, sy7, sy8, iDx, idy, il, it, ir, ib, yAdj;
+                            sx5, sx6, sx7, sx8, sy1, sy2, sy3, sy4, sy5, sy6, sy7, sy8, iDx, idy, il, it, ir, ib;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
@@ -2537,7 +2509,6 @@
                         it = vc - idy;
                         ir = hc + iDx;
                         ib = vc + idy;
-                        yAdj = vc - ihd2;
                         var d = "M0" + "," + vc +
                             " L" + sx1 + "," + sy4 +
                             " L" + x1 + "," + y3 +
@@ -2578,7 +2549,7 @@
                         var a, dx1, dx2, dx3, dx4, dx5, dy1, dy2, dy3, dy4, dy5, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10,
                             y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, iwd2, ihd2, sdx1, sdx2, sdx3, sdx4, sdx5, sdx6, sdy1,
                             sdy2, sdy3, sdy4, sdy5, sdy6, sx1, sx2, sx3, sx4, sx5, sx6, sx7, sx8, sx9, sx10, sx11, sx12,
-                            sy1, sy2, sy3, sy4, sy5, sy6, sy7, sy8, sy9, sy10, sy11, sy12, iDx, idy, il, it, ir, ib, yAdj;
+                            sy1, sy2, sy3, sy4, sy5, sy6, sy7, sy8, sy9, sy10, sy11, sy12, iDx, idy, il, it, ir, ib;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4, wd4 = w / 4;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
@@ -2594,12 +2565,12 @@
                         dx1 = wd2 * Math.cos(0.2617993878);
                         dx2 = wd2 * Math.cos(0.5235987756);
                         dx3 = wd2 * Math.cos(0.7853981634);
-                        dx4 = wd4
+                        dx4 = wd4;
                         dx5 = wd2 * Math.cos(1.308996939);
                         dy1 = hd2 * Math.sin(1.308996939);
                         dy2 = hd2 * Math.sin(1.0471975512);
                         dy3 = hd2 * Math.sin(0.7853981634);
-                        dy4 = hd4
+                        dy4 = hd4;
                         dy5 = hd2 * Math.sin(0.2617993878);
                         x1 = hc - dx1;
                         x2 = hc - dx2;
@@ -2665,7 +2636,6 @@
                         it = vc - idy;
                         ir = hc + iDx;
                         ib = vc + idy;
-                        yAdj = vc - ihd2;
                         var d = "M0" + "," + vc +
                             " L" + sx1 + "," + sy6 +
                             " L" + x1 + "," + y5 +
@@ -2723,7 +2693,7 @@
                             x7, x8, x9, x10, x11, x12, x13, x14, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11, y12, y13, y14,
                             iwd2, ihd2, sdx1, sdx2, sdx3, sdx4, sdx5, sdx6, sdx7, sdx8, sdy1, sdy2, sdy3, sdy4, sdy5, sdy6, sdy7,
                             sdy8, sx1, sx2, sx3, sx4, sx5, sx6, sx7, sx8, sx9, sx10, sx11, sx12, sx13, sx14, sx15, sx16, sy1, sy2,
-                            sy3, sy4, sy5, sy6, sy7, sy8, sy9, sy10, sy11, sy12, sy13, sy14, sy15, sy16, iDx, idy, il, it, ir, ib, yAdj;
+                            sy3, sy4, sy5, sy6, sy7, sy8, sy9, sy10, sy11, sy12, sy13, sy14, sy15, sy16, iDx, idy, il, it, ir, ib;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4, wd4 = w / 4;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
@@ -2834,7 +2804,6 @@
                         it = vc - idy;
                         ir = hc + iDx;
                         ib = vc + idy;
-                        yAdj = vc - ihd2;
                         var d = "M0" + "," + vc +
                             " L" + sx1 + "," + sy8 +
                             " L" + x1 + "," + y7 +
@@ -2976,9 +2945,9 @@
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var a1, x1, x4, y4;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > cnstVal1) a1 = cnstVal1
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > cnstVal1) a1 = cnstVal1;
+                        else a1 = adj1;
                         x1 = Math.min(w, h) * a1 / cnstVal2;
                         x4 = w - x1;
                         y4 = h - x1;
@@ -3004,9 +2973,9 @@
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var a, dr, iwd2, ihd2;
-                        if (adj < 0) a = 0
-                        else if (adj > cnstVal1) a = cnstVal1
-                        else a = adj
+                        if (adj < 0) a = 0;
+                        else if (adj > cnstVal1) a = cnstVal1;
+                        else a = adj;
                         dr = Math.min(w, h) * a / cnstVal2;
                         iwd2 = w / 2 - dr;
                         ihd2 = h / 2 - dr;
@@ -3033,10 +3002,10 @@
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a, dr, iwd2, ihd2, ang, ang2rad, ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2;
-                        if (adj < 0) a = 0
-                        else if (adj > cnstVal1) a = cnstVal1
-                        else a = adj
+                        var a, dr, iwd2, ihd2, ang, ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2;
+                        if (adj < 0) a = 0;
+                        else if (adj > cnstVal1) a = cnstVal1;
+                        else a = adj;
                         dr = Math.min(w, h) * a / cnstVal2;
                         iwd2 = w / 2 - dr;
                         ihd2 = h / 2 - dr;
@@ -3104,16 +3073,16 @@
                         var minWH = Math.min(w, h);
                         var maxAdj2 = (cnsVal * w) / minWH;
                         var a1, a2;
-                        if (sAdj2_val < 0) a2 = 0
-                        else if (sAdj2_val > maxAdj2) a2 = maxAdj2
-                        else a2 = sAdj2_val
+                        if (sAdj2_val < 0) a2 = 0;
+                        else if (sAdj2_val > maxAdj2) a2 = maxAdj2;
+                        else a2 = sAdj2_val;
                         var x1 = (minWH * a2) / cnsVal;
                         var g1 = h * x1 / w;
                         var g2 = h - g1;
                         var maxAdj1 = (cnsVal * g2) / minWH;
-                        if (sAdj1_val < 0) a1 = 0
-                        else if (sAdj1_val > maxAdj1) a1 = maxAdj1
-                        else a1 = sAdj1_val
+                        if (sAdj1_val < 0) a1 = 0;
+                        else if (sAdj1_val > maxAdj1) a1 = maxAdj1;
+                        else a1 = sAdj1_val;
                         var y1 = minWH * a1 / cnsVal;
                         var dx2 = y1 * w / h;
                         var x2 = w - dx2;
@@ -3155,17 +3124,17 @@
 
                         var stAng, istAng, a3, sw11, sw12, swAng, iswAng;
                         var cd1 = 360;
-                        if (adj1 < 0) stAng = 0
-                        else if (adj1 > cd1) stAng = cd1
-                        else stAng = adj1 //180
+                        if (adj1 < 0) stAng = 0;
+                        else if (adj1 > cd1) stAng = cd1;
+                        else stAng = adj1; //180
 
-                        if (adj2 < 0) istAng = 0
-                        else if (adj2 > cd1) istAng = cd1
-                        else istAng = adj2 //0
+                        if (adj2 < 0) istAng = 0;
+                        else if (adj2 > cd1) istAng = cd1;
+                        else istAng = adj2; //0
 
-                        if (adj3 < 0) a3 = 0
-                        else if (adj3 > cnstVal1) a3 = cnstVal1
-                        else a3 = adj3
+                        if (adj3 < 0) a3 = 0;
+                        else if (adj3 > cnstVal1) a3 = cnstVal1;
+                        else a3 = adj3;
 
                         sw11 = istAng - stAng; // -180
                         sw12 = sw11 + cd1; //180
@@ -3240,9 +3209,9 @@
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, x3, x4, y2, y3, y4;
-                        if (adj < 0) a = 0
-                        else if (adj > cnstVal1) a = cnstVal1
-                        else a = adj
+                        if (adj < 0) a = 0;
+                        else if (adj > cnstVal1) a = cnstVal1;
+                        else a = adj;
                         var minWH = Math.min(w, h);
                         x1 = minWH * a / cnstVal3;
                         x2 = minWH * a / cnstVal2;
@@ -3288,18 +3257,18 @@
                             }
                         }
                         var vc = h / 2, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > cnstVal2) a2 = cnstVal2
-                        else a2 = adj2
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > cnstVal2) a2 = cnstVal2;
+                        else a2 = adj2;
                         var minWH = Math.min(w, h);
                         q1 = cnstVal2 - a2;
-                        if (q1 < a2) q2 = q1
-                        else q2 = a2
+                        if (q1 < a2) q2 = q1;
+                        else q2 = a2;
                         q3 = q2 / 2;
                         var maxAdj1 = q3 * h / minWH;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > maxAdj1) a1 = maxAdj1
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > maxAdj1) a1 = maxAdj1;
+                        else a1 = adj1;
                         y1 = minWH * a1 / cnstVal2;
                         y3 = h * a2 / cnstVal2;
                         y2 = y3 - y1;
@@ -3334,18 +3303,18 @@
                             }
                         }
                         var vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > cnstVal2) a2 = cnstVal2
-                        else a2 = adj2
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > cnstVal2) a2 = cnstVal2;
+                        else a2 = adj2;
                         var minWH = Math.min(w, h);
                         q1 = cnstVal2 - a2;
-                        if (q1 < a2) q2 = q1
-                        else q2 = a2
+                        if (q1 < a2) q2 = q1;
+                        else q2 = a2;
                         q3 = q2 / 2;
                         var maxAdj1 = q3 * h / minWH;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > maxAdj1) a1 = maxAdj1
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > maxAdj1) a1 = maxAdj1;
+                        else a1 = adj1;
                         y1 = minWH * a1 / cnstVal2;
                         y3 = h * a2 / cnstVal2;
                         y2 = y3 - y1;
@@ -3371,9 +3340,9 @@
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, y2;
-                        if (adj < 0) a = 0
-                        else if (adj > cnstVal1) a = cnstVal1
-                        else a = adj
+                        if (adj < 0) a = 0;
+                        else if (adj > cnstVal1) a = cnstVal1;
+                        else a = adj;
                         x1 = Math.min(w, h) * a / cnstVal2;
                         x2 = r - x1;
                         y2 = b - x1;
@@ -3395,9 +3364,9 @@
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2;
-                        if (adj < 0) a = 0
-                        else if (adj > maxAdj) a = maxAdj
-                        else a = adj
+                        if (adj < 0) a = 0;
+                        else if (adj > maxAdj) a = maxAdj;
+                        else a = adj;
                         y1 = Math.min(w, h) * a / cnstVal2;
                         if (y1 > w) y1 = w;
                         y2 = b - y1;
@@ -3405,7 +3374,7 @@
                             shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + 0 + "," + y1 +
                             shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
-                            " L" + r + "," + 0
+                            " L" + r + "," + 0;
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -3419,9 +3388,9 @@
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2, y3;
-                        if (adj < 0) a = 0
-                        else if (adj > maxAdj) a = maxAdj
-                        else a = adj
+                        if (adj < 0) a = 0;
+                        else if (adj > maxAdj) a = maxAdj;
+                        else a = adj;
                         y1 = Math.min(w, h) * a / cnstVal2;
                         y2 = h - y1;
                         y3 = w - y1;
@@ -3431,7 +3400,7 @@
                             //" L"+ r + "," + y2 +
                             " L" + w + "," + h / 2 +
                             shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
-                            " L" + 0 + "," + 0
+                            " L" + 0 + "," + 0;
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -3476,13 +3445,13 @@
                         var maxAdj1 = cnsVal * h / minWH;
                         var maxAdj2 = cnsVal * w / minWH;
                         var a1, a2, x1, dy1, y1;
-                        if (sAdj1_val < 0) a1 = 0
-                        else if (sAdj1_val > maxAdj1) a1 = maxAdj1
-                        else a1 = sAdj1_val
+                        if (sAdj1_val < 0) a1 = 0;
+                        else if (sAdj1_val > maxAdj1) a1 = maxAdj1;
+                        else a1 = sAdj1_val;
 
-                        if (sAdj2_val < 0) a2 = 0
-                        else if (sAdj2_val > maxAdj2) a2 = maxAdj2
-                        else a2 = sAdj2_val
+                        if (sAdj2_val < 0) a2 = 0;
+                        else if (sAdj2_val > maxAdj2) a2 = maxAdj2;
+                        else a2 = sAdj2_val;
                         x1 = minWH * a2 / cnsVal;
                         dy1 = minWH * a1 / cnsVal;
                         y1 = h - dy1;
@@ -3505,9 +3474,9 @@
                             sAdj1_val = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var a1, x2, y2;
-                        if (sAdj1_val < 0) a1 = 0
-                        else if (sAdj1_val > cnsVal) a1 = cnsVal
-                        else a1 = sAdj1_val
+                        if (sAdj1_val < 0) a1 = 0;
+                        else if (sAdj1_val > cnsVal) a1 = cnsVal;
+                        else a1 = sAdj1_val;
                         x2 = w * a1 / cnsVal;
                         y2 = h * a1 / cnsVal;
                         var d = "M" + 0 + "," + y2 +
@@ -3573,9 +3542,9 @@
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var a1, r2, tw, th, sw, sh, dx1, dy1, x1, y1, x2, y2, rd45;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > cnsVal2) a1 = cnsVal2
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > cnsVal2) a1 = cnsVal2;
+                        else a1 = adj1;
                         r2 = Math.sqrt(2);
                         tw = r2 * (w / 2);
                         th = r2 * (h / 2);
@@ -3608,9 +3577,9 @@
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         var a1, x1, x2, y2;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > cnsVal1) a1 = cnsVal1
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > cnsVal1) a1 = cnsVal1;
+                        else a1 = adj1;
                         x1 = a1 * (Math.min(w, h)) / cnsVal2;
                         x2 = w - x1;
                         y2 = h - x1;
@@ -3637,9 +3606,9 @@
                             adj1 = parseInt(shapAdjst.substr(4)) * refr;
                         }
                         var a1;
-                        if (adj1 < cnstVal1) a1 = cnstVal1
-                        else if (adj1 > cnstVal2) a1 = cnstVal2
-                        else a1 = adj1
+                        if (adj1 < cnstVal1) a1 = cnstVal1;
+                        else if (adj1 > cnstVal2) a1 = cnstVal2;
+                        else a1 = adj1;
 
                         var cnstVa3 = 50000 * refr;
                         var cnstVa4 = 100000 * refr;
@@ -3734,11 +3703,11 @@
                     case "heart":
                         var dx1, dx2, x1, x2, x3, x4, y1;
                         dx1 = w * 49 / 48;
-                        dx2 = w * 10 / 48
-                        x1 = w / 2 - dx1
-                        x2 = w / 2 - dx2
-                        x3 = w / 2 + dx2
-                        x4 = w / 2 + dx1
+                        dx2 = w * 10 / 48;
+                        x1 = w / 2 - dx1;
+                        x2 = w / 2 - dx2;
+                        x3 = w / 2 + dx2;
+                        x4 = w / 2 + dx1;
                         y1 = -h / 3;
                         var d_val = "M" + w / 2 + "," + h / 4 +
                             "C" + x3 + "," + y1 + " " + x4 + "," + h / 4 + " " + w / 2 + "," + h +
@@ -3895,9 +3864,8 @@
                     case "cloud":
                     case "cloudCallout":
                         var x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11,
-                            rx1, rx2, rx3, rx4, rx5, rx6, rx7, rx8, rx9, rx10, rx11, ry1, ry2, ry3, ry4, ry5, ry6, ry7, ry8, ry9, ry10, ry11;
-                        x0 = w * 3900 / 43200;;
-                        x1 = w * 4693 / 43200;
+                            rx3, rx4, rx5, rx6, rx7, ry1, ry2, ry3, ry4;
+                        x0 = w * 3900 / 43200;                        x1 = w * 4693 / 43200;
                         x2 = w * 6928 / 43200;
                         x3 = w * 16478 / 43200;
                         x4 = w * 28827 / 43200;
@@ -4233,7 +4201,7 @@
                         var angVal1 = 11 * Math.PI / 180;
                         var ss = Math.min(w, h);
                         var dxPos, dyPos, xPos, yPos, sdx, sdy, pang, stAng, enAng, dx1, dy1, x1, y1, dx2, dy2,
-                            x2, y2, stAng1, enAng1, swAng1, swAng2, swAng,
+                            x2, y2, stAng1, swAng2, swAng,
                             vc = h / 2, hc = w / 2;
                         dxPos = w * adj1 / cnstVal1;
                         dyPos = h * adj2 / cnstVal1;
@@ -4244,7 +4212,7 @@
                         pang = Math.atan(sdy / sdx);
                         stAng = pang + angVal1;
                         enAng = pang - angVal1;
-                        console.log("dxPos: ", dxPos, "dyPos: ", dyPos)
+                        console.log("dxPos: ", dxPos, "dyPos: ", dyPos);
                         dx1 = hc * Math.cos(stAng);
                         dy1 = vc * Math.sin(stAng);
                         dx2 = hc * Math.cos(enAng);
@@ -4511,15 +4479,9 @@
                         }
                         var d_val;
                         var cnstVal1 = 100000 * refr;
-                        var isBorder = true;
                         switch (shapType) {
                             case "borderCallout1":
                             case "callout1":
-                                if (shapType == "borderCallout1") {
-                                    isBorder = true;
-                                } else {
-                                    isBorder = false;
-                                }
                                 if (shapAdjst_ary === undefined) {
                                     adj1 = 18750 * refr;
                                     adj2 = -8333 * refr;
@@ -4541,11 +4503,6 @@
                                 break;
                             case "borderCallout2":
                             case "callout2":
-                                if (shapType == "borderCallout2") {
-                                    isBorder = true;
-                                } else {
-                                    isBorder = false;
-                                }
                                 if (shapAdjst_ary === undefined) {
                                     adj1 = 18750 * refr;
                                     adj2 = -8333 * refr;
@@ -4579,11 +4536,6 @@
                                 break;
                             case "borderCallout3":
                             case "callout3":
-                                if (shapType == "borderCallout3") {
-                                    isBorder = true;
-                                } else {
-                                    isBorder = false;
-                                }
                                 if (shapAdjst_ary === undefined) {
                                     adj1 = 18750 * refr;
                                     adj2 = -8333 * refr;
@@ -4625,11 +4577,6 @@
                                 break;
                             case "accentBorderCallout1":
                             case "accentCallout1":
-                                if (shapType == "accentBorderCallout1") {
-                                    isBorder = true;
-                                } else {
-                                    isBorder = false;
-                                }
 
                                 if (shapAdjst_ary === undefined) {
                                     adj1 = 18750 * refr;
@@ -4656,11 +4603,6 @@
                                 break;
                             case "accentBorderCallout2":
                             case "accentCallout2":
-                                if (shapType == "accentBorderCallout2") {
-                                    isBorder = true;
-                                } else {
-                                    isBorder = false;
-                                }
                                 if (shapAdjst_ary === undefined) {
                                     adj1 = 18750 * refr;
                                     adj2 = -8333 * refr;
@@ -4694,12 +4636,6 @@
                                 break;
                             case "accentBorderCallout3":
                             case "accentCallout3":
-                                if (shapType == "accentBorderCallout3") {
-                                    isBorder = true;
-                                } else {
-                                    isBorder = false;
-                                }
-                                isBorder = true;
                                 if (shapAdjst_ary === undefined) {
                                     adj1 = 18750 * refr;
                                     adj2 = -8333 * refr;
@@ -4969,7 +4905,7 @@
                             }
                         }
                         var d_val;
-                        var cnstVal2 = -10000 * slideFactor;
+                        var cnstVal2 = -1e4 * slideFactor;
                         var cnstVal3 = 50000 * slideFactor;
                         var cnstVal4 = 100000 * slideFactor;
                         var hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
@@ -5107,7 +5043,7 @@
                         cx5 = r - cx4;
                         if (shapType == "ellipseRibbon") {
                             var y1, cy1, y3, q6, q7, cy3, y2, y5, y6,
-                                cy4, cy6, y7, cy7, y8;
+                                cy4, cy6, y7, y8;
                             y1 = f1 * q2;
                             cy1 = f1 * cx1;
                             y3 = q5 + dy3;
@@ -5120,7 +5056,6 @@
                             cy4 = q9 + rh;
                             cy6 = cy3 + rh;
                             y7 = y1 + dy3;
-                            cy7 = q1 + q1 - y7;
                             y8 = b - dy1;
                             //
                             d_val = "M" + l + "," + t +
@@ -5148,7 +5083,7 @@
                                 " L" + x4 + "," + y1;
                         } else if (shapType == "ellipseRibbon2") {
                             var u1, y1, cu1, cy1, q3, q5, u3, y3, q6, q7, cu3, cy3, rh, q8, u2, y2,
-                                u5, y5, u6, y6, cu4, cy4, cu6, cy6, u7, y7, cu7, cy7;
+                                u5, y5, u6, y6, cu4, cy4, cu6, cy6, u7, y7;
                             u1 = f1 * q2;
                             y1 = b - u1;
                             cu1 = f1 * cx1;
@@ -5171,8 +5106,6 @@
                             cy6 = b - cu6;
                             u7 = u1 + dy3;
                             y7 = b - u7;
-                            cu7 = q1 + q1 - u7;
-                            cy7 = b - cu7;
                             //
                             d_val = "M" + l + "," + b +
                                 " L" + wd8 + "," + y2 +
@@ -5399,18 +5332,18 @@
                         }
                         var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2, x3, dx3, x4, x5, x6, y2, y3, y4, y5, y6, maxAdj1, maxAdj3;
                         var minWH = Math.min(w, h);
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > cnstVal1) a2 = cnstVal1
-                        else a2 = adj2
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > cnstVal1) a2 = cnstVal1;
+                        else a2 = adj2;
                         maxAdj1 = 2 * a2;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > maxAdj1) a1 = maxAdj1
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > maxAdj1) a1 = maxAdj1;
+                        else a1 = adj1;
                         q1 = cnstVal2 - maxAdj1;
                         maxAdj3 = q1 / 2;
-                        if (adj3 < 0) a3 = 0
-                        else if (adj3 > maxAdj3) a3 = maxAdj3
-                        else a3 = adj3
+                        if (adj3 < 0) a3 = 0;
+                        else if (adj3 > maxAdj3) a3 = maxAdj3;
+                        else a3 = adj3;
                         x1 = minWH * a3 / cnstVal2;
                         dx2 = minWH * a2 / cnstVal2;
                         x2 = hc - dx2;
@@ -5478,18 +5411,18 @@
                         }
                         var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2, x3, dx3, x4, x5, x6, y2, dy2, y3, y4, y5, maxAdj1, maxAdj3;
                         var minWH = Math.min(w, h);
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > cnstVal1) a2 = cnstVal1
-                        else a2 = adj2
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > cnstVal1) a2 = cnstVal1;
+                        else a2 = adj2;
                         maxAdj1 = 2 * a2;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > maxAdj1) a1 = maxAdj1
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > maxAdj1) a1 = maxAdj1;
+                        else a1 = adj1;
                         q1 = cnstVal2 - maxAdj1;
                         maxAdj3 = q1 / 2;
-                        if (adj3 < 0) a3 = 0
-                        else if (adj3 > maxAdj3) a3 = maxAdj3
-                        else a3 = adj3
+                        if (adj3 < 0) a3 = 0;
+                        else if (adj3 > maxAdj3) a3 = maxAdj3;
+                        else a3 = adj3;
                         x1 = minWH * a3 / cnstVal2;
                         dx2 = minWH * a2 / cnstVal2;
                         x2 = hc - dx2;
@@ -5550,17 +5483,17 @@
                         }
                         var vc = h / 2, hc = w / 2, a1, a2, a3, x1, x2, dx4, dx3, x3, x4, x5, y2, y3, y4, y5, maxAdj1, maxAdj3;
                         var minWH = Math.min(w, h);
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > cnstVal1) a2 = cnstVal1
-                        else a2 = adj2
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > cnstVal1) a2 = cnstVal1;
+                        else a2 = adj2;
                         maxAdj1 = 2 * a2;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > maxAdj1) a1 = maxAdj1
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > maxAdj1) a1 = maxAdj1;
+                        else a1 = adj1;
                         maxAdj3 = cnstVal2 - maxAdj1;
-                        if (adj3 < 0) a3 = 0
-                        else if (adj3 > maxAdj3) a3 = maxAdj3
-                        else a3 = adj3
+                        if (adj3 < 0) a3 = 0;
+                        else if (adj3 > maxAdj3) a3 = maxAdj3;
+                        else a3 = adj3;
                         x1 = minWH * a3 / cnstVal2;
                         dx2 = minWH * a2 / cnstVal1;
                         x2 = w - dx2;
@@ -5615,15 +5548,15 @@
                         }
                         var vc = h / 2, hc = w / 2, a1, a2, a3, dx1, x1, dx2, x2, dx3, x3, x4, y1, y2, dy2;
                         var minWH = Math.min(w, h);
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > cnstVal1) a1 = cnstVal1
-                        else a1 = adj1
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > cnstVal1) a2 = cnstVal1
-                        else a2 = adj2
-                        if (adj3 < 0) a3 = 0
-                        else if (adj3 > maxAdj3) a3 = maxAdj3
-                        else a3 = adj3
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > cnstVal1) a1 = cnstVal1;
+                        else a1 = adj1;
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > cnstVal1) a2 = cnstVal1;
+                        else a2 = adj2;
+                        if (adj3 < 0) a3 = 0;
+                        else if (adj3 > maxAdj3) a3 = maxAdj3;
+                        else a3 = adj3;
                         y1 = minWH * a3 / cnstVal2;
                         dx1 = minWH * a2 / cnstVal1;
                         x1 = w - dx1;
@@ -5676,16 +5609,16 @@
                         }
                         var a1, a2, a3, a4, x3, x4, y3, y4, y5, y6, maxAdj1, maxAdj4;
                         var minWH = Math.min(w, h);
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > cnstVal1) a2 = cnstVal1
-                        else a2 = adj2
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > cnstVal1) a2 = cnstVal1;
+                        else a2 = adj2;
                         maxAdj1 = 2 * a2;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > maxAdj1) a1 = maxAdj1
-                        else a1 = adj1
-                        if (adj3 < 0) a3 = 0
-                        else if (adj3 > cnstVal1) a3 = cnstVal1
-                        else a3 = adj3
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > maxAdj1) a1 = maxAdj1;
+                        else a1 = adj1;
+                        if (adj3 < 0) a3 = 0;
+                        else if (adj3 > cnstVal1) a3 = cnstVal1;
+                        else a3 = adj3;
                         var th, aw2, th2, dh2, ah, bw, bh, bs, bd, bd3, bd2,
                             th = minWH * a1 / cnstVal2;
                         aw2 = minWH * a2 / cnstVal2;
@@ -5696,9 +5629,9 @@
                         bh = h - dh2;
                         bs = (bw < bh) ? bw : bh;
                         maxAdj4 = cnstVal2 * bs / minWH;
-                        if (adj4 < 0) a4 = 0
-                        else if (adj4 > maxAdj4) a4 = maxAdj4
-                        else a4 = adj4
+                        if (adj4 < 0) a4 = 0;
+                        else if (adj4 > maxAdj4) a4 = maxAdj4;
+                        else a4 = adj4;
                         bd = minWH * a4 / cnstVal2;
                         bd3 = bd - th;
                         bd2 = (bd3 > 0) ? bd3 : 0;
@@ -5757,24 +5690,24 @@
                         }
                         var a1, a2, a3, a4, a5, q1, q2, q3, x3, x4, x5, x6, x7, x8, x9, y4, y5, minAdj5, maxAdj1, maxAdj3, maxAdj4;
                         var minWH = Math.min(w, h);
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > cnstVal1) a2 = cnstVal1
-                        else a2 = adj2
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > cnstVal1) a2 = cnstVal1;
+                        else a2 = adj2;
                         maxAdj1 = 2 * a2;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > maxAdj1) a1 = maxAdj1
-                        else a1 = adj1
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > maxAdj1) a1 = maxAdj1;
+                        else a1 = adj1;
                         q2 = a1 * minWH / h;
                         q3 = cnstVal2 - q2;
                         maxAdj3 = q3 * h / minWH;
-                        if (adj3 < 0) a3 = 0
-                        else if (adj3 > maxAdj3) a3 = maxAdj3
-                        else a3 = adj3
+                        if (adj3 < 0) a3 = 0;
+                        else if (adj3 > maxAdj3) a3 = maxAdj3;
+                        else a3 = adj3;
                         q1 = a3 + a1;
                         minAdj5 = q1 * minWH / h;
-                        if (adj5 < minAdj5) a5 = minAdj5
-                        else if (adj5 > cnstVal2) a5 = cnstVal2
-                        else a5 = adj5
+                        if (adj5 < minAdj5) a5 = minAdj5;
+                        else if (adj5 > cnstVal2) a5 = cnstVal2;
+                        else a5 = adj5;
 
                         var th, aw2, th2, dh2, ah, bw, bs, bd, bd3, bd2,
                             th = minWH * a1 / cnstVal2;
@@ -5788,9 +5721,9 @@
                         bw = x9 / 2;
                         bs = (bw < y4) ? bw : y4;
                         maxAdj4 = cnstVal2 * bs / minWH;
-                        if (adj4 < 0) a4 = 0
-                        else if (adj4 > maxAdj4) a4 = maxAdj4
-                        else a4 = adj4
+                        if (adj4 < 0) a4 = 0;
+                        else if (adj4 > maxAdj4) a4 = maxAdj4;
+                        else a4 = adj4;
                         bd = minWH * a4 / cnstVal2;
                         bd3 = bd - th;
                         bd2 = (bd3 > 0) ? bd3 : 0;
@@ -5800,8 +5733,7 @@
                         x7 = x6 + dh2;
                         x4 = x9 - bd;
                         x5 = x7 - bd2;
-                        cx = (th + x7) / 2
-                        var cy = (y4 + th) / 2
+                        cx = (th + x7) / 2;
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + bd +
                             shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
@@ -5844,12 +5776,12 @@
                         var a1, a2, x4, x5, dx5, x6, dx6, y1, dy1, y2, maxAdj2, vc = h / 2;
                         var minWH = Math.min(w, h);
                         maxAdj2 = cnstVal3 * w / minWH;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > cnstVal1) a1 = cnstVal1
-                        else a1 = adj1
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > maxAdj2) a2 = maxAdj2
-                        else a2 = adj2
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > cnstVal1) a1 = cnstVal1;
+                        else a1 = adj1;
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > maxAdj2) a2 = maxAdj2;
+                        else a2 = adj2;
                         x4 = minWH * 5 / 32;
                         dx5 = minWH * a2 / cnstVal1;
                         x5 = w - dx5;
@@ -5902,12 +5834,12 @@
                         var a1, a2, x1, x2, dx2, y1, dy1, y2, maxAdj2, vc = h / 2, hd2 = vc;
                         var minWH = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / minWH;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > cnstVal1) a1 = cnstVal1
-                        else a1 = adj1
-                        if (adj2 < 0) a2 = 0
-                        else if (adj2 > maxAdj2) a2 = maxAdj2
-                        else a2 = adj2
+                        if (adj1 < 0) a1 = 0;
+                        else if (adj1 > cnstVal1) a1 = cnstVal1;
+                        else a1 = adj1;
+                        if (adj2 < 0) a2 = 0;
+                        else if (adj2 > maxAdj2) a2 = maxAdj2;
+                        else a2 = adj2;
                         dx2 = minWH * a2 / cnstVal1;
                         x2 = w - dx2;
                         dy1 = h * a1 / cnstVal2;
@@ -5937,9 +5869,9 @@
                         var a, x1, dx1, maxAdj, vc = h / 2;
                         var minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
-                        if (adj < 0) a = 0
-                        else if (adj > maxAdj) a = maxAdj
-                        else a = adj
+                        if (adj < 0) a = 0;
+                        else if (adj > maxAdj) a = maxAdj;
+                        else a = adj;
                         dx1 = minWH * a / cnstVal1;
                         x1 = w - dx1;
                         var d_val = "M" + 0 + "," + 0 +
@@ -5962,9 +5894,9 @@
                         var a, x1, dx1, x2, maxAdj, vc = h / 2;
                         var minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
-                        if (adj < 0) a = 0
-                        else if (adj > maxAdj) a = maxAdj
-                        else a = adj
+                        if (adj < 0) a = 0;
+                        else if (adj > maxAdj) a = maxAdj;
+                        else a = adj;
                         x1 = minWH * a / cnstVal1;
                         x2 = w - x1;
                         var d_val = "M" + 0 + "," + 0 +
@@ -6434,7 +6366,7 @@
                         }
                         var vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         var ss = Math.min(w, h);
-                        var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, stAng, stAng2, swAng2, swAng3;
+                        var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, q12, dang2, stAng, stAng2, swAng2, swAng3;
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -6470,8 +6402,6 @@
                         swAng = Math.atan(dx / ah);
                         var swAngDeg = swAng * 180 / Math.PI;
                         mswAng = -swAngDeg;
-                        iy = b - idy;
-                        ix = (wR + x3) / 2;
                         q12 = th / 2;
                         dang2 = Math.atan(q12 / idy);
                         var dang2Deg = dang2 * 180 / Math.PI;
@@ -6523,7 +6453,7 @@
                         }
                         var vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         var ss = Math.min(w, h);
-                        var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
+                        var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, q12, dang2, swAng2, swAng3, stAng3;
 
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -6558,17 +6488,14 @@
                         x1 = l + ah;
                         swAng = Math.atan(dy / ah);
                         mswAng = -swAng;
-                        ix = l + iDx;
-                        iy = (hR + y3) / 2;
                         q12 = th / 2;
                         dang2 = Math.atan(q12 / iDx);
                         swAng2 = dang2 - swAng;
                         swAng3 = swAng + dang2;
                         stAng3 = -dang2;
-                        var swAngDg, swAng2Dg, swAng3Dg, stAng3dg;
+                        var swAngDg, swAng2Dg, stAng3dg;
                         swAngDg = swAng * 180 / Math.PI;
                         swAng2Dg = swAng2 * 180 / Math.PI;
-                        swAng3Dg = swAng3 * 180 / Math.PI;
                         stAng3dg = stAng3 * 180 / Math.PI;
 
                         var d_val = "M" + r + "," + y3 +
@@ -6615,7 +6542,7 @@
                         var vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         var ss = Math.min(w, h);
                         var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy,
-                            y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, stAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
+                            y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, stAng, mswAng, q12, dang2, swAng2, swAng3, stAng3;
 
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -6651,8 +6578,6 @@
                         swAng = Math.atan(dy / ah);
                         stAng = Math.PI + 0 - swAng;
                         mswAng = -swAng;
-                        ix = r - iDx;
-                        iy = (hR + y3) / 2;
                         q12 = th / 2;
                         dang2 = Math.atan(q12 / iDx);
                         swAng2 = dang2 - Math.PI / 2;
@@ -6676,8 +6601,7 @@
                             " L" + l + "," + hR +
                             shapeArc(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
                             " L" + r + "," + th +
-                            shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")
-                        "";
+                            shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L");
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -6706,7 +6630,7 @@
                         }
                         var vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         var ss = Math.min(w, h);
-                        var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, swAng2, mswAng2, stAng3, swAng3, stAng2;
+                        var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, q12, dang2, swAng2, stAng3, swAng3, stAng2;
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -6741,12 +6665,9 @@
                         y1 = t + ah;
                         swAng = Math.atan(dx / ah);
                         mswAng = -swAng;
-                        iy = t + idy;
-                        ix = (wR + x3) / 2;
                         q12 = th / 2;
                         dang2 = Math.atan(q12 / idy);
                         swAng2 = dang2 - swAng;
-                        mswAng2 = -swAng2;
                         stAng3 = Math.PI / 2 - swAng;
                         swAng3 = swAng + dang2;
                         stAng2 = Math.PI / 2 - dang2;
@@ -6821,8 +6742,8 @@
                             }
                             var a1, crAng, a2a1, maxAdj3, a3, dy1, dy2, dx1, x1, x8, y2, y3, y1, y4,
                                 cadj2, xadj2, len, bhw, bhw2, x7, dx67, x6, dx57, x5, dx47, x4, dx37,
-                                x3, dx27, x2, rx7, rx6, rx5, rx4, rx3, rx2, dx7, rxt, lxt, rx, lx,
-                                dy3, dy4, ry, ly, dlx, drx, dly, dry, xC1, xC2, yC1, yC2, yC3, yC4;
+                                x3, dx27, x2, rx7, rx6, rx5, rx4, rx3, dx7, rxt, lxt, rx, lx,
+                                dy3, dy4, ry, ly, dlx, drx, dly, dry;
                             var angVal1 = 70 * Math.PI / 180, angVal2 = 110 * Math.PI / 180;
                             var cnstVal4 = 73490 * slideFactor;
                             //var cd4 = 90;
@@ -6861,7 +6782,6 @@
                             rx5 = x5 + bhw;
                             rx4 = x4 + bhw;
                             rx3 = x3 + bhw;
-                            rx2 = x2 + bhw;
                             dx7 = dy1 * hd2 / len;
                             rxt = x7 + dx7;
                             lxt = rx7 - dx7;
@@ -6875,12 +6795,6 @@
                             drx = w - lx;
                             dly = h - ry;
                             dry = h - ly;
-                            xC1 = (rx + lx) / 2;
-                            xC2 = (drx + dlx) / 2;
-                            yC1 = (ry + ly) / 2;
-                            yC2 = (y1 + y2) / 2;
-                            yC3 = (y3 + y4) / 2;
-                            yC4 = (dry + dly) / 2;
 
                             dVal = "M" + x1 + "," + y1 +
                                 " L" + x6 + "," + y1 +
@@ -6966,7 +6880,7 @@
                             }
                             var cnstVal5 = 36745 * slideFactor;
                             var cnstVal6 = 73490 * slideFactor;
-                            var a1, a2a1, mAdj2, a2, dy1, dy2, dx1, y2, y3, y1, y4, x1, x2, yC1, yC2;
+                            var a1, a2a1, mAdj2, a2, dy1, dy2, dx1, y2, y3, y1, y4, x1, x2;
 
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
                             a2a1 = a1 * 2;
@@ -6981,8 +6895,6 @@
                             y4 = y3 + dy1;
                             x1 = hc - dx1;
                             x2 = hc + dx1;
-                            yC1 = (y1 + y2) / 2;
-                            yC2 = (y3 + y4) / 2;
                             dVal = "M" + x1 + "," + y1 +
                                 " L" + x2 + "," + y1 +
                                 " L" + x2 + "," + y2 +
@@ -7022,7 +6934,7 @@
                             }
                             var cnstVal6 = 51965 * slideFactor;
                             var a1, th, a, sa, ca, ta, dl, rw, lM, xM, yM, dxAM, dyAM,
-                                xA, yA, xB, yB, xBC, yBC, yC, xD, xE, yFE, xFE, xF, xL, yG, yH, yI, xC2, yC3;
+                                xA, yA, xB, yB, xBC, yBC, yC, xD, xE, yFE, xFE, xF, xL, yG, yH, yI;
                             var ss = Math.min(w, h);
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal6) ? cnstVal6 : adj1;
                             th = ss * a1 / cnstVal2;
@@ -7053,8 +6965,6 @@
                             yG = h - yA;
                             yH = h - yB;
                             yI = h - yC;
-                            xC2 = w - xM;
-                            yC3 = h - yM;
 
                             dVal = "M" + xA + "," + yA +
                                 " L" + xB + "," + yB +
@@ -7457,7 +7367,7 @@
                         sw1 = sw0 + rdAngVal3;
                         swAng = (sw0 > 0) ? sw0 : sw1;
 
-                        var strtAng = stAng * 180 / Math.PI
+                        var strtAng = stAng * 180 / Math.PI;
                         var endAng = strtAng + (swAng * 180 / Math.PI);
                         var stiAng = istAng * 180 / Math.PI;
                         var swiAng = iswAng * 180 / Math.PI;
@@ -7750,8 +7660,8 @@
 
                 result += "</svg>";
 
-                result += "<div class='block " + getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
-                    " " + getContentDir(node, type, warpObj) +
+                result += "<div class='block " + getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode) + //block content
+                    " " + getContentDir() +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
@@ -7784,7 +7694,7 @@
                 //console.log("custShapType : ", custShapType, ", pathLstNode: ", pathLstNode, ", node: ", node);//, ", y:", y, ", w:", w, ", h:", h);
 
                 var moveToNode = window.PPTXUtils.getTextByPathList(pathNodes, ["a:moveTo"]);
-                var total_shapes = moveToNode.length;
+                moveToNode.length;
 
                 var lnToNodes = pathNodes["a:lnTo"]; //total a:pt : 1
                 var cubicBezToNodes = pathNodes["a:cubicBezTo"]; //total a:pt : 3
@@ -7806,9 +7716,9 @@
                             Object.keys(moveToPtNode).forEach(function (key2) {
                                 var ptObj = {};
                                 var moveToNoPt = moveToPtNode[key2];
-                                var spX = moveToNoPt["attrs", "x"];//parseInt(moveToNoPt["attrs", "x"]) * slideFactor;
-                                var spY = moveToNoPt["attrs", "y"];//parseInt(moveToNoPt["attrs", "y"]) * slideFactor;
-                                var ptOrdr = moveToNoPt["attrs", "order"];
+                                var spX = moveToNoPt["x"];//parseInt(moveToNoPt["attrs", "x"]) * slideFactor;
+                                var spY = moveToNoPt["y"];//parseInt(moveToNoPt["attrs", "y"]) * slideFactor;
+                                var ptOrdr = moveToNoPt["order"];
                                 ptObj.type = "movto";
                                 ptObj.order = ptOrdr;
                                 ptObj.x = spX;
@@ -7827,9 +7737,9 @@
                                 Object.keys(lnToPtNode).forEach(function (key2) {
                                     var ptObj = {};
                                     var lnToNoPt = lnToPtNode[key2];
-                                    var ptX = lnToNoPt["attrs", "x"];
-                                    var ptY = lnToNoPt["attrs", "y"];
-                                    var ptOrdr = lnToNoPt["attrs", "order"];
+                                    var ptX = lnToNoPt["x"];
+                                    var ptY = lnToNoPt["y"];
+                                    var ptOrdr = lnToNoPt["order"];
                                     ptObj.type = "lnto";
                                     ptObj.order = ptOrdr;
                                     ptObj.x = ptX;
@@ -7864,9 +7774,9 @@
                                 var pt_obj = {
                                     x: pt["attrs"]["x"],
                                     y: pt["attrs"]["y"]
-                                }
-                                pts_ary.push(pt_obj)
-                            })
+                                };
+                                pts_ary.push(pt_obj);
+                            });
                             nodeObj.cubBzPt = pts_ary;//key2;
                             multiSapeAry.push(nodeObj);
                         });
@@ -7988,7 +7898,7 @@
 
                             d += shapeArc(wR, hR, wR, hR, stAng, endAng, false);
                         } else if (multiSapeAry[k].type == "quadBezTo") {
-                            console.log("custShapType: quadBezTo - TODO")
+                            console.log("custShapType: quadBezTo - TODO");
 
                         } else if (multiSapeAry[k].type == "close") {
                             // result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -8010,8 +7920,8 @@
                 }
 
                 result += "</svg>";
-                result += "<div class='block " + getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content 
-                    " " + getContentDir(node, type, warpObj) +
+                result += "<div class='block " + getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode) + //block content 
+                    " " + getContentDir() +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
@@ -8032,8 +7942,8 @@
                 // result = "";
             } else {
 
-                result += "<div class='block " + getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content 
-                    " " + getContentDir(node, type, warpObj) +
+                result += "<div class='block " + getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode) +//block content 
+                    " " + getContentDir() +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
@@ -8250,7 +8160,7 @@
             var xfrmNode = node["p:spPr"]["a:xfrm"];
             if (xfrmNode === undefined) {
                 var idx = window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
-                var type = window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "type"]);
                 if (idx !== undefined) {
                     xfrmNode = window.PPTXUtils.getTextByPathList(warpObj["slideLayoutTables"], ["idxTable", idx, "p:spPr", "a:xfrm"]);
                 }
@@ -8302,7 +8212,7 @@
             }
             //Audio
             var audioNode = window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
-            var audioRid, audioFile, audioFileExt, audioMimeType, uInt8ArrayAudio, blobAudio, audioBlob;
+            var audioRid, audioFile, audioFileExt, uInt8ArrayAudio, blobAudio, audioBlob;
             var audioPlayerFlag = false;
             var audioObjc;
             if (audioNode !== undefined & mediaProcess) {
@@ -8407,37 +8317,15 @@
                         result = processGroupSpNode(oleObjNode, warpObj, source);
                     }
                     break;
-                default:
             }
 
             return result;
         }
 
-        function processSpPrNode(node, warpObj) {
-
-            /*
-            * 2241 <xsd:complexType name="CT_ShapeProperties">
-            * 2242   <xsd:sequence>
-            * 2243     <xsd:element name="xfrm" type="CT_Transform2D"  minOccurs="0" maxOccurs="1"/>
-            * 2244     <xsd:group   ref="EG_Geometry"                  minOccurs="0" maxOccurs="1"/>
-            * 2245     <xsd:group   ref="EG_FillProperties"            minOccurs="0" maxOccurs="1"/>
-            * 2246     <xsd:element name="ln" type="CT_LineProperties" minOccurs="0" maxOccurs="1"/>
-            * 2247     <xsd:group   ref="EG_EffectProperties"          minOccurs="0" maxOccurs="1"/>
-            * 2248     <xsd:element name="scene3d" type="CT_Scene3D"   minOccurs="0" maxOccurs="1"/>
-            * 2249     <xsd:element name="sp3d" type="CT_Shape3D"      minOccurs="0" maxOccurs="1"/>
-            * 2250     <xsd:element name="extLst" type="CT_OfficeArtExtensionList" minOccurs="0" maxOccurs="1"/>
-            * 2251   </xsd:sequence>
-            * 2252   <xsd:attribute name="bwMode" type="ST_BlackWhiteMode" use="optional"/>
-            * 2253 </xsd:complexType>
-            */
-
-            // TODO:
-        }
-
         var is_first_br = false;
         function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width) {
             var text = "";
-            var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
+            warpObj["slideMasterTextStyles"];
 
             if (textBodyNode === undefined) {
                 return text;
@@ -8465,7 +8353,7 @@
                 }
                 if (rNode !== undefined && fldNode !== undefined) {
                     fldNode = (fldNode.constructor === Array) ? fldNode : [fldNode];
-                    rNode = rNode.concat(fldNode)
+                    rNode = rNode.concat(fldNode);
                 }
                 if (rNode !== undefined && brNode !== undefined) {
                     is_first_br = true;
@@ -8476,7 +8364,7 @@
                     if (brNode.length > 1) {
                         brNode.shift();
                     }
-                    rNode = rNode.concat(brNode)
+                    rNode = rNode.concat(brNode);
                     //console.log("single a:p  rNode:", rNode, "brNode:", brNode )
                     rNode.sort(function (a, b) {
                         return a.attrs.order - b.attrs.order;
@@ -8522,21 +8410,17 @@
                 var margin_ary = getPregraphMargn(pNode, idx, type, isBullate, warpObj);
                 var margin = margin_ary[0];
                 var mrgin_val = margin_ary[1];
-                if (prg_width_node === undefined && tbl_col_width !== undefined && prg_width_node != 0){
-                    //sorce : table text
-                    prg_width_node = tbl_col_width;
-                }
 
                 var prgrph_text = "";
                 //var prgr_txt_art = [];
                 var total_text_len = 0;
                 if (rNode === undefined && pNode !== undefined) {
                     // without r
-                    var prgr_text = genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
+                    var prgr_text = genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj);
                     if (isBullate) {
                         var txt_obj = $(prgr_text);
                         txt_obj.css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden' });
-                        console.log("txt_obj:", txt_obj)
+                        console.log("txt_obj:", txt_obj);
                         txt_obj.appendTo($('body'));
                         total_text_len += txt_obj.outerWidth();
                         txt_obj.remove();
@@ -8545,11 +8429,11 @@
                 } else if (rNode !== undefined) {
                     // with multi r
                     for (var j = 0; j < rNode.length; j++) {
-                        var prgr_text = genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
+                        var prgr_text = genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj);
                         if (isBullate) {
                             var txt_obj = $(prgr_text);
                             txt_obj.css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden'});
-                            console.log("txt_obj:", txt_obj)
+                            console.log("txt_obj:", txt_obj);
                             txt_obj.appendTo($('body'));
                             total_text_len += txt_obj.outerWidth();
                             txt_obj.remove();
@@ -8580,7 +8464,7 @@
         function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
             //console.log("genBuChar node: ", node, ", spNode: ", spNode, ", pFontStyle: ", pFontStyle, "type", type)
             ///////////////////////////////////////Amir///////////////////////////////
-            var sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
+            warpObj["slideMasterTextStyles"];
             var lstStyle = textBodyNode["a:lstStyle"];
 
             var rNode = window.PPTXUtils.getTextByPathList(node, ["a:r"]);
@@ -8792,10 +8676,6 @@
                 }
                 marRStr += ((marginRight + indent < 0) ? 0 : (marginRight + indent)) + "px;";
             }
-
-            if (buType != "TYPE_NONE") {
-                //var buFontAttrs = window.PPTXUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs"]);
-            }
             //console.log("Bullet Type: " + buType);
             //console.log("NumericTypr: " + buNum);
             //console.log("buChar: " + (buChar === undefined?'':buChar.charCodeAt(0)));
@@ -8839,7 +8719,7 @@
                         var dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
                         bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
                     }
-                }else{
+                }else {
                     bultSize = (parseInt(buFontSize) / 100) * fontSizeFactor + "px";
                 }
             }
@@ -9013,7 +8893,6 @@
                 // }
                 //var buPicId = window.PPTXUtils.getTextByPathList(buPic, ["a:blip","a:extLst","a:ext","asvg:svgBlip" , "attrs", "r:embed"]);
                 var buPicId = window.PPTXUtils.getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
-                var svgPicPath = "";
                 var buImg;
                 if (buPicId !== undefined) {
                     //svgPicPath = warpObj["slideResObj"][buPicId]["target"];
@@ -9065,19 +8944,14 @@
             switch (buChar) {
                 case "§":
                     return "&#9632;";//"■"; //9632 | U+25A0 | Black square
-                    break;
                 case "q":
                     return "&#10065;";//"❑"; // 10065 | U+2751 | Lower right shadowed white square
-                    break;
                 case "v":
                     return "&#10070;";//"❖"; //10070 | U+2756 | Black diamond minus white X
-                    break;
                 case "Ø":
                     return "&#11162;";//"⮚"; //11162 | U+2B9A | Three-D top-lighted rightwards equilateral arrowhead
-                    break;
                 case "ü":
                     return "&#10004;";//"✔";  //10004 | U+2714 | Heavy check mark
-                    break;
                 default:
                     if (/*typefaceNode == "Wingdings" ||*/ typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3"){
                         var wingCharCode =  getDingbatToUnicode(typefaceNode, buChar);
@@ -9154,7 +9028,7 @@
             //https://codepen.io/imdunn/pen/GRgwaye ?
             var text_style = "";
             var lstStyle = textBodyNode["a:lstStyle"];
-            var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
+            warpObj["slideMasterTextStyles"];
 
             var text = node["a:t"];
             //var text_count = text.length;
@@ -9169,10 +9043,6 @@
                     //return "<br style='font-size: initial'>"
                     is_first_br = false;
                     return "<sapn class='line-break-br' ></sapn>";
-                } else {
-                    // styleText += "display: block;";
-                    // openElemnt = "<sapn";
-                    // closeElemnt = "</sapn>";
                 }
 
                 styleText += "display: block;";
@@ -9215,12 +9085,6 @@
                 if (getRtlVal === undefined && type != "shape") {
                     getRtlVal = window.PPTXUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
                 }
-            }
-            var isRTL = false;
-            var dirStr = "ltr";
-            if (getRtlVal !== undefined && getRtlVal == "1") {
-                isRTL = true;
-                dirStr = "rtl";
             }
 
             var linkID = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "r:id"]);
@@ -9317,16 +9181,16 @@
             text_style += "font-size:" + font_size + ";" +
                 // marLStr +
                 "font-family:" + getFontType(node, type, warpObj, pFontStyle) + ";" +
-                "font-weight:" + getFontBold(node, type, slideMasterTextStyles) + ";" +
-                "font-style:" + getFontItalic(node, type, slideMasterTextStyles) + ";" +
-                "text-decoration:" + getFontDecoration(node, type, slideMasterTextStyles) + ";" +
+                "font-weight:" + getFontBold(node) + ";" +
+                "font-style:" + getFontItalic(node) + ";" +
+                "text-decoration:" + getFontDecoration(node) + ";" +
                 "text-align:" + getTextHorizontalAlign(node, pNode, type, warpObj) + ";" +
-                "vertical-align:" + getTextVerticalAlign(node, type, slideMasterTextStyles) + ";";
+                "vertical-align:" + getTextVerticalAlign(node) + ";";
             //rNodeLength
             //console.log("genSpanElement node:", node, "lang:", lang, "isRtlLan:", isRtlLan, "span parent dir:", dirStr)
             if (isRtlLan) { //|| rIndex === undefined
                 styleText += "direction:rtl;";
-            }else{ //|| rIndex === undefined
+            }else { //|| rIndex === undefined
                 styleText += "direction:ltr;";
             }
             // } else if (dirStr == "rtl" && isRtlLan ) {
@@ -9420,7 +9284,7 @@
             if (!isBullate){
                 return ["",0];
             }
-            var marLStr = "", marRStr = "" , maginVal = 0;
+            var marLStr = "", maginVal = 0;
             var pPrNode = pNode["a:pPr"];
             var layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
             var pPrNodeLaout = layoutMasterNode.nodeLaout;
@@ -9437,10 +9301,8 @@
                 }
             }
             var isRTL = false;
-            var dirStr = "ltr";
             if (getRtlVal !== undefined && getRtlVal == "1") {
                 isRTL = true;
-                dirStr = "rtl";
             }
 
             //align
@@ -9504,17 +9366,6 @@
                     marRNode = window.PPTXUtils.getTextByPathList(pPrNodeMaster, ["attrs", "marR"]);
                 }
             }
-            if (marRNode !== undefined && isBullate) {
-                var marginRight = parseInt(marRNode) * slideFactor;
-                if (isRTL) {// && alignNode == "r") {
-                    //marRStr = "margin-right: ";
-                    marRStr = "padding-right: ";
-                } else {
-                    //marRStr = "margin-left: ";
-                    marRStr = "padding-left: ";
-                }
-                marRStr += Math.abs(0 - indent) + "px;";
-            }
 
 
             return [marLStr, maginVal];
@@ -9546,178 +9397,6 @@
         }
 
 
-        function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
-            //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
-            //text, cell-width, cell-borders, 
-            //var text = genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
-            var rowSpan = window.PPTXUtils.getTextByPathList(tcNodes, ["attrs", "rowSpan"]);
-            var colSpan = window.PPTXUtils.getTextByPathList(tcNodes, ["attrs", "gridSpan"]);
-            var vMerge = window.PPTXUtils.getTextByPathList(tcNodes, ["attrs", "vMerge"]);
-            var hMerge = window.PPTXUtils.getTextByPathList(tcNodes, ["attrs", "hMerge"]);
-            var colStyl = "word-wrap: break-word;";
-            var colWidth;
-            var celFillColor = "";
-            var col_borders = "";
-            var colFontClrPr = "";
-            var colFontWeight = "";
-            var lin_bottm = "",
-                lin_top = "",
-                lin_left = "",
-                lin_right = "",
-                lin_bottom_left_to_top_right = "",
-                lin_top_left_to_bottom_right = "";
-            
-            var colSapnInt = parseInt(colSpan);
-            var total_col_width = 0;
-            if (!isNaN(colSapnInt) && colSapnInt > 1){
-                for (var k = 0; k < colSapnInt ; k++) {
-                    total_col_width += parseInt(window.PPTXUtils.getTextByPathList(getColsGrid[col_idx + k], ["attrs", "w"]));
-                }
-            }else{
-                total_col_width = window.PPTXUtils.getTextByPathList((col_idx === undefined) ? getColsGrid : getColsGrid[col_idx], ["attrs", "w"]);
-            }
-            
-
-            var text = genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width);//tableStyles
-
-            if (total_col_width != 0 /*&& row_idx == 0*/) {
-                colWidth = parseInt(total_col_width) * slideFactor;
-                colStyl += "width:" + colWidth + "px;";
-            }
-
-            //cell bords
-            lin_bottm = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnB"]);
-            if (lin_bottm === undefined && cellSource !== undefined) {
-                if (cellSource !== undefined)
-                    lin_bottm = window.PPTXUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
-                if (lin_bottm === undefined) {
-                    lin_bottm = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
-                }
-            }
-            lin_top = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnT"]);
-            if (lin_top === undefined) {
-                if (cellSource !== undefined)
-                    lin_top = window.PPTXUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
-                if (lin_top === undefined) {
-                    lin_top = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
-                }
-            }
-            lin_left = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnL"]);
-            if (lin_left === undefined) {
-                if (cellSource !== undefined)
-                    lin_left = window.PPTXUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
-                if (lin_left === undefined) {
-                    lin_left = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
-                }
-            }
-            lin_right = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnR"]);
-            if (lin_right === undefined) {
-                if (cellSource !== undefined)
-                    lin_right = window.PPTXUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
-                if (lin_right === undefined) {
-                    lin_right = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
-                }
-            }
-            lin_bottom_left_to_top_right = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnBlToTr"]);
-            lin_top_left_to_bottom_right = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:InTlToBr"]);
-
-            if (lin_bottm !== undefined && lin_bottm != "") {
-                var bottom_line_border = getBorder(lin_bottm, undefined, false, "", warpObj)
-                if (bottom_line_border != "") {
-                    colStyl += "border-bottom:" + bottom_line_border + ";";
-                }
-            }
-            if (lin_top !== undefined && lin_top != "") {
-                var top_line_border = getBorder(lin_top, undefined, false, "", warpObj);
-                if (top_line_border != "") {
-                    colStyl += "border-top: " + top_line_border + ";";
-                }
-            }
-            if (lin_left !== undefined && lin_left != "") {
-                var left_line_border = getBorder(lin_left, undefined, false, "", warpObj)
-                if (left_line_border != "") {
-                    colStyl += "border-left: " + left_line_border + ";";
-                }
-            }
-            if (lin_right !== undefined && lin_right != "") {
-                var right_line_border = getBorder(lin_right, undefined, false, "", warpObj)
-                if (right_line_border != "") {
-                    colStyl += "border-right:" + right_line_border + ";";
-                }
-            }
-
-            //cell fill color custom
-            var getCelFill = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr"]);
-            if (getCelFill !== undefined && getCelFill != "") {
-                var cellObj = {
-                    "p:spPr": getCelFill
-                };
-                celFillColor = getShapeFill(cellObj, undefined, false, warpObj, "slide")
-            }
-
-            //cell fill color theme
-            if (celFillColor == "" || celFillColor == "background-color: inherit;") {
-                var bgFillschemeClr;
-                if (cellSource !== undefined)
-                    bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:fill", "a:solidFill"]);
-                if (bgFillschemeClr !== undefined) {
-                    var local_fillColor = getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
-                    if (local_fillColor !== undefined) {
-                        celFillColor = " background-color: #" + local_fillColor + ";";
-                    }
-                }
-            }
-            var cssName = "";
-            if (celFillColor !== undefined && celFillColor != "") {
-                if (celFillColor in styleTable) {
-                    cssName = styleTable[celFillColor]["name"];
-                } else {
-                    cssName = "_tbl_cell_css_" + (Object.keys(styleTable).length + 1);
-                    styleTable[celFillColor] = {
-                        "name": cssName,
-                        "text": celFillColor
-                    };
-                }
-
-            }
-
-            //border
-            // var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:tcBdr"]);
-            // if (borderStyl !== undefined) {
-            //     var local_col_borders = getTableBorders(borderStyl, warpObj);
-            //     if (local_col_borders != "") {
-            //         col_borders = local_col_borders;
-            //     }
-            // }
-            // if (col_borders != "") {
-            //     colStyl += col_borders;
-            // }
-
-            //Text style
-            var rowTxtStyl;
-            if (cellSource !== undefined) {
-                rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcTxStyle"]);
-            }
-            // if (rowTxtStyl === undefined) {
-            //     rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
-            // }
-            if (rowTxtStyl !== undefined) {
-                var local_fontClrPr = getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
-                if (local_fontClrPr !== undefined) {
-                    colFontClrPr = local_fontClrPr;
-                }
-                var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
-                if (local_fontWeight !== "") {
-                    colFontWeight = local_fontWeight;
-                }
-            }
-            colStyl += ((colFontClrPr !== "") ? "color: #" + colFontClrPr + ";" : "");
-            colStyl += ((colFontWeight != "") ? " font-weight:" + colFontWeight + ";" : "");
-
-            return [text, colStyl, cssName, rowSpan, colSpan];
-        }
-
-
         function genDiagram(node, warpObj, source, sType) {
             //console.log(warpObj)
             //readXmlFile(zip, sldFileName)
@@ -9729,7 +9408,7 @@
              * 5-drawing#.xml, which Microsoft added as an extension for persisting diagram layout information.
              */
             ///get colors#.xml, data#.xml , layout#.xml , quickStyle#.xml
-            var order = node["attrs"]["order"];
+            node["attrs"]["order"];
             var zip = warpObj["zip"];
             var xfrmNode = window.PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
             var dgmRelIds = window.PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
@@ -9743,10 +9422,10 @@
                 dgmLayoutFileName = warpObj["slideResObj"][dgmLayoutFileId].target;
             dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
             //console.log("dgmClrFileName: " , dgmClrFileName,", dgmDataFileName: ",dgmDataFileName,", dgmLayoutFileName: ",dgmLayoutFileName,", dgmQuickStyleFileName: ",dgmQuickStyleFileName);
-            var dgmClr = readXmlFile(zip, dgmClrFileName);
-            var dgmData = readXmlFile(zip, dgmDataFileName);
-            var dgmLayout = readXmlFile(zip, dgmLayoutFileName);
-            var dgmQuickStyle = readXmlFile(zip, dgmQuickStyleFileName);
+            readXmlFile(zip, dgmClrFileName);
+            readXmlFile(zip, dgmDataFileName);
+            readXmlFile(zip, dgmLayoutFileName);
+            readXmlFile(zip, dgmQuickStyleFileName);
             //console.log(dgmClr,dgmData,dgmLayout,dgmQuickStyle)
             ///get drawing#.xml
             // var dgmDrwFileName = "";
@@ -9772,7 +9451,7 @@
                     // var pSpStrToObj = JSON.parse(pSpStr);
                     //console.log("pSpStrToObj[" + i + "]: ", pSpStrToObj);
                     //rslt += processSpNode(pSpStrToObj, node, warpObj, "diagramBg", sType)
-                    rslt += processSpNode(dspSp, node, warpObj, "diagramBg", sType)
+                    rslt += processSpNode(dspSp, node, warpObj, "diagramBg", sType);
                 }
                 // dgmDrwFile: "dsp:"-> "p:"
             }
@@ -9865,7 +9544,7 @@
             //a:pPr =>a:lnSpc => a:spcPts (/?) | a:spcPct (/?)
             //console.log("getVerticalMargins ", pNode, type,idx, warpObj)
             //var lstStyle = textBodyNode["a:lstStyle"];
-            var lvl = 1
+            var lvl = 1;
             var spcBefNode = window.PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
             var spcAftNode = window.PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
             var lnSpcNode = window.PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPct", "attrs", "val"]);
@@ -10046,7 +9725,6 @@
                 } else {
                     var fct = parseInt(lnSpcNode) / 100000;
                     spcLines = fontSize * (fct - 1) - fontSize;// fontSize *
-                    var pTop = (fct > 1) ? spcLines : 0;
                     var pBottom = (fct > 1) ? fontSize : 0;
                     // marginTopBottomStr += "padding-top: " + spcLines + "pt;";
                     // marginTopBottomStr += "padding-bottom: " + pBottom + "pt;";
@@ -10134,21 +9812,18 @@
                         if (prg_dir == "pregraph-rtl"){
                             //return "h-right";
                             return "h-left-rtl";
-                        }else{
+                        }else {
                             return "h-left";
                         }
-                        break;
                     case "r":
                         if (prg_dir == "pregraph-rtl") {
                             //return "h-left";
                             return "h-right-rtl";
-                        }else{
+                        }else {
                             return "h-right";
                         }
-                        break;
                     case "ctr":
                         return "h-mid";
-                        break;
                     case "just":
                     case "dist":
                     default:
@@ -10211,68 +9886,6 @@
 
         function getContentDir(node, type, warpObj) {
             return "content";
-            var defRtl = window.PPTXUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "a:defPPr", "attrs", "rtl"]);
-            if (defRtl !== undefined) {
-                if (defRtl == "1"){
-                    return "content-rtl";
-                } else if (defRtl == "0") {
-                    return "content";
-                }
-            }
-            //var lvl1Rtl = window.PPTXUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "lvl1pPr", "attrs", "rtl"]);
-            // if (lvl1Rtl !== undefined) {
-            //     if (lvl1Rtl == "1") {
-            //         return "content-rtl";
-            //     } else if (lvl1Rtl == "0") {
-            //         return "content";
-            //     }
-            // }
-            var rtlCol = window.PPTXUtils.getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "rtlCol"]);
-            if (rtlCol !== undefined) {
-                if (rtlCol == "1") {
-                    return "content-rtl";
-                } else if (rtlCol == "0") {
-                    return "content";
-                }
-            }
-            //console.log("getContentDir node:", node, "rtlCol:", rtlCol)
-
-            if (type === undefined) {
-                return "content";
-            }
-            var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
-            var dirLoc = "";
-
-            switch (type) {
-                case "title":
-                case "ctrTitle":
-                    dirLoc = "p:titleStyle";
-                    break;
-                case "body":
-                case "dt":
-                case "ftr":
-                case "sldNum":
-                case "textBox":
-                    dirLoc = "p:bodyStyle";
-                    break;
-                case "shape":
-                    dirLoc = "p:otherStyle";
-            }
-            if (slideMasterTextStyles !== undefined && dirLoc !== "") {
-                var dirVal = window.PPTXUtils.getTextByPathList(slideMasterTextStyles[dirLoc], ["a:lvl1pPr", "attrs", "rtl"]);
-                if (dirVal == "1") {
-                    return "content-rtl";
-                }
-            } 
-            // else {
-            //     if (type == "textBox") {
-            //         var dirVal = window.PPTXUtils.getTextByPathList(warpObj, ["defaultTextStyle", "a:lvl1pPr", "attrs", "rtl"]);
-            //         if (dirVal == "1") {
-            //             return "content-rtl";
-            //         }
-            //     }
-            // }
-            return "content";
             //console.log("getContentDir() type:", type, "slideMasterTextStyles:", slideMasterTextStyles,"dirNode:",dirVal)
         }
 
@@ -10325,7 +9938,7 @@
                     color = getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
-                    color = getBgPicFill(rPrNode, "slideBg", warpObj, undefined, undefined);
+                    color = getBgPicFill(rPrNode, "slideBg", warpObj, undefined);
                     //color = getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
                     colorType = "pic";
                 } else if (filTyp == "GRADIENT_FILL") {
@@ -10351,7 +9964,7 @@
                     color = getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
-                    color = getBgPicFill(lstStyledefRPr, "slideBg", warpObj, undefined, undefined);
+                    color = getBgPicFill(lstStyledefRPr, "slideBg", warpObj, undefined);
                     //color = getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
                     colorType = "pic";
                 } else if (filTyp == "GRADIENT_FILL") {
@@ -10417,7 +10030,7 @@
                 }
             }
             var txtEffects = [];
-            var txtEffObj = {}
+            var txtEffObj = {};
             //textBordr
             var txtBrdrNode = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:ln"]);
             var textBordr = "";
@@ -10495,13 +10108,13 @@
                 //ky (Vertical Skew) - Specifies the vertical skew angle.
                 //sx (Horizontal Scaling Factor) - Specifies the horizontal scaling slideFactor; negative scaling causes a flip.
                 //sy (Vertical Scaling Factor) - Specifies the vertical scaling slideFactor; negative scaling causes a flip.
-                var algn = outerShdwAttrs["algn"];
+                outerShdwAttrs["algn"];
                 var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
                 var dist = parseInt(outerShdwAttrs["dist"]) * slideFactor;//(px) //* (3 / 4); //(pt)
-                var rotWithShape = outerShdwAttrs["rotWithShape"];
+                outerShdwAttrs["rotWithShape"];
                 var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * slideFactor + "px") : "";
-                var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
-                var sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
+                (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
+                (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
                 var vx = dist * Math.sin(dir * Math.PI / 180);
                 var hx = dist * Math.cos(dir * Math.PI / 180);
 
@@ -10538,13 +10151,13 @@
                 if (txtEffects.length > 0) {
                     text_effcts = txtEffects.join(",");
                 }
-                txt_effects = text_effcts + ";"
+                txt_effects = text_effcts + ";";
             } else {
                 if (txtEffects.length > 0) {
                     text_effcts = txtEffects.join(" ");
                 }
                 txtEffObj.effcts = text_effcts;
-                txt_effects = txtEffObj
+                txt_effects = txtEffObj;
             }
             //console.log("getFontColorPr txt_effects:", txt_effects)
 
@@ -10573,8 +10186,6 @@
                 sz = window.PPTXUtils.getTextByPathList(lstStyle, [lvlpPr, "a:defRPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
-            //a:spAutoFit
-            var isAutoFit = false;
             var isKerning = false;
             if (textBodyNode !== undefined){
                 var spAutoFitNode = window.PPTXUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
@@ -10582,7 +10193,6 @@
                 //     spAutoFitNode = window.PPTXUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit"]);
                 // }
                 if (spAutoFitNode !== undefined){
-                    isAutoFit = true;
                     isKerning = true;
                 }
             }
@@ -10654,7 +10264,7 @@
                 var normAutofit = window.PPTXUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit", "attrs", "fontScale"]);
                 if (normAutofit !== undefined && normAutofit != 0){
                     //console.log("fontSize", fontSize, "normAutofit: ", normAutofit, normAutofit/100000)
-                    fontSize = Math.round(fontSize * (normAutofit / 100000))
+                    fontSize = Math.round(fontSize * (normAutofit / 100000));
                 }
             }
 
@@ -10753,52 +10363,10 @@
             var baseline = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
             return baseline === undefined ? "baseline" : (parseInt(baseline) / 1000) + "%";
         }
-
-        function getTableBorders(node, warpObj) {
-            var borderStyle = "";
-            if (node["a:bottom"] !== undefined) {
-                var obj = {
-                    "p:spPr": {
-                        "a:ln": node["a:bottom"]["a:ln"]
-                    }
-                }
-                var borders = getBorder(obj, undefined, false, "shape", warpObj);
-                borderStyle += borders.replace("border", "border-bottom");
-            }
-            if (node["a:top"] !== undefined) {
-                var obj = {
-                    "p:spPr": {
-                        "a:ln": node["a:top"]["a:ln"]
-                    }
-                }
-                var borders = getBorder(obj, undefined, false, "shape", warpObj);
-                borderStyle += borders.replace("border", "border-top");
-            }
-            if (node["a:right"] !== undefined) {
-                var obj = {
-                    "p:spPr": {
-                        "a:ln": node["a:right"]["a:ln"]
-                    }
-                }
-                var borders = getBorder(obj, undefined, false, "shape", warpObj);
-                borderStyle += borders.replace("border", "border-right");
-            }
-            if (node["a:left"] !== undefined) {
-                var obj = {
-                    "p:spPr": {
-                        "a:ln": node["a:left"]["a:ln"]
-                    }
-                }
-                var borders = getBorder(obj, undefined, false, "shape", warpObj);
-                borderStyle += borders.replace("border", "border-left");
-            }
-
-            return borderStyle;
-        }
         //////////////////////////////////////////////////////////////////
         function getBorder(node, pNode, isSvgMode, bType, warpObj) {
             //console.log("getBorder", node, pNode, isSvgMode, bType)
-            var cssText, lineNode, subNodeTxt;
+            var cssText, lineNode;
 
             if (bType == "shape") {
                 cssText = "border: ";
@@ -10819,7 +10387,7 @@
 
             //console.log("lineNode: ", lineNode)
             if (lineNode == undefined) {
-                var lnRefNode = window.PPTXUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
+                var lnRefNode = window.PPTXUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
                 if (lnRefNode !== undefined){
                     var lnIdx = window.PPTXUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
                     //console.log("lnIdx:", lnIdx, "lnStyleLst:", warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) -1])
@@ -10829,7 +10397,7 @@
             if (lineNode == undefined) {
                 //is table
                 cssText = "";
-                lineNode = node
+                lineNode = node;
             }
 
             var borderColor;
@@ -10967,7 +10535,7 @@
         }
         function getBackground(warpObj, slideSize, index) {
             //var rslt = "";
-            var slideContent = warpObj["slideContent"];
+            warpObj["slideContent"];
             var slideLayoutContent = warpObj["slideLayoutContent"];
             var slideMasterContent = warpObj["slideMasterContent"];
 
@@ -10979,9 +10547,8 @@
             //console.log("warpObj : ", warpObj)
             var showMasterSp = window.PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "attrs", "showMasterSp"]);
             //console.log("slideLayoutContent : ", slideLayoutContent, ", showMasterSp: ", showMasterSp)
-            var bgColor = getSlideBackgroundFill(warpObj, index);
-            var result = "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
-            var node_ph_type_ary = [];
+            var bgColor = getSlideBackgroundFill(warpObj);
+            var result = "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>";
             if (nodesSldLayout !== undefined) {
                 for (var nodeKey in nodesSldLayout) {
                     if (nodesSldLayout[nodeKey].constructor === Array) {
@@ -11067,7 +10634,7 @@
                     bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
                 } else if (bgFillTyp == "PIC_FILL") {
                     //console.log("PIC_FILL - ", bgFillTyp, bgPr, warpObj);
-                    bgcolor = getBgPicFill(bgPr, "slideBg", warpObj, undefined, index);
+                    bgcolor = getBgPicFill(bgPr, "slideBg", warpObj, undefined);
 
                 }
                 //console.log(slideContent,slideMasterContent,color_ary,tint_ary,rot,bgcolor)
@@ -11097,13 +10664,7 @@
                 var idx = Number(bgRef["attrs"]["idx"]);
 
 
-                if (idx == 0 || idx == 1000) {
-                    //no background
-                } else if (idx > 0 && idx < 1000) {
-                    //fillStyleLst in themeContent
-                    //themeContent["a:fmtScheme"]["a:fillStyleLst"]
-                    //bgcolor = "background: red;";
-                } else if (idx > 1000) {
+                if (idx == 0 || idx == 1000) ; else if (idx > 0 && idx < 1000) ; else if (idx > 1000) {
                     //bgFillStyleLst  in themeContent
                     //themeContent["a:fmtScheme"]["a:bgFillStyleLst"]
                     var trueIdx = idx - 1000;
@@ -11120,8 +10681,8 @@
                                     obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
                                     obj["attrs"] = {
                                         "order": bgFillLstTyp[i]["attrs"]["order"]
-                                    }
-                                    sortblAry.push(obj)
+                                    };
+                                    sortblAry.push(obj);
                                 }
                             } else {
                                 var obj = {};
@@ -11129,8 +10690,8 @@
                                 obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                 obj["attrs"] = {
                                     "order": bgFillLstTyp["attrs"]["order"]
-                                }
-                                sortblAry.push(obj)
+                                };
+                                sortblAry.push(obj);
                             }
                         }
                     });
@@ -11150,7 +10711,7 @@
                     } else if (bgFillTyp == "GRADIENT_FILL") {
                         bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
                     } else {
-                        console.log(bgFillTyp)
+                        console.log(bgFillTyp);
                     }
                 }
 
@@ -11178,24 +10739,18 @@
                     } else if (bgFillTyp == "GRADIENT_FILL") {
                         bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
                     } else if (bgFillTyp == "PIC_FILL") {
-                        bgcolor = getBgPicFill(bgPr, "slideLayoutBg", warpObj, undefined, index);
+                        bgcolor = getBgPicFill(bgPr, "slideLayoutBg", warpObj, undefined);
 
                     }
                     //console.log("slideLayoutContent",bgcolor)
                 } else if (bgRef !== undefined) {
-                    console.log("slideLayoutContent: bgRef", bgRef)
+                    console.log("slideLayoutContent: bgRef", bgRef);
                     //bgcolor = "background: white;";
                     var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
                     var idx = Number(bgRef["attrs"]["idx"]);
                     //console.log("phClr=", phClr, "idx=", idx)
 
-                    if (idx == 0 || idx == 1000) {
-                        //no background
-                    } else if (idx > 0 && idx < 1000) {
-                        //fillStyleLst in themeContent
-                        //themeContent["a:fmtScheme"]["a:fillStyleLst"]
-                        //bgcolor = "background: red;";
-                    } else if (idx > 1000) {
+                    if (idx == 0 || idx == 1000) ; else if (idx > 0 && idx < 1000) ; else if (idx > 1000) {
                         //bgFillStyleLst  in themeContent
                         //themeContent["a:fmtScheme"]["a:bgFillStyleLst"]
                         var trueIdx = idx - 1000;
@@ -11212,8 +10767,8 @@
                                         obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
                                         obj["attrs"] = {
                                             "order": bgFillLstTyp[i]["attrs"]["order"]
-                                        }
-                                        sortblAry.push(obj)
+                                        };
+                                        sortblAry.push(obj);
                                     }
                                 } else {
                                     var obj = {};
@@ -11221,8 +10776,8 @@
                                     obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                     obj["attrs"] = {
                                         "order": bgFillLstTyp["attrs"]["order"]
-                                    }
-                                    sortblAry.push(obj)
+                                    };
+                                    sortblAry.push(obj);
                                 }
                             }
                         });
@@ -11246,9 +10801,9 @@
                         } else if (bgFillTyp == "PIC_FILL") {
                             //theme rels
                             //console.log("PIC_FILL - ", bgFillTyp, bgFillLstIdx, bgFillLst, warpObj);
-                            bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
+                            bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr);
                         } else {
-                            console.log(bgFillTyp)
+                            console.log(bgFillTyp);
                         }
                     }
                 } else {
@@ -11268,7 +10823,7 @@
                         } else if (bgFillTyp == "GRADIENT_FILL") {
                             bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
                         } else if (bgFillTyp == "PIC_FILL") {
-                            bgcolor = getBgPicFill(bgPr, "slideMasterBg", warpObj, undefined, index);
+                            bgcolor = getBgPicFill(bgPr, "slideMasterBg", warpObj, undefined);
                         }
                     } else if (bgRef !== undefined) {
                         //var obj={
@@ -11286,13 +10841,7 @@
                         var idx = Number(bgRef["attrs"]["idx"]);
                         //console.log("phClr=", phClr, "idx=", idx)
 
-                        if (idx == 0 || idx == 1000) {
-                            //no background
-                        } else if (idx > 0 && idx < 1000) {
-                            //fillStyleLst in themeContent
-                            //themeContent["a:fmtScheme"]["a:fillStyleLst"]
-                            //bgcolor = "background: red;";
-                        } else if (idx > 1000) {
+                        if (idx == 0 || idx == 1000) ; else if (idx > 0 && idx < 1000) ; else if (idx > 1000) {
                             //bgFillStyleLst  in themeContent
                             //themeContent["a:fmtScheme"]["a:bgFillStyleLst"]
                             var trueIdx = idx - 1000;
@@ -11309,8 +10858,8 @@
                                             obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
                                             obj["attrs"] = {
                                                 "order": bgFillLstTyp[i]["attrs"]["order"]
-                                            }
-                                            sortblAry.push(obj)
+                                            };
+                                            sortblAry.push(obj);
                                         }
                                     } else {
                                         var obj = {};
@@ -11318,8 +10867,8 @@
                                         obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                         obj["attrs"] = {
                                             "order": bgFillLstTyp["attrs"]["order"]
-                                        }
-                                        sortblAry.push(obj)
+                                        };
+                                        sortblAry.push(obj);
                                     }
                                 }
                             });
@@ -11344,9 +10893,9 @@
                             } else if (bgFillTyp == "PIC_FILL") {
                                 //theme rels
                                 // console.log("PIC_FILL - ", bgFillTyp, bgFillLstIdx, bgFillLst, warpObj);
-                                bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
+                                bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr);
                             } else {
-                                console.log(bgFillTyp)
+                                console.log(bgFillTyp);
                             }
                         }
                     }
@@ -11366,10 +10915,9 @@
                 var pos_ary = [];
                 //var tint_ary = [];
                 for (var i = 0; i < gsLst.length; i++) {
-                    var lo_tint;
                     var lo_color = "";
                     var lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
-                    var pos = window.PPTXUtils.getTextByPathList(gsLst[i], ["attrs", "pos"])
+                    var pos = window.PPTXUtils.getTextByPathList(gsLst[i], ["attrs", "pos"]);
                     //console.log("pos: ", pos)
                     if (pos !== undefined) {
                         pos_ary[i] = pos / 1000 + "%";
@@ -11401,8 +10949,7 @@
                     } else {
                         //if (phClr === undefined) {
                         //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ", ";
-                        bgcolor += color_ary[i] + " " + pos_ary[i] + ", ";;
-                        //} else {
+                        bgcolor += color_ary[i] + " " + pos_ary[i] + ", ";                        //} else {
                         //bgcolor += "rgba(" + hexToRgbNew(phClr) + "," + tint_ary[i] + ")" + ", ";
                         // bgcolor += phClr + ", ";
                         //}
@@ -11445,7 +10992,7 @@
                     //         clr_ary.push(getSolidFill(obj, undefined, phClr, warpObj));
                     //     }
                     // })
-                })
+                });
                 //console.log("pic duotone clr_ary: ", clr_ary);
                 //filter: url(file.svg#filter-element-id)
                 //https://codepen.io/bhenbe/pen/QEZOvd
@@ -11491,7 +11038,7 @@
 
             }
             //a:alphaModFix
-            var aphaModFixNode = window.PPTXUtils.getTextByPathList(aBlipNode, ["a:alphaModFix", "attrs"])
+            var aphaModFixNode = window.PPTXUtils.getTextByPathList(aBlipNode, ["a:alphaModFix", "attrs"]);
             var imgOpacity = "";
             if (aphaModFixNode !== undefined && aphaModFixNode["amt"] !== undefined && aphaModFixNode["amt"] != "") {
                 var amt = parseInt(aphaModFixNode["amt"]) / 100000;
@@ -11501,15 +11048,15 @@
             }
             //a:tile
 
-            var tileNode = window.PPTXUtils.getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"])
+            var tileNode = window.PPTXUtils.getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"]);
             var prop_style = "";
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
-                var sx = (parseInt(tileNode["sx"]) / 100000);
-                var sy = (parseInt(tileNode["sy"]) / 100000);
-                var tx = (parseInt(tileNode["tx"]) / 100000);
-                var ty = (parseInt(tileNode["ty"]) / 100000);
-                var algn = tileNode["algn"]; //tl(top left),t(top), tr(top right), l(left), ctr(center), r(right), bl(bottom left), b(bottm) , br(bottom right)
-                var flip = tileNode["flip"]; //none,x,y ,xy
+                (parseInt(tileNode["sx"]) / 100000);
+                (parseInt(tileNode["sy"]) / 100000);
+                (parseInt(tileNode["tx"]) / 100000);
+                (parseInt(tileNode["ty"]) / 100000);
+                tileNode["algn"]; //tl(top left),t(top), tr(top right), l(left), ctr(center), r(right), bl(bottom left), b(bottm) , br(bottom right)
+                tileNode["flip"]; //none,x,y ,xy
 
                 prop_style += "background-repeat: round;"; //repeat|repeat-x|repeat-y|no-repeat|space|round|initial|inherit;
                 //prop_style += "background-size: 300px 100px;"; size (w,h,sx, sy) -TODO
@@ -11576,10 +11123,6 @@
                 if (idx == 0 || idx == 1000) {
                     //no fill
                     return isSvgMode ? "none" : "";
-                } else if (idx > 0 && idx < 1000) {
-                    // <a:fillStyleLst> fill
-                } else if (idx > 1000) {
-                    //<a:bgFillStyleLst>
                 }
                 fillColor = getSolidFill(clrName, undefined, undefined, warpObj);
             }
@@ -11591,7 +11134,7 @@
                     //get parent fill style - TODO
                     //console.log("ShapeFill: grpFill: ", grpFill, ", pNode: ", pNode)
                     var grpShpFill = pNode["p:grpSpPr"];
-                    var spShpNode = { "p:spPr": grpShpFill }
+                    var spShpNode = { "p:spPr": grpShpFill };
                     return getShapeFill(spShpNode, node, isSvgMode, warpObj, source);
                 } else if (fillType == "NO_FILL") {
                     return isSvgMode ? "none" : "";
@@ -11701,9 +11244,7 @@
             var gsLst = node["a:gsLst"]["a:gs"];
             //get start color
             var color_ary = [];
-            var tint_ary = [];
             for (var i = 0; i < gsLst.length; i++) {
-                var lo_tint;
                 var lo_color = getSolidFill(gsLst[i], undefined, undefined, warpObj);
                 //console.log("lo_color",lo_color)
                 color_ary[i] = lo_color;
@@ -11852,54 +11393,37 @@
                 case "smGrid":
                     return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1px ), " +
                         "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1px)  #" + bgColor + ";", "4px 4px"];
-                    break
                 case "dotGrid":
                     return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1px ), " +
                         "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1px)  #" + bgColor + ";", "8px 8px"];
-                    break
                 case "lgGrid":
                     return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1.5px ), " +
                         "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1.5px)  #" + bgColor + ";", "8px 8px"];
-                    break
                 case "wdUpDiag":
                     //return ["repeating-linear-gradient(-45deg,  #" + bgColor + ", #" + bgColor + " 1px,#" + fgColor + " 5px);"];
                     return ["repeating-linear-gradient(-45deg, transparent 1px , transparent 4px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
-                    // return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 1px),  #" + fgColor + " 50%, transparent calc(50% + 1px),  transparent 100%) " +
-                    //     "#" + bgColor + ";", "6px 6px"];
-                    break
                 case "dkUpDiag":
                     return ["repeating-linear-gradient(-45deg, transparent 1px , #" + bgColor + " 5px)" + "#" + fgColor + ";"];
-                    break
                 case "ltUpDiag":
                     return ["repeating-linear-gradient(-45deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
-                    break
                 case "wdDnDiag":
                     return ["repeating-linear-gradient(45deg, transparent 1px , transparent 4px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
-                    break
                 case "dkDnDiag":
                     return ["repeating-linear-gradient(45deg, transparent 1px , #" + bgColor + " 5px)" + "#" + fgColor + ";"];
-                    break
                 case "ltDnDiag":
                     return ["repeating-linear-gradient(45deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
-                    break
                 case "dkHorz":
                     return ["repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #" + bgColor + " 7px)" + "#" + fgColor + ";"];
-                    break
                 case "ltHorz":
                     return ["repeating-linear-gradient(0deg, transparent 1px , transparent 5px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
-                    break
                 case "narHorz":
                     return ["repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
-                    break
                 case "dkVert":
                     return ["repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #" + bgColor + " 7px)" + "#" + fgColor + ";"];
-                    break
                 case "ltVert":
                     return ["repeating-linear-gradient(90deg, transparent 1px , transparent 5px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
-                    break
                 case "narVert":
                     return ["repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
-                    break
                 case "lgCheck":
                 case "smCheck":
                     var size = "";
@@ -11914,7 +11438,6 @@
                     return ["linear-gradient(45deg,  #" + fgColor + " 25%, transparent 0, transparent 75%,  #" + fgColor + " 0), " +
                         "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 0, transparent 75%,  #" + fgColor + " 0) " +
                         "#" + bgColor + ";", size, pos];
-                    break
                 // case "smCheck":
                 //     return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%), " +
                 //         "linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%)  " +
@@ -11924,53 +11447,44 @@
                 case "dashUpDiag":
                     return ["repeating-linear-gradient(152deg, #" + fgColor + ", #" + fgColor + " 5% , transparent 0, transparent 70%)" +
                         "#" + bgColor + ";", "4px 4px"];
-                    break
                 case "dashDnDiag":
                     return ["repeating-linear-gradient(45deg, #" + fgColor + ", #" + fgColor + " 5% , transparent 0, transparent 70%)" +
                         "#" + bgColor + ";", "4px 4px"];
-                    break
                 case "diagBrick":
                     return ["linear-gradient(45deg, transparent 15%,  #" + fgColor + " 30%, transparent 30%), " +
                         "linear-gradient(-45deg, transparent 15%,  #" + fgColor + " 30%, transparent 30%), " +
                         "linear-gradient(-45deg, transparent 65%,  #" + fgColor + " 80%, transparent 0) " +
                         "#" + bgColor + ";", "4px 4px"];
-                    break
                 case "horzBrick":
                     return ["linear-gradient(335deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
                         "linear-gradient(155deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
                         "linear-gradient(335deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
                         "linear-gradient(155deg, #" + bgColor + " 1.6px, transparent 1.6px) " +
                         "#" + fgColor + ";", "4px 4px", "0 0.15px, 0.3px 2.5px, 2px 2.15px, 2.35px 0.4px"];
-                    break
 
                 case "dashVert":
                     return ["linear-gradient(0deg,  #" + bgColor + " 30%, transparent 30%)," +
                         "linear-gradient(90deg,transparent, transparent 40%, #" + fgColor + " 40%, #" + fgColor + " 60% , transparent 60%)" +
                         "#" + bgColor + ";", "4px 4px"];
-                    break
                 case "dashHorz":
                     return ["linear-gradient(90deg,  #" + bgColor + " 30%, transparent 30%)," +
                         "linear-gradient(0deg,transparent, transparent 40%, #" + fgColor + " 40%, #" + fgColor + " 60% , transparent 60%)" +
                         "#" + bgColor + ";", "4px 4px"];
-                    break
                 case "solidDmnd":
                     return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%), " +
                         "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%), " +
                         "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%), " +
                         "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
                         "#" + bgColor + ";", "8px 8px"];
-                    break
                 case "openDmnd":
                     return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%), " +
                         "linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%) " +
                         "#" + bgColor + ";", "8px 8px"];
-                    break
 
                 case "dotDmnd":
                     return ["radial-gradient(#" + fgColor + " 15%, transparent 0), " +
                         "radial-gradient(#" + fgColor + " 15%, transparent 0) " +
                         "#" + bgColor + ";", "4px 4px", "0 0, 2px 2px"];
-                    break
                 case "zigZag":
                 case "wave":
                     var size = "";
@@ -11981,7 +11495,6 @@
                         "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%), " +
                         "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
                         "#" + bgColor + ";", "4px 4px"];
-                    break
                 case "lgConfetti":
                 case "smConfetti":
                     var size = "";
@@ -11992,7 +11505,6 @@
                         "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%) 50px 1px , " +
                         "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
                         "#" + bgColor + ";", size];
-                    break
                 // case "weave":
                 //     return ["linear-gradient(45deg,  #" + bgColor + " 5%, transparent 25%) 50px 0, " +
                 //         "linear-gradient(135deg,  #" + bgColor + " 25%, transparent 25%) 50px 0, " +
@@ -12008,23 +11520,14 @@
                     return ["linear-gradient(0deg, transparent, transparent 25%, #" + fgColor + "33 25%, #" + fgColor + "33 50%)," +
                         "linear-gradient(90deg, transparent, transparent 25%, #" + fgColor + "66 25%, #" + fgColor + "66 50%) " +
                         "#" + bgColor + ";", "4px 4px"];
-                    /**
-                        background-color: #6677dd;
-                        background-image: 
-                        repeating-linear-gradient(0deg, transparent, transparent 35px, rgba(255, 255, 255, 0.2) 35px, rgba(255, 255, 255, 0.2) 70px), 
-                        repeating-linear-gradient(90deg, transparent, transparent 35px, rgba(255,255,255,0.4) 35px, rgba(255,255,255,0.4) 70px);
-                     */
-                    break;
                 case "sphere":
                     return ["radial-gradient(#" + fgColor + " 50%, transparent 50%)," +
                         "#" + bgColor + ";", "4px 4px"];
-                    break
                 case "weave":
                 case "shingle":
                     return ["linear-gradient(45deg, #" + bgColor + " 1.31px , #" + fgColor + " 1.4px, #" + fgColor + " 1.5px, transparent 1.5px, transparent 4.2px, #" + fgColor + " 4.2px, #" + fgColor + " 4.3px, transparent 4.31px), " +
                         "linear-gradient(-45deg,  #" + bgColor + " 1.31px , #" + fgColor + " 1.4px, #" + fgColor + " 1.5px, transparent 1.5px, transparent 4.2px, #" + fgColor + " 4.2px, #" + fgColor + " 4.3px, transparent 4.31px) 0 4px, " +
                         "#" + bgColor + ";", "4px 8px"];
-                    break
                 //background:
                 //linear-gradient(45deg, #708090 1.31px, #d9ecff 1.4px, #d9ecff 1.5px, transparent 1.5px, transparent 4.2px, #d9ecff 4.2px, #d9ecff 4.3px, transparent 4.31px),
                 //linear-gradient(-45deg, #708090 1.31px, #d9ecff 1.4px, #d9ecff 1.5px, transparent 1.5px, transparent 4.2px, #d9ecff 4.2px, #d9ecff 4.3px, transparent 4.31px)0 4px;
@@ -12091,7 +11594,6 @@
                     }
                     return ["radial-gradient(#" + fgColor + " " + px_pr_ary[0] + ", transparent " + px_pr_ary[1] + ")," +
                         "#" + bgColor + ";", px_pr_ary[2]];
-                    break
                 default:
                     return [0, 0];
             }
@@ -12173,7 +11675,7 @@
                 // color = (rgba2hex(ne_color))
                 var al_color = tinycolor(color);
                 al_color.setAlpha(alpha);
-                color = al_color.toHex8()
+                color = al_color.toHex8();
                 isAlpha = true;
                 //console.log("al_color: ", al_color, ", color: ", color)
             }
@@ -12601,107 +12103,6 @@
             return color;
         }
 
-        function extractChartData(serNode) {
-
-            var dataMat = new Array();
-
-            if (serNode === undefined) {
-                return dataMat;
-            }
-
-            if (serNode["c:xVal"] !== undefined) {
-                var dataRow = new Array();
-                eachElement(serNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                    dataRow.push(parseFloat(innerNode["c:v"]));
-                    return "";
-                });
-                dataMat.push(dataRow);
-                dataRow = new Array();
-                eachElement(serNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                    dataRow.push(parseFloat(innerNode["c:v"]));
-                    return "";
-                });
-                dataMat.push(dataRow);
-            } else {
-                eachElement(serNode, function (innerNode, index) {
-                    var dataRow = new Array();
-                    var colName = window.PPTXUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
-
-                    // Category (string or number)
-                    var rowNames = {};
-                    if (window.PPTXUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
-                        eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
-                            rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
-                            return "";
-                        });
-                    } else if (window.PPTXUtils.getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-                        eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                            rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
-                            return "";
-                        });
-                    }
-
-                    // Value
-                    if (window.PPTXUtils.getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-                        eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                            dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
-                            return "";
-                        });
-                    }
-
-                    dataMat.push({ key: colName, values: dataRow, xlabels: rowNames });
-                    return "";
-                });
-            }
-
-            return dataMat;
-        }
-
-        // ===== Node functions =====
-        /**
-         * getTextByPathStr
-         * @param {Object} node
-         * @param {string} pathStr
-         */
-        function getTextByPathStr(node, pathStr) {
-            return window.PPTXUtils.getTextByPathList(node, pathStr.trim().split(/\s+/));
-        }
-
-        /**
-         * window.PPTXUtils.getTextByPathList
-         * @param {Object} node
-         * @param {string Array} path
-         */
-
-        /**
-         * window.PPTXUtils.setTextByPathList
-         * @param {Object} node
-         * @param {string Array} path
-         * @param {string} value
-         */
-
-
-        /**
-         * eachElement
-         * @param {Object} node
-         * @param {function} doFunction
-         */
-        function eachElement(node, doFunction) {
-            if (node === undefined) {
-                return;
-            }
-            var result = "";
-            if (node.constructor === Array) {
-                var l = node.length;
-                for (var i = 0; i < l; i++) {
-                    result += doFunction(node[i], i);
-                }
-            } else {
-                result += doFunction(node, 0);
-            }
-            return result;
-        }
-
         // ===== Color functions =====
         /**
          * applyShade
@@ -12837,31 +12238,6 @@
             return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex();
         }
 
-        /**
-         * rgba2hex
-         * @param {string} rgbaStr
-         */
-        function rgba2hex(rgbaStr) {
-            var a,
-                rgb = rgbaStr.replace(/\s/g, '').match(/^rgba?\((\d+),(\d+),(\d+),?([^,\s)]+)?/i),
-                alpha = (rgb && rgb[4] || "").trim(),
-                hex = rgb ?
-                    (rgb[1] | 1 << 8).toString(16).slice(1) +
-                    (rgb[2] | 1 << 8).toString(16).slice(1) +
-                    (rgb[3] | 1 << 8).toString(16).slice(1) : rgbaStr;
-
-            if (alpha !== "") {
-                a = alpha;
-            } else {
-                a = 1;
-            }
-            // multiply before convert to HEX
-            a = ((a * 255) | 1 << 8).toString(16).slice(1)
-            hex = hex + a;
-
-            return hex;
-        }
-
         ///////////////////////Amir////////////////
         function angleToDegrees(angle) {
             if (angle == "" || angle == null) {
@@ -12959,7 +12335,7 @@
                 var alpha = tinClr.getAlpha();
                 //console.log("color: ", color_arry[i], ", rgba: ", tinClr.toHexString(), ", alpha: ", alpha)
                 svg += '<stop offset="' + Math.round(parseFloat(stopsArray[i]) / 100 * sr) / sr + '" style="stop-color:' + tinClr.toHexString() + '; stop-opacity:' + (alpha) + ';"';
-                svg += '/>\n'
+                svg += '/>\n';
             }
 
             svg += '</linearGradient>\n' + '';
@@ -13001,31 +12377,31 @@
                 tx1 = w,
                     ty1 = hc,
                     tx2 = 0,
-                    ty2 = hc
+                    ty2 = hc;
             } else if (k < 90) {
                 n = w,
-                    o = 0
+                    o = 0;
             } else if (k == 90) {
                 tx1 = wc,
                     ty1 = 0,
                     tx2 = wc,
-                    ty2 = h
+                    ty2 = h;
             } else if (k < 180) {
                 n = 0,
-                    o = 0
+                    o = 0;
             } else if (k == 180) {
                 tx1 = 0,
                     ty1 = hc,
                     tx2 = w,
-                    ty2 = hc
+                    ty2 = hc;
             } else if (k < 270) {
                 n = 0,
-                    o = h
+                    o = h;
             } else if (k == 270) {
                 tx1 = wc,
                     ty1 = h,
                     tx2 = wc,
-                    ty2 = 0
+                    ty2 = 0;
             } else {
                 n = w,
                     o = h;
@@ -13048,14 +12424,14 @@
             var height = pic_dim[1];
             //console.log("getSvgImagePattern node:", node);
             var blipFillNode = node["p:spPr"]["a:blipFill"];
-            var tileNode = window.PPTXUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"])
+            var tileNode = window.PPTXUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"]);
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
                 var sx = (parseInt(tileNode["sx"]) / 100000) * width;
                 var sy = (parseInt(tileNode["sy"]) / 100000) * height;
             }
 
             var blipNode = node["p:spPr"]["a:blipFill"]["a:blip"];
-            var tialphaModFixNode = window.PPTXUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"])
+            var tialphaModFixNode = window.PPTXUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"]);
             var imgOpacity = "";
             if (tialphaModFixNode !== undefined && tialphaModFixNode["amt"] !== undefined && tialphaModFixNode["amt"] != "") {
                 var amt = parseInt(tialphaModFixNode["amt"]) / 100000;
@@ -13068,7 +12444,7 @@
             } else {
                 var ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
             }
-            var duotoneNode = window.PPTXUtils.getTextByPathList(blipNode, ["a:duotone"])
+            var duotoneNode = window.PPTXUtils.getTextByPathList(blipNode, ["a:duotone"]);
             var fillterNode = "";
             var filterUrl = "";
             if (duotoneNode !== undefined) {
@@ -13081,14 +12457,14 @@
                         var obj = {};
                         obj[clr_type] = duotoneNode[clr_type];
                         //console.log("blip pic duotone obj: ", obj)
-                        var hexClr = getSolidFill(obj, undefined, undefined, warpObj)
+                        var hexClr = getSolidFill(obj, undefined, undefined, warpObj);
                         //clr_ary.push();
 
                         var color = tinycolor("#" + hexClr);
                         clr_ary.push(color.toRgb()); // { r: 255, g: 0, b: 0, a: 1 }
                     }
                     // })
-                })
+                });
 
                 if (clr_ary.length == 2) {
 
@@ -13128,10 +12504,9 @@
 
         function getBase64ImageDimensions(imgSrc) {
             var image = new Image();
-            var w, h;
             image.onload = function () {
-                w = image.width;
-                h = image.height;
+                image.width;
+                image.height;
             };
             image.src = imgSrc;
 
@@ -13149,7 +12524,7 @@
 
 
 
-        var hebrew2Minus = window.PPTXUtils.archaicNumbers([
+        window.PPTXUtils.archaicNumbers([
             [1000, ''],
             [400, 'ת'],
             [300, 'ש'],
@@ -13187,4 +12562,703 @@
 
 })();
 
+/**
+ * PPTXUtils - 通用工具函数库
+ * 提取自 pptxjs.js
+ */
 
+(function () {
+    var $ = window.jQuery;
+
+    // 角度转换
+    function angleToDegrees(angle) {
+        if (angle == "" || angle == null) {
+            return 0;
+        }
+        return Math.round(angle / 60000);
+    }
+
+    // 获取 MIME 类型
+    function getMimeType(imgFileExt) {
+        var mimeType = "";
+        switch (imgFileExt.toLowerCase()) {
+            case "jpg":
+            case "jpeg":
+                mimeType = "image/jpeg";
+                break;
+            case "png":
+                mimeType = "image/png";
+                break;
+            case "gif":
+                mimeType = "image/gif";
+                break;
+            case "emf":
+                mimeType = "image/x-emf";
+                break;
+            case "wmf":
+                mimeType = "image/x-wmf";
+                break;
+            case "svg":
+                mimeType = "image/svg+xml";
+                break;
+            case "mp4":
+                mimeType = "video/mp4";
+                break;
+            case "webm":
+                mimeType = "video/webm";
+                break;
+            case "ogg":
+                mimeType = "video/ogg";
+                break;
+            case "avi":
+                mimeType = "video/avi";
+                break;
+            case "mpg":
+                mimeType = "video/mpg";
+                break;
+            case "wmv":
+                mimeType = "video/wmv";
+                break;
+            case "mp3":
+                mimeType = "audio/mpeg";
+                break;
+            case "wav":
+                mimeType = "audio/wav";
+                break;
+            case "tif":
+            case "tiff":
+                mimeType = "image/tiff";
+                break;
+        }
+        return mimeType;
+    }
+
+    // Base64 编码 ArrayBuffer
+    function base64ArrayBuffer(arrayBuffer) {
+        var base64 = '';
+        var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        var bytes = new Uint8Array(arrayBuffer);
+        var byteLength = bytes.byteLength;
+        var byteRemainder = byteLength % 3;
+        var mainLength = byteLength - byteRemainder;
+
+        var a, b, c, d;
+        var chunk;
+
+        for (var i = 0; i < mainLength; i = i + 3) {
+            chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+            a = (chunk & 16515072) >> 18;
+            b = (chunk & 258048) >> 12;
+            c = (chunk & 4032) >> 6;
+            d = chunk & 63;
+            base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d];
+        }
+
+        if (byteRemainder == 1) {
+            chunk = bytes[mainLength];
+            a = (chunk & 252) >> 2;
+            b = (chunk & 3) << 4;
+            base64 += encodings[a] + encodings[b] + '==';
+        } else if (byteRemainder == 2) {
+            chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
+            a = (chunk & 64512) >> 10;
+            b = (chunk & 1008) >> 4;
+            c = (chunk & 15) << 2;
+            base64 += encodings[a] + encodings[b] + encodings[c] + '=';
+        }
+
+        return base64;
+    }
+
+    // 判断是否为视频链接
+    function IsVideoLink(vdoFile) {
+        var urlregex = /^(https?|ftp):\/\/([a-zA-Z0-9.-]+(:[a-zA-Z0-9.&%$-]+)*@)*((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(:[0-9]+)*(\/($|[a-zA-Z0-9.,?'\\+&%$#=~_-]+))*$/;
+        return urlregex.test(vdoFile);
+    }
+
+    // 解析相对路径
+    function resolvePath(basePath, relativePath) {
+        if (relativePath.startsWith("ppt/") || relativePath.startsWith("[Content_Types].xml") || relativePath.startsWith("docProps/")) {
+            return relativePath;
+        }
+        
+        var baseDir = basePath.substring(0, basePath.lastIndexOf("/") + 1);
+        
+        var parts = relativePath.split("/");
+        var resultParts = baseDir.split("/").filter(function(part) {
+            return part !== "";
+        });
+        
+        for (var i = 0; i < parts.length; i++) {
+            var part = parts[i];
+            if (part === "..") {
+                if (resultParts.length > 0) {
+                    resultParts.pop();
+                }
+            } else if (part === "." || part === "") {
+                continue;
+            } else {
+                resultParts.push(part);
+            }
+        }
+        
+        return resultParts.join("/");
+    }
+
+    // 解析关系文件目标路径
+    function resolveRelationshipTarget(relFilePath, target) {
+        var basePath = relFilePath;
+        if (basePath.indexOf("/_rels/") !== -1) {
+            basePath = basePath.substring(0, basePath.indexOf("/_rels/")) + "/";
+        }
+        return resolvePath(basePath, target);
+    }
+
+    // 提取文件扩展名
+    function extractFileExtension(filename) {
+        return filename.substr((~-filename.lastIndexOf(".") >>> 0) + 2);
+    }
+
+    // 转义 HTML 特殊字符
+    function escapeHtml(text) {
+        var map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function (m) { return map[m]; });
+    }
+
+    // 通过路径列表获取节点值
+    function getTextByPathList(node, path) {
+        if (path.constructor !== Array) {
+            throw Error("Error of path type! path is not array.");
+        }
+
+        if (node === undefined) {
+            return undefined;
+        }
+
+        var l = path.length;
+        for (var i = 0; i < l; i++) {
+            node = node[path[i]];
+            if (node === undefined) {
+                return undefined;
+            }
+        }
+
+        return node;
+    }
+
+    // 通过路径列表设置节点值
+    function setTextByPathList(node, path, value) {
+        if (path.constructor !== Array) {
+            throw Error("Error of path type! path is not array.");
+        }
+
+        if (node === undefined) {
+            return undefined;
+        }
+
+        Object.prototype.set = function (parts, value) {
+            var obj = this;
+            var lent = parts.length;
+            for (var i = 0; i < lent; i++) {
+                var p = parts[i];
+                if (obj[p] === undefined) {
+                    if (i == lent - 1) {
+                        obj[p] = value;
+                    } else {
+                        obj[p] = {};
+                    }
+                }
+                obj = obj[p];
+            }
+            return obj;
+        };
+
+        node.set(path, value);
+    }
+
+    // 遍历数组或对象
+    function eachElement(node, doFunction) {
+        if (node === undefined) {
+            return;
+        }
+        var result = "";
+        if (node.constructor === Array) {
+            var l = node.length;
+            for (var i = 0; i < l; i++) {
+                result += doFunction(node[i], i);
+            }
+        } else {
+            result += doFunction(node, 0);
+        }
+        return result;
+    }
+
+    // 颜色处理函数
+    function applyShade(rgbStr, shadeValue, isAlpha) {
+        var color = tinycolor(rgbStr).toHsl();
+        if (shadeValue >= 1) {
+            shadeValue = 1;
+        }
+        var cacl_l = Math.min(color.l * shadeValue, 1);
+        if (isAlpha)
+            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
+        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
+    }
+
+    function applyTint(rgbStr, tintValue, isAlpha) {
+        var color = tinycolor(rgbStr).toHsl();
+        if (tintValue >= 1) {
+            tintValue = 1;
+        }
+        var cacl_l = color.l * tintValue + (1 - tintValue);
+        if (isAlpha)
+            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
+        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
+    }
+
+    function applyLumOff(rgbStr, offset, isAlpha) {
+        var color = tinycolor(rgbStr).toHsl();
+        var lum = offset + color.l;
+        if (lum >= 1) {
+            if (isAlpha)
+                return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex8();
+            return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex();
+        }
+        if (isAlpha)
+            return tinycolor({ h: color.h, s: color.s, l: lum, a: color.a }).toHex8();
+        return tinycolor({ h: color.h, s: color.s, l: lum, a: color.a }).toHex();
+    }
+
+    function applyLumMod(rgbStr, multiplier, isAlpha) {
+        var color = tinycolor(rgbStr).toHsl();
+        var cacl_l = color.l * multiplier;
+        if (cacl_l >= 1) {
+            cacl_l = 1;
+        }
+        if (isAlpha)
+            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
+        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
+    }
+
+    function applyHueMod(rgbStr, multiplier, isAlpha) {
+        var color = tinycolor(rgbStr).toHsl();
+        var cacl_h = color.h * multiplier;
+        if (cacl_h >= 360) {
+            cacl_h = cacl_h - 360;
+        }
+        if (isAlpha)
+            return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
+        return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
+    }
+
+    function applySatMod(rgbStr, multiplier, isAlpha) {
+        var color = tinycolor(rgbStr).toHsl();
+        var cacl_s = color.s * multiplier;
+        if (cacl_s >= 1) {
+            cacl_s = 1;
+        }
+        if (isAlpha)
+            return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex8();
+        return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex();
+    }
+
+    function rgba2hex(rgbaStr) {
+        var a,
+            rgb = rgbaStr.replace(/\s/g, '').match(/^rgba?\((\d+),(\d+),(\d+),?([^,\s)]+)?/i),
+            alpha = (rgb && rgb[4] || "").trim(),
+            hex = rgb ?
+                (rgb[1] | 1 << 8).toString(16).slice(1) +
+                (rgb[2] | 1 << 8).toString(16).slice(1) +
+                (rgb[3] | 1 << 8).toString(16).slice(1) : rgbaStr;
+
+        if (alpha !== "") {
+            a = alpha;
+        } else {
+            a = 1;
+        }
+        a = ((a * 255) | 1 << 8).toString(16).slice(1);
+        hex = hex + a;
+
+        return hex;
+    }
+
+    // 古老数字格式化（如希伯来数字）
+    function archaicNumbers(arr) {
+        arr.slice().sort(function (a, b) { return b[1].length - a[1].length });
+        return {
+            format: function (n) {
+                var ret = '';
+                $.each(arr, function () {
+                    var num = this[0];
+                    if (parseInt(num) > 0) {
+                        for (; n >= num; n -= num) ret += this[1];
+                    } else {
+                        ret = ret.replace(num, this[1]);
+                    }
+                });
+                return ret;
+            }
+        }
+    }
+
+    // 公开工具函数
+    window.PPTXUtils = {
+        angleToDegrees: angleToDegrees,
+        getMimeType: getMimeType,
+        base64ArrayBuffer: base64ArrayBuffer,
+        IsVideoLink: IsVideoLink,
+        resolvePath: resolvePath,
+        resolveRelationshipTarget: resolveRelationshipTarget,
+        extractFileExtension: extractFileExtension,
+        escapeHtml: escapeHtml,
+        getTextByPathList: getTextByPathList,
+        setTextByPathList: setTextByPathList,
+        eachElement: eachElement,
+        applyShade: applyShade,
+        applyTint: applyTint,
+        applyLumOff: applyLumOff,
+        applyLumMod: applyLumMod,
+        applyHueMod: applyHueMod,
+        applySatMod: applySatMod,
+        rgba2hex: rgba2hex,
+        archaicNumbers: archaicNumbers
+    };
+
+})();
+
+/**
+ * PPTXParser - PPTX 解析逻辑模块
+ * 提取自 pptxjs.js
+ */
+
+(function () {
+
+    // 全局变量，将在初始化时设置
+    var app_verssion;
+    var defaultTextStyle = null;
+    var tableStyles;
+    var styleTable = {};
+    var slideFactor = 96 / 914400;
+    var fontSizeFactor = 4 / 3.2;
+    var slideWidth = 0;
+    var slideHeight = 0;
+    var isSlideMode = false;
+    var processFullTheme = true;
+    var settings;
+
+    // 工具函数引用
+    var PPTXUtils = window.PPTXUtils;
+
+    // 解析器配置
+    function configure(config) {
+        settings = config;
+        processFullTheme = settings.themeProcess;
+        if (config.processSingleSlide) {
+            window._processSingleSlideCallback = config.processSingleSlide;
+        }
+    }
+
+    // 主解析函数
+    function processPPTX(zip) {
+        var post_ary = [];
+        var dateBefore = new Date();
+
+        if (zip.file("docProps/thumbnail.jpeg") !== null) {
+            var pptxThumbImg = PPTXUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
+            post_ary.push({
+                "type": "pptx-thumb",
+                "data": pptxThumbImg,
+                "slide_num": -1
+            });
+        }
+
+        var filesInfo = getContentTypes(zip);
+        var slideSize = getSlideSizeAndSetDefaultTextStyle(zip);
+        tableStyles = readXmlFile(zip, "ppt/tableStyles.xml");
+        //console.log("slideSize: ", slideSize)
+        post_ary.push({
+            "type": "slideSize",
+            "data": slideSize,
+            "slide_num": 0
+        });
+
+        var numOfSlides = filesInfo["slides"].length;
+        for (var i = 0; i < numOfSlides; i++) {
+            var filename = filesInfo["slides"][i];
+            var filename_no_path = "";
+            var filename_no_path_ary = [];
+            if (filename.indexOf("/") != -1) {
+                filename_no_path_ary = filename.split("/");
+                filename_no_path = filename_no_path_ary.pop();
+            } else {
+                filename_no_path = filename;
+            }
+            var filename_no_path_no_ext = "";
+            if (filename_no_path.indexOf(".") != -1) {
+                var filename_no_path_no_ext_ary = filename_no_path.split(".");
+                filename_no_path_no_ext_ary.pop();
+                filename_no_path_no_ext = filename_no_path_no_ext_ary.join(".");
+            }
+            var slide_number = 1;
+            if (filename_no_path_no_ext != "" && filename_no_path.indexOf("slide") != -1) {
+                slide_number = Number(filename_no_path_no_ext.substr(5));
+            }
+            var slideHtml = window._processSingleSlideCallback(zip, filename, i, slideSize);
+            post_ary.push({
+                "type": "slide",
+                "data": slideHtml,
+                "slide_num": slide_number,
+                "file_name": filename_no_path_no_ext
+            });
+            post_ary.push({
+                "type": "progress-update",
+                "slide_num": (numOfSlides + i + 1),
+                "data": (i + 1) * 100 / numOfSlides
+            });
+        }
+
+        post_ary.sort(function (a, b) {
+            return a.slide_num - b.slide_num;
+        });
+
+        // globalCSS 将在主文件中处理，此时 styleTable 已经被填充
+        // post_ary.push({
+        //     "type": "globalCSS",
+        //     "data": window.PPTXHtml ? window.PPTXHtml.genGlobalCSS() : ''
+        // });
+
+        var dateAfter = new Date();
+        post_ary.push({
+            "type": "ExecutionTime",
+            "data": dateAfter - dateBefore
+        });
+        return post_ary;
+    }
+
+    // 读取 XML 文件
+    function readXmlFile(zip, filename, isSlideContent) {
+        try {
+            // 尝试解析文件路径，处理相对路径问题
+            var fileEntry = zip.file(filename);
+            if (!fileEntry && !filename.startsWith("ppt/") && !filename.startsWith("[Content_Types].xml") && !filename.startsWith("docProps/")) {
+                // 尝试添加 ppt/ 前缀
+                fileEntry = zip.file("ppt/" + filename);
+            }
+            if (!fileEntry) {
+                // 如果仍然找不到，返回 null
+                console.warn("XML file not found:", filename);
+                return null;
+            }
+            var fileContent = fileEntry.asText();
+            if (isSlideContent && app_verssion <= 12) {
+                //< office2007
+                //remove "<![CDATA[ ... ]]>" tag
+                fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
+            }
+            var xmlData = tXml(fileContent, { simplify: 1 });
+            if (xmlData["?xml"] !== undefined) {
+                return xmlData["?xml"];
+            } else {
+                return xmlData;
+            }
+        } catch (e) {
+            //console.log("error readXmlFile: the file '", filename, "' not exit")
+            return null;
+        }
+    }
+
+    // 获取内容类型
+    function getContentTypes(zip) {
+        var ContentTypesJson = readXmlFile(zip, "[Content_Types].xml");
+
+        var subObj = ContentTypesJson["Types"]["Override"];
+        var slidesLocArray = [];
+        var slideLayoutsLocArray = [];
+        for (var i = 0; i < subObj.length; i++) {
+            switch (subObj[i]["attrs"]["ContentType"]) {
+                case "application/vnd.openxmlformats-officedocument.presentationml.slide+xml":
+                    slidesLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
+                    break;
+                case "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml":
+                    slideLayoutsLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
+                    break;
+            }
+        }
+        return {
+            "slides": slidesLocArray,
+            "slideLayouts": slideLayoutsLocArray
+        };
+    }
+
+    // 获取幻灯片尺寸并设置默认文本样式
+    function getSlideSizeAndSetDefaultTextStyle(zip) {
+        //get app version
+        var app = readXmlFile(zip, "docProps/app.xml");
+        var app_verssion_str = app["Properties"]["AppVersion"];
+        app_verssion = parseInt(app_verssion_str);
+        console.log("create by Office PowerPoint app verssion: ", app_verssion_str);
+
+        //get slide dimensions
+        var rtenObj = {};
+        var content = readXmlFile(zip, "ppt/presentation.xml");
+        var sldSzAttrs = content["p:presentation"]["p:sldSz"]["attrs"];
+        var sldSzWidth = parseInt(sldSzAttrs["cx"]);
+        var sldSzHeight = parseInt(sldSzAttrs["cy"]);
+        var sldSzType = sldSzAttrs["type"];
+        console.log("Presentation size type: ", sldSzType);
+
+        //1 inches  = 96px = 2.54cm
+        // 1 EMU = 1 / 914400 inch
+        // Pixel = EMUs * Resolution / 914400;  (Resolution = 96)
+        //var standardHeight = 6858000;
+        //console.log("slideFactor: ", slideFactor, "standardHeight:", standardHeight, (standardHeight - sldSzHeight) / standardHeight)
+        
+        //slideFactor = (96 * (1 + ((standardHeight - sldSzHeight) / standardHeight))) / 914400 ;
+
+        //slideFactor = slideFactor + sldSzHeight*((standardHeight - sldSzHeight) / standardHeight) ;
+
+        //var ration = sldSzWidth / sldSzHeight;
+        
+        //Scale
+        // var viewProps = readXmlFile(zip, "ppt/viewProps.xml");
+        // var scaleLoc = getTextByPathList(viewProps, ["p:viewPr", "p:slideViewPr", "p:cSldViewPr", "p:cViewPr","p:scale"]);
+        // var scaleXnodes, scaleX = 1, scaleYnode, scaleY = 1;
+        // if (scaleLoc !== undefined){
+        //     scaleXnodes = scaleLoc["a:sx"]["attrs"];
+        //     var scaleXnodesN = scaleXnodes["n"];
+        //     var scaleXnodesD = scaleXnodes["d"];
+        //     if (scaleXnodesN !== undefined && scaleXnodesD !== undefined && scaleXnodesN != 0){
+        //         scaleX = parseInt(scaleXnodesD)/parseInt(scaleXnodesN);
+        //     }
+        //     scaleYnode = scaleLoc["a:sy"]["attrs"];
+        //     var scaleYnodeN = scaleYnode["n"];
+        //     var scaleYnodeD = scaleYnode["d"];
+        //     if (scaleYnodeN !== undefined && scaleYnodeD !== undefined && scaleYnodeN != 0) {
+        //         scaleY = parseInt(scaleYnodeD) / parseInt(scaleYnodeN) ;
+        //     }
+
+        // }
+        //console.log("scaleX: ", scaleX, "scaleY:", scaleY)
+        //slideFactor = slideFactor * scaleX;
+
+        defaultTextStyle = content["p:presentation"]["p:defaultTextStyle"];
+
+        slideWidth = sldSzWidth * slideFactor + settings.incSlide.width|0;// * scaleX;//parseInt(sldSzAttrs["cx"]) * 96 / 914400;
+        slideHeight = sldSzHeight * slideFactor + settings.incSlide.height|0;// * scaleY;//parseInt(sldSzAttrs["cy"]) * 96 / 914400;
+        rtenObj = {
+            "width": slideWidth,
+            "height": slideHeight
+        };
+        return rtenObj;
+    }
+
+    // 索引节点
+    function indexNodes(content) {
+        var keys = Object.keys(content);
+        var spTreeNode = content[keys[0]]["p:cSld"]["p:spTree"];
+
+        var idTable = {};
+        var idxTable = {};
+        var typeTable = {};
+
+        for (var key in spTreeNode) {
+            if (key == "p:nvGrpSpPr" || key == "p:grpSpPr") {
+                continue;
+            }
+
+            var targetNode = spTreeNode[key];
+
+            if (targetNode.constructor === Array) {
+                for (var i = 0; i < targetNode.length; i++) {
+                    var nvSpPrNode = targetNode[i]["p:nvSpPr"];
+                    var id = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
+                    var idx = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
+                    var type = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
+
+                    if (id !== undefined) {
+                        idTable[id] = targetNode[i];
+                    }
+                    if (idx !== undefined) {
+                        idxTable[idx] = targetNode[i];
+                    }
+                    if (type !== undefined) {
+                        typeTable[type] = targetNode[i];
+                    }
+                }
+            } else {
+                var nvSpPrNode = targetNode["p:nvSpPr"];
+                var id = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
+                var idx = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
+                var type = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
+
+                if (id !== undefined) {
+                    idTable[id] = targetNode;
+                }
+                if (idx !== undefined) {
+                    idxTable[idx] = targetNode;
+                }
+                if (type !== undefined) {
+                    typeTable[type] = targetNode;
+                }
+            }
+        }
+
+        return { "idTable": idTable, "idxTable": idxTable, "typeTable": typeTable };
+    }
+
+    // 公开 API
+    window.PPTXParser = {
+        configure: configure,
+        processPPTX: processPPTX,
+        readXmlFile: readXmlFile,
+        getContentTypes: getContentTypes,
+        getSlideSizeAndSetDefaultTextStyle: getSlideSizeAndSetDefaultTextStyle,
+        indexNodes: indexNodes,
+        slideFactor: slideFactor,
+        fontSizeFactor: fontSizeFactor,
+        slideWidth: slideWidth,
+        slideHeight: slideHeight,
+        isSlideMode: isSlideMode,
+        processFullTheme: processFullTheme,
+        styleTable: styleTable,
+        tableStyles: tableStyles,
+        defaultTextStyle: defaultTextStyle,
+        app_verssion: app_verssion
+    };
+
+})();
+
+declare global {
+    interface Window {
+        PPTXUtils: {
+            getTextByPathList: (node: any, path: string[]) => string | undefined;
+            getTextByPathListStr: (node: any, path: string[], defaultVal?: string) => string;
+            getVal: (node: any, path: string[], defaultVal?: string) => string;
+            getBool: (node: any, path: string[], defaultVal?: boolean) => boolean;
+            getInt: (node: any, path: string[], defaultVal?: number) => number;
+            getUnit: (node: any, path: string[], defaultVal?: string) => string;
+            getColor: (node: any, path: string[]) => string;
+            spPr2ShapeStr: (spNode: any, slideLayoutSpNode: any, isSlideModeBg: boolean) => string;
+            archaicNumbers: (num: number) => string;
+            resolveRelationshipTarget: (relId: string, relationships: any) => string;
+            [key: string]: any;
+        };
+        PPTXParser: {
+            configure: (options: any) => void;
+            parse: (fileData: any) => any;
+            indexNodes: (node: any) => {
+                [key: string]: any;
+            };
+            [key: string]: any;
+        };
+        PPTXHtml: {
+            [key: string]: any;
+        };
+    }
+}

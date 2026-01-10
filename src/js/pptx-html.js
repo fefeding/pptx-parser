@@ -9,11 +9,14 @@
     // 全局变量引用
     var PPTXUtils = window.PPTXUtils;
     var settings = window.settings; // 将在 pptxjs.js 中设置
+    var PPTXParser = window.PPTXParser; // 从 PPTXParser 获取变量
 
     // 生成全局 CSS
     function genGlobalCSS() {
         var cssText = "";
-        //console.log("styleTable: ", styleTable)
+        // 从 PPTXParser 获取 styleTable
+        var styleTable = PPTXParser.styleTable || {};
+        var slideWidth = PPTXParser.slideWidth || 960;
         for (var key in styleTable) {
             var tagname = "";
             // if (settings.slideMode && settings.slideType == "revealjs") {

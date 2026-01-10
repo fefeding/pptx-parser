@@ -324,6 +324,25 @@
         return hex;
     }
 
+    // 古老数字格式化（如希伯来数字）
+    function archaicNumbers(arr) {
+        var arrParse = arr.slice().sort(function (a, b) { return b[1].length - a[1].length });
+        return {
+            format: function (n) {
+                var ret = '';
+                $.each(arr, function () {
+                    var num = this[0];
+                    if (parseInt(num) > 0) {
+                        for (; n >= num; n -= num) ret += this[1];
+                    } else {
+                        ret = ret.replace(num, this[1]);
+                    }
+                });
+                return ret;
+            }
+        }
+    }
+
     // 公开工具函数
     window.PPTXUtils = {
         angleToDegrees: angleToDegrees,
@@ -343,7 +362,8 @@
         applyLumMod: applyLumMod,
         applyHueMod: applyHueMod,
         applySatMod: applySatMod,
-        rgba2hex: rgba2hex
+        rgba2hex: rgba2hex,
+        archaicNumbers: archaicNumbers
     };
 
 })();

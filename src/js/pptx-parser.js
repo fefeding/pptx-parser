@@ -26,6 +26,9 @@
     function configure(config) {
         settings = config;
         processFullTheme = settings.themeProcess;
+        if (config.processSingleSlide) {
+            window._processSingleSlideCallback = config.processSingleSlide;
+        }
     }
 
     // 主解析函数
@@ -73,7 +76,7 @@
             if (filename_no_path_no_ext != "" && filename_no_path.indexOf("slide") != -1) {
                 slide_number = Number(filename_no_path_no_ext.substr(5));
             }
-            var slideHtml = processSingleSlide(zip, filename, i, slideSize);
+            var slideHtml = window._processSingleSlideCallback(zip, filename, i, slideSize);
             post_ary.push({
                 "type": "slide",
                 "data": slideHtml,
@@ -91,11 +94,11 @@
             return a.slide_num - b.slide_num;
         });
 
-        // 注意：genGlobalCSS 将在 pptx-html.js 中定义
-        post_ary.push({
-            "type": "globalCSS",
-            "data": window.PPTXHtml ? window.PPTXHtml.genGlobalCSS() : ''
-        });
+        // globalCSS 将在主文件中处理，此时 styleTable 已经被填充
+        // post_ary.push({
+        //     "type": "globalCSS",
+        //     "data": window.PPTXHtml ? window.PPTXHtml.genGlobalCSS() : ''
+        // });
 
         var dateAfter = new Date();
         post_ary.push({
@@ -223,6 +226,60 @@
         return rtenObj;
     }
 
+    // 索引节点
+    function indexNodes(content) {
+        var keys = Object.keys(content);
+        var spTreeNode = content[keys[0]]["p:cSld"]["p:spTree"];
+
+        var idTable = {};
+        var idxTable = {};
+        var typeTable = {};
+
+        for (var key in spTreeNode) {
+            if (key == "p:nvGrpSpPr" || key == "p:grpSpPr") {
+                continue;
+            }
+
+            var targetNode = spTreeNode[key];
+
+            if (targetNode.constructor === Array) {
+                for (var i = 0; i < targetNode.length; i++) {
+                    var nvSpPrNode = targetNode[i]["p:nvSpPr"];
+                    var id = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
+                    var idx = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
+                    var type = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
+
+                    if (id !== undefined) {
+                        idTable[id] = targetNode[i];
+                    }
+                    if (idx !== undefined) {
+                        idxTable[idx] = targetNode[i];
+                    }
+                    if (type !== undefined) {
+                        typeTable[type] = targetNode[i];
+                    }
+                }
+            } else {
+                var nvSpPrNode = targetNode["p:nvSpPr"];
+                var id = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
+                var idx = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
+                var type = PPTXUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
+
+                if (id !== undefined) {
+                    idTable[id] = targetNode;
+                }
+                if (idx !== undefined) {
+                    idxTable[idx] = targetNode;
+                }
+                if (type !== undefined) {
+                    typeTable[type] = targetNode;
+                }
+            }
+        }
+
+        return { "idTable": idTable, "idxTable": idxTable, "typeTable": typeTable };
+    }
+
     // 公开 API
     window.PPTXParser = {
         configure: configure,
@@ -230,6 +287,7 @@
         readXmlFile: readXmlFile,
         getContentTypes: getContentTypes,
         getSlideSizeAndSetDefaultTextStyle: getSlideSizeAndSetDefaultTextStyle,
+        indexNodes: indexNodes,
         slideFactor: slideFactor,
         fontSizeFactor: fontSizeFactor,
         slideWidth: slideWidth,
