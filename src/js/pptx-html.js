@@ -132,51 +132,39 @@
         return [];
     }
 
-    // 设置数字项目符号
-    function setNumericBullets(elem) {
-        var prgrphs_arry = elem;
-        for (var i = 0; i < prgrphs_arry.length; i++) {
-            var buSpan = $(prgrphs_arry[i]).find('.numeric-bullet-style');
-            if (buSpan.length > 0) {
-                //console.log("DIV-"+i+":");
-                var prevBultTyp = "";
-                var prevBultLvl = "";
-                var buletIndex = 0;
-                var tmpArry = new Array();
-                var tmpArryIndx = 0;
-                var buletTypSrry = new Array();
-                for (var j = 0; j < buSpan.length; j++) {
-                    var bult_typ = $(buSpan[j]).data("bulltname");
-                    var bult_lvl = $(buSpan[j]).data("bulltlvl");
-                    //console.log(j+" - "+bult_typ+" lvl: "+bult_lvl );
-                    if (buletIndex == 0) {
-                        prevBultTyp = bult_typ;
-                        prevBultLvl = bult_lvl;
-                        tmpArry[tmpArryIndx] = buletIndex;
-                        buletTypSrry[tmpArryIndx] = bult_typ;
-                        buletIndex++;
-                    } else {
-                        if (bult_typ == prevBultTyp && bult_lvl == prevBultLvl) {
-                            prevBultTyp = bult_typ;
-                            prevBultLvl = bult_lvl;
-                            buletIndex++;
-                            tmpArry[tmpArryIndx] = buletIndex;
-                            buletTypSrry[tmpArryIndx] = bult_typ;
-                        } else if (bult_typ != prevBultTyp && bult_lvl == prevBultLvl) {
-                            prevBultTyp = bult_typ;
-                            // 简化处理
+    // Convert plain numeric lists to proper HTML numbered lists
+    function setNumericBullets(jqSelector) {
+        jqSelector.find('li').each(function () {
+            var $li = $(this);
+            var html = $li.html();
+            // If it starts with a number and a dot, treat as numbered list item
+            if (/^\d+\.\s/.test(html)) {
+                // Ensure parent is ol if not already
+                var $parent = $li.parent();
+                if (!$parent.is('ol')) {
+                    $parent.each(function () {
+                        if (!$(this).is('ol')) {
+                            $(this).filter('ul').replaceWith(function () {
+                                return $('<ol></ol>').append($(this).contents());
+                            });
                         }
-                    }
+                    });
                 }
             }
-        }
+        });
     }
 
-    // 处理消息队列
-    function processMsgQueue(queue) {
-        for (var i = 0; i < queue.length; i++) {
-            processSingleMsg(queue[i].data);
+    // Process message queue and update UI accordingly
+    function processMsgQueue(msgQueue) {
+        if (!msgQueue || msgQueue.length === 0) return;
+
+        // Example: could be used to show warnings, logs, or final status
+        // Here we simply log and clear
+        for (var i = 0; i < msgQueue.length; i++) {
+            console.log("PPTXjs Message:", msgQueue[i]);
         }
+        // Clear after processing
+        msgQueue.length = 0;
     }
 
     // 处理单个消息
@@ -213,14 +201,54 @@
 
     // 获取背景
     function getBackground(warpObj, slideSize, index) {
-        // 简化版本
-        return "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;'></div>";
+        var bgResult = "";
+        if (warpObj.processFullTheme === true) {
+            // 读取 slide 节点中的背景
+            var bgNode = getTextByPathList(warpObj.slideContent, ["p:sld", "p:cSld", "p:bg"]);
+            if (bgNode) {
+                var bgPr = bgNode["p:bgPr"];
+                if (bgPr) {
+                    // 纯色填充
+                    var solidFill = getTextByPathList(bgPr, ["a:solidFill"]);
+                    if (solidFill) {
+                        var color = PPTXUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride);
+                        if (color) {
+                            bgResult = "<div class='slide-background-" + index + "' style='position:absolute;width:" + slideSize.width + "px;height:" + slideSize.height + "px;background-color:" + color + ";'></div>";
+                        }
+                    }
+                    // 图片填充等可在此扩展
+                }
+            }
+        }
+        return bgResult;
     }
 
     // 获取幻灯片背景填充
     function getSlideBackgroundFill(warpObj, index) {
-        // 简化版本
-        return "";
+        var bgColor = "";
+        if (warpObj.processFullTheme == "colorsAndImageOnly") {
+            var bgNode = getTextByPathList(warpObj.slideContent, ["p:sld", "p:cSld", "p:bg"]);
+            if (bgNode) {
+                var bgPr = bgNode["p:bgPr"];
+                if (bgPr) {
+                    var solidFill = getTextByPathList(bgPr, ["a:solidFill"]);
+                    if (solidFill) {
+                        var color = PPTXUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride);
+                        if (color) {
+                            bgColor = "background-color:" + color + ";";
+                        }
+                    }
+                }
+            }
+        }
+        return bgColor;
+    }
+
+    // 更新加载进度条
+    function updateProgressBar(percent) {
+        var progressBarElemtnt = $(".slides-loading-progress-bar");
+        progressBarElemtnt.width(percent + "%");
+        progressBarElemtnt.html("<span style='text-align: center;'>Loading...(" + percent + "%)</span>");
     }
 
     // 公开 API
