@@ -956,31 +956,31 @@
 
         if (serNode["c:xVal"] !== undefined) {
             var dataRow = new Array();
-            eachElement(serNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
+            PPTXUtils.eachElement(serNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
                 dataRow.push(parseFloat(innerNode["c:v"]));
                 return "";
             });
             dataMat.push(dataRow);
             dataRow = new Array();
-            eachElement(serNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
+            PPTXUtils.eachElement(serNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
                 dataRow.push(parseFloat(innerNode["c:v"]));
                 return "";
             });
             dataMat.push(dataRow);
         } else {
-            eachElement(serNode, function (innerNode, index) {
+            PPTXUtils.eachElement(serNode, function (innerNode, index) {
                 var dataRow = new Array();
                 var colName = window.PPTXUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
 
                 // Category (string or number)
                 var rowNames = {};
                 if (window.PPTXUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
-                    eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
+                    PPTXUtils.eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
                         rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
                         return "";
                     });
                 } else if (window.PPTXUtils.getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-                    eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
+                    PPTXUtils.eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
                         rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
                         return "";
                     });
@@ -988,7 +988,7 @@
 
                 // Value
                 if (window.PPTXUtils.getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-                    eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
+                    PPTXUtils.eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
                         dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
                         return "";
                     });
@@ -1026,26 +1026,7 @@
      */
 
 
-    /**
-     * eachElement
-     * @param {Object} node
-     * @param {function} doFunction
-     */
-    function eachElement(node, doFunction) {
-        if (node === undefined) {
-            return;
-        }
-        var result = "";
-        if (node.constructor === Array) {
-            var l = node.length;
-            for (var i = 0; i < l; i++) {
-                result += doFunction(node[i], i);
-            }
-        } else {
-            result += doFunction(node, 0);
-        }
-        return result;
-    }
+
 
     // ===== Color functions =====
     /**

@@ -8289,7 +8289,7 @@
                             console.error("Video file not found:", vdoFile);
                         } else {
                             uInt8Array = vdoFileEntry.asArrayBuffer();
-                            vdoMimeType = getMimeType(vdoFileExt);
+                            vdoMimeType = window.PPTXUtils.getMimeType(vdoFileExt);
                             blob = new Blob([uInt8Array], {
                                 type: vdoMimeType
                             });
@@ -8349,7 +8349,7 @@
             }
             //console.log(node)
             //////////////////////////////////////////////////////////////////////////
-            mimeType = getMimeType(imgFileExt);
+            mimeType = window.PPTXUtils.getMimeType(imgFileExt);
             rtrnData = "<div class='block content' style='" +
                 ((mediaProcess && audioPlayerFlag) ? getPosition(audioObjc, node, undefined, undefined) : getPosition(xfrmNode, node, undefined, undefined)) +
                 ((mediaProcess && audioPlayerFlag) ? getSize(audioObjc, undefined, undefined) : getSize(xfrmNode, undefined, undefined)) +
@@ -9035,7 +9035,7 @@
                     } else {
                         var imgArrayBuffer = imgFile.asArrayBuffer();
                         var imgExt = imgPath.split(".").pop();
-                        var imgMimeType = getMimeType(imgExt);
+                        var imgMimeType = window.PPTXUtils.getMimeType(imgExt);
                         buImg = "<img src='data:" + imgMimeType + ";base64," + window.PPTXUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>";// height: 100%
                         //console.log("imgPath: "+imgPath+"\nimgMimeType: "+imgMimeType)
                     }
@@ -11673,65 +11673,7 @@
         //     }
         //     return degrees * (Math.PI / 180);
         // }
-        function getMimeType(imgFileExt) {
-            var mimeType = "";
-            //console.log(imgFileExt)
-            switch (imgFileExt.toLowerCase()) {
-                case "jpg":
-                case "jpeg":
-                    mimeType = "image/jpeg";
-                    break;
-                case "png":
-                    mimeType = "image/png";
-                    break;
-                case "gif":
-                    mimeType = "image/gif";
-                    break;
-                case "emf": // Not native support
-                    mimeType = "image/x-emf";
-                    break;
-                case "wmf": // Not native support
-                    mimeType = "image/x-wmf";
-                    break;
-                case "svg":
-                    mimeType = "image/svg+xml";
-                    break;
-                case "mp4":
-                    mimeType = "video/mp4";
-                    break;
-                case "webm":
-                    mimeType = "video/webm";
-                    break;
-                case "ogg":
-                    mimeType = "video/ogg";
-                    break;
-                case "avi":
-                    mimeType = "video/avi";
-                    break;
-                case "mpg":
-                    mimeType = "video/mpg";
-                    break;
-                case "wmv":
-                    mimeType = "video/wmv";
-                    break;
-                case "mp3":
-                    mimeType = "audio/mpeg";
-                    break;
-                case "wav":
-                    mimeType = "audio/wav";
-                    break;
-                case "emf":
-                    mimeType = "image/emf";
-                    break;
-                case "wmf":
-                    mimeType = "image/wmf";
-                case "tif":
-                case "tiff":
-                    mimeType = "image/tiff";
-                    break;
-            }
-            return mimeType;
-        }
+
         function getSvgGradient(w, h, angl, color_arry, shpId) {
             var stopsArray = window.PPTXColorUtils.getMiddleStops(color_arry - 2);
 
