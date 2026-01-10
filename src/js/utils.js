@@ -235,94 +235,7 @@
         return result;
     }
 
-    // 颜色处理函数
-    function applyShade(rgbStr, shadeValue, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        if (shadeValue >= 1) {
-            shadeValue = 1;
-        }
-        var cacl_l = Math.min(color.l * shadeValue, 1);
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-    }
 
-    function applyTint(rgbStr, tintValue, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        if (tintValue >= 1) {
-            tintValue = 1;
-        }
-        var cacl_l = color.l * tintValue + (1 - tintValue);
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-    }
-
-    function applyLumOff(rgbStr, offset, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        var lum = offset + color.l;
-        if (lum >= 1) {
-            if (isAlpha)
-                return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex8();
-            return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex();
-        }
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: color.s, l: lum, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: color.s, l: lum, a: color.a }).toHex();
-    }
-
-    function applyLumMod(rgbStr, multiplier, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        var cacl_l = color.l * multiplier;
-        if (cacl_l >= 1) {
-            cacl_l = 1;
-        }
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-    }
-
-    function applyHueMod(rgbStr, multiplier, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        var cacl_h = color.h * multiplier;
-        if (cacl_h >= 360) {
-            cacl_h = cacl_h - 360;
-        }
-        if (isAlpha)
-            return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
-        return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
-    }
-
-    function applySatMod(rgbStr, multiplier, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        var cacl_s = color.s * multiplier;
-        if (cacl_s >= 1) {
-            cacl_s = 1;
-        }
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex();
-    }
-
-    function rgba2hex(rgbaStr) {
-        var a,
-            rgb = rgbaStr.replace(/\s/g, '').match(/^rgba?\((\d+),(\d+),(\d+),?([^,\s)]+)?/i),
-            alpha = (rgb && rgb[4] || "").trim(),
-            hex = rgb ?
-                (rgb[1] | 1 << 8).toString(16).slice(1) +
-                (rgb[2] | 1 << 8).toString(16).slice(1) +
-                (rgb[3] | 1 << 8).toString(16).slice(1) : rgbaStr;
-
-        if (alpha !== "") {
-            a = alpha;
-        } else {
-            a = 1;
-        }
-        a = ((a * 255) | 1 << 8).toString(16).slice(1);
-        hex = hex + a;
-
-        return hex;
-    }
 
     // 古老数字格式化（如希伯来数字）
     function archaicNumbers(arr) {
@@ -356,13 +269,6 @@
         getTextByPathList: getTextByPathList,
         setTextByPathList: setTextByPathList,
         eachElement: eachElement,
-        applyShade: applyShade,
-        applyTint: applyTint,
-        applyLumOff: applyLumOff,
-        applyLumMod: applyLumMod,
-        applyHueMod: applyHueMod,
-        applySatMod: applySatMod,
-        rgba2hex: rgba2hex,
         archaicNumbers: archaicNumbers
     };
 

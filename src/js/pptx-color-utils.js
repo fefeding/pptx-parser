@@ -57,7 +57,7 @@
         var lin = node["a:lin"];
         var rot = 0;
         if (lin !== undefined) {
-            rot = angleToDegrees(lin["attrs"]["ang"]) + 90;
+            rot = PPTXUtils.angleToDegrees(lin["attrs"]["ang"]) + 90;
         }
         return {
             "color": color_ary,
@@ -1139,7 +1139,7 @@
             cacl_h = cacl_h - 360;
         }
         if (isAlpha)
-            return tinycolor({ h: cocacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
+            return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
         return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
     }
 
@@ -1208,11 +1208,129 @@
     }
 
     ///////////////////////Amir////////////////
-    function angleToDegrees(angle) {
-        if (angle == "" || angle == null) {
-            return 0;
+    function getMiddleStops(s) {
+        var sArry = ['0%', '100%'];
+        if (s == 0) {
+            return sArry;
+        } else {
+            var i = s;
+            while (i--) {
+                var middleStop = 100 - ((100 / (s + 1)) * (i + 1)), // AM: Ex - For 3 middle stops, progression will be 25%, 50%, and 75%, plus 0% and 100% at the ends.
+                    middleStopString = middleStop + "%";
+                sArry.splice(-1, 0, middleStopString);
+            } // AM: add into stopsArray before 100%
         }
-        return Math.round(angle / 60000);
+        return sArry
+    }
+    function SVGangle(deg, svgHeight, svgWidth) {
+        var w = parseFloat(svgWidth),
+            h = parseFloat(svgHeight),
+            ang = parseFloat(deg),
+            o = 2,
+            n = 2,
+            wc = w / 2,
+            hc = h / 2,
+            tx1 = 2,
+            ty1 = 2,
+            tx2 = 2,
+            ty2 = 2,
+            k = (((ang % 360) + 360) % 360),
+            j = (360 - k) * Math.PI / 180,
+            i = Math.tan(j),
+            l = hc - i * wc;
+
+        if (k == 0) {
+            tx1 = w,
+                ty1 = hc,
+                tx2 = 0,
+                ty2 = hc
+        } else if (k < 90) {
+            n = w,
+                o = 0
+        } else if (k == 90) {
+            tx1 = wc,
+                ty1 = 0,
+                tx2 = wc,
+                ty2 = h
+        } else if (k < 180) {
+            n = 0,
+                o = 0
+        } else if (k == 180) {
+            tx1 = 0,
+                ty1 = hc,
+                tx2 = w,
+                ty2 = hc
+        } else if (k < 270) {
+            n = 0,
+                o = h
+        } else if (k == 270) {
+            tx1 = wc,
+                ty1 = h,
+                tx2 = wc,
+                ty2 = 0
+        } else {
+            n = w,
+                o = h;
+        }
+        // AM: I could not quite figure out what m, n, and o are supposed to represent from the original code on visualcsstools.com.
+        var m = o + (n / i),
+            tx1 = tx1 == 2 ? i * (m - l) / (Math.pow(i, 2) + 1) : tx1,
+            ty1 = ty1 == 2 ? i * tx1 + l : ty1,
+            tx2 = tx2 == 2 ? w - tx1 : tx2,
+            ty2 = ty2 == 2 ? h - ty1 : ty2,
+            x1 = Math.round(tx2 / w * 100 * 100) / 100,
+            y1 = Math.round(ty2 / h * 100 * 100) / 100,
+            x2 = Math.round(tx1 / w * 100 * 100) / 100,
+            y2 = Math.round(ty1 / h * 100 * 100) / 100;
+        return [x1, y1, x2, y2];
+    }
+    function getBase64ImageDimensions(imgSrc) {
+        try {
+            // 提取 base64 数据部分
+            var base64Data = imgSrc.replace(/^data:image\/\w+;base64,/, '');
+            // 移除可能的换行符和空格
+            base64Data = base64Data.replace(/\s/g, '');
+            // 解码 base64 为二进制字符串
+            var binaryString = atob(base64Data);
+            var bytes = new Uint8Array(binaryString.length);
+            for (var i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            // 检查 PNG 格式
+            if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+                // PNG: IHDR 块起始于偏移 8，宽度在偏移 8+4 = 12，高度在偏移 16
+                var width = (bytes[12] << 24) | (bytes[13] << 16) | (bytes[14] << 8) | bytes[15];
+                var height = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+                return [width, height];
+            }
+            
+            // 检查 JPEG 格式
+            if (bytes[0] === 0xFF && bytes[1] === 0xD8) {
+                var offset = 2;
+                while (offset < bytes.length) {
+                    // 读取标记
+                    if (bytes[offset] !== 0xFF) break;
+                    var marker = bytes[offset + 1];
+                    // 帧开始标记 (SOF0)
+                    if (marker >= 0xC0 && marker <= 0xCF && marker !== 0xC4 && marker !== 0xC8 && marker !== 0xCC) {
+                        // 高度在偏移 offset+5 (2字节)，宽度在偏移 offset+7 (2字节)
+                        var height = (bytes[offset + 5] << 8) | bytes[offset + 6];
+                        var width = (bytes[offset + 7] << 8) | bytes[offset + 8];
+                        return [width, height];
+                    }
+                    // 跳转到下一个标记：标记长度是接下来的2字节（大端序）
+                    var length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+                    offset += 2 + length;
+                }
+            }
+        } catch (e) {
+            // 发生错误时返回 [0,0]
+            console.warn('Failed to get image dimensions:', e);
+        }
+        
+        // 默认返回 [0,0] 避免破坏现有代码
+        return [0, 0];
     }
     // Export functions to PPTXColorUtils object
     window.PPTXColorUtils.getFillType = getFillType;
@@ -1225,7 +1343,17 @@
     window.PPTXColorUtils.getColorName2Hex = getColorName2Hex;
     window.PPTXColorUtils.getSchemeColorFromTheme = getSchemeColorFromTheme;
     window.PPTXColorUtils.getSolidFill = getSolidFill;
-    window.PPTXColorUtils.angleToDegrees = angleToDegrees;
+    window.PPTXColorUtils.angleToDegrees = PPTXUtils.angleToDegrees;
+    window.PPTXColorUtils.applyShade = applyShade;
+    window.PPTXColorUtils.applyTint = applyTint;
+    window.PPTXColorUtils.applyLumOff = applyLumOff;
+    window.PPTXColorUtils.applyLumMod = applyLumMod;
+    window.PPTXColorUtils.applyHueMod = applyHueMod;
+    window.PPTXColorUtils.applySatMod = applySatMod;
+    window.PPTXColorUtils.rgba2hex = rgba2hex;
+    window.PPTXColorUtils.getMiddleStops = getMiddleStops;
+    window.PPTXColorUtils.SVGangle = SVGangle;
+    window.PPTXColorUtils.getBase64ImageDimensions = getBase64ImageDimensions;
 
 })();
 

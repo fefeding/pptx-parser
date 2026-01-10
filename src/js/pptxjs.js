@@ -11733,13 +11733,13 @@
             return mimeType;
         }
         function getSvgGradient(w, h, angl, color_arry, shpId) {
-            var stopsArray = getMiddleStops(color_arry - 2);
+            var stopsArray = window.PPTXColorUtils.getMiddleStops(color_arry - 2);
 
             var svgAngle = '',
                 svgHeight = h,
                 svgWidth = w,
                 svg = '',
-                xy_ary = SVGangle(angl, svgHeight, svgWidth),
+                xy_ary = window.PPTXColorUtils.SVGangle(angl, svgHeight, svgWidth),
                 x1 = xy_ary[0],
                 y1 = xy_ary[1],
                 x2 = xy_ary[2],
@@ -11763,84 +11763,10 @@
 
             return svg
         }
-        function getMiddleStops(s) {
-            var sArry = ['0%', '100%'];
-            if (s == 0) {
-                return sArry;
-            } else {
-                var i = s;
-                while (i--) {
-                    var middleStop = 100 - ((100 / (s + 1)) * (i + 1)), // AM: Ex - For 3 middle stops, progression will be 25%, 50%, and 75%, plus 0% and 100% at the ends.
-                        middleStopString = middleStop + "%";
-                    sArry.splice(-1, 0, middleStopString);
-                } // AM: add into stopsArray before 100%
-            }
-            return sArry
-        }
-        function SVGangle(deg, svgHeight, svgWidth) {
-            var w = parseFloat(svgWidth),
-                h = parseFloat(svgHeight),
-                ang = parseFloat(deg),
-                o = 2,
-                n = 2,
-                wc = w / 2,
-                hc = h / 2,
-                tx1 = 2,
-                ty1 = 2,
-                tx2 = 2,
-                ty2 = 2,
-                k = (((ang % 360) + 360) % 360),
-                j = (360 - k) * Math.PI / 180,
-                i = Math.tan(j),
-                l = hc - i * wc;
 
-            if (k == 0) {
-                tx1 = w,
-                    ty1 = hc,
-                    tx2 = 0,
-                    ty2 = hc
-            } else if (k < 90) {
-                n = w,
-                    o = 0
-            } else if (k == 90) {
-                tx1 = wc,
-                    ty1 = 0,
-                    tx2 = wc,
-                    ty2 = h
-            } else if (k < 180) {
-                n = 0,
-                    o = 0
-            } else if (k == 180) {
-                tx1 = 0,
-                    ty1 = hc,
-                    tx2 = w,
-                    ty2 = hc
-            } else if (k < 270) {
-                n = 0,
-                    o = h
-            } else if (k == 270) {
-                tx1 = wc,
-                    ty1 = h,
-                    tx2 = wc,
-                    ty2 = 0
-            } else {
-                n = w,
-                    o = h;
-            }
-            // AM: I could not quite figure out what m, n, and o are supposed to represent from the original code on visualcsstools.com.
-            var m = o + (n / i),
-                tx1 = tx1 == 2 ? i * (m - l) / (Math.pow(i, 2) + 1) : tx1,
-                ty1 = ty1 == 2 ? i * tx1 + l : ty1,
-                tx2 = tx2 == 2 ? w - tx1 : tx2,
-                ty2 = ty2 == 2 ? h - ty1 : ty2,
-                x1 = Math.round(tx2 / w * 100 * 100) / 100,
-                y1 = Math.round(ty2 / h * 100 * 100) / 100,
-                x2 = Math.round(tx1 / w * 100 * 100) / 100,
-                y2 = Math.round(ty1 / h * 100 * 100) / 100;
-            return [x1, y1, x2, y2];
-        }
+
         function getSvgImagePattern(node, fill, shpId, warpObj) {
-            var pic_dim = getBase64ImageDimensions(fill);
+            var pic_dim = window.PPTXColorUtils.getBase64ImageDimensions(fill);
             var width = pic_dim[0];
             var height = pic_dim[1];
             //console.log("getSvgImagePattern node:", node);
@@ -11923,23 +11849,7 @@
             return ptrn;
         }
 
-        function getBase64ImageDimensions(imgSrc) {
-            var image = new Image();
-            var w, h;
-            image.onload = function () {
-                w = image.width;
-                h = image.height;
-            };
-            image.src = imgSrc;
 
-            do {
-                if (image.width !== undefined) {
-                    return [image.width, image.height];
-                }
-            } while (image.width === undefined);
-
-            //return [w, h];
-        }
 
 
 
