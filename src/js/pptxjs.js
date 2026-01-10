@@ -11725,6 +11725,85 @@
             [/([א-ת])([א-ת])$/, '$1״$2'],
             [/^([א-ת])$/, "$1׳"]
         ]);
+        
+        function getNumTypeNum(numTyp, num) {
+            var rtrnNum = "";
+            switch (numTyp) {
+                case "arabicPeriod":
+                    rtrnNum = num + ". ";
+                    break;
+                case "arabicParenR":
+                    rtrnNum = num + ") ";
+                    break;
+                case "alphaLcParenR":
+                    rtrnNum = alphaNumeric(num, "lowerCase") + ") ";
+                    break;
+                case "alphaLcPeriod":
+                    rtrnNum = alphaNumeric(num, "lowerCase") + ". ";
+                    break;
+                case "alphaUcParenR":
+                    rtrnNum = alphaNumeric(num, "upperCase") + ") ";
+                    break;
+                case "alphaUcPeriod":
+                    rtrnNum = alphaNumeric(num, "upperCase") + ". ";
+                    break;
+                case "romanUcPeriod":
+                    rtrnNum = romanize(num) + ". ";
+                    break;
+                case "romanLcParenR":
+                    rtrnNum = romanize(num) + ") ";
+                    break;
+                case "hebrew2Minus":
+                    rtrnNum = hebrew2Minus.format(num) + "-";
+                    break;
+                default:
+                    rtrnNum = num;
+            }
+            return rtrnNum;
+        }
+        
+        function romanize(num) {
+            if (!+num)
+                return false;
+            var digits = String(+num).split(""),
+                key = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM",
+                    "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC",
+                    "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"],
+                roman = "",
+                i = 3;
+            while (i--)
+                roman = (key[+digits.pop() + (i * 10)] || "") + roman;
+            return Array(+digits.join("") + 1).join("M") + roman;
+        }
+        
+        function archaicNumbers(arr) {
+            var arrParse = arr.slice().sort(function (a, b) { return b[1].length - a[1].length });
+            return {
+                format: function (n) {
+                    var ret = '';
+                    jQuery.each(arr, function () {
+                        var num = this[0];
+                        if (parseInt(num) > 0) {
+                            for (; n >= num; n -= num) ret += this[1];
+                        } else {
+                            ret = ret.replace(num, this[1]);
+                        }
+                    });
+                    return ret;
+                }
+            }
+        }
+        
+        function alphaNumeric(num, upperLower) {
+            num = Number(num) - 1;
+            var aNum = "";
+            if (upperLower == "upperCase") {
+                aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toUpperCase();
+            } else if (upperLower == "lowerCase") {
+                aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toLowerCase();
+            }
+            return aNum;
+        }
 
     }
 
