@@ -316,6 +316,101 @@
         }
     }
 
+    // 数字编号格式化
+    function getNumTypeNum(numTyp, num) {
+        var rtrnNum = "";
+        switch (numTyp) {
+            case "arabicPeriod":
+                rtrnNum = num + ". ";
+                break;
+            case "arabicParenR":
+                rtrnNum = num + ") ";
+                break;
+            case "alphaLcParenR":
+                rtrnNum = alphaNumeric(num, "lowerCase") + ") ";
+                break;
+            case "alphaLcPeriod":
+                rtrnNum = alphaNumeric(num, "lowerCase") + ". ";
+                break;
+            case "alphaUcParenR":
+                rtrnNum = alphaNumeric(num, "upperCase") + ") ";
+                break;
+            case "alphaUcPeriod":
+                rtrnNum = alphaNumeric(num, "upperCase") + ". ";
+                break;
+            case "romanUcPeriod":
+                rtrnNum = romanize(num) + ". ";
+                break;
+            case "romanLcParenR":
+                rtrnNum = romanize(num) + ") ";
+                break;
+            case "hebrew2Minus":
+                rtrnNum = hebrew2Minus.format(num) + "-";
+                break;
+            default:
+                rtrnNum = num;
+        }
+        return rtrnNum;
+    }
+
+    // 罗马数字转换
+    function romanize(num) {
+        if (!+num)
+            return false;
+        var digits = String(+num).split(""),
+            key = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM",
+                "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC",
+                "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"],
+            roman = "",
+            i = 3;
+        while (i--)
+            roman = (key[+digits.pop() + (i * 10)] || "") + roman;
+        return Array(+digits.join("") + 1).join("M") + roman;
+    }
+
+    // 字母数字编号生成 (a, b, c, ... or A, B, C, ...)
+    function alphaNumeric(num, upperLower) {
+        num = Number(num) - 1;
+        var aNum = "";
+        if (upperLower == "upperCase") {
+            aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toUpperCase();
+        } else if (upperLower == "lowerCase") {
+            aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toLowerCase();
+        }
+        return aNum;
+    }
+
+    // 希伯来数字编号器
+    var hebrew2Minus = archaicNumbers([
+        [1000, ''],
+        [400, 'ת'],
+        [300, 'ש'],
+        [200, 'ר'],
+        [100, 'ק'],
+        [90, 'צ'],
+        [80, 'פ'],
+        [70, 'ע'],
+        [60, 'ס'],
+        [50, 'נ'],
+        [40, 'מ'],
+        [30, 'ל'],
+        [20, 'כ'],
+        [10, 'י'],
+        [9, 'ט'],
+        [8, 'ח'],
+        [7, 'ז'],
+        [6, 'ו'],
+        [5, 'ה'],
+        [4, 'ד'],
+        [3, 'ג'],
+        [2, 'ב'],
+        [1, 'א'],
+        [/יה/, 'ט״ו'],
+        [/יו/, 'ט״ז'],
+        [/([א-ת])([א-ת])$/, '$1״$2'],
+        [/^([א-ת])$/, "$1׳"]
+    ]);
+
     // 公开工具函数
     window.PPTXUtils = {
         angleToDegrees: angleToDegrees,
@@ -329,7 +424,11 @@
         getTextByPathList: getTextByPathList,
         setTextByPathList: setTextByPathList,
         eachElement: eachElement,
-        archaicNumbers: archaicNumbers
+        archaicNumbers: archaicNumbers,
+        getNumTypeNum: getNumTypeNum,
+        romanize: romanize,
+        alphaNumeric: alphaNumeric,
+        hebrew2Minus: hebrew2Minus
     };
 
 })();
