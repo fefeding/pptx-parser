@@ -15,6 +15,9 @@
 (function () {
 
     var $ = window.jQuery;
+    var PPTXUtils = window.PPTXUtils || {};
+    var PPTXParser = window.PPTXParser || {};
+    var PPTXHtml = window.PPTXHtml || {};
 
     // Main pptxToHtml function
     function pptxToHtml(element, options) {
