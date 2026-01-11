@@ -6,7 +6,7 @@
 
 // Import the JavaScript modules (they expose globals)
 import './js/pptxjs.js';
-import './utils/utils.js';
+import './js/utils/utils.js';
 import './js/pptx-parser.js';
 
 // The JavaScript modules expose their APIs via global window object
