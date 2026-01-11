@@ -352,46 +352,14 @@
         var fontSizeFactor = 4 / 3.2;
         ////////////////////// 
         var slideWidth = 0;
-        var slideHeight = 0;
-        var isSlideMode = false;
+    var slideHeight = 0;
+    var isSlideMode = false;
 
-        // 计算元素位置 CSS（top, left）
-        function getPosition(xfrmNode, pNode, parentOff, parentExt, sType) {
-            if (!xfrmNode) return "";
+    // 计算元素位置和尺寸 - 使用 PPTXUtils 中的函数
+    var getPosition = window.PPTXUtils ? window.PPTXUtils.getPosition : function() { return ""; };
+    var getSize = window.PPTXUtils ? window.PPTXUtils.getSize : function() { return ""; };
 
-            var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-            var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-
-            var css = "";
-            if (sType === "group-rotate") {
-                css += "top: " + y + "px; left: " + x + "px;";
-            } else {
-                var chOff = xfrmNode["a:chOff"];
-                var chExt = xfrmNode["a:chExt"];
-                if (chOff && chExt) {
-                    var chx = parseInt(chOff["attrs"]["x"]) * slideFactor;
-                    var chy = parseInt(chOff["attrs"]["y"]) * slideFactor;
-                    css += "top: " + (y - chy) + "px; left: " + (x - chx) + "px;";
-                } else {
-                    css += "top: " + y + "px; left: " + x + "px;";
-                }
-            }
-            return css;
-        }
-
-        // 计算元素尺寸 CSS（width, height）
-        function getSize(xfrmNode, parentExt, sType) {
-            if (!xfrmNode) return "";
-
-            var ext = xfrmNode["a:ext"];
-            if (!ext) return "";
-
-            var w = parseInt(ext["attrs"]["cx"]) * slideFactor;
-            var h = parseInt(ext["attrs"]["cy"]) * slideFactor;
-
-            return "width: " + w + "px; height: " + h + "px;";
-        }
-        var processFullTheme = true;
+    var processFullTheme = true;
         var styleTable = {};
         var settings = $.extend(true, {
             // These are the defaults.
@@ -8385,7 +8353,7 @@
 
             switch (graphicTypeUri) {
                 case "http://schemas.openxmlformats.org/drawingml/2006/table":
-                    result = PPTXHtml.genTable(node, warpObj);
+                    result = genTableInternal(node, warpObj);
                     break;
                 case "http://schemas.openxmlformats.org/drawingml/2006/chart":
                     result = PPTXHtml.genChart(node, warpObj);
@@ -9544,6 +9512,374 @@
         }
 
 
+        function genTableInternal(node, warpObj) {
+            var order = node["attrs"]["order"];
+            var tableNode = window.PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
+            var xfrmNode = window.PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
+            
+            var getTblPr = window.PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblPr"]);
+            var getColsGrid = window.PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblGrid", "a:gridCol"]);
+            var tblDir = "";
+            if (getTblPr !== undefined) {
+                var isRTL = getTblPr["attrs"]["rtl"];
+                tblDir = (isRTL == 1 ? "dir=rtl" : "dir=ltr");
+            }
+            
+            var firstRowAttr = getTblPr !== undefined ? getTblPr["attrs"]["firstRow"] : undefined;
+            var firstColAttr = getTblPr !== undefined ? getTblPr["attrs"]["firstCol"] : undefined;
+            var lastRowAttr = getTblPr !== undefined ? getTblPr["attrs"]["lastRow"] : undefined;
+            var lastColAttr = getTblPr !== undefined ? getTblPr["attrs"]["lastCol"] : undefined;
+            var bandRowAttr = getTblPr !== undefined ? getTblPr["attrs"]["bandRow"] : undefined;
+            var bandColAttr = getTblPr !== undefined ? getTblPr["attrs"]["bandCol"] : undefined;
+            
+            var tblStylAttrObj = {
+                isFrstRowAttr: (firstRowAttr !== undefined && firstRowAttr == "1") ? 1 : 0,
+                isFrstColAttr: (firstColAttr !== undefined && firstColAttr == "1") ? 1 : 0,
+                isLstRowAttr: (lastRowAttr !== undefined && lastRowAttr == "1") ? 1 : 0,
+                isLstColAttr: (lastColAttr !== undefined && lastColAttr == "1") ? 1 : 0,
+                isBandRowAttr: (bandRowAttr !== undefined && bandRowAttr == "1") ? 1 : 0,
+                isBandColAttr: (bandColAttr !== undefined && bandColAttr == "1") ? 1 : 0
+            };
+
+            var thisTblStyle;
+            var tbleStyleId = getTblPr !== undefined ? getTblPr["a:tableStyleId"] : undefined;
+            if (tbleStyleId !== undefined) {
+                var tbleStylList = window.PPTXUtils.getTextByPathList(warpObj, ["tableStyles", "a:tblStyleLst", "a:tblStyle"]);
+                if (tbleStylList !== undefined) {
+                    if (tbleStylList.constructor === Array) {
+                        for (var k = 0; k < tbleStylList.length; k++) {
+                            if (tbleStylList[k]["attrs"]["styleId"] == tbleStyleId) {
+                                thisTblStyle = tbleStylList[k];
+                            }
+                        }
+                    } else {
+                        if (tbleStylList["attrs"]["styleId"] == tbleStyleId) {
+                            thisTblStyle = tbleStylList;
+                        }
+                    }
+                }
+            }
+            if (thisTblStyle !== undefined) {
+                thisTblStyle["tblStylAttrObj"] = tblStylAttrObj;
+                warpObj["thisTbiStyle"] = thisTblStyle;
+            }
+            
+            var tblStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle"]);
+            var tblBorderStyl = window.PPTXUtils.getTextByPathList(tblStyl, ["a:tcBdr"]);
+            var tbl_borders = "";
+            if (tblBorderStyl !== undefined) {
+                tbl_borders = getTableBorders(tblBorderStyl, warpObj);
+            }
+            var tbl_bgcolor = "";
+            var tbl_bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
+            if (tbl_bgFillschemeClr !== undefined) {
+                tbl_bgcolor = window.PPTXColorUtils.getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
+            }
+            if (tbl_bgFillschemeClr === undefined) {
+                tbl_bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
+                tbl_bgcolor = window.PPTXColorUtils.getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
+            }
+            if (tbl_bgcolor !== "") {
+                tbl_bgcolor = "background-color: #" + tbl_bgcolor + ";";
+            }
+            
+            var tableHtml = "<table " + tblDir + " style='border-collapse: collapse;" +
+                getPosition(xfrmNode, node, undefined, undefined) +
+                getSize(xfrmNode, undefined, undefined) +
+                " z-index: " + order + ";" +
+                tbl_borders + ";" +
+                tbl_bgcolor + "'>";
+
+            var trNodes = tableNode["a:tr"];
+            if (trNodes.constructor !== Array) {
+                trNodes = [trNodes];
+            }
+            
+            var totalrowSpan = 0;
+            var rowSpanAry = [];
+            for (var i = 0; i < trNodes.length; i++) {
+                var rowHeightParam = trNodes[i]["attrs"]["h"];
+                var rowHeight = 0;
+                var rowsStyl = "";
+                if (rowHeightParam !== undefined) {
+                    rowHeight = parseInt(rowHeightParam) * slideFactor;
+                    rowsStyl += "height:" + rowHeight + "px;";
+                }
+                var fillColor = "";
+                var row_borders = "";
+                var fontClrPr = "";
+                var fontWeight = "";
+                var band_1H_fillColor;
+                var band_2H_fillColor;
+
+                if (thisTblStyle !== undefined && thisTblStyle["a:wholeTbl"] !== undefined) {
+                    var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
+                    if (bgFillschemeClr !== undefined) {
+                        var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                        if (local_fillColor !== undefined) {
+                            fillColor = local_fillColor;
+                        }
+                    }
+                    var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
+                    if (rowTxtStyl !== undefined) {
+                        var local_fontColor = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                        if (local_fontColor !== undefined) {
+                            fontClrPr = local_fontColor;
+                        }
+
+                        var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                        if (local_fontWeight != "") {
+                            fontWeight = local_fontWeight
+                        }
+                    }
+                }
+
+                if (i == 0 && tblStylAttrObj["isFrstRowAttr"] == 1 && thisTblStyle !== undefined) {
+
+                    var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:fill", "a:solidFill"]);
+                    if (bgFillschemeClr !== undefined) {
+                        var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                        if (local_fillColor !== undefined) {
+                            fillColor = local_fillColor;
+                        }
+                    }
+                    var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:tcBdr"]);
+                    if (borderStyl !== undefined) {
+                        var local_row_borders = getTableBorders(borderStyl, warpObj);
+                        if (local_row_borders != "") {
+                            row_borders = local_row_borders;
+                        }
+                    }
+                    var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcTxStyle"]);
+                    if (rowTxtStyl !== undefined) {
+                        var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                        if (local_fontClrPr !== undefined) {
+                            fontClrPr = local_fontClrPr;
+                        }
+                        var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                        if (local_fontWeight !== "") {
+                            fontWeight = local_fontWeight;
+                        }
+                    }
+
+                } else if (i > 0 && tblStylAttrObj["isBandRowAttr"] == 1 && thisTblStyle !== undefined) {
+                    fillColor = "";
+                    row_borders = undefined;
+                    if ((i % 2) == 0 && thisTblStyle["a:band2H"] !== undefined) {
+                        var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        if (bgFillschemeClr !== undefined) {
+                            var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                            if (local_fillColor !== "") {
+                                fillColor = local_fillColor;
+                                band_2H_fillColor = local_fillColor;
+                            }
+                        }
+
+                        var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:tcBdr"]);
+                        if (borderStyl !== undefined) {
+                            var local_row_borders = getTableBorders(borderStyl, warpObj);
+                            if (local_row_borders != "") {
+                                row_borders = local_row_borders;
+                            }
+                        }
+                        var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcTxStyle"]);
+                        if (rowTxtStyl !== undefined) {
+                            var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                            if (local_fontClrPr !== undefined) {
+                                fontClrPr = local_fontClrPr;
+                            }
+                        }
+
+                        var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+
+                        if (local_fontWeight !== "") {
+                            fontWeight = local_fontWeight;
+                        }
+                    }
+                    if ((i % 2) != 0 && thisTblStyle["a:band1H"] !== undefined) {
+                        var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        if (bgFillschemeClr !== undefined) {
+                            var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                            if (local_fillColor !== undefined) {
+                                fillColor = local_fillColor;
+                                band_1H_fillColor = local_fillColor;
+                            }
+                        }
+                        var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:tcBdr"]);
+                        if (borderStyl !== undefined) {
+                            var local_row_borders = getTableBorders(borderStyl, warpObj);
+                            if (local_row_borders != "") {
+                                row_borders = local_row_borders;
+                            }
+                        }
+                        var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcTxStyle"]);
+                        if (rowTxtStyl !== undefined) {
+                            var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                            if (local_fontClrPr !== undefined) {
+                                fontClrPr = local_fontClrPr;
+                            }
+                            var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            if (local_fontWeight != "") {
+                                fontWeight = local_fontWeight;
+                            }
+                        }
+                    }
+
+                }
+                if (i == (trNodes.length - 1) && tblStylAttrObj["isLstRowAttr"] == 1 && thisTblStyle !== undefined) {
+                    var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:fill", "a:solidFill"]);
+                    if (bgFillschemeClr !== undefined) {
+                        var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                        if (local_fillColor !== undefined) {
+                            fillColor = local_fillColor;
+                        }
+                    }
+                    var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:tcBdr"]);
+                    if (borderStyl !== undefined) {
+                        var local_row_borders = getTableBorders(borderStyl, warpObj);
+                        if (local_row_borders != "") {
+                            row_borders = local_row_borders;
+                        }
+                    }
+                    var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcTxStyle"]);
+                    if (rowTxtStyl !== undefined) {
+                        var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                        if (local_fontClrPr !== undefined) {
+                            fontClrPr = local_fontClrPr;
+                        }
+
+                        var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                        if (local_fontWeight !== "") {
+                            fontWeight = local_fontWeight;
+                        }
+                    }
+                }
+                rowsStyl += ((row_borders !== undefined) ? row_borders : "");
+                rowsStyl += ((fontClrPr !== undefined) ? " color: #" + fontClrPr + ";" : "");
+                rowsStyl += ((fontWeight != "") ? " font-weight:" + fontWeight + ";" : "");
+                if (fillColor !== undefined && fillColor != "") {
+                    rowsStyl += "background-color: #" + fillColor + ";";
+                }
+                tableHtml += "<tr style='" + rowsStyl + "'>";
+
+                var tcNodes = trNodes[i]["a:tc"];
+                if (tcNodes !== undefined) {
+                    if (tcNodes.constructor === Array) {
+                        var j = 0;
+                        if (rowSpanAry.length == 0) {
+                            rowSpanAry = Array.apply(null, Array(tcNodes.length)).map(function () { return 0 });
+                        }
+                        var totalColSpan = 0;
+                        while (j < tcNodes.length) {
+                            if (rowSpanAry[j] == 0 && totalColSpan == 0) {
+                                var a_sorce;
+                                if (j == 0 && tblStylAttrObj["isFrstColAttr"] == 1) {
+                                    a_sorce = "a:firstCol";
+                                    if (tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1) &&
+                                        window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:seCell"]) !== undefined) {
+                                        a_sorce = "a:seCell";
+                                    } else if (tblStylAttrObj["isFrstRowAttr"] == 1 && i == 0 &&
+                                        window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:neCell"]) !== undefined) {
+                                        a_sorce = "a:neCell";
+                                    }
+                                } else if ((j > 0 && tblStylAttrObj["isBandColAttr"] == 1) &&
+                                    !(tblStylAttrObj["isFrstColAttr"] == 1 && i == 0) &&
+                                    !(tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1)) &&
+                                    j != (tcNodes.length - 1)) {
+
+                                    if ((j % 2) != 0) {
+                                        var aBandNode = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
+                                        if (aBandNode === undefined) {
+                                            aBandNode = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1V"]);
+                                            if (aBandNode !== undefined) {
+                                                a_sorce = "a:band2V";
+                                            }
+                                        } else {
+                                            a_sorce = "a:band2V";
+                                        }
+                                    }
+                                }
+
+                                if (j == (tcNodes.length - 1) && tblStylAttrObj["isLstColAttr"] == 1) {
+                                    a_sorce = "a:lastCol";
+                                    if (tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1) && window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:swCell"]) !== undefined) {
+                                        a_sorce = "a:swCell";
+                                    } else if (tblStylAttrObj["isFrstRowAttr"] == 1 && i == 0 && window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:nwCell"]) !== undefined) {
+                                        a_sorce = "a:nwCell";
+                                    }
+                                }
+
+                                var cellParmAry = getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj)
+                                var text = cellParmAry[0];
+                                var colStyl = cellParmAry[1];
+                                var cssName = cellParmAry[2];
+                                var rowSpan = cellParmAry[3];
+                                var colSpan = cellParmAry[4];
+
+                                if (rowSpan !== undefined) {
+                                    totalrowSpan++;
+                                    rowSpanAry[j] = parseInt(rowSpan) - 1;
+                                    tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' rowspan ='" +
+                                        parseInt(rowSpan) + "' style='" + colStyl + "'>" + text + "</td>";
+                                } else if (colSpan !== undefined) {
+                                    tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' colspan = '" +
+                                        parseInt(colSpan) + "' style='" + colStyl + "'>" + text + "</td>";
+                                    totalColSpan = parseInt(colSpan) - 1;
+                                } else {
+                                    tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' style = '" + colStyl + "'>" + text + "</td>";
+                                }
+
+                            } else {
+                                if (rowSpanAry[j] != 0) {
+                                    rowSpanAry[j] -= 1;
+                                }
+                                if (totalColSpan != 0) {
+                                    totalColSpan--;
+                                }
+                            }
+                            j++;
+                        }
+                    } else {
+                        var a_sorce;
+                        if (tblStylAttrObj["isFrstColAttr"] == 1 && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
+                            a_sorce = "a:firstCol";
+
+                        } else if ((tblStylAttrObj["isBandColAttr"] == 1) && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
+
+                            var aBandNode = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
+                            if (aBandNode === undefined) {
+                                aBandNode = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1V"]);
+                                if (aBandNode !== undefined) {
+                                    a_sorce = "a:band2V";
+                                }
+                            } else {
+                                a_sorce = "a:band2V";
+                            }
+                        }
+
+                        if (tblStylAttrObj["isLstColAttr"] == 1 && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
+                            a_sorce = "a:lastCol";
+                        }
+
+                        var cellParmAry = getTableCellParams(tcNodes, getColsGrid , i , undefined , thisTblStyle, a_sorce, warpObj)
+                        var text = cellParmAry[0];
+                        var colStyl = cellParmAry[1];
+                        var cssName = cellParmAry[2];
+                        var rowSpan = cellParmAry[3];
+
+                        if (rowSpan !== undefined) {
+                            tableHtml += "<td  class='" + cssName + "' rowspan='" + parseInt(rowSpan) + "' style = '" + colStyl + "'>" + text + "</td>";
+                        } else {
+                            tableHtml += "<td class='" + cssName + "' style='" + colStyl + "'>" + text + "</td>";
+                        }
+                    }
+                }
+                tableHtml += "</tr>";
+            }
+
+            return tableHtml;
+        }
+
         function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
             //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
             //text, cell-width, cell-borders, 
@@ -9781,79 +10117,6 @@
                 "'>" + rslt + "</div>";
         }
 
-        function getPosition(slideSpNode, pNode, slideLayoutSpNode, slideMasterSpNode, sType) {
-            var off;
-            var x = -1, y = -1;
-
-            if (slideSpNode !== undefined) {
-                off = slideSpNode["a:off"]["attrs"];
-            }
-
-            if (off === undefined && slideLayoutSpNode !== undefined) {
-                off = slideLayoutSpNode["a:off"]["attrs"];
-            } else if (off === undefined && slideMasterSpNode !== undefined) {
-                off = slideMasterSpNode["a:off"]["attrs"];
-            }
-            var offX = 0, offY = 0;
-            var grpX = 0, grpY = 0;
-            if (sType == "group") {
-
-                var grpXfrmNode = window.PPTXUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
-                if (xfrmNode !== undefined) {
-                    grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-                    grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-                    // var chx = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-                    // var chy = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
-                    // var cx = parseInt(grpXfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
-                    // var cy = parseInt(grpXfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
-                    // var chcx = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
-                    // var chcy = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
-                    // var rotate = parseInt(grpXfrmNode["attrs"]["rot"])
-                }
-            }
-            if (sType == "group-rotate" && pNode["p:grpSpPr"] !== undefined) {
-                var xfrmNode = pNode["p:grpSpPr"]["a:xfrm"];
-                // var ox = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-                // var oy = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-                var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-                var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
-
-                offX = chx;
-                offY = chy;
-            }
-            if (off === undefined) {
-                return "";
-            } else {
-                x = parseInt(off["x"]) * slideFactor;
-                y = parseInt(off["y"]) * slideFactor;
-                // if (type = "body")
-                //     console.log("getPosition: slideSpNode: ", slideSpNode, ", type: ", type, "x: ", x, "offX:", offX, "y:", y, "offY:", offY)
-                return (isNaN(x) || isNaN(y)) ? "" : "top:" + (y - offY + grpY) + "px; left:" + (x - offX + grpX) + "px;";
-            }
-
-        }
-
-        function getSize(slideSpNode, slideLayoutSpNode, slideMasterSpNode) {
-            var ext = undefined;
-            var w = -1, h = -1;
-
-            if (slideSpNode !== undefined) {
-                ext = slideSpNode["a:ext"]["attrs"];
-            } else if (slideLayoutSpNode !== undefined) {
-                ext = slideLayoutSpNode["a:ext"]["attrs"];
-            } else if (slideMasterSpNode !== undefined) {
-                ext = slideMasterSpNode["a:ext"]["attrs"];
-            }
-
-            if (ext === undefined) {
-                return "";
-            } else {
-                w = parseInt(ext["cx"]) * slideFactor;
-                h = parseInt(ext["cy"]) * slideFactor;
-                return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
-            }
-
-        }
         function getVerticalMargins(pNode, textBodyNode, type, idx, warpObj) {
             //margin-top ; 
             //a:pPr => a:spcBef => a:spcPts (/100) | a:spcPct (/?)
@@ -11799,6 +12062,8 @@
         // Number formatting functions are now in pptx-utils.js
         // Ensure pptx-utils.js is loaded before this file
 
+        // Export genTextBody for table module
+        window._genTextBody = genTextBody;
     }
 
 

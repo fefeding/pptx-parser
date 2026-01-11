@@ -17,6 +17,313 @@
     var $ = window.jQuery;
     var PPTXParser = window.PPTXParser || {};
     var PPTXHtml = window.PPTXHtml || {};
+    
+    // Wait for PPTXShapeUtils to be available
+    function ensurePPTXShapeUtils() {
+        if (window.PPTXShapeUtils && typeof window.PPTXShapeUtils.shapeSnipRoundRect === 'function') {
+            return window.PPTXShapeUtils;
+        }
+        // If not available, check if it's defined but empty, or wait a bit
+        if (window.PPTXShapeUtils === undefined) {
+            window.PPTXShapeUtils = {};
+        }
+        return window.PPTXShapeUtils;
+    }
+    
+    ensurePPTXShapeUtils();
+
+    // Dingbat unicode mapping for special font characters
+    var dingbat_unicode = [
+        // Wingdings 2
+        {f: "Wingdings 2", code: 0x001, unicode: 0x2713},
+        {f: "Wingdings 2", code: 0x002, unicode: 0x2714},
+        {f: "Wingdings 2", code: 0x003, unicode: 0x2715},
+        {f: "Wingdings 2", code: 0x004, unicode: 0x2716},
+        {f: "Wingdings 2", code: 0x005, unicode: 0x2717},
+        {f: "Wingdings 2", code: 0x006, unicode: 0x2718},
+        {f: "Wingdings 2", code: 0x007, unicode: 0x2719},
+        {f: "Wingdings 2", code: 0x008, unicode: 0x271A},
+        {f: "Wingdings 2", code: 0x009, unicode: 0x271B},
+        {f: "Wingdings 2", code: 0x00A, unicode: 0x271C},
+        {f: "Wingdings 2", code: 0x00B, unicode: 0x271D},
+        {f: "Wingdings 2", code: 0x00C, unicode: 0x271E},
+        {f: "Wingdings 2", code: 0x00D, unicode: 0x271F},
+        {f: "Wingdings 2", code: 0x00E, unicode: 0x2720},
+        {f: "Wingdings 2", code: 0x00F, unicode: 0x2721},
+        {f: "Wingdings 2", code: 0x010, unicode: 0x2722},
+        {f: "Wingdings 2", code: 0x011, unicode: 0x2723},
+        {f: "Wingdings 2", code: 0x012, unicode: 0x2724},
+        {f: "Wingdings 2", code: 0x013, unicode: 0x2725},
+        {f: "Wingdings 2", code: 0x014, unicode: 0x2726},
+        {f: "Wingdings 2", code: 0x015, unicode: 0x2727},
+        {f: "Wingdings 2", code: 0x016, unicode: 0x2728},
+        {f: "Wingdings 2", code: 0x017, unicode: 0x2729},
+        {f: "Wingdings 2", code: 0x018, unicode: 0x272A},
+        {f: "Wingdings 2", code: 0x019, unicode: 0x272B},
+        {f: "Wingdings 2", code: 0x01A, unicode: 0x272C},
+        {f: "Wingdings 2", code: 0x01B, unicode: 0x272D},
+        {f: "Wingdings 2", code: 0x01C, unicode: 0x272E},
+        {f: "Wingdings 2", code: 0x01D, unicode: 0x272F},
+        {f: "Wingdings 2", code: 0x01E, unicode: 0x2730},
+        {f: "Wingdings 2", code: 0x01F, unicode: 0x2731},
+        {f: "Wingdings 2", code: 0x020, unicode: 0x2732},
+        {f: "Wingdings 2", code: 0x021, unicode: 0x2733},
+        {f: "Wingdings 2", code: 0x022, unicode: 0x2734},
+        {f: "Wingdings 2", code: 0x023, unicode: 0x2735},
+        {f: "Wingdings 2", code: 0x024, unicode: 0x2736},
+        {f: "Wingdings 2", code: 0x025, unicode: 0x2737},
+        {f: "Wingdings 2", code: 0x026, unicode: 0x2738},
+        {f: "Wingdings 2", code: 0x027, unicode: 0x2739},
+        {f: "Wingdings 2", code: 0x028, unicode: 0x273A},
+        {f: "Wingdings 2", code: 0x029, unicode: 0x273B},
+        {f: "Wingdings 2", code: 0x02A, unicode: 0x273C},
+        {f: "Wingdings 2", code: 0x02B, unicode: 0x273D},
+        {f: "Wingdings 2", code: 0x02C, unicode: 0x273E},
+        {f: "Wingdings 2", code: 0x02D, unicode: 0x273F},
+        {f: "Wingdings 2", code: 0x02E, unicode: 0x2740},
+        {f: "Wingdings 2", code: 0x02F, unicode: 0x2741},
+        {f: "Wingdings 2", code: 0x030, unicode: 0x2742},
+        {f: "Wingdings 2", code: 0x031, unicode: 0x2743},
+        {f: "Wingdings 2", code: 0x032, unicode: 0x2744},
+        {f: "Wingdings 2", code: 0x033, unicode: 0x2745},
+        {f: "Wingdings 2", code: 0x034, unicode: 0x2746},
+        {f: "Wingdings 2", code: 0x035, unicode: 0x2747},
+        {f: "Wingdings 2", code: 0x036, unicode: 0x2748},
+        {f: "Wingdings 2", code: 0x037, unicode: 0x2749},
+        {f: "Wingdings 2", code: 0x038, unicode: 0x274A},
+        {f: "Wingdings 2", code: 0x039, unicode: 0x274B},
+        {f: "Wingdings 2", code: 0x03A, unicode: 0x274C},
+        {f: "Wingdings 2", code: 0x03B, unicode: 0x274D},
+        {f: "Wingdings 2", code: 0x03C, unicode: 0x274E},
+        {f: "Wingdings 2", code: 0x03D, unicode: 0x274F},
+        {f: "Wingdings 2", code: 0x03E, unicode: 0x2750},
+        {f: "Wingdings 2", code: 0x03F, unicode: 0x2751},
+        {f: "Wingdings 2", code: 0x040, unicode: 0x2752},
+        {f: "Wingdings 2", code: 0x041, unicode: 0x2753},
+        {f: "Wingdings 2", code: 0x042, unicode: 0x2754},
+        {f: "Wingdings 2", code: 0x043, unicode: 0x2755},
+        {f: "Wingdings 2", code: 0x044, unicode: 0x2756},
+        {f: "Wingdings 2", code: 0x045, unicode: 0x2757},
+        {f: "Wingdings 2", code: 0x046, unicode: 0x2758},
+        {f: "Wingdings 2", code: 0x047, unicode: 0x2759},
+        {f: "Wingdings 2", code: 0x048, unicode: 0x275A},
+        {f: "Wingdings 2", code: 0x049, unicode: 0x275B},
+        {f: "Wingdings 2", code: 0x04A, unicode: 0x275C},
+        {f: "Wingdings 2", code: 0x04B, unicode: 0x275D},
+        {f: "Wingdings 2", code: 0x04C, unicode: 0x275E},
+        {f: "Wingdings 2", code: 0x04D, unicode: 0x275F},
+        {f: "Wingdings 2", code: 0x04E, unicode: 0x2760},
+        {f: "Wingdings 2", code: 0x04F, unicode: 0x2761},
+        {f: "Wingdings 2", code: 0x050, unicode: 0x2762},
+        {f: "Wingdings 2", code: 0x051, unicode: 0x2763},
+        {f: "Wingdings 2", code: 0x052, unicode: 0x2764},
+        {f: "Wingdings 2", code: 0x053, unicode: 0x2765},
+        {f: "Wingdings 2", code: 0x054, unicode: 0x2766},
+        {f: "Wingdings 2", code: 0x055, unicode: 0x2767},
+        {f: "Wingdings 2", code: 0x056, unicode: 0x2768},
+        {f: "Wingdings 2", code: 0x057, unicode: 0x2769},
+        {f: "Wingdings 2", code: 0x058, unicode: 0x276A},
+        {f: "Wingdings 2", code: 0x059, unicode: 0x276B},
+        {f: "Wingdings 2", code: 0x05A, unicode: 0x276C},
+        {f: "Wingdings 2", code: 0x05B, unicode: 0x276D},
+        {f: "Wingdings 2", code: 0x05C, unicode: 0x276E},
+        {f: "Wingdings 2", code: 0x05D, unicode: 0x276F},
+        {f: "Wingdings 2", code: 0x05E, unicode: 0x2770},
+        {f: "Wingdings 2", code: 0x05F, unicode: 0x2771},
+        {f: "Wingdings 2", code: 0x060, unicode: 0x2772},
+        {f: "Wingdings 2", code: 0x061, unicode: 0x2773},
+        {f: "Wingdings 2", code: 0x062, unicode: 0x2774},
+        {f: "Wingdings 2", code: 0x063, unicode: 0x2775},
+        {f: "Wingdings 2", code: 0x064, unicode: 0x2794},
+        {f: "Wingdings 2", code: 0x065, unicode: 0x2798},
+        {f: "Wingdings 2", code: 0x066, unicode: 0x2799},
+        {f: "Wingdings 2", code: 0x067, unicode: 0x279A},
+        {f: "Wingdings 2", code: 0x068, unicode: 0x279B},
+        {f: "Wingdings 2", code: 0x069, unicode: 0x279C},
+        {f: "Wingdings 2", code: 0x06A, unicode: 0x279D},
+        {f: "Wingdings 2", code: 0x06B, unicode: 0x279E},
+        {f: "Wingdings 2", code: 0x06C, unicode: 0x279F},
+        {f: "Wingdings 2", code: 0x06D, unicode: 0x27A0},
+        {f: "Wingdings 2", code: 0x06E, unicode: 0x27A1},
+        {f: "Wingdings 2", code: 0x06F, unicode: 0x27A2},
+        {f: "Wingdings 2", code: 0x070, unicode: 0x27A3},
+        {f: "Wingdings 2", code: 0x071, unicode: 0x27A4},
+        {f: "Wingdings 2", code: 0x072, unicode: 0x27A5},
+        {f: "Wingdings 2", code: 0x073, unicode: 0x27A6},
+        {f: "Wingdings 2", code: 0x074, unicode: 0x27A7},
+        {f: "Wingdings 2", code: 0x075, unicode: 0x27A8},
+        {f: "Wingdings 2", code: 0x076, unicode: 0x27A9},
+        {f: "Wingdings 2", code: 0x077, unicode: 0x27AA},
+        {f: "Wingdings 2", code: 0x078, unicode: 0x27AB},
+        {f: "Wingdings 2", code: 0x079, unicode: 0x27AC},
+        {f: "Wingdings 2", code: 0x07A, unicode: 0x27AD},
+        {f: "Wingdings 2", code: 0x07B, unicode: 0x27AE},
+        {f: "Wingdings 2", code: 0x07C, unicode: 0x27AF},
+        {f: "Wingdings 2", code: 0x07D, unicode: 0x27B1},
+        {f: "Wingdings 2", code: 0x07E, unicode: 0x27B2},
+        {f: "Wingdings 2", code: 0x07F, unicode: 0x27B3},
+        {f: "Wingdings 2", code: 0x080, unicode: 0x27B4},
+        {f: "Wingdings 2", code: 0x081, unicode: 0x27B5},
+        {f: "Wingdings 2", code: 0x082, unicode: 0x27B6},
+        {f: "Wingdings 2", code: 0x083, unicode: 0x27B7},
+        {f: "Wingdings 2", code: 0x084, unicode: 0x27B8},
+        {f: "Wingdings 2", code: 0x085, unicode: 0x27B9},
+        {f: "Wingdings 2", code: 0x086, unicode: 0x27BA},
+        {f: "Wingdings 2", code: 0x087, unicode: 0x27BB},
+        {f: "Wingdings 2", code: 0x088, unicode: 0x27BC},
+        {f: "Wingdings 2", code: 0x089, unicode: 0x27BD},
+        {f: "Wingdings 2", code: 0x08A, unicode: 0x27BE},
+        {f: "Wingdings 2", code: 0x08B, unicode: 0x27F3},
+        {f: "Wingdings 2", code: 0x08C, unicode: 0x27F4},
+        {f: "Wingdings 2", code: 0x08D, unicode: 0x27F5},
+        {f: "Wingdings 2", code: 0x08E, unicode: 0x27F6},
+        {f: "Wingdings 2", code: 0x08F, unicode: 0x27F7},
+        {f: "Wingdings 2", code: 0x090, unicode: 0x27F8},
+        {f: "Wingdings 2", code: 0x091, unicode: 0x27F9},
+        {f: "Wingdings 2", code: 0x092, unicode: 0x27FA},
+        {f: "Wingdings 2", code: 0x093, unicode: 0x27FB},
+        {f: "Wingdings 2", code: 0x094, unicode: 0x27FC},
+        {f: "Wingdings 2", code: 0x095, unicode: 0x27FD},
+        {f: "Wingdings 2", code: 0x096, unicode: 0x27FE},
+        {f: "Wingdings 2", code: 0x097, unicode: 0x27FF},
+        // Wingdings 3
+        {f: "Wingdings 3", code: 0x021, unicode: 0x2761},
+        {f: "Wingdings 3", code: 0x022, unicode: 0x2762},
+        {f: "Wingdings 3", code: 0x023, unicode: 0x2763},
+        {f: "Wingdings 3", code: 0x024, unicode: 0x2764},
+        {f: "Wingdings 3", code: 0x025, unicode: 0x2765},
+        {f: "Wingdings 3", code: 0x026, unicode: 0x2766},
+        {f: "Wingdings 3", code: 0x027, unicode: 0x2767},
+        {f: "Wingdings 3", code: 0x028, unicode: 0x267F},
+        {f: "Wingdings 3", code: 0x029, unicode: 0x2680},
+        {f: "Wingdings 3", code: 0x02A, unicode: 0x2681},
+        {f: "Wingdings 3", code: 0x02B, unicode: 0x2682},
+        {f: "Wingdings 3", code: 0x02C, unicode: 0x2683},
+        {f: "Wingdings 3", code: 0x02D, unicode: 0x2684},
+        {f: "Wingdings 3", code: 0x02E, unicode: 0x2685},
+        {f: "Wingdings 3", code: 0x02F, unicode: 0x2686},
+        {f: "Wingdings 3", code: 0x030, unicode: 0x2687},
+        {f: "Wingdings 3", code: 0x031, unicode: 0x2688},
+        {f: "Wingdings 3", code: 0x032, unicode: 0x2689},
+        {f: "Wingdings 3", code: 0x033, unicode: 0x268A},
+        {f: "Wingdings 3", code: 0x034, unicode: 0x268B},
+        {f: "Wingdings 3", code: 0x035, unicode: 0x268C},
+        {f: "Wingdings 3", code: 0x036, unicode: 0x268D},
+        {f: "Wingdings 3", code: 0x037, unicode: 0x268E},
+        {f: "Wingdings 3", code: 0x038, unicode: 0x268F},
+        {f: "Wingdings 3", code: 0x039, unicode: 0x2690},
+        {f: "Wingdings 3", code: 0x03A, unicode: 0x2691},
+        {f: "Wingdings 3", code: 0x03B, unicode: 0x2692},
+        {f: "Wingdings 3", code: 0x03C, unicode: 0x2693},
+        {f: "Wingdings 3", code: 0x03D, unicode: 0x2694},
+        {f: "Wingdings 3", code: 0x03E, unicode: 0x2695},
+        {f: "Wingdings 3", code: 0x03F, unicode: 0x2696},
+        {f: "Wingdings 3", code: 0x040, unicode: 0x2697},
+        {f: "Wingdings 3", code: 0x041, unicode: 0x2698},
+        {f: "Wingdings 3", code: 0x042, unicode: 0x2699},
+        {f: "Wingdings 3", code: 0x043, unicode: 0x269A},
+        {f: "Wingdings 3", code: 0x044, unicode: 0x269B},
+        {f: "Wingdings 3", code: 0x045, unicode: 0x269C},
+        {f: "Wingdings 3", code: 0x046, unicode: 0x269D},
+        {f: "Wingdings 3", code: 0x047, unicode: 0x269E},
+        {f: "Wingdings 3", code: 0x048, unicode: 0x269F},
+        {f: "Wingdings 3", code: 0x049, unicode: 0x26A0},
+        {f: "Wingdings 3", code: 0x04A, unicode: 0x26A1},
+        {f: "Wingdings 3", code: 0x04B, unicode: 0x26A2},
+        {f: "Wingdings 3", code: 0x04C, unicode: 0x26A3},
+        {f: "Wingdings 3", code: 0x04D, unicode: 0x26A4},
+        {f: "Wingdings 3", code: 0x04E, unicode: 0x26A5},
+        {f: "Wingdings 3", code: 0x04F, unicode: 0x26A6},
+        {f: "Wingdings 3", code: 0x050, unicode: 0x26A7},
+        {f: "Wingdings 3", code: 0x051, unicode: 0x26A8},
+        {f: "Wingdings 3", code: 0x052, unicode: 0x26A9},
+        {f: "Wingdings 3", code: 0x053, unicode: 0x26AA},
+        {f: "Wingdings 3", code: 0x054, unicode: 0x26AB},
+        {f: "Wingdings 3", code: 0x055, unicode: 0x26AC},
+        {f: "Wingdings 3", code: 0x056, unicode: 0x26AD},
+        {f: "Wingdings 3", code: 0x057, unicode: 0x26AE},
+        {f: "Wingdings 3", code: 0x058, unicode: 0x26AF},
+        {f: "Wingdings 3", code: 0x059, unicode: 0x26B0},
+        {f: "Wingdings 3", code: 0x05A, unicode: 0x26B1},
+        {f: "Wingdings 3", code: 0x05B, unicode: 0x26B2},
+        {f: "Wingdings 3", code: 0x05C, unicode: 0x26B3},
+        {f: "Wingdings 3", code: 0x05D, unicode: 0x26B4},
+        {f: "Wingdings 3", code: 0x05E, unicode: 0x26B5},
+        {f: "Wingdings 3", code: 0x05F, unicode: 0x26B6},
+        {f: "Wingdings 3", code: 0x060, unicode: 0x26B7},
+        {f: "Wingdings 3", code: 0x061, unicode: 0x26B8},
+        {f: "Wingdings 3", code: 0x062, unicode: 0x26B9},
+        {f: "Wingdings 3", code: 0x063, unicode: 0x26BA},
+        {f: "Wingdings 3", code: 0x064, unicode: 0x26BB},
+        {f: "Wingdings 3", code: 0x065, unicode: 0x26BC},
+        {f: "Wingdings 3", code: 0x066, unicode: 0x26BD},
+        {f: "Wingdings 3", code: 0x067, unicode: 0x26BE},
+        {f: "Wingdings 3", code: 0x068, unicode: 0x26BF},
+        {f: "Wingdings 3", code: 0x069, unicode: 0x26C0},
+        {f: "Wingdings 3", code: 0x06A, unicode: 0x26C1},
+        {f: "Wingdings 3", code: 0x06B, unicode: 0x26C2},
+        {f: "Wingdings 3", code: 0x06C, unicode: 0x26C3},
+        {f: "Wingdings 3", code: 0x06D, unicode: 0x26C4},
+        {f: "Wingdings 3", code: 0x06E, unicode: 0x26C5},
+        {f: "Wingdings 3", code: 0x06F, unicode: 0x26C6},
+        {f: "Wingdings 3", code: 0x070, unicode: 0x26C7},
+        {f: "Wingdings 3", code: 0x071, unicode: 0x26C8},
+        {f: "Wingdings 3", code: 0x072, unicode: 0x26C9},
+        {f: "Wingdings 3", code: 0x073, unicode: 0x26CA},
+        {f: "Wingdings 3", code: 0x074, unicode: 0x26CB},
+        {f: "Wingdings 3", code: 0x075, unicode: 0x26CC},
+        {f: "Wingdings 3", code: 0x076, unicode: 0x26CD},
+        {f: "Wingdings 3", code: 0x077, unicode: 0x26CE},
+        {f: "Wingdings 3", code: 0x078, unicode: 0x26CF},
+        {f: "Wingdings 3", code: 0x079, unicode: 0x26D0},
+        {f: "Wingdings 3", code: 0x07A, unicode: 0x26D1},
+        {f: "Wingdings 3", code: 0x07B, unicode: 0x26D2},
+        {f: "Wingdings 3", code: 0x07C, unicode: 0x26D3},
+        {f: "Wingdings 3", code: 0x07D, unicode: 0x26D4},
+        {f: "Wingdings 3", code: 0x07E, unicode: 0x26D5},
+        {f: "Wingdings 3", code: 0x07F, unicode: 0x26D6},
+        {f: "Wingdings 3", code: 0x080, unicode: 0x26D7},
+        {f: "Wingdings 3", code: 0x081, unicode: 0x26D8},
+        {f: "Wingdings 3", code: 0x082, unicode: 0x26D9},
+        {f: "Wingdings 3", code: 0x083, unicode: 0x26DA},
+        {f: "Wingdings 3", code: 0x084, unicode: 0x26DB},
+        {f: "Wingdings 3", code: 0x085, unicode: 0x26DC},
+        {f: "Wingdings 3", code: 0x086, unicode: 0x26DD},
+        {f: "Wingdings 3", code: 0x087, unicode: 0x26DE},
+        {f: "Wingdings 3", code: 0x088, unicode: 0x26DF},
+        {f: "Wingdings 3", code: 0x089, unicode: 0x26E0},
+        {f: "Wingdings 3", code: 0x08A, unicode: 0x26E1},
+        {f: "Wingdings 3", code: 0x08B, unicode: 0x26E2},
+        {f: "Wingdings 3", code: 0x08C, unicode: 0x26E3},
+        {f: "Wingdings 3", code: 0x08D, unicode: 0x26E4},
+        {f: "Wingdings 3", code: 0x08E, unicode: 0x26E5},
+        {f: "Wingdings 3", code: 0x08F, unicode: 0x26E6},
+        {f: "Wingdings 3", code: 0x090, unicode: 0x26E7},
+        {f: "Wingdings 3", code: 0x091, unicode: 0x26E8},
+        {f: "Wingdings 3", code: 0x092, unicode: 0x26E9},
+        {f: "Wingdings 3", code: 0x093, unicode: 0x26EA},
+        {f: "Wingdings 3", code: 0x094, unicode: 0x26EB},
+        {f: "Wingdings 3", code: 0x095, unicode: 0x26EC},
+        {f: "Wingdings 3", code: 0x096, unicode: 0x26ED},
+        {f: "Wingdings 3", code: 0x097, unicode: 0x26EE},
+        {f: "Wingdings 3", code: 0x098, unicode: 0x26EF},
+        {f: "Wingdings 3", code: 0x099, unicode: 0x26F0},
+        {f: "Wingdings 3", code: 0x09A, unicode: 0x26F1},
+        {f: "Wingdings 3", code: 0x09B, unicode: 0x26F2},
+        {f: "Wingdings 3", code: 0x09C, unicode: 0x26F3},
+        {f: "Wingdings 3", code: 0x09D, unicode: 0x26F4},
+        {f: "Wingdings 3", code: 0x09E, unicode: 0x26F5},
+        {f: "Wingdings 3", code: 0x09F, unicode: 0x26F6},
+        {f: "Wingdings 3", code: 0x0A0, unicode: 0x26F7},
+        {f: "Wingdings 3", code: 0x0A1, unicode: 0x26F8},
+        {f: "Wingdings 3", code: 0x0A2, unicode: 0x26F9},
+        {f: "Wingdings 3", code: 0x0A3, unicode: 0x26FA},
+        {f: "Wingdings 3", code: 0x0A4, unicode: 0x26FB},
+        {f: "Wingdings 3", code: 0x0A5, unicode: 0x26FC},
+        {f: "Wingdings 3", code: 0x0A6, unicode: 0x26FD},
+        {f: "Wingdings 3", code: 0x0A7, unicode: 0x26FE},
+        {f: "Wingdings 3", code: 0x0A8, unicode: 0x26FF}
+    ];
 
     // Main pptxToHtml function
     function pptxToHtml(element, options) {
@@ -34,18 +341,21 @@
         var fontSizeFactor = 4 / 3.2;
         ////////////////////// 
         var slideWidth = 0;
-        var isSlideMode = false;
-        var processFullTheme = true;
+    var isSlideMode = false;
+
+    // 计算元素位置和尺寸 - 使用 PPTXUtils 中的函数
+    var getPosition = window.PPTXUtils ? window.PPTXUtils.getPosition : function() { return ""; };
+    var getSize = window.PPTXUtils ? window.PPTXUtils.getSize : function() { return ""; };
         var styleTable = {};
         var settings = $.extend(true, {
             // These are the defaults.
             pptxFileUrl: "",
             fileInputId: "",
             slidesScale: "", //Change Slides scale by percent
-            slideMode: false, /** true,false*/
-            slideType: "divs2slidesjs",  /*'divs2slidesjs' (default) , 'revealjs'(https://revealjs.com)  -TODO*/
-            revealjsPath: "", /*path to js file of revealjs - TODO*/
-            keyBoardShortCut: false,  /** true,false ,condition: slideMode: true XXXXX - need to remove - this is doublcated*/
+            slideMode: false, /** true,false - enable slideshow mode */
+            slideType: "divs2slidesjs",  /*'divs2slidesjs' (default), 'revealjs' - slideshow engine */
+            revealjsPath: "./revealjs/reveal.js", /* path to reveal.js library */
+            mediaProcess: true, /** true,false: if true then process video and audio files */
             mediaProcess: true, /** true,false: if true then process video and audio files */
             jsZipV2: false,
             themeProcess: true, /*true (default) , false, "colorsAndImageOnly"*/
@@ -70,7 +380,7 @@
             revealjsConfig: {}
         }, options);
 
-        processFullTheme = settings.themeProcess;
+        settings.themeProcess;
 
         var container = $("#" + divId);
         if (Array.isArray(container)) {
@@ -114,6 +424,9 @@
                 if (key == 116 && !isSlideMode) { //F5
                     isSlideMode = true;
                     initSlideMode(divId, settings);
+                } else if (key == 116 && isSlideMode) { //F5 again - exit slide mode
+                    isSlideMode = false;
+                    exitSlideMode(divId);
                 }
             });
         }
@@ -196,10 +509,12 @@
             //if (typeof file === 'string') { // Load
             zip = zip.load(file);  //zip.load(file, { base64: true });
 
-            // 配置 PPTXParser 模块
+            // 配置 PPTXParser 模块 - 传递必要的回调函数
             PPTXParser.configure({
                 ...settings,
-                processSingleSlide: processSingleSlide
+                processNodesInSlide: processNodesInSlide,
+                getBackground: getBackground,
+                getSlideBackgroundFill: getSlideBackgroundFill
             });
 
             var rslt_ary = processPPTX(zip);
@@ -396,209 +711,6 @@
             return PPTXParser.processPPTX(zip);
         }
 
-        function processSingleSlide(zip, sldFileName, index, slideSize) {
-            var resName = sldFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
-            var resContent = PPTXParser.readXmlFile(zip, resName);
-            var RelationshipArray = resContent["Relationships"]["Relationship"];
-            var layoutFilename = "";
-            var diagramFilename = "";
-            var slideResObj = {};
-            if (RelationshipArray.constructor === Array) {
-                for (var i = 0; i < RelationshipArray.length; i++) {
-                    switch (RelationshipArray[i]["attrs"]["Type"]) {
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout":
-                            layoutFilename = window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"]);
-                            break;
-                        case "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing":
-                            diagramFilename = window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"]);
-                            slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                                "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"])
-                            };
-                            break;
-                        default:
-                            slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                                "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"])
-                            };
-                    }
-                }
-            } else {
-                layoutFilename = window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray["attrs"]["Target"]);
-            }
-
-            var slideLayoutContent = PPTXParser.readXmlFile(zip, layoutFilename);
-            var slideLayoutTables = indexNodes(slideLayoutContent);
-            var sldLayoutClrOvr = window.PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
-
-            if (sldLayoutClrOvr !== undefined) {
-                slideLayoutClrOvride = sldLayoutClrOvr["attrs"];
-            }
-
-            var slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
-            var slideLayoutResContent = PPTXParser.readXmlFile(zip, slideLayoutResFilename);
-            RelationshipArray = slideLayoutResContent["Relationships"]["Relationship"];
-            var masterFilename = "";
-            var layoutResObj = {};
-            if (RelationshipArray.constructor === Array) {
-                for (var i = 0; i < RelationshipArray.length; i++) {
-                    switch (RelationshipArray[i]["attrs"]["Type"]) {
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster":
-                            masterFilename = window.PPTXUtils.resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray[i]["attrs"]["Target"]);
-                            break;
-                        default:
-                            layoutResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                                "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": window.PPTXUtils.resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray[i]["attrs"]["Target"])
-                            };
-                    }
-                }
-            } else {
-                masterFilename = window.PPTXUtils.resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray["attrs"]["Target"]);
-            }
-
-            var slideMasterContent = PPTXParser.readXmlFile(zip, masterFilename);
-            var slideMasterTextStyles = window.PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
-            var slideMasterTables = indexNodes(slideMasterContent);
-
-            var slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
-            var slideMasterResContent = PPTXParser.readXmlFile(zip, slideMasterResFilename);
-            RelationshipArray = slideMasterResContent["Relationships"]["Relationship"];
-            var themeFilename = "";
-            var masterResObj = {};
-            if (RelationshipArray.constructor === Array) {
-                for (var i = 0; i < RelationshipArray.length; i++) {
-                    switch (RelationshipArray[i]["attrs"]["Type"]) {
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme":
-                            themeFilename = window.PPTXUtils.resolveRelationshipTarget(slideMasterResFilename, RelationshipArray[i]["attrs"]["Target"]);
-                            break;
-                        default:
-                            masterResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                                "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": window.PPTXUtils.resolveRelationshipTarget(slideMasterResFilename, RelationshipArray[i]["attrs"]["Target"])
-                            };
-                    }
-                }
-            } else {
-                themeFilename = window.PPTXUtils.resolveRelationshipTarget(slideMasterResFilename, RelationshipArray["attrs"]["Target"]);
-            }
-
-            var themeResObj = {};
-            var themeContent = {};
-            if (themeFilename !== undefined) {
-                var themeName = themeFilename.split("/").pop();
-                var themeResFileName = themeFilename.replace(themeName, "_rels/" + themeName) + ".rels";
-                themeContent = PPTXParser.readXmlFile(zip, themeFilename);
-                var themeResContent = PPTXParser.readXmlFile(zip, themeResFileName);
-                if (themeResContent !== null) {
-                    var relationshipArray = themeResContent["Relationships"]["Relationship"];
-                    if (relationshipArray !== undefined){
-                        if (relationshipArray.constructor === Array) {
-                            for (var i = 0; i < relationshipArray.length; i++) {
-                                themeResObj[relationshipArray[i]["attrs"]["Id"]] = {
-                                    "type": relationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                    "target": window.PPTXUtils.resolveRelationshipTarget(themeResFileName, relationshipArray[i]["attrs"]["Target"])
-                                };
-                            }
-                        } else {
-                            themeResObj[relationshipArray["attrs"]["Id"]] = {
-                                "type": relationshipArray["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": window.PPTXUtils.resolveRelationshipTarget(themeResFileName, relationshipArray["attrs"]["Target"])
-                            };
-                        }
-                    }
-                }
-            }
-
-            var diagramResObj = {};
-            var digramFileContent = {};
-            if (diagramFilename !== undefined) {
-                var diagName = diagramFilename.split("/").pop();
-                var diagramResFileName = diagramFilename.replace(diagName, "_rels/" + diagName) + ".rels";
-                digramFileContent = PPTXParser.readXmlFile(zip, diagramFilename);
-                if (digramFileContent !== null && digramFileContent !== undefined && digramFileContent != "") {
-                    var digramFileContentObjToStr = JSON.stringify(digramFileContent);
-                    digramFileContentObjToStr = digramFileContentObjToStr.replace(/dsp:/g, "p:");
-                    digramFileContent = JSON.parse(digramFileContentObjToStr);
-                }
-
-                var digramResContent = PPTXParser.readXmlFile(zip, diagramResFileName);
-                if (digramResContent !== null) {
-                    var relationshipArray = digramResContent["Relationships"]["Relationship"];
-                    if (relationshipArray.constructor === Array) {
-                        for (var i = 0; i < relationshipArray.length; i++) {
-                            diagramResObj[relationshipArray[i]["attrs"]["Id"]] = {
-                                "type": relationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": window.PPTXUtils.resolveRelationshipTarget(diagramResFileName, relationshipArray[i]["attrs"]["Target"])
-                            };
-                        }
-                    } else {
-                        diagramResObj[relationshipArray["attrs"]["Id"]] = {
-                            "type": relationshipArray["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                            "target": window.PPTXUtils.resolveRelationshipTarget(diagramResFileName, relationshipArray["attrs"]["Target"])
-                        };
-                    }
-                }
-            }
-
-            var slideContent = PPTXParser.readXmlFile(zip, sldFileName, true);
-            var nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
-            var warpObj = {
-                "zip": zip,
-                "sldFileName": sldFileName,
-                "slideLayoutContent": slideLayoutContent,
-                "slideLayoutTables": slideLayoutTables,
-                "slideMasterContent": slideMasterContent,
-                "slideMasterTables": slideMasterTables,
-                "slideContent": slideContent,
-                "slideResObj": slideResObj,
-                "slideMasterTextStyles": slideMasterTextStyles,
-                "layoutResObj": layoutResObj,
-                "masterResObj": masterResObj,
-                "themeContent": themeContent,
-                "themeResObj": themeResObj,
-                "digramFileContent": digramFileContent,
-                "diagramResObj": diagramResObj,
-                "defaultTextStyle": PPTXParser.defaultTextStyle
-            };
-            var bgResult = "";
-            if (processFullTheme === true) {
-                bgResult = getBackground(warpObj, slideSize, index);
-            }
-
-            var bgColor = "";
-            if (processFullTheme == "colorsAndImageOnly") {
-                bgColor = getSlideBackgroundFill(warpObj);
-            }
-
-            if (settings.slideMode && settings.slideType == "revealjs") {
-                var result = "<section class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>";
-            } else {
-                var result = "<div class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>";
-            }
-            result += bgResult;
-            for (var nodeKey in nodes) {
-                if (nodes[nodeKey].constructor === Array) {
-                    for (var i = 0; i < nodes[nodeKey].length; i++) {
-                        result += processNodesInSlide(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide");
-                    }
-                } else {
-                    result += processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide");
-                }
-            }
-            if (settings.slideMode && settings.slideType == "revealjs") {
-                return result + "</div></section>";
-            } else {
-                return result + "</div></div>";
-            }
-        }
-
-        // readXmlFile, getContentTypes, getSlideSizeAndSetDefaultTextStyle, processSingleSlide, indexNodes 已移至 PPTXParser 模块
-        function indexNodes(content) {
-            // 使用 PPTXParser
-            return PPTXParser.indexNodes(content);
-        }
-
         function processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType) {
             var result = "";
 
@@ -644,7 +756,7 @@
                 var chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
                 var rotate = parseInt(xfrmNode["attrs"]["rot"]);
                 var rotStr = "";//;" border: 3px solid black;";
-                // angleToDegrees(window.PPTXUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
+                // window.PPTXColorUtils.angleToDegrees(window.PPTXUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
                 // var rotX = 0;
                 // var rotY = 0;
                 var top = y - chy,
@@ -654,7 +766,7 @@
 
                 var sType = "group";
                 if (!isNaN(rotate)) {
-                    rotate = angleToDegrees(rotate);
+                    rotate = window.PPTXColorUtils.angleToDegrees(rotate);
                     rotStr += "transform: rotate(" + rotate + "deg) ; transform-origin: center;";
                     // var cLin = Math.sqrt(Math.pow((chy), 2) + Math.pow((chx), 2));
                     // var rdian = degreesToRadians(rotate);
@@ -821,7 +933,7 @@
             }
             /////////////////////////Amir////////////////////////
             //rotate
-            var rotate = angleToDegrees(window.PPTXUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
+            var rotate = window.PPTXColorUtils.angleToDegrees(window.PPTXUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
 
             //console.log("genShape rotate: " + rotate);
             var txtRotate;
@@ -829,7 +941,7 @@
             if (txtXframeNode !== undefined) {
                 var txtXframeRot = window.PPTXUtils.getTextByPathList(txtXframeNode, ["attrs", "rot"]);
                 if (txtXframeRot !== undefined) {
-                    txtRotate = angleToDegrees(txtXframeRot) + 90;
+                    txtRotate = window.PPTXColorUtils.angleToDegrees(txtXframeRot) + 90;
                 }
             } else {
                 txtRotate = rotate;
@@ -860,12 +972,12 @@
                 //console.log("genShape: fillColor: ", fillColor)
                 var grndFillFlg = false;
                 var imgFillFlg = false;
-                var clrFillType = getFillType(window.PPTXUtils.getTextByPathList(node, ["p:spPr"]));
+                var clrFillType = window.PPTXColorUtils.getFillType(window.PPTXUtils.getTextByPathList(node, ["p:spPr"]));
                 if (clrFillType == "GROUP_FILL") {
-                    clrFillType = getFillType(window.PPTXUtils.getTextByPathList(pNode, ["p:grpSpPr"]));
+                    clrFillType = window.PPTXColorUtils.getFillType(window.PPTXUtils.getTextByPathList(pNode, ["p:grpSpPr"]));
                 }
                 // if (clrFillType == "") {
-                //     var clrFillType = getFillType(window.PPTXUtils.getTextByPathList(node, ["p:style","a:fillRef"]));
+                //     var clrFillType = window.PPTXColorUtils.getFillType(window.PPTXUtils.getTextByPathList(node, ["p:style","a:fillRef"]));
                 // }
                 //console.log("genShape: fillColor: ", fillColor, ", clrFillType: ", clrFillType, ", node: ", node)
                 /////////////////////////////////////////                    
@@ -940,7 +1052,7 @@
                 var outerShdwNode = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
                 var oShadowSvgUrlStr = "";
                 if (outerShdwNode !== undefined) {
-                    var chdwClrNode = getSolidFill(outerShdwNode, undefined, undefined, warpObj);
+                    var chdwClrNode = window.PPTXColorUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
                     var outerShdwAttrs = outerShdwNode["attrs"];
 
                     //var algn = outerShdwAttrs["algn"];
@@ -1250,18 +1362,18 @@
                             " L" + 0 + "," + h +
                             " z" +
                             "M" + g33 + "," + g27 +
-                            shapeArc(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
-                            shapeArc(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
-                            shapeArc(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
                             " L" + g37 + "," + g30 +
                             " L" + g36 + "," + g30 +
                             " L" + g36 + "," + g29 +
-                            shapeArc(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
-                            shapeArc(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
-                            shapeArc(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
                             " z" +
                             "M" + hc + "," + g31 +
-                            shapeArc(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
                             " z";
 
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -1361,10 +1473,10 @@
                             " L" + 0 + "," + h +
                             " z" +
                             "M" + hc + "," + g9 +
-                            shapeArc(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
                             " z" +
                             "M" + hc + "," + g25 +
-                            shapeArc(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
                             "M" + g32 + "," + g28 +
                             " L" + g35 + "," + g28 +
                             " L" + g35 + "," + g30 +
@@ -1496,15 +1608,15 @@
                             " L" + hc + "," + g21 +
                             " L" + g24 + "," + g21 +
                             " L" + g24 + "," + g20 +
-                            shapeArc(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
                             " L" + g25 + "," + g19 +
-                            shapeArc(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
                             " L" + g26 + "," + g21 +
                             " L" + g11 + "," + g21 +
                             " L" + g11 + "," + g20 +
-                            shapeArc(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
                             " L" + hc + "," + g10 +
-                            shapeArc(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
                             " L" + g22 + "," + g21 +
                             " z";
 
@@ -1629,9 +1741,9 @@
                         //path attrs: w = 21600; h = 21600; 
                         var d = "M" + x1 + "," + 0 +
                             " L" + x2 + "," + 0 +
-                            shapeArc(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1642,11 +1754,11 @@
                         y1 = h * 2 / 20;
                         y2 = h * 18 / 20;
                         var d = "M" + 0 + "," + y1 +
-                            shapeArc(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
-                            shapeArc(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
                             " L" + w + "," + y2 +
-                            shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
-                            shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1657,9 +1769,9 @@
                         y1 = h * 3 / 6;
                         var d = "M" + x1 + "," + 0 +
                             " L" + w + "," + 0 +
-                            shapeArc(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1673,7 +1785,7 @@
                         var d = "M" + 0 + "," + y1 +
                             " L" + x1 + "," + 0 +
                             " L" + x2 + "," + 0 +
-                            shapeArc(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -1683,7 +1795,7 @@
                         var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
                         var d = "M" + 0 + "," + 0 +
                             " L" + wd2 + "," + 0 +
-                            shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + 0 + "," + h +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -1697,10 +1809,10 @@
                         ang1 = Math.atan(h / w);
                         var ang1Dg = ang1 * 180 / Math.PI;
                         var d = "M" + wd2 + "," + h +
-                            shapeArc(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
-                            shapeArc(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
-                            shapeArc(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
-                            shapeArc(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L") +
                             " L" + w + "," + ib +
                             " L" + w + "," + h +
                             " z";
@@ -1809,7 +1921,7 @@
                                 if (sAdj2_val === undefined) sAdj2_val = 0;
                                 break;
                         }
-                        var d_val = shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
+                        var d_val = window.PPTXShapeUtils.shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
                         result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -2908,7 +3020,7 @@
                                 adj2 = parseInt(shapAdjst2.substr(4)) / 60000;
                             }
                         }
-                        var pieVals = shapePie(H, w, adj1, adj2, isClose);
+                        var pieVals = window.PPTXShapeUtils.shapePie(H, w, adj1, adj2, isClose);
                         //console.log("shapType: ",shapType,"\nimgFillFlg: ",imgFillFlg,"\ngrndFillFlg: ",grndFillFlg,"\nshpId: ",shpId,"\nfillColor: ",fillColor);
                         result += "<path   d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -2931,7 +3043,7 @@
                         }
                         var hR = h / 2;
                         var wR = w / 2;
-                        var d_val = shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
+                        var d_val = window.PPTXShapeUtils.shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
                         //console.log("shapType: ",shapType,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val)
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -2980,16 +3092,16 @@
                         iwd2 = w / 2 - dr;
                         ihd2 = h / 2 - dr;
                         var d = "M" + 0 + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
                             " z" +
                             "M" + dr + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
                             " z";
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3037,16 +3149,16 @@
                         var stAng2deg = stAng2 * 180 / Math.PI;
                         var swAng2deg = swAng * 180 / Math.PI;
                         var d = "M" + 0 + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
                             " z" +
                             "M" + x1 + "," + y1 +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
                             " z" +
                             "M" + x2 + "," + y2 +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
                             " z";
                         //console.log("adj: ",adj,"x1:",x1,",y1:",y1," x2:",x2,",y2:",y2,",stAng1:",stAng1,",stAng1deg:",stAng1deg,",stAng2:",stAng2,",stAng2deg:",stAng2deg,",swAng:",swAng,",swAng2deg:",swAng2deg)
 
@@ -3192,9 +3304,9 @@
                             y2 = vc - dy2;
                         }
                         var d = "M" + x1 + "," + y1 +
-                            shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
                             " L" + x2 + "," + y2 +
-                            shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
                             " z";
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3222,19 +3334,19 @@
                         y4 = h - x1;
                         //console.log("w:",w," h:",h," x1:",x1," x2:",x2," x3:",x3," x4:",x4," y2:",y2," y3:",y3," y4:",y4)
                         var d = "M" + x2 + "," + h +
-                            shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
                             " L" + x1 + "," + y3 +
-                            shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
-                            shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L") +
                             " L" + x1 + "," + x1 +
-                            shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L") +
                             " M" + x3 + "," + 0 +
-                            shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L") +
                             " L" + x4 + "," + y2 +
-                            shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-                            shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L") +
                             " L" + x4 + "," + y4 +
-                            shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
+                            window.PPTXShapeUtils.shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3275,12 +3387,12 @@
                         y4 = y3 + y1;
                         //console.log("w:",w," h:",h," q1:",q1," q2:",q2," q3:",q3," y1:",y1," y3:",y3," y4:",y4," maxAdj1:",maxAdj1)
                         var d = "M" + w + "," + h +
-                            shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + w / 2 + "," + y4 +
-                            shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
-                            shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L") +
                             " L" + w / 2 + "," + y1 +
-                            shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
+                            window.PPTXShapeUtils.shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3321,12 +3433,12 @@
                         y4 = h - y1;
                         //console.log("w:",w," h:",h," q1:",q1," q2:",q2," q3:",q3," y1:",y1," y2:",y2," y3:",y3," y4:",y4," maxAdj1:",maxAdj1)
                         var d = "M" + 0 + "," + 0 +
-                            shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
                             " L" + w / 2 + "," + y2 +
-                            shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
-                            shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L") +
                             " L" + w / 2 + "," + y4 +
-                            shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
+                            window.PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3347,10 +3459,10 @@
                         x2 = r - x1;
                         y2 = b - x1;
                         //console.log("w:",w," h:",h," x1:",x1," x2:",x2," y2:",y2)
-                        var d = shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
-                            shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-                            shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
-                            shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
+                        var d = window.PPTXShapeUtils.shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
+                            window.PPTXShapeUtils.shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
+                            window.PPTXShapeUtils.shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -3371,9 +3483,9 @@
                         if (y1 > w) y1 = w;
                         y2 = b - y1;
                         var d = "M" + r + "," + b +
-                            shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + 0 + "," + y1 +
-                            shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
                             " L" + r + "," + 0;
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3396,10 +3508,10 @@
                         y3 = w - y1;
                         //console.log("w:",w," h:",h," y1:",y1," y2:",y2," y3:",y3)
                         var d = "M" + 0 + "," + h +
-                            shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
                             //" L"+ r + "," + y2 +
                             " L" + w + "," + h / 2 +
-                            shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
                             " L" + 0 + "," + 0;
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3418,8 +3530,8 @@
 
                         var adj2 = (1 - adj) * w;
                         var d = "M" + w + "," + h +
-                            shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
-                            shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
                             " z";
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3492,9 +3604,9 @@
                         txtRotate = 0;
                         var gearNum = shapType.substr(4), d;
                         if (gearNum == "6") {
-                            d = shapeGear(w, h / 3.5, parseInt(gearNum));
+                            d = window.PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
                         } else { //gearNum=="9"
-                            d = shapeGear(w, h / 3.5, parseInt(gearNum));
+                            d = window.PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
                         }
                         result += "<path   d='" + d + "' transform='rotate(20," + (3 / 7) * h + "," + (3 / 7) * h + ")' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3558,11 +3670,11 @@
                         x2 = ((w / 2) + x1) / 2;
                         y2 = ((h / 2) + y1) / 2;
 
-                        var d_val = shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
+                        var d_val = window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
                             "Q " + x2 + ",0 " + x1 + "," + y1 +
                             "Q " + w + "," + y2 + " " + w + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
                         result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3585,13 +3697,13 @@
                         y2 = h - x1;
 
                         var d_val = "M0," + x1 +
-                            shapeArc(0, 0, x1, x1, 90, 0, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(0, 0, x1, x1, 90, 0, false).replace("M", "L") +
                             " L" + x2 + "," + 0 +
-                            shapeArc(w, 0, x1, x1, 180, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, 0, x1, x1, 180, 90, false).replace("M", "L") +
                             " L" + w + "," + y2 +
-                            shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
+                            window.PPTXShapeUtils.shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
                         result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3692,7 +3804,7 @@
                             " L" + x16 + "," + y13 +
                             " z" +
                             " M" + x19 + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
                             " z";
                         //console.log("adj1: ",adj1,d_val);
                         result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -3906,47 +4018,47 @@
 
                         cX0 = x0 - rX1 * Math.cos(sA1 * Math.PI / 180);
                         cY0 = y0 - rY1 * Math.sin(sA1 * Math.PI / 180);
-                        arc1 = shapeArc(cX0, cY0, rX1, rY1, sA1, sA1 + wA1, false).replace("M", "L");
+                        arc1 = window.PPTXShapeUtils.shapeArc(cX0, cY0, rX1, rY1, sA1, sA1 + wA1, false).replace("M", "L");
                         lxy1 = arc1.substr(arc1.lastIndexOf("L") + 1).split(" ");
                         cX1 = parseInt(lxy1[0]) - rX2 * Math.cos(sA2 * Math.PI / 180);
                         cY1 = parseInt(lxy1[1]) - rY2 * Math.sin(sA2 * Math.PI / 180);
-                        arc2 = shapeArc(cX1, cY1, rX2, rY2, sA2, sA2 + wA2, false).replace("M", "L");
+                        arc2 = window.PPTXShapeUtils.shapeArc(cX1, cY1, rX2, rY2, sA2, sA2 + wA2, false).replace("M", "L");
                         lxy2 = arc2.substr(arc2.lastIndexOf("L") + 1).split(" ");
                         cX2 = parseInt(lxy2[0]) - rX3 * Math.cos(sA3 * Math.PI / 180);
                         cY2 = parseInt(lxy2[1]) - rY3 * Math.sin(sA3 * Math.PI / 180);
-                        arc3 = shapeArc(cX2, cY2, rX3, rY3, sA3, sA3 + wA3, false).replace("M", "L");
+                        arc3 = window.PPTXShapeUtils.shapeArc(cX2, cY2, rX3, rY3, sA3, sA3 + wA3, false).replace("M", "L");
                         lxy3 = arc3.substr(arc3.lastIndexOf("L") + 1).split(" ");
                         cX3 = parseInt(lxy3[0]) - rX4 * Math.cos(sA4 * Math.PI / 180);
                         cY3 = parseInt(lxy3[1]) - rY4 * Math.sin(sA4 * Math.PI / 180);
-                        arc4 = shapeArc(cX3, cY3, rX4, rY4, sA4, sA4 + wA4, false).replace("M", "L");
+                        arc4 = window.PPTXShapeUtils.shapeArc(cX3, cY3, rX4, rY4, sA4, sA4 + wA4, false).replace("M", "L");
                         lxy4 = arc4.substr(arc4.lastIndexOf("L") + 1).split(" ");
                         cX4 = parseInt(lxy4[0]) - rX2 * Math.cos(sA5 * Math.PI / 180);
                         cY4 = parseInt(lxy4[1]) - rY5 * Math.sin(sA5 * Math.PI / 180);
-                        arc5 = shapeArc(cX4, cY4, rX2, rY5, sA5, sA5 + wA5, false).replace("M", "L");
+                        arc5 = window.PPTXShapeUtils.shapeArc(cX4, cY4, rX2, rY5, sA5, sA5 + wA5, false).replace("M", "L");
                         lxy5 = arc5.substr(arc5.lastIndexOf("L") + 1).split(" ");
                         cX5 = parseInt(lxy5[0]) - rX6 * Math.cos(sA6 * Math.PI / 180);
                         cY5 = parseInt(lxy5[1]) - rY6 * Math.sin(sA6 * Math.PI / 180);
-                        arc6 = shapeArc(cX5, cY5, rX6, rY6, sA6, sA6 + wA6, false).replace("M", "L");
+                        arc6 = window.PPTXShapeUtils.shapeArc(cX5, cY5, rX6, rY6, sA6, sA6 + wA6, false).replace("M", "L");
                         lxy6 = arc6.substr(arc6.lastIndexOf("L") + 1).split(" ");
                         cX6 = parseInt(lxy6[0]) - rX7 * Math.cos(sA7 * Math.PI / 180);
                         cY6 = parseInt(lxy6[1]) - rY7 * Math.sin(sA7 * Math.PI / 180);
-                        arc7 = shapeArc(cX6, cY6, rX7, rY7, sA7, sA7 + wA7, false).replace("M", "L");
+                        arc7 = window.PPTXShapeUtils.shapeArc(cX6, cY6, rX7, rY7, sA7, sA7 + wA7, false).replace("M", "L");
                         lxy7 = arc7.substr(arc7.lastIndexOf("L") + 1).split(" ");
                         cX7 = parseInt(lxy7[0]) - rX8 * Math.cos(sA8 * Math.PI / 180);
                         cY7 = parseInt(lxy7[1]) - rY8 * Math.sin(sA8 * Math.PI / 180);
-                        arc8 = shapeArc(cX7, cY7, rX8, rY8, sA8, sA8 + wA8, false).replace("M", "L");
+                        arc8 = window.PPTXShapeUtils.shapeArc(cX7, cY7, rX8, rY8, sA8, sA8 + wA8, false).replace("M", "L");
                         lxy8 = arc8.substr(arc8.lastIndexOf("L") + 1).split(" ");
                         cX8 = parseInt(lxy8[0]) - rX9 * Math.cos(sA9 * Math.PI / 180);
                         cY8 = parseInt(lxy8[1]) - rY9 * Math.sin(sA9 * Math.PI / 180);
-                        arc9 = shapeArc(cX8, cY8, rX9, rY9, sA9, sA9 + wA9, false).replace("M", "L");
+                        arc9 = window.PPTXShapeUtils.shapeArc(cX8, cY8, rX9, rY9, sA9, sA9 + wA9, false).replace("M", "L");
                         lxy9 = arc9.substr(arc9.lastIndexOf("L") + 1).split(" ");
                         cX9 = parseInt(lxy9[0]) - rX10 * Math.cos(sA10 * Math.PI / 180);
                         cY9 = parseInt(lxy9[1]) - rY10 * Math.sin(sA10 * Math.PI / 180);
-                        arc10 = shapeArc(cX9, cY9, rX10, rY10, sA10, sA10 + wA10, false).replace("M", "L");
+                        arc10 = window.PPTXShapeUtils.shapeArc(cX9, cY9, rX10, rY10, sA10, sA10 + wA10, false).replace("M", "L");
                         lxy10 = arc10.substr(arc10.lastIndexOf("L") + 1).split(" ");
                         cX10 = parseInt(lxy10[0]) - rX11 * Math.cos(sA11 * Math.PI / 180);
                         cY10 = parseInt(lxy10[1]) - rY3 * Math.sin(sA11 * Math.PI / 180);
-                        arc11 = shapeArc(cX10, cY10, rX11, rY3, sA11, sA11 + wA11, false).replace("M", "L");
+                        arc11 = window.PPTXShapeUtils.shapeArc(cX10, cY10, rX11, rY3, sA11, sA11 + wA11, false).replace("M", "L");
 
                         var d1 = "M" + x0 + "," + y0 +
                             arc1 +
@@ -4028,13 +4140,13 @@
                             x25 = g23 + g12;
 
                             d_val = //" M" + x23 + "," + yPos + 
-                                shapeArc(x23 - g26, yPos, g26, g26, 0, 360, false) + //.replace("M","L") +
+                                window.PPTXShapeUtils.shapeArc(x23 - g26, yPos, g26, g26, 0, 360, false) + //.replace("M","L") +
                                 " z" +
                                 " M" + x24 + "," + g17 +
-                                shapeArc(x24 - g25, g17, g25, g25, 0, 360, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x24 - g25, g17, g25, g25, 0, 360, false).replace("M", "L") +
                                 " z" +
                                 " M" + x25 + "," + g24 +
-                                shapeArc(x25 - g12, g24, g12, g12, 0, 360, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x25 - g12, g24, g12, g12, 0, 360, false).replace("M", "L") +
                                 " z";
                             d1 += d_val;
                         }
@@ -4075,15 +4187,15 @@
                         var cY1 = y1 - hR * Math.sin(Math.PI);
                         var cX2 = x3 - wR * Math.cos(Math.PI);
                         d_val = //eyes
-                            shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
-                            shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
+                            window.PPTXShapeUtils.shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
+                            window.PPTXShapeUtils.shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
                             //mouth
                             " M" + x1 + "," + y2 +
                             " Q" + wd2 + "," + y5 + " " + x4 + "," + y2 +
                             " Q" + wd2 + "," + y5 + " " + x1 + "," + y2 +
                             //head
                             " M" + 0 + "," + hd2 +
-                            shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4119,24 +4231,24 @@
 
                             d_val = "M" + ch + "," + y3 +
                                 " L" + ch + "," + ch2 +
-                                shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L") +
                                 " L" + x7 + "," + t +
-                                shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
                                 " L" + x6 + "," + ch +
                                 " L" + x6 + "," + y4 +
-                                shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
                                 " L" + ch2 + "," + b +
-                                shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
                                 " z" +
                                 " M" + x3 + "," + t +
-                                shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
-                                shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
                                 " L" + x4 + "," + ch2 +
                                 " M" + x6 + "," + ch +
                                 " L" + x3 + "," + ch +
                                 " M" + ch + "," + y4 +
-                                shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
-                                shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
                                 " z" +
                                 " M" + ch + "," + y4 +
                                 " L" + ch + "," + y3;
@@ -4151,26 +4263,26 @@
                             x4 = r - ch2;
 
                             d_val = "M" + l + "," + y3 +
-                                shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L") +
                                 " L" + x3 + "," + ch +
                                 " L" + x3 + "," + ch2 +
-                                shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L") +
                                 " L" + r + "," + y5 +
-                                shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L") +
                                 " L" + ch + "," + y6 +
                                 " L" + ch + "," + y7 +
-                                shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
                                 " z" +
                                 "M" + x4 + "," + ch +
-                                shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
-                                shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
                                 " z" +
                                 " M" + x4 + "," + ch +
                                 " L" + x3 + "," + ch +
                                 " M" + ch2 + "," + y4 +
                                 " L" + ch2 + "," + y3 +
-                                shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L") +
-                                shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L") +
                                 " M" + ch + "," + y3 +
                                 " L" + ch + "," + y6;
                         }
@@ -4252,8 +4364,8 @@
                             " L" + xPos + "," + yPos +
                             " L" + x2 + "," + y2 +
                             //" z" +
-                            shapeArc(hc, vc, hc, vc, 0, 360, true);// +
-                        //shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
+                            window.PPTXShapeUtils.shapeArc(hc, vc, hc, vc, 0, 360, true);// +
+                        //window.PPTXShapeUtils.shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
                         //" z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4401,22 +4513,22 @@
                         u2 = w - u1;
                         v2 = h - u1;
                         d_val = "M" + 0 + "," + u1 +
-                            shapeArc(u1, u1, u1, u1, 180, 270, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(u1, u1, u1, u1, 180, 270, false).replace("M", "L") +
                             " L" + x1 + "," + 0 +
                             " L" + xt + "," + yt +
                             " L" + x2 + "," + 0 +
                             " L" + u2 + "," + 0 +
-                            shapeArc(u2, u1, u1, u1, 270, 360, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(u2, u1, u1, u1, 270, 360, false).replace("M", "L") +
                             " L" + w + "," + y1 +
                             " L" + xr + "," + yr +
                             " L" + w + "," + y2 +
                             " L" + w + "," + v2 +
-                            shapeArc(u2, v2, u1, u1, 0, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(u2, v2, u1, u1, 0, 90, false).replace("M", "L") +
                             " L" + x2 + "," + h +
                             " L" + xb + "," + yb +
                             " L" + x1 + "," + h +
                             " L" + u1 + "," + h +
-                            shapeArc(u1, v2, u1, u1, 90, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(u1, v2, u1, u1, 90, 180, false).replace("M", "L") +
                             " L" + 0 + "," + y2 +
                             " L" + xl + "," + yl +
                             " L" + 0 + "," + y1 +
@@ -4743,15 +4855,15 @@
                             "L" + x1 + "," + 0 +
                             "L" + x1 + "," + ly1 +
                             "L" + hc + "," + ly1 +
-                            shapeArc(hc, y1, wd32, hR, 270, 450, false).replace("M", "L") +
-                            shapeArc(hc, y2, wd32, hR, 270, 90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(hc, y1, wd32, hR, 270, 450, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(hc, y2, wd32, hR, 270, 90, false).replace("M", "L") +
                             "L" + x4 + "," + ry2 +
                             "L" + x4 + "," + ry1 +
                             "L" + w + "," + ry3 +
                             "L" + x4 + "," + h +
                             "L" + x4 + "," + ry4 +
                             "L" + hc + "," + ry4 +
-                            shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L") +
                             "L" + x2 + "," + ly3 +
                             "L" + x1 + "," + ly3 +
                             "L" + x1 + "," + ly4 +
@@ -4820,22 +4932,22 @@
                                 " L" + l + "," + y4 +
                                 " L" + x2 + "," + y4 +
                                 " L" + x2 + "," + hR +
-                                shapeArc(x3, hR, wd32, hR, 180, 270, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x3, hR, wd32, hR, 180, 270, false).replace("M", "L") +
                                 " L" + x8 + "," + t +
-                                shapeArc(x8, hR, wd32, hR, 270, 360, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x8, hR, wd32, hR, 270, 360, false).replace("M", "L") +
                                 " L" + x9 + "," + y4 +
                                 " L" + x9 + "," + y4 +
                                 " L" + r + "," + y4 +
                                 " L" + x10 + "," + y3 +
                                 " L" + r + "," + b +
                                 " L" + x7 + "," + b +
-                                shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L") +
                                 " L" + x8 + "," + y1 +
-                                shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L") +
                                 " L" + x3 + "," + y2 +
-                                shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
                                 " L" + x4 + "," + y1 +
-                                shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
                                 " z" +
                                 " M" + x5 + "," + y2 +
                                 " L" + x5 + "," + y6 +
@@ -4855,21 +4967,21 @@
                             y6 = y2 - hR;
                             d_val = "M" + l + "," + t +
                                 " L" + x4 + "," + t +
-                                shapeArc(x4, hR, wd32, hR, 270, 450, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x4, hR, wd32, hR, 270, 450, false).replace("M", "L") +
                                 " L" + x3 + "," + y1 +
-                                shapeArc(x3, y6, wd32, hR, 270, 90, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x3, y6, wd32, hR, 270, 90, false).replace("M", "L") +
                                 " L" + x8 + "," + y2 +
-                                shapeArc(x8, y6, wd32, hR, 90, -90, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x8, y6, wd32, hR, 90, -90, false).replace("M", "L") +
                                 " L" + x7 + "," + y1 +
-                                shapeArc(x7, hR, wd32, hR, 90, 270, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x7, hR, wd32, hR, 90, 270, false).replace("M", "L") +
                                 " L" + r + "," + t +
                                 " L" + x10 + "," + y3 +
                                 " L" + r + "," + y4 +
                                 " L" + x9 + "," + y4 +
                                 " L" + x9 + "," + y5 +
-                                shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L") +
                                 " L" + x3 + "," + b +
-                                shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L") +
                                 " L" + x2 + "," + y4 +
                                 " L" + l + "," + y4 +
                                 " L" + wd8 + "," + y3 +
@@ -5644,14 +5756,14 @@
 
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + y5 +
-                            shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + dh2 +
                             " L" + x4 + "," + 0 +
                             " L" + w + "," + aw2 +
                             " L" + x4 + "," + y4 +
                             " L" + x4 + "," + y3 +
                             " L" + x3 + "," + y3 +
-                            shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -5736,18 +5848,18 @@
                         cx = (th + x7) / 2;
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + bd +
-                            shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + 0 +
-                            shapeArc(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
                             " L" + x9 + "," + y4 +
                             " L" + w + "," + y4 +
                             " L" + x8 + "," + y5 +
                             " L" + x6 + "," + y4 +
                             " L" + x7 + "," + y4 +
                             " L" + x7 + "," + x3 +
-                            shapeArc(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
                             " L" + x3 + "," + th +
-                            shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -6415,15 +6527,15 @@
                         var d_val = "M" + x6 + "," + b +
                             " L" + x4 + "," + y1 +
                             " L" + x5 + "," + y1 +
-                            shapeArc(wR, h, wR, h, stAng, (stAng + mswAng), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wR, h, wR, h, stAng, (stAng + mswAng), false).replace("M", "L") +
                             " L" + x3 + "," + t +
-                            shapeArc(x3, h, wR, h, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x3, h, wR, h, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
                             " L" + (x5 + th) + "," + y1 +
                             " L" + x8 + "," + y1 +
                             " z" +
                             "M" + x3 + "," + t +
-                            shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
-                            shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
+                            window.PPTXShapeUtils.shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -6499,19 +6611,19 @@
                         stAng3dg = stAng3 * 180 / Math.PI;
 
                         var d_val = "M" + r + "," + y3 +
-                            shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
                             " L" + l + "," + t +
-                            shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
                             " L" + r + "," + y3 +
-                            shapeArc(l, y3, w, hR, 0, swAngDg, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(l, y3, w, hR, 0, swAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y7 +
                             " L" + x1 + "," + y8 +
                             " L" + l + "," + y6 +
                             " L" + x1 + "," + y4 +
                             " L" + x1 + "," + y5 +
-                            shapeArc(l, hR, w, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
-                            shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
-                            shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
+                            window.PPTXShapeUtils.shapeArc(l, hR, w, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -6591,17 +6703,17 @@
                         swAng2dg = swAng2 * 180 / Math.PI;
 
                         var d_val = "M" + l + "," + hR +
-                            shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + y4 +
                             " L" + r + "," + y6 +
                             " L" + x1 + "," + y8 +
                             " L" + x1 + "," + y7 +
-                            shapeArc(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
                             " L" + l + "," + hR +
-                            shapeArc(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
                             " L" + r + "," + th +
-                            shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L");
+                            window.PPTXShapeUtils.shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L");
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -6679,17 +6791,17 @@
                         swAngDg = swAng * 180 / Math.PI;
 
                         var d_val = //"M" + ix + "," +iy + 
-                            shapeArc(wR, 0, wR, h, stAng2dg, stAng2dg + swAng2dg, false) + //.replace("M","L") +
+                            window.PPTXShapeUtils.shapeArc(wR, 0, wR, h, stAng2dg, stAng2dg + swAng2dg, false) + //.replace("M","L") +
                             " L" + x5 + "," + y1 +
                             " L" + x4 + "," + y1 +
                             " L" + x6 + "," + t +
                             " L" + x8 + "," + y1 +
                             " L" + x7 + "," + y1 +
-                            shapeArc(x3, 0, wR, h, stAng3dg, stAng3dg + swAngDg, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x3, 0, wR, h, stAng3dg, stAng3dg + swAngDg, false).replace("M", "L") +
                             " L" + wR + "," + b +
-                            shapeArc(wR, 0, wR, h, cd4, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wR, 0, wR, h, cd4, cd2, false).replace("M", "L") +
                             " L" + th + "," + t +
-                            shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
                             "";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -6860,10 +6972,10 @@
                             var cX2 = hc - Math.cos(Math.PI / 2) * rad;
                             var cY2 = y5 - Math.sin(Math.PI / 2) * rad;
                             dVal = "M" + hc + "," + y1 +
-                                shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
                                 " z" +
                                 " M" + hc + "," + y5 +
-                                shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
+                                window.PPTXShapeUtils.shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
                                 " z" +
                                 " M" + x1 + "," + y3 +
                                 " L" + x3 + "," + y3 +
@@ -7047,10 +7159,10 @@
                         if (shapType == "flowChartMagneticDrum") {
                             tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
                         }
-                        dVal = shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
-                            shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
+                        dVal = window.PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
+                            window.PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
                             " L" + w + "," + y3 +
-                            shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
                             " L" + 0 + "," + y1;
 
                         result += "<path " + tranglRott + " d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -7373,12 +7485,12 @@
                         var swiAng = iswAng * 180 / Math.PI;
                         var ediAng = stiAng + swiAng;
 
-                        var d_val = shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
+                        var d_val = window.PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
                             " L" + xGp + "," + yGp +
                             " L" + xA + "," + yA +
                             " L" + xBp + "," + yBp +
                             " L" + xC + "," + yC +
-                            shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -7627,12 +7739,12 @@
 
                         var d_val = "M" + xE + "," + yE +
                             " L" + xD + "," + yD +
-                            shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " L" + xBp + "," + yBp +
                             " L" + xA + "," + yA +
                             " L" + xGp + "," + yGp +
                             " L" + xF + "," + yF +
-                            shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
+                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -7896,7 +8008,7 @@
                             //var shftY = parseInt(multiSapeAry[k].shftY) * slideFactor;
                             var endAng = stAng + swAng;
 
-                            d += shapeArc(wR, hR, wR, hR, stAng, endAng, false);
+                            d += window.PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
                         } else if (multiSapeAry[k].type == "quadBezTo") {
                             console.log("custShapType: quadBezTo - TODO");
 
@@ -7965,164 +8077,11 @@
             return result;
         }
 
-        function shapePie(H, w, adj1, adj2, isClose) {
-            var pieVal = parseInt(adj2);
-            var piAngle = parseInt(adj1);
-            var size = parseInt(H),
-                radius = (size / 2),
-                value = pieVal - piAngle;
-            if (value < 0) {
-                value = 360 + value;
-            }
-            //console.log("value: ",value)      
-            value = Math.min(Math.max(value, 0), 360);
-
-            //calculate x,y coordinates of the point on the circle to draw the arc to. 
-            var x = Math.cos((2 * Math.PI) / (360 / value));
-            var y = Math.sin((2 * Math.PI) / (360 / value));
 
 
-            //d is a string that describes the path of the slice.
-            var longArc, d, rot;
-            if (isClose) {
-                longArc = (value <= 180) ? 0 : 1;
-                d = "M" + radius + "," + radius + " L" + radius + "," + 0 + " A" + radius + "," + radius + " 0 " + longArc + ",1 " + (radius + y * radius) + "," + (radius - x * radius) + " z";
-                rot = "rotate(" + (piAngle - 270) + ", " + radius + ", " + radius + ")";
-            } else {
-                longArc = (value <= 180) ? 0 : 1;
-                var radius1 = radius;
-                var radius2 = w / 2;
-                d = "M" + radius1 + "," + 0 + " A" + radius2 + "," + radius1 + " 0 " + longArc + ",1 " + (radius2 + y * radius2) + "," + (radius1 - x * radius1);
-                rot = "rotate(" + (piAngle + 90) + ", " + radius + ", " + radius + ")";
-            }
 
-            return [d, rot];
-        }
-        function shapeGear(w, h, points) {
-            var innerRadius = h;//gear.innerRadius;
-            var outerRadius = 1.5 * innerRadius;
-            var cx = outerRadius;//Math.max(innerRadius, outerRadius),                   // center x
-            cy = outerRadius;//Math.max(innerRadius, outerRadius),                    // center y
-            notches = points,//gear.points,                      // num. of notches
-                radiusO = outerRadius,                    // outer radius
-                radiusI = innerRadius,                    // inner radius
-                taperO = 50,                     // outer taper %
-                taperI = 35,                     // inner taper %
 
-                // pre-calculate values for loop
 
-                pi2 = 2 * Math.PI,            // cache 2xPI (360deg)
-                angle = pi2 / (notches * 2),    // angle between notches
-                taperAI = angle * taperI * 0.005, // inner taper offset (100% = half notch)
-                taperAO = angle * taperO * 0.005, // outer taper offset
-                a = angle,                  // iterator (angle)
-                toggle = false;
-            // move to starting point
-            var d = " M" + (cx + radiusO * Math.cos(taperAO)) + " " + (cy + radiusO * Math.sin(taperAO));
-
-            // loop
-            for (; a <= pi2 + angle; a += angle) {
-                // draw inner to outer line
-                if (toggle) {
-                    d += " L" + (cx + radiusI * Math.cos(a - taperAI)) + "," + (cy + radiusI * Math.sin(a - taperAI));
-                    d += " L" + (cx + radiusO * Math.cos(a + taperAO)) + "," + (cy + radiusO * Math.sin(a + taperAO));
-                } else { // draw outer to inner line
-                    d += " L" + (cx + radiusO * Math.cos(a - taperAO)) + "," + (cy + radiusO * Math.sin(a - taperAO)); // outer line
-                    d += " L" + (cx + radiusI * Math.cos(a + taperAI)) + "," + (cy + radiusI * Math.sin(a + taperAI));// inner line
-
-                }
-                // switch level
-                toggle = !toggle;
-            }
-            // close the final line
-            d += " ";
-            return d;
-        }
-        function shapeArc(cX, cY, rX, rY, stAng, endAng, isClose) {
-            var dData;
-            var angle = stAng;
-            if (endAng >= stAng) {
-                while (angle <= endAng) {
-                    var radians = angle * (Math.PI / 180);  // convert degree to radians
-                    var x = cX + Math.cos(radians) * rX;
-                    var y = cY + Math.sin(radians) * rY;
-                    if (angle == stAng) {
-                        dData = " M" + x + " " + y;
-                    }
-                    dData += " L" + x + " " + y;
-                    angle++;
-                }
-            } else {
-                while (angle > endAng) {
-                    var radians = angle * (Math.PI / 180);  // convert degree to radians
-                    var x = cX + Math.cos(radians) * rX;
-                    var y = cY + Math.sin(radians) * rY;
-                    if (angle == stAng) {
-                        dData = " M " + x + " " + y;
-                    }
-                    dData += " L " + x + " " + y;
-                    angle--;
-                }
-            }
-            dData += (isClose ? " z" : "");
-            return dData;
-        }
-        function shapeSnipRoundRect(w, h, adj1, adj2, shapeType, adjType) {
-            /* 
-            shapeType: snip,round
-            adjType: cornr1,cornr2,cornrAll,diag
-            */
-            var adjA, adjB, adjC, adjD;
-            if (adjType == "cornr1") {
-                adjA = 0;
-                adjB = 0;
-                adjC = 0;
-                adjD = adj1;
-            } else if (adjType == "cornr2") {
-                adjA = adj1;
-                adjB = adj2;
-                adjC = adj2;
-                adjD = adj1;
-            } else if (adjType == "cornrAll") {
-                adjA = adj1;
-                adjB = adj1;
-                adjC = adj1;
-                adjD = adj1;
-            } else if (adjType == "diag") {
-                adjA = adj1;
-                adjB = adj2;
-                adjC = adj1;
-                adjD = adj2;
-            }
-            //d is a string that describes the path of the slice.
-            var d;
-            if (shapeType == "round") {
-                d = "M0" + "," + (h / 2 + (1 - adjB) * (h / 2)) + " Q" + 0 + "," + h + " " + adjB * (w / 2) + "," + h + " L" + (w / 2 + (1 - adjC) * (w / 2)) + "," + h +
-                    " Q" + w + "," + h + " " + w + "," + (h / 2 + (h / 2) * (1 - adjC)) + "L" + w + "," + (h / 2) * adjD +
-                    " Q" + w + "," + 0 + " " + (w / 2 + (w / 2) * (1 - adjD)) + ",0 L" + (w / 2) * adjA + ",0" +
-                    " Q" + 0 + "," + 0 + " 0," + (h / 2) * (adjA) + " z";
-            } else if (shapeType == "snip") {
-                d = "M0" + "," + adjA * (h / 2) + " L0" + "," + (h / 2 + (h / 2) * (1 - adjB)) + "L" + adjB * (w / 2) + "," + h +
-                    " L" + (w / 2 + (w / 2) * (1 - adjC)) + "," + h + "L" + w + "," + (h / 2 + (h / 2) * (1 - adjC)) +
-                    " L" + w + "," + adjD * (h / 2) + "L" + (w / 2 + (w / 2) * (1 - adjD)) + ",0 L" + ((w / 2) * adjA) + ",0 z";
-            }
-            return d;
-        }
-        /*
-        function shapePolygon(sidesNum) {
-            var sides  = sidesNum;
-            var radius = 100;
-            var angle  = 2 * Math.PI / sides;
-            var points = []; 
-            
-            for (var i = 0; i < sides; i++) {
-                points.push(radius + radius * Math.sin(i * angle));
-                points.push(radius - radius * Math.cos(i * angle));
-            }
-            
-            return points;
-        }
-        */
         function processPicNode(node, warpObj, source, sType) {
             //console.log("processPicNode node:", node, "source:", source, "sType:", sType, "warpObj;", warpObj);
             var rtrnData = "";
@@ -8169,7 +8128,7 @@
             var rotate = 0;
             var rotateNode = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
             if (rotateNode !== undefined) {
-                rotate = angleToDegrees(rotateNode);
+                rotate = window.PPTXColorUtils.angleToDegrees(rotateNode);
             }
             //video
             var vdoNode = window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
@@ -8199,7 +8158,7 @@
                             console.error("Video file not found:", vdoFile);
                         } else {
                             uInt8Array = vdoFileEntry.asArrayBuffer();
-                            vdoMimeType = getMimeType(vdoFileExt);
+                            vdoMimeType = window.PPTXUtils.getMimeType(vdoFileExt);
                             blob = new Blob([uInt8Array], {
                                 type: vdoMimeType
                             });
@@ -8259,7 +8218,7 @@
             }
             //console.log(node)
             //////////////////////////////////////////////////////////////////////////
-            mimeType = getMimeType(imgFileExt);
+            mimeType = window.PPTXUtils.getMimeType(imgFileExt);
             rtrnData = "<div class='block content' style='" +
                 ((mediaProcess && audioPlayerFlag) ? getPosition(audioObjc, node, undefined, undefined) : getPosition(xfrmNode, node, undefined, undefined)) +
                 ((mediaProcess && audioPlayerFlag) ? getSize(audioObjc, undefined, undefined) : getSize(xfrmNode, undefined, undefined)) +
@@ -8297,7 +8256,7 @@
 
             switch (graphicTypeUri) {
                 case "http://schemas.openxmlformats.org/drawingml/2006/table":
-                    result = PPTXHtml.genTable(node, warpObj);
+                    result = genTableInternal(node, warpObj);
                     break;
                 case "http://schemas.openxmlformats.org/drawingml/2006/chart":
                     result = PPTXHtml.genChart(node, warpObj);
@@ -8410,6 +8369,10 @@
                 var margin_ary = getPregraphMargn(pNode, idx, type, isBullate, warpObj);
                 var margin = margin_ary[0];
                 var mrgin_val = margin_ary[1];
+                if (prg_width_node === undefined && tbl_col_width !== undefined && prg_width_node != 0){
+                    //sorce : table text
+                    prg_width_node = tbl_col_width;
+                }
 
                 var prgrph_text = "";
                 //var prgr_txt_art = [];
@@ -8692,11 +8655,11 @@
             }
             var defBultColor;
             if (buClrNode !== undefined) {
-                defBultColor = getSolidFill(buClrNode, undefined, undefined, warpObj);
+                defBultColor = window.PPTXColorUtils.getSolidFill(buClrNode, undefined, undefined, warpObj);
             } else {
                 if (pFontStyle !== undefined) {
                     //console.log("genBuChar pFontStyle: ", pFontStyle)
-                    defBultColor = getSolidFill(pFontStyle, undefined, undefined, warpObj);
+                    defBultColor = window.PPTXColorUtils.getSolidFill(pFontStyle, undefined, undefined, warpObj);
                 }
             }
             if (defBultColor === undefined || defBultColor == "NONE") {
@@ -8914,7 +8877,7 @@
                     } else {
                         var imgArrayBuffer = imgFile.asArrayBuffer();
                         var imgExt = imgPath.split(".").pop();
-                        var imgMimeType = getMimeType(imgExt);
+                        var imgMimeType = window.PPTXUtils.getMimeType(imgExt);
                         buImg = "<img src='data:" + imgMimeType + ";base64," + window.PPTXUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>";// height: 100%
                         //console.log("imgPath: "+imgPath+"\nimgMimeType: "+imgMimeType)
                     }
@@ -9095,10 +9058,10 @@
                 if (linkTooltip !== undefined) {
                     linkTooltip = "title='" + linkTooltip + "'";
                 }
-                defLinkClr = getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
+                defLinkClr = window.PPTXColorUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
 
                 var linkClrNode = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);// window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
-                var rPrlinkClr = getSolidFill(linkClrNode, undefined, undefined, warpObj);
+                var rPrlinkClr = window.PPTXColorUtils.getSolidFill(linkClrNode, undefined, undefined, warpObj);
 
 
                 //console.log("genSpanElement defLinkClr: ", defLinkClr, "rPrlinkClr:", rPrlinkClr)
@@ -9222,7 +9185,7 @@
             //}
             var highlight = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:highlight"]);
             if (highlight !== undefined) {
-                styleText += "background-color:#" + getSolidFill(highlight, undefined, undefined, warpObj) + ";";
+                styleText += "background-color:#" + window.PPTXColorUtils.getSolidFill(highlight, undefined, undefined, warpObj) + ";";
                 //styleText += "Opacity:" + getColorOpacity(highlight) + ";";
             }
 
@@ -9397,6 +9360,536 @@
         }
 
 
+        function genTableInternal(node, warpObj) {
+            var order = node["attrs"]["order"];
+            var tableNode = window.PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
+            var xfrmNode = window.PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
+            
+            var getTblPr = window.PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblPr"]);
+            var getColsGrid = window.PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblGrid", "a:gridCol"]);
+            var tblDir = "";
+            if (getTblPr !== undefined) {
+                var isRTL = getTblPr["attrs"]["rtl"];
+                tblDir = (isRTL == 1 ? "dir=rtl" : "dir=ltr");
+            }
+            
+            var firstRowAttr = getTblPr !== undefined ? getTblPr["attrs"]["firstRow"] : undefined;
+            var firstColAttr = getTblPr !== undefined ? getTblPr["attrs"]["firstCol"] : undefined;
+            var lastRowAttr = getTblPr !== undefined ? getTblPr["attrs"]["lastRow"] : undefined;
+            var lastColAttr = getTblPr !== undefined ? getTblPr["attrs"]["lastCol"] : undefined;
+            var bandRowAttr = getTblPr !== undefined ? getTblPr["attrs"]["bandRow"] : undefined;
+            var bandColAttr = getTblPr !== undefined ? getTblPr["attrs"]["bandCol"] : undefined;
+            
+            var tblStylAttrObj = {
+                isFrstRowAttr: (firstRowAttr !== undefined && firstRowAttr == "1") ? 1 : 0,
+                isFrstColAttr: (firstColAttr !== undefined && firstColAttr == "1") ? 1 : 0,
+                isLstRowAttr: (lastRowAttr !== undefined && lastRowAttr == "1") ? 1 : 0,
+                isLstColAttr: (lastColAttr !== undefined && lastColAttr == "1") ? 1 : 0,
+                isBandRowAttr: (bandRowAttr !== undefined && bandRowAttr == "1") ? 1 : 0,
+                isBandColAttr: (bandColAttr !== undefined && bandColAttr == "1") ? 1 : 0
+            };
+
+            var thisTblStyle;
+            var tbleStyleId = getTblPr !== undefined ? getTblPr["a:tableStyleId"] : undefined;
+            if (tbleStyleId !== undefined) {
+                var tbleStylList = window.PPTXUtils.getTextByPathList(warpObj, ["tableStyles", "a:tblStyleLst", "a:tblStyle"]);
+                if (tbleStylList !== undefined) {
+                    if (tbleStylList.constructor === Array) {
+                        for (var k = 0; k < tbleStylList.length; k++) {
+                            if (tbleStylList[k]["attrs"]["styleId"] == tbleStyleId) {
+                                thisTblStyle = tbleStylList[k];
+                            }
+                        }
+                    } else {
+                        if (tbleStylList["attrs"]["styleId"] == tbleStyleId) {
+                            thisTblStyle = tbleStylList;
+                        }
+                    }
+                }
+            }
+            if (thisTblStyle !== undefined) {
+                thisTblStyle["tblStylAttrObj"] = tblStylAttrObj;
+                warpObj["thisTbiStyle"] = thisTblStyle;
+            }
+            
+            var tblStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle"]);
+            var tblBorderStyl = window.PPTXUtils.getTextByPathList(tblStyl, ["a:tcBdr"]);
+            var tbl_borders = "";
+            if (tblBorderStyl !== undefined) {
+                tbl_borders = getTableBorders(tblBorderStyl, warpObj);
+            }
+            var tbl_bgcolor = "";
+            var tbl_bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
+            if (tbl_bgFillschemeClr !== undefined) {
+                tbl_bgcolor = window.PPTXColorUtils.getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
+            }
+            if (tbl_bgFillschemeClr === undefined) {
+                tbl_bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
+                tbl_bgcolor = window.PPTXColorUtils.getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
+            }
+            if (tbl_bgcolor !== "") {
+                tbl_bgcolor = "background-color: #" + tbl_bgcolor + ";";
+            }
+            
+            var tableHtml = "<table " + tblDir + " style='border-collapse: collapse;" +
+                getPosition(xfrmNode, node, undefined, undefined) +
+                getSize(xfrmNode, undefined, undefined) +
+                " z-index: " + order + ";" +
+                tbl_borders + ";" +
+                tbl_bgcolor + "'>";
+
+            var trNodes = tableNode["a:tr"];
+            if (trNodes.constructor !== Array) {
+                trNodes = [trNodes];
+            }
+            var rowSpanAry = [];
+            for (var i = 0; i < trNodes.length; i++) {
+                var rowHeightParam = trNodes[i]["attrs"]["h"];
+                var rowHeight = 0;
+                var rowsStyl = "";
+                if (rowHeightParam !== undefined) {
+                    rowHeight = parseInt(rowHeightParam) * slideFactor;
+                    rowsStyl += "height:" + rowHeight + "px;";
+                }
+                var fillColor = "";
+                var row_borders = "";
+                var fontClrPr = "";
+                var fontWeight = "";
+
+                if (thisTblStyle !== undefined && thisTblStyle["a:wholeTbl"] !== undefined) {
+                    var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
+                    if (bgFillschemeClr !== undefined) {
+                        var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                        if (local_fillColor !== undefined) {
+                            fillColor = local_fillColor;
+                        }
+                    }
+                    var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
+                    if (rowTxtStyl !== undefined) {
+                        var local_fontColor = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                        if (local_fontColor !== undefined) {
+                            fontClrPr = local_fontColor;
+                        }
+
+                        var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                        if (local_fontWeight != "") {
+                            fontWeight = local_fontWeight;
+                        }
+                    }
+                }
+
+                if (i == 0 && tblStylAttrObj["isFrstRowAttr"] == 1 && thisTblStyle !== undefined) {
+
+                    var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:fill", "a:solidFill"]);
+                    if (bgFillschemeClr !== undefined) {
+                        var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                        if (local_fillColor !== undefined) {
+                            fillColor = local_fillColor;
+                        }
+                    }
+                    var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:tcBdr"]);
+                    if (borderStyl !== undefined) {
+                        var local_row_borders = getTableBorders(borderStyl, warpObj);
+                        if (local_row_borders != "") {
+                            row_borders = local_row_borders;
+                        }
+                    }
+                    var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcTxStyle"]);
+                    if (rowTxtStyl !== undefined) {
+                        var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                        if (local_fontClrPr !== undefined) {
+                            fontClrPr = local_fontClrPr;
+                        }
+                        var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                        if (local_fontWeight !== "") {
+                            fontWeight = local_fontWeight;
+                        }
+                    }
+
+                } else if (i > 0 && tblStylAttrObj["isBandRowAttr"] == 1 && thisTblStyle !== undefined) {
+                    fillColor = "";
+                    row_borders = undefined;
+                    if ((i % 2) == 0 && thisTblStyle["a:band2H"] !== undefined) {
+                        var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        if (bgFillschemeClr !== undefined) {
+                            var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                            if (local_fillColor !== "") {
+                                fillColor = local_fillColor;
+                            }
+                        }
+
+                        var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:tcBdr"]);
+                        if (borderStyl !== undefined) {
+                            var local_row_borders = getTableBorders(borderStyl, warpObj);
+                            if (local_row_borders != "") {
+                                row_borders = local_row_borders;
+                            }
+                        }
+                        var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcTxStyle"]);
+                        if (rowTxtStyl !== undefined) {
+                            var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                            if (local_fontClrPr !== undefined) {
+                                fontClrPr = local_fontClrPr;
+                            }
+                        }
+
+                        var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+
+                        if (local_fontWeight !== "") {
+                            fontWeight = local_fontWeight;
+                        }
+                    }
+                    if ((i % 2) != 0 && thisTblStyle["a:band1H"] !== undefined) {
+                        var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        if (bgFillschemeClr !== undefined) {
+                            var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                            if (local_fillColor !== undefined) {
+                                fillColor = local_fillColor;
+                            }
+                        }
+                        var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:tcBdr"]);
+                        if (borderStyl !== undefined) {
+                            var local_row_borders = getTableBorders(borderStyl, warpObj);
+                            if (local_row_borders != "") {
+                                row_borders = local_row_borders;
+                            }
+                        }
+                        var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcTxStyle"]);
+                        if (rowTxtStyl !== undefined) {
+                            var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                            if (local_fontClrPr !== undefined) {
+                                fontClrPr = local_fontClrPr;
+                            }
+                            var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            if (local_fontWeight != "") {
+                                fontWeight = local_fontWeight;
+                            }
+                        }
+                    }
+
+                }
+                if (i == (trNodes.length - 1) && tblStylAttrObj["isLstRowAttr"] == 1 && thisTblStyle !== undefined) {
+                    var bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:fill", "a:solidFill"]);
+                    if (bgFillschemeClr !== undefined) {
+                        var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                        if (local_fillColor !== undefined) {
+                            fillColor = local_fillColor;
+                        }
+                    }
+                    var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:tcBdr"]);
+                    if (borderStyl !== undefined) {
+                        var local_row_borders = getTableBorders(borderStyl, warpObj);
+                        if (local_row_borders != "") {
+                            row_borders = local_row_borders;
+                        }
+                    }
+                    var rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcTxStyle"]);
+                    if (rowTxtStyl !== undefined) {
+                        var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                        if (local_fontClrPr !== undefined) {
+                            fontClrPr = local_fontClrPr;
+                        }
+
+                        var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                        if (local_fontWeight !== "") {
+                            fontWeight = local_fontWeight;
+                        }
+                    }
+                }
+                rowsStyl += ((row_borders !== undefined) ? row_borders : "");
+                rowsStyl += ((fontClrPr !== undefined) ? " color: #" + fontClrPr + ";" : "");
+                rowsStyl += ((fontWeight != "") ? " font-weight:" + fontWeight + ";" : "");
+                if (fillColor !== undefined && fillColor != "") {
+                    rowsStyl += "background-color: #" + fillColor + ";";
+                }
+                tableHtml += "<tr style='" + rowsStyl + "'>";
+
+                var tcNodes = trNodes[i]["a:tc"];
+                if (tcNodes !== undefined) {
+                    if (tcNodes.constructor === Array) {
+                        var j = 0;
+                        if (rowSpanAry.length == 0) {
+                            rowSpanAry = Array.apply(null, Array(tcNodes.length)).map(function () { return 0 });
+                        }
+                        var totalColSpan = 0;
+                        while (j < tcNodes.length) {
+                            if (rowSpanAry[j] == 0 && totalColSpan == 0) {
+                                var a_sorce;
+                                if (j == 0 && tblStylAttrObj["isFrstColAttr"] == 1) {
+                                    a_sorce = "a:firstCol";
+                                    if (tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1) &&
+                                        window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:seCell"]) !== undefined) {
+                                        a_sorce = "a:seCell";
+                                    } else if (tblStylAttrObj["isFrstRowAttr"] == 1 && i == 0 &&
+                                        window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:neCell"]) !== undefined) {
+                                        a_sorce = "a:neCell";
+                                    }
+                                } else if ((j > 0 && tblStylAttrObj["isBandColAttr"] == 1) &&
+                                    !(tblStylAttrObj["isFrstColAttr"] == 1 && i == 0) &&
+                                    !(tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1)) &&
+                                    j != (tcNodes.length - 1)) {
+
+                                    if ((j % 2) != 0) {
+                                        var aBandNode = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
+                                        if (aBandNode === undefined) {
+                                            aBandNode = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1V"]);
+                                            if (aBandNode !== undefined) {
+                                                a_sorce = "a:band2V";
+                                            }
+                                        } else {
+                                            a_sorce = "a:band2V";
+                                        }
+                                    }
+                                }
+
+                                if (j == (tcNodes.length - 1) && tblStylAttrObj["isLstColAttr"] == 1) {
+                                    a_sorce = "a:lastCol";
+                                    if (tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1) && window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:swCell"]) !== undefined) {
+                                        a_sorce = "a:swCell";
+                                    } else if (tblStylAttrObj["isFrstRowAttr"] == 1 && i == 0 && window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:nwCell"]) !== undefined) {
+                                        a_sorce = "a:nwCell";
+                                    }
+                                }
+
+                                var cellParmAry = getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj);
+                                var text = cellParmAry[0];
+                                var colStyl = cellParmAry[1];
+                                var cssName = cellParmAry[2];
+                                var rowSpan = cellParmAry[3];
+                                var colSpan = cellParmAry[4];
+
+                                if (rowSpan !== undefined) {
+                                    rowSpanAry[j] = parseInt(rowSpan) - 1;
+                                    tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' rowspan ='" +
+                                        parseInt(rowSpan) + "' style='" + colStyl + "'>" + text + "</td>";
+                                } else if (colSpan !== undefined) {
+                                    tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' colspan = '" +
+                                        parseInt(colSpan) + "' style='" + colStyl + "'>" + text + "</td>";
+                                    totalColSpan = parseInt(colSpan) - 1;
+                                } else {
+                                    tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' style = '" + colStyl + "'>" + text + "</td>";
+                                }
+
+                            } else {
+                                if (rowSpanAry[j] != 0) {
+                                    rowSpanAry[j] -= 1;
+                                }
+                                if (totalColSpan != 0) {
+                                    totalColSpan--;
+                                }
+                            }
+                            j++;
+                        }
+                    } else {
+                        var a_sorce;
+                        if (tblStylAttrObj["isFrstColAttr"] == 1 && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
+                            a_sorce = "a:firstCol";
+
+                        } else if ((tblStylAttrObj["isBandColAttr"] == 1) && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
+
+                            var aBandNode = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
+                            if (aBandNode === undefined) {
+                                aBandNode = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1V"]);
+                                if (aBandNode !== undefined) {
+                                    a_sorce = "a:band2V";
+                                }
+                            } else {
+                                a_sorce = "a:band2V";
+                            }
+                        }
+
+                        if (tblStylAttrObj["isLstColAttr"] == 1 && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
+                            a_sorce = "a:lastCol";
+                        }
+
+                        var cellParmAry = getTableCellParams(tcNodes, getColsGrid , i , undefined , thisTblStyle, a_sorce, warpObj);
+                        var text = cellParmAry[0];
+                        var colStyl = cellParmAry[1];
+                        var cssName = cellParmAry[2];
+                        var rowSpan = cellParmAry[3];
+
+                        if (rowSpan !== undefined) {
+                            tableHtml += "<td  class='" + cssName + "' rowspan='" + parseInt(rowSpan) + "' style = '" + colStyl + "'>" + text + "</td>";
+                        } else {
+                            tableHtml += "<td class='" + cssName + "' style='" + colStyl + "'>" + text + "</td>";
+                        }
+                    }
+                }
+                tableHtml += "</tr>";
+            }
+
+            return tableHtml;
+        }
+
+        function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
+            //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
+            //text, cell-width, cell-borders, 
+            //var text = genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
+            var rowSpan = window.PPTXUtils.getTextByPathList(tcNodes, ["attrs", "rowSpan"]);
+            var colSpan = window.PPTXUtils.getTextByPathList(tcNodes, ["attrs", "gridSpan"]);
+            window.PPTXUtils.getTextByPathList(tcNodes, ["attrs", "vMerge"]);
+            window.PPTXUtils.getTextByPathList(tcNodes, ["attrs", "hMerge"]);
+            var colStyl = "word-wrap: break-word;";
+            var colWidth;
+            var celFillColor = "";
+            var colFontClrPr = "";
+            var colFontWeight = "";
+            var lin_bottm = "",
+                lin_top = "",
+                lin_left = "",
+                lin_right = "";
+            
+            var colSapnInt = parseInt(colSpan);
+            var total_col_width = 0;
+            if (!isNaN(colSapnInt) && colSapnInt > 1){
+                for (var k = 0; k < colSapnInt ; k++) {
+                    total_col_width += parseInt(window.PPTXUtils.getTextByPathList(getColsGrid[col_idx + k], ["attrs", "w"]));
+                }
+            }else {
+                total_col_width = window.PPTXUtils.getTextByPathList((col_idx === undefined) ? getColsGrid : getColsGrid[col_idx], ["attrs", "w"]);
+            }
+            
+
+            var text = genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width);//tableStyles
+
+            if (total_col_width != 0 /*&& row_idx == 0*/) {
+                colWidth = parseInt(total_col_width) * slideFactor;
+                colStyl += "width:" + colWidth + "px;";
+            }
+
+            //cell bords
+            lin_bottm = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnB"]);
+            if (lin_bottm === undefined && cellSource !== undefined) {
+                if (cellSource !== undefined)
+                    lin_bottm = window.PPTXUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
+                if (lin_bottm === undefined) {
+                    lin_bottm = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
+                }
+            }
+            lin_top = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnT"]);
+            if (lin_top === undefined) {
+                if (cellSource !== undefined)
+                    lin_top = window.PPTXUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
+                if (lin_top === undefined) {
+                    lin_top = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
+                }
+            }
+            lin_left = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnL"]);
+            if (lin_left === undefined) {
+                if (cellSource !== undefined)
+                    lin_left = window.PPTXUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
+                if (lin_left === undefined) {
+                    lin_left = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
+                }
+            }
+            lin_right = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnR"]);
+            if (lin_right === undefined) {
+                if (cellSource !== undefined)
+                    lin_right = window.PPTXUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
+                if (lin_right === undefined) {
+                    lin_right = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
+                }
+            }
+            window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnBlToTr"]);
+            window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:InTlToBr"]);
+
+            if (lin_bottm !== undefined && lin_bottm != "") {
+                var bottom_line_border = getBorder(lin_bottm, undefined, false, "", warpObj);
+                if (bottom_line_border != "") {
+                    colStyl += "border-bottom:" + bottom_line_border + ";";
+                }
+            }
+            if (lin_top !== undefined && lin_top != "") {
+                var top_line_border = getBorder(lin_top, undefined, false, "", warpObj);
+                if (top_line_border != "") {
+                    colStyl += "border-top: " + top_line_border + ";";
+                }
+            }
+            if (lin_left !== undefined && lin_left != "") {
+                var left_line_border = getBorder(lin_left, undefined, false, "", warpObj);
+                if (left_line_border != "") {
+                    colStyl += "border-left: " + left_line_border + ";";
+                }
+            }
+            if (lin_right !== undefined && lin_right != "") {
+                var right_line_border = getBorder(lin_right, undefined, false, "", warpObj);
+                if (right_line_border != "") {
+                    colStyl += "border-right:" + right_line_border + ";";
+                }
+            }
+
+            //cell fill color custom
+            var getCelFill = window.PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr"]);
+            if (getCelFill !== undefined && getCelFill != "") {
+                var cellObj = {
+                    "p:spPr": getCelFill
+                };
+                celFillColor = getShapeFill(cellObj, undefined, false, warpObj, "slide");
+            }
+
+            //cell fill color theme
+            if (celFillColor == "" || celFillColor == "background-color: inherit;") {
+                var bgFillschemeClr;
+                if (cellSource !== undefined)
+                    bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:fill", "a:solidFill"]);
+                if (bgFillschemeClr !== undefined) {
+                    var local_fillColor = window.PPTXColorUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                    if (local_fillColor !== undefined) {
+                        celFillColor = " background-color: #" + local_fillColor + ";";
+                    }
+                }
+            }
+            var cssName = "";
+            if (celFillColor !== undefined && celFillColor != "") {
+                if (celFillColor in styleTable) {
+                    cssName = styleTable[celFillColor]["name"];
+                } else {
+                    cssName = "_tbl_cell_css_" + (Object.keys(styleTable).length + 1);
+                    styleTable[celFillColor] = {
+                        "name": cssName,
+                        "text": celFillColor
+                    };
+                }
+
+            }
+
+            //border
+            // var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:tcBdr"]);
+            // if (borderStyl !== undefined) {
+            //     var local_col_borders = getTableBorders(borderStyl, warpObj);
+            //     if (local_col_borders != "") {
+            //         col_borders = local_col_borders;
+            //     }
+            // }
+            // if (col_borders != "") {
+            //     colStyl += col_borders;
+            // }
+
+            //Text style
+            var rowTxtStyl;
+            if (cellSource !== undefined) {
+                rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcTxStyle"]);
+            }
+            // if (rowTxtStyl === undefined) {
+            //     rowTxtStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
+            // }
+            if (rowTxtStyl !== undefined) {
+                var local_fontClrPr = window.PPTXColorUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                if (local_fontClrPr !== undefined) {
+                    colFontClrPr = local_fontClrPr;
+                }
+                var local_fontWeight = ((window.PPTXUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                if (local_fontWeight !== "") {
+                    colFontWeight = local_fontWeight;
+                }
+            }
+            colStyl += ((colFontClrPr !== "") ? "color: #" + colFontClrPr + ";" : "");
+            colStyl += ((colFontWeight != "") ? " font-weight:" + colFontWeight + ";" : "");
+
+            return [text, colStyl, cssName, rowSpan, colSpan];
+        }
+
+
         function genDiagram(node, warpObj, source, sType) {
             //console.log(warpObj)
             //readXmlFile(zip, sldFileName)
@@ -9462,79 +9955,6 @@
                 "'>" + rslt + "</div>";
         }
 
-        function getPosition(slideSpNode, pNode, slideLayoutSpNode, slideMasterSpNode, sType) {
-            var off;
-            var x = -1, y = -1;
-
-            if (slideSpNode !== undefined) {
-                off = slideSpNode["a:off"]["attrs"];
-            }
-
-            if (off === undefined && slideLayoutSpNode !== undefined) {
-                off = slideLayoutSpNode["a:off"]["attrs"];
-            } else if (off === undefined && slideMasterSpNode !== undefined) {
-                off = slideMasterSpNode["a:off"]["attrs"];
-            }
-            var offX = 0, offY = 0;
-            var grpX = 0, grpY = 0;
-            if (sType == "group") {
-
-                var grpXfrmNode = window.PPTXUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
-                if (xfrmNode !== undefined) {
-                    grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-                    grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-                    // var chx = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-                    // var chy = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
-                    // var cx = parseInt(grpXfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
-                    // var cy = parseInt(grpXfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
-                    // var chcx = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
-                    // var chcy = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
-                    // var rotate = parseInt(grpXfrmNode["attrs"]["rot"])
-                }
-            }
-            if (sType == "group-rotate" && pNode["p:grpSpPr"] !== undefined) {
-                var xfrmNode = pNode["p:grpSpPr"]["a:xfrm"];
-                // var ox = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-                // var oy = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-                var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-                var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
-
-                offX = chx;
-                offY = chy;
-            }
-            if (off === undefined) {
-                return "";
-            } else {
-                x = parseInt(off["x"]) * slideFactor;
-                y = parseInt(off["y"]) * slideFactor;
-                // if (type = "body")
-                //     console.log("getPosition: slideSpNode: ", slideSpNode, ", type: ", type, "x: ", x, "offX:", offX, "y:", y, "offY:", offY)
-                return (isNaN(x) || isNaN(y)) ? "" : "top:" + (y - offY + grpY) + "px; left:" + (x - offX + grpX) + "px;";
-            }
-
-        }
-
-        function getSize(slideSpNode, slideLayoutSpNode, slideMasterSpNode) {
-            var ext = undefined;
-            var w = -1, h = -1;
-
-            if (slideSpNode !== undefined) {
-                ext = slideSpNode["a:ext"]["attrs"];
-            } else if (slideLayoutSpNode !== undefined) {
-                ext = slideLayoutSpNode["a:ext"]["attrs"];
-            } else if (slideMasterSpNode !== undefined) {
-                ext = slideMasterSpNode["a:ext"]["attrs"];
-            }
-
-            if (ext === undefined) {
-                return "";
-            } else {
-                w = parseInt(ext["cx"]) * slideFactor;
-                h = parseInt(ext["cy"]) * slideFactor;
-                return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
-            }
-
-        }
         function getVerticalMargins(pNode, textBodyNode, type, idx, warpObj) {
             //margin-top ; 
             //a:pPr => a:spcBef => a:spcPts (/100) | a:spcPct (/?)
@@ -9924,52 +10344,52 @@
             var filTyp, color, textBordr, colorType = "", highlightColor = "";
             //console.log("getFontColorPr type:", type, ", node: ", node, "pNode:", pNode, "pFontStyle:", pFontStyle)
             if (rPrNode !== undefined) {
-                filTyp = getFillType(rPrNode);
+                filTyp = window.PPTXColorUtils.getFillType(rPrNode);
                 if (filTyp == "SOLID_FILL") {
                     var solidFillNode = rPrNode["a:solidFill"];// window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
-                    color = getSolidFill(solidFillNode, undefined, undefined, warpObj);
+                    color = window.PPTXColorUtils.getSolidFill(solidFillNode, undefined, undefined, warpObj);
                     var highlightNode = rPrNode["a:highlight"];
                     if (highlightNode !== undefined) {
-                        highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
+                        highlightColor = window.PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
                     }
                     colorType = "solid";
                 } else if (filTyp == "PATTERN_FILL") {
                     var pattFill = rPrNode["a:pattFill"];// window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
-                    color = getPatternFill(pattFill, warpObj);
+                    color = window.PPTXColorUtils.getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
                     color = getBgPicFill(rPrNode, "slideBg", warpObj, undefined);
-                    //color = getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
+                    //color = window.PPTXColorUtils.getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
                     colorType = "pic";
                 } else if (filTyp == "GRADIENT_FILL") {
                     var shpFill = rPrNode["a:gradFill"];
-                    color = getGradientFill(shpFill, warpObj);
+                    color = window.PPTXColorUtils.getGradientFill(shpFill, warpObj);
                     colorType = "gradient";
                 } 
             }
             if (color === undefined && window.PPTXUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]) !== undefined) {
                 //lstStyle
                 var lstStyledefRPr = window.PPTXUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]);
-                filTyp = getFillType(lstStyledefRPr);
+                filTyp = window.PPTXColorUtils.getFillType(lstStyledefRPr);
                 if (filTyp == "SOLID_FILL") {
                     var solidFillNode = lstStyledefRPr["a:solidFill"];// window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
-                    color = getSolidFill(solidFillNode, undefined, undefined, warpObj);
+                    color = window.PPTXColorUtils.getSolidFill(solidFillNode, undefined, undefined, warpObj);
                     var highlightNode = lstStyledefRPr["a:highlight"];
                     if (highlightNode !== undefined) {
-                        highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
+                        highlightColor = window.PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
                     }
                     colorType = "solid";
                 } else if (filTyp == "PATTERN_FILL") {
                     var pattFill = lstStyledefRPr["a:pattFill"];// window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
-                    color = getPatternFill(pattFill, warpObj);
+                    color = window.PPTXColorUtils.getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
                     color = getBgPicFill(lstStyledefRPr, "slideBg", warpObj, undefined);
-                    //color = getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
+                    //color = window.PPTXColorUtils.getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
                     colorType = "pic";
                 } else if (filTyp == "GRADIENT_FILL") {
                     var shpFill = lstStyledefRPr["a:gradFill"];
-                    color = getGradientFill(shpFill, warpObj);
+                    color = window.PPTXColorUtils.getGradientFill(shpFill, warpObj);
                     colorType = "gradient";
                 }
 
@@ -9977,18 +10397,18 @@
             if (color === undefined) {
                 var sPstyle = window.PPTXUtils.getTextByPathList(pNode, ["p:style", "a:fontRef"]);
                 if (sPstyle !== undefined) {
-                    color = getSolidFill(sPstyle, undefined, undefined, warpObj);
+                    color = window.PPTXColorUtils.getSolidFill(sPstyle, undefined, undefined, warpObj);
                     if (color !== undefined) {
                         colorType = "solid";
                     }
                     var highlightNode = sPstyle["a:highlight"]; //is "a:highlight" node in 'a:fontRef' ?
                     if (highlightNode !== undefined) {
-                        highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
+                        highlightColor = window.PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
                     }
                 }
                 if (color === undefined) {
                     if (pFontStyle !== undefined) {
-                        color = getSolidFill(pFontStyle, undefined, undefined, warpObj);
+                        color = window.PPTXColorUtils.getSolidFill(pFontStyle, undefined, undefined, warpObj);
                         if (color !== undefined) {
                             colorType = "solid";
                         }
@@ -10006,10 +10426,10 @@
                 if (pPrNodeLaout !== undefined) {
                     var defRpRLaout = window.PPTXUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:solidFill"]);
                     if (defRpRLaout !== undefined) {
-                        color = getSolidFill(defRpRLaout, undefined, undefined, warpObj);
+                        color = window.PPTXColorUtils.getSolidFill(defRpRLaout, undefined, undefined, warpObj);
                         var highlightNode = window.PPTXUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:highlight"]);
                         if (highlightNode !== undefined) {
-                            highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
+                            highlightColor = window.PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
                         }
                         colorType = "solid";
                     }
@@ -10019,10 +10439,10 @@
                     if (pPrNodeMaster !== undefined) {
                         var defRprMaster = window.PPTXUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:solidFill"]);
                         if (defRprMaster !== undefined) {
-                            color = getSolidFill(defRprMaster, undefined, undefined, warpObj);
+                            color = window.PPTXColorUtils.getSolidFill(defRprMaster, undefined, undefined, warpObj);
                             var highlightNode = window.PPTXUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:highlight"]);
                             if (highlightNode !== undefined) {
-                                highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
+                                highlightColor = window.PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
                             }
                             colorType = "solid";
                         }
@@ -10066,7 +10486,7 @@
             var txtGlowNode = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:glow"]);
             var oGlowStr = "";
             if (txtGlowNode !== undefined) {
-                var glowClr = getSolidFill(txtGlowNode, undefined, undefined, warpObj);
+                var glowClr = window.PPTXColorUtils.getSolidFill(txtGlowNode, undefined, undefined, warpObj);
                 var rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * slideFactor) : 0;
                 oGlowStr = "0 0 " + rad + "px #" + glowClr +
                     ", 0 0 " + rad + "px #" + glowClr +
@@ -10097,7 +10517,7 @@
                 //https://css-tricks.com/creating-playful-effects-with-css-text-shadows/
                 //https://designshack.net/articles/css/12-fun-css-text-shadows-you-can-copy-and-paste/
 
-                var shadowClr = getSolidFill(txtShadow, undefined, undefined, warpObj);
+                var shadowClr = window.PPTXColorUtils.getSolidFill(txtShadow, undefined, undefined, warpObj);
                 var outerShdwAttrs = txtShadow["attrs"];
                 // algn: "bl"
                 // dir: "2640000"
@@ -10363,6 +10783,48 @@
             var baseline = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
             return baseline === undefined ? "baseline" : (parseInt(baseline) / 1000) + "%";
         }
+
+        function getTableBorders(node, warpObj) {
+            var borderStyle = "";
+            if (node["a:bottom"] !== undefined) {
+                var obj = {
+                    "p:spPr": {
+                        "a:ln": node["a:bottom"]["a:ln"]
+                    }
+                };
+                var borders = getBorder(obj, undefined, false, "shape", warpObj);
+                borderStyle += borders.replace("border", "border-bottom");
+            }
+            if (node["a:top"] !== undefined) {
+                var obj = {
+                    "p:spPr": {
+                        "a:ln": node["a:top"]["a:ln"]
+                    }
+                };
+                var borders = getBorder(obj, undefined, false, "shape", warpObj);
+                borderStyle += borders.replace("border", "border-top");
+            }
+            if (node["a:right"] !== undefined) {
+                var obj = {
+                    "p:spPr": {
+                        "a:ln": node["a:right"]["a:ln"]
+                    }
+                };
+                var borders = getBorder(obj, undefined, false, "shape", warpObj);
+                borderStyle += borders.replace("border", "border-right");
+            }
+            if (node["a:left"] !== undefined) {
+                var obj = {
+                    "p:spPr": {
+                        "a:ln": node["a:left"]["a:ln"]
+                    }
+                };
+                var borders = getBorder(obj, undefined, false, "shape", warpObj);
+                borderStyle += borders.replace("border", "border-left");
+            }
+
+            return borderStyle;
+        }
         //////////////////////////////////////////////////////////////////
         function getBorder(node, pNode, isSvgMode, bType, warpObj) {
             //console.log("getBorder", node, pNode, isSvgMode, bType)
@@ -10467,17 +10929,17 @@
                         strokeDasharray = "0";
                 }
                 // Border color
-                var fillTyp = getFillType(lineNode);
+                var fillTyp = window.PPTXColorUtils.getFillType(lineNode);
                 //console.log("getBorder:node : fillTyp", fillTyp)
                 if (fillTyp == "NO_FILL") {
                     borderColor = isSvgMode ? "none" : "";//"background-color: initial;";
                 } else if (fillTyp == "SOLID_FILL") {
-                    borderColor = getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
+                    borderColor = window.PPTXColorUtils.getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
                 } else if (fillTyp == "GRADIENT_FILL") {
-                    borderColor = getGradientFill(lineNode["a:gradFill"], warpObj);
+                    borderColor = window.PPTXColorUtils.getGradientFill(lineNode["a:gradFill"], warpObj);
                     //console.log("shpFill",shpFill,grndColor.color)
                 } else if (fillTyp == "PATTERN_FILL") {
-                    borderColor = getPatternFill(lineNode["a:pattFill"], warpObj);
+                    borderColor = window.PPTXColorUtils.getPatternFill(lineNode["a:pattFill"], warpObj);
                 }
 
             }
@@ -10488,12 +10950,12 @@
                 //var schemeClrNode = window.PPTXUtils.getTextByPathList(node, ["p:style", "a:lnRef", "a:schemeClr"]);
                 // if (schemeClrNode !== undefined) {
                 //     var schemeClr = "a:" + window.PPTXUtils.getTextByPathList(schemeClrNode, ["attrs", "val"]);
-                //     var borderColor = getSchemeColorFromTheme(schemeClr, undefined, undefined);
+                //     var borderColor = window.PPTXColorUtils.getSchemeColorFromTheme(schemeClr, undefined, undefined);
                 // }
                 var lnRefNode = window.PPTXUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
                 //console.log("getBorder: lnRef : ", lnRefNode)
                 if (lnRefNode !== undefined) {
-                    borderColor = getSolidFill(lnRefNode, undefined, undefined, warpObj);
+                    borderColor = window.PPTXColorUtils.getSolidFill(lnRefNode, undefined, undefined, warpObj);
                 }
 
                 // if (borderColor !== undefined) {
@@ -10600,14 +11062,14 @@
             //console.log("slideContent: ", slideContent)
             //console.log("slideLayoutContent: ", slideLayoutContent)
             //console.log("slideMasterContent: ", slideMasterContent)
-            //getFillType(node)
+            //window.PPTXColorUtils.getFillType(node)
             var bgPr = window.PPTXUtils.getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgPr"]);
             var bgRef = window.PPTXUtils.getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgRef"]);
             //console.log("slideContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
             var bgcolor;
             if (bgPr !== undefined) {
                 //bgcolor = "background-color: blue;";
-                var bgFillTyp = getFillType(bgPr);
+                var bgFillTyp = window.PPTXColorUtils.getFillType(bgPr);
 
                 if (bgFillTyp == "SOLID_FILL") {
                     var sldFill = bgPr["a:solidFill"];
@@ -10624,7 +11086,7 @@
                         }
 
                     }
-                    var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                    var sldBgClr = window.PPTXColorUtils.getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                     //var sldTint = getColorOpacity(sldFill);
                     //console.log("bgColor: ", bgColor)
                     //bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
@@ -10653,13 +11115,13 @@
                     }
 
                 }
-                var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
+                var phClr = window.PPTXColorUtils.getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
 
                 // if (bgRef["a:srgbClr"] !== undefined) {
                 //     phClr = window.PPTXUtils.getTextByPathList(bgRef, ["a:srgbClr", "attrs", "val"]); //#...
                 // } else if (bgRef["a:schemeClr"] !== undefined) { //a:schemeClr
                 //     var schemeClr = window.PPTXUtils.getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
-                //     phClr = getSchemeColorFromTheme("a:" + schemeClr, slideMasterContent, undefined); //#...
+                //     phClr = window.PPTXColorUtils.getSchemeColorFromTheme("a:" + schemeClr, slideMasterContent, undefined); //#...
                 // }
                 var idx = Number(bgRef["attrs"]["idx"]);
 
@@ -10700,10 +11162,10 @@
                         return a.idex - b.idex;
                     });
                     var bgFillLstIdx = sortByOrder[trueIdx - 1];
-                    var bgFillTyp = getFillType(bgFillLstIdx);
+                    var bgFillTyp = window.PPTXColorUtils.getFillType(bgFillLstIdx);
                     if (bgFillTyp == "SOLID_FILL") {
                         var sldFill = bgFillLstIdx["a:solidFill"];
-                        var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                        var sldBgClr = window.PPTXColorUtils.getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                         //var sldTint = getColorOpacity(sldFill);
                         //bgcolor = "background: rgba(" + hexToRgbNew(phClr) + "," + sldTint + ");";
                         bgcolor = "background: #" + sldBgClr + ";";
@@ -10728,11 +11190,11 @@
                     clrMapOvr = window.PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                 }
                 if (bgPr !== undefined) {
-                    var bgFillTyp = getFillType(bgPr);
+                    var bgFillTyp = window.PPTXColorUtils.getFillType(bgPr);
                     if (bgFillTyp == "SOLID_FILL") {
                         var sldFill = bgPr["a:solidFill"];
 
-                        var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                        var sldBgClr = window.PPTXColorUtils.getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                         //var sldTint = getColorOpacity(sldFill);
                         // bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
                         bgcolor = "background: #" + sldBgClr + ";";
@@ -10746,7 +11208,7 @@
                 } else if (bgRef !== undefined) {
                     console.log("slideLayoutContent: bgRef", bgRef);
                     //bgcolor = "background: white;";
-                    var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
+                    var phClr = window.PPTXColorUtils.getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
                     var idx = Number(bgRef["attrs"]["idx"]);
                     //console.log("phClr=", phClr, "idx=", idx)
 
@@ -10786,13 +11248,13 @@
                             return a.idex - b.idex;
                         });
                         var bgFillLstIdx = sortByOrder[trueIdx - 1];
-                        var bgFillTyp = getFillType(bgFillLstIdx);
+                        var bgFillTyp = window.PPTXColorUtils.getFillType(bgFillLstIdx);
                         if (bgFillTyp == "SOLID_FILL") {
                             var sldFill = bgFillLstIdx["a:solidFill"];
                             //console.log("sldFill: ", sldFill)
                             //var sldTint = getColorOpacity(sldFill);
                             //bgcolor = "background: rgba(" + hexToRgbNew(phClr) + "," + sldTint + ");";
-                            var sldBgClr = getSolidFill(sldFill, clrMapOvr, phClr, warpObj);
+                            var sldBgClr = window.PPTXColorUtils.getSolidFill(sldFill, clrMapOvr, phClr, warpObj);
                             //console.log("bgcolor: ", bgcolor)
                             bgcolor = "background: #" + sldBgClr + ";";
                         } else if (bgFillTyp == "GRADIENT_FILL") {
@@ -10813,10 +11275,10 @@
                     var clrMap = window.PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                     //console.log("slideMasterContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
                     if (bgPr !== undefined) {
-                        var bgFillTyp = getFillType(bgPr);
+                        var bgFillTyp = window.PPTXColorUtils.getFillType(bgPr);
                         if (bgFillTyp == "SOLID_FILL") {
                             var sldFill = bgPr["a:solidFill"];
-                            var sldBgClr = getSolidFill(sldFill, clrMap, undefined, warpObj);
+                            var sldBgClr = window.PPTXColorUtils.getSolidFill(sldFill, clrMap, undefined, warpObj);
                             // var sldTint = getColorOpacity(sldFill);
                             // bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
                             bgcolor = "background: #" + sldBgClr + ";";
@@ -10829,14 +11291,14 @@
                         //var obj={
                         //    "a:solidFill": bgRef
                         //}
-                        var phClr = getSolidFill(bgRef, clrMap, undefined, warpObj);
+                        var phClr = window.PPTXColorUtils.getSolidFill(bgRef, clrMap, undefined, warpObj);
                         // var phClr;
                         // if (bgRef["a:srgbClr"] !== undefined) {
                         //     phClr = window.PPTXUtils.getTextByPathList(bgRef, ["a:srgbClr", "attrs", "val"]); //#...
                         // } else if (bgRef["a:schemeClr"] !== undefined) { //a:schemeClr
                         //     var schemeClr = window.PPTXUtils.getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
 
-                        //     phClr = getSchemeColorFromTheme("a:" + schemeClr, slideMasterContent, undefined); //#...
+                        //     phClr = window.PPTXColorUtils.getSchemeColorFromTheme("a:" + schemeClr, slideMasterContent, undefined); //#...
                         // }
                         var idx = Number(bgRef["attrs"]["idx"]);
                         //console.log("phClr=", phClr, "idx=", idx)
@@ -10877,14 +11339,14 @@
                                 return a.idex - b.idex;
                             });
                             var bgFillLstIdx = sortByOrder[trueIdx - 1];
-                            var bgFillTyp = getFillType(bgFillLstIdx);
+                            var bgFillTyp = window.PPTXColorUtils.getFillType(bgFillLstIdx);
                             //console.log("bgFillLstIdx: ", bgFillLstIdx, ", bgFillTyp: ", bgFillTyp, ", phClr: ", phClr);
                             if (bgFillTyp == "SOLID_FILL") {
                                 var sldFill = bgFillLstIdx["a:solidFill"];
                                 //console.log("sldFill: ", sldFill)
                                 //var sldTint = getColorOpacity(sldFill);
                                 //bgcolor = "background: rgba(" + hexToRgbNew(phClr) + "," + sldTint + ");";
-                                var sldBgClr = getSolidFill(sldFill, clrMap, phClr, warpObj);
+                                var sldBgClr = window.PPTXColorUtils.getSolidFill(sldFill, clrMap, phClr, warpObj);
                                 //console.log("bgcolor: ", bgcolor)
                                 bgcolor = "background: #" + sldBgClr + ";";
                             } else if (bgFillTyp == "GRADIENT_FILL") {
@@ -10916,7 +11378,7 @@
                 //var tint_ary = [];
                 for (var i = 0; i < gsLst.length; i++) {
                     var lo_color = "";
-                    var lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
+                    var lo_color = window.PPTXColorUtils.getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
                     var pos = window.PPTXUtils.getTextByPathList(gsLst[i], ["attrs", "pos"]);
                     //console.log("pos: ", pos)
                     if (pos !== undefined) {
@@ -10932,7 +11394,7 @@
                 var lin = grdFill["a:lin"];
                 var rot = 90;
                 if (lin !== undefined) {
-                    rot = angleToDegrees(lin["attrs"]["ang"]);// + 270;
+                    rot = window.PPTXColorUtils.angleToDegrees(lin["attrs"]["ang"]);// + 270;
                     //console.log("rot: ", rot)
                     rot = rot + 90;
                 }
@@ -10967,7 +11429,7 @@
         function getBgPicFill(bgPr, sorce, warpObj, phClr, index) {
             //console.log("getBgPicFill bgPr", bgPr)
             var bgcolor;
-            var picFillBase64 = getPicFill(sorce, bgPr["a:blipFill"], warpObj);
+            var picFillBase64 = window.PPTXColorUtils.getPicFill(sorce, bgPr["a:blipFill"], warpObj);
             var ordr = bgPr["attrs"]["order"];
             var aBlipNode = bgPr["a:blipFill"]["a:blip"];
             //a:duotone
@@ -10983,13 +11445,13 @@
                     if (clr_type != "attrs") {
                         var obj = {};
                         obj[clr_type] = duotone[clr_type];
-                        clr_ary.push(getSolidFill(obj, undefined, phClr, warpObj));
+                        clr_ary.push(window.PPTXColorUtils.getSolidFill(obj, undefined, phClr, warpObj));
                     }
                     // Object.keys(duotone[clr_type]).forEach(function (clr) {
                     //     if (clr != "order") {
                     //         var obj = {};
                     //         obj[clr_type] = duotone[clr_type][clr];
-                    //         clr_ary.push(getSolidFill(obj, undefined, phClr, warpObj));
+                    //         clr_ary.push(window.PPTXColorUtils.getSolidFill(obj, undefined, phClr, warpObj));
                     //     }
                     // })
                 });
@@ -11094,24 +11556,24 @@
             // From slide
             //Fill Type:
             //console.log("getShapeFill ShapeFill: ", node, ", isSvgMode; ", isSvgMode)
-            var fillType = getFillType(window.PPTXUtils.getTextByPathList(node, ["p:spPr"]));
+            var fillType = window.PPTXColorUtils.getFillType(window.PPTXUtils.getTextByPathList(node, ["p:spPr"]));
             //var noFill = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
             var fillColor;
             if (fillType == "NO_FILL") {
                 return isSvgMode ? "none" : "";//"background-color: initial;";
             } else if (fillType == "SOLID_FILL") {
                 var shpFill = node["p:spPr"]["a:solidFill"];
-                fillColor = getSolidFill(shpFill, undefined, undefined, warpObj);
+                fillColor = window.PPTXColorUtils.getSolidFill(shpFill, undefined, undefined, warpObj);
             } else if (fillType == "GRADIENT_FILL") {
                 var shpFill = node["p:spPr"]["a:gradFill"];
-                fillColor = getGradientFill(shpFill, warpObj);
+                fillColor = window.PPTXColorUtils.getGradientFill(shpFill, warpObj);
                 //console.log("shpFill",shpFill,grndColor.color)
             } else if (fillType == "PATTERN_FILL") {
                 var shpFill = node["p:spPr"]["a:pattFill"];
-                fillColor = getPatternFill(shpFill, warpObj);
+                fillColor = window.PPTXColorUtils.getPatternFill(shpFill, warpObj);
             } else if (fillType == "PIC_FILL") {
                 var shpFill = node["p:spPr"]["a:blipFill"];
-                fillColor = getPicFill(source, shpFill, warpObj);
+                fillColor = window.PPTXColorUtils.getPicFill(source, shpFill, warpObj);
             }
             //console.log("getShapeFill ShapeFill: ", node, ", isSvgMode; ", isSvgMode, ", fillType: ", fillType, ", fillColor: ", fillColor, ", source: ", source)
 
@@ -11124,13 +11586,13 @@
                     //no fill
                     return isSvgMode ? "none" : "";
                 }
-                fillColor = getSolidFill(clrName, undefined, undefined, warpObj);
+                fillColor = window.PPTXColorUtils.getSolidFill(clrName, undefined, undefined, warpObj);
             }
             // 3. is group fill
             if (fillColor === undefined) {
                 var grpFill = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:grpFill"]);
                 if (grpFill !== undefined) {
-                    //fillColor = getSolidFill(clrName, undefined, undefined, undefined, warpObj);
+                    //fillColor = window.PPTXColorUtils.getSolidFill(clrName, undefined, undefined, undefined, warpObj);
                     //get parent fill style - TODO
                     //console.log("ShapeFill: grpFill: ", grpFill, ", pNode: ", pNode)
                     var grpShpFill = pNode["p:grpSpPr"];
@@ -11209,1042 +11671,6 @@
 
         }
         ///////////////////////Amir//////////////////////////////
-        function getFillType(node) {
-            //Need to test/////////////////////////////////////////////
-            //SOLID_FILL
-            //PIC_FILL
-            //GRADIENT_FILL
-            //PATTERN_FILL
-            //NO_FILL
-            var fillType = "";
-            if (node["a:noFill"] !== undefined) {
-                fillType = "NO_FILL";
-            }
-            if (node["a:solidFill"] !== undefined) {
-                fillType = "SOLID_FILL";
-            }
-            if (node["a:gradFill"] !== undefined) {
-                fillType = "GRADIENT_FILL";
-            }
-            if (node["a:pattFill"] !== undefined) {
-                fillType = "PATTERN_FILL";
-            }
-            if (node["a:blipFill"] !== undefined) {
-                fillType = "PIC_FILL";
-            }
-            if (node["a:grpFill"] !== undefined) {
-                fillType = "GROUP_FILL";
-            }
-
-
-            return fillType;
-        }
-        function getGradientFill(node, warpObj) {
-            //console.log("getGradientFill: node", node)
-            var gsLst = node["a:gsLst"]["a:gs"];
-            //get start color
-            var color_ary = [];
-            for (var i = 0; i < gsLst.length; i++) {
-                var lo_color = getSolidFill(gsLst[i], undefined, undefined, warpObj);
-                //console.log("lo_color",lo_color)
-                color_ary[i] = lo_color;
-            }
-            //get rot
-            var lin = node["a:lin"];
-            var rot = 0;
-            if (lin !== undefined) {
-                rot = angleToDegrees(lin["attrs"]["ang"]) + 90;
-            }
-            return {
-                "color": color_ary,
-                "rot": rot
-            }
-        }
-        function getPicFill(type, node, warpObj) {
-            //Need to test/////////////////////////////////////////////
-            //rId
-            //TODO - Image Properties - Tile, Stretch, or Display Portion of Image
-            //(http://officeopenxml.com/drwPic-tile.php)
-            var img;
-            var rId = node["a:blip"]["attrs"]["r:embed"];
-            var imgPath;
-            //console.log("getPicFill(...) rId: ", rId, ", warpObj: ", warpObj, ", type: ", type)
-            if (type == "slideBg" || type == "slide") {
-                imgPath = window.PPTXUtils.getTextByPathList(warpObj, ["slideResObj", rId, "target"]);
-            } else if (type == "slideLayoutBg") {
-                imgPath = window.PPTXUtils.getTextByPathList(warpObj, ["layoutResObj", rId, "target"]);
-            } else if (type == "slideMasterBg") {
-                imgPath = window.PPTXUtils.getTextByPathList(warpObj, ["masterResObj", rId, "target"]);
-            } else if (type == "themeBg") {
-                imgPath = window.PPTXUtils.getTextByPathList(warpObj, ["themeResObj", rId, "target"]);
-            } else if (type == "diagramBg") {
-                imgPath = window.PPTXUtils.getTextByPathList(warpObj, ["diagramResObj", rId, "target"]);
-            }
-            if (imgPath === undefined) {
-                return undefined;
-            }
-            img = window.PPTXUtils.getTextByPathList(warpObj, ["loaded-images", imgPath]); //, type, rId
-            if (img === undefined) {
-                imgPath = window.PPTXUtils.escapeHtml(imgPath);
-
-
-                var imgExt = imgPath.split(".").pop();
-                if (imgExt == "xml") {
-                    return undefined;
-                }
-                // 尝试解析图片路径，处理相对路径问题
-                var imgFile = warpObj["zip"].file(imgPath);
-                if (!imgFile && !imgPath.startsWith("ppt/")) {
-                    // 尝试添加 ppt/ 前缀
-                    imgFile = warpObj["zip"].file("ppt/" + imgPath);
-                }
-                if (!imgFile) {
-                    // 如果仍然找不到，记录错误并返回 undefined
-                    console.error("Image file not found in getPicFill:", imgPath);
-                    return undefined;
-                }
-                var imgArrayBuffer = imgFile.asArrayBuffer();
-                var imgMimeType = getMimeType(imgExt);
-                img = "data:" + imgMimeType + ";base64," + window.PPTXUtils.base64ArrayBuffer(imgArrayBuffer);
-                //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
-                window.PPTXUtils.setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
-            }
-            return img;
-        }
-        function getPatternFill(node, warpObj) {
-            //https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Images/Using_CSS_gradients
-            //https://cssgradient.io/blog/css-gradient-text/
-            //https://css-tricks.com/background-patterns-simplified-by-conic-gradients/
-            //https://stackoverflow.com/questions/6705250/how-to-get-a-pattern-into-a-written-text-via-css
-            //https://stackoverflow.com/questions/14072142/striped-text-in-css
-            //https://css-tricks.com/stripes-css/
-            //https://yuanchuan.dev/gradient-shapes/
-            var fgColor = "", bgColor = "", prst = "";
-            var bgClr = node["a:bgClr"];
-            var fgClr = node["a:fgClr"];
-            prst = node["attrs"]["prst"];
-            fgColor = getSolidFill(fgClr, undefined, undefined, warpObj);
-            bgColor = getSolidFill(bgClr, undefined, undefined, warpObj);
-            //var angl_ary = getAnglefromParst(prst);
-            //var ptrClr = "repeating-linear-gradient(" + angl + "deg,  #" + bgColor + ",#" + fgColor + " 2px);"
-            //linear-gradient(0deg, black 10 %, transparent 10 %, transparent 90 %, black 90 %, black), 
-            //linear-gradient(90deg, black 10 %, transparent 10 %, transparent 90 %, black 90 %, black);
-            var linear_gradient = getLinerGrandient(prst, bgColor, fgColor);
-            //console.log("getPatternFill: node:", node, ", prst: ", prst, ", fgColor: ", fgColor, ", bgColor:", bgColor, ', linear_gradient: ', linear_gradient)
-            return linear_gradient;
-        }
-
-        function getLinerGrandient(prst, bgColor, fgColor) {
-            // dashDnDiag (Dashed Downward Diagonal)-V
-            // dashHorz (Dashed Horizontal)-V
-            // dashUpDiag(Dashed Upward DIagonal)-V
-            // dashVert(Dashed Vertical)-V
-            // diagBrick(Diagonal Brick)-V
-            // divot(Divot)-VX
-            // dkDnDiag(Dark Downward Diagonal)-V
-            // dkHorz(Dark Horizontal)-V
-            // dkUpDiag(Dark Upward Diagonal)-V
-            // dkVert(Dark Vertical)-V
-            // dotDmnd(Dotted Diamond)-VX
-            // dotGrid(Dotted Grid)-V
-            // horzBrick(Horizontal Brick)-V
-            // lgCheck(Large Checker Board)-V
-            // lgConfetti(Large Confetti)-V
-            // lgGrid(Large Grid)-V
-            // ltDnDiag(Light Downward Diagonal)-V
-            // ltHorz(Light Horizontal)-V
-            // ltUpDiag(Light Upward Diagonal)-V
-            // ltVert(Light Vertical)-V
-            // narHorz(Narrow Horizontal)-V
-            // narVert(Narrow Vertical)-V
-            // openDmnd(Open Diamond)-V
-            // pct10(10 %)-V
-            // pct20(20 %)-V
-            // pct25(25 %)-V
-            // pct30(30 %)-V
-            // pct40(40 %)-V
-            // pct5(5 %)-V
-            // pct50(50 %)-V
-            // pct60(60 %)-V
-            // pct70(70 %)-V
-            // pct75(75 %)-V
-            // pct80(80 %)-V
-            // pct90(90 %)-V
-            // smCheck(Small Checker Board) -V
-            // smConfetti(Small Confetti)-V
-            // smGrid(Small Grid) -V
-            // solidDmnd(Solid Diamond)-V
-            // sphere(Sphere)-V
-            // trellis(Trellis)-VX
-            // wave(Wave)-V
-            // wdDnDiag(Wide Downward Diagonal)-V
-            // wdUpDiag(Wide Upward Diagonal)-V
-            // weave(Weave)-V
-            // zigZag(Zig Zag)-V
-            // shingle(Shingle)-V
-            // plaid(Plaid)-V
-            // cross (Cross)
-            // diagCross(Diagonal Cross)
-            // dnDiag(Downward Diagonal)
-            // horz(Horizontal)
-            // upDiag(Upward Diagonal)
-            // vert(Vertical)
-            switch (prst) {
-                case "smGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1px)  #" + bgColor + ";", "4px 4px"];
-                case "dotGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1px)  #" + bgColor + ";", "8px 8px"];
-                case "lgGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1.5px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1.5px)  #" + bgColor + ";", "8px 8px"];
-                case "wdUpDiag":
-                    //return ["repeating-linear-gradient(-45deg,  #" + bgColor + ", #" + bgColor + " 1px,#" + fgColor + " 5px);"];
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , transparent 4px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
-                case "dkUpDiag":
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , #" + bgColor + " 5px)" + "#" + fgColor + ";"];
-                case "ltUpDiag":
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
-                case "wdDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , transparent 4px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
-                case "dkDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , #" + bgColor + " 5px)" + "#" + fgColor + ";"];
-                case "ltDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
-                case "dkHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #" + bgColor + " 7px)" + "#" + fgColor + ";"];
-                case "ltHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 5px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
-                case "narHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
-                case "dkVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #" + bgColor + " 7px)" + "#" + fgColor + ";"];
-                case "ltVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 5px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
-                case "narVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
-                case "lgCheck":
-                case "smCheck":
-                    var size = "";
-                    var pos = "";
-                    if (prst == "lgCheck") {
-                        size = "8px 8px";
-                        pos = "0 0, 4px 4px, 4px 4px, 8px 8px";
-                    } else {
-                        size = "4px 4px";
-                        pos = "0 0, 2px 2px, 2px 2px, 4px 4px";
-                    }
-                    return ["linear-gradient(45deg,  #" + fgColor + " 25%, transparent 0, transparent 75%,  #" + fgColor + " 0), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 0, transparent 75%,  #" + fgColor + " 0) " +
-                        "#" + bgColor + ";", size, pos];
-                // case "smCheck":
-                //     return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%), " +
-                //         "linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%)  " +
-                //         "#" + bgColor + ";", "4px 4px"];
-                //     break 
-
-                case "dashUpDiag":
-                    return ["repeating-linear-gradient(152deg, #" + fgColor + ", #" + fgColor + " 5% , transparent 0, transparent 70%)" +
-                        "#" + bgColor + ";", "4px 4px"];
-                case "dashDnDiag":
-                    return ["repeating-linear-gradient(45deg, #" + fgColor + ", #" + fgColor + " 5% , transparent 0, transparent 70%)" +
-                        "#" + bgColor + ";", "4px 4px"];
-                case "diagBrick":
-                    return ["linear-gradient(45deg, transparent 15%,  #" + fgColor + " 30%, transparent 30%), " +
-                        "linear-gradient(-45deg, transparent 15%,  #" + fgColor + " 30%, transparent 30%), " +
-                        "linear-gradient(-45deg, transparent 65%,  #" + fgColor + " 80%, transparent 0) " +
-                        "#" + bgColor + ";", "4px 4px"];
-                case "horzBrick":
-                    return ["linear-gradient(335deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(155deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(335deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(155deg, #" + bgColor + " 1.6px, transparent 1.6px) " +
-                        "#" + fgColor + ";", "4px 4px", "0 0.15px, 0.3px 2.5px, 2px 2.15px, 2.35px 0.4px"];
-
-                case "dashVert":
-                    return ["linear-gradient(0deg,  #" + bgColor + " 30%, transparent 30%)," +
-                        "linear-gradient(90deg,transparent, transparent 40%, #" + fgColor + " 40%, #" + fgColor + " 60% , transparent 60%)" +
-                        "#" + bgColor + ";", "4px 4px"];
-                case "dashHorz":
-                    return ["linear-gradient(90deg,  #" + bgColor + " 30%, transparent 30%)," +
-                        "linear-gradient(0deg,transparent, transparent 40%, #" + fgColor + " 40%, #" + fgColor + " 60% , transparent 60%)" +
-                        "#" + bgColor + ";", "4px 4px"];
-                case "solidDmnd":
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", "8px 8px"];
-                case "openDmnd":
-                    return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%), " +
-                        "linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%) " +
-                        "#" + bgColor + ";", "8px 8px"];
-
-                case "dotDmnd":
-                    return ["radial-gradient(#" + fgColor + " 15%, transparent 0), " +
-                        "radial-gradient(#" + fgColor + " 15%, transparent 0) " +
-                        "#" + bgColor + ";", "4px 4px", "0 0, 2px 2px"];
-                case "zigZag":
-                case "wave":
-                    var size = "";
-                    if (prst == "zigZag") size = "0";
-                    else size = "1px";
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%) 50px " + size + ", " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%) 50px " + size + ", " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", "4px 4px"];
-                case "lgConfetti":
-                case "smConfetti":
-                    var size = "";
-                    if (prst == "lgConfetti") size = "4px 4px";
-                    else size = "2px 2px";
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%) 50px 1px, " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%) 50px 1px , " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", size];
-                // case "weave":
-                //     return ["linear-gradient(45deg,  #" + bgColor + " 5%, transparent 25%) 50px 0, " +
-                //         "linear-gradient(135deg,  #" + bgColor + " 25%, transparent 25%) 50px 0, " +
-                //         "linear-gradient(45deg,  #" + bgColor + " 25%, transparent 25%) " +
-                //         "#" + fgColor + ";", "4px 4px"];
-                //     //background: linear-gradient(45deg, #dca 12%, transparent 0, transparent 88%, #dca 0),
-                //     //linear-gradient(135deg, transparent 37 %, #a85 0, #a85 63 %, transparent 0),
-                //     //linear-gradient(45deg, transparent 37 %, #dca 0, #dca 63 %, transparent 0) #753;
-                //     // background-size: 25px 25px;
-                //     break;
-
-                case "plaid":
-                    return ["linear-gradient(0deg, transparent, transparent 25%, #" + fgColor + "33 25%, #" + fgColor + "33 50%)," +
-                        "linear-gradient(90deg, transparent, transparent 25%, #" + fgColor + "66 25%, #" + fgColor + "66 50%) " +
-                        "#" + bgColor + ";", "4px 4px"];
-                case "sphere":
-                    return ["radial-gradient(#" + fgColor + " 50%, transparent 50%)," +
-                        "#" + bgColor + ";", "4px 4px"];
-                case "weave":
-                case "shingle":
-                    return ["linear-gradient(45deg, #" + bgColor + " 1.31px , #" + fgColor + " 1.4px, #" + fgColor + " 1.5px, transparent 1.5px, transparent 4.2px, #" + fgColor + " 4.2px, #" + fgColor + " 4.3px, transparent 4.31px), " +
-                        "linear-gradient(-45deg,  #" + bgColor + " 1.31px , #" + fgColor + " 1.4px, #" + fgColor + " 1.5px, transparent 1.5px, transparent 4.2px, #" + fgColor + " 4.2px, #" + fgColor + " 4.3px, transparent 4.31px) 0 4px, " +
-                        "#" + bgColor + ";", "4px 8px"];
-                //background:
-                //linear-gradient(45deg, #708090 1.31px, #d9ecff 1.4px, #d9ecff 1.5px, transparent 1.5px, transparent 4.2px, #d9ecff 4.2px, #d9ecff 4.3px, transparent 4.31px),
-                //linear-gradient(-45deg, #708090 1.31px, #d9ecff 1.4px, #d9ecff 1.5px, transparent 1.5px, transparent 4.2px, #d9ecff 4.2px, #d9ecff 4.3px, transparent 4.31px)0 4px;
-                //background-color:#708090;
-                //background-size: 4px 8px;
-                case "pct5":
-                case "pct10":
-                case "pct20":
-                case "pct25":
-                case "pct30":
-                case "pct40":
-                case "pct50":
-                case "pct60":
-                case "pct70":
-                case "pct75":
-                case "pct80":
-                case "pct90":
-                //case "dotDmnd":
-                case "trellis":
-                case "divot":
-                    var px_pr_ary;
-                    switch (prst) {
-                        case "pct5":
-                            px_pr_ary = ["0.3px", "10%", "2px 2px"];
-                            break
-                        case "divot":
-                            px_pr_ary = ["0.3px", "40%", "4px 4px"];
-                            break
-                        case "pct10":
-                            px_pr_ary = ["0.3px", "20%", "2px 2px"];
-                            break
-                        case "pct20":
-                            //case "dotDmnd":
-                            px_pr_ary = ["0.2px", "40%", "2px 2px"];
-                            break
-                        case "pct25":
-                            px_pr_ary = ["0.2px", "50%", "2px 2px"];
-                            break
-                        case "pct30":
-                            px_pr_ary = ["0.5px", "50%", "2px 2px"];
-                            break
-                        case "pct40":
-                            px_pr_ary = ["0.5px", "70%", "2px 2px"];
-                            break
-                        case "pct50":
-                            px_pr_ary = ["0.09px", "90%", "2px 2px"];
-                            break
-                        case "pct60":
-                            px_pr_ary = ["0.3px", "90%", "2px 2px"];
-                            break
-                        case "pct70":
-                        case "trellis":
-                            px_pr_ary = ["0.5px", "95%", "2px 2px"];
-                            break
-                        case "pct75":
-                            px_pr_ary = ["0.65px", "100%", "2px 2px"];
-                            break
-                        case "pct80":
-                            px_pr_ary = ["0.85px", "100%", "2px 2px"];
-                            break
-                        case "pct90":
-                            px_pr_ary = ["1px", "100%", "2px 2px"];
-                            break
-                    }
-                    return ["radial-gradient(#" + fgColor + " " + px_pr_ary[0] + ", transparent " + px_pr_ary[1] + ")," +
-                        "#" + bgColor + ";", px_pr_ary[2]];
-                default:
-                    return [0, 0];
-            }
-        }
-
-        function getSolidFill(node, clrMap, phClr, warpObj) {
-
-            if (node === undefined) {
-                return undefined;
-            }
-
-            //console.log("getSolidFill node: ", node)
-            var color = "";
-            var clrNode;
-            if (node["a:srgbClr"] !== undefined) {
-                clrNode = node["a:srgbClr"];
-                color = window.PPTXUtils.getTextByPathList(clrNode, ["attrs", "val"]); //#...
-            } else if (node["a:schemeClr"] !== undefined) { //a:schemeClr
-                clrNode = node["a:schemeClr"];
-                var schemeClr = window.PPTXUtils.getTextByPathList(clrNode, ["attrs", "val"]);
-                color = getSchemeColorFromTheme("a:" + schemeClr, clrMap, phClr, warpObj);
-                //console.log("schemeClr: ", schemeClr, "color: ", color)
-            } else if (node["a:scrgbClr"] !== undefined) {
-                clrNode = node["a:scrgbClr"];
-                //<a:scrgbClr r="50%" g="50%" b="50%"/>  //Need to test/////////////////////////////////////////////
-                var defBultColorVals = clrNode["attrs"];
-                var red = (defBultColorVals["r"].indexOf("%") != -1) ? defBultColorVals["r"].split("%").shift() : defBultColorVals["r"];
-                var green = (defBultColorVals["g"].indexOf("%") != -1) ? defBultColorVals["g"].split("%").shift() : defBultColorVals["g"];
-                var blue = (defBultColorVals["b"].indexOf("%") != -1) ? defBultColorVals["b"].split("%").shift() : defBultColorVals["b"];
-                //var scrgbClr = red + "," + green + "," + blue;
-                color = toHex(255 * (Number(red) / 100)) + toHex(255 * (Number(green) / 100)) + toHex(255 * (Number(blue) / 100));
-                //console.log("scrgbClr: " + scrgbClr);
-
-            } else if (node["a:prstClr"] !== undefined) {
-                clrNode = node["a:prstClr"];
-                //<a:prstClr val="black"/>  //Need to test/////////////////////////////////////////////
-                var prstClr = window.PPTXUtils.getTextByPathList(clrNode, ["attrs", "val"]); //node["a:prstClr"]["attrs"]["val"];
-                color = getColorName2Hex(prstClr);
-                //console.log("blip prstClr: ", prstClr, " => hexClr: ", color);
-            } else if (node["a:hslClr"] !== undefined) {
-                clrNode = node["a:hslClr"];
-                //<a:hslClr hue="14400000" sat="100%" lum="50%"/>  //Need to test/////////////////////////////////////////////
-                var defBultColorVals = clrNode["attrs"];
-                var hue = Number(defBultColorVals["hue"]) / 100000;
-                var sat = Number((defBultColorVals["sat"].indexOf("%") != -1) ? defBultColorVals["sat"].split("%").shift() : defBultColorVals["sat"]) / 100;
-                var lum = Number((defBultColorVals["lum"].indexOf("%") != -1) ? defBultColorVals["lum"].split("%").shift() : defBultColorVals["lum"]) / 100;
-                //var hslClr = defBultColorVals["hue"] + "," + defBultColorVals["sat"] + "," + defBultColorVals["lum"];
-                var hsl2rgb = hslToRgb(hue, sat, lum);
-                color = toHex(hsl2rgb.r) + toHex(hsl2rgb.g) + toHex(hsl2rgb.b);
-                //defBultColor = cnvrtHslColor2Hex(hslClr); //TODO
-                // console.log("hslClr: " + hslClr);
-            } else if (node["a:sysClr"] !== undefined) {
-                clrNode = node["a:sysClr"];
-                //<a:sysClr val="windowText" lastClr="000000"/>  //Need to test/////////////////////////////////////////////
-                var sysClr = window.PPTXUtils.getTextByPathList(clrNode, ["attrs", "lastClr"]);
-                if (sysClr !== undefined) {
-                    color = sysClr;
-                }
-            }
-            //console.log("color: [%cstart]", "color: #" + color, tinycolor(color).toHslString(), color)
-
-            //fix color -------------------------------------------------------- TODO 
-            //
-            //1. "alpha":
-            //Specifies the opacity as expressed by a percentage value.
-            // [Example: The following represents a green solid fill which is 50 % opaque
-            // < a: solidFill >
-            //     <a:srgbClr val="00FF00">
-            //         <a:alpha val="50%" />
-            //     </a:srgbClr>
-            // </a: solidFill >
-            var isAlpha = false;
-            var alpha = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:alpha", "attrs", "val"])) / 100000;
-            //console.log("alpha: ", alpha)
-            if (!isNaN(alpha)) {
-                // var al_color = new colz.Color(color);
-                // al_color.setAlpha(alpha);
-                // var ne_color = al_color.rgba.toString();
-                // color = (rgba2hex(ne_color))
-                var al_color = tinycolor(color);
-                al_color.setAlpha(alpha);
-                color = al_color.toHex8();
-                isAlpha = true;
-                //console.log("al_color: ", al_color, ", color: ", color)
-            }
-            //2. "alphaMod":
-            // Specifies the opacity as expressed by a percentage relative to the input color.
-            //     [Example: The following represents a green solid fill which is 50 % opaque
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:alphaMod val="50%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            //3. "alphaOff":
-            // Specifies the opacity as expressed by a percentage offset increase or decrease to the
-            // input color.Increases never increase the opacity beyond 100 %, decreases never decrease
-            // the opacity below 0 %.
-            // [Example: The following represents a green solid fill which is 90 % opaque
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:alphaOff val="-10%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-
-            //4. "blue":
-            //Specifies the value of the blue component.The assigned value is specified as a
-            //percentage with 0 % indicating minimal blue and 100 % indicating maximum blue.
-            //  [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //      to value RRGGBB = (00, FF, FF)
-            //          <a: solidFill >
-            //              <a:srgbClr val="00FF00">
-            //                  <a:blue val="100%" />
-            //              </a:srgbClr>
-            //          </a: solidFill >
-            //5. "blueMod"
-            // Specifies the blue component as expressed by a percentage relative to the input color
-            // component.Increases never increase the blue component beyond 100 %, decreases
-            // never decrease the blue component below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, 00, FF)
-            //     to value RRGGBB = (00, 00, 80)
-            //     < a: solidFill >
-            //         <a:srgbClr val="0000FF">
-            //             <a:blueMod val="50%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            //6. "blueOff"
-            // Specifies the blue component as expressed by a percentage offset increase or decrease
-            // to the input color component.Increases never increase the blue component
-            // beyond 100 %, decreases never decrease the blue component below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, 00, FF)
-            // to value RRGGBB = (00, 00, CC)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:blueOff val="-20%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-
-            //7. "comp" - This element specifies that the color rendered should be the complement of its input color with the complement
-            // being defined as such.Two colors are called complementary if, when mixed they produce a shade of grey.For
-            // instance, the complement of red which is RGB(255, 0, 0) is cyan.(<a:comp/>)
-
-            //8. "gamma" - This element specifies that the output color rendered by the generating application should be the sRGB gamma
-            //              shift of the input color.
-
-            //9. "gray" - This element specifies a grayscale of its input color, taking into relative intensities of the red, green, and blue
-            //              primaries.
-
-            //10. "green":
-            // Specifies the value of the green component. The assigned value is specified as a
-            // percentage with 0 % indicating minimal green and 100 % indicating maximum green.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, 00, FF)
-            // to value RRGGBB = (00, FF, FF)
-            //     < a: solidFill >
-            //         <a:srgbClr val="0000FF">
-            //             <a:green val="100%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            //11. "greenMod":
-            // Specifies the green component as expressed by a percentage relative to the input color
-            // component.Increases never increase the green component beyond 100 %, decreases
-            // never decrease the green component below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            // to value RRGGBB = (00, 80, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:greenMod val="50%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            //12. "greenOff":
-            // Specifies the green component as expressed by a percentage offset increase or decrease
-            // to the input color component.Increases never increase the green component
-            // beyond 100 %, decreases never decrease the green component below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            // to value RRGGBB = (00, CC, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:greenOff val="-20%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-
-            //13. "hue" (This element specifies a color using the HSL color model):
-            // This element specifies the input color with the specified hue, but with its saturation and luminance unchanged.
-            // < a: solidFill >
-            //     <a:hslClr hue="14400000" sat="100%" lum="50%">
-            // </a:solidFill>
-            // <a:solidFill>
-            //     <a:hslClr hue="0" sat="100%" lum="50%">
-            //         <a:hue val="14400000"/>
-            //     <a:hslClr/>
-            // </a:solidFill>
-
-            //14. "hueMod" (This element specifies a color using the HSL color model):
-            // Specifies the hue as expressed by a percentage relative to the input color.
-            // [Example: The following manipulates the fill color from having RGB value RRGGBB = (00, FF, 00) to value RRGGBB = (FF, FF, 00)
-            //         < a: solidFill >
-            //             <a:srgbClr val="00FF00">
-            //                 <a:hueMod val="50%" />
-            //             </a:srgbClr>
-            //         </a: solidFill >
-
-            var hueMod = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:hueMod", "attrs", "val"])) / 100000;
-            //console.log("hueMod: ", hueMod)
-            if (!isNaN(hueMod)) {
-                color = applyHueMod(color, hueMod, isAlpha);
-            }
-            //15. "hueOff"(This element specifies a color using the HSL color model):
-            // Specifies the actual angular value of the shift.The result of the shift shall be between 0
-            // and 360 degrees.Shifts resulting in angular values less than 0 are treated as 0. Shifts
-            // resulting in angular values greater than 360 are treated as 360.
-            // [Example:
-            //     The following increases the hue angular value by 10 degrees.
-            //     < a: solidFill >
-            //         <a:hslClr hue="0" sat="100%" lum="50%"/>
-            //             <a:hueOff val="600000"/>
-            //     </a: solidFill >
-            //var hueOff = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:hueOff", "attrs", "val"])) / 100000;
-            // if (!isNaN(hueOff)) {
-            //     //console.log("hueOff: ", hueOff, " (TODO)")
-            //     //color = applyHueOff(color, hueOff, isAlpha);
-            // }
-
-            //16. "inv" (inverse)
-            //This element specifies the inverse of its input color.
-            //The inverse of red (1, 0, 0) is cyan (0, 1, 1 ).
-            // The following represents cyan, the inverse of red:
-            // <a:solidFill>
-            //     <a:srgbClr val="FF0000">
-            //         <a:inv />
-            //     </a:srgbClr>
-            // </a:solidFill>
-
-            //17. "invGamma" - This element specifies that the output color rendered by the generating application should be the inverse sRGB
-            //                  gamma shift of the input color.
-
-            //18. "lum":
-            // This element specifies the input color with the specified luminance, but with its hue and saturation unchanged.
-            // Typically luminance values fall in the range[0 %, 100 %].
-            // The following two solid fills are equivalent:
-            // <a:solidFill>
-            //     <a:hslClr hue="14400000" sat="100%" lum="50%">
-            // </a:solidFill>
-            // <a:solidFill>
-            //     <a:hslClr hue="14400000" sat="100%" lum="0%">
-            //         <a:lum val="50%" />
-            //     <a:hslClr />
-            // </a:solidFill>
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            // to value RRGGBB = (00, 66, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:lum val="20%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            // end example]
-            //19. "lumMod":
-            // Specifies the luminance as expressed by a percentage relative to the input color.
-            // Increases never increase the luminance beyond 100 %, decreases never decrease the
-            // luminance below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //     to value RRGGBB = (00, 75, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:lumMod val="50%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            // end example]
-            var lumMod = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:lumMod", "attrs", "val"])) / 100000;
-            //console.log("lumMod: ", lumMod)
-            if (!isNaN(lumMod)) {
-                color = applyLumMod(color, lumMod, isAlpha);
-            }
-            //var lumMod_color = applyLumMod(color, 0.5);
-            //console.log("lumMod_color: ", lumMod_color)
-            //20. "lumOff"
-            // Specifies the luminance as expressed by a percentage offset increase or decrease to the
-            // input color.Increases never increase the luminance beyond 100 %, decreases never
-            // decrease the luminance below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //     to value RRGGBB = (00, 99, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:lumOff val="-20%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            var lumOff = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:lumOff", "attrs", "val"])) / 100000;
-            //console.log("lumOff: ", lumOff)
-            if (!isNaN(lumOff)) {
-                color = applyLumOff(color, lumOff, isAlpha);
-            }
-
-
-            //21. "red":
-            // Specifies the value of the red component.The assigned value is specified as a percentage
-            // with 0 % indicating minimal red and 100 % indicating maximum red.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //     to value RRGGBB = (FF, FF, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:red val="100%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            //22. "redMod":
-            // Specifies the red component as expressed by a percentage relative to the input color
-            // component.Increases never increase the red component beyond 100 %, decreases never
-            // decrease the red component below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (FF, 00, 00)
-            //     to value RRGGBB = (80, 00, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="FF0000">
-            //             <a:redMod val="50%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            //23. "redOff":
-            // Specifies the red component as expressed by a percentage offset increase or decrease to
-            // the input color component.Increases never increase the red component beyond 100 %,
-            //     decreases never decrease the red component below 0 %.
-            //     [Example: The following manipulates the fill from having RGB value RRGGBB = (FF, 00, 00)
-            //     to value RRGGBB = (CC, 00, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="FF0000">
-            //             <a:redOff val="-20%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-
-            //23. "sat":
-            // This element specifies the input color with the specified saturation, but with its hue and luminance unchanged.
-            // Typically saturation values fall in the range[0 %, 100 %].
-            // [Example:
-            //     The following two solid fills are equivalent:
-            //     <a:solidFill>
-            //         <a:hslClr hue="14400000" sat="100%" lum="50%">
-            //     </a:solidFill>
-            //     <a:solidFill>
-            //         <a:hslClr hue="14400000" sat="0%" lum="50%">
-            //             <a:sat val="100000" />
-            //         <a:hslClr />
-            //     </a:solidFill>
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //     to value RRGGBB = (40, C0, 40)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:sat val="50%" />
-            //         </a:srgbClr>
-            //     <a: solidFill >
-            // end example]
-
-            //24. "satMod":
-            // Specifies the saturation as expressed by a percentage relative to the input color.
-            // Increases never increase the saturation beyond 100 %, decreases never decrease the
-            // saturation below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //     to value RRGGBB = (66, 99, 66)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:satMod val="20%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            var satMod = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:satMod", "attrs", "val"])) / 100000;
-            if (!isNaN(satMod)) {
-                color = applySatMod(color, satMod, isAlpha);
-            }
-            //25. "satOff":
-            // Specifies the saturation as expressed by a percentage offset increase or decrease to the
-            // input color.Increases never increase the saturation beyond 100 %, decreases never
-            // decrease the saturation below 0 %.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //     to value RRGGBB = (19, E5, 19)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:satOff val="-20%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            // var satOff = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:satOff", "attrs", "val"])) / 100000;
-            // if (!isNaN(satOff)) {
-            //     console.log("satOff: ", satOff, " (TODO)")
-            // }
-
-            //26. "shade":
-            // This element specifies a darker version of its input color.A 10 % shade is 10 % of the input color combined with 90 % black.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //     to value RRGGBB = (00, BC, 00)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:shade val="50%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            // end example]
-            var shade = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:shade", "attrs", "val"])) / 100000;
-            if (!isNaN(shade)) {
-                color = applyShade(color, shade, isAlpha);
-            }
-            //27.  "tint":
-            // This element specifies a lighter version of its input color.A 10 % tint is 10 % of the input color combined with
-            // 90 % white.
-            // [Example: The following manipulates the fill from having RGB value RRGGBB = (00, FF, 00)
-            //     to value RRGGBB = (BC, FF, BC)
-            //     < a: solidFill >
-            //         <a:srgbClr val="00FF00">
-            //             <a:tint val="50%" />
-            //         </a:srgbClr>
-            //     </a: solidFill >
-            var tint = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:tint", "attrs", "val"])) / 100000;
-            if (!isNaN(tint)) {
-                color = applyTint(color, tint, isAlpha);
-            }
-            //console.log("color [%cfinal]: ", "color: #" + color, tinycolor(color).toHslString(), color)
-
-            return color;
-        }
-        function toHex(n) {
-            var hex = n.toString(16);
-            while (hex.length < 2) { hex = "0" + hex; }
-            return hex;
-        }
-        function hslToRgb(hue, sat, light) {
-            var t1, t2, r, g, b;
-            hue = hue / 60;
-            if (light <= 0.5) {
-                t2 = light * (sat + 1);
-            } else {
-                t2 = light + sat - (light * sat);
-            }
-            t1 = light * 2 - t2;
-            r = hueToRgb(t1, t2, hue + 2) * 255;
-            g = hueToRgb(t1, t2, hue) * 255;
-            b = hueToRgb(t1, t2, hue - 2) * 255;
-            return { r: r, g: g, b: b };
-        }
-        function hueToRgb(t1, t2, hue) {
-            if (hue < 0) hue += 6;
-            if (hue >= 6) hue -= 6;
-            if (hue < 1) return (t2 - t1) * hue + t1;
-            else if (hue < 3) return t2;
-            else if (hue < 4) return (t2 - t1) * (4 - hue) + t1;
-            else return t1;
-        }
-        function getColorName2Hex(name) {
-            var hex;
-            var colorName = ['white', 'AliceBlue', 'AntiqueWhite', 'Aqua', 'Aquamarine', 'Azure', 'Beige', 'Bisque', 'black', 'BlanchedAlmond', 'Blue', 'BlueViolet', 'Brown', 'BurlyWood', 'CadetBlue', 'Chartreuse', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan', 'DarkBlue', 'DarkCyan', 'DarkGoldenRod', 'DarkGray', 'DarkGrey', 'DarkGreen', 'DarkKhaki', 'DarkMagenta', 'DarkOliveGreen', 'DarkOrange', 'DarkOrchid', 'DarkRed', 'DarkSalmon', 'DarkSeaGreen', 'DarkSlateBlue', 'DarkSlateGray', 'DarkSlateGrey', 'DarkTurquoise', 'DarkViolet', 'DeepPink', 'DeepSkyBlue', 'DimGray', 'DimGrey', 'DodgerBlue', 'FireBrick', 'FloralWhite', 'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'Gold', 'GoldenRod', 'Gray', 'Grey', 'Green', 'GreenYellow', 'HoneyDew', 'HotPink', 'IndianRed', 'Indigo', 'Ivory', 'Khaki', 'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue', 'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey', 'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue', 'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime', 'LimeGreen', 'Linen', 'Magenta', 'Maroon', 'MediumAquaMarine', 'MediumBlue', 'MediumOrchid', 'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen', 'MediumTurquoise', 'MediumVioletRed', 'MidnightBlue', 'MintCream', 'MistyRose', 'Moccasin', 'NavajoWhite', 'Navy', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed', 'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed', 'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple', 'RebeccaPurple', 'Red', 'RosyBrown', 'RoyalBlue', 'SaddleBrown', 'Salmon', 'SandyBrown', 'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue', 'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'Tan', 'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White', 'WhiteSmoke', 'Yellow', 'YellowGreen'];
-            var colorHex = ['ffffff', 'f0f8ff', 'faebd7', '00ffff', '7fffd4', 'f0ffff', 'f5f5dc', 'ffe4c4', '000000', 'ffebcd', '0000ff', '8a2be2', 'a52a2a', 'deb887', '5f9ea0', '7fff00', 'd2691e', 'ff7f50', '6495ed', 'fff8dc', 'dc143c', '00ffff', '00008b', '008b8b', 'b8860b', 'a9a9a9', 'a9a9a9', '006400', 'bdb76b', '8b008b', '556b2f', 'ff8c00', '9932cc', '8b0000', 'e9967a', '8fbc8f', '483d8b', '2f4f4f', '2f4f4f', '00ced1', '9400d3', 'ff1493', '00bfff', '696969', '696969', '1e90ff', 'b22222', 'fffaf0', '228b22', 'ff00ff', 'dcdcdc', 'f8f8ff', 'ffd700', 'daa520', '808080', '808080', '008000', 'adff2f', 'f0fff0', 'ff69b4', 'cd5c5c', '4b0082', 'fffff0', 'f0e68c', 'e6e6fa', 'fff0f5', '7cfc00', 'fffacd', 'add8e6', 'f08080', 'e0ffff', 'fafad2', 'd3d3d3', 'd3d3d3', '90ee90', 'ffb6c1', 'ffa07a', '20b2aa', '87cefa', '778899', '778899', 'b0c4de', 'ffffe0', '00ff00', '32cd32', 'faf0e6', 'ff00ff', '800000', '66cdaa', '0000cd', 'ba55d3', '9370db', '3cb371', '7b68ee', '00fa9a', '48d1cc', 'c71585', '191970', 'f5fffa', 'ffe4e1', 'ffe4b5', 'ffdead', '000080', 'fdf5e6', '808000', '6b8e23', 'ffa500', 'ff4500', 'da70d6', 'eee8aa', '98fb98', 'afeeee', 'db7093', 'ffefd5', 'ffdab9', 'cd853f', 'ffc0cb', 'dda0dd', 'b0e0e6', '800080', '663399', 'ff0000', 'bc8f8f', '4169e1', '8b4513', 'fa8072', 'f4a460', '2e8b57', 'fff5ee', 'a0522d', 'c0c0c0', '87ceeb', '6a5acd', '708090', '708090', 'fffafa', '00ff7f', '4682b4', 'd2b48c', '008080', 'd8bfd8', 'ff6347', '40e0d0', 'ee82ee', 'f5deb3', 'ffffff', 'f5f5f5', 'ffff00', '9acd32'];
-            var findIndx = colorName.indexOf(name);
-            if (findIndx != -1) {
-                hex = colorHex[findIndx];
-            }
-            return hex;
-        }
-        function getSchemeColorFromTheme(schemeClr, clrMap, phClr, warpObj) {
-            //<p:clrMap ...> in slide master
-            // e.g. tx2="dk2" bg2="lt2" tx1="dk1" bg1="lt1" slideLayoutClrOvride
-            //console.log("getSchemeColorFromTheme: schemeClr: ", schemeClr, ",clrMap: ", clrMap)
-            var slideLayoutClrOvride;
-            if (clrMap !== undefined) {
-                slideLayoutClrOvride = clrMap;//window.PPTXUtils.getTextByPathList(clrMap, ["p:sldMaster", "p:clrMap", "attrs"])
-            } else {
-                var sldClrMapOvr = window.PPTXUtils.getTextByPathList(warpObj["slideContent"], ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
-                if (sldClrMapOvr !== undefined) {
-                    slideLayoutClrOvride = sldClrMapOvr;
-                } else {
-                    var sldClrMapOvr = window.PPTXUtils.getTextByPathList(warpObj["slideLayoutContent"], ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
-                    if (sldClrMapOvr !== undefined) {
-                        slideLayoutClrOvride = sldClrMapOvr;
-                    } else {
-                        slideLayoutClrOvride = window.PPTXUtils.getTextByPathList(warpObj["slideMasterContent"], ["p:sldMaster", "p:clrMap", "attrs"]);
-                    }
-
-                }
-            }
-            //console.log("getSchemeColorFromTheme slideLayoutClrOvride: ", slideLayoutClrOvride);
-            var schmClrName = schemeClr.substr(2);
-            if (schmClrName == "phClr" && phClr !== undefined) {
-                color = phClr;
-            } else {
-                if (slideLayoutClrOvride !== undefined) {
-                    switch (schmClrName) {
-                        case "tx1":
-                        case "tx2":
-                        case "bg1":
-                        case "bg2":
-                            schemeClr = "a:" + slideLayoutClrOvride[schmClrName];
-                            break;
-                    }
-                } else {
-                    switch (schmClrName) {
-                        case "tx1":
-                            schemeClr = "a:dk1";
-                            break;
-                        case "tx2":
-                            schemeClr = "a:dk2";
-                            break;
-                        case "bg1":
-                            schemeClr = "a:lt1";
-                            break;
-                        case "bg2":
-                            schemeClr = "a:lt2";
-                            break;
-                    }
-                }
-                //console.log("getSchemeColorFromTheme:  schemeClr: ", schemeClr);
-                var refNode = window.PPTXUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:clrScheme", schemeClr]);
-                var color = window.PPTXUtils.getTextByPathList(refNode, ["a:srgbClr", "attrs", "val"]);
-                //console.log("themeContent: color", color);
-                if (color === undefined && refNode !== undefined) {
-                    color = window.PPTXUtils.getTextByPathList(refNode, ["a:sysClr", "attrs", "lastClr"]);
-                }
-            }
-            //console.log(color)
-            return color;
-        }
-
-        // ===== Color functions =====
-        /**
-         * applyShade
-         * @param {string} rgbStr
-         * @param {number} shadeValue
-         */
-        function applyShade(rgbStr, shadeValue, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
-            //console.log("applyShade  color: ", color, ", shadeValue: ", shadeValue)
-            if (shadeValue >= 1) {
-                shadeValue = 1;
-            }
-            var cacl_l = Math.min(color.l * shadeValue, 1);//;color.l * shadeValue + (1 - shadeValue);
-            // if (isAlpha)
-            //     return color.lighten(tintValue).toHex8();
-            // return color.lighten(tintValue).toHex();
-            if (isAlpha)
-                return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-        }
-
-        /**
-         * applyTint
-         * @param {string} rgbStr
-         * @param {number} tintValue
-         */
-        function applyTint(rgbStr, tintValue, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
-            //console.log("applyTint  color: ", color, ", tintValue: ", tintValue)
-            if (tintValue >= 1) {
-                tintValue = 1;
-            }
-            var cacl_l = color.l * tintValue + (1 - tintValue);
-            // if (isAlpha)
-            //     return color.lighten(tintValue).toHex8();
-            // return color.lighten(tintValue).toHex();
-            if (isAlpha)
-                return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-        }
-
-        /**
-         * applyLumOff
-         * @param {string} rgbStr
-         * @param {number} offset
-         */
-        function applyLumOff(rgbStr, offset, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
-            //console.log("applyLumOff  color.l: ", color.l, ", offset: ", offset, ", color.l + offset : ", color.l + offset)
-            var lum = offset + color.l;
-            if (lum >= 1) {
-                if (isAlpha)
-                    return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex8();
-                return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex();
-            }
-            if (isAlpha)
-                return tinycolor({ h: color.h, s: color.s, l: lum, a: color.a }).toHex8();
-            return tinycolor({ h: color.h, s: color.s, l: lum, a: color.a }).toHex();
-        }
-
-        /**
-         * applyLumMod
-         * @param {string} rgbStr
-         * @param {number} multiplier
-         */
-        function applyLumMod(rgbStr, multiplier, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
-            //console.log("applyLumMod  color.l: ", color.l, ", multiplier: ", multiplier, ", color.l * multiplier : ", color.l * multiplier)
-            var cacl_l = color.l * multiplier;
-            if (cacl_l >= 1) {
-                cacl_l = 1;
-            }
-            if (isAlpha)
-                return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-        }
-
-
-        // /**
-        //  * applyHueMod
-        //  * @param {string} rgbStr
-        //  * @param {number} multiplier
-        //  */
-        function applyHueMod(rgbStr, multiplier, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
-            //console.log("applyLumMod  color.h: ", color.h, ", multiplier: ", multiplier, ", color.h * multiplier : ", color.h * multiplier)
-
-            var cacl_h = color.h * multiplier;
-            if (cacl_h >= 360) {
-                cacl_h = cacl_h - 360;
-            }
-            if (isAlpha)
-                return tinycolor({ h: cocacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
-            return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
-        }
-
-
-        // /**
-        //  * applyHueOff
-        //  * @param {string} rgbStr
-        //  * @param {number} offset
-        //  */
-        // function applyHueOff(rgbStr, offset, isAlpha) {
-        //     var color = tinycolor(rgbStr).toHsl();
-        //     //console.log("applyLumMod  color.h: ", color.h, ", offset: ", offset, ", color.h * offset : ", color.h * offset)
-
-        //     var cacl_h = color.h * offset;
-        //     if (cacl_h >= 360) {
-        //         cacl_h = cacl_h - 360;
-        //     }
-        //     if (isAlpha)
-        //         return tinycolor({ h: cocacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
-        //     return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
-        // }
-        // /**
-        //  * applySatMod
-        //  * @param {string} rgbStr
-        //  * @param {number} multiplier
-        //  */
-        function applySatMod(rgbStr, multiplier, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
-            //console.log("applySatMod  color.s: ", color.s, ", multiplier: ", multiplier, ", color.s * multiplier : ", color.s * multiplier)
-            var cacl_s = color.s * multiplier;
-            if (cacl_s >= 1) {
-                cacl_s = 1;
-            }
-            //return;
-            // if (isAlpha)
-            //     return tinycolor(rgbStr).saturate(multiplier * 100).toHex8();
-            // return tinycolor(rgbStr).saturate(multiplier * 100).toHex();
-            if (isAlpha)
-                return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex8();
-            return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex();
-        }
-
-        ///////////////////////Amir////////////////
-        function angleToDegrees(angle) {
-            if (angle == "" || angle == null) {
-                return 0;
-            }
-            return Math.round(angle / 60000);
-        }
         // function degreesToRadians(degrees) {
         //     //Math.PI
         //     if (degrees == "" || degrees == null || degrees == undefined) {
@@ -12252,73 +11678,15 @@
         //     }
         //     return degrees * (Math.PI / 180);
         // }
-        function getMimeType(imgFileExt) {
-            var mimeType = "";
-            //console.log(imgFileExt)
-            switch (imgFileExt.toLowerCase()) {
-                case "jpg":
-                case "jpeg":
-                    mimeType = "image/jpeg";
-                    break;
-                case "png":
-                    mimeType = "image/png";
-                    break;
-                case "gif":
-                    mimeType = "image/gif";
-                    break;
-                case "emf": // Not native support
-                    mimeType = "image/x-emf";
-                    break;
-                case "wmf": // Not native support
-                    mimeType = "image/x-wmf";
-                    break;
-                case "svg":
-                    mimeType = "image/svg+xml";
-                    break;
-                case "mp4":
-                    mimeType = "video/mp4";
-                    break;
-                case "webm":
-                    mimeType = "video/webm";
-                    break;
-                case "ogg":
-                    mimeType = "video/ogg";
-                    break;
-                case "avi":
-                    mimeType = "video/avi";
-                    break;
-                case "mpg":
-                    mimeType = "video/mpg";
-                    break;
-                case "wmv":
-                    mimeType = "video/wmv";
-                    break;
-                case "mp3":
-                    mimeType = "audio/mpeg";
-                    break;
-                case "wav":
-                    mimeType = "audio/wav";
-                    break;
-                case "emf":
-                    mimeType = "image/emf";
-                    break;
-                case "wmf":
-                    mimeType = "image/wmf";
-                case "tif":
-                case "tiff":
-                    mimeType = "image/tiff";
-                    break;
-            }
-            return mimeType;
-        }
+
         function getSvgGradient(w, h, angl, color_arry, shpId) {
-            var stopsArray = getMiddleStops(color_arry - 2);
+            var stopsArray = window.PPTXColorUtils.getMiddleStops(color_arry - 2);
 
             var svgAngle = '',
                 svgHeight = h,
                 svgWidth = w,
                 svg = '',
-                xy_ary = SVGangle(angl, svgHeight, svgWidth),
+                xy_ary = window.PPTXColorUtils.SVGangle(angl, svgHeight, svgWidth),
                 x1 = xy_ary[0],
                 y1 = xy_ary[1],
                 x2 = xy_ary[2],
@@ -12342,84 +11710,10 @@
 
             return svg
         }
-        function getMiddleStops(s) {
-            var sArry = ['0%', '100%'];
-            if (s == 0) {
-                return sArry;
-            } else {
-                var i = s;
-                while (i--) {
-                    var middleStop = 100 - ((100 / (s + 1)) * (i + 1)), // AM: Ex - For 3 middle stops, progression will be 25%, 50%, and 75%, plus 0% and 100% at the ends.
-                        middleStopString = middleStop + "%";
-                    sArry.splice(-1, 0, middleStopString);
-                } // AM: add into stopsArray before 100%
-            }
-            return sArry
-        }
-        function SVGangle(deg, svgHeight, svgWidth) {
-            var w = parseFloat(svgWidth),
-                h = parseFloat(svgHeight),
-                ang = parseFloat(deg),
-                o = 2,
-                n = 2,
-                wc = w / 2,
-                hc = h / 2,
-                tx1 = 2,
-                ty1 = 2,
-                tx2 = 2,
-                ty2 = 2,
-                k = (((ang % 360) + 360) % 360),
-                j = (360 - k) * Math.PI / 180,
-                i = Math.tan(j),
-                l = hc - i * wc;
 
-            if (k == 0) {
-                tx1 = w,
-                    ty1 = hc,
-                    tx2 = 0,
-                    ty2 = hc;
-            } else if (k < 90) {
-                n = w,
-                    o = 0;
-            } else if (k == 90) {
-                tx1 = wc,
-                    ty1 = 0,
-                    tx2 = wc,
-                    ty2 = h;
-            } else if (k < 180) {
-                n = 0,
-                    o = 0;
-            } else if (k == 180) {
-                tx1 = 0,
-                    ty1 = hc,
-                    tx2 = w,
-                    ty2 = hc;
-            } else if (k < 270) {
-                n = 0,
-                    o = h;
-            } else if (k == 270) {
-                tx1 = wc,
-                    ty1 = h,
-                    tx2 = wc,
-                    ty2 = 0;
-            } else {
-                n = w,
-                    o = h;
-            }
-            // AM: I could not quite figure out what m, n, and o are supposed to represent from the original code on visualcsstools.com.
-            var m = o + (n / i),
-                tx1 = tx1 == 2 ? i * (m - l) / (Math.pow(i, 2) + 1) : tx1,
-                ty1 = ty1 == 2 ? i * tx1 + l : ty1,
-                tx2 = tx2 == 2 ? w - tx1 : tx2,
-                ty2 = ty2 == 2 ? h - ty1 : ty2,
-                x1 = Math.round(tx2 / w * 100 * 100) / 100,
-                y1 = Math.round(ty2 / h * 100 * 100) / 100,
-                x2 = Math.round(tx1 / w * 100 * 100) / 100,
-                y2 = Math.round(ty1 / h * 100 * 100) / 100;
-            return [x1, y1, x2, y2];
-        }
+
         function getSvgImagePattern(node, fill, shpId, warpObj) {
-            var pic_dim = getBase64ImageDimensions(fill);
+            var pic_dim = window.PPTXColorUtils.getBase64ImageDimensions(fill);
             var width = pic_dim[0];
             var height = pic_dim[1];
             //console.log("getSvgImagePattern node:", node);
@@ -12457,7 +11751,7 @@
                         var obj = {};
                         obj[clr_type] = duotoneNode[clr_type];
                         //console.log("blip pic duotone obj: ", obj)
-                        var hexClr = getSolidFill(obj, undefined, undefined, warpObj);
+                        var hexClr = window.PPTXColorUtils.getSolidFill(obj, undefined, undefined, warpObj);
                         //clr_ary.push();
 
                         var color = tinycolor("#" + hexClr);
@@ -12502,58 +11796,18 @@
             return ptrn;
         }
 
-        function getBase64ImageDimensions(imgSrc) {
-            var image = new Image();
-            image.onload = function () {
-                image.width;
-                image.height;
-            };
-            image.src = imgSrc;
-
-            do {
-                if (image.width !== undefined) {
-                    return [image.width, image.height];
-                }
-            } while (image.width === undefined);
-
-            //return [w, h];
-        }
 
 
 
 
 
 
-        window.PPTXUtils.archaicNumbers([
-            [1000, ''],
-            [400, 'ת'],
-            [300, 'ש'],
-            [200, 'ר'],
-            [100, 'ק'],
-            [90, 'צ'],
-            [80, 'פ'],
-            [70, 'ע'],
-            [60, 'ס'],
-            [50, 'נ'],
-            [40, 'מ'],
-            [30, 'ל'],
-            [20, 'כ'],
-            [10, 'י'],
-            [9, 'ט'],
-            [8, 'ח'],
-            [7, 'ז'],
-            [6, 'ו'],
-            [5, 'ה'],
-            [4, 'ד'],
-            [3, 'ג'],
-            [2, 'ב'],
-            [1, 'א'],
-            [/יה/, 'ט״ו'],
-            [/יו/, 'ט״ז'],
-            [/([א-ת])([א-ת])$/, '$1״$2'],
-            [/^([א-ת])$/, "$1׳"]
-        ]);
 
+        // Number formatting functions are now in pptx-utils.js
+        // Ensure pptx-utils.js is loaded before this file
+
+        // Export genTextBody for table module
+        window._genTextBody = genTextBody;
     }
 
 
@@ -12570,12 +11824,70 @@
 (function () {
     var $ = window.jQuery;
 
+    // PPTX 坐标转换因子 (96 pixels per inch / 914400 EMUs per inch)
+    var slideFactor = 96 / 914400;
+
     // 角度转换
     function angleToDegrees(angle) {
         if (angle == "" || angle == null) {
             return 0;
         }
         return Math.round(angle / 60000);
+    }
+
+    // 根据路径数组获取嵌套对象的值
+    function getTextByPathList(obj, pathArr) {
+        if (!obj || !pathArr || pathArr.length === 0) return undefined;
+        var temp = obj;
+        for (var i = 0; i < pathArr.length; i++) {
+            if (temp[pathArr[i]] === undefined) return undefined;
+            temp = temp[pathArr[i]];
+        }
+        return temp;
+    }
+
+    // 角度转度数（EMU 单位 1/60000 度 -> 标准度）
+    function angleToDegrees(angle) {
+        if (angle == "" || angle == null) return 0;
+        return Math.round(angle / 60000);
+    }
+
+    // ArrayBuffer 转 Base64（用于缩略图）
+    function base64ArrayBuffer(arrayBuffer) {
+        var base64    = '';
+        var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+        var bytes         = new Uint8Array(arrayBuffer);
+        var byteLength    = bytes.byteLength;
+        var byteRemainder = byteLength % 3;
+        var mainLength    = byteLength - byteRemainder;
+
+        var a, b, c, d;
+        var chunk;
+
+        for (var i = 0; i < mainLength; i = i + 3) {
+            chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+            a = (chunk & 16515072) >> 18;
+            b = (chunk & 258048)   >> 12;
+            c = (chunk & 4032)     >>  6;
+            d = chunk & 63;
+            base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d];
+        }
+
+        if (byteRemainder == 1) {
+            chunk = bytes[mainLength];
+            a = (chunk & 252) >> 2;
+            b = (chunk & 3)   << 4;
+            base64 += encodings[a] + encodings[b] + '==';
+        } else if (byteRemainder == 2) {
+            chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
+            a = (chunk & 64512) >> 10;
+            b = (chunk & 1008)  >>  4;
+            c = (chunk & 15)    <<  2;
+            base64 += encodings[a] + encodings[b] + encodings[c] + '=';
+        }
+
+        return base64;
     }
 
     // 获取 MIME 类型
@@ -12737,14 +12049,14 @@
             throw Error("Error of path type! path is not array.");
         }
 
-        if (node === undefined) {
+        if (node === undefined || node === null) {
             return undefined;
         }
 
         var l = path.length;
         for (var i = 0; i < l; i++) {
             node = node[path[i]];
-            if (node === undefined) {
+            if (node === undefined || node === null) {
                 return undefined;
             }
         }
@@ -12799,94 +12111,109 @@
         return result;
     }
 
-    // 颜色处理函数
-    function applyShade(rgbStr, shadeValue, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        if (shadeValue >= 1) {
-            shadeValue = 1;
+    // 计算元素位置 CSS（top, left）- 支持从多个来源获取位置
+    function getPosition(xfrmNode, pNode, parentOff, parentExt, sType) {
+        // 简单版本：只处理 xfrmNode
+        if (xfrmNode && arguments.length <= 5) {
+            if (!xfrmNode) return "";
+
+            var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+            var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+
+            var css = "";
+            if (sType === "group-rotate") {
+                css += "top: " + y + "px; left: " + x + "px;";
+            } else {
+                var chOff = xfrmNode["a:chOff"];
+                var chExt = xfrmNode["a:chExt"];
+                if (chOff && chExt) {
+                    var chx = parseInt(chOff["attrs"]["x"]) * slideFactor;
+                    var chy = parseInt(chOff["attrs"]["y"]) * slideFactor;
+                    css += "top: " + (y - chy) + "px; left: " + (x - chx) + "px;";
+                } else {
+                    css += "top: " + y + "px; left: " + x + "px;";
+                }
+            }
+            return css;
         }
-        var cacl_l = Math.min(color.l * shadeValue, 1);
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-    }
 
-    function applyTint(rgbStr, tintValue, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        if (tintValue >= 1) {
-            tintValue = 1;
+        // 复杂版本：支持从多个来源获取位置（slideSpNode, slideLayoutSpNode, slideMasterSpNode）
+        var off;
+        var x = -1, y = -1;
+
+        if (xfrmNode !== undefined) {
+            off = xfrmNode["a:off"]["attrs"];
         }
-        var cacl_l = color.l * tintValue + (1 - tintValue);
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-    }
 
-    function applyLumOff(rgbStr, offset, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        var lum = offset + color.l;
-        if (lum >= 1) {
-            if (isAlpha)
-                return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex8();
-            return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex();
+        if (off === undefined && parentOff !== undefined) {
+            off = parentOff["a:off"]["attrs"];
+        } else if (off === undefined && parentExt !== undefined) {
+            off = parentExt["a:off"]["attrs"];
         }
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: color.s, l: lum, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: color.s, l: lum, a: color.a }).toHex();
-    }
+        var offX = 0, offY = 0;
+        var grpX = 0, grpY = 0;
+        if (sType == "group") {
 
-    function applyLumMod(rgbStr, multiplier, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        var cacl_l = color.l * multiplier;
-        if (cacl_l >= 1) {
-            cacl_l = 1;
+            var grpXfrmNode = getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
+            if (grpXfrmNode !== undefined) {
+                grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+                grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+            }
         }
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
-    }
+        if (sType == "group-rotate" && pNode && pNode["p:grpSpPr"] !== undefined) {
+            var grpXfrmNode2 = pNode["p:grpSpPr"]["a:xfrm"];
+            var chx = parseInt(grpXfrmNode2["a:chOff"]["attrs"]["x"]) * slideFactor;
+            var chy = parseInt(grpXfrmNode2["a:chOff"]["attrs"]["y"]) * slideFactor;
 
-    function applyHueMod(rgbStr, multiplier, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        var cacl_h = color.h * multiplier;
-        if (cacl_h >= 360) {
-            cacl_h = cacl_h - 360;
+            offX = chx;
+            offY = chy;
         }
-        if (isAlpha)
-            return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
-        return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
-    }
-
-    function applySatMod(rgbStr, multiplier, isAlpha) {
-        var color = tinycolor(rgbStr).toHsl();
-        var cacl_s = color.s * multiplier;
-        if (cacl_s >= 1) {
-            cacl_s = 1;
-        }
-        if (isAlpha)
-            return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex8();
-        return tinycolor({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex();
-    }
-
-    function rgba2hex(rgbaStr) {
-        var a,
-            rgb = rgbaStr.replace(/\s/g, '').match(/^rgba?\((\d+),(\d+),(\d+),?([^,\s)]+)?/i),
-            alpha = (rgb && rgb[4] || "").trim(),
-            hex = rgb ?
-                (rgb[1] | 1 << 8).toString(16).slice(1) +
-                (rgb[2] | 1 << 8).toString(16).slice(1) +
-                (rgb[3] | 1 << 8).toString(16).slice(1) : rgbaStr;
-
-        if (alpha !== "") {
-            a = alpha;
+        if (off === undefined) {
+            return "";
         } else {
-            a = 1;
+            x = parseInt(off["x"]) * slideFactor;
+            y = parseInt(off["y"]) * slideFactor;
+            return (isNaN(x) || isNaN(y)) ? "" : "top:" + (y - offY + grpY) + "px; left:" + (x - offX + grpX) + "px;";
         }
-        a = ((a * 255) | 1 << 8).toString(16).slice(1);
-        hex = hex + a;
-
-        return hex;
     }
+
+    // 计算元素尺寸 CSS（width, height）- 支持从多个来源获取尺寸
+    function getSize(xfrmNode, parentExt, sType) {
+        // 简单版本：只处理 xfrmNode
+        if (xfrmNode && arguments.length <= 3) {
+            if (!xfrmNode) return "";
+
+            var ext = xfrmNode["a:ext"];
+            if (!ext) return "";
+
+            var w = parseInt(ext["attrs"]["cx"]) * slideFactor;
+            var h = parseInt(ext["attrs"]["cy"]) * slideFactor;
+
+            return "width: " + w + "px; height: " + h + "px;";
+        }
+
+        // 复杂版本：支持从多个来源获取尺寸（xfrmNode, slideLayoutSpNode, slideMasterSpNode）
+        var ext = undefined;
+        var w = -1, h = -1;
+
+        if (xfrmNode !== undefined) {
+            ext = xfrmNode["a:ext"]["attrs"];
+        } else if (parentExt !== undefined) {
+            ext = parentExt["a:ext"]["attrs"];
+        } else if (sType !== undefined) {
+            ext = sType["a:ext"]["attrs"];
+        }
+
+        if (ext === undefined) {
+            return "";
+        } else {
+            w = parseInt(ext["cx"]) * slideFactor;
+            h = parseInt(ext["cy"]) * slideFactor;
+            return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
+        }
+    }
+
+
 
     // 古老数字格式化（如希伯来数字）
     function archaicNumbers(arr) {
@@ -12907,6 +12234,274 @@
         }
     }
 
+    // 数字编号格式化
+    function getNumTypeNum(numTyp, num) {
+        var rtrnNum = "";
+        switch (numTyp) {
+            case "arabicPeriod":
+                rtrnNum = num + ". ";
+                break;
+            case "arabicParenR":
+                rtrnNum = num + ") ";
+                break;
+            case "alphaLcParenR":
+                rtrnNum = alphaNumeric(num, "lowerCase") + ") ";
+                break;
+            case "alphaLcPeriod":
+                rtrnNum = alphaNumeric(num, "lowerCase") + ". ";
+                break;
+            case "alphaUcParenR":
+                rtrnNum = alphaNumeric(num, "upperCase") + ") ";
+                break;
+            case "alphaUcPeriod":
+                rtrnNum = alphaNumeric(num, "upperCase") + ". ";
+                break;
+            case "romanUcPeriod":
+                rtrnNum = romanize(num) + ". ";
+                break;
+            case "romanLcParenR":
+                rtrnNum = romanize(num) + ") ";
+                break;
+            case "hebrew2Minus":
+                rtrnNum = hebrew2Minus.format(num) + "-";
+                break;
+            default:
+                rtrnNum = num;
+        }
+        return rtrnNum;
+    }
+
+    // 罗马数字转换
+    function romanize(num) {
+        if (!+num)
+            return false;
+        var digits = String(+num).split(""),
+            key = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM",
+                "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC",
+                "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"],
+            roman = "",
+            i = 3;
+        while (i--)
+            roman = (key[+digits.pop() + (i * 10)] || "") + roman;
+        return Array(+digits.join("") + 1).join("M") + roman;
+    }
+
+    // 字母数字编号生成 (a, b, c, ... or A, B, C, ...)
+    function alphaNumeric(num, upperLower) {
+        num = Number(num) - 1;
+        var aNum = "";
+        if (upperLower == "upperCase") {
+            aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toUpperCase();
+        } else if (upperLower == "lowerCase") {
+            aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toLowerCase();
+        }
+        return aNum;
+    }
+
+    // 希伯来数字编号器
+    var hebrew2Minus = archaicNumbers([
+        [1000, ''],
+        [400, 'ת'],
+        [300, 'ש'],
+        [200, 'ר'],
+        [100, 'ק'],
+        [90, 'צ'],
+        [80, 'פ'],
+        [70, 'ע'],
+        [60, 'ס'],
+        [50, 'נ'],
+        [40, 'מ'],
+        [30, 'ל'],
+        [20, 'כ'],
+        [10, 'י'],
+        [9, 'ט'],
+        [8, 'ח'],
+        [7, 'ז'],
+        [6, 'ו'],
+        [5, 'ה'],
+        [4, 'ד'],
+        [3, 'ג'],
+        [2, 'ב'],
+        [1, 'א'],
+        [/יה/, 'ט״ו'],
+        [/יו/, 'ט״ז'],
+        [/([א-ת])([א-ת])$/, '$1״$2'],
+        [/^([א-ת])$/, "$1׳"]
+    ]);
+
+    // 获取边框样式
+    function getBorder(node, pNode, isSvgMode, bType, warpObj) {
+        var cssText, lineNode;
+
+        if (bType == "shape") {
+            cssText = "border: ";
+            lineNode = node["p:spPr"]["a:ln"];
+        } else if (bType == "text") {
+            cssText = "";
+            lineNode = node["a:rPr"]["a:ln"];
+        }
+
+        var is_noFill = getTextByPathList(lineNode, ["a:noFill"]);
+        if (is_noFill !== undefined) {
+            return "hidden";
+        }
+
+        if (lineNode == undefined) {
+            var lnRefNode = getTextByPathList(node, ["p:style", "a:lnRef"]);
+            if (lnRefNode !== undefined){
+                var lnIdx = getTextByPathList(lnRefNode, ["attrs", "idx"]);
+                lineNode = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) - 1];
+            }
+        }
+        if (lineNode == undefined) {
+            cssText = "";
+            lineNode = node;
+        }
+
+        var borderColor;
+        if (lineNode !== undefined) {
+            var borderWidth = parseInt(getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
+            if (isNaN(borderWidth) || borderWidth < 1) {
+                cssText += (4/3) + "px ";
+            } else {
+                cssText += borderWidth + "px ";
+            }
+
+            var borderType = getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
+            if (borderType === undefined) {
+                borderType = getTextByPathList(lineNode, ["attrs", "cmpd"]);
+            }
+            var strokeDasharray = "0";
+            switch (borderType) {
+                case "solid":
+                    cssText += "solid";
+                    strokeDasharray = "0";
+                    break;
+                case "dash":
+                    cssText += "dashed";
+                    strokeDasharray = "5";
+                    break;
+                case "dashDot":
+                    cssText += "dashed";
+                    strokeDasharray = "5, 5, 1, 5";
+                    break;
+                case "dot":
+                    cssText += "dotted";
+                    strokeDasharray = "1, 5";
+                    break;
+                case "lgDash":
+                    cssText += "dashed";
+                    strokeDasharray = "10, 5";
+                    break;
+                case "dbl":
+                    cssText += "double";
+                    strokeDasharray = "0";
+                    break;
+                case "lgDashDotDot":
+                    cssText += "dashed";
+                    strokeDasharray = "10, 5, 1, 5, 1, 5";
+                    break;
+                case "sysDash":
+                    cssText += "dashed";
+                    strokeDasharray = "5, 2";
+                    break;
+                case "sysDashDot":
+                    cssText += "dashed";
+                    strokeDasharray = "5, 2, 1, 5";
+                    break;
+                case "sysDashDotDot":
+                    cssText += "dashed";
+                    strokeDasharray = "5, 2, 1, 5, 1, 5";
+                    break;
+                case "sysDot":
+                    cssText += "dotted";
+                    strokeDasharray = "2, 5";
+                    break;
+                default:
+                    cssText += "solid";
+                    strokeDasharray = "0";
+            }
+
+            var fillTyp = window.PPTXColorUtils.getFillType(lineNode);
+            if (fillTyp == "NO_FILL") {
+                borderColor = isSvgMode ? "none" : "";
+            } else if (fillTyp == "SOLID_FILL") {
+                borderColor = window.PPTXColorUtils.getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
+            } else if (fillTyp == "GRADIENT_FILL") {
+                borderColor = window.PPTXColorUtils.getGradientFill(lineNode["a:gradFill"], warpObj);
+            } else if (fillTyp == "PATTERN_FILL") {
+                borderColor = window.PPTXColorUtils.getPatternFill(lineNode["a:pattFill"], warpObj);
+            }
+        }
+
+        if (borderColor === undefined) {
+            var lnRefNode = getTextByPathList(node, ["p:style", "a:lnRef"]);
+            if (lnRefNode !== undefined) {
+                borderColor = window.PPTXColorUtils.getSolidFill(lnRefNode, undefined, undefined, warpObj);
+            }
+        }
+
+        if (borderColor === undefined) {
+            if (isSvgMode) {
+                borderColor = "none";
+            } else {
+                borderColor = "hidden";
+            }
+        } else {
+            borderColor = "#" + borderColor;
+        }
+        cssText += " " + borderColor + " ";
+
+        if (isSvgMode) {
+            return { "color": borderColor, "width": borderWidth, "type": borderType, "strokeDasharray": strokeDasharray };
+        } else {
+            return cssText + ";";
+        }
+    }
+
+    // 获取表格边框样式
+    function getTableBorders(node, warpObj) {
+        var borderStyle = "";
+        if (node["a:bottom"] !== undefined) {
+            var obj = {
+                "p:spPr": {
+                    "a:ln": node["a:bottom"]["a:ln"]
+                }
+            };
+            var borders = getBorder(obj, undefined, false, "shape", warpObj);
+            borderStyle += borders.replace("border", "border-bottom");
+        }
+        if (node["a:top"] !== undefined) {
+            var obj = {
+                "p:spPr": {
+                    "a:ln": node["a:top"]["a:ln"]
+                }
+            };
+            var borders = getBorder(obj, undefined, false, "shape", warpObj);
+            borderStyle += borders.replace("border", "border-top");
+        }
+        if (node["a:right"] !== undefined) {
+            var obj = {
+                "p:spPr": {
+                    "a:ln": node["a:right"]["a:ln"]
+                }
+            };
+            var borders = getBorder(obj, undefined, false, "shape", warpObj);
+            borderStyle += borders.replace("border", "border-right");
+        }
+        if (node["a:left"] !== undefined) {
+            var obj = {
+                "p:spPr": {
+                    "a:ln": node["a:left"]["a:ln"]
+                }
+            };
+            var borders = getBorder(obj, undefined, false, "shape", warpObj);
+            borderStyle += borders.replace("border", "border-left");
+        }
+
+        return borderStyle;
+    }
+
     // 公开工具函数
     window.PPTXUtils = {
         angleToDegrees: angleToDegrees,
@@ -12920,14 +12515,17 @@
         getTextByPathList: getTextByPathList,
         setTextByPathList: setTextByPathList,
         eachElement: eachElement,
-        applyShade: applyShade,
-        applyTint: applyTint,
-        applyLumOff: applyLumOff,
-        applyLumMod: applyLumMod,
-        applyHueMod: applyHueMod,
-        applySatMod: applySatMod,
-        rgba2hex: rgba2hex,
-        archaicNumbers: archaicNumbers
+        archaicNumbers: archaicNumbers,
+        getNumTypeNum: getNumTypeNum,
+        romanize: romanize,
+        alphaNumeric: alphaNumeric,
+        hebrew2Minus: hebrew2Minus,
+        getPosition: getPosition,
+        getSize: getSize,
+        getBorder: getBorder,
+        getTableBorders: getTableBorders,
+        getSlideFactor: function() { return slideFactor; },
+        setSlideFactor: function(factor) { slideFactor = factor; }
     };
 
 })();
@@ -12961,6 +12559,15 @@
         processFullTheme = settings.themeProcess;
         if (config.processSingleSlide) {
             window._processSingleSlideCallback = config.processSingleSlide;
+        }
+        if (config.processNodesInSlide) {
+            window._processNodesInSlideCallback = config.processNodesInSlide;
+        }
+        if (config.getBackground) {
+            window._getBackgroundCallback = config.getBackground;
+        }
+        if (config.getSlideBackgroundFill) {
+            window._getSlideBackgroundFillCallback = config.getSlideBackgroundFill;
         }
     }
 
@@ -13009,7 +12616,13 @@
             if (filename_no_path_no_ext != "" && filename_no_path.indexOf("slide") != -1) {
                 slide_number = Number(filename_no_path_no_ext.substr(5));
             }
-            var slideHtml = window._processSingleSlideCallback(zip, filename, i, slideSize);
+            // Use internal processSingleSlide function if no callback provided
+            var slideHtml;
+            if (typeof window._processSingleSlideCallback === 'function') {
+                slideHtml = window._processSingleSlideCallback(zip, filename, i, slideSize);
+            } else {
+                slideHtml = processSingleSlide(zip, filename, i, slideSize);
+            }
             post_ary.push({
                 "type": "slide",
                 "data": slideHtml,
@@ -13148,6 +12761,11 @@
         //slideFactor = slideFactor * scaleX;
 
         defaultTextStyle = content["p:presentation"]["p:defaultTextStyle"];
+        // 根据 PPTX 规范（ECMA-376），p:defaultTextStyle 是可选元素
+        // 当不存在时，提供一个空对象以避免 null/undefined 错误
+        if (defaultTextStyle === undefined || defaultTextStyle === null) {
+            defaultTextStyle = {};
+        }
 
         slideWidth = sldSzWidth * slideFactor + settings.incSlide.width|0;// * scaleX;//parseInt(sldSzAttrs["cx"]) * 96 / 914400;
         slideHeight = sldSzHeight * slideFactor + settings.incSlide.height|0;// * scaleY;//parseInt(sldSzAttrs["cy"]) * 96 / 914400;
@@ -13212,6 +12830,262 @@
         return { "idTable": idTable, "idxTable": idxTable, "typeTable": typeTable };
     }
 
+    // 获取背景
+    function getBackground(warpObj, slideSize, index) {
+        var bgResult = "";
+        if (processFullTheme === true) {
+            // 读取 slide 节点中的背景
+            var bgNode = PPTXUtils.getTextByPathList(warpObj.slideContent, ["p:sld", "p:cSld", "p:bg"]);
+            if (bgNode) {
+                var bgPr = bgNode["p:bgPr"];
+                if (bgPr) {
+                    // 纯色填充
+                    var solidFill = PPTXUtils.getTextByPathList(bgPr, ["a:solidFill"]);
+                    if (solidFill) {
+                        var color = window.PPTXColorUtils ? window.PPTXColorUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride) : "";
+                        if (color) {
+                            bgResult = "<div class='slide-background-" + index + "' style='position:absolute;width:" + slideSize.width + "px;height:" + slideSize.height + "px;background-color:" + color + ";'></div>";
+                        }
+                    }
+                    // 图片填充等可在此扩展
+                }
+            }
+        }
+        return bgResult;
+    }
+
+    // 获取幻灯片背景填充
+    function getSlideBackgroundFill(warpObj, index) {
+        var bgColor = "";
+        if (processFullTheme == "colorsAndImageOnly") {
+            var bgNode = PPTXUtils.getTextByPathList(warpObj.slideContent, ["p:sld", "p:cSld", "p:bg"]);
+            if (bgNode) {
+                var bgPr = bgNode["p:bgPr"];
+                if (bgPr) {
+                    var solidFill = PPTXUtils.getTextByPathList(bgPr, ["a:solidFill"]);
+                    if (solidFill) {
+                        var color = window.PPTXColorUtils ? window.PPTXColorUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride) : "";
+                        if (color) {
+                            bgColor = "background-color:" + color + ";";
+                        }
+                    }
+                }
+            }
+        }
+        return bgColor;
+    }
+
+    // 处理单个幻灯片
+    function processSingleSlide(zip, sldFileName, index, slideSize) {
+        var resName = sldFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
+        var resContent = PPTXParser.readXmlFile(zip, resName);
+        var RelationshipArray = resContent["Relationships"]["Relationship"];
+        var layoutFilename = "";
+        var diagramFilename = "";
+        var slideResObj = {};
+        if (RelationshipArray.constructor === Array) {
+            for (var i = 0; i < RelationshipArray.length; i++) {
+                switch (RelationshipArray[i]["attrs"]["Type"]) {
+                    case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout":
+                        layoutFilename = window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"]);
+                        break;
+                    case "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing":
+                        diagramFilename = window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"]);
+                        slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
+                            "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            "target": window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"])
+                        };
+                        break;
+                    default:
+                        slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
+                            "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            "target": window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"])
+                        };
+                }
+            }
+        } else {
+            layoutFilename = window.PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray["attrs"]["Target"]);
+        }
+
+        var slideLayoutContent = PPTXParser.readXmlFile(zip, layoutFilename);
+        var slideLayoutTables = indexNodes(slideLayoutContent);
+        var sldLayoutClrOvr = window.PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
+
+        if (sldLayoutClrOvr !== undefined) {
+            slideLayoutClrOvride = sldLayoutClrOvr["attrs"];
+        }
+
+        var slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
+        var slideLayoutResContent = PPTXParser.readXmlFile(zip, slideLayoutResFilename);
+        RelationshipArray = slideLayoutResContent["Relationships"]["Relationship"];
+        var masterFilename = "";
+        var layoutResObj = {};
+        if (RelationshipArray.constructor === Array) {
+            for (var i = 0; i < RelationshipArray.length; i++) {
+                switch (RelationshipArray[i]["attrs"]["Type"]) {
+                    case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster":
+                        masterFilename = window.PPTXUtils.resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray[i]["attrs"]["Target"]);
+                        break;
+                    default:
+                        layoutResObj[RelationshipArray[i]["attrs"]["Id"]] = {
+                            "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            "target": window.PPTXUtils.resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray[i]["attrs"]["Target"])
+                        };
+                }
+            }
+        } else {
+            masterFilename = window.PPTXUtils.resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray["attrs"]["Target"]);
+        }
+
+        var slideMasterContent = PPTXParser.readXmlFile(zip, masterFilename);
+        var slideMasterTextStyles = window.PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
+        var slideMasterTables = indexNodes(slideMasterContent);
+
+        var slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
+        var slideMasterResContent = PPTXParser.readXmlFile(zip, slideMasterResFilename);
+        RelationshipArray = slideMasterResContent["Relationships"]["Relationship"];
+        var themeFilename = "";
+        var masterResObj = {};
+        if (RelationshipArray.constructor === Array) {
+            for (var i = 0; i < RelationshipArray.length; i++) {
+                switch (RelationshipArray[i]["attrs"]["Type"]) {
+                    case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme":
+                        themeFilename = window.PPTXUtils.resolveRelationshipTarget(slideMasterResFilename, RelationshipArray[i]["attrs"]["Target"]);
+                        break;
+                    default:
+                        masterResObj[RelationshipArray[i]["attrs"]["Id"]] = {
+                            "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            "target": window.PPTXUtils.resolveRelationshipTarget(slideMasterResFilename, RelationshipArray[i]["attrs"]["Target"])
+                        };
+                }
+            }
+        } else {
+            themeFilename = window.PPTXUtils.resolveRelationshipTarget(slideMasterResFilename, RelationshipArray["attrs"]["Target"]);
+        }
+
+        var themeResObj = {};
+        var themeContent = {};
+        if (themeFilename !== undefined) {
+            var themeName = themeFilename.split("/").pop();
+            var themeResFileName = themeFilename.replace(themeName, "_rels/" + themeName) + ".rels";
+            themeContent = PPTXParser.readXmlFile(zip, themeFilename);
+            var themeResContent = PPTXParser.readXmlFile(zip, themeResFileName);
+            if (themeResContent !== null) {
+                var relationshipArray = themeResContent["Relationships"]["Relationship"];
+                if (relationshipArray !== undefined){
+                    if (relationshipArray.constructor === Array) {
+                        for (var i = 0; i < relationshipArray.length; i++) {
+                            themeResObj[relationshipArray[i]["attrs"]["Id"]] = {
+                                "type": relationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                                "target": window.PPTXUtils.resolveRelationshipTarget(themeResFileName, relationshipArray[i]["attrs"]["Target"])
+                            };
+                        }
+                    } else {
+                        themeResObj[relationshipArray["attrs"]["Id"]] = {
+                            "type": relationshipArray["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            "target": window.PPTXUtils.resolveRelationshipTarget(themeResFileName, relationshipArray["attrs"]["Target"])
+                        };
+                    }
+                }
+            }
+        }
+
+        var diagramResObj = {};
+        var digramFileContent = {};
+        if (diagramFilename !== undefined) {
+            var diagName = diagramFilename.split("/").pop();
+            var diagramResFileName = diagramFilename.replace(diagName, "_rels/" + diagName) + ".rels";
+            digramFileContent = PPTXParser.readXmlFile(zip, diagramFilename);
+            if (digramFileContent !== null && digramFileContent !== undefined && digramFileContent != "") {
+                var digramFileContentObjToStr = JSON.stringify(digramFileContent);
+                digramFileContentObjToStr = digramFileContentObjToStr.replace(/dsp:/g, "p:");
+                digramFileContent = JSON.parse(digramFileContentObjToStr);
+            }
+
+            var digramResContent = PPTXParser.readXmlFile(zip, diagramResFileName);
+            if (digramResContent !== null) {
+                var relationshipArray = digramResContent["Relationships"]["Relationship"];
+                if (relationshipArray.constructor === Array) {
+                    for (var i = 0; i < relationshipArray.length; i++) {
+                        diagramResObj[relationshipArray[i]["attrs"]["Id"]] = {
+                            "type": relationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            "target": window.PPTXUtils.resolveRelationshipTarget(diagramResFileName, relationshipArray[i]["attrs"]["Target"])
+                        };
+                    }
+                } else {
+                    diagramResObj[relationshipArray["attrs"]["Id"]] = {
+                        "type": relationshipArray["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                        "target": window.PPTXUtils.resolveRelationshipTarget(diagramResFileName, relationshipArray["attrs"]["Target"])
+                    };
+                }
+            }
+        }
+
+        var slideContent = PPTXParser.readXmlFile(zip, sldFileName, true);
+        var nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
+        var warpObj = {
+            "zip": zip,
+            "sldFileName": sldFileName,
+            "slideLayoutContent": slideLayoutContent,
+            "slideLayoutTables": slideLayoutTables,
+            "slideMasterContent": slideMasterContent,
+            "slideMasterTables": slideMasterTables,
+            "slideContent": slideContent,
+            "slideResObj": slideResObj,
+            "slideMasterTextStyles": slideMasterTextStyles,
+            "layoutResObj": layoutResObj,
+            "masterResObj": masterResObj,
+            "themeContent": themeContent,
+            "themeResObj": themeResObj,
+            "digramFileContent": digramFileContent,
+            "diagramResObj": diagramResObj,
+            "tableStyles": tableStyles,
+            "defaultTextStyle": PPTXParser.defaultTextStyle
+        };
+        var bgResult = "";
+        if (processFullTheme === true) {
+            // Use callback if provided, otherwise use internal function
+            if (typeof window._getBackgroundCallback === 'function') {
+                bgResult = window._getBackgroundCallback(warpObj, slideSize, index);
+            } else {
+                bgResult = getBackground(warpObj, slideSize, index);
+            }
+        }
+
+        var bgColor = "";
+        if (processFullTheme == "colorsAndImageOnly") {
+            // Use callback if provided, otherwise use internal function
+            if (typeof window._getSlideBackgroundFillCallback === 'function') {
+                bgColor = window._getSlideBackgroundFillCallback(warpObj, index);
+            } else {
+                bgColor = getSlideBackgroundFill(warpObj);
+            }
+        }
+
+        if (settings.slideMode && settings.slideType == "revealjs") {
+            var result = "<section class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>";
+        } else {
+            var result = "<div class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>";
+        }
+        result += bgResult;
+        // Use callback for processNodesInSlide if provided
+        var processNodesFunc = window._processNodesInSlideCallback || processNodesInSlide;
+        for (var nodeKey in nodes) {
+            if (nodes[nodeKey].constructor === Array) {
+                for (var i = 0; i < nodes[nodeKey].length; i++) {
+                    result += processNodesFunc(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide");
+                }
+            } else {
+                result += processNodesFunc(nodeKey, nodes[nodeKey], nodes, warpObj, "slide");
+            }
+        }
+        if (settings.slideMode && settings.slideType == "revealjs") {
+            return result + "</div></section>";
+        } else {
+            return result + "</div></div>";
+        }
+    }
+
     // 公开 API
     window.PPTXParser = {
         configure: configure,
@@ -13220,6 +13094,9 @@
         getContentTypes: getContentTypes,
         getSlideSizeAndSetDefaultTextStyle: getSlideSizeAndSetDefaultTextStyle,
         indexNodes: indexNodes,
+        processSingleSlide: processSingleSlide,
+        getBackground: getBackground,
+        getSlideBackgroundFill: getSlideBackgroundFill,
         slideFactor: slideFactor,
         fontSizeFactor: fontSizeFactor,
         slideWidth: slideWidth,

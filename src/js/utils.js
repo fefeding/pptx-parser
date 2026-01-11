@@ -6,6 +6,9 @@
 (function () {
     var $ = window.jQuery;
 
+    // PPTX 坐标转换因子 (96 pixels per inch / 914400 EMUs per inch)
+    var slideFactor = 96 / 914400;
+
     // 角度转换
     function angleToDegrees(angle) {
         if (angle == "" || angle == null) {
@@ -233,14 +236,14 @@
             throw Error("Error of path type! path is not array.");
         }
 
-        if (node === undefined) {
+        if (node === undefined || node === null) {
             return undefined;
         }
 
         var l = path.length;
         for (var i = 0; i < l; i++) {
             node = node[path[i]];
-            if (node === undefined) {
+            if (node === undefined || node === null) {
                 return undefined;
             }
         }
@@ -293,6 +296,108 @@
             result += doFunction(node, 0);
         }
         return result;
+    }
+
+    // 计算元素位置 CSS（top, left）- 支持从多个来源获取位置
+    function getPosition(xfrmNode, pNode, parentOff, parentExt, sType) {
+        // 简单版本：只处理 xfrmNode
+        if (xfrmNode && arguments.length <= 5) {
+            if (!xfrmNode) return "";
+
+            var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+            var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+
+            var css = "";
+            if (sType === "group-rotate") {
+                css += "top: " + y + "px; left: " + x + "px;";
+            } else {
+                var chOff = xfrmNode["a:chOff"];
+                var chExt = xfrmNode["a:chExt"];
+                if (chOff && chExt) {
+                    var chx = parseInt(chOff["attrs"]["x"]) * slideFactor;
+                    var chy = parseInt(chOff["attrs"]["y"]) * slideFactor;
+                    css += "top: " + (y - chy) + "px; left: " + (x - chx) + "px;";
+                } else {
+                    css += "top: " + y + "px; left: " + x + "px;";
+                }
+            }
+            return css;
+        }
+
+        // 复杂版本：支持从多个来源获取位置（slideSpNode, slideLayoutSpNode, slideMasterSpNode）
+        var off;
+        var x = -1, y = -1;
+
+        if (xfrmNode !== undefined) {
+            off = xfrmNode["a:off"]["attrs"];
+        }
+
+        if (off === undefined && parentOff !== undefined) {
+            off = parentOff["a:off"]["attrs"];
+        } else if (off === undefined && parentExt !== undefined) {
+            off = parentExt["a:off"]["attrs"];
+        }
+        var offX = 0, offY = 0;
+        var grpX = 0, grpY = 0;
+        if (sType == "group") {
+
+            var grpXfrmNode = getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
+            if (grpXfrmNode !== undefined) {
+                grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+                grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+            }
+        }
+        if (sType == "group-rotate" && pNode && pNode["p:grpSpPr"] !== undefined) {
+            var grpXfrmNode2 = pNode["p:grpSpPr"]["a:xfrm"];
+            var chx = parseInt(grpXfrmNode2["a:chOff"]["attrs"]["x"]) * slideFactor;
+            var chy = parseInt(grpXfrmNode2["a:chOff"]["attrs"]["y"]) * slideFactor;
+
+            offX = chx;
+            offY = chy;
+        }
+        if (off === undefined) {
+            return "";
+        } else {
+            x = parseInt(off["x"]) * slideFactor;
+            y = parseInt(off["y"]) * slideFactor;
+            return (isNaN(x) || isNaN(y)) ? "" : "top:" + (y - offY + grpY) + "px; left:" + (x - offX + grpX) + "px;";
+        }
+    }
+
+    // 计算元素尺寸 CSS（width, height）- 支持从多个来源获取尺寸
+    function getSize(xfrmNode, parentExt, sType) {
+        // 简单版本：只处理 xfrmNode
+        if (xfrmNode && arguments.length <= 3) {
+            if (!xfrmNode) return "";
+
+            var ext = xfrmNode["a:ext"];
+            if (!ext) return "";
+
+            var w = parseInt(ext["attrs"]["cx"]) * slideFactor;
+            var h = parseInt(ext["attrs"]["cy"]) * slideFactor;
+
+            return "width: " + w + "px; height: " + h + "px;";
+        }
+
+        // 复杂版本：支持从多个来源获取尺寸（xfrmNode, slideLayoutSpNode, slideMasterSpNode）
+        var ext = undefined;
+        var w = -1, h = -1;
+
+        if (xfrmNode !== undefined) {
+            ext = xfrmNode["a:ext"]["attrs"];
+        } else if (parentExt !== undefined) {
+            ext = parentExt["a:ext"]["attrs"];
+        } else if (sType !== undefined) {
+            ext = sType["a:ext"]["attrs"];
+        }
+
+        if (ext === undefined) {
+            return "";
+        } else {
+            w = parseInt(ext["cx"]) * slideFactor;
+            h = parseInt(ext["cy"]) * slideFactor;
+            return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
+        }
     }
 
 
@@ -411,6 +516,179 @@
         [/^([א-ת])$/, "$1׳"]
     ]);
 
+    // 获取边框样式
+    function getBorder(node, pNode, isSvgMode, bType, warpObj) {
+        var cssText, lineNode;
+
+        if (bType == "shape") {
+            cssText = "border: ";
+            lineNode = node["p:spPr"]["a:ln"];
+        } else if (bType == "text") {
+            cssText = "";
+            lineNode = node["a:rPr"]["a:ln"];
+        }
+
+        var is_noFill = getTextByPathList(lineNode, ["a:noFill"]);
+        if (is_noFill !== undefined) {
+            return "hidden";
+        }
+
+        if (lineNode == undefined) {
+            var lnRefNode = getTextByPathList(node, ["p:style", "a:lnRef"]);
+            if (lnRefNode !== undefined){
+                var lnIdx = getTextByPathList(lnRefNode, ["attrs", "idx"]);
+                lineNode = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) - 1];
+            }
+        }
+        if (lineNode == undefined) {
+            cssText = "";
+            lineNode = node;
+        }
+
+        var borderColor;
+        if (lineNode !== undefined) {
+            var borderWidth = parseInt(getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
+            if (isNaN(borderWidth) || borderWidth < 1) {
+                cssText += (4/3) + "px ";
+            } else {
+                cssText += borderWidth + "px ";
+            }
+
+            var borderType = getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
+            if (borderType === undefined) {
+                borderType = getTextByPathList(lineNode, ["attrs", "cmpd"]);
+            }
+            var strokeDasharray = "0";
+            switch (borderType) {
+                case "solid":
+                    cssText += "solid";
+                    strokeDasharray = "0";
+                    break;
+                case "dash":
+                    cssText += "dashed";
+                    strokeDasharray = "5";
+                    break;
+                case "dashDot":
+                    cssText += "dashed";
+                    strokeDasharray = "5, 5, 1, 5";
+                    break;
+                case "dot":
+                    cssText += "dotted";
+                    strokeDasharray = "1, 5";
+                    break;
+                case "lgDash":
+                    cssText += "dashed";
+                    strokeDasharray = "10, 5";
+                    break;
+                case "dbl":
+                    cssText += "double";
+                    strokeDasharray = "0";
+                    break;
+                case "lgDashDotDot":
+                    cssText += "dashed";
+                    strokeDasharray = "10, 5, 1, 5, 1, 5";
+                    break;
+                case "sysDash":
+                    cssText += "dashed";
+                    strokeDasharray = "5, 2";
+                    break;
+                case "sysDashDot":
+                    cssText += "dashed";
+                    strokeDasharray = "5, 2, 1, 5";
+                    break;
+                case "sysDashDotDot":
+                    cssText += "dashed";
+                    strokeDasharray = "5, 2, 1, 5, 1, 5";
+                    break;
+                case "sysDot":
+                    cssText += "dotted";
+                    strokeDasharray = "2, 5";
+                    break;
+                default:
+                    cssText += "solid";
+                    strokeDasharray = "0";
+            }
+
+            var fillTyp = window.PPTXColorUtils.getFillType(lineNode);
+            if (fillTyp == "NO_FILL") {
+                borderColor = isSvgMode ? "none" : "";
+            } else if (fillTyp == "SOLID_FILL") {
+                borderColor = window.PPTXColorUtils.getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
+            } else if (fillTyp == "GRADIENT_FILL") {
+                borderColor = window.PPTXColorUtils.getGradientFill(lineNode["a:gradFill"], warpObj);
+            } else if (fillTyp == "PATTERN_FILL") {
+                borderColor = window.PPTXColorUtils.getPatternFill(lineNode["a:pattFill"], warpObj);
+            }
+        }
+
+        if (borderColor === undefined) {
+            var lnRefNode = getTextByPathList(node, ["p:style", "a:lnRef"]);
+            if (lnRefNode !== undefined) {
+                borderColor = window.PPTXColorUtils.getSolidFill(lnRefNode, undefined, undefined, warpObj);
+            }
+        }
+
+        if (borderColor === undefined) {
+            if (isSvgMode) {
+                borderColor = "none";
+            } else {
+                borderColor = "hidden";
+            }
+        } else {
+            borderColor = "#" + borderColor;
+        }
+        cssText += " " + borderColor + " ";
+
+        if (isSvgMode) {
+            return { "color": borderColor, "width": borderWidth, "type": borderType, "strokeDasharray": strokeDasharray };
+        } else {
+            return cssText + ";";
+        }
+    }
+
+    // 获取表格边框样式
+    function getTableBorders(node, warpObj) {
+        var borderStyle = "";
+        if (node["a:bottom"] !== undefined) {
+            var obj = {
+                "p:spPr": {
+                    "a:ln": node["a:bottom"]["a:ln"]
+                }
+            }
+            var borders = getBorder(obj, undefined, false, "shape", warpObj);
+            borderStyle += borders.replace("border", "border-bottom");
+        }
+        if (node["a:top"] !== undefined) {
+            var obj = {
+                "p:spPr": {
+                    "a:ln": node["a:top"]["a:ln"]
+                }
+            }
+            var borders = getBorder(obj, undefined, false, "shape", warpObj);
+            borderStyle += borders.replace("border", "border-top");
+        }
+        if (node["a:right"] !== undefined) {
+            var obj = {
+                "p:spPr": {
+                    "a:ln": node["a:right"]["a:ln"]
+                }
+            }
+            var borders = getBorder(obj, undefined, false, "shape", warpObj);
+            borderStyle += borders.replace("border", "border-right");
+        }
+        if (node["a:left"] !== undefined) {
+            var obj = {
+                "p:spPr": {
+                    "a:ln": node["a:left"]["a:ln"]
+                }
+            }
+            var borders = getBorder(obj, undefined, false, "shape", warpObj);
+            borderStyle += borders.replace("border", "border-left");
+        }
+
+        return borderStyle;
+    }
+
     // 公开工具函数
     window.PPTXUtils = {
         angleToDegrees: angleToDegrees,
@@ -428,7 +706,13 @@
         getNumTypeNum: getNumTypeNum,
         romanize: romanize,
         alphaNumeric: alphaNumeric,
-        hebrew2Minus: hebrew2Minus
+        hebrew2Minus: hebrew2Minus,
+        getPosition: getPosition,
+        getSize: getSize,
+        getBorder: getBorder,
+        getTableBorders: getTableBorders,
+        getSlideFactor: function() { return slideFactor; },
+        setSlideFactor: function(factor) { slideFactor = factor; }
     };
 
 })();

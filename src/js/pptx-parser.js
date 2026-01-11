@@ -231,6 +231,11 @@
         //slideFactor = slideFactor * scaleX;
 
         defaultTextStyle = content["p:presentation"]["p:defaultTextStyle"];
+        // 根据 PPTX 规范（ECMA-376），p:defaultTextStyle 是可选元素
+        // 当不存在时，提供一个空对象以避免 null/undefined 错误
+        if (defaultTextStyle === undefined || defaultTextStyle === null) {
+            defaultTextStyle = {};
+        }
 
         slideWidth = sldSzWidth * slideFactor + settings.incSlide.width|0;// * scaleX;//parseInt(sldSzAttrs["cx"]) * 96 / 914400;
         slideHeight = sldSzHeight * slideFactor + settings.incSlide.height|0;// * scaleY;//parseInt(sldSzAttrs["cy"]) * 96 / 914400;
@@ -504,6 +509,7 @@
             "themeResObj": themeResObj,
             "digramFileContent": digramFileContent,
             "diagramResObj": diagramResObj,
+            "tableStyles": tableStyles,
             "defaultTextStyle": PPTXParser.defaultTextStyle
         };
         var bgResult = "";
