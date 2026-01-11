@@ -9211,11 +9211,11 @@
             text_style += "font-size:" + font_size + ";" +
                 // marLStr +
                 "font-family:" + getFontType(node, type, warpObj, pFontStyle) + ";" +
-                "font-weight:" + getFontBold(node, type, slideMasterTextStyles) + ";" +
-                "font-style:" + getFontItalic(node, type, slideMasterTextStyles) + ";" +
-                "text-decoration:" + getFontDecoration(node, type, slideMasterTextStyles) + ";" +
-                "text-align:" + getTextHorizontalAlign(node, pNode, type, warpObj) + ";" +
-                "vertical-align:" + getTextVerticalAlign(node, type, slideMasterTextStyles) + ";";
+                "font-weight:" + window.PPTXTextStyleUtils.getFontBold(node, type, slideMasterTextStyles) + ";" +
+                "font-style:" + window.PPTXTextStyleUtils.getFontItalic(node, type, slideMasterTextStyles) + ";" +
+                "text-decoration:" + window.PPTXTextStyleUtils.getFontDecoration(node, type, slideMasterTextStyles) + ";" +
+                "text-align:" + window.PPTXTextStyleUtils.getTextHorizontalAlign(node, pNode, type, warpObj) + ";" +
+                "vertical-align:" + window.PPTXTextStyleUtils.getTextVerticalAlign(node, type, slideMasterTextStyles) + ";";
             //rNodeLength
             //console.log("genSpanElement node:", node, "lang:", lang, "isRtlLan:", isRtlLan, "span parent dir:", dirStr)
             if (isRtlLan) { //|| rIndex === undefined
@@ -10850,98 +10850,7 @@
             return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (fontSize * fontSizeFactor + "px");// + "pt");
         }
 
-        function getFontBold(node, type, slideMasterTextStyles) {
-            return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["b"] === "1") ? "bold" : "inherit";
-        }
-
-        function getFontItalic(node, type, slideMasterTextStyles) {
-            return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["i"] === "1") ? "italic" : "inherit";
-        }
-
-        function getFontDecoration(node, type, slideMasterTextStyles) {
-            ///////////////////////////////Amir///////////////////////////////
-            if (node["a:rPr"] !== undefined) {
-                var underLine = node["a:rPr"]["attrs"]["u"] !== undefined ? node["a:rPr"]["attrs"]["u"] : "none";
-                var strikethrough = node["a:rPr"]["attrs"]["strike"] !== undefined ? node["a:rPr"]["attrs"]["strike"] : 'noStrike';
-                //console.log("strikethrough: "+strikethrough);
-
-                if (underLine != "none" && strikethrough == "noStrike") {
-                    return "underline";
-                } else if (underLine == "none" && strikethrough != "noStrike") {
-                    return "line-through";
-                } else if (underLine != "none" && strikethrough != "noStrike") {
-                    return "underline line-through";
-                } else {
-                    return "inherit";
-                }
-            } else {
-                return "inherit";
-            }
-            /////////////////////////////////////////////////////////////////
-            //return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["u"] === "sng") ? "underline" : "inherit";
-        }
-        ////////////////////////////////////Amir/////////////////////////////////////
-        function getTextHorizontalAlign(node, pNode, type, warpObj) {
-            //console.log("getTextHorizontalAlign: type: ", type, ", node: ", node)
-            var getAlgn = window.PPTXUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
-            if (getAlgn === undefined) {
-                getAlgn = window.PPTXUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "algn"]);
-            }
-            if (getAlgn === undefined) {
-                if (type == "title" || type == "ctrTitle" || type == "subTitle") {
-                    var lvlIdx = 1;
-                    var lvlNode = window.PPTXUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
-                    if (lvlNode !== undefined) {
-                        lvlIdx = parseInt(lvlNode) + 1;
-                    }
-                    var lvlStr = "a:lvl" + lvlIdx + "pPr";
-                    getAlgn = window.PPTXUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
-                    if (getAlgn === undefined) {
-                        getAlgn = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
-                        if (getAlgn === undefined) {
-                            getAlgn = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:titleStyle", lvlStr, "attrs", "algn"]);
-                            if (getAlgn === undefined && type === "subTitle") {
-                                getAlgn = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr, "attrs", "algn"]);
-                            }
-                        }
-                    }
-                } else if (type == "body") {
-                    getAlgn = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", "a:lvl1pPr", "attrs", "algn"]);
-                } else {
-                    getAlgn = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", "a:lvl1pPr", "attrs", "algn"]);
-                }
-
-            }
-
-            var align = "inherit";
-            if (getAlgn !== undefined) {
-                switch (getAlgn) {
-                    case "l":
-                        align = "left";
-                        break;
-                    case "r":
-                        align = "right";
-                        break;
-                    case "ctr":
-                        align = "center";
-                        break;
-                    case "just":
-                        align = "justify";
-                        break;
-                    case "dist":
-                        align = "justify";
-                        break;
-                    default:
-                        align = "inherit";
-                }
-            }
-            return align;
-        }
-        /////////////////////////////////////////////////////////////////////
-        function getTextVerticalAlign(node, type, slideMasterTextStyles) {
-            var baseline = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
-            return baseline === undefined ? "baseline" : (parseInt(baseline) / 1000) + "%";
-        }
+        // getFontBold, getFontItalic, getFontDecoration, getTextHorizontalAlign, getTextVerticalAlign 已移至 PPTXTextStyleUtils 模块
 
         function getTableBorders(node, warpObj) {
             var borderStyle = "";
