@@ -81,6 +81,29 @@
     function genChart(node, warpObj) {
         var order = node["attrs"]["order"];
         var xfrmNode = getTextByPathList(node, ["p:xfrm"]);
+
+        // Helper functions
+        var getTextByPathList = function(node, path) {
+            if (path.constructor !== Array) {
+                throw Error("Error of path type! path is not array.");
+            }
+            if (node === undefined) {
+                return undefined;
+            }
+            var l = path.length;
+            for (var i = 0; i < l; i++) {
+                node = node[path[i]];
+                if (node === undefined) {
+                    return undefined;
+                }
+            }
+            return node;
+        };
+
+        var getPosition = PPTXUtils ? PPTXUtils.getPosition : function() { return ""; };
+        var getSize = PPTXUtils ? PPTXUtils.getSize : function() { return ""; };
+        var readXmlFile = PPTXParser ? PPTXParser.readXmlFile : function() { return null; };
+
         var result = "<div id='chart" + chartID + "' class='block content' style='" +
             getPosition(xfrmNode, node, undefined, undefined) + getSize(xfrmNode, undefined, undefined) +
             " z-index: " + order + ";'></div>";
@@ -114,54 +137,263 @@
                     };
                     break;
                 case "c:pieChart":
+                    chartData = {
+                        "type": "createChart",
+                        "data": {
+                            "chartID": "chart" + chartID,
+                            "chartType": "pieChart",
+                            "chartData": extractChartData(plotArea[key]["c:ser"])
+                        }
+                    };
+                    break;
                 case "c:pie3DChart":
-                    if (chartData.length > 0) {
-                        data = chartData[0].values;
-                    }
+                    chartData = {
+                        "type": "createChart",
+                        "data": {
+                            "chartID": "chart" + chartID,
+                            "chartType": "pie3DChart",
+                            "chartData": extractChartData(plotArea[key]["c:ser"])
+                        }
+                    };
+                    break;
+                case "c:areaChart":
+                    chartData = {
+                        "type": "createChart",
+                        "data": {
+                            "chartID": "chart" + chartID,
+                            "chartType": "areaChart",
+                            "chartData": extractChartData(plotArea[key]["c:ser"])
+                        }
+                    };
+                    break;
+                case "c:scatterChart":
+                    chartData = {
+                        "type": "createChart",
+                        "data": {
+                            "chartID": "chart" + chartID,
+                            "chartType": "scatterChart",
+                            "chartData": extractChartData(plotArea[key]["c:ser"])
+                        }
+                    };
+                    break;
+                case "c:catAx":
+                    break;
+                case "c:valAx":
                     break;
                 default:
             }
         }
+
+        // Store chart data for later processing
+        if (chartData !== null) {
+            if (!window.MsgQueue) {
+                window.MsgQueue = [];
+            }
+            window.MsgQueue.push(chartData);
+        }
+
         chartID++;
         return result;
     }
 
     // 生成图表数据
     function extractChartData(serNode) {
-        // 简化版本
-        return [];
+        var dataMat = new Array();
+
+        if (serNode === undefined) {
+            return dataMat;
+        }
+
+        if (serNode["c:xVal"] !== undefined) {
+            var dataRow = new Array();
+            var eachElement = function(node, doFunction) {
+                if (node === undefined) {
+                    return;
+                }
+                var result = "";
+                if (node.constructor === Array) {
+                    var l = node.length;
+                    for (var i = 0; i < l; i++) {
+                        result += doFunction(node[i], i);
+                    }
+                } else {
+                    result += doFunction(node, 0);
+                }
+                return result;
+            };
+
+            eachElement(serNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
+                dataRow.push(parseFloat(innerNode["c:v"]));
+                return "";
+            });
+            dataMat.push(dataRow);
+            dataRow = new Array();
+            eachElement(serNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
+                dataRow.push(parseFloat(innerNode["c:v"]));
+                return "";
+            });
+            dataMat.push(dataRow);
+        } else {
+            var eachElement = function(node, doFunction) {
+                if (node === undefined) {
+                    return;
+                }
+                var result = "";
+                if (node.constructor === Array) {
+                    var l = node.length;
+                    for (var i = 0; i < l; i++) {
+                        result += doFunction(node[i], i);
+                    }
+                } else {
+                    result += doFunction(node, 0);
+                }
+                return result;
+            };
+
+            var getTextByPathList = function(node, path) {
+                if (path.constructor !== Array) {
+                    throw Error("Error of path type! path is not array.");
+                }
+                if (node === undefined) {
+                    return undefined;
+                }
+                var l = path.length;
+                for (var i = 0; i < l; i++) {
+                    node = node[path[i]];
+                    if (node === undefined) {
+                        return undefined;
+                    }
+                }
+                return node;
+            };
+
+            eachElement(serNode, function (innerNode, index) {
+                var dataRow = new Array();
+                var colName = getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
+
+                // Category (string or number)
+                var rowNames = {};
+                if (getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
+                    eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
+                        rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+                        return "";
+                    });
+                } else if (getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
+                    eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
+                        rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+                        return "";
+                    });
+                }
+
+                // Value
+                if (getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
+                    eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
+                        dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
+                        return "";
+                    });
+                }
+
+                dataMat.push({ key: colName, values: dataRow, xlabels: rowNames });
+                return "";
+            });
+        }
+
+        return dataMat;
     }
 
     // Convert plain numeric lists to proper HTML numbered lists
-    function setNumericBullets(jqSelector) {
-        jqSelector.find('li').each(function () {
-            var $li = $(this);
-            var html = $li.html();
-            // If it starts with a number and a dot, treat as numbered list item
-            if (/^\d+\.\s/.test(html)) {
-                // Ensure parent is ol if not already
-                var $parent = $li.parent();
-                if (!$parent.is('ol')) {
-                    $parent.each(function () {
-                        if (!$(this).is('ol')) {
-                            $(this).filter('ul').replaceWith(function () {
-                                return $('<ol></ol>').append($(this).contents());
-                            });
+    function setNumericBullets(elem) {
+        if (PPTXUtils && PPTXUtils.getNumTypeNum) {
+            var prgrphs_arry = elem;
+            for (var i = 0; i < prgrphs_arry.length; i++) {
+                var buSpan = $(prgrphs_arry[i]).find('.numeric-bullet-style');
+                if (buSpan.length > 0) {
+                    //console.log("DIV-"+i+":");
+                    var prevBultTyp = "";
+                    var prevBultLvl = "";
+                    var buletIndex = 0;
+                    var tmpArry = new Array();
+                    var tmpArryIndx = 0;
+                    var buletTypSrry = new Array();
+                    for (var j = 0; j < buSpan.length; j++) {
+                        var bult_typ = $(buSpan[j]).data("bulltname");
+                        var bult_lvl = $(buSpan[j]).data("bulltlvl");
+                        //console.log(j+" - "+bult_typ+" lvl: "+bult_lvl );
+                        if (buletIndex == 0) {
+                            prevBultTyp = bult_typ;
+                            prevBultLvl = bult_lvl;
+                            tmpArry[tmpArryIndx] = buletIndex;
+                            buletTypSrry[tmpArryIndx] = bult_typ;
+                            buletIndex++;
+                        } else {
+                            if (bult_typ == prevBultTyp && bult_lvl == prevBultLvl) {
+                                prevBultTyp = bult_typ;
+                                prevBultLvl = bult_lvl;
+                                buletIndex++;
+                                tmpArry[tmpArryIndx] = buletIndex;
+                                buletTypSrry[tmpArryIndx] = bult_typ;
+                            } else if (bult_typ != prevBultTyp && bult_lvl == prevBultLvl) {
+                                prevBultTyp = bult_typ;
+                                prevBultLvl = bult_lvl;
+                                tmpArryIndx++;
+                                tmpArry[tmpArryIndx] = buletIndex;
+                                buletTypSrry[tmpArryIndx] = bult_typ;
+                                buletIndex = 1;
+                            } else if (bult_typ != prevBultTyp && Number(bult_lvl) > Number(prevBultLvl)) {
+                                prevBultTyp = bult_typ;
+                                prevBultLvl = bult_lvl;
+                                tmpArryIndx++;
+                                tmpArry[tmpArryIndx] = buletIndex;
+                                buletTypSrry[tmpArryIndx] = bult_typ;
+                                buletIndex = 1;
+                            } else if (bult_typ != prevBultTyp && Number(bult_lvl) < Number(prevBultLvl)) {
+                                prevBultTyp = bult_typ;
+                                prevBultLvl = bult_lvl;
+                                tmpArryIndx--;
+                                buletIndex = tmpArry[tmpArryIndx] + 1;
+                            }
                         }
-                    });
+                        //console.log(buletTypSrry[tmpArryIndx]+" - "+buletIndex);
+                        var numIdx = PPTXUtils.getNumTypeNum(buletTypSrry[tmpArryIndx], buletIndex);
+                        $(buSpan[j]).html(numIdx);
+                    }
                 }
             }
-        });
+        } else {
+            // Fallback to simple list conversion if PPTXUtils is not available
+            jqSelector.find('li').each(function () {
+                var $li = $(this);
+                var html = $li.html();
+                // If it starts with a number and a dot, treat as numbered list item
+                if (/^\d+\.\s/.test(html)) {
+                    // Ensure parent is ol if not already
+                    var $parent = $li.parent();
+                    if (!$parent.is('ol')) {
+                        $parent.each(function () {
+                            if (!$(this).is('ol')) {
+                                $(this).filter('ul').replaceWith(function () {
+                                    return $('<ol></ol>').append($(this).contents());
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        }
     }
 
     // Process message queue and update UI accordingly
     function processMsgQueue(msgQueue) {
         if (!msgQueue || msgQueue.length === 0) return;
 
-        // Example: could be used to show warnings, logs, or final status
-        // Here we simply log and clear
+        // Process each message
         for (var i = 0; i < msgQueue.length; i++) {
-            console.log("PPTXjs Message:", msgQueue[i]);
+            var msg = msgQueue[i];
+            if (msg && msg.type === "createChart" && msg.data) {
+                processSingleMsg(msg.data);
+            } else {
+                console.log("PPTXjs Message:", msg);
+            }
         }
         // Clear after processing
         msgQueue.length = 0;
@@ -174,8 +406,9 @@
         var chartData = d.chartData;
 
         var data = [];
-
         var chart = null;
+        var isDone = false;
+
         switch (chartType) {
             case "lineChart":
                 data = chartData;
@@ -193,10 +426,46 @@
                 if (chartData.length > 0) {
                     data = chartData[0].values;
                 }
+                chart = nv.models.pieChart();
+                break;
+            case "areaChart":
+                data = chartData;
+                chart = nv.models.stackedAreaChart()
+                    .clipEdge(true)
+                    .useInteractiveGuideline(true);
+                chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                break;
+            case "scatterChart":
+                for (var i = 0; i < chartData.length; i++) {
+                    var arr = [];
+                    for (var j = 0; j < chartData[i].length; j++) {
+                        arr.push({ x: j, y: chartData[i][j] });
+                    }
+                    data.push({ key: 'data' + (i + 1), values: arr });
+                }
+
+                chart = nv.models.scatterChart()
+                    .showDistX(true)
+                    .showDistY(true)
+                    .color(d3.scale.category10().range());
+                chart.xAxis.axisLabel('X').tickFormat(d3.format('.02f'));
+                chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
                 break;
             default:
         }
-        // 简化处理
+
+        if (chart !== null) {
+            d3.select("#" + chartID)
+                .append("svg")
+                .datum(data)
+                .transition().duration(500)
+                .call(chart);
+
+            nv.utils.windowResize(chart.update);
+            isDone = true;
+        }
+
+        return isDone;
     }
 
     // 获取背景
