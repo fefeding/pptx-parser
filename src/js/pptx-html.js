@@ -514,178 +514,279 @@
 
         var rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
         var refName = warpObj["slideResObj"][rid]["target"];
+        
+        // 读取图表文件
         var content = readXmlFile(warpObj["zip"], refName);
+        if (!content) {
+            chartID++;
+            return result;
+        }
+        
         var plotArea = getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
+        if (!plotArea) {
+            chartID++;
+            return result;
+        }
 
-        var chartData = null;
-        for (var key in plotArea) {
-            switch (key) {
-                case "c:lineChart":
-                    chartData = {
+        // 收集所有有效的图表数据
+        var chartDatas = [];
+        
+        // 处理不同类型的图表
+        var chartTypes = [
+            { key: "c:lineChart", type: "lineChart" },
+            { key: "c:barChart", type: "barChart" },
+            { key: "c:pieChart", type: "pieChart" },
+            { key: "c:pie3DChart", type: "pie3DChart" },
+            { key: "c:areaChart", type: "areaChart" },
+            { key: "c:scatterChart", type: "scatterChart" }
+        ];
+        
+        for (var i = 0; i < chartTypes.length; i++) {
+            var chartType = chartTypes[i];
+            var seriesNode = plotArea[chartType.key];
+            
+            if (seriesNode) {
+                // 确保 seriesNode 是数组
+                var seriesArray = seriesNode;
+                if (seriesArray.constructor !== Array) {
+                    seriesArray = [seriesArray];
+                }
+                
+                // 过滤掉空的系列
+                var validSeries = seriesArray.filter(function(series) {
+                    return series && series["c:ser"];
+                });
+                
+                if (validSeries.length > 0) {
+                    var chartData = {
                         "type": "createChart",
                         "data": {
                             "chartID": "chart" + chartID,
-                            "chartType": "lineChart",
-                            "chartData": extractChartData(plotArea[key]["c:ser"])
+                            "chartType": chartType.type,
+                            "chartData": extractChartData(validSeries[0]["c:ser"]),
+                            "hasMultipleSeries": validSeries.length > 1
                         }
                     };
-                    break;
-                case "c:barChart":
-                    chartData = {
+                    
+                    // 如果有多个系列，记录警告但只使用第一个系列
+                    if (validSeries.length > 1) {
+                        console.warn('Chart has multiple series, using only the first one:', chartType.type);
+                    }
+                    
+                    chartDatas.push(chartData);
+                }
+            }
+        }
+        
+        // 如果没有找到任何图表数据，尝试更宽松的搜索
+        if (chartDatas.length === 0) {
+            console.warn('No standard chart types found, trying fallback extraction');
+            
+            // 查找任何包含 c:ser 的节点
+            for (var key in plotArea) {
+                if (key.indexOf('Chart') > -1 && plotArea[key]["c:ser"]) {
+                    var fallbackData = {
                         "type": "createChart",
                         "data": {
                             "chartID": "chart" + chartID,
-                            "chartType": "barChart",
+                            "chartType": "lineChart", // 默认使用折线图
                             "chartData": extractChartData(plotArea[key]["c:ser"])
                         }
                     };
+                    chartDatas.push(fallbackData);
                     break;
-                case "c:pieChart":
-                    chartData = {
-                        "type": "createChart",
-                        "data": {
-                            "chartID": "chart" + chartID,
-                            "chartType": "pieChart",
-                            "chartData": extractChartData(plotArea[key]["c:ser"])
-                        }
-                    };
-                    break;
-                case "c:pie3DChart":
-                    chartData = {
-                        "type": "createChart",
-                        "data": {
-                            "chartID": "chart" + chartID,
-                            "chartType": "pie3DChart",
-                            "chartData": extractChartData(plotArea[key]["c:ser"])
-                        }
-                    };
-                    break;
-                case "c:areaChart":
-                    chartData = {
-                        "type": "createChart",
-                        "data": {
-                            "chartID": "chart" + chartID,
-                            "chartType": "areaChart",
-                            "chartData": extractChartData(plotArea[key]["c:ser"])
-                        }
-                    };
-                    break;
-                case "c:scatterChart":
-                    chartData = {
-                        "type": "createChart",
-                        "data": {
-                            "chartID": "chart" + chartID,
-                            "chartType": "scatterChart",
-                            "chartData": extractChartData(plotArea[key]["c:ser"])
-                        }
-                    };
-                    break;
-                case "c:catAx":
-                    break;
-                case "c:valAx":
-                    break;
-                default:
+                }
             }
         }
 
-        // Store chart data for later processing
-        if (chartData !== null) {
+        // Store all chart data for later processing
+        if (chartDatas.length > 0) {
             if (!window.MsgQueue) {
                 window.MsgQueue = [];
             }
-            window.MsgQueue.push(chartData);
+            
+            // 将所有图表数据添加到队列
+            for (var j = 0; j < chartDatas.length; j++) {
+                window.MsgQueue.push(chartDatas[j]);
+            }
         }
 
         chartID++;
         return result;
     }
 
-    // 生成图表数据
+    // 生成图表数据 - 增强版本，更好的错误处理和数据验证
     function extractChartData(serNode) {
         var dataMat = new Array();
 
-        if (serNode === undefined) {
+        // 输入验证
+        if (serNode === undefined || serNode === null) {
+            console.warn('extractChartData: serNode is undefined or null');
+            return dataMat;
+        }
+        
+        // 确保 serNode 是数组
+        var seriesArray = serNode;
+        if (seriesArray.constructor !== Array) {
+            seriesArray = [seriesArray];
+        }
+        
+        if (seriesArray.length === 0) {
+            console.warn('extractChartData: serNode array is empty');
             return dataMat;
         }
 
-        if (serNode["c:xVal"] !== undefined) {
-            var dataRow = new Array();
-            var eachElement = function(node, doFunction) {
-                if (node === undefined) {
-                    return;
+        // 辅助函数：安全获取路径值
+        var safeGetPath = function(obj, path, defaultValue) {
+            try {
+                var result = obj;
+                for (var i = 0; i < path.length; i++) {
+                    if (result === undefined || result === null) return defaultValue;
+                    result = result[path[i]];
                 }
-                var result = "";
-                if (node.constructor === Array) {
-                    var l = node.length;
-                    for (var i = 0; i < l; i++) {
-                        result += doFunction(node[i], i);
+                return result !== undefined ? result : defaultValue;
+            } catch (e) {
+                return defaultValue;
+            }
+        };
+        
+        // 辅助函数：安全遍历节点数组
+        var safeEachElement = function(nodes, processFunc) {
+            if (!nodes || nodes.constructor !== Array) {
+                if (nodes) {
+                    return processFunc(nodes, 0);
+                }
+                return '';
+            }
+            
+            var result = '';
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i]) {
+                    result += processFunc(nodes[i], i);
+                }
+            }
+            return result;
+        };
+
+        // 处理第一种图表格式：有 c:xVal 和 c:yVal 的简单格式
+        var xValNode = safeGetPath(seriesArray[0], ["c:xVal"], null);
+        var yValNode = safeGetPath(seriesArray[0], ["c:yVal"], null);
+        
+        if (xValNode && yValNode) {
+            try {
+                // 处理 X 值
+                var xCache = safeGetPath(xValNode, ["c:numRef", "c:numCache", "c:pt"], null);
+                if (xCache) {
+                    var xDataRow = [];
+                    safeEachElement(xCache, function(pointNode) {
+                        var value = safeGetPath(pointNode, ["c:v"], null);
+                        if (value !== null) {
+                            var numValue = parseFloat(value);
+                            if (!isNaN(numValue)) {
+                                xDataRow.push(numValue);
+                            }
+                        }
+                    });
+                    if (xDataRow.length > 0) {
+                        dataMat.push(xDataRow);
                     }
-                } else {
-                    result += doFunction(node, 0);
                 }
-                return result;
-            };
-
-            eachElement(serNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                dataRow.push(parseFloat(innerNode["c:v"]));
-                return "";
-            });
-            dataMat.push(dataRow);
-            dataRow = new Array();
-            eachElement(serNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                dataRow.push(parseFloat(innerNode["c:v"]));
-                return "";
-            });
-            dataMat.push(dataRow);
-        } else {
-            var eachElement = function(node, doFunction) {
-                if (node === undefined) {
-                    return;
-                }
-                var result = "";
-                if (node.constructor === Array) {
-                    var l = node.length;
-                    for (var i = 0; i < l; i++) {
-                        result += doFunction(node[i], i);
+                
+                // 处理 Y 值
+                var yCache = safeGetPath(yValNode, ["c:numRef", "c:numCache", "c:pt"], null);
+                if (yCache) {
+                    var yDataRow = [];
+                    safeEachElement(yCache, function(pointNode) {
+                        var value = safeGetPath(pointNode, ["c:v"], null);
+                        if (value !== null) {
+                            var numValue = parseFloat(value);
+                            if (!isNaN(numValue)) {
+                                yDataRow.push(numValue);
+                            }
+                        }
+                    });
+                    if (yDataRow.length > 0) {
+                        dataMat.push(yDataRow);
                     }
-                } else {
-                    result += doFunction(node, 0);
                 }
-                return result;
-            };
-
-            eachElement(serNode, function (innerNode, index) {
-                var dataRow = new Array();
-                var colName = getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
-
-                // Category (string or number)
-                var rowNames = {};
-                if (getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
-                    eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
-                        rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
-                        return "";
-                    });
-                } else if (getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-                    eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                        rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
-                        return "";
-                    });
+                
+                // 如果成功提取到数据，返回
+                if (dataMat.length >= 2) {
+                    console.log('Successfully extracted simple chart data:', dataMat.length, 'rows');
+                    return dataMat;
                 }
-
-                // Value
-                if (getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-                    eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                        dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
-                        return "";
-                    });
-                }
-
-                dataMat.push({ key: colName, values: dataRow, xlabels: rowNames });
-                return "";
-            });
+            } catch (e) {
+                console.warn('Error extracting simple chart data:', e);
+            }
         }
 
-        return dataMat;
+        // 处理第二种图表格式：复杂的多系列格式
+        try {
+            safeEachElement(seriesArray, function(seriesItem) {
+                if (!seriesItem) return '';
+                
+                var dataRow = [];
+                var colName = safeGetPath(seriesItem, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"], null);
+                if (colName === null) {
+                    // 如果没有名称，使用索引
+                    var seriesIndex = seriesArray.indexOf(seriesItem);
+                    colName = 'Series ' + (seriesIndex + 1);
+                }
+
+                // 提取类别标签
+                var rowNames = {};
+                var catStrRef = safeGetPath(seriesItem, ["c:cat", "c:strRef", "c:strCache", "c:pt"], null);
+                var catNumRef = safeGetPath(seriesItem, ["c:cat", "c:numRef", "c:numCache", "c:pt"], null);
+                
+                var catPoints = catStrRef || catNumRef;
+                if (catPoints) {
+                    safeEachElement(catPoints, function(pointNode) {
+                        var idx = safeGetPath(pointNode, ["attrs", "idx"], null);
+                        var val = safeGetPath(pointNode, ["c:v"], null);
+                        if (idx !== null && val !== null) {
+                            rowNames[idx] = val;
+                        }
+                    });
+                }
+
+                // 提取值数据
+                var valNode = safeGetPath(seriesItem, ["c:val", "c:numRef", "c:numCache", "c:pt"], null);
+                if (valNode) {
+                    safeEachElement(valNode, function(pointNode) {
+                        var idx = safeGetPath(pointNode, ["attrs", "idx"], null);
+                        var val = safeGetPath(pointNode, ["c:v"], null);
+                        if (idx !== null && val !== null) {
+                            var numValue = parseFloat(val);
+                            if (!isNaN(numValue)) {
+                                dataRow.push({ x: parseInt(idx), y: numValue });
+                            }
+                        }
+                    });
+                }
+                
+                // 只有当有实际数据时才添加到结果中
+                if (dataRow.length > 0) {
+                    dataMat.push({ 
+                        key: colName, 
+                        values: dataRow, 
+                        xlabels: rowNames 
+                    });
+                }
+                
+                return '';
+            });
+            
+            if (dataMat.length > 0) {
+                console.log('Successfully extracted complex chart data:', dataMat.length, 'series');
+                return dataMat;
+            }
+        } catch (e) {
+            console.warn('Error extracting complex chart data:', e);
+        }
+        
+        // 如果所有方法都失败，记录错误并返回空数组
+        console.error('Failed to extract chart data from series:', seriesArray);
+        return [];
     }
 
     // Convert plain numeric lists to proper HTML numbered lists
