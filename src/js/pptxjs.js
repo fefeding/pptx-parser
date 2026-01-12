@@ -593,7 +593,9 @@
 
                 } else if (clrFillType == "PIC_FILL") {
                     imgFillFlg = true;
-                    var svgBgImg = window.PPTXShapeFillsUtils.getSvgImagePattern(node, fillColor, shpId, warpObj);
+                    // 提取图片 URL（fillColor 可能是对象或字符串）
+                    var imgFill = typeof fillColor === 'object' && fillColor.img ? fillColor.img : fillColor;
+                    var svgBgImg = window.PPTXShapeFillsUtils.getSvgImagePattern(node, imgFill, shpId, warpObj);
                     //fill="url(#imgPtrn)"
                     //console.log(svgBgImg)
                     result += svgBgImg;

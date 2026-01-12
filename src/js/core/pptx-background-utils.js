@@ -287,7 +287,9 @@
      * @returns {string} 图片背景CSS样式字符串
      */
     PPTXBackgroundUtils.getBgPicFill = function(bgPr, source, warpObj, phClr, index) {
-        var picFillBase64 = window.PPTXColorUtils.getPicFill(source, bgPr["a:blipFill"], warpObj);
+        var picFillResult = window.PPTXColorUtils.getPicFill(source, bgPr["a:blipFill"], warpObj);
+        // 提取图片 URL（picFillResult 可能是对象或字符串）
+        var picFillBase64 = typeof picFillResult === 'object' && picFillResult.img ? picFillResult.img : picFillResult;
         var ordr = bgPr["attrs"]["order"];
         var aBlipNode = bgPr["a:blipFill"]["a:blip"];
 

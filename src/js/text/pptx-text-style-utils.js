@@ -331,7 +331,9 @@
                 color = window.PPTXColorUtils.getPatternFill(pattFill, warpObj);
                 colorType = "pattern";
             } else if (filTyp == "PIC_FILL") {
-                color = window.PPTXColorUtils.getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
+                var picFillResult = window.PPTXColorUtils.getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
+                // 提取图片 URL（picFillResult 可能是对象或字符串）
+                color = typeof picFillResult === 'object' && picFillResult.img ? picFillResult.img : picFillResult;
                 colorType = "pic";
             } else if (filTyp == "GRADIENT_FILL") {
                 var shpFill = rPrNode["a:gradFill"];
@@ -356,7 +358,9 @@
                 color = window.PPTXColorUtils.getPatternFill(pattFill, warpObj);
                 colorType = "pattern";
             } else if (filTyp == "PIC_FILL") {
-                color = window.PPTXColorUtils.getPicFill("slideBg", lstStyledefRPr["a:blipFill"], warpObj);
+                var picFillResult = window.PPTXColorUtils.getPicFill("slideBg", lstStyledefRPr["a:blipFill"], warpObj);
+                // 提取图片 URL（picFillResult 可能是对象或字符串）
+                color = typeof picFillResult === 'object' && picFillResult.img ? picFillResult.img : picFillResult;
                 colorType = "pic";
             } else if (filTyp == "GRADIENT_FILL") {
                 var shpFill = lstStyledefRPr["a:gradFill"];

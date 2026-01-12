@@ -308,7 +308,9 @@
      * @returns {String} SVG pattern XML
      */
     PPTXShapeFillsUtils.getSvgImagePattern = function(node, fill, shpId, warpObj) {
-        var pic_dim = window.PPTXColorUtils.getBase64ImageDimensions(fill);
+        // 处理 fill 可能是对象的情况（当 getPicFill 返回包含属性的对象时）
+        var fillValue = typeof fill === 'object' && fill.img ? fill.img : fill;
+        var pic_dim = window.PPTXColorUtils.getBase64ImageDimensions(fillValue);
         var width = pic_dim[0];
         var height = pic_dim[1];
 
@@ -370,8 +372,8 @@
         }
 
         // Check if fill already contains data URI prefix
-        var fillValue = (fill && fill.indexOf("data:") === 0) ? fill : "data:image/png;base64," + fill;
-        ptrn += '<image x="0" y="0" width="' + width + '" height="' + height + '" xlink:href="' + fillValue + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
+        var imgSrc = (fillValue && fillValue.indexOf("data:") === 0) ? fillValue : "data:image/png;base64," + fillValue;
+        ptrn += '<image x="0" y="0" width="' + width + '" height="' + height + '" xlink:href="' + imgSrc + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
         ptrn += '</pattern>';
 
         return ptrn;

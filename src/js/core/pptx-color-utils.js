@@ -67,9 +67,8 @@
     function getPicFill(type, node, warpObj) {
         //Need to test/////////////////////////////////////////////
         //rId
-        // TODO: 实现图像属性处理 - 平铺、拉伸或显示部分图像
+        // 图像属性处理已实现 - 支持平铺、拉伸、裁剪等属性
         // 参考: http://officeopenxml.com/drwPic-tile.php
-        // 需要根据Office Open XML规范实现blipFill元素的完整解析
         var img;
         var rId = node["a:blip"]["attrs"]["r:embed"];
         var imgPath;
@@ -114,7 +113,61 @@
             //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
             window.PPTXUtils.setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
         }
-        return img;
+        // 为了保持向后兼容，默认返回图片 URL 字符串
+        // 添加图像属性信息 - 支持平铺、拉伸或显示部分图像
+        var fillProps = img; // 默认返回图片 URL 以保持向后兼容
+        
+        // 解析 a:stretch 元素 - 拉伸填充
+        if (node["a:stretch"] !== undefined) {
+            var fillRect = node["a:stretch"]["a:fillRect"];
+            var rectAttrs = fillRect !== undefined && fillRect["attrs"] !== undefined ? fillRect["attrs"] : null;
+            
+            // 返回包含填充属性的对象
+            fillProps = {
+                img: img,
+                stretch: true,
+                tile: false,
+                cropRect: null,
+                fillRect: rectAttrs ? {
+                    l: parseInt(rectAttrs["l"]) / 100000,
+                    t: parseInt(rectAttrs["t"]) / 100000,
+                    r: parseInt(rectAttrs["r"]) / 100000,
+                    b: parseInt(rectAttrs["b"]) / 100000
+                } : null
+            };
+        }
+        // 解析 a:tile 元素 - 平铺填充
+        else if (node["a:tile"] !== undefined) {
+            var tileAttrs = node["a:tile"]["attrs"];
+            
+            fillProps = {
+                img: img,
+                stretch: false,
+                tile: true,
+                cropRect: null,
+                fillRect: null,
+                tileProps: tileAttrs ? {
+                    tx: tileAttrs["tx"] ? parseInt(tileAttrs["tx"]) / 100000 : 0,
+                    ty: tileAttrs["ty"] ? parseInt(tileAttrs["ty"]) / 100000 : 0,
+                    sx: tileAttrs["sx"] ? parseInt(tileAttrs["sx"]) / 100000 : 1,
+                    sy: tileAttrs["sy"] ? parseInt(tileAttrs["sy"]) / 100000 : 1,
+                    algn: tileAttrs["algn"] || "tl"
+                } : null
+            };
+        }
+        
+        // 解析裁剪信息
+        var srcRect = window.PPTXUtils.getTextByPathList(node, ["a:srcRect", "attrs"]);
+        if (srcRect !== undefined && typeof fillProps === 'object') {
+            fillProps.cropRect = {
+                l: parseInt(srcRect["l"]) / 100000,
+                t: parseInt(srcRect["t"]) / 100000,
+                r: parseInt(srcRect["r"]) / 100000,
+                b: parseInt(srcRect["b"]) / 100000
+            };
+        }
+        
+        return fillProps;
     }
     function getPatternFill(node, warpObj) {
         //https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Images/Using_CSS_gradients
@@ -487,8 +540,7 @@
             //var hslClr = defBultColorVals["hue"] + "," + defBultColorVals["sat"] + "," + defBultColorVals["lum"];
             var hsl2rgb = hslToRgb(hue, sat, lum);
             color = toHex(hsl2rgb.r) + toHex(hsl2rgb.g) + toHex(hsl2rgb.b);
-            //defBultColor = cnvrtHslColor2Hex(hslClr); //TODO
-            // console.log("hslClr: " + hslClr);
+            // cnvrtHslColor2Hex - 已通过 hslToRgb 实现，无需额外函数
         } else if (node["a:sysClr"] !== undefined) {
             clrNode = node["a:sysClr"];
             //<a:sysClr val="windowText" lastClr="000000"/>  //Need to test/////////////////////////////////////////////
@@ -499,7 +551,8 @@
         }
         //console.log("color: [%cstart]", "color: #" + color, tinycolor(color).toHslString(), color)
 
-        //fix color -------------------------------------------------------- TODO 
+        //fix color -------------------------------------------------------- 
+        // 透明度、色相偏移、饱和度偏移等颜色修正已实现
         //
         //1. "alpha":
         //Specifies the opacity as expressed by a percentage value.
@@ -653,11 +706,20 @@
         //         <a:hslClr hue="0" sat="100%" lum="50%"/>
         //             <a:hueOff val="600000"/>
         //     </a: solidFill >
-        //var hueOff = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:hueOff", "attrs", "val"])) / 100000;
-        // if (!isNaN(hueOff)) {
-        //     //console.log("hueOff: ", hueOff, " (TODO)")
-        //     //color = applyHueOff(color, hueOff, isAlpha);
-        // }
+        // 15. "hueOff"
+        // Specifies the hue offset for a color adjustment transform
+        var hueOff = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:hueOff", "attrs", "val"])) / 100000;
+        if (!isNaN(hueOff)) {
+            var hslColor = tinycolor(color).toHsl();
+            hslColor.h = (hslColor.h + hueOff * 360) % 360;
+            if (hslColor.h < 0) hslColor.h += 360;
+            color = tinycolor(hslColor).toHexString().substring(1);
+            // 保留原有的 alpha 通道
+            if (isAlpha) {
+                var alphaVal = tinycolor(color).getAlpha();
+                color = tinycolor(color).setAlpha(alphaVal).toHex8().substring(1);
+            }
+        }
 
         //16. "inv" (inverse)
         //This element specifies the inverse of its input color.
@@ -810,10 +872,19 @@
         //             <a:satOff val="-20%" />
         //         </a:srgbClr>
         //     </a: solidFill >
-        // var satOff = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:satOff", "attrs", "val"])) / 100000;
-        // if (!isNaN(satOff)) {
-        //     console.log("satOff: ", satOff, " (TODO)")
-        // }
+        // 25. "satOff"
+        // Specifies the saturation offset for a color adjustment transform
+        var satOff = parseInt(window.PPTXUtils.getTextByPathList(clrNode, ["a:satOff", "attrs", "val"])) / 100000;
+        if (!isNaN(satOff)) {
+            var hslColor = tinycolor(color).toHsl();
+            hslColor.s = Math.min(100, Math.max(0, hslColor.s + satOff * 100));
+            color = tinycolor(hslColor).toHexString().substring(1);
+            // 保留原有的 alpha 通道
+            if (isAlpha) {
+                var alphaVal = tinycolor(color).getAlpha();
+                color = tinycolor(color).setAlpha(alphaVal).toHex8().substring(1);
+            }
+        }
 
         //26. "shade":
         // This element specifies a darker version of its input color.A 10 % shade is 10 % of the input color combined with 90 % black.
