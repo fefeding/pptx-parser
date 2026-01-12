@@ -5,6 +5,7 @@
  */
 
 // Import the JavaScript modules (they expose globals)
+import './js/text/pptx-text-style-utils.js';
 import './js/pptxjs.js';
 import './js/utils/utils.js';
 import './js/pptx-parser.js';
