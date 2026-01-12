@@ -8468,7 +8468,7 @@
 
                 if (!isIE11) {
                     //ie11 does not support unicode ?
-                    htmlBu = window.PPTXTableUtils.getHtmlBullet(typefaceNode, buChar);
+                    htmlBu = window.TextUtils.getHtmlBullet(typefaceNode, buChar);
                 }
                 bullet += "'><div style='line-height: " + (font_val/2) + "px;'>" + htmlBu + "</div></div>"; //font_val
                 //} 

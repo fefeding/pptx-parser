@@ -325,6 +325,38 @@
         }
     };
 
+    /**
+     * Get HTML bullet character
+     * Convert special bullet characters to their HTML unicode equivalents
+     * @param {String} typefaceNode - The font typeface (e.g., "Wingdings", "Wingdings 2")
+     * @param {String} buChar - The bullet character
+     * @returns {String} HTML entity for the bullet character
+     */
+    TextUtils.getHtmlBullet = function(typefaceNode, buChar) {
+        //http://www.alanwood.net/demos/wingdings.html
+        //not work for IE11
+        switch (buChar) {
+            case "§":
+                return "&#9632;"; // U+25A0 | Black square
+            case "q":
+                return "&#10065;"; // U+2751 | Lower right shadowed white square
+            case "v":
+                return "&#10070;"; // U+2756 | Black diamond minus white X
+            case "Ø":
+                return "&#11162;"; // U+2B9A | Three-D top-lighted rightwards equilateral arrowhead
+            case "ü":
+                return "&#10004;"; // U+2714 | Heavy check mark
+            default:
+                if (typefaceNode == "Wingdings" || typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3") {
+                    var wingCharCode = this.getDingbatToUnicode(typefaceNode, buChar);
+                    if (wingCharCode !== null) {
+                        return "&#" + wingCharCode + ";";
+                    }
+                }
+                return "&#" + (buChar.charCodeAt(0)) + ";";
+        }
+    };
+
     // Export to global scope
     window.TextUtils = TextUtils;
 
