@@ -268,8 +268,8 @@
                         break;
                     case "ExecutionTime":
                         // 生成并添加全局 CSS
-                        if (typeof genGlobalCSS === 'function') {
-                            $result.append("<style>" + genGlobalCSS() + "</style>");
+                        if (typeof window.PPTXCSSUtils.genGlobalCSS === 'function') {
+                            $result.append("<style>" + window.PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth) + "</style>");
                         }
                         PPTXHtml.processMsgQueue(MsgQueue);
                         PPTXHtml.setNumericBullets($(".block"));
@@ -8873,31 +8873,7 @@
 
 
 
-        function genGlobalCSS() {
-            var cssText = "";
-            //console.log("styleTable: ", styleTable)
-            for (var key in styleTable) {
-                var tagname = "";
-                // if (settings.slideMode && settings.slideType == "revealjs") {
-                //     tagname = "section";
-                // } else {
-                //     tagname = "div";
-                // }
-                //ADD suffix
-                cssText += tagname + " ." + styleTable[key]["name"] +
-                    ((styleTable[key]["suffix"]) ? styleTable[key]["suffix"] : "") +
-                    "{" + styleTable[key]["text"] + "}\n"; //section > div
-            }
-            //cssText += " .slide{margin-bottom: 5px;}\n"; // TODO
-
-            if (settings.slideMode && settings.slideType == "divs2slidesjs") {
-                //divId
-                //console.log("slideWidth: ", slideWidth)
-                cssText += "#all_slides_warpper{margin-right: auto;margin-left: auto;padding-top:10px;width: " + slideWidth + "px;}\n"; // TODO
-            }
-            return cssText;
-        }
-
+        // genGlobalCSS 已移至 PPTXCSSUtils 模块
 
         function genTableInternal(node, warpObj) {
             var order = node["attrs"]["order"];
