@@ -22,9 +22,10 @@
      * @param {Number} rNodeLength - 运行节点长度
      * @param {Object} warpObj - 包装对象
      * @param {Boolean} isBullate - 是否有项目符号
+     * @param {Object} styleTable - 样式表对象
      * @returns {String} HTML span 元素
      */
-    PPTXTextElementUtils.genSpanElement = function(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
+    PPTXTextElementUtils.genSpanElement = function(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate, styleTable) {
         // 需要的依赖变量: rtl_langs_array, styleTable, is_first_br
         // 这些变量需要通过参数传递或从模块中获取
         var text_style = "";
@@ -203,7 +204,6 @@
         }
 
         var cssName = "";
-        var styleTable = window.PPTXStyleTable || {};
         
         if (styleText in styleTable) {
             cssName = styleTable[styleText]["name"];

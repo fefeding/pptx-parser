@@ -86,8 +86,6 @@
 
     var processFullTheme = true;
         var styleTable = {};
-        // 设置全局 styleTable 供 PPTXTextElementUtils 使用
-        window.PPTXStyleTable = styleTable;
         var settings = $.extend(true, {
             // These are the defaults.
             pptxFileUrl: "",
@@ -8048,7 +8046,7 @@
                 var total_text_len = 0;
                 if (rNode === undefined && pNode !== undefined) {
                     // without r
-                    var prgr_text = window.PPTXTextElementUtils.genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
+                    var prgr_text = window.PPTXTextElementUtils.genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate, styleTable);
                     if (isBullate) {
                         var txt_obj = $(prgr_text);
                         txt_obj.css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden' });
@@ -8061,7 +8059,7 @@
                 } else if (rNode !== undefined) {
                     // with multi r
                     for (var j = 0; j < rNode.length; j++) {
-                        var prgr_text = window.PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
+                        var prgr_text = window.PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate, styleTable);
                         if (isBullate) {
                             var txt_obj = $(prgr_text);
                             txt_obj.css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden'});
