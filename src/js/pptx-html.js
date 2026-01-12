@@ -957,49 +957,7 @@
     }
 
     // 获取背景
-    function getBackground(warpObj, slideSize, index) {
-        var bgResult = "";
-        if (warpObj.processFullTheme === true) {
-            // 读取 slide 节点中的背景
-            var bgNode = getTextByPathList(warpObj.slideContent, ["p:sld", "p:cSld", "p:bg"]);
-            if (bgNode) {
-                var bgPr = bgNode["p:bgPr"];
-                if (bgPr) {
-                    // 纯色填充
-                    var solidFill = getTextByPathList(bgPr, ["a:solidFill"]);
-                    if (solidFill) {
-                        var color = PPTXUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride);
-                        if (color) {
-                            bgResult = "<div class='slide-background-" + index + "' style='position:absolute;width:" + slideSize.width + "px;height:" + slideSize.height + "px;background-color:" + color + ";'></div>";
-                        }
-                    }
-                    // 图片填充等可在此扩展
-                }
-            }
-        }
-        return bgResult;
-    }
-
-    // 获取幻灯片背景填充
-    function getSlideBackgroundFill(warpObj, index) {
-        var bgColor = "";
-        if (warpObj.processFullTheme == "colorsAndImageOnly") {
-            var bgNode = getTextByPathList(warpObj.slideContent, ["p:sld", "p:cSld", "p:bg"]);
-            if (bgNode) {
-                var bgPr = bgNode["p:bgPr"];
-                if (bgPr) {
-                    var solidFill = getTextByPathList(bgPr, ["a:solidFill"]);
-                    if (solidFill) {
-                        var color = PPTXUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride);
-                        if (color) {
-                            bgColor = "background-color:" + color + ";";
-                        }
-                    }
-                }
-            }
-        }
-        return bgColor;
-    }
+    // getBackground 和 getSlideBackgroundFill 已移至 PPTXBackgroundUtils 模块
 
     // 更新加载进度条
     function updateProgressBar(percent) {
@@ -1016,8 +974,6 @@
         setNumericBullets: setNumericBullets,
         processMsgQueue: processMsgQueue,
         processSingleMsg: processSingleMsg,
-        getBackground: getBackground,
-        getSlideBackgroundFill: getSlideBackgroundFill,
         extractChartData: extractChartData
     };
 
