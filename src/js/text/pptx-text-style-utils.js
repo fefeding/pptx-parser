@@ -70,6 +70,38 @@
     };
 
     /**
+     * Get font typeface
+     * @param {Object} node - The text run node
+     * @param {String} type - The text type
+     * @param {Object} warpObj - The warp object
+     * @param {Object} pFontStyle - Parent font style
+     * @returns {String} Font family name
+     */
+    PPTXTextStyleUtils.getFontType = function(node, type, warpObj, pFontStyle) {
+        var typeface = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:latin", "attrs", "typeface"]);
+
+        if (typeface === undefined) {
+            var fontIdx = "";
+            var fontGrup = "";
+            if (pFontStyle !== undefined) {
+                fontIdx = window.PPTXUtils.getTextByPathList(pFontStyle, ["attrs", "idx"]);
+            }
+            var fontSchemeNode = window.PPTXUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:fontScheme"]);
+            if (fontIdx == "") {
+                if (type == "title" || type == "subTitle" || type == "ctrTitle") {
+                    fontIdx = "major";
+                } else {
+                    fontIdx = "minor";
+                }
+            }
+            fontGrup = "a:" + fontIdx + "Font";
+            typeface = window.PPTXUtils.getTextByPathList(fontSchemeNode, [fontGrup, "a:latin", "attrs", "typeface"]);
+        }
+
+        return (typeface === undefined) ? "inherit" : typeface;
+    };
+
+    /**
      * Get text horizontal align
      * @param {Object} node - The paragraph node
      * @param {Object} pNode - The parent node

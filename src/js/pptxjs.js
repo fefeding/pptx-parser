@@ -8509,7 +8509,7 @@
 
             var buType = "TYPE_NONE";
 
-            var layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
+            var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
             var pPrNodeLaout = layoutMasterNode.nodeLaout;
             var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
@@ -9001,49 +9001,7 @@
             }
         }
 
-        function getLayoutAndMasterNode(node, idx, type, warpObj) {
-            var pPrNodeLaout, pPrNodeMaster;
-            var pPrNode = node["a:pPr"];
-            //lvl
-            var lvl = 1;
-            var lvlNode = window.PPTXUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
-            if (lvlNode !== undefined) {
-                lvl = parseInt(lvlNode) + 1;
-            }
-            if (idx !== undefined) {
-                //slidelayout
-                pPrNodeLaout = window.PPTXUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", "a:lvl" + lvl + "pPr"]);
-                if (pPrNodeLaout === undefined) {
-                    pPrNodeLaout = window.PPTXUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", "a:pPr"]);
-                    if (pPrNodeLaout === undefined) {
-                        pPrNodeLaout = window.PPTXUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", (lvl - 1), "a:pPr"]);
-                    }
-                }
-            }
-            if (type !== undefined) {
-                //slidelayout
-                var lvlStr = "a:lvl" + lvl + "pPr";
-                if (pPrNodeLaout === undefined) {
-                    pPrNodeLaout = window.PPTXUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
-                }
-                //masterlayout
-                if (type == "title" || type == "ctrTitle") {
-                    pPrNodeMaster = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:titleStyle", lvlStr]);
-                } else if (type == "body" || type == "obj" || type == "subTitle") {
-                    pPrNodeMaster = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr]);
-                } else if (type == "shape" || type == "diagram") {
-                    pPrNodeMaster = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:otherStyle", lvlStr]);
-                } else if (type == "textBox") {
-                    pPrNodeMaster = window.PPTXUtils.getTextByPathList(warpObj, ["defaultTextStyle", lvlStr]);
-                } else {
-                    pPrNodeMaster = window.PPTXUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
-                }
-            }
-            return {
-                "nodeLaout": pPrNodeLaout,
-                "nodeMaster": pPrNodeMaster
-            };
-        }
+        // getLayoutAndMasterNode 已移至 PPTXLayoutUtils 模块
         function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
             //https://codepen.io/imdunn/pen/GRgwaye ?
             var text_style = "";
@@ -9095,7 +9053,7 @@
                 lvl = parseInt(lvlNode) + 1;
             }
             //console.log("genSpanElement node: ", node, "rIndex: ", rIndex, ", pNode: ", pNode, ",pPrNode: ", pPrNode, "pFontStyle:", pFontStyle, ", idx: ", idx, "type:", type, warpObj);
-            var layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
+            var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
             var pPrNodeLaout = layoutMasterNode.nodeLaout;
             var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
@@ -9210,7 +9168,7 @@
             
             text_style += "font-size:" + font_size + ";" +
                 // marLStr +
-                "font-family:" + getFontType(node, type, warpObj, pFontStyle) + ";" +
+                "font-family:" + window.PPTXTextStyleUtils.getFontType(node, type, warpObj, pFontStyle) + ";" +
                 "font-weight:" + window.PPTXTextStyleUtils.getFontBold(node, type, slideMasterTextStyles) + ";" +
                 "font-style:" + window.PPTXTextStyleUtils.getFontItalic(node, type, slideMasterTextStyles) + ";" +
                 "text-decoration:" + window.PPTXTextStyleUtils.getFontDecoration(node, type, slideMasterTextStyles) + ";" +
@@ -9316,7 +9274,7 @@
             }
             var marLStr = "", marRStr = "" , maginVal = 0;
             var pPrNode = pNode["a:pPr"];
-            var layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
+            var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
             var pPrNodeLaout = layoutMasterNode.nodeLaout;
             var pPrNodeMaster = layoutMasterNode.nodeMaster;
             
@@ -9496,7 +9454,7 @@
             var tblBorderStyl = window.PPTXUtils.getTextByPathList(tblStyl, ["a:tcBdr"]);
             var tbl_borders = "";
             if (tblBorderStyl !== undefined) {
-                tbl_borders = getTableBorders(tblBorderStyl, warpObj);
+                tbl_borders = window.PPTXTableUtils.getTableBorders(tblBorderStyl, warpObj);
             }
             var tbl_bgcolor = "";
             var tbl_bgFillschemeClr = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
@@ -9573,7 +9531,7 @@
                     }
                     var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:tcBdr"]);
                     if (borderStyl !== undefined) {
-                        var local_row_borders = getTableBorders(borderStyl, warpObj);
+                        var local_row_borders = window.PPTXTableUtils.getTableBorders(borderStyl, warpObj);
                         if (local_row_borders != "") {
                             row_borders = local_row_borders;
                         }
@@ -9605,7 +9563,7 @@
 
                         var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:tcBdr"]);
                         if (borderStyl !== undefined) {
-                            var local_row_borders = getTableBorders(borderStyl, warpObj);
+                            var local_row_borders = window.PPTXTableUtils.getTableBorders(borderStyl, warpObj);
                             if (local_row_borders != "") {
                                 row_borders = local_row_borders;
                             }
@@ -9635,7 +9593,7 @@
                         }
                         var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:tcBdr"]);
                         if (borderStyl !== undefined) {
-                            var local_row_borders = getTableBorders(borderStyl, warpObj);
+                            var local_row_borders = window.PPTXTableUtils.getTableBorders(borderStyl, warpObj);
                             if (local_row_borders != "") {
                                 row_borders = local_row_borders;
                             }
@@ -9664,7 +9622,7 @@
                     }
                     var borderStyl = window.PPTXUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:tcBdr"]);
                     if (borderStyl !== undefined) {
-                        var local_row_borders = getTableBorders(borderStyl, warpObj);
+                        var local_row_borders = window.PPTXTableUtils.getTableBorders(borderStyl, warpObj);
                         if (local_row_borders != "") {
                             row_borders = local_row_borders;
                         }
@@ -10352,7 +10310,7 @@
           
 
             if (rtl === undefined) {
-                var layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
+                var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
                 var pPrNodeLaout = layoutMasterNode.nodeLaout;
                 var pPrNodeMaster = layoutMasterNode.nodeMaster;
                 rtl = window.PPTXUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
@@ -10465,29 +10423,7 @@
             //console.log("getContentDir() type:", type, "slideMasterTextStyles:", slideMasterTextStyles,"dirNode:",dirVal)
         }
 
-        function getFontType(node, type, warpObj, pFontStyle) {
-            var typeface = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:latin", "attrs", "typeface"]);
-
-            if (typeface === undefined) {
-                var fontIdx = "";
-                var fontGrup = "";
-                if (pFontStyle !== undefined) {
-                    fontIdx = window.PPTXUtils.getTextByPathList(pFontStyle, ["attrs", "idx"]);
-                }
-                var fontSchemeNode = window.PPTXUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:fontScheme"]);
-                if (fontIdx == "") {
-                    if (type == "title" || type == "subTitle" || type == "ctrTitle") {
-                        fontIdx = "major";
-                    } else {
-                        fontIdx = "minor";
-                    }
-                }
-                fontGrup = "a:" + fontIdx + "Font";
-                typeface = window.PPTXUtils.getTextByPathList(fontSchemeNode, [fontGrup, "a:latin", "attrs", "typeface"]);
-            }
-
-            return (typeface === undefined) ? "inherit" : typeface;
-        }
+        // getFontType 已移至 PPTXTextStyleUtils 模块
 
         function getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj) {
             //text border using: text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
@@ -10575,7 +10511,7 @@
 
             if (color === undefined) {
 
-                var layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
+                var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
                 var pPrNodeLaout = layoutMasterNode.nodeLaout;
                 var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
@@ -10851,49 +10787,9 @@
         }
 
         // getFontBold, getFontItalic, getFontDecoration, getTextHorizontalAlign, getTextVerticalAlign 已移至 PPTXTextStyleUtils 模块
-
-        function getTableBorders(node, warpObj) {
-            var borderStyle = "";
-            if (node["a:bottom"] !== undefined) {
-                var obj = {
-                    "p:spPr": {
-                        "a:ln": node["a:bottom"]["a:ln"]
-                    }
-                }
-                var borders = window.PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
-                borderStyle += borders.replace("border", "border-bottom");
-            }
-            if (node["a:top"] !== undefined) {
-                var obj = {
-                    "p:spPr": {
-                        "a:ln": node["a:top"]["a:ln"]
-                    }
-                }
-                var borders = window.PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
-                borderStyle += borders.replace("border", "border-top");
-            }
-            if (node["a:right"] !== undefined) {
-                var obj = {
-                    "p:spPr": {
-                        "a:ln": node["a:right"]["a:ln"]
-                    }
-                }
-                var borders = window.PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
-                borderStyle += borders.replace("border", "border-right");
-            }
-            if (node["a:left"] !== undefined) {
-                var obj = {
-                    "p:spPr": {
-                        "a:ln": node["a:left"]["a:ln"]
-                    }
-                }
-                var borders = window.PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
-                borderStyle += borders.replace("border", "border-left");
-            }
-
-            return borderStyle;
-        }
+        // getTableBorders 已移至 PPTXTableUtils 模块
         // getBorder, getShapeFill, getSvgGradient, getSvgImagePattern 已移至 PPTXShapeFillsUtils 模块
+
         function getBackground(warpObj, slideSize, index) {
             var slideContent = warpObj["slideContent"];
             var slideLayoutContent = warpObj["slideLayoutContent"];
