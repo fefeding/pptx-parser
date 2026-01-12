@@ -17,7 +17,10 @@
      * @returns {String} "bold" or "inherit"
      */
     PPTXTextStyleUtils.getFontBold = function(node, type, slideMasterTextStyles) {
-        return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["b"] === "1") ? "bold" : "inherit";
+        if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] && node["a:rPr"]["attrs"]["b"] === "1") {
+            return "bold";
+        }
+        return "inherit";
     };
 
     /**
@@ -28,7 +31,10 @@
      * @returns {String} "italic" or "inherit"
      */
     PPTXTextStyleUtils.getFontItalic = function(node, type, slideMasterTextStyles) {
-        return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["i"] === "1") ? "italic" : "inherit";
+        if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] && node["a:rPr"]["attrs"]["i"] === "1") {
+            return "italic";
+        }
+        return "inherit";
     };
 
     /**
@@ -39,9 +45,10 @@
      * @returns {String} CSS text-decoration value
      */
     PPTXTextStyleUtils.getFontDecoration = function(node, type, slideMasterTextStyles) {
-        if (node["a:rPr"] !== undefined) {
-            var underLine = node["a:rPr"]["attrs"]["u"] !== undefined ? node["a:rPr"]["attrs"]["u"] : "none";
-            var strikethrough = node["a:rPr"]["attrs"]["strike"] !== undefined ? node["a:rPr"]["attrs"]["strike"] : 'noStrike';
+        if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]) {
+            var attrs = node["a:rPr"]["attrs"];
+            var underLine = attrs["u"] !== undefined ? attrs["u"] : "none";
+            var strikethrough = attrs["strike"] !== undefined ? attrs["strike"] : 'noStrike';
 
             if (underLine != "none" && strikethrough == "noStrike") {
                 return "underline";

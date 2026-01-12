@@ -65,21 +65,46 @@
         var rotStr = "";
 
         if (xfrmNode !== undefined) {
-            var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-            var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-            var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-            var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
-            var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
-            var cy = parseInt(xfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
-            var chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
-            var chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+            var x, y, chx, chy, cx, cy, chcx, chcy;
+            if (xfrmNode["a:off"] && xfrmNode["a:off"]["attrs"]) {
+                x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+                y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+            }
+            if (xfrmNode["a:chOff"] && xfrmNode["a:chOff"]["attrs"]) {
+                chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
+                chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+            } else {
+                chx = 0;
+                chy = 0;
+            }
+            if (xfrmNode["a:ext"] && xfrmNode["a:ext"]["attrs"]) {
+                cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
+                cy = parseInt(xfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
+            }
+            if (xfrmNode["a:chExt"] && xfrmNode["a:chExt"]["attrs"]) {
+                chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
+                chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+            } else {
+                chcx = 0;
+                chcy = 0;
+            }
 
-            rotate = parseInt(xfrmNode["attrs"]["rot"]);
+            if (xfrmNode["attrs"]) {
+                rotate = parseInt(xfrmNode["attrs"]["rot"]);
+            }
 
-            top = y - chy;
-            left = x - chx;
-            width = cx - chcx;
-            height = cy - chcy;
+            if (y !== undefined && chy !== undefined) {
+                top = y - chy;
+            }
+            if (x !== undefined && chx !== undefined) {
+                left = x - chx;
+            }
+            if (cx !== undefined && chcx !== undefined) {
+                width = cx - chcx;
+            }
+            if (cy !== undefined && chcy !== undefined) {
+                height = cy - chcy;
+            }
 
             if (!isNaN(rotate)) {
                 rotate = window.PPTXColorUtils.angleToDegrees(rotate);

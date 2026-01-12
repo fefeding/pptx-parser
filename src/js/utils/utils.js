@@ -303,9 +303,14 @@
         // 简单版本：只处理 xfrmNode
         if (xfrmNode && arguments.length <= 5) {
             if (!xfrmNode) return "";
-
-            var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-            var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+            
+            // 检查必需的属性
+            var offNode = xfrmNode["a:off"];
+            if (!offNode || !offNode["attrs"]) return "";
+            var offAttrs = offNode["attrs"];
+            var x = parseInt(offAttrs["x"]) * slideFactor;
+            var y = parseInt(offAttrs["y"]) * slideFactor;
+            if (isNaN(x) || isNaN(y)) return "";
 
             var css = "";
             if (sType === "group-rotate") {
@@ -313,10 +318,14 @@
             } else {
                 var chOff = xfrmNode["a:chOff"];
                 var chExt = xfrmNode["a:chExt"];
-                if (chOff && chExt) {
+                if (chOff && chExt && chOff["attrs"] && chExt["attrs"]) {
                     var chx = parseInt(chOff["attrs"]["x"]) * slideFactor;
                     var chy = parseInt(chOff["attrs"]["y"]) * slideFactor;
-                    css += "top: " + (y - chy) + "px; left: " + (x - chx) + "px;";
+                    if (!isNaN(chx) && !isNaN(chy)) {
+                        css += "top: " + (y - chy) + "px; left: " + (x - chx) + "px;";
+                    } else {
+                        css += "top: " + y + "px; left: " + x + "px;";
+                    }
                 } else {
                     css += "top: " + y + "px; left: " + x + "px;";
                 }
@@ -328,13 +337,13 @@
         var off;
         var x = -1, y = -1;
 
-        if (xfrmNode !== undefined) {
+        if (xfrmNode !== undefined && xfrmNode["a:off"] && xfrmNode["a:off"]["attrs"]) {
             off = xfrmNode["a:off"]["attrs"];
         }
 
-        if (off === undefined && parentOff !== undefined) {
+        if (off === undefined && parentOff !== undefined && parentOff["a:off"] && parentOff["a:off"]["attrs"]) {
             off = parentOff["a:off"]["attrs"];
-        } else if (off === undefined && parentExt !== undefined) {
+        } else if (off === undefined && parentExt !== undefined && parentExt["a:off"] && parentExt["a:off"]["attrs"]) {
             off = parentExt["a:off"]["attrs"];
         }
         var offX = 0, offY = 0;
@@ -342,18 +351,27 @@
         if (sType == "group") {
 
             var grpXfrmNode = getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
-            if (grpXfrmNode !== undefined) {
-                grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-                grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+            if (grpXfrmNode !== undefined && grpXfrmNode["a:off"] && grpXfrmNode["a:off"]["attrs"]) {
+                var offAttrs = grpXfrmNode["a:off"]["attrs"];
+                var tmpX = parseInt(offAttrs["x"]) * slideFactor;
+                var tmpY = parseInt(offAttrs["y"]) * slideFactor;
+                if (!isNaN(tmpX) && !isNaN(tmpY)) {
+                    grpX = tmpX;
+                    grpY = tmpY;
+                }
             }
         }
         if (sType == "group-rotate" && pNode && pNode["p:grpSpPr"] !== undefined) {
             var grpXfrmNode2 = pNode["p:grpSpPr"]["a:xfrm"];
-            var chx = parseInt(grpXfrmNode2["a:chOff"]["attrs"]["x"]) * slideFactor;
-            var chy = parseInt(grpXfrmNode2["a:chOff"]["attrs"]["y"]) * slideFactor;
-
-            offX = chx;
-            offY = chy;
+            if (grpXfrmNode2 && grpXfrmNode2["a:chOff"] && grpXfrmNode2["a:chOff"]["attrs"]) {
+                var chAttrs = grpXfrmNode2["a:chOff"]["attrs"];
+                var chx = parseInt(chAttrs["x"]) * slideFactor;
+                var chy = parseInt(chAttrs["y"]) * slideFactor;
+                if (!isNaN(chx) && !isNaN(chy)) {
+                    offX = chx;
+                    offY = chy;
+                }
+            }
         }
         if (off === undefined) {
             return "";
@@ -371,10 +389,12 @@
             if (!xfrmNode) return "";
 
             var ext = xfrmNode["a:ext"];
-            if (!ext) return "";
+            if (!ext || !ext["attrs"]) return "";
 
-            var w = parseInt(ext["attrs"]["cx"]) * slideFactor;
-            var h = parseInt(ext["attrs"]["cy"]) * slideFactor;
+            var attrs = ext["attrs"];
+            var w = parseInt(attrs["cx"]) * slideFactor;
+            var h = parseInt(attrs["cy"]) * slideFactor;
+            if (isNaN(w) || isNaN(h)) return "";
 
             return "width: " + w + "px; height: " + h + "px;";
         }
@@ -383,11 +403,11 @@
         var ext = undefined;
         var w = -1, h = -1;
 
-        if (xfrmNode !== undefined) {
+        if (xfrmNode !== undefined && xfrmNode["a:ext"] && xfrmNode["a:ext"]["attrs"]) {
             ext = xfrmNode["a:ext"]["attrs"];
-        } else if (parentExt !== undefined) {
+        } else if (parentExt !== undefined && parentExt["a:ext"] && parentExt["a:ext"]["attrs"]) {
             ext = parentExt["a:ext"]["attrs"];
-        } else if (sType !== undefined) {
+        } else if (sType !== undefined && sType["a:ext"] && sType["a:ext"]["attrs"]) {
             ext = sType["a:ext"]["attrs"];
         }
 
