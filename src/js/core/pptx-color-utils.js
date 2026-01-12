@@ -67,8 +67,9 @@
     function getPicFill(type, node, warpObj) {
         //Need to test/////////////////////////////////////////////
         //rId
-        //TODO - Image Properties - Tile, Stretch, or Display Portion of Image
-        //(http://officeopenxml.com/drwPic-tile.php)
+        // TODO: 实现图像属性处理 - 平铺、拉伸或显示部分图像
+        // 参考: http://officeopenxml.com/drwPic-tile.php
+        // 需要根据Office Open XML规范实现blipFill元素的完整解析
         var img;
         var rId = node["a:blip"]["attrs"]["r:embed"];
         var imgPath;

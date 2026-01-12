@@ -95,7 +95,6 @@
             slideType: "divs2slidesjs",  /*'divs2slidesjs' (default), 'revealjs' - slideshow engine */
             revealjsPath: "./revealjs/reveal.js", /* path to reveal.js library */
             mediaProcess: true, /** true,false: if true then process video and audio files */
-            mediaProcess: true, /** true,false: if true then process video and audio files */
             jsZipV2: false,
             themeProcess: true, /*true (default) , false, "colorsAndImageOnly"*/
             incSlide:{
@@ -483,6 +482,24 @@
             return genShape(node, pNode, undefined, undefined, id, name, idx, type, order, warpObj, undefined, sType, source);
         }
 
+        /**
+         * 生成形状的SVG HTML表示
+         * 
+         * @param {Object} node - 形状节点对象
+         * @param {Object} pNode - 父节点对象
+         * @param {Object} slideLayoutSpNode - 幻灯片布局中的形状节点
+         * @param {Object} slideMasterSpNode - 幻灯片母版中的形状节点  
+         * @param {string} id - 形状ID
+         * @param {string} name - 形状名称
+         * @param {string} idx - 形状索引
+         * @param {string} type - 形状类型
+         * @param {number} order - 显示顺序
+         * @param {Object} warpObj - 包装对象，包含解析上下文
+         * @param {boolean} isUserDrawnBg - 是否用户绘制的背景
+         * @param {string} sType - 形状类型标识
+         * @param {string} source - 来源标识
+         * @returns {string} 形状的SVG HTML字符串
+         */
         function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source) {
             //var dltX = 0;
             //var dltY = 0;
@@ -599,7 +616,9 @@
                             shapType == "leftBracket" ||
                             shapType == "leftBrace" ||
                             shapType == "rightBrace" ||
-                            shapType == "rightBracket")) { //Temp. solution  - TODO
+                            shapType == "rightBracket")) { 
+                        // 临时解决方案 - TODO: 对于弧形、括号等形状，当填充类型不是实心或图案时，设置为无填充
+                        // 这是因为这些形状在某些情况下应该显示为轮廓，但需要更精确的处理
                         fillColor = "none";
                     }
                 }
@@ -7911,25 +7930,20 @@
             return window.PPTXImageUtils.processGraphicFrameNode(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode);
         }
 
+        /**
+         * 处理形状属性节点（p:spPr）
+         * 
+         * @param {Object} node - 形状属性节点
+         * @param {Object} warpObj - 包装对象，包含解析上下文
+         * @returns {Object} 解析后的形状属性对象（待实现）
+         * 
+         * TODO: 实现形状属性的完整解析，包括变换、几何、填充、线条、效果等
+         * 当前仅返回空对象，需要根据XML架构定义实现
+         */
         function processSpPrNode(node, warpObj) {
-
-            /*
-            * 2241 <xsd:complexType name="CT_ShapeProperties">
-            * 2242   <xsd:sequence>
-            * 2243     <xsd:element name="xfrm" type="CT_Transform2D"  minOccurs="0" maxOccurs="1"/>
-            * 2244     <xsd:group   ref="EG_Geometry"                  minOccurs="0" maxOccurs="1"/>
-            * 2245     <xsd:group   ref="EG_FillProperties"            minOccurs="0" maxOccurs="1"/>
-            * 2246     <xsd:element name="ln" type="CT_LineProperties" minOccurs="0" maxOccurs="1"/>
-            * 2247     <xsd:group   ref="EG_EffectProperties"          minOccurs="0" maxOccurs="1"/>
-            * 2248     <xsd:element name="scene3d" type="CT_Scene3D"   minOccurs="0" maxOccurs="1"/>
-            * 2249     <xsd:element name="sp3d" type="CT_Shape3D"      minOccurs="0" maxOccurs="1"/>
-            * 2250     <xsd:element name="extLst" type="CT_OfficeArtExtensionList" minOccurs="0" maxOccurs="1"/>
-            * 2251   </xsd:sequence>
-            * 2252   <xsd:attribute name="bwMode" type="ST_BlackWhiteMode" use="optional"/>
-            * 2253 </xsd:complexType>
-            */
-
-            // TODO:
+            // 临时实现：返回空对象
+            // console.warn('processSpPrNode: 功能尚未实现，返回空对象');
+            return {};
         }
 
         var is_first_br = false;
