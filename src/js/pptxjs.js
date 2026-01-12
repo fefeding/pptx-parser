@@ -86,6 +86,8 @@
 
     var processFullTheme = true;
         var styleTable = {};
+        // 设置全局 styleTable 供 PPTXTextElementUtils 使用
+        window.PPTXStyleTable = styleTable;
         var settings = $.extend(true, {
             // These are the defaults.
             pptxFileUrl: "",
@@ -8046,7 +8048,7 @@
                 var total_text_len = 0;
                 if (rNode === undefined && pNode !== undefined) {
                     // without r
-                    var prgr_text = genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
+                    var prgr_text = window.PPTXTextElementUtils.genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
                     if (isBullate) {
                         var txt_obj = $(prgr_text);
                         txt_obj.css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden' });
@@ -8059,7 +8061,7 @@
                 } else if (rNode !== undefined) {
                     // with multi r
                     for (var j = 0; j < rNode.length; j++) {
-                        var prgr_text = genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
+                        var prgr_text = window.PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
                         if (isBullate) {
                             var txt_obj = $(prgr_text);
                             txt_obj.css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden'});
@@ -8571,274 +8573,6 @@
             // }
             //console.log("genBuChar: width: ", $(bullet).outerWidth())
             return [bullet, margin_val, font_val];//$(bullet).outerWidth()];
-        }
-        // getHtmlBullet 已移至 PPTXTableUtils 模块
-        // getDingbatToUnicode 已移至 TextUtils 模块
-        // getLayoutAndMasterNode 已移至 PPTXLayoutUtils 模块
-        function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
-            //https://codepen.io/imdunn/pen/GRgwaye ?
-            var text_style = "";
-            var lstStyle = textBodyNode["a:lstStyle"];
-            var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
-
-            var text = node["a:t"];
-            //var text_count = text.length;
-
-            var openElemnt = "<sapn";//"<bdi";
-            var closeElemnt = "</sapn>";// "</bdi>";
-            var styleText = "";
-            if (text === undefined && node["type"] !== undefined) {
-                if (is_first_br) {
-                    //openElemnt = "<br";
-                    //closeElemnt = "";
-                    //return "<br style='font-size: initial'>"
-                    is_first_br = false;
-                    return "<sapn class='line-break-br' ></sapn>";
-                } else {
-                    // styleText += "display: block;";
-                    // openElemnt = "<sapn";
-                    // closeElemnt = "</sapn>";
-                }
-
-                styleText += "display: block;";
-                //openElemnt = "<sapn";
-                //closeElemnt = "</sapn>";
-            } else {
-
-                is_first_br = true;
-            }
-            if (typeof text !== 'string') {
-                text = window.PPTXUtils.getTextByPathList(node, ["a:fld", "a:t"]);
-                if (typeof text !== 'string') {
-                    text = "&nbsp;";
-                    //return "<span class='text-block '>&nbsp;</span>";
-                }
-                // if (text === undefined) {
-                //     return "";
-                // }
-            }
-
-            var pPrNode = pNode["a:pPr"];
-            //lvl
-            var lvl = 1;
-            var lvlNode = window.PPTXUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
-            if (lvlNode !== undefined) {
-                lvl = parseInt(lvlNode) + 1;
-            }
-            //console.log("genSpanElement node: ", node, "rIndex: ", rIndex, ", pNode: ", pNode, ",pPrNode: ", pPrNode, "pFontStyle:", pFontStyle, ", idx: ", idx, "type:", type, warpObj);
-            var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
-            var pPrNodeLaout = layoutMasterNode.nodeLaout;
-            var pPrNodeMaster = layoutMasterNode.nodeMaster;
-
-            //Language
-            var lang = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
-            var isRtlLan = (lang !== undefined && rtl_langs_array.indexOf(lang) !== -1)?true:false;
-            //rtl
-            var getRtlVal = window.PPTXUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
-            if (getRtlVal === undefined) {
-                getRtlVal = window.PPTXUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
-                if (getRtlVal === undefined && type != "shape") {
-                    getRtlVal = window.PPTXUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
-                }
-            }
-            var isRTL = false;
-            var dirStr = "ltr";
-            if (getRtlVal !== undefined && getRtlVal == "1") {
-                isRTL = true;
-                dirStr = "rtl";
-            }
-
-            var linkID = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "r:id"]);
-            var linkTooltip = "";
-            var defLinkClr;
-            if (linkID !== undefined) {
-                linkTooltip = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "tooltip"]);
-                if (linkTooltip !== undefined) {
-                    linkTooltip = "title='" + linkTooltip + "'";
-                }
-                defLinkClr = window.PPTXColorUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
-
-                var linkClrNode = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);// window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
-                var rPrlinkClr = window.PPTXColorUtils.getSolidFill(linkClrNode, undefined, undefined, warpObj);
-
-
-                //console.log("genSpanElement defLinkClr: ", defLinkClr, "rPrlinkClr:", rPrlinkClr)
-                if (rPrlinkClr !== undefined && rPrlinkClr != "") {
-                    defLinkClr = rPrlinkClr;
-                }
-
-            }
-            /////////////////////////////////////////////////////////////////////////////////////
-            //getFontColor
-            var fontClrPr = window.PPTXTextStyleUtils.getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
-            var fontClrType = fontClrPr[2];
-            //console.log("genSpanElement fontClrPr: ", fontClrPr, "linkID", linkID);
-            if (fontClrType == "solid") {
-                if (linkID === undefined && fontClrPr[0] !== undefined && fontClrPr[0] != "") {
-                    styleText += "color: #" + fontClrPr[0] + ";";
-                }
-                else if (linkID !== undefined && defLinkClr !== undefined) {
-                    styleText += "color: #" + defLinkClr + ";";
-                }
-
-                if (fontClrPr[1] !== undefined && fontClrPr[1] != "" && fontClrPr[1] != ";") {
-                    styleText += "text-shadow:" + fontClrPr[1] + ";";
-                }
-                if (fontClrPr[3] !== undefined && fontClrPr[3] != "") {
-                    styleText += "background-color: #" + fontClrPr[3] + ";";
-                }
-            } else if (fontClrType == "pattern" || fontClrType == "pic" || fontClrType == "gradient") {
-                if (fontClrType == "pattern") {
-                    styleText += "background:" + fontClrPr[0][0] + ";";
-                    if (fontClrPr[0][1] !== null && fontClrPr[0][1] !== undefined && fontClrPr[0][1] != "") {
-                        styleText += "background-size:" + fontClrPr[0][1] + ";";//" 2px 2px;" +
-                    }
-                    if (fontClrPr[0][2] !== null && fontClrPr[0][2] !== undefined && fontClrPr[0][2] != "") {
-                        styleText += "background-position:" + fontClrPr[0][2] + ";";//" 2px 2px;" +
-                    }
-                    // styleText += "-webkit-background-clip: text;" +
-                    //     "background-clip: text;" +
-                    //     "color: transparent;" +
-                    //     "-webkit-text-stroke: " + fontClrPr[1].border + ";" +
-                    //     "filter: " + fontClrPr[1].effcts + ";";
-                } else if (fontClrType == "pic") {
-                    styleText += fontClrPr[0] + ";";
-                    // styleText += "-webkit-background-clip: text;" +
-                    //     "background-clip: text;" +
-                    //     "color: transparent;" +
-                    //     "-webkit-text-stroke: " + fontClrPr[1].border + ";";
-                } else if (fontClrType == "gradient") {
-
-                    var colorAry = fontClrPr[0].color;
-                    var rot = fontClrPr[0].rot;
-
-                    styleText += "background: linear-gradient(" + rot + "deg,";
-                    for (var i = 0; i < colorAry.length; i++) {
-                        if (i == colorAry.length - 1) {
-                            styleText += "#" + colorAry[i] + ");";
-                        } else {
-                            styleText += "#" + colorAry[i] + ", ";
-                        }
-                    }
-                    // styleText += "-webkit-background-clip: text;" +
-                    //     "background-clip: text;" +
-                    //     "color: transparent;" +
-                    //     "-webkit-text-stroke: " + fontClrPr[1].border + ";";
-
-                }
-                styleText += "-webkit-background-clip: text;" +
-                    "background-clip: text;" +
-                    "color: transparent;";
-                if (fontClrPr[1].border !== undefined && fontClrPr[1].border !== "") {
-                    styleText += "-webkit-text-stroke: " + fontClrPr[1].border + ";";
-                }
-                if (fontClrPr[1].effcts !== undefined && fontClrPr[1].effcts !== "") {
-                    styleText += "filter: " + fontClrPr[1].effcts + ";";
-                }
-            }
-            var font_size = window.PPTXTextStyleUtils.getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj);
-            //text_style += "font-size:" + font_size + ";"
-            
-            text_style += "font-size:" + font_size + ";" +
-                // marLStr +
-                "font-family:" + window.PPTXTextStyleUtils.getFontType(node, type, warpObj, pFontStyle) + ";" +
-                "font-weight:" + window.PPTXTextStyleUtils.getFontBold(node, type, slideMasterTextStyles) + ";" +
-                "font-style:" + window.PPTXTextStyleUtils.getFontItalic(node, type, slideMasterTextStyles) + ";" +
-                "text-decoration:" + window.PPTXTextStyleUtils.getFontDecoration(node, type, slideMasterTextStyles) + ";" +
-                "text-align:" + window.PPTXTextStyleUtils.getTextHorizontalAlign(node, pNode, type, warpObj) + ";" +
-                "vertical-align:" + window.PPTXTextStyleUtils.getTextVerticalAlign(node, type, slideMasterTextStyles) + ";";
-            //rNodeLength
-            //console.log("genSpanElement node:", node, "lang:", lang, "isRtlLan:", isRtlLan, "span parent dir:", dirStr)
-            if (isRtlLan) { //|| rIndex === undefined
-                styleText += "direction:rtl;";
-            }else{ //|| rIndex === undefined
-                styleText += "direction:ltr;";
-            }
-            // } else if (dirStr == "rtl" && isRtlLan ) {
-            //     styleText += "direction:rtl;";
-
-            // } else if (dirStr == "ltr" && !isRtlLan ) {
-            //     styleText += "direction:ltr;";
-            // } else if (dirStr == "ltr" && isRtlLan){
-            //     styleText += "direction:ltr;";
-            // }else{
-            //     styleText += "direction:inherit;";
-            // }
-
-            // if (dirStr == "rtl" && !isRtlLan) { //|| rIndex === undefined
-            //     styleText += "direction:ltr;";
-            // } else if (dirStr == "rtl" && isRtlLan) {
-            //     styleText += "direction:rtl;";
-            // } else if (dirStr == "ltr" && !isRtlLan) {
-            //     styleText += "direction:ltr;";
-            // } else if (dirStr == "ltr" && isRtlLan) {
-            //     styleText += "direction:rtl;";
-            // } else {
-            //     styleText += "direction:inherit;";
-            // }
-
-            //     //"direction:" + dirStr + ";";
-            //if (rNodeLength == 1 || rIndex == 0 ){
-            //styleText += "display: table-cell;white-space: nowrap;";
-            //}
-            var highlight = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "a:highlight"]);
-            if (highlight !== undefined) {
-                styleText += "background-color:#" + window.PPTXColorUtils.getSolidFill(highlight, undefined, undefined, warpObj) + ";";
-                //styleText += "Opacity:" + getColorOpacity(highlight) + ";";
-            }
-
-            //letter-spacing:
-            var spcNode = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "spc"]);
-            if (spcNode === undefined) {
-                spcNode = window.PPTXUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "attrs", "spc"]);
-                if (spcNode === undefined) {
-                    spcNode = window.PPTXUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "attrs", "spc"]);
-                }
-            }
-            if (spcNode !== undefined) {
-                var ltrSpc = parseInt(spcNode) / 100; //pt
-                styleText += "letter-spacing: " + ltrSpc + "px;";// + "pt;";
-            }
-
-            //Text Cap Types
-            var capNode = window.PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "cap"]);
-            if (capNode === undefined) {
-                capNode = window.PPTXUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "attrs", "cap"]);
-                if (capNode === undefined) {
-                    capNode = window.PPTXUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "attrs", "cap"]);
-                }
-            }
-            if (capNode == "small" || capNode == "all") {
-                styleText += "text-transform: uppercase";
-            }
-            //styleText += "word-break: break-word;";
-            //console.log("genSpanElement node: ", node, ", capNode: ", capNode, ",pPrNodeLaout: ", pPrNodeLaout, ", pPrNodeMaster: ", pPrNodeMaster, "warpObj:", warpObj);
-
-            var cssName = "";
-
-            if (styleText in styleTable) {
-                cssName = styleTable[styleText]["name"];
-            } else {
-                cssName = "_css_" + (Object.keys(styleTable).length + 1);
-                styleTable[styleText] = {
-                    "name": cssName,
-                    "text": styleText
-                };
-            }
-            var linkColorSyle = "";
-            if (fontClrType == "solid" && linkID !== undefined) {
-                linkColorSyle = "style='color: inherit;'";
-            }
-
-            if (linkID !== undefined && linkID != "") {
-                var linkURL = warpObj["slideResObj"][linkID]["target"];
-                linkURL = window.PPTXUtils.escapeHtml(linkURL);
-                return openElemnt + " class='text-block " + cssName + "' style='" + text_style + "'><a href='" + linkURL + "' " + linkColorSyle + "  " + linkTooltip + " target='_blank'>" +
-                        text.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\s/g, "&nbsp;") + "</a>" + closeElemnt;
-            } else {
-                return openElemnt + " class='text-block " + cssName + "' style='" + text_style + "'>" + text.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\s/g, "&nbsp;") + closeElemnt;//"</bdi>";
-            }
-
         }
 
 

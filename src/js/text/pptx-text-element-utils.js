@@ -203,7 +203,7 @@
         }
 
         var cssName = "";
-        var styleTable = window.PPTXStyleManager.getStyleTable();
+        var styleTable = window.PPTXStyleTable || {};
         
         if (styleText in styleTable) {
             cssName = styleTable[styleText]["name"];
