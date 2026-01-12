@@ -7961,68 +7961,7 @@
 
 
         function genDiagram(node, warpObj, source, sType) {
-            //console.log(warpObj)
-            //readXmlFile(zip, sldFileName)
-            /**files define the diagram:
-             * 1-colors#.xml,
-             * 2-data#.xml, 
-             * 3-layout#.xml,
-             * 4-quickStyle#.xml.
-             * 5-drawing#.xml, which Microsoft added as an extension for persisting diagram layout information.
-             */
-            ///get colors#.xml, data#.xml , layout#.xml , quickStyle#.xml
-            var order = node["attrs"]["order"];
-            var zip = warpObj["zip"];
-            var xfrmNode = window.PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
-            var dgmRelIds = window.PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
-            //console.log(dgmRelIds)
-            var dgmClrFileId = dgmRelIds["r:cs"];
-            var dgmDataFileId = dgmRelIds["r:dm"];
-            var dgmLayoutFileId = dgmRelIds["r:lo"];
-            var dgmQuickStyleFileId = dgmRelIds["r:qs"];
-            var dgmClrFileName = warpObj["slideResObj"][dgmClrFileId].target,
-                dgmDataFileName = warpObj["slideResObj"][dgmDataFileId].target,
-                dgmLayoutFileName = warpObj["slideResObj"][dgmLayoutFileId].target;
-            dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
-            //console.log("dgmClrFileName: " , dgmClrFileName,", dgmDataFileName: ",dgmDataFileName,", dgmLayoutFileName: ",dgmLayoutFileName,", dgmQuickStyleFileName: ",dgmQuickStyleFileName);
-            var dgmClr = readXmlFile(zip, dgmClrFileName);
-            var dgmData = readXmlFile(zip, dgmDataFileName);
-            var dgmLayout = readXmlFile(zip, dgmLayoutFileName);
-            var dgmQuickStyle = readXmlFile(zip, dgmQuickStyleFileName);
-            //console.log(dgmClr,dgmData,dgmLayout,dgmQuickStyle)
-            ///get drawing#.xml
-            // var dgmDrwFileName = "";
-            // var dataModelExt = window.PPTXUtils.getTextByPathList(dgmData, ["dgm:dataModel", "dgm:extLst", "a:ext", "dsp:dataModelExt", "attrs"]);
-            // if (dataModelExt !== undefined) {
-            //     var dgmDrwFileId = dataModelExt["relId"];
-            //     dgmDrwFileName = warpObj["slideResObj"][dgmDrwFileId]["target"];
-            // }
-            // var dgmDrwFile = "";
-            // if (dgmDrwFileName != "") {
-            //     dgmDrwFile = readXmlFile(zip, dgmDrwFileName);
-            // }
-            // var dgmDrwSpArray = window.PPTXUtils.getTextByPathList(dgmDrwFile, ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
-            //var dgmDrwSpArray = window.PPTXUtils.getTextByPathList(warpObj["digramFileContent"], ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
-            var dgmDrwSpArray = window.PPTXUtils.getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
-            var rslt = "";
-            if (dgmDrwSpArray !== undefined) {
-                var dgmDrwSpArrayLen = dgmDrwSpArray.length;
-                for (var i = 0; i < dgmDrwSpArrayLen; i++) {
-                    var dspSp = dgmDrwSpArray[i];
-                    // var dspSpObjToStr = JSON.stringify(dspSp);
-                    // var pSpStr = dspSpObjToStr.replace(/dsp:/g, "p:");
-                    // var pSpStrToObj = JSON.parse(pSpStr);
-                    //console.log("pSpStrToObj[" + i + "]: ", pSpStrToObj);
-                    //rslt += processSpNode(pSpStrToObj, node, warpObj, "diagramBg", sType)
-                    rslt += processSpNode(dspSp, node, warpObj, "diagramBg", sType)
-                }
-                // dgmDrwFile: "dsp:"-> "p:"
-            }
-
-            return "<div class='block diagram-content' style='" +
-                getPosition(xfrmNode, node, undefined, undefined, sType) +
-                getSize(xfrmNode, undefined, undefined) +
-                "'>" + rslt + "</div>";
+            return window.PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFile, getPosition, getSize, processSpNode);
         }
 
 

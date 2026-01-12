@@ -70,42 +70,7 @@
         return cssText;
     }
 
-    // 获取单元格文本（简化版，仅用于表格）
-    function getTableCellText(tcNode) {
-        if (!tcNode) return "";
-        var textBody = tcNode["a:txBody"];
-        if (!textBody) return "";
-        
-        var paragraphs = textBody["a:p"];
-        if (!paragraphs) return "";
-        
-        if (paragraphs.constructor !== Array) {
-            paragraphs = [paragraphs];
-        }
-        
-        var cellText = "";
-        paragraphs.forEach(function(pNode) {
-            var runs = pNode["a:r"];
-            if (runs) {
-                if (runs.constructor !== Array) {
-                    runs = [runs];
-                }
-                runs.forEach(function(rNode) {
-                    var textNode = rNode["a:t"];
-                    if (textNode) {
-                        var text = textNode["text"] || "";
-                        // 处理空白字符
-                        text = text.replace(/\s/g, "&nbsp;");
-                        cellText += text;
-                    }
-                });
-            }
-            // 添加换行
-            cellText += "<br/>";
-        });
-        
-        return cellText;
-    }
+
 
     // 获取填充颜色
     function getSolidFill(fillNode, clrMap, phClr, warpObj) {
@@ -131,138 +96,7 @@
         return "";
     }
 
-    // 获取单元格参数
-    function getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSource, warpObj) {
-        var rowSpan = getTextByPathList(tcNodes, ["attrs", "rowSpan"]);
-        var colSpan = getTextByPathList(tcNodes, ["attrs", "gridSpan"]);
-        var colStyl = "word-wrap: break-word;";
-        
-        // 计算列宽
-        var colSapnInt = parseInt(colSpan);
-        var total_col_width = 0;
-        if (getColsGrid !== undefined && !isNaN(colSapnInt) && colSapnInt > 1) {
-            for (var k = 0; k < colSapnInt; k++) {
-                var gridCol = getColsGrid[col_idx + k];
-                if (gridCol !== undefined) {
-                    var colWidthAttr = getTextByPathList(gridCol, ["attrs", "w"]);
-                    if (colWidthAttr !== undefined) {
-                        total_col_width += parseInt(colWidthAttr);
-                    }
-                }
-            }
-        } else if (getColsGrid !== undefined) {
-            var gridCol = (col_idx === undefined) ? getColsGrid : getColsGrid[col_idx];
-            if (gridCol !== undefined) {
-                total_col_width = getTextByPathList(gridCol, ["attrs", "w"]);
-            }
-        }
-        
-        // 获取单元格文本
-        var text = getTableCellText(tcNodes);
-        
-        // 设置列宽
-        if (total_col_width != 0) {
-            colWidth = parseInt(total_col_width) * slideFactor;
-            colStyl += "width:" + colWidth + "px;";
-        }
-        
-        // 单元格边框
-        var lin_bottm = getTextByPathList(tcNodes, ["a:tcPr", "a:lnB"]);
-        if (lin_bottm === undefined && cellSource !== undefined && thisTblStyle !== undefined) {
-            lin_bottm = getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
-            if (lin_bottm === undefined && thisTblStyle !== undefined) {
-                lin_bottm = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
-            }
-        }
-        
-        var lin_top = getTextByPathList(tcNodes, ["a:tcPr", "a:lnT"]);
-        if (lin_top === undefined && cellSource !== undefined && thisTblStyle !== undefined) {
-            lin_top = getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
-            if (lin_top === undefined && thisTblStyle !== undefined) {
-                lin_top = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
-            }
-        }
-        
-        var lin_left = getTextByPathList(tcNodes, ["a:tcPr", "a:lnL"]);
-        if (lin_left === undefined && cellSource !== undefined && thisTblStyle !== undefined) {
-            lin_left = getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
-            if (lin_left === undefined && thisTblStyle !== undefined) {
-                lin_left = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
-            }
-        }
-        
-        var lin_right = getTextByPathList(tcNodes, ["a:tcPr", "a:lnR"]);
-        if (lin_right === undefined && cellSource !== undefined && thisTblStyle !== undefined) {
-            lin_right = getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
-            if (lin_right === undefined && thisTblStyle !== undefined) {
-                lin_right = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
-            }
-        }
-        
-        // 应用边框
-        if (lin_bottm !== undefined && lin_bottm != "") {
-            var bottom_line_border = PPTXUtils.getBorder(lin_bottm, undefined, false, "", warpObj);
-            if (bottom_line_border != "") {
-                colStyl += "border-bottom:" + bottom_line_border + ";";
-            }
-        }
-        if (lin_top !== undefined && lin_top != "") {
-            var top_line_border = PPTXUtils.getBorder(lin_top, undefined, false, "", warpObj);
-            if (top_line_border != "") {
-                colStyl += "border-top: " + top_line_border + ";";
-            }
-        }
-        if (lin_left !== undefined && lin_left != "") {
-            var left_line_border = PPTXUtils.getBorder(lin_left, undefined, false, "", warpObj);
-            if (left_line_border != "") {
-                colStyl += "border-left: " + left_line_border + ";";
-            }
-        }
-        if (lin_right !== undefined && lin_right != "") {
-            var right_line_border = PPTXUtils.getBorder(lin_right, undefined, false, "", warpObj);
-            if (right_line_border != "") {
-                colStyl += "border-right:" + right_line_border + ";";
-            }
-        }
-        
-        // 单元格填充色
-        var celFillColor = "";
-        var getCelFill = getTextByPathList(tcNodes, ["a:tcPr"]);
-        if (getCelFill !== undefined) {
-            var cellObj = { "p:spPr": getCelFill };
-            celFillColor = getShapeFill(cellObj, warpObj);
-        }
-        
-        // 单元格填充色（主题）
-        if (celFillColor == "" || celFillColor == "background-color: inherit;") {
-            if (cellSource !== undefined && thisTblStyle !== undefined) {
-                var bgFillschemeClr = getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:fill", "a:solidFill"]);
-                if (bgFillschemeClr !== undefined) {
-                    var local_fillColor = getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
-                    if (local_fillColor !== undefined) {
-                        celFillColor = " background-color: #" + local_fillColor + ";";
-                    }
-                }
-            }
-        }
-        
-        var cssName = "";
-        if (celFillColor !== undefined && celFillColor != "") {
-            if (celFillColor in styleTable) {
-                cssName = styleTable[celFillColor]["name"];
-            } else {
-                cssName = "_tbl_cell_css_" + (Object.keys(styleTable).length + 1);
-                styleTable[celFillColor] = {
-                    "name": cssName,
-                    "text": celFillColor
-                };
-            }
-        }
-        
-        colStyl += celFillColor;
-        
-        return [text, colStyl, cssName, rowSpan, colSpan];
-    }
+
 
     // 生成表格 HTML
     function genTable(node, warpObj) {
@@ -450,7 +284,7 @@
                                 a_sorce = "a:lastCol";
                             }
 
-                            var cellParmAry = getTableCellParams(tcNodes[j], getColsGrid, i, j, thisTblStyle, a_sorce, warpObj);
+                            var cellParmAry = window.PPTXTableUtils.getTableCellParams(tcNodes[j], getColsGrid, i, j, thisTblStyle, a_sorce, warpObj, styleTable);
                             var text = cellParmAry[0];
                             var colStyl = cellParmAry[1];
                             var cssName = cellParmAry[2];
@@ -481,7 +315,7 @@
                     if (tblStylAttrObj["isFrstColAttr"] == 1) {
                         a_sorce = "a:firstCol";
                     }
-                    var cellParmAry = getTableCellParams(tcNodes, getColsGrid, i, undefined, thisTblStyle, a_sorce, warpObj);
+                    var cellParmAry = window.PPTXTableUtils.getTableCellParams(tcNodes, getColsGrid, i, undefined, thisTblStyle, a_sorce, warpObj, styleTable);
                     var text = cellParmAry[0];
                     var colStyl = cellParmAry[1];
                     var cssName = cellParmAry[2];
