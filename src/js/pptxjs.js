@@ -73,8 +73,8 @@
 
         var rtl_langs_array = ["he-IL", "ar-AE", "ar-SA", "dv-MV", "fa-IR","ur-PK"]
 
-        var slideFactor = 96 / 914400;
-        var fontSizeFactor = 4 / 3.2;
+        var slideFactor = window.PPTXConstants.SLIDE_FACTOR;
+        var fontSizeFactor = window.PPTXConstants.FONT_SIZE_FACTOR;
         ////////////////////// 
         var slideWidth = 0;
     var slideHeight = 0;
@@ -8468,7 +8468,7 @@
 
                 if (!isIE11) {
                     //ie11 does not support unicode ?
-                    htmlBu = getHtmlBullet(typefaceNode, buChar);
+                    htmlBu = window.PPTXTableUtils.getHtmlBullet(typefaceNode, buChar);
                 }
                 bullet += "'><div style='line-height: " + (font_val/2) + "px;'>" + htmlBu + "</div></div>"; //font_val
                 //} 
@@ -8572,38 +8572,8 @@
             //console.log("genBuChar: width: ", $(bullet).outerWidth())
             return [bullet, margin_val, font_val];//$(bullet).outerWidth()];
         }
-        function getHtmlBullet(typefaceNode, buChar) {
-            //http://www.alanwood.net/demos/wingdings.html
-            //not work for IE11
-            //console.log("genBuChar typefaceNode:", typefaceNode, " buChar:", buChar, "charCodeAt:", buChar.charCodeAt(0))
-            switch (buChar) {
-                case "§":
-                    return "&#9632;";//"■"; //9632 | U+25A0 | Black square
-                    break;
-                case "q":
-                    return "&#10065;";//"❑"; // 10065 | U+2751 | Lower right shadowed white square
-                    break;
-                case "v":
-                    return "&#10070;";//"❖"; //10070 | U+2756 | Black diamond minus white X
-                    break;
-                case "Ø":
-                    return "&#11162;";//"⮚"; //11162 | U+2B9A | Three-D top-lighted rightwards equilateral arrowhead
-                    break;
-                case "ü":
-                    return "&#10004;";//"✔";  //10004 | U+2714 | Heavy check mark
-                    break;
-                default:
-                    if (/*typefaceNode == "Wingdings" ||*/ typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3"){
-                        var wingCharCode = window.TextUtils.getDingbatToUnicode(typefaceNode, buChar);
-                        if (wingCharCode !== null){
-                            return "&#" + wingCharCode + ";";
-                        }
-                    }
-                    return "&#" + (buChar.charCodeAt(0)) + ";";
-            }
-        }
+        // getHtmlBullet 已移至 PPTXTableUtils 模块
         // getDingbatToUnicode 已移至 TextUtils 模块
-
         // getLayoutAndMasterNode 已移至 PPTXLayoutUtils 模块
         function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
             //https://codepen.io/imdunn/pen/GRgwaye ?
