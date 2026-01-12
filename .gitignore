@@ -5,6 +5,7 @@ node_modules/
 coverage/
 .idea/
 run/
+dist/
 .DS_Store
 *.sw*
 *.un~
