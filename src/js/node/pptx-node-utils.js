@@ -1,0 +1,135 @@
+/**
+ * pptx-node-utils.js
+ * 节点处理工具模块
+ * 负责 PPTX 中各种节点类型的处理和路由
+ */
+
+(function () {
+    var PPTXNodeUtils = {};
+
+    /**
+     * 处理幻灯片中的节点
+     * @param {string} nodeKey - 节点键
+     * @param {Object} nodeValue - 节点值
+     * @param {Object} nodes - 节点集合
+     * @param {Object} warpObj - 包装对象
+     * @param {string} source - 来源
+     * @param {string} sType - 子类型
+     * @param {Object} handlers - 处理函数集合
+     * @returns {string} HTML字符串
+     */
+    PPTXNodeUtils.processNodesInSlide = function(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers) {
+        var result = "";
+
+        switch (nodeKey) {
+            case "p:sp":    // Shape, Text
+                result = handlers.processSpNode(nodeValue, nodes, warpObj, source, sType);
+                break;
+            case "p:cxnSp":    // Shape, Text (with connection)
+                result = handlers.processCxnSpNode(nodeValue, nodes, warpObj, source, sType);
+                break;
+            case "p:pic":    // Picture
+                result = handlers.processPicNode(nodeValue, warpObj, source, sType);
+                break;
+            case "p:graphicFrame":    // Chart, Diagram, Table
+                result = handlers.processGraphicFrameNode(nodeValue, warpObj, source, sType);
+                break;
+            case "p:grpSp":
+                result = handlers.processGroupSpNode(nodeValue, warpObj, source);
+                break;
+            case "mc:AlternateContent": // Equations and formulas as Image
+                var mcFallbackNode = window.PPTXUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
+                result = handlers.processGroupSpNode(mcFallbackNode, warpObj, source);
+                break;
+            default:
+        }
+
+        return result;
+    };
+
+    /**
+     * 处理组节点(包含多个子元素的组)
+     * @param {Object} node - 组节点
+     * @param {Object} warpObj - 包装对象
+     * @param {string} source - 来源
+     * @param {number} slideFactor - 幻灯片缩放因子
+     * @param {Function} processNodesInSlide - 处理幻灯片节点的函数
+     * @returns {string} HTML字符串
+     */
+    PPTXNodeUtils.processGroupSpNode = function(node, warpObj, source, slideFactor, processNodesInSlide) {
+        var xfrmNode = window.PPTXUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
+        var top, left, width, height;
+        var grpStyle = "";
+        var sType = "group";
+        var rotate = 0;
+        var rotStr = "";
+
+        if (xfrmNode !== undefined) {
+            var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+            var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+            var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
+            var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+            var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
+            var cy = parseInt(xfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
+            var chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
+            var chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+
+            rotate = parseInt(xfrmNode["attrs"]["rot"]);
+
+            top = y - chy;
+            left = x - chx;
+            width = cx - chcx;
+            height = cy - chcy;
+
+            if (!isNaN(rotate)) {
+                rotate = window.PPTXColorUtils.angleToDegrees(rotate);
+                rotStr += "transform: rotate(" + rotate + "deg) ; transform-origin: center;";
+                if (rotate != 0) {
+                    top = y;
+                    left = x;
+                    width = cx;
+                    height = cy;
+                    sType = "group-rotate";
+                }
+            }
+        }
+
+        if (rotStr !== undefined && rotStr != "") {
+            grpStyle += rotStr;
+        }
+
+        if (top !== undefined) {
+            grpStyle += "top: " + top + "px;";
+        }
+        if (left !== undefined) {
+            grpStyle += "left: " + left + "px;";
+        }
+        if (width !== undefined) {
+            grpStyle += "width:" + width + "px;";
+        }
+        if (height !== undefined) {
+            grpStyle += "height: " + height + "px;";
+        }
+
+        var order = node["attrs"]["order"];
+        var result = "<div class='block group' style='z-index: " + order + ";" + grpStyle + "'>";
+
+        // Process all child nodes
+        for (var nodeKey in node) {
+            if (node[nodeKey].constructor === Array) {
+                for (var i = 0; i < node[nodeKey].length; i++) {
+                    result += processNodesInSlide(nodeKey, node[nodeKey][i], node, warpObj, source, sType);
+                }
+            } else if (typeof node[nodeKey] === 'object' && nodeKey !== "attrs") {
+                result += processNodesInSlide(nodeKey, node[nodeKey], node, warpObj, source, sType);
+            }
+        }
+
+        result += "</div>";
+        return result;
+    };
+
+    // Export to global scope
+    window.PPTXNodeUtils = PPTXNodeUtils;
+
+})();
