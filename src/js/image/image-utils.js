@@ -1,5 +1,5 @@
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXHtml } from '../pptx-html.js';
+import { PPTXHtml } from '../html-generator.js';
 
 var PPTXImageUtils = {};
 

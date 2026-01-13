@@ -1,6 +1,6 @@
 import { PPTXUtils } from './utils/utils.js';
-import { PPTXColorUtils } from './core/pptx-color-utils.js';
-import { PPTXTableUtils } from './table/pptx-table-utils.js';
+import { PPTXColorUtils } from './core/color-utils.js';
+import { PPTXTableUtils } from './table/table-utils.js';
 
     // 全局变量引用
     var settings = window.settings; // 将在 pptxjs.js 中设置

@@ -1,8 +1,8 @@
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
-import { PPTXTextStyleUtils } from './pptx-text-style-utils.js';
-import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js';
-import { PPTXConstants } from '../core/pptx-constants.js';
+import { PPTXColorUtils } from '../core/color-utils.js';
+import { PPTXTextStyleUtils } from './text-style-utils.js';
+import { PPTXLayoutUtils } from '../core/layout-utils.js';
+import { PPTXConstants } from '../core/constants.js';
 
 class PPTXBulletUtils {
     /**

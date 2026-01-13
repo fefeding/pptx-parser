@@ -1,5 +1,5 @@
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXColorUtils } from '../core/color-utils.js';
 
 class PPTXShapeFillsUtils {
     /**

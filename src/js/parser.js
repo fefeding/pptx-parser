@@ -1,7 +1,7 @@
 
 
     import { PPTXUtils } from './utils/utils.js';
-    import { PPTXColorUtils } from './core/pptx-color-utils.js';
+    import { PPTXColorUtils } from './core/color-utils.js';
 
     // 全局变量，将在初始化时设置
     var app_verssion;

@@ -3,4 +3,4 @@
  * 重新导出pptToHtml函数
  */
 
-export { pptxToHtml } from './js/pptxjs.js';
+export { pptxToHtml } from './js/index.js';

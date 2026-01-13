@@ -1,7 +1,7 @@
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
-import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js';
-import { PPTXShapeFillsUtils } from '../shape/pptx-shape-fills-utils.js';
+import { PPTXColorUtils } from '../core/color-utils.js';
+import { PPTXLayoutUtils } from '../core/layout-utils.js';
+import { PPTXShapeFillsUtils } from '../shape/shape-fills-utils.js';
 
 class PPTXTextStyleUtils {
     static fontSizeFactor = 4 / 3.2;

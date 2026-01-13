@@ -8,11 +8,11 @@
 <link rel="stylesheet" href="./css/pptxjs.css">
 
 
-<script type="text/javascript" src="./js/jszip.min.js"></script>
+<script type="text/javascript" src="./js/lib/jszip.min.js"></script>
     <script type="text/javascript" src="./js/utils/jszip-utils.js"></script>
-    <script type="text/javascript" src="./js/txml.js"></script>
-    <script type="text/javascript" src="./js/tinycolor.js"></script>
-    <script type="text/javascript" src="./js/filereader.js"></script>
+    <script type="text/javascript" src="./js/lib/txml.js"></script>
+    <script type="text/javascript" src="./js/lib/tinycolor.js"></script>
+    <script type="text/javascript" src="./js/file-reader.js"></script>
   
 <style>
 	html, body { margin: 0; padding: 0; }
@@ -30,7 +30,7 @@
 		</div>
 	</div>
 <script type="module">
-    import { pptxToHtml } from './js/pptxjs.js';
+    import { pptxToHtml } from './js/index.js';
     
     pptxToHtml(document.getElementById('result'), {
 	fileInputId: "uploadFileInput",

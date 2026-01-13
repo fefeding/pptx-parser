@@ -1,5 +1,5 @@
     // PPTX 坐标转换因子 (96 pixels per inch / 914400 EMUs per inch)
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXColorUtils } from '../core/color-utils.js';
 var slideFactor = 96 / 914400;
 
 
