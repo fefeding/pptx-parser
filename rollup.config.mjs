@@ -15,7 +15,7 @@ const banner = `/**
  */`;
 
 export default [
-  // 打包核心代码：输出 ESM + CJS 双格式，压缩生产版本
+  // 打包核心代码：输出 ESM + CJS 双格式，不压缩（用于 Node.js 开发）
   {
     input: 'src/index.ts',
     output: [
@@ -24,23 +24,77 @@ export default [
         format: 'es',
         banner,
         sourcemap: true,
-        exports: 'named' // ✅ 修复警告核心配置
+        exports: 'named'
       },
       {
         file: pkg.main,
         format: 'cjs',
         banner,
         sourcemap: true,
-        exports: 'named' // ✅ 修复警告核心配置
+        exports: 'named'
       }
     ],
     plugins: [
       nodeResolve(),
       commonjs(),
-      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
-      terser({ compress: true, mangle: true })
+      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } })
     ],
     external: [...Object.keys(pkg.dependencies)]
+  },
+  // 打包浏览器版本：输出 IIFE 格式（压缩版本）
+  {
+    input: 'src/index.ts',
+    output: {
+      file: './dist/ppt-parser.browser.min.js',
+      format: 'iife',
+      name: 'PPTXParser',
+      banner,
+      sourcemap: true,
+      globals: {
+        'jszip': 'JSZip',
+        'tinycolor2': 'tinycolor',
+        'txml': 'txml'
+      }
+    },
+    plugins: [
+      nodeResolve({
+        browser: true,
+        preferBuiltins: false
+      }),
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
+      terser({
+        compress: true,
+        mangle: true,
+        format: {
+          comments: false
+        }
+      })
+    ]
+  },
+  // 打包浏览器版本：输出 IIFE 格式（非压缩版本）
+  {
+    input: 'src/index.ts',
+    output: {
+      file: './dist/ppt-parser.browser.js',
+      format: 'iife',
+      name: 'PPTXParser',
+      banner,
+      sourcemap: true,
+      globals: {
+        'jszip': 'JSZip',
+        'tinycolor2': 'tinycolor',
+        'txml': 'txml'
+      }
+    },
+    plugins: [
+      nodeResolve({
+        browser: true,
+        preferBuiltins: false
+      }),
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } })
+    ]
   },
   // 打包类型声明文件：生成完整的.d.ts文件
   {
