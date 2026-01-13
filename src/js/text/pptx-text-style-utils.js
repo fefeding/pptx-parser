@@ -1,4 +1,5 @@
 import { PPTXUtils } from '../utils/utils.js';
+import { PPTXColorUtils } from '../core/pptx-color-utils.js';
 
 class PPTXTextStyleUtils {
     static fontSizeFactor = 4 / 3.2;

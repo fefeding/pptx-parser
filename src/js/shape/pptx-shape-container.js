@@ -1,4 +1,5 @@
 import { PPTXUtils } from '../utils/utils.js';
+import { PPTXColorUtils } from '../core/pptx-color-utils.js';
 // 辅助函数：获取形状变换参数（flip, rotate等）
 function getShapeTransformParams(node) {
     var result = {

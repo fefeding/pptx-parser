@@ -1,15 +1,17 @@
 import { PPTXUtils } from '../utils/utils.js';
-var PPTXBackgroundUtils = {};
+import { PPTXColorUtils } from './pptx-color-utils.js';
+
+class PPTXBackgroundUtils {
 
     /**
- * 获取幻灯片背景
- * @param {Object} warpObj - 包装对象,包含幻灯片内容
- * @param {Object} slideSize - 幻灯片尺寸
- * @param {number} index - 幻灯片索引
- * @param {Function} processNodesInSlide - 处理幻灯片中节点的回调函数
- * @returns {string} 背景HTML字符串
- */
-PPTXBackgroundUtils.getBackground = function(warpObj, slideSize, index, processNodesInSlide) {
+     * 获取幻灯片背景
+     * @param {Object} warpObj - 包装对象,包含幻灯片内容
+     * @param {Object} slideSize - 幻灯片尺寸
+     * @param {number} index - 幻灯片索引
+     * @param {Function} processNodesInSlide - 处理幻灯片中节点的回调函数
+     * @returns {string} 背景HTML字符串
+     */
+    static getBackground(warpObj, slideSize, index, processNodesInSlide) {
     var slideContent = warpObj["slideContent"];
     var slideLayoutContent = warpObj["slideLayoutContent"];
     var slideMasterContent = warpObj["slideMasterContent"];
@@ -18,7 +20,7 @@ PPTXBackgroundUtils.getBackground = function(warpObj, slideSize, index, processN
     var nodesSldMaster = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:spTree"]);
 
     var showMasterSp = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "attrs", "showMasterSp"]);
-    var bgColor = this.getSlideBackgroundFill(warpObj, index);
+    var bgColor = PPTXBackgroundUtils.getSlideBackgroundFill(warpObj, index);
     var result = "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
     var node_ph_type_ary = [];
     if (nodesSldLayout !== undefined) {
@@ -52,15 +54,16 @@ PPTXBackgroundUtils.getBackground = function(warpObj, slideSize, index, processN
         }
     }
     return result;
-};
+
+}
 
     /**
- * 获取幻灯片背景填充样式
- * @param {Object} warpObj - 包装对象
- * @param {number} index - 幻灯片索引
- * @returns {string} 背景CSS样式字符串
- */
-PPTXBackgroundUtils.getSlideBackgroundFill = function(warpObj, index) {
+     * 获取幻灯片背景填充样式
+     * @param {Object} warpObj - 包装对象
+     * @param {number} index - 幻灯片索引
+     * @returns {string} 背景CSS样式字符串
+     */
+    static getSlideBackgroundFill(warpObj, index) {
     var slideContent = warpObj["slideContent"];
     var slideLayoutContent = warpObj["slideLayoutContent"];
     var slideMasterContent = warpObj["slideMasterContent"];
@@ -71,9 +74,9 @@ PPTXBackgroundUtils.getSlideBackgroundFill = function(warpObj, index) {
 
     // 检查幻灯片级别的背景
     if (bgPr !== undefined) {
-        bgcolor = this._getBgFillFromPr(bgPr, slideContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, undefined, index);
+        bgcolor = PPTXBackgroundUtils._getBgFillFromPr(bgPr, slideContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, undefined, index);
     } else if (bgRef !== undefined) {
-        bgcolor = this._getBgFillFromRef(bgRef, slideContent, slideLayoutContent, slideMasterContent, warpObj);
+        bgcolor = PPTXBackgroundUtils._getBgFillFromRef(bgRef, slideContent, slideLayoutContent, slideMasterContent, warpObj);
     }
     else {
         // 检查幻灯片布局级别的背景
@@ -85,13 +88,13 @@ PPTXBackgroundUtils.getSlideBackgroundFill = function(warpObj, index) {
             if (clrMapOvr === undefined) {
                 clrMapOvr = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
             }
-            bgcolor = this._getBgFillFromPr(bgPr, slideLayoutContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, clrMapOvr, index);
+            bgcolor = PPTXBackgroundUtils._getBgFillFromPr(bgPr, slideLayoutContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, clrMapOvr, index);
         } else if (bgRef !== undefined) {
             var clrMapOvr = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
             if (clrMapOvr === undefined) {
                 clrMapOvr = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
             }
-            bgcolor = this._getBgFillFromRef(bgRef, slideLayoutContent, slideLayoutContent, slideMasterContent, warpObj, clrMapOvr);
+            bgcolor = PPTXBackgroundUtils._getBgFillFromRef(bgRef, slideLayoutContent, slideLayoutContent, slideMasterContent, warpObj, clrMapOvr);
         } else {
             // 检查幻灯片母版级别的背景
             bgPr = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:bg", "p:bgPr"]);
@@ -99,48 +102,50 @@ PPTXBackgroundUtils.getSlideBackgroundFill = function(warpObj, index) {
             var clrMap = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
 
             if (bgPr !== undefined) {
-                bgcolor = this._getBgFillFromPr(bgPr, slideMasterContent, slideMasterContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, clrMap, index);
+                bgcolor = PPTXBackgroundUtils._getBgFillFromPr(bgPr, slideMasterContent, slideMasterContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, clrMap, index);
             } else if (bgRef !== undefined) {
-                bgcolor = this._getBgFillFromRef(bgRef, slideMasterContent, slideMasterContent, slideMasterContent, warpObj, clrMap);
+                bgcolor = PPTXBackgroundUtils._getBgFillFromRef(bgRef, slideMasterContent, slideMasterContent, slideMasterContent, warpObj, clrMap);
             }
         }
     }
 
     return bgcolor || "";
-};
+
+}
 
     /**
  * 从背景属性节点获取背景填充
  * @private
  */
-PPTXBackgroundUtils._getBgFillFromPr = function(bgPr, currentContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContentRef, slideMasterContentRef, clrMapOvr, index) {
+    static _getBgFillFromPr(bgPr, currentContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContentRef, slideMasterContentRef, clrMapOvr, index) {
     var bgFillTyp = PPTXColorUtils.getFillType(bgPr);
     var bgcolor = "";
 
     if (bgFillTyp == "SOLID_FILL") {
         var sldFill = bgPr["a:solidFill"];
         if (clrMapOvr === undefined) {
-            clrMapOvr = this._getClrMapOverride(currentContent, slideLayoutContentRef, slideMasterContentRef);
+            clrMapOvr = PPTXBackgroundUtils._getClrMapOverride(currentContent, slideLayoutContentRef, slideMasterContentRef);
         }
         var sldBgClr = PPTXColorUtils.getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
         bgcolor = "background: #" + sldBgClr + ";";
     } else if (bgFillTyp == "GRADIENT_FILL") {
-        bgcolor = this.getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
+        bgcolor = PPTXBackgroundUtils.getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
     } else if (bgFillTyp == "PIC_FILL") {
         var source = currentContent === slideContent ? "slideBg" : (currentContent === slideLayoutContentRef ? "slideLayoutBg" : "slideMasterBg");
-        bgcolor = this.getBgPicFill(bgPr, source, warpObj, undefined, index);
+        bgcolor = PPTXBackgroundUtils.getBgPicFill(bgPr, source, warpObj, undefined, index);
     }
 
     return bgcolor;
-};
+
+}
 
     /**
  * 从背景引用节点获取背景填充
  * @private
  */
-PPTXBackgroundUtils._getBgFillFromRef = function(bgRef, currentContent, slideLayoutContent, slideMasterContent, warpObj, clrMapOvr) {
+    static _getBgFillFromRef(bgRef, currentContent, slideLayoutContent, slideMasterContent, warpObj, clrMapOvr) {
     if (clrMapOvr === undefined) {
-        clrMapOvr = this._getClrMapOverride(currentContent, slideLayoutContent, slideMasterContent);
+        clrMapOvr = PPTXBackgroundUtils._getClrMapOverride(currentContent, slideLayoutContent, slideMasterContent);
     }
 
     var phClr = PPTXColorUtils.getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
@@ -155,7 +160,7 @@ PPTXBackgroundUtils._getBgFillFromRef = function(bgRef, currentContent, slideLay
         // bgFillStyleLst in themeContent
         var trueIdx = idx - 1000;
         var bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
-        var bgFillLstIdx = this._getBgFillLstIndex(bgFillLst, trueIdx);
+        var bgFillLstIdx = PPTXBackgroundUtils._getBgFillLstIndex(bgFillLst, trueIdx);
         var bgFillTyp = PPTXColorUtils.getFillType(bgFillLstIdx);
 
         if (bgFillTyp == "SOLID_FILL") {
@@ -163,20 +168,21 @@ PPTXBackgroundUtils._getBgFillFromRef = function(bgRef, currentContent, slideLay
             var sldBgClr = PPTXColorUtils.getSolidFill(sldFill, clrMapOvr, phClr, warpObj);
             bgcolor = "background: #" + sldBgClr + ";";
         } else if (bgFillTyp == "GRADIENT_FILL") {
-            bgcolor = this.getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
+            bgcolor = PPTXBackgroundUtils.getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
         } else if (bgFillTyp == "PIC_FILL") {
-            bgcolor = this.getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, undefined);
+            bgcolor = PPTXBackgroundUtils.getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, undefined);
         }
     }
 
     return bgcolor;
-};
+
+}
 
     /**
  * 获取颜色映射覆盖
  * @private
  */
-PPTXBackgroundUtils._getClrMapOverride = function(currentContent, slideLayoutContent, slideMasterContent) {
+    static _getClrMapOverride(currentContent, slideLayoutContent, slideMasterContent) {
     var clrMapOvr = PPTXUtils.getTextByPathList(currentContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
     if (clrMapOvr === undefined && currentContent !== slideLayoutContent) {
         clrMapOvr = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
@@ -185,13 +191,14 @@ PPTXBackgroundUtils._getClrMapOverride = function(currentContent, slideLayoutCon
         clrMapOvr = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
     }
     return clrMapOvr;
-};
+
+}
 
     /**
  * 获取背景填充列表中指定索引的项
  * @private
  */
-PPTXBackgroundUtils._getBgFillLstIndex = function(bgFillLst, trueIdx) {
+    static _getBgFillLstIndex(bgFillLst, trueIdx) {
     var sortblAry = [];
     Object.keys(bgFillLst).forEach(function (key) {
         var bgFillLstTyp = bgFillLst[key];
@@ -218,7 +225,8 @@ PPTXBackgroundUtils._getBgFillLstIndex = function(bgFillLst, trueIdx) {
         return a.idex - b.idex;
     });
     return sortByOrder[trueIdx - 1];
-};
+
+}
 
     /**
  * 获取渐变背景填充
@@ -228,7 +236,7 @@ PPTXBackgroundUtils._getBgFillLstIndex = function(bgFillLst, trueIdx) {
  * @param {Object} warpObj - 包装对象
  * @returns {string} 渐变背景CSS样式字符串
  */
-PPTXBackgroundUtils.getBgGradientFill = function(bgPr, phClr, slideMasterContent, warpObj) {
+    static getBgGradientFill(bgPr, phClr, slideMasterContent, warpObj) {
     var bgcolor = "";
     if (bgPr !== undefined) {
         var grdFill = bgPr["a:gradFill"];
@@ -269,7 +277,8 @@ PPTXBackgroundUtils.getBgGradientFill = function(bgPr, phClr, slideMasterContent
         }
     }
     return bgcolor;
-};
+
+}
 
     /**
  * 获取图片背景填充
@@ -280,7 +289,7 @@ PPTXBackgroundUtils.getBgGradientFill = function(bgPr, phClr, slideMasterContent
  * @param {number} index - 幻灯片索引
  * @returns {string} 图片背景CSS样式字符串
  */
-PPTXBackgroundUtils.getBgPicFill = function(bgPr, source, warpObj, phClr, index) {
+    static getBgPicFill(bgPr, source, warpObj, phClr, index) {
     var picFillResult = PPTXColorUtils.getPicFill(source, bgPr["a:blipFill"], warpObj);
     // 提取图片 URL（picFillResult 可能是对象或字符串）
     var picFillBase64 = typeof picFillResult === 'object' && picFillResult.img ? picFillResult.img : picFillResult;
@@ -319,13 +328,9 @@ PPTXBackgroundUtils.getBgPicFill = function(bgPr, source, warpObj, phClr, index)
 
     var bgcolor = "background: url(" + picFillBase64 + "); z-index: " + ordr + ";" + prop_style + imgOpacity;
     return bgcolor;
-};
 
-    // Export to global scope
-window.PPTXBackgroundUtils = PPTXBackgroundUtils;
+}
+}
 
 
 export { PPTXBackgroundUtils };
-
-// Also export to global scope for backward compatibility
-window.PPTXBackgroundUtils = PPTXBackgroundUtils;

@@ -1,3 +1,5 @@
+import { PPTXUtils } from '../utils/utils.js';
+import { PPTXColorUtils } from '../core/pptx-color-utils.js';
 
 class PPTXTextElementUtils {
     /**

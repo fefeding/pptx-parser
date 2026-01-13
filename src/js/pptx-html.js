@@ -1,7 +1,7 @@
-
+import { PPTXUtils } from './utils/utils.js';
+import { PPTXColorUtils } from './core/pptx-color-utils.js';
 
     // 全局变量引用
-    var PPTXUtils = window.PPTXUtils;
     var settings = window.settings; // 将在 pptxjs.js 中设置
     var PPTXParser = window.PPTXParser; // 从 PPTXParser 获取变量
 

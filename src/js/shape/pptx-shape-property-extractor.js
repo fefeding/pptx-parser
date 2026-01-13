@@ -1,4 +1,4 @@
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXUtils } from '../utils/utils.js';
 
     /**
  * 提取形状的基本几何属性和变换信息
@@ -37,7 +37,7 @@ function extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, sli
     }
 
     // 旋转角度
-    var rotate = PPTXColorUtils.angleToDegrees(
+    var rotate = PPTXUtils.angleToDegrees(
         PPTXUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"])
     );
 
@@ -47,7 +47,7 @@ function extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, sli
     if (txtXframeNode !== undefined) {
         var txtXframeRot = PPTXUtils.getTextByPathList(txtXframeNode, ["attrs", "rot"]);
         if (txtXframeRot !== undefined) {
-            txtRotate = PPTXColorUtils.angleToDegrees(txtXframeRot) + 90;
+            txtRotate = PPTXUtils.angleToDegrees(txtXframeRot) + 90;
         }
     } else {
         txtRotate = rotate;

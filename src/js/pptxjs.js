@@ -16,6 +16,7 @@
 
 // Import dependencies
 import { PPTXUtils } from './utils/utils.js';
+import { PPTXColorUtils } from './core/pptx-color-utils.js';
 import { PPTXParser } from './pptx-parser.js';
 import { PPTXHtml } from './pptx-html.js';
 import { PPTXShapeUtils } from './shape/pptx-shape-utils.js';

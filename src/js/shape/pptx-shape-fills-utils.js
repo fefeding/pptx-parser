@@ -1,17 +1,17 @@
-(function() {
+import { PPTXUtils } from '../utils/utils.js';
+import { PPTXColorUtils } from '../core/pptx-color-utils.js';
 
-var PPTXShapeFillsUtils = {};
-
+class PPTXShapeFillsUtils {
     /**
- * Get border style for a shape or text
- * @param {Object} node - The node containing border info
- * @param {Object} pNode - The parent node
- * @param {Boolean} isSvgMode - Whether to return SVG format
- * @param {String} bType - Border type ("shape" or "text")
- * @param {Object} warpObj - The warp object containing theme content
- * @returns {String|Object} Border CSS string or SVG object
- */
-PPTXShapeFillsUtils.getBorder = function(node, pNode, isSvgMode, bType, warpObj) {
+     * Get border style for a shape or text
+     * @param {Object} node - The node containing border info
+     * @param {Object} pNode - The parent node
+     * @param {Boolean} isSvgMode - Whether to return SVG format
+     * @param {String} bType - Border type ("shape" or "text")
+     * @param {Object} warpObj - The warp object containing theme content
+     * @returns {String|Object} Border CSS string or SVG object
+     */
+    static getBorder(node, pNode, isSvgMode, bType, warpObj) {
     var cssText, lineNode, subNodeTxt;
 
     if (bType == "shape") {
@@ -155,7 +155,7 @@ PPTXShapeFillsUtils.getBorder = function(node, pNode, isSvgMode, bType, warpObj)
  * @param {String} source - The source ("slideLayoutBg", "slideMasterBg", etc.)
  * @returns {String} Fill CSS or SVG format
  */
-PPTXShapeFillsUtils.getShapeFill = function(node, pNode, isSvgMode, warpObj, source) {
+    static getShapeFill(node, pNode, isSvgMode, warpObj, source) {
     var fillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:spPr"]));
     var fillColor;
 
@@ -261,7 +261,7 @@ PPTXShapeFillsUtils.getShapeFill = function(node, pNode, isSvgMode, warpObj, sou
  * @param {String} shpId - Shape ID
  * @returns {String} SVG gradient XML
  */
-PPTXShapeFillsUtils.getSvgGradient = function(w, h, angl, color_arry, shpId) {
+    static getSvgGradient(w, h, angl, color_arry, shpId) {
     var stopsArray = PPTXColorUtils.getMiddleStops(color_arry - 2);
 
     var svgAngle = '',
@@ -300,7 +300,7 @@ PPTXShapeFillsUtils.getSvgGradient = function(w, h, angl, color_arry, shpId) {
  * @param {Object} warpObj - The warp object
  * @returns {String} SVG pattern XML
  */
-PPTXShapeFillsUtils.getSvgImagePattern = function(node, fill, shpId, warpObj) {
+    static getSvgImagePattern(node, fill, shpId, warpObj) {
     // 处理 fill 可能是对象的情况（当 getPicFill 返回包含属性的对象时）
     var fillValue = typeof fill === 'object' && fill.img ? fill.img : fill;
     var pic_dim = PPTXColorUtils.getBase64ImageDimensions(fillValue);
@@ -370,11 +370,7 @@ PPTXShapeFillsUtils.getSvgImagePattern = function(node, fill, shpId, warpObj) {
     ptrn += '</pattern>';
 
     return ptrn;
-};
-
-    // Export to window
+}
+}
 
 export { PPTXShapeFillsUtils };
-
-// Also export to global scope for backward compatibility
-window.PPTXShapeFillsUtils = PPTXShapeFillsUtils;
