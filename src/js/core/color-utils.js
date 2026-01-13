@@ -1,4 +1,6 @@
 import { PPTXUtils } from '../utils/utils.js';
+import tinycolor from 'tinycolor2';
+
 function getFillType(node) {
     //Need to test/////////////////////////////////////////////
     //SOLID_FILL

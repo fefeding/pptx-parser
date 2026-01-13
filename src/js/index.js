@@ -15,6 +15,8 @@
 
 
 // Import dependencies
+import JSZip from 'jszip';
+import { JSZipUtils } from './utils/jszip-utils.js';
 import { PPTXUtils } from './utils/utils.js';
 import { PPTXColorUtils } from './core/color-utils.js';
 import { PPTXParser } from './parser.js';

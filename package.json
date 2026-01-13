@@ -49,6 +49,8 @@
     "fast-xml-parser": "^4.4.1",
     "html-escaper": "^3.0.3",
     "jszip": "^3.10.1",
+    "tinycolor2": "^1.6.0",
+    "txml": "^5.2.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

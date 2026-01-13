@@ -1,5 +1,6 @@
 import { PPTXUtils } from '../utils/utils.js';
 import { PPTXColorUtils } from '../core/color-utils.js';
+import tinycolor from 'tinycolor2';
 
 class PPTXShapeFillsUtils {
     /**
