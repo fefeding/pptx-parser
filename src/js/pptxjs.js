@@ -5952,7 +5952,8 @@
 
 
         function genDiagram(node, warpObj, source, sType) {
-            return window.PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFile, getPosition, getSize, processSpNode);
+            var readXmlFileFunc = PPTXParser && PPTXParser.readXmlFile ? PPTXParser.readXmlFile : function() { return null; };
+            return window.PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, processSpNode);
         }
 
 
