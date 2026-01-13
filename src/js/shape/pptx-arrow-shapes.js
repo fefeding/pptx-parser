@@ -1,7 +1,9 @@
-    window.PPTXArrowShapes = {};
+    import { PPTXUtils } from '../utils/utils';
+    
+    const PPTXArrowShapes = {};
 
     // 右箭头
-    window.PPTXArrowShapes.genRightArrow = function(w, h, node, slideFactor) {
+    PPTXArrowShapes.genRightArrow = function(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, sAdj1_val = 0.25;
         var sAdj2, sAdj2_val = 0.5;
@@ -25,7 +27,7 @@
     };
 
     // 左箭头
-    window.PPTXArrowShapes.genLeftArrow = function(w, h, node, slideFactor) {
+    PPTXArrowShapes.genLeftArrow = function(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, sAdj1_val = 0.25;
         var sAdj2, sAdj2_val = 0.5;
@@ -49,7 +51,7 @@
     };
 
     // 下箭头
-    window.PPTXArrowShapes.genDownArrow = function(w, h, node, slideFactor) {
+    PPTXArrowShapes.genDownArrow = function(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, sAdj1_val = 0.25;
         var sAdj2, sAdj2_val = 0.5;
@@ -73,7 +75,7 @@
     };
 
     // 上箭头
-    window.PPTXArrowShapes.genUpArrow = function(w, h, node, slideFactor) {
+    PPTXArrowShapes.genUpArrow = function(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, sAdj1_val = 0.25;
         var sAdj2, sAdj2_val = 0.5;
@@ -97,7 +99,7 @@
     };
 
     // 左右箭头
-    window.PPTXArrowShapes.genLeftRightArrow = function(w, h, node, slideFactor) {
+    PPTXArrowShapes.genLeftRightArrow = function(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, sAdj1_val = 0.25;
         var sAdj2, sAdj2_val = 0.25;
@@ -122,7 +124,7 @@
     };
 
     // 上下箭头
-    window.PPTXArrowShapes.genUpDownArrow = function(w, h, node, slideFactor) {
+    PPTXArrowShapes.genUpDownArrow = function(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, sAdj1_val = 0.25;
         var sAdj2, sAdj2_val = 0.25;
@@ -145,8 +147,6 @@
             ",0 " + (1 - sAdj2_val) * h + "," + w / 2 + " " + h + ", " + w + " " + (1 - sAdj2_val) * h + "," + (1 - sAdj1_val) * w + " " + (1 - sAdj2_val) * h + "," +
             (1 - sAdj1_val) * w + " " + sAdj2_val * h + "," + w + " " + sAdj2_val * h + "'";
     };
-
-}
 
 export { PPTXArrowShapes };
 

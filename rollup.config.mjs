@@ -37,7 +37,7 @@ export default [
     plugins: [
       nodeResolve(),
       commonjs(),
-      typescript({ tsconfig: './tsconfig.json' }),
+      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
       terser({ compress: true, mangle: true })
     ],
     external: [...Object.keys(pkg.dependencies)]

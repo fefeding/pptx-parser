@@ -9,98 +9,11 @@
 
 
 <script type="text/javascript" src="./js/jszip.min.js"></script>
-    <script type="text/javascript" src="./js/core/pptx-constants.js"></script>
     <script type="text/javascript" src="./js/utils/jszip-utils.js"></script>
     <script type="text/javascript" src="./js/txml.js"></script>
     <script type="text/javascript" src="./js/tinycolor.js"></script>
     <script type="text/javascript" src="./js/filereader.js"></script>
-    <script type="text/javascript" src="./js/utils/utils.js"></script>
-    <script type="text/javascript" src="./js/core/pptx-color-utils.js"></script>
-    <script type="text/javascript" src="./js/core/pptx-layout-utils.js"></script>
-    <script type="text/javascript" src="./js/core/pptx-css-utils.js"></script>
-    <script type="text/javascript" src="./js/core/pptx-style-manager.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-shape-utils.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-shape-fills-utils.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-shape-property-extractor.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-shape-container.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-basic-shapes.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-flowchart-shapes.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-actionbutton-shapes.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-star-shapes.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-callout-shapes.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-arrow-shapes.js"></script>
-    <script type="text/javascript" src="./js/shape/pptx-math-shapes.js"></script>
-    <script type="text/javascript" src="./js/text/pptx-text-style-utils.js"></script>
-    <script type="text/javascript" src="./js/text/pptx-bullet-utils.js"></script>
-    <script type="text/javascript" src="./js/text/text-utils.js"></script>
-    <script type="text/javascript" src="./js/text/pptx-text-element-utils.js"></script>
-    <script type="text/javascript" src="./js/table/pptx-table-utils.js"></script>
-    <script type="text/javascript" src="./js/core/pptx-background-utils.js"></script>
-    <script type="text/javascript" src="./js/node/pptx-node-utils.js"></script>
-    <script type="text/javascript" src="./js/image/pptx-image-utils.js"></script>
-    <script type="text/javascript" src="./js/diagram/pptx-diagram-utils.js"></script>
-    <script type="text/javascript" src="./js/ui/pptx-ui-utils.js"></script>
-    <script type="text/javascript" src="./js/pptx-parser.js"></script>
-    <script type="text/javascript" src="./js/pptx-html.js"></script>
-    <script type="module" src="./js/pptxjs.js"></script>
-
-<script type="module">
-    document.addEventListener('DOMContentLoaded', function() {
-		var oldWidth, oldMargin, isFullscreenMode = false;
-		var fullscreenBtn = document.getElementById('fullscreen-btn');
-		var resultDiv = document.getElementById('result');
-		
-		fullscreenBtn.addEventListener('click', function(){
-			if (!isFullscreenMode) {
-				var slides = document.querySelectorAll('#result .slide');
-				if (slides.length > 0) {
-					oldWidth = window.getComputedStyle(slides[0]).width;
-					oldMargin = window.getComputedStyle(slides[0]).margin;
-				}
-				slides.forEach(function(slide) {
-					slide.style.width = '99%';
-					slide.style.margin = '0 auto';
-				});
-				if (resultDiv.requestFullscreen) {
-					resultDiv.requestFullscreen();
-				} else if (resultDiv.mozRequestFullScreen) {
-					resultDiv.mozRequestFullScreen();
-				} else if (resultDiv.webkitRequestFullscreen) {
-					resultDiv.webkitRequestFullscreen();
-				} else if (resultDiv.msRequestFullscreen) {
-					resultDiv.msRequestFullscreen();
-				}
-				isFullscreenMode = true;
-			} else {
-				var slides = document.querySelectorAll('#result .slide');
-				slides.forEach(function(slide) {
-					slide.style.width = oldWidth;
-					slide.style.margin = oldMargin;
-				});
-				if (document.exitFullscreen) {
-					document.exitFullscreen();
-				} else if (document.mozCancelFullScreen) {
-					document.mozCancelFullScreen();
-				} else if (document.webkitExitFullscreen) {
-					document.webkitExitFullscreen();
-				} else if (document.msExitFullscreen) {
-					document.msExitFullscreen();
-				}
-				isFullscreenMode = false;
-			}
-		});
-		
-		document.addEventListener('fullscreenchange', function() {
-			if (!document.fullscreenElement) {
-				var slides = document.querySelectorAll('#result .slide');
-				slides.forEach(function(slide) {
-					slide.style.width = oldWidth;
-					slide.style.margin = oldMargin;
-				});
-			}
-		});
-    });
-</script>
+  
 <style>
 	html, body { margin: 0; padding: 0; }
 	#warper { margin-right: auto; margin-left: auto; }

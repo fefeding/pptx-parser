@@ -209,7 +209,6 @@ class PPTXMathShapes {
     };
 
 }
-}
 
 export { PPTXMathShapes };
 

@@ -18,6 +18,8 @@
     "noImplicitAny": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "allowJs": true,
+    "checkJs": false,
     // ✅ 删除 allowImportingTsExtensions 配置，彻底解决冲突报错
     "noEmit": false
   },

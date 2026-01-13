@@ -24,6 +24,8 @@ import { PPTXBasicShapes } from './shape/pptx-basic-shapes.js';
 import { PPTXShapePropertyExtractor } from './shape/pptx-shape-property-extractor.js';
 import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
 import { PPTXShapeFillsUtils } from './shape/pptx-shape-fills-utils.js';
+import { PPTXShapeContainer } from './shape/pptx-shape-container.js';
+import { PPTXArrowShapes } from './shape/pptx-arrow-shapes.js';
 import { PPTXNodeUtils } from './node/pptx-node-utils.js';
 import { PPTXBackgroundUtils } from './core/pptx-background-utils.js';
 import { PPTXImageUtils } from './image/pptx-image-utils.js';
@@ -827,7 +829,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 " L" + w * 9722 / 21600 + "," + h * 1887 / 21600 +
                                 " z";
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -3231,23 +3233,23 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         result += "/>";
                         break;
                     case "rightArrow":
-                        var points = window.PPTXArrowShapes.genRightArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genRightArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftArrow":
-                        var points = window.PPTXArrowShapes.genLeftArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genLeftArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "downArrow":
                     case "flowChartOffpageConnector":
-                        var points = window.PPTXArrowShapes.genDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "upArrow":
-                        var points = window.PPTXArrowShapes.genUpArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genUpArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -3277,7 +3279,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "upDownArrow":
-                        var points = window.PPTXArrowShapes.genUpDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genUpDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;

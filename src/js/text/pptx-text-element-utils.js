@@ -1,6 +1,9 @@
 import { PPTXUtils } from '../utils/utils.js';
 import { PPTXColorUtils } from '../core/pptx-color-utils.js';
 import { PPTXTextStyleUtils } from './pptx-text-style-utils.js';
+import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js';
+import { PPTXConstants } from '../core/pptx-constants.js';
+import { PPTXBulletUtils } from './pptx-bullet-utils.js';
 
 class PPTXTextElementUtils {
     /**
@@ -56,13 +59,13 @@ class PPTXTextElementUtils {
         lvl = parseInt(lvlNode) + 1;
     }
 
-    var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
+    var layoutMasterNode = PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
     var pPrNodeLaout = layoutMasterNode.nodeLaout;
     var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
     // Language check
     var lang = PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
-    var rtlLangs = window.PPTXConstants.RTL_LANGS;
+    var rtlLangs = PPTXConstants.RTL_LANGS;
     var isRtlLan = (lang !== undefined && rtlLangs.indexOf(lang) !== -1) ? true : false;
 
     // RTL
@@ -311,12 +314,12 @@ class PPTXTextElementUtils {
         //console.log("textBodyNode: ", textBodyNode["a:lstStyle"])
         var prg_width_node = PPTXUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
         var prg_height_node;// = PPTXUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
-        var sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * window.PPTXConstants.SLIDE_FACTOR) + "px;") : "width:inherit;");
-        var sld_prg_height = ((prg_height_node !== undefined) ? ("height:" + (parseInt(prg_height_node) * window.PPTXConstants.SLIDE_FACTOR) + "px;") : "");
+        var sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * PPTXConstants.SLIDE_FACTOR) + "px;") : "width:inherit;");
+        var sld_prg_height = ((prg_height_node !== undefined) ? ("height:" + (parseInt(prg_height_node) * PPTXConstants.SLIDE_FACTOR) + "px;") : "");
         var prg_dir = PPTXTextStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
         text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXTextStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + " " +
             prg_dir + " " + cssName + "' >";
-        var buText_ary = window.PPTXBulletUtils.genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
+        var buText_ary = PPTXBulletUtils.genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
         var isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
         var bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
         text += (buText_ary[0] !== undefined) ? buText_ary[0]:"";
@@ -370,7 +373,7 @@ class PPTXTextElementUtils {
             }
         }
 
-        prg_width_node = parseInt(prg_width_node) * window.PPTXConstants.SLIDE_FACTOR - bu_width - mrgin_val;
+        prg_width_node = parseInt(prg_width_node) * PPTXConstants.SLIDE_FACTOR - bu_width - mrgin_val;
         if (isBullate) {
             //get prg_width_node if there is a bulltes
             //console.log("total_text_len: ", total_text_len, "prg_width_node:", prg_width_node)

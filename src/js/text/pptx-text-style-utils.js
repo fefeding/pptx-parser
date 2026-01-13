@@ -1,6 +1,7 @@
 import { PPTXUtils } from '../utils/utils.js';
 import { PPTXColorUtils } from '../core/pptx-color-utils.js';
-import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js'
+import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js';
+import { PPTXShapeFillsUtils } from '../shape/pptx-shape-fills-utils.js';
 
 class PPTXTextStyleUtils {
     static fontSizeFactor = 4 / 3.2;
@@ -286,7 +287,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
         }
     }
 
-    return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (fontSize * fontSizeFactor + "px");// + "pt");
+    return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (fontSize * this.fontSizeFactor + "px");// + "pt");
 };
 
     /**
@@ -425,7 +426,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     var txtBrdrNode = PPTXUtils.getTextByPathList(node, ["a:rPr", "a:ln"]);
     var textBordr = "";
     if (txtBrdrNode !== undefined && txtBrdrNode["a:noFill"] === undefined) {
-        var txBrd = window.PPTXShapeFillsUtils.getBorder(node, pNode, false, "text", warpObj);
+        var txBrd = PPTXShapeFillsUtils.getBorder(node, pNode, false, "text", warpObj);
         var txBrdAry = txBrd.split(" ");
         //var brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("pt")))) + "px";
         var brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("px")))) + "px";
@@ -450,7 +451,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     var oGlowStr = "";
     if (txtGlowNode !== undefined) {
         var glowClr = PPTXColorUtils.getSolidFill(txtGlowNode, undefined, undefined, warpObj);
-        var rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * slideFactor) : 0;
+        var rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * this.slideFactor) : 0;
         oGlowStr = "0 0 " + rad + "px #" + glowClr +
             ", 0 0 " + rad + "px #" + glowClr +
             ", 0 0 " + rad + "px #" + glowClr +
@@ -493,9 +494,9 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
         //sy (Vertical Scaling Factor) - Specifies the vertical scaling slideFactor; negative scaling causes a flip.
         var algn = outerShdwAttrs["algn"];
         var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
-        var dist = parseInt(outerShdwAttrs["dist"]) * slideFactor;//(px) //* (3 / 4); //(pt)
+        var dist = parseInt(outerShdwAttrs["dist"]) * this.slideFactor;//(px) //* (3 / 4); //(pt)
         var rotWithShape = outerShdwAttrs["rotWithShape"];
-        var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * slideFactor + "px") : "";
+        var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * this.slideFactor + "px") : "";
         var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
         var sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
         var vx = dist * Math.sin(dir * Math.PI / 180);
@@ -662,7 +663,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     //console.log("getPregraphDir node:", node, "textBodyNode", textBodyNode, "rtl:", rtl, "idx", idx, "type", type, "warpObj", warpObj)
 
     if (rtl === undefined) {
-        var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
+        var layoutMasterNode = PPTXLayoutUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
         var pPrNodeLaout = layoutMasterNode.nodeLaout;
         var pPrNodeMaster = layoutMasterNode.nodeMaster;
         rtl = PPTXUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
@@ -802,7 +803,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     }
     var marLStr = "", marRStr = "" , maginVal = 0;
     var pPrNode = pNode["a:pPr"];
-    var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
+    var layoutMasterNode = PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
     var pPrNodeLaout = layoutMasterNode.nodeLaout;
     var pPrNodeMaster = layoutMasterNode.nodeMaster;
     
@@ -841,7 +842,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     }
     var indent = 0;
     if (indentNode !== undefined) {
-        indent = parseInt(indentNode) * slideFactor;
+        indent = parseInt(indentNode) * this.slideFactor;
     }
     //
     //marL
@@ -854,7 +855,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     }
     var marginLeft = 0;
     if (marLNode !== undefined) {
-        marginLeft = parseInt(marLNode) * slideFactor;
+        marginLeft = parseInt(marLNode) * this.slideFactor;
     }
     if ((indentNode !== undefined || marLNode !== undefined)) {
         //var lvlIndent = defTabSz * lvl;
@@ -885,7 +886,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
         }
     }
     if (marRNode !== undefined && isBullate) {
-        var marginRight = parseInt(marRNode) * slideFactor;
+        var marginRight = parseInt(marRNode) * this.slideFactor;
         if (isRTL) {// && alignNode == "r") {
             //marRStr = "margin-right: ";
             marRStr = "padding-right: ";
@@ -934,7 +935,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     }
     var fontSize;
     if (PPTXUtils.getTextByPathList(pNode, ["a:r"]) !== undefined) {
-        var fontSizeStr = window.PPTXTextStyleUtils.getFontSize(pNode["a:r"], textBodyNode,undefined, lvl, type, warpObj);
+        var fontSizeStr = this.getFontSize(pNode["a:r"], textBodyNode,undefined, lvl, type, warpObj);
         if (fontSizeStr != "inherit") {
             fontSize = parseInt(fontSizeStr, "px"); //pt
         }

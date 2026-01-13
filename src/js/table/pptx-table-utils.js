@@ -355,7 +355,7 @@ static genTableInternal(node, warpObj, styleTable) {
                             }
                         }
 
-                        var cellParmAry = PPTXTableUtils.getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj, styleTable)
+                        var cellParmAry = this.getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj, styleTable)
                         var text = cellParmAry[0];
                         var colStyl = cellParmAry[1];
                         var cssName = cellParmAry[2];
@@ -438,7 +438,7 @@ static genTableInternal(node, warpObj, styleTable) {
  * @param {Object} styleTable - The style table object
  * @returns {Array} [text, colStyl, cssName, rowSpan, colSpan]
  */
-getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSource, warpObj, styleTable) {
+static getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSource, warpObj, styleTable) {
     //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
     //text, cell-width, cell-borders, 
     //var text = genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
