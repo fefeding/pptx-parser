@@ -39,6 +39,7 @@ import { PPTXCSSUtils } from './core/css-utils.js';
 import { PPTXTableUtils } from './table/table-utils.js';
 import { PPTXTextStyleUtils } from './text/text-style-utils.js';
 import { PPTXTextElementUtils } from './text/text-element-utils.js';
+import { FileReaderJS } from './file-reader.js';
 
         //var slideLayoutClrOvride = "";
         var defaultTextStyle = null;
@@ -6099,6 +6100,9 @@ import { PPTXTextElementUtils } from './text/text-element-utils.js';
         // Export genTextBody for table module
         window._genTextBody = PPTXTextElementUtils.genTextBody;
         
+        // Also export FileReaderJS to global scope for backward compatibility
+        window.FileReaderJS = FileReaderJS;
+
         // Return API object for external control
         return api;
     }
