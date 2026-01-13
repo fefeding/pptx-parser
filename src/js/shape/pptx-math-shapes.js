@@ -1,7 +1,9 @@
-    window.PPTXMathShapes = {};
+import { PPTXUtils } from '../utils/utils.js';
+
+class PPTXMathShapes {
 
     // 加号
-    window.PPTXMathShapes.genMathPlus = function(w, h, node, slideFactor) {
+    static genMathPlus(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, adj1 = 23520 * slideFactor;
         var cnstVal1 = 50000 * slideFactor;
@@ -50,7 +52,7 @@
     };
 
     // 减号
-    window.PPTXMathShapes.genMathMinus = function(w, h, node, slideFactor) {
+    static genMathMinus(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, adj1 = 23520 * slideFactor;
         var cnstVal1 = 50000 * slideFactor;
@@ -85,7 +87,7 @@
     };
 
     // 乘号
-    window.PPTXMathShapes.genMathMultiply = function(w, h, node, slideFactor) {
+    static genMathMultiply(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, adj1 = 23520 * slideFactor;
         var cnstVal1 = 50000 * slideFactor;
@@ -154,7 +156,7 @@
     };
 
     // 等号
-    window.PPTXMathShapes.genMathEqual = function(w, h, node, slideFactor) {
+    static genMathEqual(w, h, node, slideFactor) {
         var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, adj1 = 23520 * slideFactor;
         var sAdj2, adj2 = 11760 * slideFactor;
@@ -206,6 +208,7 @@
             " z";
     };
 
+}
 }
 
 export { PPTXMathShapes };

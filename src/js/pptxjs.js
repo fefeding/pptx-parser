@@ -22,6 +22,7 @@ import { PPTXHtml } from './pptx-html.js';
 import { PPTXShapeUtils } from './shape/pptx-shape-utils.js';
 import { PPTXBasicShapes } from './shape/pptx-basic-shapes.js';
 import { PPTXShapePropertyExtractor } from './shape/pptx-shape-property-extractor.js';
+import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
 import { PPTXShapeFillsUtils } from './shape/pptx-shape-fills-utils.js';
 import { PPTXNodeUtils } from './node/pptx-node-utils.js';
 import { PPTXBackgroundUtils } from './core/pptx-background-utils.js';
@@ -4882,13 +4883,13 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 " L" + x1 + "," + y4 +
                                 " z";
                         } else if (shapType == "mathEqual") {
-                            dVal = window.PPTXMathShapes.genMathEqual(w, h, node, slideFactor);
+                            dVal = PPTXMathShapes.genMathEqual(w, h, node, slideFactor);
                         } else if (shapType == "mathMinus") {
-                            dVal = window.PPTXMathShapes.genMathMinus(w, h, node, slideFactor);
+                            dVal = PPTXMathShapes.genMathMinus(w, h, node, slideFactor);
                         } else if (shapType == "mathMultiply") {
-                            dVal = window.PPTXMathShapes.genMathMultiply(w, h, node, slideFactor);
+                            dVal = PPTXMathShapes.genMathMultiply(w, h, node, slideFactor);
                         } else if (shapType == "mathPlus") {
-                            dVal = window.PPTXMathShapes.genMathPlus(w, h, node, slideFactor);
+                            dVal = PPTXMathShapes.genMathPlus(w, h, node, slideFactor);
                         }
                         result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";

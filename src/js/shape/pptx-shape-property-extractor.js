@@ -99,4 +99,4 @@ window.PPTXShapePropertyExtractor = PPTXShapePropertyExtractor;
 if (!window.PPTXShapeUtils) {
     window.PPTXShapeUtils = {};
 }
-window.PPTXShapeUtils.extractShapeProperties = extractShapeProperties;
+PPTXShapeUtils.extractShapeProperties = extractShapeProperties;

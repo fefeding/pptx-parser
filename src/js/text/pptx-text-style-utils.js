@@ -1,5 +1,6 @@
 import { PPTXUtils } from '../utils/utils.js';
 import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js'
 
 class PPTXTextStyleUtils {
     static fontSizeFactor = 4 / 3.2;
@@ -388,7 +389,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
 
     if (color === undefined) {
 
-        var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
+        var layoutMasterNode = PPTXLayoutUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
         var pPrNodeLaout = layoutMasterNode.nodeLaout;
         var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
