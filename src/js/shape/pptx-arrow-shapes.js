@@ -1,156 +1,154 @@
-/**
- * 箭头形状生成模块
- * 包含各种箭头形状的 SVG 生成逻辑
- */
-(function(window) {
-    if (!window.PPTXArrowShapes) {
-        window.PPTXArrowShapes = {};
+    window.PPTXArrowShapes = {};
 
-        // 右箭头
-        window.PPTXArrowShapes.genRightArrow = function(w, h, node, slideFactor) {
-            var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-            var sAdj1, sAdj1_val = 0.25;
-            var sAdj2, sAdj2_val = 0.5;
-            var max_sAdj2_const = w / h;
-            if (shapAdjst_ary !== undefined) {
-                for (var i = 0; i < shapAdjst_ary.length; i++) {
-                    var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                    if (sAdj_name == "adj1") {
-                        sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
-                    } else if (sAdj_name == "adj2") {
-                        sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                        sAdj2_val = 1 - ((sAdj2_val2) / max_sAdj2_const);
-                    }
+    // 右箭头
+    window.PPTXArrowShapes.genRightArrow = function(w, h, node, slideFactor) {
+        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        var sAdj1, sAdj1_val = 0.25;
+        var sAdj2, sAdj2_val = 0.5;
+        var max_sAdj2_const = w / h;
+        if (shapAdjst_ary !== undefined) {
+            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                if (sAdj_name == "adj1") {
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
+                } else if (sAdj_name == "adj2") {
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    sAdj2_val = 1 - ((sAdj2_val2) / max_sAdj2_const);
                 }
             }
+        }
 
-            return "polygon points='" + w + " " + h / 2 + "," + sAdj2_val * w + " 0," + sAdj2_val * w + " " + sAdj1_val * h + ",0 " + sAdj1_val * h +
-                ",0 " + (1 - sAdj1_val) * h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + ", " + sAdj2_val * w + " " + h + "'";
-        };
+        return "polygon points='" + w + " " + h / 2 + "," + sAdj2_val * w + " 0," + sAdj2_val * w + " " + sAdj1_val * h + ",0 " + sAdj1_val * h +
+            ",0 " + (1 - sAdj1_val) * h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + ", " + sAdj2_val * w + " " + h + "'";
+    };
 
-        // 左箭头
-        window.PPTXArrowShapes.genLeftArrow = function(w, h, node, slideFactor) {
-            var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-            var sAdj1, sAdj1_val = 0.25;
-            var sAdj2, sAdj2_val = 0.5;
-            var max_sAdj2_const = w / h;
-            if (shapAdjst_ary !== undefined) {
-                for (var i = 0; i < shapAdjst_ary.length; i++) {
-                    var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                    if (sAdj_name == "adj1") {
-                        sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
-                    } else if (sAdj_name == "adj2") {
-                        sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                        sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                    }
+    // 左箭头
+    window.PPTXArrowShapes.genLeftArrow = function(w, h, node, slideFactor) {
+        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        var sAdj1, sAdj1_val = 0.25;
+        var sAdj2, sAdj2_val = 0.5;
+        var max_sAdj2_const = w / h;
+        if (shapAdjst_ary !== undefined) {
+            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                if (sAdj_name == "adj1") {
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
+                } else if (sAdj_name == "adj2") {
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
+        }
 
-            return "polygon points='0 " + h / 2 + "," + sAdj2_val * w + " " + h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + "," + w + " " + (1 - sAdj1_val) * h +
-                "," + w + " " + sAdj1_val * h + "," + sAdj2_val * w + " " + sAdj1_val * h + ", " + sAdj2_val * w + " 0'";
-        };
+        return "polygon points='0 " + h / 2 + "," + sAdj2_val * w + " " + h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + "," + w + " " + (1 - sAdj1_val) * h +
+            "," + w + " " + sAdj1_val * h + "," + sAdj2_val * w + " " + sAdj1_val * h + ", " + sAdj2_val * w + " 0'";
+    };
 
-        // 下箭头
-        window.PPTXArrowShapes.genDownArrow = function(w, h, node, slideFactor) {
-            var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-            var sAdj1, sAdj1_val = 0.25;
-            var sAdj2, sAdj2_val = 0.5;
-            var max_sAdj2_const = h / w;
-            if (shapAdjst_ary !== undefined) {
-                for (var i = 0; i < shapAdjst_ary.length; i++) {
-                    var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                    if (sAdj_name == "adj1") {
-                        sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
-                    } else if (sAdj_name == "adj2") {
-                        sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                        sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                    }
+    // 下箭头
+    window.PPTXArrowShapes.genDownArrow = function(w, h, node, slideFactor) {
+        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        var sAdj1, sAdj1_val = 0.25;
+        var sAdj2, sAdj2_val = 0.5;
+        var max_sAdj2_const = h / w;
+        if (shapAdjst_ary !== undefined) {
+            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                if (sAdj_name == "adj1") {
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
+                } else if (sAdj_name == "adj2") {
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
+        }
 
-            return "polygon points='" + (0.5 - sAdj1_val) * w + " 0," + (0.5 - sAdj1_val) * w + " " + (1 - sAdj2_val) * h + ",0 " + (1 - sAdj2_val) * h + "," + (w / 2) + " " + h +
-                "," + w + " " + (1 - sAdj2_val) * h + "," + (0.5 + sAdj1_val) * w + " " + (1 - sAdj2_val) * h + ", " + (0.5 + sAdj1_val) * w + " 0'";
-        };
+        return "polygon points='" + (0.5 - sAdj1_val) * w + " 0," + (0.5 - sAdj1_val) * w + " " + (1 - sAdj2_val) * h + ",0 " + (1 - sAdj2_val) * h + "," + (w / 2) + " " + h +
+            "," + w + " " + (1 - sAdj2_val) * h + "," + (0.5 + sAdj1_val) * w + " " + (1 - sAdj2_val) * h + ", " + (0.5 + sAdj1_val) * w + " 0'";
+    };
 
-        // 上箭头
-        window.PPTXArrowShapes.genUpArrow = function(w, h, node, slideFactor) {
-            var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-            var sAdj1, sAdj1_val = 0.25;
-            var sAdj2, sAdj2_val = 0.5;
-            var max_sAdj2_const = h / w;
-            if (shapAdjst_ary !== undefined) {
-                for (var i = 0; i < shapAdjst_ary.length; i++) {
-                    var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                    if (sAdj_name == "adj1") {
-                        sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
-                    } else if (sAdj_name == "adj2") {
-                        sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                        sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                    }
+    // 上箭头
+    window.PPTXArrowShapes.genUpArrow = function(w, h, node, slideFactor) {
+        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        var sAdj1, sAdj1_val = 0.25;
+        var sAdj2, sAdj2_val = 0.5;
+        var max_sAdj2_const = h / w;
+        if (shapAdjst_ary !== undefined) {
+            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                if (sAdj_name == "adj1") {
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
+                } else if (sAdj_name == "adj2") {
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
+        }
 
-            return "polygon points='" + (w / 2) + " 0,0 " + sAdj2_val * h + "," + (0.5 - sAdj1_val) * w + " " + sAdj2_val * h + "," + (0.5 - sAdj1_val) * w + " " + h +
-                "," + (0.5 + sAdj1_val) * w + " " + h + "," + (0.5 + sAdj1_val) * w + " " + sAdj2_val * h + ", " + w + " " + sAdj2_val * h + "'";
-        };
+        return "polygon points='" + (w / 2) + " 0,0 " + sAdj2_val * h + "," + (0.5 - sAdj1_val) * w + " " + sAdj2_val * h + "," + (0.5 - sAdj1_val) * w + " " + h +
+            "," + (0.5 + sAdj1_val) * w + " " + h + "," + (0.5 + sAdj1_val) * w + " " + sAdj2_val * h + ", " + w + " " + sAdj2_val * h + "'";
+    };
 
-        // 左右箭头
-        window.PPTXArrowShapes.genLeftRightArrow = function(w, h, node, slideFactor) {
-            var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-            var sAdj1, sAdj1_val = 0.25;
-            var sAdj2, sAdj2_val = 0.25;
-            var max_sAdj2_const = w / h;
-            if (shapAdjst_ary !== undefined) {
-                for (var i = 0; i < shapAdjst_ary.length; i++) {
-                    var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                    if (sAdj_name == "adj1") {
-                        sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
-                    } else if (sAdj_name == "adj2") {
-                        sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                        sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                    }
+    // 左右箭头
+    window.PPTXArrowShapes.genLeftRightArrow = function(w, h, node, slideFactor) {
+        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        var sAdj1, sAdj1_val = 0.25;
+        var sAdj2, sAdj2_val = 0.25;
+        var max_sAdj2_const = w / h;
+        if (shapAdjst_ary !== undefined) {
+            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                if (sAdj_name == "adj1") {
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
+                } else if (sAdj_name == "adj2") {
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
+        }
 
-            return "polygon points='0 " + h / 2 + "," + sAdj2_val * w + " " + h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + "," + (1 - sAdj2_val) * w + " " + (1 - sAdj1_val) * h +
-                "," + (1 - sAdj2_val) * w + " " + h + "," + w + " " + h / 2 + ", " + (1 - sAdj2_val) * w + " 0," + (1 - sAdj2_val) * w + " " + sAdj1_val * h + "," +
-                sAdj2_val * w + " " + sAdj1_val * h + "," + sAdj2_val * w + " 0'";
-        };
+        return "polygon points='0 " + h / 2 + "," + sAdj2_val * w + " " + h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + "," + (1 - sAdj2_val) * w + " " + (1 - sAdj1_val) * h +
+            "," + (1 - sAdj2_val) * w + " " + h + "," + w + " " + h / 2 + ", " + (1 - sAdj2_val) * w + " 0," + (1 - sAdj2_val) * w + " " + sAdj1_val * h + "," +
+            sAdj2_val * w + " " + sAdj1_val * h + "," + sAdj2_val * w + " 0'";
+    };
 
-        // 上下箭头
-        window.PPTXArrowShapes.genUpDownArrow = function(w, h, node, slideFactor) {
-            var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-            var sAdj1, sAdj1_val = 0.25;
-            var sAdj2, sAdj2_val = 0.25;
-            var max_sAdj2_const = h / w;
-            if (shapAdjst_ary !== undefined) {
-                for (var i = 0; i < shapAdjst_ary.length; i++) {
-                    var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                    if (sAdj_name == "adj1") {
-                        sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
-                    } else if (sAdj_name == "adj2") {
-                        sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                        var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                        sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                    }
+    // 上下箭头
+    window.PPTXArrowShapes.genUpDownArrow = function(w, h, node, slideFactor) {
+        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        var sAdj1, sAdj1_val = 0.25;
+        var sAdj2, sAdj2_val = 0.25;
+        var max_sAdj2_const = h / w;
+        if (shapAdjst_ary !== undefined) {
+            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                if (sAdj_name == "adj1") {
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
+                } else if (sAdj_name == "adj2") {
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
+        }
 
-            return "polygon points='" + w / 2 + " 0,0 " + sAdj2_val * h + "," + sAdj1_val * w + " " + sAdj2_val * h + "," + sAdj1_val * w + " " + (1 - sAdj2_val) * h +
-                ",0 " + (1 - sAdj2_val) * h + "," + w / 2 + " " + h + ", " + w + " " + (1 - sAdj2_val) * h + "," + (1 - sAdj1_val) * w + " " + (1 - sAdj2_val) * h + "," +
-                (1 - sAdj1_val) * w + " " + sAdj2_val * h + "," + w + " " + sAdj2_val * h + "'";
-        };
+        return "polygon points='" + w / 2 + " 0,0 " + sAdj2_val * h + "," + sAdj1_val * w + " " + sAdj2_val * h + "," + sAdj1_val * w + " " + (1 - sAdj2_val) * h +
+            ",0 " + (1 - sAdj2_val) * h + "," + w / 2 + " " + h + ", " + w + " " + (1 - sAdj2_val) * h + "," + (1 - sAdj1_val) * w + " " + (1 - sAdj2_val) * h + "," +
+            (1 - sAdj1_val) * w + " " + sAdj2_val * h + "," + w + " " + sAdj2_val * h + "'";
+    };
 
-    }
-})(window);
+}
+
+export { PPTXArrowShapes };
+
+// Also export to global scope for backward compatibility
+window.PPTXArrowShapes = PPTXArrowShapes;

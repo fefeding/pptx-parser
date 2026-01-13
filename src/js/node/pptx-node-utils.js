@@ -1,12 +1,6 @@
-/**
- * pptx-node-utils.js
- * 节点处理工具模块
- * 负责 PPTX 中各种节点类型的处理和路由
- */
+import { PPTXUtils } from '../utils/utils.js';
 
-(function () {
-    var PPTXNodeUtils = {};
-
+class PPTXNodeUtils {
     /**
      * 处理幻灯片中的节点
      * @param {string} nodeKey - 节点键
@@ -18,8 +12,8 @@
      * @param {Object} handlers - 处理函数集合
      * @returns {string} HTML字符串
      */
-    PPTXNodeUtils.processNodesInSlide = function(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers) {
-        var result = "";
+    static processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers) {
+        let result = "";
 
         switch (nodeKey) {
             case "p:sp":    // Shape, Text
@@ -38,14 +32,15 @@
                 result = handlers.processGroupSpNode(nodeValue, warpObj, source);
                 break;
             case "mc:AlternateContent": // Equations and formulas as Image
-                var mcFallbackNode = window.PPTXUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
+                const mcFallbackNode = PPTXUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
                 result = handlers.processGroupSpNode(mcFallbackNode, warpObj, source);
                 break;
             default:
+                // No action for unknown node types
         }
 
         return result;
-    };
+    }
 
     /**
      * 处理组节点(包含多个子元素的组)
@@ -56,16 +51,16 @@
      * @param {Function} processNodesInSlide - 处理幻灯片节点的函数
      * @returns {string} HTML字符串
      */
-    PPTXNodeUtils.processGroupSpNode = function(node, warpObj, source, slideFactor, processNodesInSlide) {
-        var xfrmNode = window.PPTXUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
-        var top, left, width, height;
-        var grpStyle = "";
-        var sType = "group";
-        var rotate = 0;
-        var rotStr = "";
+    static processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide) {
+        const xfrmNode = PPTXUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
+        let top, left, width, height;
+        let grpStyle = "";
+        let sType = "group";
+        let rotate = 0;
+        let rotStr = "";
 
         if (xfrmNode !== undefined) {
-            var x, y, chx, chy, cx, cy, chcx, chcy;
+            let x, y, chx, chy, cx, cy, chcx, chcy;
             if (xfrmNode["a:off"] && xfrmNode["a:off"]["attrs"]) {
                 x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
                 y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
@@ -107,7 +102,7 @@
             }
 
             if (!isNaN(rotate)) {
-                rotate = window.PPTXColorUtils.angleToDegrees(rotate);
+                rotate = PPTXUtils.angleToDegrees(rotate);
                 rotStr += "transform: rotate(" + rotate + "deg) ; transform-origin: center;";
                 if (rotate != 0) {
                     top = y;
@@ -136,13 +131,13 @@
             grpStyle += "height: " + height + "px;";
         }
 
-        var order = node["attrs"]["order"];
-        var result = "<div class='block group' style='z-index: " + order + ";" + grpStyle + "'>";
+        const order = node["attrs"]["order"];
+        let result = "<div class='block group' style='z-index: " + order + ";" + grpStyle + "'>";
 
         // Process all child nodes
-        for (var nodeKey in node) {
+        for (const nodeKey in node) {
             if (node[nodeKey].constructor === Array) {
-                for (var i = 0; i < node[nodeKey].length; i++) {
+                for (let i = 0; i < node[nodeKey].length; i++) {
                     result += processNodesInSlide(nodeKey, node[nodeKey][i], node, warpObj, source, sType);
                 }
             } else if (typeof node[nodeKey] === 'object' && nodeKey !== "attrs") {
@@ -152,9 +147,13 @@
 
         result += "</div>";
         return result;
-    };
+    }
 
-    // Export to global scope
+}
+
+// 为了保持向后兼容性和全局访问，保留全局赋值
+if (typeof window !== 'undefined') {
     window.PPTXNodeUtils = PPTXNodeUtils;
+}
 
-})();
+export { PPTXNodeUtils };

@@ -14,31 +14,24 @@
 
 
 
-const PPTXUtils = window.PPTXUtils || {};
-const PPTXParser = window.PPTXParser || {};
-const PPTXHtml = window.PPTXHtml || {};
-
-// Wait for PPTXShapeUtils to be available
-function ensurePPTXShapeUtils() {
-    if (window.PPTXShapeUtils && typeof window.PPTXShapeUtils.shapeSnipRoundRect === 'function') {
-        return window.PPTXShapeUtils;
-    }
-    // If not available, check if it's defined but empty, or wait a bit
-    if (window.PPTXShapeUtils === undefined) {
-        window.PPTXShapeUtils = {};
-    }
-    return window.PPTXShapeUtils;
-}
-
-// Ensure PPTXShapeUtils is available
-const PPTXShapeUtils = ensurePPTXShapeUtils();
-
-// 确保所有依赖模块已加载
-const PPTXNodeUtils = window.PPTXNodeUtils || {};
-const PPTXBackgroundUtils = window.PPTXBackgroundUtils || {};
-const PPTXImageUtils = window.PPTXImageUtils || {};
-const PPTXDiagramUtils = window.PPTXDiagramUtils || {};
-const TextUtils = window.TextUtils || {};
+// Import dependencies
+import { PPTXUtils } from './utils/utils.js';
+import { PPTXParser } from './pptx-parser.js';
+import { PPTXHtml } from './pptx-html.js';
+import { PPTXShapeUtils } from './shape/pptx-shape-utils.js';
+import { PPTXShapePropertyExtractor } from './shape/pptx-shape-property-extractor.js';
+import { PPTXNodeUtils } from './node/pptx-node-utils.js';
+import { PPTXBackgroundUtils } from './core/pptx-background-utils.js';
+import { PPTXImageUtils } from './image/pptx-image-utils.js';
+import { PPTXDiagramUtils } from './diagram/pptx-diagram-utils.js';
+import { TextUtils } from './text/text-utils.js';
+import { PPTXConstants } from './core/pptx-constants.js';
+import { PPTXUIUtils } from './ui/pptx-ui-utils.js';
+import { PPTXCSSUtils } from './core/pptx-css-utils.js';
+import { PPTXColorUtils } from './core/pptx-color-utils.js';
+import { PPTXTableUtils } from './table/pptx-table-utils.js';
+import { PPTXTextStyleUtils } from './text/pptx-text-style-utils.js';
+import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
 
         //var slideLayoutClrOvride = "";
         var defaultTextStyle = null;
@@ -70,8 +63,8 @@ const TextUtils = window.TextUtils || {};
 
         var app_verssion ;
 
-        var slideFactor = window.PPTXConstants.SLIDE_FACTOR;
-        var fontSizeFactor = window.PPTXConstants.FONT_SIZE_FACTOR;
+        var slideFactor = PPTXConstants.SLIDE_FACTOR;
+        var fontSizeFactor = PPTXConstants.FONT_SIZE_FACTOR;
         ////////////////////// 
         var slideWidth = 0;
     var slideHeight = 0;
@@ -84,12 +77,12 @@ const TextUtils = window.TextUtils || {};
         initSlideMode: function() { initSlideMode(divId, settings); },
         exitSlideMode: function() { exitSlideMode(divId); },
         updateProgress: function(percent) { updateProgressBar(percent); },
-        removeLoading: function() { window.PPTXUIUtils.removeLoadingMessage(); }
+        removeLoading: function() { PPTXUIUtils.removeLoadingMessage(); }
     };
 
     // 计算元素位置和尺寸 - 使用 PPTXUtils 中的函数
-    var getPosition = window.PPTXUtils ? window.PPTXUtils.getPosition : function() { return ""; };
-    var getSize = window.PPTXUtils ? window.PPTXUtils.getSize : function() { return ""; };
+    var getPosition = PPTXUtils ? PPTXUtils.getPosition : function() { return ""; };
+    var getSize = PPTXUtils ? PPTXUtils.getSize : function() { return ""; };
 
     var processFullTheme = true;
         var styleTable = {};
@@ -219,10 +212,10 @@ const TextUtils = window.TextUtils || {};
                 });
             }catch(e){
                 console.error("file url error (" + settings.pptxFileUrl+ "0)")
-                window.PPTXUIUtils.removeLoadingMessage();
+                PPTXUIUtils.removeLoadingMessage();
             }
         } else {
-            window.PPTXUIUtils.removeLoadingMessage();
+            PPTXUIUtils.removeLoadingMessage();
         }
         if (settings.fileInputId != "") {
             document.getElementById(settings.fileInputId).addEventListener("change", function (evt) {
@@ -248,7 +241,7 @@ const TextUtils = window.TextUtils || {};
         }
 
         function updateProgressBar(percent) {
-            window.PPTXUIUtils.updateProgressBar(percent);
+            PPTXUIUtils.updateProgressBar(percent);
         }
 
         function convertToHtml(file) {
@@ -256,7 +249,7 @@ const TextUtils = window.TextUtils || {};
             //console.log("file", file, "size:", file.byteLength);
             if (file.byteLength < 10){
                 console.error("file url error (" + settings.pptxFileUrl + "0)")
-                window.PPTXUIUtils.removeLoadingMessage();
+                PPTXUIUtils.removeLoadingMessage();
                 return;
             }
             var zip = new JSZip(), s;
@@ -298,8 +291,8 @@ const TextUtils = window.TextUtils || {};
                         break;
                     case "ExecutionTime":
                         // 生成并添加全局 CSS
-                        if (typeof window.PPTXCSSUtils.genGlobalCSS === 'function') {
-                            $result.insertAdjacentHTML('beforeend', "<style>" + window.PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth) + "</style>");
+                        if (typeof PPTXCSSUtils.genGlobalCSS === 'function') {
+                            $result.insertAdjacentHTML('beforeend', "<style>" + PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth) + "</style>");
                         }
                         PPTXHtml.processMsgQueue(MsgQueue);
                         PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));
@@ -311,25 +304,25 @@ const TextUtils = window.TextUtils || {};
                             isSlideMode = true;
                             initSlideMode(divId, settings);
                         } else if (!settings.slideMode) {
-                            window.PPTXUIUtils.removeLoadingMessage();
+                            PPTXUIUtils.removeLoadingMessage();
                         }
                         break;
                     case "progress-update":
-                        //console.log(rslt_ary[i]["data"]); //update progress bar - TODO
+                        //console.log(rslt_ary[i]["data"]); //update progress bar
                         updateProgressBar(rslt_ary[i]["data"])
                         break;
                     default:
                 }
             }
             if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
-                window.PPTXUIUtils.getSlidesWrapper(divId);
+                PPTXUIUtils.getSlidesWrapper(divId);
 
                 if (settings.slideMode && settings.slideType == "revealjs") {
-                    window.PPTXUIUtils.addRevealClass(divId);
+                    PPTXUIUtils.addRevealClass(divId);
                 }
             }
 
-            window.PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
+            PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
 
             //}
         }
@@ -380,11 +373,11 @@ const TextUtils = window.TextUtils || {};
                         transitionTime: slideConf.transitionTime
                     });
 
-                    window.PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, true, "divs2slidesjs", 1);
+                    PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, true, "divs2slidesjs", 1);
 
                 }, 1500);
             } else if (settings.slideType == "revealjs") {
-                window.PPTXUIUtils.removeLoadingMessage();
+                PPTXUIUtils.removeLoadingMessage();
                 var revealjsPath = "";
                 if (settings.revealjsPath != "") {
                     revealjsPath = settings.revealjsPath;
@@ -395,7 +388,7 @@ const TextUtils = window.TextUtils || {};
                 script.src = revealjsPath;
                 script.onload = function() {
                     // $("section").removeClass("slide");
-                    Reveal.initialize(settings.revealjsConfig); //revealjsConfig - TODO
+                    Reveal.initialize(settings.revealjsConfig); //revealjsConfig
                 };
                 script.onerror = function() {
                     console.error('Failed to load reveal.js script');
@@ -418,7 +411,7 @@ const TextUtils = window.TextUtils || {};
                 window.pptxjslideObj.destroy();
             }
             // Update wrapper height for normal mode
-            window.PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
+            PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
         }
 
         function processPPTX(zip) {
@@ -443,12 +436,12 @@ const TextUtils = window.TextUtils || {};
                 processGraphicFrameNode: processGraphicFrameNode,
                 processGroupSpNode: processGroupSpNode
             };
-            return window.PPTXNodeUtils.processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers);
+            return PPTXNodeUtils.processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers);
         }
 
         function processGroupSpNode(node, warpObj, source) {
             // 使用 PPTXNodeUtils 模块处理组节点
-            return window.PPTXNodeUtils.processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide);
+            return PPTXNodeUtils.processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide);
         }
 
         function processSpNode(node, pNode, warpObj, source, sType) {
@@ -465,14 +458,14 @@ const TextUtils = window.TextUtils || {};
             *  966 </xsd:complexType>
             */
 
-            var id = window.PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "id"]);
-            var name = window.PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
-            var idx = (window.PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]) === undefined) ? undefined : window.PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]);
-            var type = (window.PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]) === undefined) ? undefined : window.PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
-            var order = window.PPTXUtils.getTextByPathList(node, ["attrs", "order"]);
+            var id = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "id"]);
+            var name = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
+            var idx = (PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]) === undefined) ? undefined : PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]);
+            var type = (PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]) === undefined) ? undefined : PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+            var order = PPTXUtils.getTextByPathList(node, ["attrs", "order"]);
             var isUserDrawnBg;
             if (source == "slideLayoutBg" || source == "slideMasterBg") {
-                var userDrawn = window.PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "attrs", "userDrawn"]);
+                var userDrawn = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "attrs", "userDrawn"]);
                 if (userDrawn == "1") {
                     isUserDrawnBg = true;
                 } else {
@@ -498,15 +491,15 @@ const TextUtils = window.TextUtils || {};
             }
 
             if (type === undefined) {
-                txBoxVal = window.PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvSpPr", "attrs", "txBox"]);
+                txBoxVal = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvSpPr", "attrs", "txBox"]);
                 if (txBoxVal == "1") {
                     type = "textBox";
                 }
             }
             if (type === undefined) {
-                type = window.PPTXUtils.getTextByPathList(slideLayoutSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                type = PPTXUtils.getTextByPathList(slideLayoutSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                 if (type === undefined) {
-                    //type = window.PPTXUtils.getTextByPathList(slideMasterSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                    //type = PPTXUtils.getTextByPathList(slideMasterSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                     if (source == "diagramBg") {
                         type = "diagram";
                     } else {
@@ -554,7 +547,7 @@ const TextUtils = window.TextUtils || {};
             //var dltY = 0;
             var result = "";
             // 使用属性提取器获取形状属性
-            var props = window.PPTXShapeUtils.extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, slideMasterSpNode);
+            var props = PPTXShapePropertyExtractor.extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, slideMasterSpNode);
             var slideXfrmNode = props.slideXfrmNode;
             var shapType = props.shapType;
             var custShapType = props.custShapType;
@@ -583,16 +576,16 @@ const TextUtils = window.TextUtils || {};
                     "'>";
                 result += '<defs>'
                 // Fill Color
-                var fillColor = window.PPTXShapeFillsUtils.getShapeFill(node, pNode, true, warpObj, source);
+                var fillColor = PPTXShapeFillsUtils.getShapeFill(node, pNode, true, warpObj, source);
                 //console.log("genShape: fillColor: ", fillColor)
                 var grndFillFlg = false;
                 var imgFillFlg = false;
-                var clrFillType = window.PPTXColorUtils.getFillType(window.PPTXUtils.getTextByPathList(node, ["p:spPr"]));
+                var clrFillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:spPr"]));
                 if (clrFillType == "GROUP_FILL") {
-                    clrFillType = window.PPTXColorUtils.getFillType(window.PPTXUtils.getTextByPathList(pNode, ["p:grpSpPr"]));
+                    clrFillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(pNode, ["p:grpSpPr"]));
                 }
                 // if (clrFillType == "") {
-                //     var clrFillType = window.PPTXColorUtils.getFillType(window.PPTXUtils.getTextByPathList(node, ["p:style","a:fillRef"]));
+                //     var clrFillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:style","a:fillRef"]));
                 // }
                 //console.log("genShape: fillColor: ", fillColor, ", clrFillType: ", clrFillType, ", node: ", node)
                 /////////////////////////////////////////                    
@@ -600,7 +593,7 @@ const TextUtils = window.TextUtils || {};
                     grndFillFlg = true;
                     var color_arry = fillColor.color;
                     var angl = fillColor.rot + 90;
-                    var svgGrdnt = window.PPTXShapeFillsUtils.getSvgGradient(w, h, angl, color_arry, shpId);
+                    var svgGrdnt = PPTXShapeFillsUtils.getSvgGradient(w, h, angl, color_arry, shpId);
                     //fill="url(#linGrd)"
                     //console.log("genShape: svgGrdnt: ", svgGrdnt)
                     result += svgGrdnt;
@@ -609,7 +602,7 @@ const TextUtils = window.TextUtils || {};
                     imgFillFlg = true;
                     // 提取图片 URL（fillColor 可能是对象或字符串）
                     var imgFill = typeof fillColor === 'object' && fillColor.img ? fillColor.img : fillColor;
-                    var svgBgImg = window.PPTXShapeFillsUtils.getSvgImagePattern(node, imgFill, shpId, warpObj);
+                    var svgBgImg = PPTXShapeFillsUtils.getSvgImagePattern(node, imgFill, shpId, warpObj);
                     //fill="url(#imgPtrn)"
                     //console.log(svgBgImg)
                     result += svgBgImg;
@@ -633,16 +626,16 @@ const TextUtils = window.TextUtils || {};
                             shapType == "leftBrace" ||
                             shapType == "rightBrace" ||
                             shapType == "rightBracket")) { 
-                        // 临时解决方案 - TODO: 对于弧形、括号等形状，当填充类型不是实心或图案时，设置为无填充
+                        // 临时解决方案：对于弧形、括号等形状，当填充类型不是实心或图案时，设置为无填充
                         // 这是因为这些形状在某些情况下应该显示为轮廓，但需要更精确的处理
                         fillColor = "none";
                     }
                 }
                 // Border Color
-                var border = window.PPTXShapeFillsUtils.getBorder(node, pNode, true, "shape", warpObj);
+                var border = PPTXShapeFillsUtils.getBorder(node, pNode, true, "shape", warpObj);
 
-                var headEndNodeAttrs = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:headEnd", "attrs"]);
-                var tailEndNodeAttrs = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:tailEnd", "attrs"]);
+                var headEndNodeAttrs = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:headEnd", "attrs"]);
+                var tailEndNodeAttrs = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:tailEnd", "attrs"]);
                 // type: none, triangle, stealth, diamond, oval, arrow
 
                 ////////////////////effects/////////////////////////////////////////////////////
@@ -668,10 +661,10 @@ const TextUtils = window.TextUtils || {};
                 //"a:extLst"?
                 //////////////////////////////outerShdw///////////////////////////////////////////
                 //not support sizing the shadow
-                var outerShdwNode = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
+                var outerShdwNode = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
                 var oShadowSvgUrlStr = ""
                 if (outerShdwNode !== undefined) {
-                    var chdwClrNode = window.PPTXColorUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
+                    var chdwClrNode = PPTXColorUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
                     var outerShdwAttrs = outerShdwNode["attrs"];
 
                     //var algn = outerShdwAttrs["algn"];
@@ -728,49 +721,49 @@ const TextUtils = window.TextUtils || {};
                     case "flowChartPredefinedProcess":
                     case "flowChartInternalStorage":
                     case "actionButtonBlank":
-                        result += window.PPTXBasicShapes.genRectWithDecoration(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, shapType);
+                        result += PPTXBasicShapes.genRectWithDecoration(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, shapType);
                         break;
                     case "flowChartCollate":
-                        result += window.PPTXFlowchartShapes.genFlowChartCollate(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXFlowchartShapes.genFlowChartCollate(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "flowChartDocument":
-                        result += window.PPTXFlowchartShapes.genFlowChartDocument(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXFlowchartShapes.genFlowChartDocument(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "flowChartMultidocument":
-                        result += window.PPTXFlowchartShapes.genFlowChartMultidocument(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXFlowchartShapes.genFlowChartMultidocument(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonBackPrevious":
-                        result += window.PPTXActionButtonShapes.genActionButtonBackPrevious(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonBackPrevious(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonBeginning":
-                        result += window.PPTXActionButtonShapes.genActionButtonBeginning(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonBeginning(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonDocument":
-                        result += window.PPTXActionButtonShapes.genActionButtonDocument(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonDocument(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonEnd":
-                        result += window.PPTXActionButtonShapes.genActionButtonEnd(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonEnd(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonForwardNext":
-                        result += window.PPTXActionButtonShapes.genActionButtonForwardNext(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonForwardNext(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonHelp":
-                        result += window.PPTXActionButtonShapes.genActionButtonHelp(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonHelp(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonHome":
-                        result += window.PPTXActionButtonShapes.genActionButtonHome(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonHome(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonInformation":
-                        result += window.PPTXActionButtonShapes.genActionButtonInformation(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonInformation(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "actionButtonMovie":
-                        result += window.PPTXActionButtonShapes.genActionButtonMovie(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonMovie(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
     case "actionButtonReturn":
-        result += window.PPTXActionButtonShapes.genActionButtonReturn(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+        result += PPTXActionButtonShapes.genActionButtonReturn(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
         break;
                     case "actionButtonSound":
-                        result += window.PPTXActionButtonShapes.genActionButtonSound(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXActionButtonShapes.genActionButtonSound(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
                     case "irregularSeal1":
                     case "irregularSeal2":
@@ -843,9 +836,9 @@ const TextUtils = window.TextUtils || {};
                         //path attrs: w = 21600; h = 21600; 
                         var d = "M" + x1 + "," + 0 +
                             " L" + x2 + "," + 0 +
-                            window.PPTXShapeUtils.shapeArc(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            window.PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
@@ -857,11 +850,11 @@ const TextUtils = window.TextUtils || {};
                         y1 = h * 2 / 20;
                         y2 = h * 18 / 20;
                         var d = "M" + 0 + "," + y1 +
-                            window.PPTXShapeUtils.shapeArc(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
                             " L" + w + "," + y2 +
-                            window.PPTXShapeUtils.shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
@@ -873,9 +866,9 @@ const TextUtils = window.TextUtils || {};
                         y1 = h * 3 / 6;
                         var d = "M" + x1 + "," + 0 +
                             " L" + w + "," + 0 +
-                            window.PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            window.PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
@@ -890,7 +883,7 @@ const TextUtils = window.TextUtils || {};
                         var d = "M" + 0 + "," + y1 +
                             " L" + x1 + "," + 0 +
                             " L" + x2 + "," + 0 +
-                            window.PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
@@ -901,7 +894,7 @@ const TextUtils = window.TextUtils || {};
                         var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
                         var d = "M" + 0 + "," + 0 +
                             " L" + wd2 + "," + 0 +
-                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + 0 + "," + h +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
@@ -916,10 +909,10 @@ const TextUtils = window.TextUtils || {};
                         ang1 = Math.atan(h / w);
                         var ang1Dg = ang1 * 180 / Math.PI;
                         var d = "M" + wd2 + "," + h +
-                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L") +
                             " L" + w + "," + ib +
                             " L" + w + "," + h +
                             " z";
@@ -931,7 +924,7 @@ const TextUtils = window.TextUtils || {};
                     case "flowChartConnector":
                     case "flowChartSummingJunction":
                     case "flowChartOr":
-                        result += window.PPTXBasicShapes.genEllipse(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        result += PPTXBasicShapes.genEllipse(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         if (shapType == "flowChartOr") {
                             result += " <polyline points='" + w / 2 + " " + 0 + "," + w / 2 + " " + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                             result += " <polyline points='" + 0 + " " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -957,23 +950,23 @@ const TextUtils = window.TextUtils || {};
                     case "snip2SameRect":
                     case "flowChartAlternateProcess":
                     case "flowChartPunchedCard":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val;// = 0.33334;
                         var sAdj2, sAdj2_val;// = 0.33334;
                         var shpTyp, adjTyp;
                         if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor === Array) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) / 50000;
                                 }
                             }
                         } else if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor !== Array) {
-                            var sAdj = window.PPTXUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
+                            var sAdj = PPTXUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
                             sAdj1_val = parseInt(sAdj.substr(4)) / 50000;
                             sAdj2_val = 0;
                         }
@@ -1028,23 +1021,23 @@ const TextUtils = window.TextUtils || {};
                                 if (sAdj2_val === undefined) sAdj2_val = 0;
                                 break;
                         }
-                        var d_val = window.PPTXShapeUtils.shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
+                        var d_val = PPTXShapeUtils.shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "snipRoundRect":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.33334;
                         var sAdj2, sAdj2_val = 0.33334;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) / 50000;
                                 }
                             }
@@ -1081,7 +1074,7 @@ const TextUtils = window.TextUtils || {};
                     case "triangle":
                     case "flowChartExtract":
                     case "flowChartMerge":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) * slideFactor;
@@ -1108,7 +1101,7 @@ const TextUtils = window.TextUtils || {};
                     case "trapezoid":
                     case "flowChartManualOperation":
                     case "flowChartManualInput":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adjst_val = 0.2;
                         var max_adj_const = 0.7407;
                         if (shapAdjst !== undefined) {
@@ -1131,7 +1124,7 @@ const TextUtils = window.TextUtils || {};
                         break;
                     case "parallelogram":
                     case "flowChartInputOutput":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adjst_val = 0.25;
                         var max_adj_const;
                         if (w > h) {
@@ -1157,7 +1150,7 @@ const TextUtils = window.TextUtils || {};
                         break;
                     case "hexagon":
                     case "flowChartPreparation":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var vf = 115470 * slideFactor;;
                         var cnstVal1 = 50000 * slideFactor;
@@ -1196,7 +1189,7 @@ const TextUtils = window.TextUtils || {};
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "octagon":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
@@ -1287,7 +1280,7 @@ const TextUtils = window.TextUtils || {};
                     case "pie":
                     case "pieWedge":
                     case "arc":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
                         if (shapType == "pie") {
                             adj1 = 0;
@@ -1306,7 +1299,7 @@ const TextUtils = window.TextUtils || {};
                             isClose = false;
                         }
                         if (shapAdjst !== undefined) {
-                            shapAdjst1 = window.PPTXUtils.getTextByPathList(shapAdjst, ["attrs", "fmla"]);
+                            shapAdjst1 = PPTXUtils.getTextByPathList(shapAdjst, ["attrs", "fmla"]);
                             shapAdjst2 = shapAdjst1;
                             if (shapAdjst1 === undefined) {
                                 shapAdjst1 = shapAdjst[0]["attrs"]["fmla"];
@@ -1319,38 +1312,38 @@ const TextUtils = window.TextUtils || {};
                                 adj2 = parseInt(shapAdjst2.substr(4)) / 60000;
                             }
                         }
-                        var pieVals = window.PPTXShapeUtils.shapePie(H, w, adj1, adj2, isClose);
+                        var pieVals = PPTXShapeUtils.shapePie(H, w, adj1, adj2, isClose);
                         //console.log("shapType: ",shapType,"\nimgFillFlg: ",imgFillFlg,"\ngrndFillFlg: ",grndFillFlg,"\nshpId: ",shpId,"\nfillColor: ",fillColor);
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "chord":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 45;
                         var sAdj2, sAdj2_val = 270;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) / 60000;
                                 }
                             }
                         }
                         var hR = h / 2;
                         var wR = w / 2;
-                        var d_val = window.PPTXShapeUtils.shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
+                        var d_val = PPTXShapeUtils.shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
                         //console.log("shapType: ",shapType,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val)
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "frame":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 12500 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -1379,7 +1372,7 @@ const TextUtils = window.TextUtils || {};
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "donut":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -1394,23 +1387,23 @@ const TextUtils = window.TextUtils || {};
                         iwd2 = w / 2 - dr;
                         ihd2 = h / 2 - dr;
                         var d = "M" + 0 + "," + h / 2 +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
                             " z" +
                             "M" + dr + "," + h / 2 +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "noSmoking":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 18750 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -1452,16 +1445,16 @@ const TextUtils = window.TextUtils || {};
                         var stAng2deg = stAng2 * 180 / Math.PI;
                         var swAng2deg = swAng * 180 / Math.PI;
                         var d = "M" + 0 + "," + h / 2 +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
                             " z" +
                             "M" + x1 + "," + y1 +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
                             " z" +
                             "M" + x2 + "," + y2 +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
                             " z";
                         //console.log("adj: ",adj,"x1:",x1,",y1:",y1," x2:",x2,",y2:",y2,",stAng1:",stAng1,",stAng1deg:",stAng1deg,",stAng2:",stAng2,",stAng2deg:",stAng2deg,",swAng:",swAng,",swAng2deg:",swAng2deg)
 
@@ -1470,18 +1463,18 @@ const TextUtils = window.TextUtils || {};
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "halfFrame":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 3.5;
                         var sAdj2, sAdj2_val = 3.5;
                         var cnsVal = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -1517,7 +1510,7 @@ const TextUtils = window.TextUtils || {};
                         //console.log("w: ",w,", h: ",h,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val,",maxAdj1: ",maxAdj1,",maxAdj2: ",maxAdj2)
                         break;
                     case "blockArc":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 180;
                         var sAdj2, adj2 = 0;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -1525,15 +1518,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) / 60000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) / 60000;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -1609,16 +1602,16 @@ const TextUtils = window.TextUtils || {};
                             y2 = vc - dy2;
                         }
                         var d = "M" + x1 + "," + y1 +
-                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
                             " L" + x2 + "," + y2 +
-                            window.PPTXShapeUtils.shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bracePair":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 25000 * slideFactor;
                         var cnstVal2 = 50000 * slideFactor;
@@ -1640,37 +1633,37 @@ const TextUtils = window.TextUtils || {};
                         y4 = h - x1;
                         //console.log("w:",w," h:",h," x1:",x1," x2:",x2," x3:",x3," x4:",x4," y2:",y2," y3:",y3," y4:",y4)
                         var d = "M" + x2 + "," + h +
-                            window.PPTXShapeUtils.shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
                             " L" + x1 + "," + y3 +
-                            window.PPTXShapeUtils.shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L") +
                             " L" + x1 + "," + x1 +
-                            window.PPTXShapeUtils.shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L") +
                             " M" + x3 + "," + 0 +
-                            window.PPTXShapeUtils.shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L") +
                             " L" + x4 + "," + y2 +
-                            window.PPTXShapeUtils.shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L") +
                             " L" + x4 + "," + y4 +
-                            window.PPTXShapeUtils.shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
 
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftBrace":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 8333 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -1694,30 +1687,30 @@ const TextUtils = window.TextUtils || {};
                         y4 = y3 + y1;
                         //console.log("w:",w," h:",h," q1:",q1," q2:",q2," q3:",q3," y1:",y1," y3:",y3," y4:",y4," maxAdj1:",maxAdj1)
                         var d = "M" + w + "," + h +
-                            window.PPTXShapeUtils.shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + w / 2 + "," + y4 +
-                            window.PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L") +
                             " L" + w / 2 + "," + y1 +
-                            window.PPTXShapeUtils.shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
 
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "rightBrace":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 8333 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -1741,19 +1734,19 @@ const TextUtils = window.TextUtils || {};
                         y4 = h - y1;
                         //console.log("w:",w," h:",h," q1:",q1," q2:",q2," q3:",q3," y1:",y1," y2:",y2," y3:",y3," y4:",y4," maxAdj1:",maxAdj1)
                         var d = "M" + 0 + "," + 0 +
-                            window.PPTXShapeUtils.shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
                             " L" + w / 2 + "," + y2 +
-                            window.PPTXShapeUtils.shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L") +
                             " L" + w / 2 + "," + y4 +
-                            window.PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
 
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bracketPair":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 16667 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -1768,16 +1761,16 @@ const TextUtils = window.TextUtils || {};
                         x2 = r - x1;
                         y2 = b - x1;
                         //console.log("w:",w," h:",h," x1:",x1," x2:",x2," y2:",y2)
-                        var d = window.PPTXShapeUtils.shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
-                            window.PPTXShapeUtils.shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
-                            window.PPTXShapeUtils.shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
+                        var d = PPTXShapeUtils.shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
+                            PPTXShapeUtils.shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
+                            PPTXShapeUtils.shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftBracket":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -1793,16 +1786,16 @@ const TextUtils = window.TextUtils || {};
                         if (y1 > w) y1 = w;
                         y2 = b - y1;
                         var d = "M" + r + "," + b +
-                            window.PPTXShapeUtils.shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + 0 + "," + y1 +
-                            window.PPTXShapeUtils.shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
                             " L" + r + "," + 0
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "rightBracket":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -1819,17 +1812,17 @@ const TextUtils = window.TextUtils || {};
                         y3 = w - y1;
                         //console.log("w:",w," h:",h," y1:",y1," y2:",y2," y3:",y3)
                         var d = "M" + 0 + "," + h +
-                            window.PPTXShapeUtils.shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
                             //" L"+ r + "," + y2 +
                             " L" + w + "," + h / 2 +
-                            window.PPTXShapeUtils.shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
                             " L" + 0 + "," + 0
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "moon":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 0.5;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) / 100000;//*96/914400;;
@@ -1842,26 +1835,26 @@ const TextUtils = window.TextUtils || {};
 
                         var adj2 = (1 - adj) * w;
                         var d = "M" + w + "," + h +
-                            window.PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "corner":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 50000 * slideFactor;
                         var sAdj2, sAdj2_val = 50000 * slideFactor;
                         var cnsVal = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -1893,7 +1886,7 @@ const TextUtils = window.TextUtils || {};
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "diagStripe":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var sAdj1_val = 50000 * slideFactor;
                         var cnsVal = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
@@ -1919,16 +1912,16 @@ const TextUtils = window.TextUtils || {};
                         txtRotate = 0;
                         var gearNum = shapType.substr(4), d;
                         if (gearNum == "6") {
-                            d = window.PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
+                            d = PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
                         } else { //gearNum=="9"
-                            d = window.PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
+                            d = PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
                         }
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "' transform='rotate(20," + (3 / 7) * h + "," + (3 / 7) * h + ")' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bentConnector3":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
@@ -1949,7 +1942,7 @@ const TextUtils = window.TextUtils || {};
                         }
                         break;
                     case "plus":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
@@ -1962,7 +1955,7 @@ const TextUtils = window.TextUtils || {};
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "teardrop":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 100000 * slideFactor;
                         var cnsVal1 = adj1;
                         var cnsVal2 = 200000 * slideFactor;
@@ -1986,11 +1979,11 @@ const TextUtils = window.TextUtils || {};
                         x2 = ((w / 2) + x1) / 2;
                         y2 = ((h / 2) + y1) / 2;
 
-                        var d_val = window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
+                        var d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
                             "Q " + x2 + ",0 " + x1 + "," + y1 +
                             "Q " + w + "," + y2 + " " + w + "," + h / 2 +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1998,7 +1991,7 @@ const TextUtils = window.TextUtils || {};
                         // console.log("shapAdjst: ",shapAdjst,", adj1: ",adj1);
                         break;
                     case "plaque":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 16667 * slideFactor;
                         var cnsVal1 = 50000 * slideFactor;
                         var cnsVal2 = 100000 * slideFactor;
@@ -2014,20 +2007,20 @@ const TextUtils = window.TextUtils || {};
                         y2 = h - x1;
 
                         var d_val = "M0," + x1 +
-                            window.PPTXShapeUtils.shapeArc(0, 0, x1, x1, 90, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, 0, x1, x1, 90, 0, false).replace("M", "L") +
                             " L" + x2 + "," + 0 +
-                            window.PPTXShapeUtils.shapeArc(w, 0, x1, x1, 180, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, 0, x1, x1, 180, 90, false).replace("M", "L") +
                             " L" + w + "," + y2 +
-                            window.PPTXShapeUtils.shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            window.PPTXShapeUtils.shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
+                            PPTXShapeUtils.shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "sun":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj1 = 25000 * refr;
                         var cnstVal1 = 12500 * refr;
@@ -2122,7 +2115,7 @@ const TextUtils = window.TextUtils || {};
                             " L" + x16 + "," + y13 +
                             " z" +
                             " M" + x19 + "," + h / 2 +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
                             " z";
                         //console.log("adj1: ",adj1,d_val);
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
@@ -2191,7 +2184,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "cube":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 25000 * refr;
                         if (shapAdjst !== undefined) {
@@ -2225,7 +2218,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "bevel":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 12500 * refr;
                         if (shapAdjst !== undefined) {
@@ -2265,7 +2258,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "foldedCorner":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 16667 * refr;
                         if (shapAdjst !== undefined) {
@@ -2304,7 +2297,7 @@ const TextUtils = window.TextUtils || {};
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "smileyFace":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 4653 * refr;
                         if (shapAdjst !== undefined) {
@@ -2336,15 +2329,15 @@ const TextUtils = window.TextUtils || {};
                         var cY1 = y1 - hR * Math.sin(Math.PI);
                         var cX2 = x3 - wR * Math.cos(Math.PI);
                         d_val = //eyes
-                            window.PPTXShapeUtils.shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
-                            window.PPTXShapeUtils.shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
+                            PPTXShapeUtils.shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
+                            PPTXShapeUtils.shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
                             //mouth
                             " M" + x1 + "," + y2 +
                             " Q" + wd2 + "," + y5 + " " + x4 + "," + y2 +
                             " Q" + wd2 + "," + y5 + " " + x1 + "," + y2 +
                             //head
                             " M" + 0 + "," + hd2 +
-                            window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
@@ -2353,7 +2346,7 @@ const TextUtils = window.TextUtils || {};
                         break;
                     case "verticalScroll":
                     case "horizontalScroll":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 12500 * refr;
                         if (shapAdjst !== undefined) {
@@ -2381,24 +2374,24 @@ const TextUtils = window.TextUtils || {};
 
                             d_val = "M" + ch + "," + y3 +
                                 " L" + ch + "," + ch2 +
-                                window.PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L") +
                                 " L" + x7 + "," + t +
-                                window.PPTXShapeUtils.shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
                                 " L" + x6 + "," + ch +
                                 " L" + x6 + "," + y4 +
-                                window.PPTXShapeUtils.shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
                                 " L" + ch2 + "," + b +
-                                window.PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
                                 " z" +
                                 " M" + x3 + "," + t +
-                                window.PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
-                                window.PPTXShapeUtils.shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
                                 " L" + x4 + "," + ch2 +
                                 " M" + x6 + "," + ch +
                                 " L" + x3 + "," + ch +
                                 " M" + ch + "," + y4 +
-                                window.PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
-                                window.PPTXShapeUtils.shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
                                 " z" +
                                 " M" + ch + "," + y4 +
                                 " L" + ch + "," + y3;
@@ -2413,26 +2406,26 @@ const TextUtils = window.TextUtils || {};
                             x4 = r - ch2;
 
                             d_val = "M" + l + "," + y3 +
-                                window.PPTXShapeUtils.shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L") +
                                 " L" + x3 + "," + ch +
                                 " L" + x3 + "," + ch2 +
-                                window.PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L") +
                                 " L" + r + "," + y5 +
-                                window.PPTXShapeUtils.shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L") +
                                 " L" + ch + "," + y6 +
                                 " L" + ch + "," + y7 +
-                                window.PPTXShapeUtils.shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
                                 " z" +
                                 "M" + x4 + "," + ch +
-                                window.PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
-                                window.PPTXShapeUtils.shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
                                 " z" +
                                 " M" + x4 + "," + ch +
                                 " L" + x3 + "," + ch +
                                 " M" + ch2 + "," + y4 +
                                 " L" + ch2 + "," + y3 +
-                                window.PPTXShapeUtils.shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L") +
-                                window.PPTXShapeUtils.shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L") +
                                 " M" + ch + "," + y3 +
                                 " L" + ch + "," + y6;
                         }
@@ -2472,7 +2465,7 @@ const TextUtils = window.TextUtils || {};
                     case "callout1":
                     case "callout2":
                     case "callout3":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 18750 * refr;
                         var sAdj2, adj2 = -8333 * refr;
@@ -2484,30 +2477,30 @@ const TextUtils = window.TextUtils || {};
                         var sAdj8, adj8 = -8333 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * refr;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * refr;
                                 } else if (sAdj_name == "adj5") {
-                                    sAdj5 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj5 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj5 = parseInt(sAdj5.substr(4)) * refr;
                                 } else if (sAdj_name == "adj6") {
-                                    sAdj6 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj6 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj6 = parseInt(sAdj6.substr(4)) * refr;
                                 } else if (sAdj_name == "adj7") {
-                                    sAdj7 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj7 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj7 = parseInt(sAdj7.substr(4)) * refr;
                                 } else if (sAdj_name == "adj8") {
-                                    sAdj8 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj8 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj8 = parseInt(sAdj8.substr(4)) * refr;
                                 }
                             }
@@ -2754,22 +2747,22 @@ const TextUtils = window.TextUtils || {};
                         //}
                         break;
                     case "leftRightRibbon":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 50000 * refr;
                         var sAdj2, adj2 = 50000 * refr;
                         var sAdj3, adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * refr;
                                 }
                             }
@@ -2811,15 +2804,15 @@ const TextUtils = window.TextUtils || {};
                             "L" + x1 + "," + 0 +
                             "L" + x1 + "," + ly1 +
                             "L" + hc + "," + ly1 +
-                            window.PPTXShapeUtils.shapeArc(hc, y1, wd32, hR, 270, 450, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(hc, y2, wd32, hR, 270, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(hc, y1, wd32, hR, 270, 450, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(hc, y2, wd32, hR, 270, 90, false).replace("M", "L") +
                             "L" + x4 + "," + ry2 +
                             "L" + x4 + "," + ry1 +
                             "L" + w + "," + ry3 +
                             "L" + x4 + "," + h +
                             "L" + x4 + "," + ry4 +
                             "L" + hc + "," + ry4 +
-                            window.PPTXShapeUtils.shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L") +
                             "L" + x2 + "," + ly3 +
                             "L" + x1 + "," + ly3 +
                             "L" + x1 + "," + ly4 +
@@ -2836,17 +2829,17 @@ const TextUtils = window.TextUtils || {};
                         break;
                     case "ribbon":
                     case "ribbon2":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 16667 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -2889,22 +2882,22 @@ const TextUtils = window.TextUtils || {};
                                 " L" + l + "," + y4 +
                                 " L" + x2 + "," + y4 +
                                 " L" + x2 + "," + hR +
-                                window.PPTXShapeUtils.shapeArc(x3, hR, wd32, hR, 180, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, hR, wd32, hR, 180, 270, false).replace("M", "L") +
                                 " L" + x8 + "," + t +
-                                window.PPTXShapeUtils.shapeArc(x8, hR, wd32, hR, 270, 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x8, hR, wd32, hR, 270, 360, false).replace("M", "L") +
                                 " L" + x9 + "," + y4 +
                                 " L" + x9 + "," + y4 +
                                 " L" + r + "," + y4 +
                                 " L" + x10 + "," + y3 +
                                 " L" + r + "," + b +
                                 " L" + x7 + "," + b +
-                                window.PPTXShapeUtils.shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L") +
                                 " L" + x8 + "," + y1 +
-                                window.PPTXShapeUtils.shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L") +
                                 " L" + x3 + "," + y2 +
-                                window.PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
                                 " L" + x4 + "," + y1 +
-                                window.PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
                                 " z" +
                                 " M" + x5 + "," + y2 +
                                 " L" + x5 + "," + y6 +
@@ -2924,21 +2917,21 @@ const TextUtils = window.TextUtils || {};
                             y6 = y2 - hR;
                             d_val = "M" + l + "," + t +
                                 " L" + x4 + "," + t +
-                                window.PPTXShapeUtils.shapeArc(x4, hR, wd32, hR, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, hR, wd32, hR, 270, 450, false).replace("M", "L") +
                                 " L" + x3 + "," + y1 +
-                                window.PPTXShapeUtils.shapeArc(x3, y6, wd32, hR, 270, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, y6, wd32, hR, 270, 90, false).replace("M", "L") +
                                 " L" + x8 + "," + y2 +
-                                window.PPTXShapeUtils.shapeArc(x8, y6, wd32, hR, 90, -90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x8, y6, wd32, hR, 90, -90, false).replace("M", "L") +
                                 " L" + x7 + "," + y1 +
-                                window.PPTXShapeUtils.shapeArc(x7, hR, wd32, hR, 90, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x7, hR, wd32, hR, 90, 270, false).replace("M", "L") +
                                 " L" + r + "," + t +
                                 " L" + x10 + "," + y3 +
                                 " L" + r + "," + y4 +
                                 " L" + x9 + "," + y4 +
                                 " L" + x9 + "," + y5 +
-                                window.PPTXShapeUtils.shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L") +
                                 " L" + x3 + "," + b +
-                                window.PPTXShapeUtils.shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L") +
                                 " L" + x2 + "," + y4 +
                                 " L" + l + "," + y4 +
                                 " L" + wd8 + "," + y3 +
@@ -2959,17 +2952,17 @@ const TextUtils = window.TextUtils || {};
                         break;
                     case "doubleWave":
                     case "wave":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = (shapType == "doubleWave") ? 6250 * slideFactor : 12500 * slideFactor;
                         var sAdj2, adj2 = 0;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -3056,21 +3049,21 @@ const TextUtils = window.TextUtils || {};
                         break;
                     case "ellipseRibbon":
                     case "ellipseRibbon2":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -3256,18 +3249,18 @@ const TextUtils = window.TextUtils || {};
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftRightArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;
                         var sAdj2, sAdj2_val = 0.25;
                         var max_sAdj2_const = w / h;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                                 }
@@ -3286,7 +3279,7 @@ const TextUtils = window.TextUtils || {};
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "quadArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 22500 * slideFactor;
                         var sAdj2, adj2 = 22500 * slideFactor;
                         var sAdj3, adj3 = 22500 * slideFactor;
@@ -3295,15 +3288,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -3366,7 +3359,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "leftRightUpArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -3375,15 +3368,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -3439,7 +3432,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "leftUpArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -3448,15 +3441,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -3505,7 +3498,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "bentUpArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -3514,15 +3507,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -3564,7 +3557,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "bentArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -3573,18 +3566,18 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -3626,14 +3619,14 @@ const TextUtils = window.TextUtils || {};
 
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + y5 +
-                            window.PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + dh2 +
                             " L" + x4 + "," + 0 +
                             " L" + w + "," + aw2 +
                             " L" + x4 + "," + y4 +
                             " L" + x4 + "," + y3 +
                             " L" + x3 + "," + y3 +
-                            window.PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
@@ -3642,7 +3635,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "uturnArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -3652,21 +3645,21 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj5") {
-                                    sAdj5 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj5 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj5 = parseInt(sAdj5.substr(4)) * slideFactor;
                                 }
                             }
@@ -3720,18 +3713,18 @@ const TextUtils = window.TextUtils || {};
                         var cy = (y4 + th) / 2
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + bd +
-                            window.PPTXShapeUtils.shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + 0 +
-                            window.PPTXShapeUtils.shapeArc(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
                             " L" + x9 + "," + y4 +
                             " L" + w + "," + y4 +
                             " L" + x8 + "," + y5 +
                             " L" + x6 + "," + y4 +
                             " L" + x7 + "," + y4 +
                             " L" + x7 + "," + x3 +
-                            window.PPTXShapeUtils.shapeArc(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
                             " L" + x3 + "," + th +
-                            window.PPTXShapeUtils.shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
@@ -3740,7 +3733,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "stripedRightArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 50000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
@@ -3748,12 +3741,12 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 84375 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -3800,19 +3793,19 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "notchedRightArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 50000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
                         var cnstVal2 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -3847,7 +3840,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "homePlate":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
@@ -3872,7 +3865,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "chevron":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
@@ -3900,7 +3893,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "rightArrowCallout":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -3910,18 +3903,18 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -3966,7 +3959,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "downArrowCallout":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -3976,18 +3969,18 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -4033,7 +4026,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "leftArrowCallout":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -4043,18 +4036,18 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -4100,7 +4093,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "upArrowCallout":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -4110,18 +4103,18 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -4167,7 +4160,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "leftRightArrowCallout":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -4177,18 +4170,18 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -4241,7 +4234,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "quadArrowCallout":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 18515 * slideFactor;
                         var sAdj2, adj2 = 18515 * slideFactor;
                         var sAdj3, adj3 = 18515 * slideFactor;
@@ -4251,18 +4244,18 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -4337,7 +4330,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "curvedDownArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -4345,15 +4338,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -4411,15 +4404,15 @@ const TextUtils = window.TextUtils || {};
                         var d_val = "M" + x6 + "," + b +
                             " L" + x4 + "," + y1 +
                             " L" + x5 + "," + y1 +
-                            window.PPTXShapeUtils.shapeArc(wR, h, wR, h, stAng, (stAng + mswAng), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wR, h, wR, h, stAng, (stAng + mswAng), false).replace("M", "L") +
                             " L" + x3 + "," + t +
-                            window.PPTXShapeUtils.shapeArc(x3, h, wR, h, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, h, wR, h, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
                             " L" + (x5 + th) + "," + y1 +
                             " L" + x8 + "," + y1 +
                             " z" +
                             "M" + x3 + "," + t +
-                            window.PPTXShapeUtils.shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
 
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
@@ -4427,7 +4420,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "curvedLeftArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -4435,15 +4428,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -4499,19 +4492,19 @@ const TextUtils = window.TextUtils || {};
                         stAng3dg = stAng3 * 180 / Math.PI;
 
                         var d_val = "M" + r + "," + y3 +
-                            window.PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
                             " L" + l + "," + t +
-                            window.PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
                             " L" + r + "," + y3 +
-                            window.PPTXShapeUtils.shapeArc(l, y3, w, hR, 0, swAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, w, hR, 0, swAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y7 +
                             " L" + x1 + "," + y8 +
                             " L" + l + "," + y6 +
                             " L" + x1 + "," + y4 +
                             " L" + x1 + "," + y5 +
-                            window.PPTXShapeUtils.shapeArc(l, hR, w, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
-                            window.PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(l, hR, w, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
 
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
@@ -4519,7 +4512,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "curvedRightArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -4527,15 +4520,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -4594,17 +4587,17 @@ const TextUtils = window.TextUtils || {};
                         swAng2dg = swAng2 * 180 / Math.PI;
 
                         var d_val = "M" + l + "," + hR +
-                            window.PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + y4 +
                             " L" + r + "," + y6 +
                             " L" + x1 + "," + y8 +
                             " L" + x1 + "," + y7 +
-                            window.PPTXShapeUtils.shapeArc(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
                             " L" + l + "," + hR +
-                            window.PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
                             " L" + r + "," + th +
-                            window.PPTXShapeUtils.shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")
+                            PPTXShapeUtils.shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")
                         "";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
@@ -4612,7 +4605,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "curvedUpArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -4620,15 +4613,15 @@ const TextUtils = window.TextUtils || {};
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -4687,17 +4680,17 @@ const TextUtils = window.TextUtils || {};
                         swAngDg = swAng * 180 / Math.PI;
 
                         var d_val = //"M" + ix + "," +iy + 
-                            window.PPTXShapeUtils.shapeArc(wR, 0, wR, h, stAng2dg, stAng2dg + swAng2dg, false) + //.replace("M","L") +
+                            PPTXShapeUtils.shapeArc(wR, 0, wR, h, stAng2dg, stAng2dg + swAng2dg, false) + //.replace("M","L") +
                             " L" + x5 + "," + y1 +
                             " L" + x4 + "," + y1 +
                             " L" + x6 + "," + t +
                             " L" + x8 + "," + y1 +
                             " L" + x7 + "," + y1 +
-                            window.PPTXShapeUtils.shapeArc(x3, 0, wR, h, stAng3dg, stAng3dg + swAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, 0, wR, h, stAng3dg, stAng3dg + swAngDg, false).replace("M", "L") +
                             " L" + wR + "," + b +
-                            window.PPTXShapeUtils.shapeArc(wR, 0, wR, h, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wR, 0, wR, h, cd4, cd2, false).replace("M", "L") +
                             " L" + th + "," + t +
-                            window.PPTXShapeUtils.shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
                             "";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
@@ -4710,27 +4703,27 @@ const TextUtils = window.TextUtils || {};
                     case "mathMultiply":
                     case "mathNotEqual":
                     case "mathPlus":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1;
                         var sAdj2, adj2;
                         var sAdj3, adj3;
                         if (shapAdjst_ary !== undefined) {
                             if (shapAdjst_ary.constructor === Array) {
                                 for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                    var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                    var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
-                                        sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj1 = parseInt(sAdj1.substr(4));
                                     } else if (sAdj_name == "adj2") {
-                                        sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj2 = parseInt(sAdj2.substr(4));
                                     } else if (sAdj_name == "adj3") {
-                                        sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj3 = parseInt(sAdj3.substr(4));
                                     }
                                 }
                             } else {
-                                sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
+                                sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
                                 adj1 = parseInt(sAdj1.substr(4));
                             }
                         }
@@ -4876,10 +4869,10 @@ const TextUtils = window.TextUtils || {};
                             var cX2 = hc - Math.cos(Math.PI / 2) * rad;
                             var cY2 = y5 - Math.sin(Math.PI / 2) * rad;
                             dVal = "M" + hc + "," + y1 +
-                                window.PPTXShapeUtils.shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
                                 " z" +
                                 " M" + hc + "," + y5 +
-                                window.PPTXShapeUtils.shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
                                 " z" +
                                 " M" + x1 + "," + y3 +
                                 " L" + x3 + "," + y3 +
@@ -4903,7 +4896,7 @@ const TextUtils = window.TextUtils || {};
                     case "can":
                     case "flowChartMagneticDisk":
                     case "flowChartMagneticDrum":
-                        var shapAdjst = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 200000 * slideFactor;
@@ -4926,10 +4919,10 @@ const TextUtils = window.TextUtils || {};
                         if (shapType == "flowChartMagneticDrum") {
                             tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
                         }
-                        dVal = window.PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
-                            window.PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
+                        dVal = PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
+                            PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
                             " L" + w + "," + y3 +
-                            window.PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
                             " L" + 0 + "," + y1;
 
                         result += "<path " + tranglRott + " d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -4937,18 +4930,18 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "swooshArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 25000 * refr;
                         var sAdj2, adj2 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 }
                             }
@@ -5003,7 +4996,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "circularArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 12500 * slideFactor;
                         var sAdj2, adj2 = (1142319 / 60000) * Math.PI / 180;
                         var sAdj3, adj3 = (20457681 / 60000) * Math.PI / 180;
@@ -5011,21 +5004,21 @@ const TextUtils = window.TextUtils || {};
                         var sAdj5, adj5 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = (parseInt(sAdj2.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = (parseInt(sAdj3.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = (parseInt(sAdj4.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj5") {
-                                    sAdj5 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj5 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj5 = parseInt(sAdj5.substr(4)) * slideFactor;
                                 }
                             }
@@ -5252,12 +5245,12 @@ const TextUtils = window.TextUtils || {};
                         var swiAng = iswAng * 180 / Math.PI;
                         var ediAng = stiAng + swiAng;
 
-                        var d_val = window.PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
+                        var d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
                             " L" + xGp + "," + yGp +
                             " L" + xA + "," + yA +
                             " L" + xBp + "," + yBp +
                             " L" + xC + "," + yC +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
@@ -5265,7 +5258,7 @@ const TextUtils = window.TextUtils || {};
 
                         break;
                     case "leftCircularArrow":
-                        var shapAdjst_ary = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 12500 * slideFactor;
                         var sAdj2, adj2 = (-1142319 / 60000) * Math.PI / 180;
                         var sAdj3, adj3 = (1142319 / 60000) * Math.PI / 180;
@@ -5273,21 +5266,21 @@ const TextUtils = window.TextUtils || {};
                         var sAdj5, adj5 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = (parseInt(sAdj2.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = (parseInt(sAdj3.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = (parseInt(sAdj4.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj5") {
-                                    sAdj5 = window.PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj5 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj5 = parseInt(sAdj5.substr(4)) * slideFactor;
                                 }
                             }
@@ -5507,12 +5500,12 @@ const TextUtils = window.TextUtils || {};
 
                         var d_val = "M" + xE + "," + yE +
                             " L" + xD + "," + yD +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " L" + xBp + "," + yBp +
                             " L" + xA + "," + yA +
                             " L" + xGp + "," + yGp +
                             " L" + xF + "," + yF +
-                            window.PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
                             " z";
                         var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
@@ -5541,8 +5534,8 @@ const TextUtils = window.TextUtils || {};
 
                 result += "</svg>";
 
-                result += "<div class='block " + window.PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
-                    " " + window.PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
+                result += "<div class='block " + PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
+                    " " + PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
@@ -5556,15 +5549,15 @@ const TextUtils = window.TextUtils || {};
                     if (type != "diagram" && type != "textBox") {
                         type = "shape";
                     }
-                    result += window.PPTXTextElementUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, undefined, styleTable); //type='shape'
+                    result += PPTXTextElementUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, undefined, styleTable); //type='shape'
                 }
                 result += "</div>";
             } else if (custShapType !== undefined) {
                 //custGeom here - Amir ///////////////////////////////////////////////////////
                 //http://officeopenxml.com/drwSp-custGeom.php
-                var pathLstNode = window.PPTXUtils.getTextByPathList(custShapType, ["a:pathLst"]);
-                var pathNodes = window.PPTXUtils.getTextByPathList(pathLstNode, ["a:path"]);
-                //var pathNode = window.PPTXUtils.getTextByPathList(pathLstNode, ["a:path", "attrs"]);
+                var pathLstNode = PPTXUtils.getTextByPathList(custShapType, ["a:pathLst"]);
+                var pathNodes = PPTXUtils.getTextByPathList(pathLstNode, ["a:path"]);
+                //var pathNode = PPTXUtils.getTextByPathList(pathLstNode, ["a:path", "attrs"]);
                 var maxX = parseInt(pathNodes["attrs"]["w"]);// * slideFactor;
                 var maxY = parseInt(pathNodes["attrs"]["h"]);// * slideFactor;
                 var cX = (1 / maxX) * w;
@@ -5574,14 +5567,14 @@ const TextUtils = window.TextUtils || {};
 
                 //console.log("custShapType : ", custShapType, ", pathLstNode: ", pathLstNode, ", node: ", node);//, ", y:", y, ", w:", w, ", h:", h);
 
-                var moveToNode = window.PPTXUtils.getTextByPathList(pathNodes, ["a:moveTo"]);
+                var moveToNode = PPTXUtils.getTextByPathList(pathNodes, ["a:moveTo"]);
                 var total_shapes = moveToNode.length;
 
                 var lnToNodes = pathNodes["a:lnTo"]; //total a:pt : 1
                 var cubicBezToNodes = pathNodes["a:cubicBezTo"]; //total a:pt : 3
                 var arcToNodes = pathNodes["a:arcTo"]; //total a:pt : 0?1? ; attrs: ~4 ()
-                var closeNode = window.PPTXUtils.getTextByPathList(pathNodes, ["a:close"]); //total a:pt : 0
-                //quadBezTo //total a:pt : 2 - TODO
+                var closeNode = PPTXUtils.getTextByPathList(pathNodes, ["a:close"]); //total a:pt : 0
+                //quadBezTo //total a:pt : 2
                 //console.log("ia moveToNode array: ", Array.isArray(moveToNode))
                 if (!Array.isArray(moveToNode)) {
                     moveToNode = [moveToNode];
@@ -5672,7 +5665,7 @@ const TextUtils = window.TextUtils || {};
                         var swAng = arcToNodesAttrs["swAng"];
                         var shftX = 0;
                         var shftY = 0;
-                        var arcToPtNode = window.PPTXUtils.getTextByPathList(arcToNodes, ["a:pt", "attrs"]);
+                        var arcToPtNode = PPTXUtils.getTextByPathList(arcToNodes, ["a:pt", "attrs"]);
                         if (arcToPtNode !== undefined) {
                             shftX = arcToPtNode["x"];
                             shftY = arcToPtNode["y"];
@@ -5690,7 +5683,7 @@ const TextUtils = window.TextUtils || {};
                         multiSapeAry.push(ptObj);
 
                     }
-                    //a:quadBezTo - TODO
+                    //a:quadBezTo
 
                     //a:close
                     if (closeNode !== undefined) {
@@ -5777,9 +5770,9 @@ const TextUtils = window.TextUtils || {};
                             //var shftY = parseInt(multiSapeAry[k].shftY) * slideFactor;
                             var endAng = stAng + swAng;
 
-                            d += window.PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
+                            d += PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
                         } else if (multiSapeAry[k].type == "quadBezTo") {
-                            console.log("custShapType: quadBezTo - TODO")
+                            console.log("custShapType: quadBezTo")
 
                         } else if (multiSapeAry[k].type == "close") {
                             // result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -5801,8 +5794,8 @@ const TextUtils = window.TextUtils || {};
                 }
 
                 result += "</svg>";
-                result += "<div class='block " + window.PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content 
-                    " " + window.PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
+                result += "<div class='block " + PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content 
+                    " " + PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
@@ -5816,28 +5809,28 @@ const TextUtils = window.TextUtils || {};
                     if (type != "diagram" && type != "textBox") {
                         type = "shape";
                     }
-                    result += window.PPTXTextElementUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, undefined, styleTable); //type=shape
+                    result += PPTXTextElementUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, undefined, styleTable); //type=shape
                 }
                 result += "</div>";
 
                 // result = "";
             } else {
 
-                result += "<div class='block " + window.PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content 
-                    " " + window.PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
+                result += "<div class='block " + PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content 
+                    " " + PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    window.PPTXShapeFillsUtils.getBorder(node, pNode, false, "shape", warpObj) +
-                    window.PPTXShapeFillsUtils.getShapeFill(node, pNode, false, warpObj, source) +
+                    PPTXShapeFillsUtils.getBorder(node, pNode, false, "shape", warpObj) +
+                    PPTXShapeFillsUtils.getShapeFill(node, pNode, false, warpObj, source) +
                     " z-index: " + order + ";" +
                     "transform: rotate(" + ((txtRotate !== undefined) ? txtRotate : 0) + "deg);" +
                     "'>";
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
-                    result += window.PPTXTextElementUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, undefined, styleTable);
+                    result += PPTXTextElementUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, undefined, styleTable);
                 }
                 result += "</div>";
 
@@ -5870,7 +5863,7 @@ const TextUtils = window.TextUtils || {};
             var imgName = resObj[rid]["target"];
 
             //console.log("processPicNode imgName:", imgName);
-            var imgFileExt =window.PPTXUtils.extractFileExtension(imgName).toLowerCase();
+            var imgFileExt =PPTXUtils.extractFileExtension(imgName).toLowerCase();
             var zip = warpObj["zip"];
             // 尝试解析图片路径，处理相对路径问题
             var imgFile = zip.file(imgName);
@@ -5887,34 +5880,34 @@ const TextUtils = window.TextUtils || {};
             var mimeType = "";
             var xfrmNode = node["p:spPr"]["a:xfrm"];
             if (xfrmNode === undefined) {
-                var idx = window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
-                var type = window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                var idx = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
+                var type = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "type"]);
                 if (idx !== undefined) {
-                    xfrmNode = window.PPTXUtils.getTextByPathList(warpObj["slideLayoutTables"], ["idxTable", idx, "p:spPr", "a:xfrm"]);
+                    xfrmNode = PPTXUtils.getTextByPathList(warpObj["slideLayoutTables"], ["idxTable", idx, "p:spPr", "a:xfrm"]);
                 }
             }
             ///////////////////////////////////////Amir//////////////////////////////
             var rotate = 0;
-            var rotateNode = window.PPTXUtils.getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
+            var rotateNode = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
             if (rotateNode !== undefined) {
-                rotate = window.PPTXColorUtils.angleToDegrees(rotateNode);
+                rotate = PPTXUtils.angleToDegrees(rotateNode);
             }
             //video
-            var vdoNode = window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
+            var vdoNode = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
             var vdoRid, vdoFile, vdoFileExt, vdoMimeType, uInt8Array, blob, vdoBlob, mediaSupportFlag = false, isVdeoLink = false;
             var mediaProcess = settings.mediaProcess;
             if (vdoNode !== undefined & mediaProcess) {
                 vdoRid = vdoNode["attrs"]["r:link"];
                 vdoFile = resObj[vdoRid]["target"];
-                var checkIfLink = window.PPTXUtils.IsVideoLink(vdoFile);
+                var checkIfLink = PPTXUtils.IsVideoLink(vdoFile);
                 if (checkIfLink) {
-                    vdoFile = window.PPTXUtils.escapeHtml(vdoFile);
+                    vdoFile = PPTXUtils.escapeHtml(vdoFile);
                     //vdoBlob = vdoFile;
                     isVdeoLink = true;
                     mediaSupportFlag = true;
                     mediaPicFlag = true;
                 } else {
-                    vdoFileExt =window.PPTXUtils.extractFileExtension(vdoFile).toLowerCase();
+                    vdoFileExt =PPTXUtils.extractFileExtension(vdoFile).toLowerCase();
                     if (vdoFileExt == "mp4" || vdoFileExt == "webm" || vdoFileExt == "ogg") {
                         // 尝试解析视频路径，处理相对路径问题
                         var vdoFileEntry = zip.file(vdoFile);
@@ -5927,7 +5920,7 @@ const TextUtils = window.TextUtils || {};
                             console.error("Video file not found:", vdoFile);
                         } else {
                             uInt8Array = vdoFileEntry.asArrayBuffer();
-                            vdoMimeType = window.PPTXUtils.getMimeType(vdoFileExt);
+                            vdoMimeType = PPTXUtils.getMimeType(vdoFileExt);
                             blob = new Blob([uInt8Array], {
                                 type: vdoMimeType
                             });
@@ -5939,14 +5932,14 @@ const TextUtils = window.TextUtils || {};
                 }
             }
             //Audio
-            var audioNode = window.PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
+            var audioNode = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
             var audioRid, audioFile, audioFileExt, audioMimeType, uInt8ArrayAudio, blobAudio, audioBlob;
             var audioPlayerFlag = false;
             var audioObjc;
             if (audioNode !== undefined & mediaProcess) {
                 audioRid = audioNode["attrs"]["r:link"];
                 audioFile = resObj[audioRid]["target"];
-                audioFileExt =window.PPTXUtils.extractFileExtension(audioFile).toLowerCase();
+                audioFileExt =PPTXUtils.extractFileExtension(audioFile).toLowerCase();
                 if (audioFileExt == "mp3" || audioFileExt == "wav" || audioFileExt == "ogg") {
                     // 尝试解析音频路径，处理相对路径问题
                     var audioFileEntry = zip.file(audioFile);
@@ -5987,14 +5980,14 @@ const TextUtils = window.TextUtils || {};
             }
             //console.log(node)
             //////////////////////////////////////////////////////////////////////////
-            mimeType = window.PPTXUtils.getMimeType(imgFileExt);
+            mimeType = PPTXUtils.getMimeType(imgFileExt);
             rtrnData = "<div class='block content' style='" +
                 ((mediaProcess && audioPlayerFlag) ? getPosition(audioObjc, node, undefined, undefined) : getPosition(xfrmNode, node, undefined, undefined)) +
                 ((mediaProcess && audioPlayerFlag) ? getSize(audioObjc, undefined, undefined) : getSize(xfrmNode, undefined, undefined)) +
                 " z-index: " + order + ";" +
                 "transform: rotate(" + rotate + "deg);'>";
             if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
-                rtrnData += "<img src='data:" + mimeType + ";base64," + window.PPTXUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
+                rtrnData += "<img src='data:" + mimeType + ";base64," + PPTXUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
             } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
                 if (vdoNode !== undefined && !isVdeoLink) {
                     rtrnData += "<video  src='" + vdoBlob + "' controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>";
@@ -6020,7 +6013,7 @@ const TextUtils = window.TextUtils || {};
 
         function processGraphicFrameNode(node, warpObj, source, sType) {
             // 使用 PPTXImageUtils 模块处理图形框架节点
-            return window.PPTXImageUtils.processGraphicFrameNode(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode);
+            return PPTXImageUtils.processGraphicFrameNode(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode);
         }
 
         /**
@@ -6030,7 +6023,7 @@ const TextUtils = window.TextUtils || {};
          * @param {Object} warpObj - 包装对象，包含解析上下文
          * @returns {Object} 解析后的形状属性对象（待实现）
          * 
-         * TODO: 实现形状属性的完整解析，包括变换、几何、填充、线条、效果等
+         * 待实现：实现形状属性的完整解析，包括变换、几何、填充、线条、效果等
          * 当前仅返回空对象，需要根据XML架构定义实现
          */
         function processSpPrNode(node, warpObj) {
@@ -6045,17 +6038,17 @@ const TextUtils = window.TextUtils || {};
         // genGlobalCSS 已移至 PPTXCSSUtils 模块
 
         function genTableInternal(node, warpObj) {
-            return window.PPTXTableUtils.genTableInternal(node, warpObj, styleTable);
+            return PPTXTableUtils.genTableInternal(node, warpObj, styleTable);
         }
 
         function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
-            return window.PPTXTableUtils.getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSource, warpObj, styleTable);
+            return PPTXTableUtils.getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSource, warpObj, styleTable);
         }
 
 
         function genDiagram(node, warpObj, source, sType) {
             var readXmlFileFunc = PPTXParser && PPTXParser.readXmlFile ? PPTXParser.readXmlFile : function() { return null; };
-            return window.PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, processSpNode);
+            return PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, processSpNode);
         }
 
 
@@ -6076,11 +6069,11 @@ const TextUtils = window.TextUtils || {};
 
         function getBackground(warpObj, slideSize, index) {
             // 使用 PPTXBackgroundUtils 模块处理背景
-            return window.PPTXBackgroundUtils.getBackground(warpObj, slideSize, index, processNodesInSlide);
+            return PPTXBackgroundUtils.getBackground(warpObj, slideSize, index, processNodesInSlide);
         }
         function getSlideBackgroundFill(warpObj, index) {
             // 使用 PPTXBackgroundUtils 模块处理背景填充
-            return window.PPTXBackgroundUtils.getSlideBackgroundFill(warpObj, index);
+            return PPTXBackgroundUtils.getSlideBackgroundFill(warpObj, index);
         }
         // getBgGradientFill, getBgPicFill 已移至 PPTXBackgroundUtils 模块
 
@@ -6097,7 +6090,7 @@ const TextUtils = window.TextUtils || {};
         // Ensure pptx-utils.js is loaded before this file
 
         // Export genTextBody for table module
-        window._genTextBody = window.PPTXTextElementUtils.genTextBody;
+        window._genTextBody = PPTXTextElementUtils.genTextBody;
         
         // Return API object for external control
         return api;
