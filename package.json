@@ -25,7 +25,6 @@
     "dev": "rollup -c rollup.config.mjs -w",
     "build": "rimraf dist && rollup -c rollup.config.mjs --environment production",
     "type-check": "tsc --noEmit",
-    "vue":"cd examples/vue-demo && npm run dev && cd ..",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",

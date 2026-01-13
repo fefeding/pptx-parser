@@ -63,11 +63,22 @@
         return result;
     }
 
-    // 辅助函数：生成填充属性字符串
+    // 辅助函数：生成填充属性字符串（基于填充类型）
     function getFillAttr(fillColor, imgFillFlg, grndFillFlg, shpId, w, h, clrFillType, warpObj, node) {
         if (clrFillType == "PIC_FILL") {
             return "url(#imgPtrn_" + shpId + ")";
         } else if (clrFillType == "GRADIENT_FILL") {
+            return "url(#linGrd_" + shpId + ")";
+        } else {
+            return fillColor;
+        }
+    }
+
+    // 辅助函数：生成填充属性字符串（基于标志变量）
+    function getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId) {
+        if (imgFillFlg) {
+            return "url(#imgPtrn_" + shpId + ")";
+        } else if (grndFillFlg) {
             return "url(#linGrd_" + shpId + ")";
         } else {
             return fillColor;
@@ -191,6 +202,8 @@
 
     window.PPTXShapeContainer.getShapeTransformParams = getShapeTransformParams;
     window.PPTXShapeContainer.getSvgContainerStart = getSvgContainerStart;
+    window.PPTXShapeContainer.getFillAttr = getFillAttr;
+    window.PPTXShapeContainer.getFillAttrFromFlags = getFillAttrFromFlags;
     window.PPTXShapeContainer.getShapeAttributes = getShapeAttributes;
     window.PPTXShapeContainer.getTriangleMarker = getTriangleMarker;
     window.PPTXShapeContainer.processShadowEffect = processShadowEffect;
