@@ -42,9 +42,9 @@
     <script type="text/javascript" src="./js/ui/pptx-ui-utils.js"></script>
     <script type="text/javascript" src="./js/pptx-parser.js"></script>
     <script type="text/javascript" src="./js/pptx-html.js"></script>
-    <script type="text/javascript" src="./js/pptxjs.js"></script>
+    <script type="module" src="./js/pptxjs.js"></script>
 
-<script type="text/javascript">
+<script type="module">
     document.addEventListener('DOMContentLoaded', function() {
 		var oldWidth, oldMargin, isFullscreenMode = false;
 		var fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -116,8 +116,10 @@
 			<div  id="result"></div>
 		</div>
 	</div>
-<script>
-pptxToHtml(document.getElementById('result'), {
+<script type="module">
+    import { pptxToHtml } from './js/pptxjs.js';
+    
+    pptxToHtml(document.getElementById('result'), {
 	fileInputId: "uploadFileInput",
 	slideMode: false,
 	keyBoardShortCut: false,

@@ -12,34 +12,33 @@
  *  - supports both jQuery and vanilla JavaScript
  */
 
-(function () {
 
 
-    var PPTXUtils = window.PPTXUtils || {};
-    var PPTXParser = window.PPTXParser || {};
-    var PPTXHtml = window.PPTXHtml || {};
-    
-    // Wait for PPTXShapeUtils to be available
-    function ensurePPTXShapeUtils() {
-        if (window.PPTXShapeUtils && typeof window.PPTXShapeUtils.shapeSnipRoundRect === 'function') {
-            return window.PPTXShapeUtils;
-        }
-        // If not available, check if it's defined but empty, or wait a bit
-        if (window.PPTXShapeUtils === undefined) {
-            window.PPTXShapeUtils = {};
-        }
+const PPTXUtils = window.PPTXUtils || {};
+const PPTXParser = window.PPTXParser || {};
+const PPTXHtml = window.PPTXHtml || {};
+
+// Wait for PPTXShapeUtils to be available
+function ensurePPTXShapeUtils() {
+    if (window.PPTXShapeUtils && typeof window.PPTXShapeUtils.shapeSnipRoundRect === 'function') {
         return window.PPTXShapeUtils;
     }
-    
-    // Ensure PPTXShapeUtils is available
-    var PPTXShapeUtils = ensurePPTXShapeUtils();
+    // If not available, check if it's defined but empty, or wait a bit
+    if (window.PPTXShapeUtils === undefined) {
+        window.PPTXShapeUtils = {};
+    }
+    return window.PPTXShapeUtils;
+}
 
-    // 确保所有依赖模块已加载
-    var PPTXNodeUtils = window.PPTXNodeUtils || {};
-    var PPTXBackgroundUtils = window.PPTXBackgroundUtils || {};
-    var PPTXImageUtils = window.PPTXImageUtils || {};
-    var PPTXDiagramUtils = window.PPTXDiagramUtils || {};
-    var TextUtils = window.TextUtils || {};
+// Ensure PPTXShapeUtils is available
+const PPTXShapeUtils = ensurePPTXShapeUtils();
+
+// 确保所有依赖模块已加载
+const PPTXNodeUtils = window.PPTXNodeUtils || {};
+const PPTXBackgroundUtils = window.PPTXBackgroundUtils || {};
+const PPTXImageUtils = window.PPTXImageUtils || {};
+const PPTXDiagramUtils = window.PPTXDiagramUtils || {};
+const TextUtils = window.TextUtils || {};
 
         //var slideLayoutClrOvride = "";
         var defaultTextStyle = null;
@@ -482,6 +481,7 @@
             }
             var slideLayoutSpNode = undefined;
             var slideMasterSpNode = undefined;
+            var txBoxVal;
 
             if (idx !== undefined) {
                 slideLayoutSpNode = warpObj["slideLayoutTables"]["idxTable"][idx];
@@ -6103,10 +6103,8 @@
         return api;
     }
 
+// Export for use in ES6 modules
+export { pptxToHtml };
 
-    // Export to global scope
-    window.pptxToHtml = pptxToHtml;
-
-})();
-
-
+// Also export to global scope for backward compatibility
+window.pptxToHtml = pptxToHtml;
