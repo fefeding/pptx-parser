@@ -9,22 +9,26 @@
 - **dist/ppt-parser.esm.js** (716KB) - ES Module 格式，未压缩
   - 适用于支持 ES6 modules 的环境
   - 推荐用于 Vue/React/Angular 等现代前端框架
+  - **不包含**第三方依赖
 
 - **dist/ppt-parser.cjs.js** (716KB) - CommonJS 格式，未压缩
   - 适用于 Node.js 环境
   - 或需要 CommonJS 格式的打包工具
+  - **不包含**第三方依赖
 
 ### 浏览器环境
 
-- **dist/ppt-parser.browser.js** (860KB) - IIFE 格式，未压缩
-  - 独立的可执行文件
-  - 包含所有依赖
+- **dist/ppt-parser.browser.js** (846KB) - ES Module 格式，未压缩
+  - 包含所有依赖（jszip, tinycolor2, txml）
+  - 使用 ES6 module 导出
   - 适用于开发调试
+  - 同时导出到 `window.pptxToHtml` 以兼容旧用法
 
-- **dist/ppt-parser.browser.min.js** (342KB) - IIFE 格式，已压缩
-  - 独立的可执行文件
-  - 包含所有依赖
+- **dist/ppt-parser.browser.min.js** (342KB) - ES Module 格式，已压缩
+  - 包含所有依赖（jszip, tinycolor2, txml）
+  - 使用 ES6 module 导出
   - 适用于生产环境
+  - 同时导出到 `window.pptxToHtml` 以兼容旧用法
 
 ### 类型定义
 
@@ -60,48 +64,7 @@ pptxToHtml(document.getElementById('result'), {
 });
 ```
 
-### 3. 浏览器 - Script 标签 (生产环境)
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <script src="./dist/ppt-parser.browser.min.js"></script>
-</head>
-<body>
-  <div id="result"></div>
-  <script>
-    // 使用全局变量 PPTXParser 访问
-    PPTXParser.pptxToHtml(document.getElementById('result'), {
-      fileInputId: "uploadFileInput",
-      slideMode: false
-    });
-  </script>
-</body>
-</html>
-```
-
-### 4. 浏览器 - Script 标签 (开发调试)
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <script src="./dist/ppt-parser.browser.js"></script>
-</head>
-<body>
-  <div id="result"></div>
-  <script>
-    PPTXParser.pptxToHtml(document.getElementById('result'), {
-      fileInputId: "uploadFileInput",
-      slideMode: false
-    });
-  </script>
-</body>
-</html>
-```
-
-### 5. 浏览器 - ES Module (推荐)
+### 3. 浏览器 - ES Module (推荐)
 
 ```html
 <!DOCTYPE html>
@@ -109,9 +72,31 @@ pptxToHtml(document.getElementById('result'), {
 <body>
   <div id="result"></div>
   <script type="module">
-    import { pptxToHtml } from './dist/ppt-parser.esm.js';
+    import { pptxToHtml } from './dist/ppt-parser.browser.js';
 
     pptxToHtml(document.getElementById('result'), {
+      fileInputId: "uploadFileInput",
+      slideMode: false
+    });
+  </script>
+</body>
+</html>
+```
+
+### 4. 浏览器 - Script 标签 + 全局变量 (兼容旧浏览器)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- 生产环境使用压缩版本 -->
+  <script src="./dist/ppt-parser.browser.min.js"></script>
+</head>
+<body>
+  <div id="result"></div>
+  <script>
+    // 使用全局变量 window.pptxToHtml
+    window.pptxToHtml(document.getElementById('result'), {
       fileInputId: "uploadFileInput",
       slideMode: false
     });
@@ -132,7 +117,17 @@ npm install @fefeding/ppt-parser jszip tinycolor2 txml
 
 ### 浏览器版本
 
-IIFE 格式（.browser.js 和 .browser.min.js）**已包含**所有依赖，无需额外安装。
+浏览器版本（.browser.js 和 .browser.min.js）**已包含**所有依赖，无需额外安装。
+
+## 浏览器兼容性
+
+- **ES Module 方式**: 需要支持 ES6 modules 的现代浏览器
+  - Chrome 61+
+  - Firefox 60+
+  - Safari 11+
+  - Edge 16+
+
+- **全局变量方式**: 支持所有现代浏览器，包括不支持 ES6 modules 的旧浏览器
 
 ## 构建命令
 
@@ -146,12 +141,12 @@ npm run dev
 
 ## 文件大小对比
 
-| 文件 | 大小 | 格式 | 说明 |
-|------|------|------|------|
-| ppt-parser.esm.js | 716KB | ESM | Node.js/现代浏览器，未压缩 |
-| ppt-parser.cjs.js | 716KB | CJS | Node.js，未压缩 |
-| ppt-parser.browser.js | 860KB | IIFE | 浏览器，未压缩，含依赖 |
-| ppt-parser.browser.min.js | 342KB | IIFE | 浏览器，已压缩，含依赖 |
+| 文件 | 大小 | 格式 | 依赖 | 说明 |
+|------|------|------|------|------|
+| ppt-parser.esm.js | 716KB | ESM | ❌ | Node.js/现代浏览器，未压缩 |
+| ppt-parser.cjs.js | 716KB | CJS | ❌ | Node.js，未压缩 |
+| ppt-parser.browser.js | 846KB | ESM | ✅ | 浏览器，未压缩，含依赖 |
+| ppt-parser.browser.min.js | 342KB | ESM | ✅ | 浏览器，已压缩，含依赖 |
 
 ## 推荐使用场景
 
@@ -161,4 +156,4 @@ npm run dev
 | Node.js 后端 | ppt-parser.cjs.js | Node.js 原生支持 |
 | 纯 HTML/JS 项目（生产） | ppt-parser.browser.min.js | 单文件，体积小，含依赖 |
 | 纯 HTML/JS 项目（开发） | ppt-parser.browser.js | 未压缩，便于调试 |
-| 浏览器 ES Module | ppt-parser.esm.js | 现代浏览器原生支持 |
+| 纯 HTML/JS 项目（旧浏览器） | ppt-parser.browser.min.js + 全局变量 | 兼容性最好 |

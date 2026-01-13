@@ -7,12 +7,6 @@
 
 <link rel="stylesheet" href="./css/pptxjs.css">
 
-<!-- 引入浏览器版本（非压缩，用于开发调试） -->
-<!-- <script src="../dist/ppt-parser.browser.js"></script> -->
-
-<!-- 引入浏览器版本（压缩，用于生产环境） -->
-<script src="../dist/ppt-parser.browser.min.js"></script>
-
 <style>
 	html, body { margin: 0; padding: 0; }
 	#warper { margin-right: auto; margin-left: auto; }
@@ -28,31 +22,63 @@
 			<div id="result"></div>
 		</div>
 	</div>
-<script>
-    // 使用全局变量 PPTXParser 访问库
-    PPTXParser.pptxToHtml(document.getElementById('result'), {
-	fileInputId: "uploadFileInput",
-	slideMode: false,
-	keyBoardShortCut: false,
-	slideModeConfig: {
-	    first: 1,
-	    nav: false,
-	    navTxtColor: "white",
-	    navNextTxt:"&#8250;",
-	    navPrevTxt: "&#8249;",
-	    showPlayPauseBtn: false,
-	    keyBoardShortCut: false,
-	    showSlideNum: false,
-	    showTotalSlideNum: false,
-	    autoSlide: false,
-	    randomAutoSlide: false,
-	    loop: false,
-	    background: "black",
-	    transition: "default",
-	    transitionTime: 1
-	}
-});
+
+<!-- 方式1：使用 ES6 Module import（推荐，现代浏览器） -->
+<script type="module">
+    import { pptxToHtml } from '../dist/ppt-parser.browser.js';
+
+    pptxToHtml(document.getElementById('result'), {
+        fileInputId: "uploadFileInput",
+        slideMode: false,
+        keyBoardShortCut: false,
+        slideModeConfig: {
+            first: 1,
+            nav: false,
+            navTxtColor: "white",
+            navNextTxt:"&#8250;",
+            navPrevTxt: "&#8249;",
+            showPlayPauseBtn: false,
+            keyBoardShortCut: false,
+            showSlideNum: false,
+            showTotalSlideNum: false,
+            autoSlide: false,
+            randomAutoSlide: false,
+            loop: false,
+            background: "black",
+            transition: "default",
+            transitionTime: 1
+        }
+    });
 </script>
+
+<!-- 方式2：使用全局 window.pptxToHtml（兼容旧浏览器） -->
+<!--
+<script src="../dist/ppt-parser.browser.min.js"></script>
+<script>
+    window.pptxToHtml(document.getElementById('result'), {
+        fileInputId: "uploadFileInput",
+        slideMode: false,
+        keyBoardShortCut: false,
+        slideModeConfig: {
+            first: 1,
+            nav: false,
+            navTxtColor: "white",
+            navNextTxt:"&#8250;",
+            navPrevTxt: "&#8249;",
+            showPlayPauseBtn: false,
+            keyBoardShortCut: false,
+            showSlideNum: false,
+            showTotalSlideNum: false,
+            autoSlide: false,
+            randomAutoSlide: false,
+            loop: false,
+            background: "black",
+            transition: "default",
+            transitionTime: 1
+        }
+    });
+</script>
+-->
 
 </body>
 </html>

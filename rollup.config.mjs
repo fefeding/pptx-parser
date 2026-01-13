@@ -41,20 +41,15 @@ export default [
     ],
     external: [...Object.keys(pkg.dependencies)]
   },
-  // 打包浏览器版本：输出 IIFE 格式（压缩版本）
+  // 打包浏览器版本：输出 ESM 格式（压缩版本，包含所有依赖）
   {
     input: 'src/index.ts',
     output: {
       file: './dist/ppt-parser.browser.min.js',
-      format: 'iife',
-      name: 'PPTXParser',
+      format: 'es',
       banner,
       sourcemap: true,
-      globals: {
-        'jszip': 'JSZip',
-        'tinycolor2': 'tinycolor',
-        'txml': 'txml'
-      }
+      exports: 'named'
     },
     plugins: [
       nodeResolve({
@@ -72,20 +67,15 @@ export default [
       })
     ]
   },
-  // 打包浏览器版本：输出 IIFE 格式（非压缩版本）
+  // 打包浏览器版本：输出 ESM 格式（非压缩版本，包含所有依赖）
   {
     input: 'src/index.ts',
     output: {
       file: './dist/ppt-parser.browser.js',
-      format: 'iife',
-      name: 'PPTXParser',
+      format: 'es',
       banner,
       sourcemap: true,
-      globals: {
-        'jszip': 'JSZip',
-        'tinycolor2': 'tinycolor',
-        'txml': 'txml'
-      }
+      exports: 'named'
     },
     plugins: [
       nodeResolve({
