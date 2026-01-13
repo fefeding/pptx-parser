@@ -1,5 +1,6 @@
 import { PPTXUtils } from '../utils/utils.js';
 import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXTextStyleUtils } from './pptx-text-style-utils.js';
 
 class PPTXBulletUtils {
     /**
@@ -32,9 +33,9 @@ class PPTXBulletUtils {
     var dfltBultColor, dfltBultSize, bultColor, bultSize, color_tye;
 
     if (rNode !== undefined) {
-        dfltBultColor = window.PPTXTextStyleUtils.getFontColorPr(rNode, spNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
+        dfltBultColor = PPTXTextStyleUtils.getFontColorPr(rNode, spNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
         color_tye = dfltBultColor[2];
-        dfltBultSize = window.PPTXTextStyleUtils.getFontSize(rNode, textBodyNode, pFontStyle, lvl, type, warpObj);
+        dfltBultSize = PPTXTextStyleUtils.getFontSize(rNode, textBodyNode, pFontStyle, lvl, type, warpObj);
     } else {
         return "";
     }

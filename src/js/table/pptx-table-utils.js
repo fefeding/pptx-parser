@@ -1,5 +1,6 @@
 import { PPTXUtils } from '../utils/utils.js';
 import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXShapeFillsUtils } from '../shape/pptx-shape-fills-utils.js';
 
 class PPTXTableUtils {
     /**
@@ -16,7 +17,7 @@ static getTableBorders(node, warpObj) {
                 "a:ln": node["a:bottom"]["a:ln"]
             }
         }
-        var borders = window.PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
+        var borders = PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
         borderStyle += borders.replace("border", "border-bottom");
     }
     if (node["a:top"] !== undefined) {
@@ -25,7 +26,7 @@ static getTableBorders(node, warpObj) {
                 "a:ln": node["a:top"]["a:ln"]
             }
         }
-        var borders = window.PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
+        var borders = PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
         borderStyle += borders.replace("border", "border-top");
     }
     if (node["a:right"] !== undefined) {
@@ -34,7 +35,7 @@ static getTableBorders(node, warpObj) {
                 "a:ln": node["a:right"]["a:ln"]
             }
         }
-        var borders = window.PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
+        var borders = PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
         borderStyle += borders.replace("border", "border-right");
     }
     if (node["a:left"] !== undefined) {
@@ -43,7 +44,7 @@ static getTableBorders(node, warpObj) {
                 "a:ln": node["a:left"]["a:ln"]
             }
         }
-        var borders = window.PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
+        var borders = PPTXShapeFillsUtils.getBorder(obj, undefined, false, "shape", warpObj);
         borderStyle += borders.replace("border", "border-left");
     }
 
@@ -113,7 +114,7 @@ static genTableInternal(node, warpObj, styleTable) {
     var tblBorderStyl = PPTXUtils.getTextByPathList(tblStyl, ["a:tcBdr"]);
     var tbl_borders = "";
     if (tblBorderStyl !== undefined) {
-        tbl_borders = window.PPTXTableUtils.getTableBorders(tblBorderStyl, warpObj);
+        tbl_borders = PPTXTableUtils.getTableBorders(tblBorderStyl, warpObj);
     }
     var tbl_bgcolor = "";
     var tbl_bgFillschemeClr = PPTXUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
@@ -190,7 +191,7 @@ static genTableInternal(node, warpObj, styleTable) {
             }
             var borderStyl = PPTXUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:tcBdr"]);
             if (borderStyl !== undefined) {
-                var local_row_borders = window.PPTXTableUtils.getTableBorders(borderStyl, warpObj);
+                var local_row_borders = PPTXTableUtils.getTableBorders(borderStyl, warpObj);
                 if (local_row_borders != "") {
                     row_borders = local_row_borders;
                 }
@@ -222,7 +223,7 @@ static genTableInternal(node, warpObj, styleTable) {
 
                 var borderStyl = PPTXUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:tcBdr"]);
                 if (borderStyl !== undefined) {
-                    var local_row_borders = window.PPTXTableUtils.getTableBorders(borderStyl, warpObj);
+                    var local_row_borders = PPTXTableUtils.getTableBorders(borderStyl, warpObj);
                     if (local_row_borders != "") {
                         row_borders = local_row_borders;
                     }
@@ -252,7 +253,7 @@ static genTableInternal(node, warpObj, styleTable) {
                 }
                 var borderStyl = PPTXUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:tcBdr"]);
                 if (borderStyl !== undefined) {
-                    var local_row_borders = window.PPTXTableUtils.getTableBorders(borderStyl, warpObj);
+                    var local_row_borders = PPTXTableUtils.getTableBorders(borderStyl, warpObj);
                     if (local_row_borders != "") {
                         row_borders = local_row_borders;
                     }
@@ -281,7 +282,7 @@ static genTableInternal(node, warpObj, styleTable) {
             }
             var borderStyl = PPTXUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:tcBdr"]);
             if (borderStyl !== undefined) {
-                var local_row_borders = window.PPTXTableUtils.getTableBorders(borderStyl, warpObj);
+                var local_row_borders = PPTXTableUtils.getTableBorders(borderStyl, warpObj);
                 if (local_row_borders != "") {
                     row_borders = local_row_borders;
                 }
@@ -513,25 +514,25 @@ getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSou
     lin_top_left_to_bottom_right = PPTXUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:InTlToBr"]);
 
     if (lin_bottm !== undefined && lin_bottm != "") {
-        var bottom_line_border = window.PPTXShapeFillsUtils.getBorder(lin_bottm, undefined, false, "", warpObj)
+        var bottom_line_border = PPTXShapeFillsUtils.getBorder(lin_bottm, undefined, false, "", warpObj)
         if (bottom_line_border != "") {
             colStyl += "border-bottom:" + bottom_line_border + ";";
         }
     }
     if (lin_top !== undefined && lin_top != "") {
-        var top_line_border = window.PPTXShapeFillsUtils.getBorder(lin_top, undefined, false, "", warpObj);
+        var top_line_border = PPTXShapeFillsUtils.getBorder(lin_top, undefined, false, "", warpObj);
         if (top_line_border != "") {
             colStyl += "border-top: " + top_line_border + ";";
         }
     }
     if (lin_left !== undefined && lin_left != "") {
-        var left_line_border = window.PPTXShapeFillsUtils.getBorder(lin_left, undefined, false, "", warpObj)
+        var left_line_border = PPTXShapeFillsUtils.getBorder(lin_left, undefined, false, "", warpObj)
         if (left_line_border != "") {
             colStyl += "border-left: " + left_line_border + ";";
         }
     }
     if (lin_right !== undefined && lin_right != "") {
-        var right_line_border = window.PPTXShapeFillsUtils.getBorder(lin_right, undefined, false, "", warpObj)
+        var right_line_border = PPTXShapeFillsUtils.getBorder(lin_right, undefined, false, "", warpObj)
         if (right_line_border != "") {
             colStyl += "border-right:" + right_line_border + ";";
         }
@@ -543,7 +544,7 @@ getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSou
         var cellObj = {
             "p:spPr": getCelFill
         };
-        celFillColor = window.PPTXShapeFillsUtils.getShapeFill(cellObj, undefined, false, warpObj, "slide")
+        celFillColor = PPTXShapeFillsUtils.getShapeFill(cellObj, undefined, false, warpObj, "slide")
     }
 
     //cell fill color theme

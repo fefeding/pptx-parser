@@ -155,14 +155,14 @@ function getDefsContent(node, pNode, warpObj, source, shpId, w, h, fillColor, st
         grndFillFlg = true;
         var color_arry = fillColor.color;
         var angl = fillColor.rot + 90;
-        var svgGrdnt = window.PPTXShapeFillsUtils.getSvgGradient(w, h, angl, color_arry, shpId);
+        var svgGrdnt = PPTXShapeFillsUtils.getSvgGradient(w, h, angl, color_arry, shpId);
         result += svgGrdnt;
     }
     // 处理图片填充
     else if (clrFillType == "PIC_FILL") {
         imgFillFlg = true;
         var imgFill = typeof fillColor === 'object' && fillColor.img ? fillColor.img : fillColor;
-        var svgBgImg = window.PPTXShapeFillsUtils.getSvgImagePattern(node, imgFill, shpId, warpObj);
+        var svgBgImg = PPTXShapeFillsUtils.getSvgImagePattern(node, imgFill, shpId, warpObj);
         result += svgBgImg;
     }
     // 处理图案填充
