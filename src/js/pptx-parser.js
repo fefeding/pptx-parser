@@ -4,7 +4,7 @@
  */
 
 (function () {
-    var $ = window.jQuery;
+
 
     // 全局变量，将在初始化时设置
     var app_verssion;

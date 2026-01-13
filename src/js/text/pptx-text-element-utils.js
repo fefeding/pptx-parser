@@ -342,12 +342,17 @@
                 // without r
                 var prgr_text = window.PPTXTextElementUtils.genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate, styleTable);
                 if (isBullate) {
-                    var txt_obj = $(prgr_text);
-                    txt_obj.css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden' });
-                    console.log("txt_obj:", txt_obj)
-                    txt_obj.appendTo($('body'));
-                    total_text_len += txt_obj.outerWidth();
-                    txt_obj.remove();
+                    var txt_obj = document.createElement('div');
+                    txt_obj.innerHTML = prgr_text;
+                    var span = txt_obj.firstChild;
+                    span.style.position = 'absolute';
+                    span.style.float = 'left';
+                    span.style.whiteSpace = 'nowrap';
+                    span.style.visibility = 'hidden';
+                    console.log("txt_obj:", span);
+                    document.body.appendChild(span);
+                    total_text_len += span.offsetWidth;
+                    document.body.removeChild(span);
                 }
                 prgrph_text += prgr_text;
             } else if (rNode !== undefined) {
@@ -355,12 +360,17 @@
                 for (var j = 0; j < rNode.length; j++) {
                     var prgr_text = window.PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate, styleTable);
                     if (isBullate) {
-                        var txt_obj = $(prgr_text);
-                        txt_obj.css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden'});
-                        console.log("txt_obj:", txt_obj)
-                        txt_obj.appendTo($('body'));
-                        total_text_len += txt_obj.outerWidth();
-                        txt_obj.remove();
+                        var txt_obj = document.createElement('div');
+                        txt_obj.innerHTML = prgr_text;
+                        var span = txt_obj.firstChild;
+                        span.style.position = 'absolute';
+                        span.style.float = 'left';
+                        span.style.whiteSpace = 'nowrap';
+                        span.style.visibility = 'hidden';
+                        console.log("txt_obj:", span);
+                        document.body.appendChild(span);
+                        total_text_len += span.offsetWidth;
+                        document.body.removeChild(span);
                     }
                     prgrph_text += prgr_text;
                 }

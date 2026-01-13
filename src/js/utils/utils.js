@@ -4,7 +4,7 @@
  */
 
 (function () {
-    var $ = window.jQuery;
+
 
     // PPTX 坐标转换因子 (96 pixels per inch / 914400 EMUs per inch)
     var slideFactor = 96 / 914400;
@@ -428,14 +428,15 @@
         return {
             format: function (n) {
                 var ret = '';
-                $.each(arr, function () {
-                    var num = this[0];
+                for (var i = 0; i < arr.length; i++) {
+                    var item = arr[i];
+                    var num = item[0];
                     if (parseInt(num) > 0) {
-                        for (; n >= num; n -= num) ret += this[1];
+                        for (; n >= num; n -= num) ret += item[1];
                     } else {
-                        ret = ret.replace(num, this[1]);
+                        ret = ret.replace(num, item[1]);
                     }
-                });
+                }
                 return ret;
             }
         }

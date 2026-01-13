@@ -32,8 +32,8 @@
     "vue": "cd examples/vue-demo && npm run dev && cd ../..",
     "static": "vite --config vite.static.config.ts",
     "static:build": "vite build --config vite.static.config.ts",
-    "static:nojquery": "vite --config vite.nojquery.config.ts --open",
-    "static:nojquery:build": "vite build --config vite.nojquery.config.ts",
+    "static:nojquery": "vite --config vite.static.config.ts --open",
+    "static:nojquery:build": "vite build --config vite.static.config.ts",
     "prepublishOnly": "npm run build && npm run type-check"
   },
   "keywords": [

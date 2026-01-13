@@ -14,7 +14,7 @@
 
 (function () {
 
-    var $ = window.jQuery;
+
     var PPTXUtils = window.PPTXUtils || {};
     var PPTXParser = window.PPTXParser || {};
     var PPTXHtml = window.PPTXHtml || {};
@@ -54,7 +54,7 @@
     // Main pptxToHtml function
     function pptxToHtml(element, options) {
         //var worker;
-        var $result = $(element);
+        var $result = typeof element === 'string' ? document.querySelector(element) : (element && element.jquery ? element[0] : element);
         var divId = element.id || element.getAttribute("id");
 
         var isDone = false;
@@ -77,6 +77,16 @@
         var slideWidth = 0;
     var slideHeight = 0;
     var isSlideMode = false;
+    
+    // API object for external control
+    var api = {
+        get isSlideMode() { return isSlideMode; },
+        set isSlideMode(value) { isSlideMode = value; },
+        initSlideMode: function() { initSlideMode(divId, settings); },
+        exitSlideMode: function() { exitSlideMode(divId); },
+        updateProgress: function(percent) { updateProgressBar(percent); },
+        removeLoading: function() { window.PPTXUIUtils.removeLoadingMessage(); }
+    };
 
     // 计算元素位置和尺寸 - 使用 PPTXUtils 中的函数
     var getPosition = window.PPTXUtils ? window.PPTXUtils.getPosition : function() { return ""; };
@@ -84,7 +94,26 @@
 
     var processFullTheme = true;
         var styleTable = {};
-        var settings = $.extend(true, {
+        
+        // Deep extend function
+        function deepExtend(destination) {
+            for (var i = 1; i < arguments.length; i++) {
+                var source = arguments[i];
+                for (var property in source) {
+                    if (source.hasOwnProperty(property)) {
+                        if (source[property] && typeof source[property] === 'object' && source[property].constructor === Object) {
+                            destination[property] = destination[property] || {};
+                            deepExtend(destination[property], source[property]);
+                        } else {
+                            destination[property] = source[property];
+                        }
+                    }
+                }
+            }
+            return destination;
+        }
+        
+        var settings = deepExtend({
             // These are the defaults.
             pptxFileUrl: "",
             fileInputId: "",
@@ -118,7 +147,7 @@
 
         processFullTheme = settings.themeProcess;
 
-        var container = $("#" + divId);
+        var container = document.getElementById(divId);
         if (Array.isArray(container)) {
             container = container[0];
         }
@@ -141,11 +170,15 @@
         }
         if (settings.slideMode) {
             if (!window.pptxjslideObj) {
-                $.getScript('./js/divs2slides.js');
+                var script = document.createElement('script');
+                script.src = './js/divs2slides.js';
+                document.head.appendChild(script);
             }
         }
         if (settings.jsZipV2 !== false) {
-            $.getScript(settings.jsZipV2);
+            var script = document.createElement('script');
+            script.src = settings.jsZipV2;
+            document.head.appendChild(script);
             if (localStorage.getItem('isPPTXjsReLoaded') !== 'yes') {
                 localStorage.setItem('isPPTXjsReLoaded', 'yes');
                 location.reload();
@@ -153,7 +186,7 @@
         }
 
         if (settings.keyBoardShortCut) {
-            $(document).bind("keydown", function (event) {
+            document.addEventListener("keydown", function (event) {
                 event.preventDefault();
                 var key = event.keyCode;
                 console.log(key, isDone)
@@ -193,8 +226,8 @@
             window.PPTXUIUtils.removeLoadingMessage();
         }
         if (settings.fileInputId != "") {
-            $("#" + settings.fileInputId).on("change", function (evt) {
-                $result.html("");
+            document.getElementById(settings.fileInputId).addEventListener("change", function (evt) {
+                $result.innerHTML = "";
                 var file = evt.target.files[0];
                 // var fileName = file[0].name;
                 //var fileSize = file[0].size;
@@ -245,7 +278,7 @@
             for (var i = 0; i < rslt_ary.length; i++) {
                 switch (rslt_ary[i]["type"]) {
                     case "slide":
-                        $result.append(rslt_ary[i]["data"]);
+                        $result.insertAdjacentHTML('beforeend', rslt_ary[i]["data"]);
                         break;
                     case "pptx-thumb":
                         //$("#pptx-thumb").attr("src", "data:image/jpeg;base64," +rslt_ary[i]["data"]);
@@ -262,16 +295,16 @@
                         break;
                     case "globalCSS":
                         //console.log(rslt_ary[i]["data"])
-                        $result.append("<style>" + rslt_ary[i]["data"] + "</style>");
+                        $result.insertAdjacentHTML('beforeend', "<style>" + rslt_ary[i]["data"] + "</style>");
                         break;
                     case "ExecutionTime":
                         // 生成并添加全局 CSS
                         if (typeof window.PPTXCSSUtils.genGlobalCSS === 'function') {
-                            $result.append("<style>" + window.PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth) + "</style>");
+                            $result.insertAdjacentHTML('beforeend', "<style>" + window.PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth) + "</style>");
                         }
                         PPTXHtml.processMsgQueue(MsgQueue);
-                        PPTXHtml.setNumericBullets($(".block"));
-                        PPTXHtml.setNumericBullets($("table td"));
+                        PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));
+                        PPTXHtml.setNumericBullets(document.querySelectorAll("table td"));
 
                         isDone = true;
 
@@ -319,8 +352,8 @@
                     }
                         pptxjslideObj.init({
                         divId: divId,
-                        slides: $("#" + divId + " .slide"),
-                        totalSlides: $("#" + divId + " .slide").length,
+                        slides: document.querySelectorAll("#" + divId + " .slide"),
+                        totalSlides: document.querySelectorAll("#" + divId + " .slide").length,
                         slideCount: 1,
                         prevSlide: -1,
                         isInit: false,
@@ -359,16 +392,34 @@
                 } else {
                     revealjsPath = "./revealjs/reveal.js";
                 }
-                $.getScript(revealjsPath, function (response, status) {
-                    if (status == "success") {
-                        // $("section").removeClass("slide");
-                        Reveal.initialize(settings.revealjsConfig); //revealjsConfig - TODO
-                    }
-                });
+                var script = document.createElement('script');
+                script.src = revealjsPath;
+                script.onload = function() {
+                    // $("section").removeClass("slide");
+                    Reveal.initialize(settings.revealjsConfig); //revealjsConfig - TODO
+                };
+                script.onerror = function() {
+                    console.error('Failed to load reveal.js script');
+                };
+                document.head.appendChild(script);
             }
 
 
 
+        }
+
+        function exitSlideMode(divId) {
+            // Show all slide elements
+            var slideElements = document.querySelectorAll("#" + divId + " .slide");
+            for (var i = 0; i < slideElements.length; i++) {
+                slideElements[i].style.display = "block";
+            }
+            // If pptxjslideObj exists and has a destroy method, call it
+            if (window.pptxjslideObj && typeof window.pptxjslideObj.destroy === 'function') {
+                window.pptxjslideObj.destroy();
+            }
+            // Update wrapper height for normal mode
+            window.PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
         }
 
         function processPPTX(zip) {
@@ -5996,6 +6047,9 @@
 
         // Export genTextBody for table module
         window._genTextBody = window.PPTXTextElementUtils.genTextBody;
+        
+        // Return API object for external control
+        return api;
     }
 
 

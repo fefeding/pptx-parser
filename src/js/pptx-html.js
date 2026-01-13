@@ -4,7 +4,7 @@
  */
 
 (function () {
-    var $ = window.jQuery;
+
 
     // 全局变量引用
     var PPTXUtils = window.PPTXUtils;
@@ -628,7 +628,8 @@
         if (PPTXUtils && PPTXUtils.getNumTypeNum) {
             var prgrphs_arry = elem;
             for (var i = 0; i < prgrphs_arry.length; i++) {
-                var buSpan = $(prgrphs_arry[i]).find('.numeric-bullet-style');
+                var element = prgrphs_arry[i];
+                var buSpan = element.querySelectorAll('.numeric-bullet-style');
                 if (buSpan.length > 0) {
                     //console.log("DIV-"+i+":");
                     var prevBultTyp = "";
@@ -638,8 +639,9 @@
                     var tmpArryIndx = 0;
                     var buletTypSrry = new Array();
                     for (var j = 0; j < buSpan.length; j++) {
-                        var bult_typ = $(buSpan[j]).data("bulltname");
-                        var bult_lvl = $(buSpan[j]).data("bulltlvl");
+                        var span = buSpan[j];
+                        var bult_typ = span.dataset.bulltname;
+                        var bult_lvl = span.dataset.bulltlvl;
                         //console.log(j+" - "+bult_typ+" lvl: "+bult_lvl );
                         if (buletIndex == 0) {
                             prevBultTyp = bult_typ;
@@ -677,30 +679,39 @@
                         }
                         //console.log(buletTypSrry[tmpArryIndx]+" - "+buletIndex);
                         var numIdx = PPTXUtils.getNumTypeNum(buletTypSrry[tmpArryIndx], buletIndex);
-                        $(buSpan[j]).html(numIdx);
+                        span.innerHTML = numIdx;
                     }
                 }
             }
         } else {
             // Fallback to simple list conversion if PPTXUtils is not available
-            jqSelector.find('li').each(function () {
-                var $li = $(this);
-                var html = $li.html();
-                // If it starts with a number and a dot, treat as numbered list item
-                if (/^\d+\.\s/.test(html)) {
-                    // Ensure parent is ol if not already
-                    var $parent = $li.parent();
-                    if (!$parent.is('ol')) {
-                        $parent.each(function () {
-                            if (!$(this).is('ol')) {
-                                $(this).filter('ul').replaceWith(function () {
-                                    return $('<ol></ol>').append($(this).contents());
-                                });
+            // Convert elem to a NodeList or array if needed
+            var elements = elem;
+            if (!elements.length && elements.nodeType === 1) {
+                elements = [elements];
+            }
+            for (var i = 0; i < elements.length; i++) {
+                var element = elements[i];
+                var lis = element.querySelectorAll('li');
+                for (var j = 0; j < lis.length; j++) {
+                    var li = lis[j];
+                    var html = li.innerHTML;
+                    // If it starts with a number and a dot, treat as numbered list item
+                    if (/^\d+\.\s/.test(html)) {
+                        // Ensure parent is ol if not already
+                        var parent = li.parentNode;
+                        if (parent && parent.tagName !== 'OL') {
+                            if (parent.tagName === 'UL') {
+                                var ol = document.createElement('ol');
+                                while (parent.firstChild) {
+                                    ol.appendChild(parent.firstChild);
+                                }
+                                parent.parentNode.replaceChild(ol, parent);
                             }
-                        });
+                        }
                     }
                 }
-            });
+            }
         }
     }
 
@@ -795,9 +806,11 @@
 
     // 更新加载进度条
     function updateProgressBar(percent) {
-        var progressBarElemtnt = $(".slides-loading-progress-bar");
-        progressBarElemtnt.width(percent + "%");
-        progressBarElemtnt.html("<span style='text-align: center;'>Loading...(" + percent + "%)</span>");
+        var progressBarElemtnt = document.querySelector(".slides-loading-progress-bar");
+        if (progressBarElemtnt) {
+            progressBarElemtnt.style.width = percent + "%";
+            progressBarElemtnt.innerHTML = "<span style='text-align: center;'>Loading...(" + percent + "%)</span>";
+        }
     }
 
     // 公开 API
