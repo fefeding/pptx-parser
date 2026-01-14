@@ -45,8 +45,8 @@ function getShapeTransformParams(node) {
 
     // 辅助函数：生成 SVG 容器开标签
 function getSvgContainerStart(shpId, id, idx, type, name, w, h, svgCssName, effectsClassName, rotate, flip, order, slideXfrmNode, pNode, getPosition, getSize, sType) {
-    var result = "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
-        "' style='" +
+    var result = "<svg class='drawing " + svgCssName + " " + effectsClassName + "' data-id='" + (id !== undefined ? id : '') + "' data-idx='" + (idx !== undefined ? idx : '') + "' data-type='" + (type !== undefined ? type : '') + "' data-name='" + (name !== undefined ? name : '') + "'" +
+        " style='" +
         getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
         getSize(slideXfrmNode, undefined, undefined) +
         " z-index: " + order + ";" +
@@ -127,14 +127,12 @@ function processShadowEffect(outerShdwNode, slideFactor, styleTable, effectsClas
 
         svg_css_shadow = "filter:drop-shadow(" + hx + "px " + vx + "px " + blurRad + "px #" + chdwClrNode + ");";
 
-        if (svg_css_shadow in styleTable) {
-            svg_css_shadow += "do-nothing: " + effectsClassName + ";";
+        if (!(svg_css_shadow in styleTable)) {
+            styleTable[svg_css_shadow] = {
+                "name": effectsClassName,
+                "text": svg_css_shadow
+            };
         }
-
-        styleTable[svg_css_shadow] = {
-            "name": effectsClassName,
-            "text": svg_css_shadow
-        };
     }
     return "";
 }
@@ -168,13 +166,12 @@ function getDefsContent(node, pNode, warpObj, source, shpId, w, h, fillColor, st
     // 处理图案填充
     else if (clrFillType == "PATTERN_FILL") {
         var styleText = fillColor;
-        if (styleText in styleTable) {
-            styleText += "do-nothing: " + svgCssName + ";";
+        if (!(styleText in styleTable)) {
+            styleTable[styleText] = {
+                "name": svgCssName,
+                "text": styleText
+            };
         }
-        styleTable[styleText] = {
-            "name": svgCssName,
-            "text": styleText
-        };
     }
 
     // 处理箭头标记

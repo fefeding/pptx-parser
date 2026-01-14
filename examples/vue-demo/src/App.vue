@@ -18,15 +18,10 @@
         {{ error }}
       </div>
 
-      <div v-if="result.htmlContent.length > 0" class="preview-section">
+      <div v-if="resultHtml" class="preview-section">
         <h3>PPTX HTML预览 ({{ result.htmlContent.length }} 张幻灯片)：</h3>
         <div class="slide-viewer">
-          <div
-            v-for="(slide, index) in result.htmlContent"
-            :key="index"
-            class="slide-item"
-            v-html="slide.html"
-          ></div>
+          {{resultHtml}}
         </div>
       </div>
     </main>
@@ -63,6 +58,7 @@ const result = ref<PPTXResult>({
   styleTable: {},
   error: null
 })
+const resultHtml = ref('');
 
 // 注入全局 CSS 到 document head
 let styleElement: HTMLStyleElement | null = null
@@ -117,7 +113,9 @@ async function handleFileUpload(event: Event) {
     if (data.error) {
       error.value = data.error.message || '解析失败'
     } else {
-      result.value = data
+      const html = data.htmlContent[0].html;//data.htmlContent.map((item:any) => item.html).join('');
+      console.log(html);
+      resultHtml.value = html;
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : '解析失败'

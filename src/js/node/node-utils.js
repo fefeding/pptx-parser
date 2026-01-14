@@ -131,7 +131,7 @@ class PPTXNodeUtils {
             grpStyle += "height: " + height + "px;";
         }
 
-        const order = node["attrs"]["order"];
+        const order = PPTXUtils.getTextByPathList(node, ["attrs", "order"]) || 0;
         let result = "<div class='block group' style='z-index: " + order + ";" + grpStyle + "'>";
 
         // Process all child nodes

@@ -43,7 +43,7 @@ import { PPTXCSSUtils } from './core/css-utils.js';
 import { PPTXTableUtils } from './table/table-utils.js';
 import { PPTXTextStyleUtils } from './text/text-style-utils.js';
 import { PPTXTextElementUtils } from './text/text-element-utils.js';
-import { FileReaderJS } from './file-reader.js';
+// import { FileReaderJS } from './file-reader.js';
 
         //var slideLayoutClrOvride = "";
         var defaultTextStyle = null;
@@ -150,7 +150,7 @@ import { FileReaderJS } from './file-reader.js';
         }, options);
 
         processFullTheme = settings.themeProcess;
-        FileReaderJS.setSync(false);
+        // FileReaderJS.setSync(false);
 
         // 处理输入：URL、File、Blob 或 ArrayBuffer
         var hasInput = input && (typeof input === 'string' || input instanceof File || input instanceof Blob || input instanceof ArrayBuffer);
@@ -346,7 +346,7 @@ import { FileReaderJS } from './file-reader.js';
             var name = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
             var idx = (PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]) === undefined) ? undefined : PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]);
             var type = (PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]) === undefined) ? undefined : PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
-            var order = PPTXUtils.getTextByPathList(node, ["attrs", "order"]);
+            var order = PPTXUtils.getTextByPathList(node, ["attrs", "order"]) || 0;
             var isUserDrawnBg;
             if (source == "slideLayoutBg" || source == "slideMasterBg") {
                 var userDrawn = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "attrs", "userDrawn"]);
@@ -404,7 +404,7 @@ import { FileReaderJS } from './file-reader.js';
             var idx = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : getAttr(node["p:nvSpPr"]["p:nvPr"]["p:ph"], "idx");
             var type = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : getAttr(node["p:nvSpPr"]["p:nvPr"]["p:ph"], "type");
             //<p:cNvCxnSpPr>(<p:cNvCxnSpPr>, <a:endCxn>)
-            var order = getAttr(node, "order");
+            var order = getAttr(node, "order") || 0;
 
             return genShape(node, pNode, undefined, undefined, id, name, idx, type, order, warpObj, undefined, sType, source);
         }
@@ -452,8 +452,8 @@ import { FileReaderJS } from './file-reader.js';
                 var svgCssName = "_svg_css_" + (Object.keys(styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
                 //console.log("name:", name, "svgCssName: ", svgCssName)
                 var effectsClassName = svgCssName + "_effects";
-                result += "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
-                    "' style='" +
+                result += "<svg class='drawing " + svgCssName + " " + effectsClassName + "' data-id='" + (id !== undefined ? id : '') + "' data-idx='" + (idx !== undefined ? idx : '') + "' data-type='" + (type !== undefined ? type : '') + "' data-name='" + (name !== undefined ? name : '') + "'" +
+                    " style='" +
                     getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
                     getSize(slideXfrmNode, undefined, undefined) +
                     " z-index: " + order + ";" +
@@ -494,14 +494,15 @@ import { FileReaderJS } from './file-reader.js';
                 } else if (clrFillType == "PATTERN_FILL") {
                     var styleText = fillColor;
                     if (styleText in styleTable) {
-                        styleText += "do-nothing: " + svgCssName +";";
+                        // 样式已存在,跳过添加
+                        fillColor = "none";
+                    } else {
+                        styleTable[styleText] = {
+                            "name": svgCssName,
+                            "text": styleText
+                        };
+                        fillColor = "none";
                     }
-                    styleTable[styleText] = {
-                        "name": svgCssName,
-                        "text": styleText
-                    };
-                    //}
-                    fillColor = "none";
                 } else {
                     if (clrFillType != "SOLID_FILL" && clrFillType != "PATTERN_FILL" &&
                         (shapType == "arc" ||
@@ -579,14 +580,12 @@ import { FileReaderJS } from './file-reader.js';
                     //css:
                     var svg_css_shadow = "filter:drop-shadow(" + hx + "px " + vx + "px " + blurRad + "px #" + chdwClrNode + ");";
 
-                    if (svg_css_shadow in styleTable) {
-                        svg_css_shadow += "do-nothing: " + svgCssName + ";";
+                    if (!(svg_css_shadow in styleTable)) {
+                        styleTable[svg_css_shadow] = {
+                            "name": effectsClassName,
+                            "text": svg_css_shadow
+                        };
                     }
-
-                    styleTable[svg_css_shadow] = {
-                        "name": effectsClassName,
-                        "text": svg_css_shadow
-                    };
 
                 } 
                 ////////////////////////////////////////////////////////////////////////////////////////
@@ -5421,7 +5420,7 @@ import { FileReaderJS } from './file-reader.js';
 
                 result += "<div class='block " + PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
                     " " + PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
+                    "' data-id='" + (id !== undefined ? id : '') + "' data-idx='" + (idx !== undefined ? idx : '') + "' data-type='" + (type !== undefined ? type : '') + "' data-name='" + (name !== undefined ? name : '') +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
@@ -5582,9 +5581,9 @@ import { FileReaderJS } from './file-reader.js';
                         // });
                         Object.keys(closeNode).forEach(function (key) {
                             //console.log("custShapType >> closeNode: key: ", key);
-                            var clsAttrs = closeNode[key]["attrs"];
+                            var clsAttrs = closeNode[key]?closeNode[key]["attrs"]:{};
                             //var clsAttrs = closeNode["attrs"];
-                            var clsOrder = clsAttrs["order"];
+                            var clsOrder = clsAttrs?clsAttrs["order"]:'';
                             var ptObj = {};
                             ptObj.type = "close";
                             ptObj.order = clsOrder;
@@ -5679,9 +5678,9 @@ import { FileReaderJS } from './file-reader.js';
                 }
 
                 result += "</svg>";
-                result += "<div class='block " + PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content 
+                result += "<div class='block " + PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
                     " " + PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
+                    "' data-id='" + (id !== undefined ? id : '') + "' data-idx='" + (idx !== undefined ? idx : '') + "' data-type='" + (type !== undefined ? type : '') + "' data-name='" + (name !== undefined ? name : '') +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
@@ -5701,9 +5700,9 @@ import { FileReaderJS } from './file-reader.js';
                 // result = "";
             } else {
 
-                result += "<div class='block " + PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content 
+                result += "<div class='block " + PPTXTextStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content
                     " " + PPTXTextStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
+                    "' data-id='" + (id !== undefined ? id : '') + "' data-idx='" + (idx !== undefined ? idx : '') + "' data-type='" + (type !== undefined ? type : '') + "' data-name='" + (name !== undefined ? name : '') +
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
@@ -5734,7 +5733,7 @@ import { FileReaderJS } from './file-reader.js';
             //console.log("processPicNode node:", node, "source:", source, "sType:", sType, "warpObj;", warpObj);
             var rtrnData = "";
             var mediaPicFlag = false;
-            var order = getAttr(node, "order");
+            var order = getAttr(node, "order") || 0;
 
             var rid = getAttr(node["p:blipFill"]["a:blip"], "r:embed");
             var resObj;

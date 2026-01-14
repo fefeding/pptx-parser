@@ -10,22 +10,7 @@ import { PPTXTableUtils } from './table/table-utils.js';
     var chartID = 0;
 
     // Helper function: getTextByPathList
-    var getTextByPathList = window.PPTXUtils ? PPTXUtils.getTextByPathList : function(node, path) {
-        if (path.constructor !== Array) {
-            throw Error("Error of path type! path is not array.");
-        }
-        if (node === undefined || node === null) {
-            return undefined;
-        }
-        var l = path.length;
-        for (var i = 0; i < l; i++) {
-            node = node[path[i]];
-            if (node === undefined || node === null) {
-                return undefined;
-            }
-        }
-        return node;
-    };
+    var getTextByPathList = PPTXUtils.getTextByPathList;
 
     // Helper functions for position and size - use from PPTXUtils
     var getPosition = window.PPTXUtils ? PPTXUtils.getPosition : function() { return ""; };
@@ -44,6 +29,10 @@ import { PPTXTableUtils } from './table/table-utils.js';
         var styleTable = PPTXParser.styleTable || {};
         var slideWidth = PPTXParser.slideWidth || 960;
         for (var key in styleTable) {
+            // 跳过无效的样式(没有 name 的情况)
+            if (!styleTable[key] || !styleTable[key]["name"]) {
+                continue;
+            }
             var tagname = "";
             // if (settings.slideMode && settings.slideType == "revealjs") {
             //     tagname = "section";
@@ -95,7 +84,7 @@ import { PPTXTableUtils } from './table/table-utils.js';
 
     // 生成表格 HTML
     function genTable(node, warpObj) {
-        var order = node["attrs"]["order"];
+        var order = getTextByPathList(node, ["attrs", "order"]) || 0;
         var tableNode = getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
         var xfrmNode = getTextByPathList(node, ["p:xfrm"]);
         
@@ -332,7 +321,7 @@ import { PPTXTableUtils } from './table/table-utils.js';
 
     // 生成图表 HTML
     function genChart(node, warpObj) {
-        var order = node["attrs"]["order"];
+        var order = getTextByPathList(node, ["attrs", "order"]) || 0;
         var xfrmNode = getTextByPathList(node, ["p:xfrm"]);
 
         var readXmlFile = PPTXParser ? PPTXParser.readXmlFile : function() { return null; };

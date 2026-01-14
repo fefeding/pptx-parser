@@ -59,7 +59,7 @@ static getTableBorders(node, warpObj) {
  * @returns {String} Table HTML string
  */
 static genTableInternal(node, warpObj, styleTable) {
-    var order = node["attrs"]["order"];
+    var order = PPTXUtils.getTextByPathList(node, ["attrs", "order"]) || 0;
     var tableNode = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
     var xfrmNode = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
     
@@ -459,10 +459,10 @@ static getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, 
         lin_bottom_left_to_top_right = "",
         lin_top_left_to_bottom_right = "";
     
-    var colSapnInt = parseInt(colSpan);
+    var colSpanInt = parseInt(colSpan);
     var total_col_width = 0;
-    if (!isNaN(colSapnInt) && colSapnInt > 1){
-        for (var k = 0; k < colSapnInt ; k++) {
+    if (!isNaN(colSpanInt) && colSpanInt > 1){
+        for (var k = 0; k < colSpanInt ; k++) {
             total_col_width += parseInt(PPTXUtils.getTextByPathList(getColsGrid[col_idx + k], ["attrs", "w"]));
         }
     }else{

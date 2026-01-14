@@ -207,7 +207,7 @@ class PPTXBackgroundUtils {
                 for (var i = 0; i < bgFillLstTyp.length; i++) {
                     var obj = {};
                     obj[key] = bgFillLstTyp[i];
-                    var order = getAttr(bgFillLstTyp[i], "order");
+                    var order = getAttr(bgFillLstTyp[i], "order") || 0;
                     obj["idex"] = order;
                     obj["attrs"] = { "order": order };
                     sortblAry.push(obj);
@@ -215,7 +215,7 @@ class PPTXBackgroundUtils {
             } else {
                 var obj = {};
                 obj[key] = bgFillLstTyp;
-                var order = getAttr(bgFillLstTyp, "order");
+                var order = getAttr(bgFillLstTyp, "order") || 0;
                 obj["idex"] = order;
                 obj["attrs"] = { "order": order };
                 sortblAry.push(obj);

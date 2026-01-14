@@ -579,7 +579,7 @@ function getBorder(node, pNode, isSvgMode, bType, warpObj) {
 
     var is_noFill = getTextByPathList(lineNode, ["a:noFill"]);
     if (is_noFill !== undefined) {
-        return "hidden";
+        return isSvgMode ? { "color": "none", "width": "", "type": "", "strokeDasharray": "0" } : "none";
     }
 
     if (lineNode == undefined) {
@@ -595,19 +595,22 @@ function getBorder(node, pNode, isSvgMode, bType, warpObj) {
     }
 
     var borderColor;
+    var borderWidth = "";
+    var borderType = "";
+    var strokeDasharray = "0";
     if (lineNode !== undefined) {
-        var borderWidth = parseInt(getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
+        borderWidth = parseInt(getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
         if (isNaN(borderWidth) || borderWidth < 1) {
             cssText += (4/3) + "px ";
         } else {
             cssText += borderWidth + "px ";
         }
 
-        var borderType = getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
+        borderType = getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
         if (borderType === undefined) {
             borderType = getTextByPathList(lineNode, ["attrs", "cmpd"]);
         }
-        var strokeDasharray = "0";
+        strokeDasharray = "0";
         switch (borderType) {
             case "solid":
                 cssText += "solid";
@@ -660,7 +663,7 @@ function getBorder(node, pNode, isSvgMode, bType, warpObj) {
 
         var fillTyp = PPTXColorUtils.getFillType(lineNode);
         if (fillTyp == "NO_FILL") {
-            borderColor = isSvgMode ? "none" : "";
+            borderColor = isSvgMode ? "none" : "transparent";
         } else if (fillTyp == "SOLID_FILL") {
             borderColor = PPTXColorUtils.getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
         } else if (fillTyp == "GRADIENT_FILL") {
@@ -681,7 +684,7 @@ function getBorder(node, pNode, isSvgMode, bType, warpObj) {
         if (isSvgMode) {
             borderColor = "none";
         } else {
-            borderColor = "hidden";
+            borderColor = "transparent";
         }
     } else {
         borderColor = "#" + borderColor;
@@ -689,7 +692,7 @@ function getBorder(node, pNode, isSvgMode, bType, warpObj) {
     cssText += " " + borderColor + " ";
 
     if (isSvgMode) {
-        return { "color": borderColor, "width": borderWidth, "type": borderType, "strokeDasharray": strokeDasharray };
+        return { "color": borderColor || "none", "width": borderWidth || "", "type": borderType || "", "strokeDasharray": strokeDasharray || "0" };
     } else {
         return cssText + ";";
     }
