@@ -95,7 +95,7 @@ function getPicFill(type, node, warpObj) {
             console.error("Image file not found in getPicFill:", imgPath);
             return undefined;
         }
-        var imgArrayBuffer = imgFile.asArrayBuffer();
+        var imgArrayBuffer = imgFile.async("arraybuffer");
         var imgMimeType = PPTXUtils.getMimeType(imgExt);
         img = "data:" + imgMimeType + ";base64," + PPTXUtils.base64ArrayBuffer(imgArrayBuffer);
         //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,

@@ -471,7 +471,7 @@ class PPTXBulletUtils {
                 console.error("Bullet image file not found:", imgPath);
                 buImg = "&#8227;";
             } else {
-                var imgArrayBuffer = imgFile.asArrayBuffer();
+                var imgArrayBuffer = imgFile.async("arraybuffer");
                 var imgExt = imgPath.split(".").pop();
                 var imgMimeType = PPTXUtils.getMimeType(imgExt);
                 buImg = "<img src='data:" + imgMimeType + ";base64," + PPTXUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>";// height: 100%

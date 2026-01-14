@@ -43,7 +43,7 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
         return "";
     }
 
-    var imgArrayBuffer = imgFile.asArrayBuffer();
+    var imgArrayBuffer = imgFile.async("arraybuffer");
     var mimeType = "";
     var xfrmNode = node["p:spPr"]["a:xfrm"];
     if (xfrmNode === undefined) {
@@ -84,7 +84,7 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
                 if (!vdoFileEntry) {
                     console.error("Video file not found:", vdoFile);
                 } else {
-                    uInt8Array = vdoFileEntry.asArrayBuffer();
+                    uInt8Array = vdoFileEntry.async("arraybuffer");
                     vdoMimeType = PPTXUtils.getMimeType(vdoFileExt);
                     blob = new Blob([uInt8Array], { type: vdoMimeType });
                     vdoBlob = URL.createObjectURL(blob);
@@ -113,7 +113,7 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
             if (!audioFileEntry) {
                 console.error("Audio file not found:", audioFile);
             } else {
-                uInt8ArrayAudio = audioFileEntry.asArrayBuffer();
+                uInt8ArrayAudio = audioFileEntry.async("arraybuffer");
                 blobAudio = new Blob([uInt8ArrayAudio]);
                 audioBlob = URL.createObjectURL(blobAudio);
                 var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * 20;
