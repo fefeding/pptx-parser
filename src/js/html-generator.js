@@ -331,7 +331,7 @@ import { PPTXTableUtils } from './table/table-utils.js';
     }
 
     // 生成图表 HTML
-    function genChart(node, warpObj) {
+    async function genChart(node, warpObj) {
         var order = node["attrs"]["order"];
         var xfrmNode = getTextByPathList(node, ["p:xfrm"]);
 
@@ -345,7 +345,7 @@ import { PPTXTableUtils } from './table/table-utils.js';
         var refName = warpObj["slideResObj"][rid]["target"];
         
         // 读取图表文件
-        var content = readXmlFile(warpObj["zip"], refName);
+        var content = await PPTXParser.readXmlFile(warpObj["zip"], refName);
         if (!content) {
             chartID++;
             return result;

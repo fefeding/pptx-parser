@@ -9,76 +9,158 @@
 
 <style>
 	html, body { margin: 0; padding: 0; }
-	#warper { margin-right: auto; margin-left: auto; }
+	#wrapper { margin-right: auto; margin-left: auto; max-width: 1200px; }
+	.section {
+		margin-bottom: 30px;
+		border: 1px solid #ccc;
+		padding: 20px;
+		border-radius: 5px;
+	}
+	.section h2 {
+		margin-top: 0;
+	}
+	.file-input {
+		margin: 10px 0;
+	}
+	.result-container {
+		border: 1px solid #ddd;
+		min-height: 300px;
+		padding: 10px;
+		margin-top: 10px;
+		overflow: auto;
+	}
 </style>
 </head>
 <body>
-	<div id="warper">
-		<input id="uploadFileInput" type="file" />
-		<br><br>
-		<div id="container">
-			<input id="fullscreen-btn" type="button" value="Fullscreen" />
-			<br>
-			<div id="result"></div>
+	<div id="wrapper">
+		<h1>PPTX Parser - 浏览器版本演示</h1>
+		
+		<div class="section">
+			<h2>方式1：使用 ES6 Module import（推荐，现代浏览器）</h2>
+			<p>新用法：直接传递 File 对象，函数返回 HTML 字符串</p>
+			<input id="fileInput1" type="file" class="file-input" />
+			<div class="result-container" id="result1"></div>
+			
+			<script type="module">
+				import { pptxToHtml } from '../dist/ppt-parser.browser.js';
+				
+				document.getElementById('fileInput1').addEventListener('change', async function(evt) {
+					const file = evt.target.files[0];
+					if (!file) return;
+					
+					if (file.type !== "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+						alert("请选择 PPTX 文件");
+						return;
+					}
+					
+					try {
+						// 直接传递 File 对象，函数返回 HTML 字符串
+						const html = await pptxToHtml(file);
+						// 手动将 HTML 插入到容器中
+						document.getElementById('result1').innerHTML = html;
+					} catch (error) {
+						console.error('解析 PPTX 失败:', error);
+						alert('解析 PPTX 失败: ' + error.message);
+					}
+				});
+			</script>
+		</div>
+		
+		<div class="section">
+			<h2>方式2：使用全局 window.pptxToHtml（兼容旧浏览器）</h2>
+			<p>新用法：直接传递 File 对象，函数返回 HTML 字符串</p>
+			<input id="fileInput2" type="file" class="file-input" />
+			<div class="result-container" id="result2"></div>
+			
+			<script src="../dist/ppt-parser.browser.min.js"></script>
+			<script>
+				// 等待全局变量可用
+				if (window.pptxToHtml) {
+					document.getElementById('fileInput2').addEventListener('change', async function(evt) {
+						const file = evt.target.files[0];
+						if (!file) return;
+						
+						if (file.type !== "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+							alert("请选择 PPTX 文件");
+							return;
+						}
+						
+						try {
+							// 直接传递 File 对象，函数返回 HTML 字符串
+							const html = await window.pptxToHtml(file);
+							// 手动将 HTML 插入到容器中
+							document.getElementById('result2').innerHTML = html;
+						} catch (error) {
+							console.error('解析 PPTX 失败:', error);
+							alert('解析 PPTX 失败: ' + error.message);
+						}
+					});
+				}
+			</script>
+		</div>
+		
+		<div class="section">
+			<h2>方式3：直接传递 ArrayBuffer</h2>
+			<p>演示如何从其他来源获取 ArrayBuffer 并直接转换。</p>
+			<button id="loadArrayBufferBtn">加载示例 PPTX 文件（ArrayBuffer）</button>
+			<div class="result-container" id="arrayBufferResult"></div>
+			
+			<script type="module">
+				import { pptxToHtml } from '../dist/ppt-parser.browser.js';
+				
+				document.getElementById('loadArrayBufferBtn').addEventListener('click', async function() {
+					try {
+						// 加载示例 PPTX 文件（假设 examples 目录下有示例文件）
+						const response = await fetch('./3guo.pptx');
+						if (!response.ok) {
+							throw new Error('无法加载示例文件');
+						}
+						
+						const arrayBuffer = await response.arrayBuffer();
+						
+						// 直接传递 ArrayBuffer，函数返回 HTML 字符串
+						const html = await pptxToHtml(arrayBuffer);
+						// 手动将 HTML 插入到容器中
+						document.getElementById('arrayBufferResult').innerHTML = html;
+					} catch (error) {
+						console.error('加载示例文件失败:', error);
+						alert('加载示例文件失败: ' + error.message);
+					}
+				});
+			</script>
+		</div>
+		
+		<div class="section">
+			<h2>方式4：直接传递 Uint8Array</h2>
+			<p>演示如何使用 Uint8Array 进行转换。</p>
+			<button id="loadUint8Btn">加载示例 PPTX 文件（Uint8Array）</button>
+			<div class="result-container" id="uint8Result"></div>
+			
+			<script type="module">
+				import { pptxToHtml } from '../dist/ppt-parser.browser.js';
+				
+				document.getElementById('loadUint8Btn').addEventListener('click', async function() {
+					try {
+						// 加载示例 PPTX 文件
+						const response = await fetch('./3guo.pptx');
+						if (!response.ok) {
+							throw new Error('无法加载示例文件');
+						}
+						
+						const arrayBuffer = await response.arrayBuffer();
+						const uint8Array = new Uint8Array(arrayBuffer);
+						
+						// 直接传递 Uint8Array，函数返回 HTML 字符串
+						const html = await pptxToHtml(uint8Array);
+						// 手动将 HTML 插入到容器中
+						document.getElementById('uint8Result').innerHTML = html;
+					} catch (error) {
+						console.error('加载示例文件失败:', error);
+						alert('加载示例文件失败: ' + error.message);
+					}
+				});
+			</script>
 		</div>
 	</div>
-
-<!-- 方式1：使用 ES6 Module import（推荐，现代浏览器） -->
-<script type="module">
-    import { pptxToHtml } from '../dist/ppt-parser.browser.js';
-
-    pptxToHtml(document.getElementById('result'), {
-        fileInputId: "uploadFileInput",
-        slideMode: false,
-        keyBoardShortCut: false,
-        slideModeConfig: {
-            first: 1,
-            nav: false,
-            navTxtColor: "white",
-            navNextTxt:"&#8250;",
-            navPrevTxt: "&#8249;",
-            showPlayPauseBtn: false,
-            keyBoardShortCut: false,
-            showSlideNum: false,
-            showTotalSlideNum: false,
-            autoSlide: false,
-            randomAutoSlide: false,
-            loop: false,
-            background: "black",
-            transition: "default",
-            transitionTime: 1
-        }
-    });
-</script>
-
-<!-- 方式2：使用全局 window.pptxToHtml（兼容旧浏览器） -->
-<!--
-<script src="../dist/ppt-parser.browser.min.js"></script>
-<script>
-    window.pptxToHtml(document.getElementById('result'), {
-        fileInputId: "uploadFileInput",
-        slideMode: false,
-        keyBoardShortCut: false,
-        slideModeConfig: {
-            first: 1,
-            nav: false,
-            navTxtColor: "white",
-            navNextTxt:"&#8250;",
-            navPrevTxt: "&#8249;",
-            showPlayPauseBtn: false,
-            keyBoardShortCut: false,
-            showSlideNum: false,
-            showTotalSlideNum: false,
-            autoSlide: false,
-            randomAutoSlide: false,
-            loop: false,
-            background: "black",
-            transition: "default",
-            transitionTime: 1
-        }
-    });
-</script>
--->
-
 </body>
 </html>

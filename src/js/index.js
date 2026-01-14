@@ -16,7 +16,6 @@
 
 // Import dependencies
 import JSZip from 'jszip';
-import { JSZipUtils } from './utils/jszip-utils.js';
 import { PPTXUtils } from './utils/utils.js';
 import { PPTXColorUtils } from './core/color-utils.js';
 import { PPTXParser } from './parser.js';
@@ -39,7 +38,6 @@ import { PPTXCSSUtils } from './core/css-utils.js';
 import { PPTXTableUtils } from './table/table-utils.js';
 import { PPTXTextStyleUtils } from './text/text-style-utils.js';
 import { PPTXTextElementUtils } from './text/text-element-utils.js';
-import { FileReaderJS } from './file-reader.js';
 
         //var slideLayoutClrOvride = "";
         var defaultTextStyle = null;
@@ -52,10 +50,28 @@ import { FileReaderJS } from './file-reader.js';
 
 
     // Main pptxToHtml function
-    function pptxToHtml(element, options) {
-        //var worker;
-        var $result = typeof element === 'string' ? document.querySelector(element) : (element && element.jquery ? element[0] : element);
-        var divId = element.id || element.getAttribute("id");
+    async function pptxToHtml(fileData, options) {
+        // 检测第一个参数类型
+        if (!(fileData instanceof File || 
+                   fileData instanceof ArrayBuffer || 
+                   (fileData instanceof Uint8Array))) {
+            throw new Error('第一个参数必须是 File、ArrayBuffer 或 Uint8Array');
+        }
+        
+        // 转换为 ArrayBuffer
+        let arrayBuffer;
+        try {
+            arrayBuffer = await PPTXUtils.fileToArrayBuffer(fileData);
+        } catch (err) {
+            throw new Error('文件转换失败: ' + err.message);
+        }
+        
+        // 检查文件类型（如果是 File）
+        if (fileData instanceof File) {
+            if (fileData.type != "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+                throw new Error('This is not pptx file');
+            }
+        }
 
         var isDone = false;
 
@@ -77,16 +93,6 @@ import { FileReaderJS } from './file-reader.js';
         var slideWidth = 0;
     var slideHeight = 0;
     var isSlideMode = false;
-    
-    // API object for external control
-    var api = {
-        get isSlideMode() { return isSlideMode; },
-        set isSlideMode(value) { isSlideMode = value; },
-        initSlideMode: function() { initSlideMode(divId, settings); },
-        exitSlideMode: function() { exitSlideMode(divId); },
-        updateProgress: function(percent) { updateProgressBar(percent); },
-        removeLoading: function() { PPTXUIUtils.removeLoadingMessage(); }
-    };
 
     // 计算元素位置和尺寸 - 使用 PPTXUtils 中的函数
     var getPosition = PPTXUtils ? PPTXUtils.getPosition : function() { return ""; };
@@ -147,122 +153,26 @@ import { FileReaderJS } from './file-reader.js';
 
         processFullTheme = settings.themeProcess;
 
-        var container = document.getElementById(divId);
-        if (Array.isArray(container)) {
-            container = container[0];
-        }
-        if (container) {
-            var loadingMsg = document.createElement("div");
-            loadingMsg.className = "slides-loadnig-msg";
-            loadingMsg.style.display = "block";
-            loadingMsg.style.width = "100%";
-            loadingMsg.style.color = "white";
-            loadingMsg.style.backgroundColor = "#ddd";
-
-            var progressBar = document.createElement("div");
-            progressBar.className = "slides-loading-progress-bar";
-            progressBar.style.width = "1%";
-            progressBar.style.backgroundColor = "#4775d1";
-            progressBar.innerHTML = "<span style='text-align: center;'>Loading... (1%)</span>";
-
-            loadingMsg.appendChild(progressBar);
-            container.prepend(loadingMsg);
-        }
-        if (settings.slideMode) {
-            if (!window.pptxjslideObj) {
-                var script = document.createElement('script');
-                script.src = './js/divs2slides.js';
-                document.head.appendChild(script);
-            }
-        }
-        if (settings.jsZipV2 !== false) {
-            var script = document.createElement('script');
-            script.src = settings.jsZipV2;
-            document.head.appendChild(script);
-            if (localStorage.getItem('isPPTXjsReLoaded') !== 'yes') {
-                localStorage.setItem('isPPTXjsReLoaded', 'yes');
-                location.reload();
-            }
-        }
-
-        if (settings.keyBoardShortCut) {
-            document.addEventListener("keydown", function (event) {
-                event.preventDefault();
-                var key = event.keyCode;
-                console.log(key, isDone)
-                if (key == 116 && !isSlideMode) { //F5
-                    isSlideMode = true;
-                    initSlideMode(divId, settings);
-                } else if (key == 116 && isSlideMode) { //F5 again - exit slide mode
-                    isSlideMode = false;
-                    exitSlideMode(divId);
-                }
-            });
-        }
-        FileReaderJS.setSync(false);
-        if (settings.pptxFileUrl != "") {
-            try{
-                JSZipUtils.getBinaryContent(settings.pptxFileUrl, function (err, content) {
-                    var blob = new Blob([content]);
-                    var file_name = settings.pptxFileUrl;
-                    var fArry = file_name.split(".");
-                    fArry.pop();
-                    blob.name = fArry[0];
-                    FileReaderJS.setupBlob(blob, {
-                        readAsDefault: "ArrayBuffer",
-                        on: {
-                            load: function (e, file) {
-                                //console.log(e.target.result);
-                                convertToHtml(e.target.result);
-                            }
-                        }
-                    });
-                });
-            }catch(e){
-                console.error("file url error (" + settings.pptxFileUrl+ "0)")
-                PPTXUIUtils.removeLoadingMessage();
-            }
-        } else {
-            PPTXUIUtils.removeLoadingMessage();
-        }
-        if (settings.fileInputId != "") {
-            document.getElementById(settings.fileInputId).addEventListener("change", function (evt) {
-                $result.innerHTML = "";
-                var file = evt.target.files[0];
-                // var fileName = file[0].name;
-                //var fileSize = file[0].size;
-                var fileType = file.type;
-                if (fileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
-                    FileReaderJS.setupBlob(file, {
-                        readAsDefault: "ArrayBuffer",
-                        on: {
-                            load: function (e, file) {
-                                //console.log(e.target.result);
-                                convertToHtml(e.target.result);
-                            }
-                        }
-                    });
-                } else {
-                    alert("This is not pptx file");
-                }
-            });
-        }
+        // 移除所有DOM相关操作，直接转换文件并返回HTML
+        return await convertToHtml(arrayBuffer);
+        
+        // 文件输入监听器已移除，不再支持DOM操作
 
         function updateProgressBar(percent) {
             PPTXUIUtils.updateProgressBar(percent);
         }
 
-        function convertToHtml(file) {
+        async function convertToHtml(file) {
             //'use strict';
             //console.log("file", file, "size:", file.byteLength);
             if (file.byteLength < 10){
                 console.error("file url error (" + settings.pptxFileUrl + "0)")
                 PPTXUIUtils.removeLoadingMessage();
-                return;
+                return '';
             }
             var zip = new JSZip(), s;
             //if (typeof file === 'string') { // Load
-            zip = zip.load(file);  //zip.load(file, { base64: true });
+            zip = await zip.loadAsync(file);  //zip.load(file, { base64: true });
 
             // 配置 PPTXParser 模块 - 传递必要的回调函数
             PPTXParser.configure({
@@ -273,66 +183,45 @@ import { FileReaderJS } from './file-reader.js';
             });
 
             var rslt_ary = processPPTX(zip);
+            var html = '';
+            var style = '';
+            var slideWidth = 0;
+            var slideHeight = 0;
             //s = readXmlFile(zip, 'ppt/tableStyles.xml');
             //var slidesHeight = $("#" + divId + " .slide").height();
             for (var i = 0; i < rslt_ary.length; i++) {
                 switch (rslt_ary[i]["type"]) {
                     case "slide":
-                        $result.insertAdjacentHTML('beforeend', rslt_ary[i]["data"]);
+                        html += rslt_ary[i]["data"];
                         break;
                     case "pptx-thumb":
-                        //$("#pptx-thumb").attr("src", "data:image/jpeg;base64," +rslt_ary[i]["data"]);
+                        // 缩略图忽略
                         break;
                     case "slideSize":
                         slideWidth = rslt_ary[i]["data"].width;
                         slideHeight = rslt_ary[i]["data"].height;
-                        /*
-                        $("#"+divId).css({
-                            'width': slideWidth + 80,
-                            'height': slideHeight + 60
-                        });
-                        */
                         break;
                     case "globalCSS":
-                        //console.log(rslt_ary[i]["data"])
-                        $result.insertAdjacentHTML('beforeend', "<style>" + rslt_ary[i]["data"] + "</style>");
+                        style += rslt_ary[i]["data"];
                         break;
                     case "ExecutionTime":
                         // 生成并添加全局 CSS
                         if (typeof PPTXCSSUtils.genGlobalCSS === 'function') {
-                            $result.insertAdjacentHTML('beforeend', "<style>" + PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth) + "</style>");
+                            style += PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth);
                         }
                         PPTXHtml.processMsgQueue(MsgQueue);
-                        PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));
-                        PPTXHtml.setNumericBullets(document.querySelectorAll("table td"));
-
+                        // 由于无DOM，跳过PPTXHtml.setNumericBullets
                         isDone = true;
-
-                        if (settings.slideMode && !isSlideMode) {
-                            isSlideMode = true;
-                            initSlideMode(divId, settings);
-                        } else if (!settings.slideMode) {
-                            PPTXUIUtils.removeLoadingMessage();
-                        }
+                        // 跳过slideMode相关DOM操作
                         break;
                     case "progress-update":
-                        //console.log(rslt_ary[i]["data"]); //update progress bar
-                        updateProgressBar(rslt_ary[i]["data"])
+                        // 忽略进度更新
                         break;
                     default:
                 }
             }
-            if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
-                PPTXUIUtils.getSlidesWrapper(divId);
-
-                if (settings.slideMode && settings.slideType == "revealjs") {
-                    PPTXUIUtils.addRevealClass(divId);
-                }
-            }
-
-            PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
-
-            //}
+            // 返回完整的HTML片段，包含样式和内容
+            return (style ? '<style>' + style + '</style>' : '') + html;
         }
 
         function initSlideMode(divId, settings) {
@@ -6054,9 +5943,9 @@ import { FileReaderJS } from './file-reader.js';
         }
 
 
-        function genDiagram(node, warpObj, source, sType) {
+        async function genDiagram(node, warpObj, source, sType) {
             var readXmlFileFunc = PPTXParser && PPTXParser.readXmlFile ? PPTXParser.readXmlFile : function() { return null; };
-            return PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, processSpNode);
+            return await PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, processSpNode);
         }
 
 
@@ -6099,12 +5988,6 @@ import { FileReaderJS } from './file-reader.js';
 
         // Export genTextBody for table module
         window._genTextBody = PPTXTextElementUtils.genTextBody;
-        
-        // Also export FileReaderJS to global scope for backward compatibility
-        window.FileReaderJS = FileReaderJS;
-
-        // Return API object for external control
-        return api;
     }
 
 // Export for use in ES6 modules

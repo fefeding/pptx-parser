@@ -648,6 +648,25 @@ function getTableBorders(node, warpObj) {
     return borderStyle;
 }
 
+    // 文件转换为ArrayBuffer
+async function fileToArrayBuffer(file) {
+    if (file instanceof ArrayBuffer) {
+        return file;
+    }
+    if (file instanceof Uint8Array) {
+        return file.buffer;
+    }
+    if (file instanceof File || file instanceof Blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+    throw new Error('不支持的文件类型');
+}
+
     // 公开工具函数
 const PPTXUtils = {
     angleToDegrees: angleToDegrees,
@@ -671,6 +690,7 @@ const PPTXUtils = {
     getSize: getSize,
     getBorder: getBorder,
     getTableBorders: getTableBorders,
+    fileToArrayBuffer: fileToArrayBuffer,
     getSlideFactor: function() { return slideFactor; },
     setSlideFactor: function(factor) { slideFactor = factor; }
 };

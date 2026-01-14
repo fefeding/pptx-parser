@@ -47,11 +47,10 @@ async function handleFileUpload(event: Event) {
 
   try {
 
-    // 使用新版本的API直接渲染
-    const html = await pptxToHtml({
-      pptxFileUrl: file,
-      parseImages: true,
-      verbose: true
+    // 使用新版本的API直接传递 File 对象
+    const html = await pptxToHtml(file, {
+      mediaProcess: true,
+      themeProcess: true
     })
 
     // 获取生成的HTML内容

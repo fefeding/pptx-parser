@@ -13,7 +13,7 @@ var PPTXDiagramUtils = {};
  * @param {Function} processSpNode - 处理形状节点的函数
  * @returns {string} HTML字符串
  */
-PPTXDiagramUtils.genDiagram = function(node, warpObj, source, sType, readXmlFile, getPosition, getSize, processSpNode) {
+PPTXDiagramUtils.genDiagram = async function(node, warpObj, source, sType, readXmlFile, getPosition, getSize, processSpNode) {
     var order = node["attrs"]["order"];
     var zip = warpObj["zip"];
     var xfrmNode = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
@@ -36,10 +36,10 @@ PPTXDiagramUtils.genDiagram = function(node, warpObj, source, sType, readXmlFile
     var dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
 
     // 读取XML文件
-    var dgmClr = readXmlFile(zip, dgmClrFileName);
-    var dgmData = readXmlFile(zip, dgmDataFileName);
-    var dgmLayout = readXmlFile(zip, dgmLayoutFileName);
-    var dgmQuickStyle = readXmlFile(zip, dgmQuickStyleFileName);
+    var dgmClr = await PPTXParser.readXmlFile(zip, dgmClrFileName);
+    var dgmData = await PPTXParser.readXmlFile(zip, dgmDataFileName);
+    var dgmLayout = await PPTXParser.readXmlFile(zip, dgmLayoutFileName);
+    var dgmQuickStyle = await PPTXParser.readXmlFile(zip, dgmQuickStyleFileName);
 
     // 获取绘图文件内容
     var dgmDrwSpArray = PPTXUtils.getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
