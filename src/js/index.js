@@ -14,10 +14,10 @@
 
 
 
+
 // Import dependencies
 import JSZip from 'jszip';
-import { JSZipUtils } from './utils/jszip-utils.js';
-import { PPTXUtils } from './utils/utils.js';
+import { PPTXUtils, getAttr, getAttrs } from './utils/utils.js';
 import { PPTXColorUtils } from './core/color-utils.js';
 import { PPTXParser } from './parser.js';
 import { PPTXHtml } from './html-generator.js';
@@ -29,6 +29,10 @@ import { PPTXShapeFillsUtils } from './shape/shape-fills-utils.js';
 import { PPTXShapeContainer } from './shape/shape-container.js';
 import { PPTXArrowShapes } from './shape/arrow-shapes.js';
 import { PPTXNodeUtils } from './node/node-utils.js';
+
+// Export getAttr and getAttrs to global scope for use in other modules
+window.getAttr = getAttr;
+window.getAttrs = getAttrs;
 import { PPTXBackgroundUtils } from './core/background-utils.js';
 import { PPTXImageUtils } from './image/image-utils.js';
 import { PPTXDiagramUtils } from './diagram/diagram-utils.js';
@@ -52,10 +56,16 @@ import { FileReaderJS } from './file-reader.js';
 
 
     // Main pptxToHtml function
-    function pptxToHtml(element, options) {
-        //var worker;
-        var $result = typeof element === 'string' ? document.querySelector(element) : (element && element.jquery ? element[0] : element);
-        var divId = element.id || element.getAttribute("id");
+    function pptxToHtml(fileInput, options) {
+        // 处理不同的输入类型
+        var input = fileInput;
+
+        // 向后兼容旧版本：如果第一个参数是 DOM 元素
+        if (input instanceof HTMLElement || typeof input === 'string' && document.querySelector(input)) {
+            divId = input.id || input.getAttribute("id");
+            // 旧模式：从 options 中获取 pptxFileUrl
+            input = options && options.pptxFileUrl ? options.pptxFileUrl : '';
+        }
 
         var isDone = false;
 
@@ -78,14 +88,11 @@ import { FileReaderJS } from './file-reader.js';
     var slideHeight = 0;
     var isSlideMode = false;
     
-    // API object for external control
+    // API object for external control (deprecated, for backward compatibility)
     var api = {
         get isSlideMode() { return isSlideMode; },
         set isSlideMode(value) { isSlideMode = value; },
-        initSlideMode: function() { initSlideMode(divId, settings); },
-        exitSlideMode: function() { exitSlideMode(divId); },
-        updateProgress: function(percent) { updateProgressBar(percent); },
-        removeLoading: function() { PPTXUIUtils.removeLoadingMessage(); }
+        updateProgress: function(percent) { updateProgressBar(percent); }
     };
 
     // 计算元素位置和尺寸 - 使用 PPTXUtils 中的函数
@@ -119,10 +126,7 @@ import { FileReaderJS } from './file-reader.js';
             fileInputId: "",
             slidesScale: "", //Change Slides scale by percent
             slideMode: false, /** true,false - enable slideshow mode */
-            slideType: "divs2slidesjs",  /*'divs2slidesjs' (default), 'revealjs' - slideshow engine */
-            revealjsPath: "./revealjs/reveal.js", /* path to reveal.js library */
             mediaProcess: true, /** true,false: if true then process video and audio files */
-            jsZipV2: false,
             themeProcess: true, /*true (default) , false, "colorsAndImageOnly"*/
             incSlide:{
                 width: 0,
@@ -146,123 +150,91 @@ import { FileReaderJS } from './file-reader.js';
         }, options);
 
         processFullTheme = settings.themeProcess;
-
-        var container = document.getElementById(divId);
-        if (Array.isArray(container)) {
-            container = container[0];
-        }
-        if (container) {
-            var loadingMsg = document.createElement("div");
-            loadingMsg.className = "slides-loadnig-msg";
-            loadingMsg.style.display = "block";
-            loadingMsg.style.width = "100%";
-            loadingMsg.style.color = "white";
-            loadingMsg.style.backgroundColor = "#ddd";
-
-            var progressBar = document.createElement("div");
-            progressBar.className = "slides-loading-progress-bar";
-            progressBar.style.width = "1%";
-            progressBar.style.backgroundColor = "#4775d1";
-            progressBar.innerHTML = "<span style='text-align: center;'>Loading... (1%)</span>";
-
-            loadingMsg.appendChild(progressBar);
-            container.prepend(loadingMsg);
-        }
-        if (settings.slideMode) {
-            if (!window.pptxjslideObj) {
-                var script = document.createElement('script');
-                script.src = './js/divs2slides.js';
-                document.head.appendChild(script);
-            }
-        }
-        if (settings.jsZipV2 !== false) {
-            var script = document.createElement('script');
-            script.src = settings.jsZipV2;
-            document.head.appendChild(script);
-            if (localStorage.getItem('isPPTXjsReLoaded') !== 'yes') {
-                localStorage.setItem('isPPTXjsReLoaded', 'yes');
-                location.reload();
-            }
-        }
-
-        if (settings.keyBoardShortCut) {
-            document.addEventListener("keydown", function (event) {
-                event.preventDefault();
-                var key = event.keyCode;
-                console.log(key, isDone)
-                if (key == 116 && !isSlideMode) { //F5
-                    isSlideMode = true;
-                    initSlideMode(divId, settings);
-                } else if (key == 116 && isSlideMode) { //F5 again - exit slide mode
-                    isSlideMode = false;
-                    exitSlideMode(divId);
-                }
-            });
-        }
         FileReaderJS.setSync(false);
-        if (settings.pptxFileUrl != "") {
+
+        // 处理输入：URL、File、Blob 或 ArrayBuffer
+        var hasInput = input && (typeof input === 'string' || input instanceof File || input instanceof Blob || input instanceof ArrayBuffer);
+
+        if (hasInput) {
             try{
-                JSZipUtils.getBinaryContent(settings.pptxFileUrl, function (err, content) {
-                    var blob = new Blob([content]);
-                    var file_name = settings.pptxFileUrl;
-                    var fArry = file_name.split(".");
-                    fArry.pop();
-                    blob.name = fArry[0];
-                    FileReaderJS.setupBlob(blob, {
-                        readAsDefault: "ArrayBuffer",
-                        on: {
-                            load: function (e, file) {
-                                //console.log(e.target.result);
-                                convertToHtml(e.target.result);
-                            }
+                return PPTXUtils.getArrayBufferFromFileInput(input)
+                    .then(function(result) {
+                        return convertToHtml(result.arrayBuffer)
+                            .then(function(parseResult) {
+                                // 完成回调
+                                if (options && options.onComplete) {
+                                    options.onComplete(parseResult);
+                                }
+                                return parseResult;
+                            });
+                    })
+                    .catch(function(err) {
+                        var errorMsg = typeof input === 'string' ? input : input.name || input;
+                        console.error("file input error (" + errorMsg + ")", err);
+                        if (options && options.onError) {
+                            options.onError(err);
                         }
+                        throw err;
                     });
-                });
             }catch(e){
-                console.error("file url error (" + settings.pptxFileUrl+ "0)")
-                PPTXUIUtils.removeLoadingMessage();
+                var errorMsg = typeof input === 'string' ? input : input.name || input;
+                console.error("file input error (" + errorMsg + ")", e);
+                if (options && options.onError) {
+                    options.onError(e);
+                }
+                return Promise.reject(e);
+            }
+        } else if (settings.pptxFileUrl != "") {
+            // 向后兼容旧版本：从 settings 中获取 pptxFileUrl
+            try{
+                return PPTXUtils.getArrayBufferFromFileInput(settings.pptxFileUrl)
+                    .then(function(result) {
+                        return convertToHtml(result.arrayBuffer)
+                            .then(function(parseResult) {
+                                // 完成回调
+                                if (options && options.onComplete) {
+                                    options.onComplete(parseResult);
+                                }
+                                return parseResult;
+                            });
+                    })
+                    .catch(function(err) {
+                        console.error("file url error (" + settings.pptxFileUrl + ")", err);
+                        throw err;
+                    });
+            }catch(e){
+                console.error("file url error (" + settings.pptxFileUrl+ ")", e)
+                return Promise.reject(e);
             }
         } else {
-            PPTXUIUtils.removeLoadingMessage();
-        }
-        if (settings.fileInputId != "") {
-            document.getElementById(settings.fileInputId).addEventListener("change", function (evt) {
-                $result.innerHTML = "";
-                var file = evt.target.files[0];
-                // var fileName = file[0].name;
-                //var fileSize = file[0].size;
-                var fileType = file.type;
-                if (fileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
-                    FileReaderJS.setupBlob(file, {
-                        readAsDefault: "ArrayBuffer",
-                        on: {
-                            load: function (e, file) {
-                                //console.log(e.target.result);
-                                convertToHtml(e.target.result);
-                            }
-                        }
-                    });
-                } else {
-                    alert("This is not pptx file");
-                }
-            });
+            // 没有输入，返回空结果
+            var emptyResult = {
+                htmlContent: [],
+                globalCSS: "",
+                slideWidth: 0,
+                slideHeight: 0,
+                styleTable: {},
+                error: new Error("No input provided")
+            };
+            if (options && options.onComplete) {
+                options.onComplete(emptyResult);
+            }
+            return Promise.resolve(emptyResult);
         }
 
         function updateProgressBar(percent) {
             PPTXUIUtils.updateProgressBar(percent);
         }
 
-        function convertToHtml(file) {
-            //'use strict';
-            //console.log("file", file, "size:", file.byteLength);
+        async function convertToHtml(file) {
             if (file.byteLength < 10){
-                console.error("file url error (" + settings.pptxFileUrl + "0)")
-                PPTXUIUtils.removeLoadingMessage();
-                return;
+                throw new Error("Invalid PPTX file: file size too small");
             }
-            var zip = new JSZip(), s;
-            //if (typeof file === 'string') { // Load
-            zip = zip.load(file);  //zip.load(file, { base64: true });
+            var zip = new JSZip();
+            zip = await zip.loadAsync(file);
+
+            // 调试：打印 ZIP 中的文件列表
+            console.log("ZIP files loaded:", Object.keys(zip.files));
 
             // 配置 PPTXParser 模块 - 传递必要的回调函数
             PPTXParser.configure({
@@ -272,154 +244,58 @@ import { FileReaderJS } from './file-reader.js';
                 getSlideBackgroundFill: getSlideBackgroundFill
             });
 
-            var rslt_ary = processPPTX(zip);
-            //s = readXmlFile(zip, 'ppt/tableStyles.xml');
-            //var slidesHeight = $("#" + divId + " .slide").height();
+            var rslt_ary = await processPPTX(zip);
+
+            // 构建返回结果
+            var result = {
+                htmlContent: [],
+                globalCSS: "",
+                slideWidth: 0,
+                slideHeight: 0,
+                styleTable: {},
+                error: null
+            };
+
             for (var i = 0; i < rslt_ary.length; i++) {
                 switch (rslt_ary[i]["type"]) {
                     case "slide":
-                        $result.insertAdjacentHTML('beforeend', rslt_ary[i]["data"]);
+                        result.htmlContent.push({
+                            type: "slide",
+                            html: rslt_ary[i]["data"]
+                        });
                         break;
                     case "pptx-thumb":
-                        //$("#pptx-thumb").attr("src", "data:image/jpeg;base64," +rslt_ary[i]["data"]);
+                        result.htmlContent.push({
+                            type: "thumb",
+                            data: rslt_ary[i]["data"]
+                        });
                         break;
                     case "slideSize":
-                        slideWidth = rslt_ary[i]["data"].width;
-                        slideHeight = rslt_ary[i]["data"].height;
-                        /*
-                        $("#"+divId).css({
-                            'width': slideWidth + 80,
-                            'height': slideHeight + 60
-                        });
-                        */
+                        result.slideWidth = rslt_ary[i]["data"].width;
+                        result.slideHeight = rslt_ary[i]["data"].height;
                         break;
                     case "globalCSS":
-                        //console.log(rslt_ary[i]["data"])
-                        $result.insertAdjacentHTML('beforeend', "<style>" + rslt_ary[i]["data"] + "</style>");
+                        result.globalCSS += rslt_ary[i]["data"];
                         break;
                     case "ExecutionTime":
                         // 生成并添加全局 CSS
                         if (typeof PPTXCSSUtils.genGlobalCSS === 'function') {
-                            $result.insertAdjacentHTML('beforeend', "<style>" + PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth) + "</style>");
+                            result.globalCSS += PPTXCSSUtils.genGlobalCSS(styleTable, settings, result.slideWidth);
                         }
-                        PPTXHtml.processMsgQueue(MsgQueue);
-                        PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));
-                        PPTXHtml.setNumericBullets(document.querySelectorAll("table td"));
-
+                        result.styleTable = styleTable;
                         isDone = true;
-
-                        if (settings.slideMode && !isSlideMode) {
-                            isSlideMode = true;
-                            initSlideMode(divId, settings);
-                        } else if (!settings.slideMode) {
-                            PPTXUIUtils.removeLoadingMessage();
-                        }
                         break;
                     case "progress-update":
-                        //console.log(rslt_ary[i]["data"]); //update progress bar
-                        updateProgressBar(rslt_ary[i]["data"])
+                        // 进度回调
+                        if (options && options.onProgress) {
+                            options.onProgress(rslt_ary[i]["data"]);
+                        }
                         break;
                     default:
                 }
             }
-            if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
-                PPTXUIUtils.getSlidesWrapper(divId);
 
-                if (settings.slideMode && settings.slideType == "revealjs") {
-                    PPTXUIUtils.addRevealClass(divId);
-                }
-            }
-
-            PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
-
-            //}
-        }
-
-        function initSlideMode(divId, settings) {
-            //console.log(settings.slideType)
-            if (settings.slideType == "" || settings.slideType == "divs2slidesjs") {
-                var slideElements = document.querySelectorAll("#" + divId + " .slide");
-                var slidesHeight = slideElements.length > 0 ? slideElements[0].clientHeight : 0;
-                // Hide all slide elements
-                for (var i = 0; i < slideElements.length; i++) {
-                    slideElements[i].style.display = "none";
-                }
-                setTimeout(function () {
-                    var slideConf = settings.slideModeConfig;
-                    var loadingMsg = document.querySelector(".slides-loadnig-msg");
-                    if (loadingMsg) {
-                        loadingMsg.remove();
-                    }
-                        pptxjslideObj.init({
-                        divId: divId,
-                        slides: document.querySelectorAll("#" + divId + " .slide"),
-                        totalSlides: document.querySelectorAll("#" + divId + " .slide").length,
-                        slideCount: 1,
-                        prevSlide: -1,
-                        isInit: false,
-                        isSlideMode: true,
-                        isEnbleNextBtn: true,
-                        isEnblePrevBtn: false,
-                        isAutoSlideMode: false,
-                        isLoopMode: false,
-                        loopIntrval: null,
-                        first: slideConf.first,
-                        nav: slideConf.nav,
-                        showPlayPauseBtn: settings.showPlayPauseBtn,
-                        showFullscreenBtn: settings.showFullscreenBtn,
-                        navTxtColor: slideConf.navTxtColor,
-                        keyBoardShortCut: slideConf.keyBoardShortCut,
-                        showSlideNum: slideConf.showSlideNum,
-                        showTotalSlideNum: slideConf.showTotalSlideNum,
-                        autoSlide: slideConf.autoSlide,
-                        timeBetweenSlides: slideConf.autoSlide,
-                        randomAutoSlide: slideConf.randomAutoSlide,
-                        loop: slideConf.loop,
-                        background: slideConf.background,
-                        slctdBgClr: slideConf.background,
-                        transition: slideConf.transition,
-                        transitionTime: slideConf.transitionTime
-                    });
-
-                    PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, true, "divs2slidesjs", 1);
-
-                }, 1500);
-            } else if (settings.slideType == "revealjs") {
-                PPTXUIUtils.removeLoadingMessage();
-                var revealjsPath = "";
-                if (settings.revealjsPath != "") {
-                    revealjsPath = settings.revealjsPath;
-                } else {
-                    revealjsPath = "./revealjs/reveal.js";
-                }
-                var script = document.createElement('script');
-                script.src = revealjsPath;
-                script.onload = function() {
-                    // $("section").removeClass("slide");
-                    Reveal.initialize(settings.revealjsConfig); //revealjsConfig
-                };
-                script.onerror = function() {
-                    console.error('Failed to load reveal.js script');
-                };
-                document.head.appendChild(script);
-            }
-
-
-
-        }
-
-        function exitSlideMode(divId) {
-            // Show all slide elements
-            var slideElements = document.querySelectorAll("#" + divId + " .slide");
-            for (var i = 0; i < slideElements.length; i++) {
-                slideElements[i].style.display = "block";
-            }
-            // If pptxjslideObj exists and has a destroy method, call it
-            if (window.pptxjslideObj && typeof window.pptxjslideObj.destroy === 'function') {
-                window.pptxjslideObj.destroy();
-            }
-            // Update wrapper height for normal mode
-            PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
+            return result;
         }
 
         function processPPTX(zip) {
@@ -520,14 +396,15 @@ import { FileReaderJS } from './file-reader.js';
             return genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source);
         }
 
+
         function processCxnSpNode(node, pNode, warpObj, source, sType) {
 
-            var id = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["id"];
-            var name = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["name"];
-            var idx = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["idx"];
-            var type = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["type"];
+            var id = getAttr(node["p:nvCxnSpPr"]["p:cNvPr"], "id");
+            var name = getAttr(node["p:nvCxnSpPr"]["p:cNvPr"], "name");
+            var idx = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : getAttr(node["p:nvSpPr"]["p:nvPr"]["p:ph"], "idx");
+            var type = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : getAttr(node["p:nvSpPr"]["p:nvPr"]["p:ph"], "type");
             //<p:cNvCxnSpPr>(<p:cNvCxnSpPr>, <a:endCxn>)
-            var order = node["attrs"]["order"];
+            var order = getAttr(node, "order");
 
             return genShape(node, pNode, undefined, undefined, id, name, idx, type, order, warpObj, undefined, sType, source);
         }
@@ -1307,11 +1184,11 @@ import { FileReaderJS } from './file-reader.js';
                             isClose = false;
                         }
                         if (shapAdjst !== undefined) {
-                            shapAdjst1 = PPTXUtils.getTextByPathList(shapAdjst, ["attrs", "fmla"]);
+                            shapAdjst1 = getAttr(shapAdjst, "fmla");
                             shapAdjst2 = shapAdjst1;
                             if (shapAdjst1 === undefined) {
-                                shapAdjst1 = shapAdjst[0]["attrs"]["fmla"];
-                                shapAdjst2 = shapAdjst[1]["attrs"]["fmla"];
+                                shapAdjst1 = getAttr(shapAdjst[0], "fmla");
+                                shapAdjst2 = getAttr(shapAdjst[1], "fmla");
                             }
                             if (shapAdjst1 !== undefined) {
                                 adj1 = parseInt(shapAdjst1.substr(4)) / 60000;
@@ -5566,8 +5443,8 @@ import { FileReaderJS } from './file-reader.js';
                 var pathLstNode = PPTXUtils.getTextByPathList(custShapType, ["a:pathLst"]);
                 var pathNodes = PPTXUtils.getTextByPathList(pathLstNode, ["a:path"]);
                 //var pathNode = PPTXUtils.getTextByPathList(pathLstNode, ["a:path", "attrs"]);
-                var maxX = parseInt(pathNodes["attrs"]["w"]);// * slideFactor;
-                var maxY = parseInt(pathNodes["attrs"]["h"]);// * slideFactor;
+                var maxX = parseInt(getAttr(pathNodes, "w"));// * slideFactor;
+                var maxY = parseInt(getAttr(pathNodes, "h"));// * slideFactor;
                 var cX = (1 / maxX) * w;
                 var cY = (1 / maxY) * h;
                 //console.log("w = "+w+"\nh = "+h+"\nmaxX = "+maxX +"\nmaxY = " + maxY);
@@ -5650,12 +5527,12 @@ import { FileReaderJS } from './file-reader.js';
                             //console.log("cubicBezToPtNodesAry: key2 : ", key2)
                             var nodeObj = {};
                             nodeObj.type = "cubicBezTo";
-                            nodeObj.order = key2[0]["attrs"]["order"];
+                            nodeObj.order = getAttr(key2[0], "order");
                             var pts_ary = [];
                             key2.forEach(function (pt) {
                                 var pt_obj = {
-                                    x: pt["attrs"]["x"],
-                                    y: pt["attrs"]["y"]
+                                    x: getAttr(pt, "x"),
+                                    y: getAttr(pt, "y")
                                 }
                                 pts_ary.push(pt_obj)
                             })
@@ -5852,13 +5729,14 @@ import { FileReaderJS } from './file-reader.js';
 
 
 
+
         function processPicNode(node, warpObj, source, sType) {
             //console.log("processPicNode node:", node, "source:", source, "sType:", sType, "warpObj;", warpObj);
             var rtrnData = "";
             var mediaPicFlag = false;
-            var order = node["attrs"]["order"];
+            var order = getAttr(node, "order");
 
-            var rid = node["p:blipFill"]["a:blip"]["attrs"]["r:embed"];
+            var rid = getAttr(node["p:blipFill"]["a:blip"], "r:embed");
             var resObj;
             if (source == "slideMasterBg") {
                 resObj = warpObj["masterResObj"];
@@ -5905,7 +5783,7 @@ import { FileReaderJS } from './file-reader.js';
             var vdoRid, vdoFile, vdoFileExt, vdoMimeType, uInt8Array, blob, vdoBlob, mediaSupportFlag = false, isVdeoLink = false;
             var mediaProcess = settings.mediaProcess;
             if (vdoNode !== undefined & mediaProcess) {
-                vdoRid = vdoNode["attrs"]["r:link"];
+                vdoRid = getAttr(vdoNode, "r:link");
                 vdoFile = resObj[vdoRid]["target"];
                 var checkIfLink = PPTXUtils.IsVideoLink(vdoFile);
                 if (checkIfLink) {
@@ -5945,7 +5823,7 @@ import { FileReaderJS } from './file-reader.js';
             var audioPlayerFlag = false;
             var audioObjc;
             if (audioNode !== undefined & mediaProcess) {
-                audioRid = audioNode["attrs"]["r:link"];
+                audioRid = getAttr(audioNode, "r:link");
                 audioFile = resObj[audioRid]["target"];
                 audioFileExt =PPTXUtils.extractFileExtension(audioFile).toLowerCase();
                 if (audioFileExt == "mp3" || audioFileExt == "wav" || audioFileExt == "ogg") {
@@ -5962,10 +5840,10 @@ import { FileReaderJS } from './file-reader.js';
                         uInt8ArrayAudio = audioFileEntry.asArrayBuffer();
                         blobAudio = new Blob([uInt8ArrayAudio]);
                         audioBlob = URL.createObjectURL(blobAudio);
-                        var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * 20;
-                        var cy = xfrmNode["a:ext"]["attrs"]["cy"];
-                        var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) / 2.5;
-                        var y = xfrmNode["a:off"]["attrs"]["y"];
+                        var cx = parseInt(getAttr(xfrmNode["a:ext"], "cx")) * 20;
+                        var cy = getAttr(xfrmNode["a:ext"], "cy");
+                        var x = parseInt(getAttr(xfrmNode["a:off"], "x")) / 2.5;
+                        var y = getAttr(xfrmNode["a:off"], "y");
                         audioObjc = {
                             "a:ext": {
                                 "attrs": {
@@ -6083,25 +5961,6 @@ import { FileReaderJS } from './file-reader.js';
             // 使用 PPTXBackgroundUtils 模块处理背景填充
             return PPTXBackgroundUtils.getSlideBackgroundFill(warpObj, index);
         }
-        // getBgGradientFill, getBgPicFill 已移至 PPTXBackgroundUtils 模块
-
-
-
-
-
-
-
-
-
-
-        // Number formatting functions are now in pptx-utils.js
-        // Ensure pptx-utils.js is loaded before this file
-
-        // Export genTextBody for table module
-        window._genTextBody = PPTXTextElementUtils.genTextBody;
-        
-        // Also export FileReaderJS to global scope for backward compatibility
-        window.FileReaderJS = FileReaderJS;
 
         // Return API object for external control
         return api;

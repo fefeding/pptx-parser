@@ -1,4 +1,4 @@
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils, getAttr } from '../utils/utils.js';
 import tinycolor from 'tinycolor2';
 
 function getFillType(node) {
@@ -46,7 +46,7 @@ function getGradientFill(node, warpObj) {
     var lin = node["a:lin"];
     var rot = 0;
     if (lin !== undefined) {
-        rot = PPTXUtils.angleToDegrees(lin["attrs"]["ang"]) + 90;
+        rot = PPTXUtils.angleToDegrees(getAttr(lin, "ang")) + 90;
     }
     return {
         "color": color_ary,
@@ -59,7 +59,7 @@ function getPicFill(type, node, warpObj) {
     // 图像属性处理已实现 - 支持平铺、拉伸、裁剪等属性
     // 参考: http://officeopenxml.com/drwPic-tile.php
     var img;
-    var rId = node["a:blip"]["attrs"]["r:embed"];
+    var rId = getAttr(node["a:blip"], "r:embed");
     var imgPath;
     //console.log("getPicFill(...) rId: ", rId, ", warpObj: ", warpObj, ", type: ", type)
     if (type == "slideBg" || type == "slide") {
@@ -168,7 +168,7 @@ function getPatternFill(node, warpObj) {
     var fgColor = "", bgColor = "", prst = "";
     var bgClr = node["a:bgClr"];
     var fgClr = node["a:fgClr"];
-    prst = node["attrs"]["prst"];
+    prst = getAttr(node, "prst");
     fgColor = getSolidFill(fgClr, undefined, undefined, warpObj);
     bgColor = getSolidFill(bgClr, undefined, undefined, warpObj);
     //var angl_ary = getAnglefromParst(prst);
@@ -515,7 +515,7 @@ function getSolidFill(node, clrMap, phClr, warpObj) {
     } else if (node["a:prstClr"] !== undefined) {
         clrNode = node["a:prstClr"];
         //<a:prstClr val="black"/>  //Need to test/////////////////////////////////////////////
-        var prstClr = PPTXUtils.getTextByPathList(clrNode, ["attrs", "val"]); //node["a:prstClr"]["attrs"]["val"];
+        var prstClr = getAttr(clrNode, "val"); //node["a:prstClr"]["attrs"]["val"];
         color = getColorName2Hex(prstClr);
         //console.log("blip prstClr: ", prstClr, " => hexClr: ", color);
     } else if (node["a:hslClr"] !== undefined) {
@@ -1031,16 +1031,17 @@ function extractChartData(serNode) {
             var dataRow = new Array();
             var colName = PPTXUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
 
+
             // Category (string or number)
             var rowNames = {};
             if (PPTXUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
                 PPTXUtils.eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
-                    rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+                    rowNames[getAttr(innerNode, "idx")] = innerNode["c:v"];
                     return "";
                 });
             } else if (PPTXUtils.getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
                 PPTXUtils.eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                    rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+                    rowNames[getAttr(innerNode, "idx")] = innerNode["c:v"];
                     return "";
                 });
             }
@@ -1048,7 +1049,7 @@ function extractChartData(serNode) {
             // Value
             if (PPTXUtils.getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
                 PPTXUtils.eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                    dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
+                    dataRow.push({ x: getAttr(innerNode, "idx"), y: parseFloat(innerNode["c:v"]) });
                     return "";
                 });
             }

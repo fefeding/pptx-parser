@@ -1,7 +1,29 @@
 
 
-    import { PPTXUtils } from './utils/utils.js';
+
+
+
+
+
+
+    import { PPTXUtils, getAttrs, getAttr } from './utils/utils.js';
     import { PPTXColorUtils } from './core/color-utils.js';
+    import { XMLParser } from 'fast-xml-parser';
+
+    // 创建 XML 解析器实例
+    const xmlParser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: '',
+        textNodeName: '#text',
+        allowBooleanAttributes: true,
+        parseTagValue: true,
+        parseAttributeValue: true,
+        trimValues: true,
+        cdataPropName: '__cdata',
+        attributesGroupName: 'attrs',  // 将属性放在 attrs 对象中，与 tXml 兼容
+        ignoreDeclaration: true,
+        ignorePiTags: true
+    });
 
     // 全局变量，将在初始化时设置
     var app_verssion;
@@ -35,12 +57,17 @@
     }
 
     // 主解析函数
-    function processPPTX(zip) {
+    async function processPPTX(zip) {
         var post_ary = [];
         var dateBefore = new Date();
 
+        // 调试：验证 ZIP 对象
+        console.log("ZIP object in processPPTX:", zip);
+        console.log("ZIP files count:", Object.keys(zip.files).length);
+        console.log("ZIP has file method:", typeof zip.file);
+
         if (zip.file("docProps/thumbnail.jpeg") !== null) {
-            var pptxThumbImg = PPTXUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
+            var pptxThumbImg = PPTXUtils.base64ArrayBuffer(await zip.file("docProps/thumbnail.jpeg").async("arraybuffer"));
             post_ary.push({
                 "type": "pptx-thumb",
                 "data": pptxThumbImg,
@@ -48,9 +75,9 @@
             });
         }
 
-        var filesInfo = getContentTypes(zip);
-        var slideSize = getSlideSizeAndSetDefaultTextStyle(zip);
-        tableStyles = readXmlFile(zip, "ppt/tableStyles.xml");
+        var filesInfo = await getContentTypes(zip);
+        var slideSize = await getSlideSizeAndSetDefaultTextStyle(zip);
+        tableStyles = await readXmlFile(zip, "ppt/tableStyles.xml");
         //console.log("slideSize: ", slideSize)
         post_ary.push({
             "type": "slideSize",
@@ -84,7 +111,7 @@
             if (typeof window._processSingleSlideCallback === 'function') {
                 slideHtml = window._processSingleSlideCallback(zip, filename, i, slideSize);
             } else {
-                slideHtml = processSingleSlide(zip, filename, i, slideSize);
+                slideHtml = await processSingleSlide(zip, filename, i, slideSize);
             }
             post_ary.push({
                 "type": "slide",
@@ -118,51 +145,109 @@
     }
 
     // 读取 XML 文件
-    function readXmlFile(zip, filename, isSlideContent) {
+    async function readXmlFile(zip, filename, isSlideContent) {
         try {
+            // 调试：第一次调用时打印 ZIP 文件列表
+            if (!readXmlFile._debugPrinted) {
+                console.log("readXmlFile - ZIP files:", Object.keys(zip.files));
+                readXmlFile._debugPrinted = true;
+            }
+
+            // 调试：打印当前查找的文件名
+            console.log("Looking for file:", filename);
+
             // 尝试解析文件路径，处理相对路径问题
             var fileEntry = zip.file(filename);
-            if (!fileEntry && !filename.startsWith("ppt/") && !filename.startsWith("[Content_Types].xml") && !filename.startsWith("docProps/")) {
-                // 尝试添加 ppt/ 前缀
-                fileEntry = zip.file("ppt/" + filename);
+
+            // 调试：打印查找结果
+            console.log("Direct lookup result:", !!fileEntry);
+
+            // 如果直接路径找不到，尝试各种可能的路径变体
+            if (!fileEntry) {
+                var possiblePaths = [];
+
+                if (filename.startsWith("[Content_Types].xml")) {
+                    possiblePaths = [
+                        filename
+                    ];
+                } else if (filename.startsWith("docProps/")) {
+                    possiblePaths = [
+                        filename,
+                        "docProps/" + filename.split("/").pop()
+                    ];
+                } else if (filename.startsWith("ppt/")) {
+                    possiblePaths = [
+                        filename,
+                        filename.split("/").pop()
+                    ];
+                } else {
+                    possiblePaths = [
+                        filename,
+                        "ppt/" + filename
+                    ];
+                }
+
+                // 尝试所有可能的路径
+                for (var i = 0; i < possiblePaths.length; i++) {
+                    fileEntry = zip.file(possiblePaths[i]);
+                    console.log("Trying path:", possiblePaths[i], "->", !!fileEntry);
+                    if (fileEntry) {
+                        console.log("Found file using alternate path:", possiblePaths[i]);
+                        break;
+                    }
+                }
             }
+
             if (!fileEntry) {
                 // 如果仍然找不到，返回 null
                 console.warn("XML file not found:", filename);
+                console.warn("Available files in ZIP:", Object.keys(zip.files));
                 return null;
             }
-            var fileContent = fileEntry.asText();
+            var fileContent = await fileEntry.async("text");
             if (isSlideContent && app_verssion <= 12) {
                 //< office2007
                 //remove "<![CDATA[ ... ]]>" tag
                 fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
             }
-            var xmlData = tXml(fileContent, { simplify: 1 });
-            if (xmlData["?xml"] !== undefined) {
-                return xmlData["?xml"];
-            } else {
-                return xmlData;
-            }
+            var xmlData = xmlParser.parse(fileContent);
+            // fast-xml-parser 不返回 ?xml 节点，直接返回解析结果
+            return xmlData;
         } catch (e) {
-            //console.log("error readXmlFile: the file '", filename, "' not exit")
+            console.error("Error reading/parsing XML file:", filename, e);
+            console.error("Error details:", e.message, e.stack);
             return null;
         }
     }
 
     // 获取内容类型
-    function getContentTypes(zip) {
-        var ContentTypesJson = readXmlFile(zip, "[Content_Types].xml");
+    async function getContentTypes(zip) {
+        var ContentTypesJson = await readXmlFile(zip, "[Content_Types].xml");
+
+
+
+        if (!ContentTypesJson || !ContentTypesJson["Types"]) {
+            console.error("Failed to read [Content_Types].xml");
+            return {
+                "slides": [],
+                "slideLayouts": []
+            };
+        }
 
         var subObj = ContentTypesJson["Types"]["Override"];
         var slidesLocArray = [];
         var slideLayoutsLocArray = [];
-        for (var i = 0; i < subObj.length; i++) {
-            switch (subObj[i]["attrs"]["ContentType"]) {
+        var overrides = Array.isArray(subObj) ? subObj : [subObj];
+        for (var i = 0; i < overrides.length; i++) {
+            var item = overrides[i];
+            var contentType = getAttr(item, "ContentType");
+            var partName = getAttr(item, "PartName");
+            switch (contentType) {
                 case "application/vnd.openxmlformats-officedocument.presentationml.slide+xml":
-                    slidesLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
+                    slidesLocArray.push(partName.substr(1));
                     break;
                 case "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml":
-                    slideLayoutsLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
+                    slideLayoutsLocArray.push(partName.substr(1));
                     break;
                 default:
             }
@@ -174,20 +259,32 @@
     }
 
     // 获取幻灯片尺寸并设置默认文本样式
-    function getSlideSizeAndSetDefaultTextStyle(zip) {
+    async function getSlideSizeAndSetDefaultTextStyle(zip) {
         //get app version
-        var app = readXmlFile(zip, "docProps/app.xml");
-        var app_verssion_str = app["Properties"]["AppVersion"]
-        app_verssion = parseInt(app_verssion_str);
-        console.log("create by Office PowerPoint app verssion: ", app_verssion_str)
+        var app = await readXmlFile(zip, "docProps/app.xml");
+        if (!app || !app["Properties"]) {
+            console.error("Failed to read docProps/app.xml");
+            app_verssion = 16; // 默认版本
+        } else {
+            var app_verssion_str = getAttr(app["Properties"], "AppVersion");
+            app_verssion = parseInt(app_verssion_str);
+            console.log("create by Office PowerPoint app verssion: ", app_verssion_str);
+        }
 
         //get slide dimensions
         var rtenObj = {};
-        var content = readXmlFile(zip, "ppt/presentation.xml");
-        var sldSzAttrs = content["p:presentation"]["p:sldSz"]["attrs"];
-        var sldSzWidth = parseInt(sldSzAttrs["cx"]);
-        var sldSzHeight = parseInt(sldSzAttrs["cy"]);
-        var sldSzType = sldSzAttrs["type"];
+        var content = await readXmlFile(zip, "ppt/presentation.xml");
+        if (!content || !content["p:presentation"] || !content["p:presentation"]["p:sldSz"]) {
+            console.error("Failed to read ppt/presentation.xml");
+            return {
+                "width": 960,
+                "height": 540
+            };
+        }
+        var sldSzAttrs = content["p:presentation"]["p:sldSz"];
+        var sldSzWidth = parseInt(getAttr(sldSzAttrs, "cx"));
+        var sldSzHeight = parseInt(getAttr(sldSzAttrs, "cy"));
+        var sldSzType = getAttr(sldSzAttrs, "type");
         console.log("Presentation size type: ", sldSzType)
 
         //1 inches  = 96px = 2.54cm
@@ -240,10 +337,20 @@
         return rtenObj;
     }
 
+
     // 索引节点
     function indexNodes(content) {
         var keys = Object.keys(content);
-        var spTreeNode = content[keys[0]]["p:cSld"]["p:spTree"];
+        var firstKey = keys[0];
+        if (!content[firstKey] || !content[firstKey]["p:cSld"]) {
+            console.error("indexNodes: Invalid content structure", content);
+            return { idTable: {}, idxTable: {}, typeTable: {} };
+        }
+        var spTreeNode = content[firstKey]["p:cSld"]["p:spTree"];
+        if (!spTreeNode) {
+            console.error("indexNodes: p:spTree not found", content[firstKey]["p:cSld"]);
+            return { idTable: {}, idxTable: {}, typeTable: {} };
+        }
 
         var idTable = {};
         var idxTable = {};
@@ -340,30 +447,34 @@
     }
 
     // 处理单个幻灯片
-    function processSingleSlide(zip, sldFileName, index, slideSize) {
+    async function processSingleSlide(zip, sldFileName, index, slideSize) {
         var resName = sldFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
-        var resContent = PPTXParser.readXmlFile(zip, resName);
+        var resContent = await PPTXParser.readXmlFile(zip, resName);
         var RelationshipArray = resContent["Relationships"]["Relationship"];
         var layoutFilename = "";
         var diagramFilename = "";
         var slideResObj = {};
         if (RelationshipArray.constructor === Array) {
             for (var i = 0; i < RelationshipArray.length; i++) {
-                switch (RelationshipArray[i]["attrs"]["Type"]) {
+                var rel = RelationshipArray[i];
+                var type = getAttr(rel, "Type");
+                var target = getAttr(rel, "Target");
+                var id = getAttr(rel, "Id");
+                switch (type) {
                     case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout":
-                        layoutFilename = PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"]);
+                        layoutFilename = PPTXUtils.resolveRelationshipTarget(resName, target);
                         break;
                     case "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing":
-                        diagramFilename = PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"]);
-                        slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                            "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                            "target": PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"])
+                        diagramFilename = PPTXUtils.resolveRelationshipTarget(resName, target);
+                        slideResObj[id] = {
+                            "type": type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            "target": PPTXUtils.resolveRelationshipTarget(resName, target)
                         };
                         break;
                     default:
-                        slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                            "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                            "target": PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray[i]["attrs"]["Target"])
+                        slideResObj[id] = {
+                            "type": type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            "target": PPTXUtils.resolveRelationshipTarget(resName, target)
                         };
                 }
             }
@@ -371,7 +482,7 @@
             layoutFilename = PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray["attrs"]["Target"]);
         }
 
-        var slideLayoutContent = PPTXParser.readXmlFile(zip, layoutFilename);
+        var slideLayoutContent = await PPTXParser.readXmlFile(zip, layoutFilename);
         var slideLayoutTables = indexNodes(slideLayoutContent);
         var sldLayoutClrOvr = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
 
@@ -380,7 +491,7 @@
         }
 
         var slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
-        var slideLayoutResContent = PPTXParser.readXmlFile(zip, slideLayoutResFilename);
+        var slideLayoutResContent = await PPTXParser.readXmlFile(zip, slideLayoutResFilename);
         RelationshipArray = slideLayoutResContent["Relationships"]["Relationship"];
         var masterFilename = "";
         var layoutResObj = {};
@@ -401,12 +512,12 @@
             masterFilename = PPTXUtils.resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray["attrs"]["Target"]);
         }
 
-        var slideMasterContent = PPTXParser.readXmlFile(zip, masterFilename);
+        var slideMasterContent = await PPTXParser.readXmlFile(zip, masterFilename);
         var slideMasterTextStyles = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
         var slideMasterTables = indexNodes(slideMasterContent);
 
         var slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
-        var slideMasterResContent = PPTXParser.readXmlFile(zip, slideMasterResFilename);
+        var slideMasterResContent = await PPTXParser.readXmlFile(zip, slideMasterResFilename);
         RelationshipArray = slideMasterResContent["Relationships"]["Relationship"];
         var themeFilename = "";
         var masterResObj = {};
@@ -432,8 +543,8 @@
         if (themeFilename !== undefined) {
             var themeName = themeFilename.split("/").pop();
             var themeResFileName = themeFilename.replace(themeName, "_rels/" + themeName) + ".rels";
-            themeContent = PPTXParser.readXmlFile(zip, themeFilename);
-            var themeResContent = PPTXParser.readXmlFile(zip, themeResFileName);
+            themeContent = await PPTXParser.readXmlFile(zip, themeFilename);
+            var themeResContent = await PPTXParser.readXmlFile(zip, themeResFileName);
             if (themeResContent !== null) {
                 var relationshipArray = themeResContent["Relationships"]["Relationship"];
                 if (relationshipArray !== undefined){
@@ -459,14 +570,14 @@
         if (diagramFilename !== undefined) {
             var diagName = diagramFilename.split("/").pop();
             var diagramResFileName = diagramFilename.replace(diagName, "_rels/" + diagName) + ".rels";
-            digramFileContent = PPTXParser.readXmlFile(zip, diagramFilename);
+            digramFileContent = await PPTXParser.readXmlFile(zip, diagramFilename);
             if (digramFileContent !== null && digramFileContent !== undefined && digramFileContent != "") {
                 var digramFileContentObjToStr = JSON.stringify(digramFileContent);
                 digramFileContentObjToStr = digramFileContentObjToStr.replace(/dsp:/g, "p:");
                 digramFileContent = JSON.parse(digramFileContentObjToStr);
             }
 
-            var digramResContent = PPTXParser.readXmlFile(zip, diagramResFileName);
+            var digramResContent = await PPTXParser.readXmlFile(zip, diagramResFileName);
             if (digramResContent !== null) {
                 var relationshipArray = digramResContent["Relationships"]["Relationship"];
                 if (relationshipArray.constructor === Array) {
@@ -485,7 +596,7 @@
             }
         }
 
-        var slideContent = PPTXParser.readXmlFile(zip, sldFileName, true);
+        var slideContent = await PPTXParser.readXmlFile(zip, sldFileName, true);
         var nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
         var warpObj = {
             "zip": zip,

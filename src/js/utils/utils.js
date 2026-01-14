@@ -2,6 +2,28 @@
 import { PPTXColorUtils } from '../core/color-utils.js';
 var slideFactor = 96 / 914400;
 
+// 辅助函数：获取 XML 属性，兼容 tXml 和 fast-xml-parser 格式
+export function getAttrs(obj) {
+    if (!obj) return {};
+    // fast-xml-parser 直接在对象上，tXml 在 attrs 属性中
+    if (obj.attrs) {
+        return obj.attrs;
+    }
+    // fast-xml-parser 格式：属性直接在对象上
+    var result = {};
+    for (var key in obj) {
+        if (key !== '#text' && key !== '__cdata' && typeof obj[key] !== 'object') {
+            result[key] = obj[key];
+        }
+    }
+    return result;
+}
+
+// 辅助函数：获取单个属性值
+export function getAttr(obj, attrName) {
+    var attrs = getAttrs(obj);
+    return attrs[attrName];
+}
 
     // 角度转度数（EMU 单位 1/60000 度 -> 标准度）
 function angleToDegrees(angle) {
@@ -50,6 +72,60 @@ function base64ArrayBuffer(arrayBuffer) {
     }
 
     return base64;
+}
+
+    // 从多种输入类型获取 ArrayBuffer
+function getArrayBufferFromFileInput(input) {
+    return new Promise(function(resolve, reject) {
+        // 处理 ArrayBuffer
+        if (input instanceof ArrayBuffer) {
+            resolve({ arrayBuffer: input, fileName: '' });
+            return;
+        }
+
+        // 处理 File 或 Blob 对象
+        if (input instanceof File || input instanceof Blob) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                resolve({ arrayBuffer: e.target.result, fileName: input.name || '' });
+            };
+            reader.onerror = function(e) {
+                reject(new Error('Failed to read file: ' + e));
+            };
+            reader.readAsArrayBuffer(input);
+            return;
+        }
+
+        // 处理 URL 字符串
+        if (typeof input === 'string') {
+            fetch(input)
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('HTTP error! status: ' + response.status);
+                    }
+                    return response.arrayBuffer();
+                })
+                .then(function(arrayBuffer) {
+                    // 从 URL 提取文件名
+                    var fileName = '';
+                    var urlParts = input.split('/');
+                    if (urlParts.length > 0) {
+                        fileName = urlParts[urlParts.length - 1];
+                        var dotIndex = fileName.lastIndexOf('.');
+                        if (dotIndex > 0) {
+                            fileName = fileName.substring(0, dotIndex);
+                        }
+                    }
+                    resolve({ arrayBuffer: arrayBuffer, fileName: fileName });
+                })
+                .catch(function(err) {
+                    reject(new Error('Failed to fetch URL: ' + err.message));
+                });
+            return;
+        }
+
+        reject(new Error('Invalid input type. Expected string URL, File, Blob, or ArrayBuffer.'));
+    });
 }
 
     // 获取 MIME 类型
@@ -180,7 +256,21 @@ function getTextByPathList(node, path) {
 
     var l = path.length;
     for (var i = 0; i < l; i++) {
-        node = node[path[i]];
+        var key = path[i];
+
+        // 特殊处理 "attrs" 键：兼容 tXml 和 fast-xml-parser
+        if (key === "attrs") {
+            // fast-xml-parser 格式：属性直接在对象上
+            // 如果下一个键在当前节点中直接存在，直接返回
+            if (i + 1 < l && node[path[i + 1]] !== undefined) {
+                return node[path[i + 1]];
+            }
+            // 否则尝试访问 attrs 属性（tXml 格式）
+            node = node[key];
+        } else {
+            node = node[key];
+        }
+
         if (node === undefined || node === null) {
             return undefined;
         }
@@ -671,8 +761,11 @@ const PPTXUtils = {
     getSize: getSize,
     getBorder: getBorder,
     getTableBorders: getTableBorders,
+    getArrayBufferFromFileInput: getArrayBufferFromFileInput,
     getSlideFactor: function() { return slideFactor; },
-    setSlideFactor: function(factor) { slideFactor = factor; }
+    setSlideFactor: function(factor) { slideFactor = factor; },
+    getAttrs,
+    getAttr,
 };
 
 

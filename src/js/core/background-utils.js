@@ -1,4 +1,4 @@
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils, getAttr } from '../utils/utils.js';
 import { PPTXColorUtils } from './color-utils.js';
 
 class PPTXBackgroundUtils {
@@ -149,7 +149,7 @@ class PPTXBackgroundUtils {
     }
 
     var phClr = PPTXColorUtils.getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
-    var idx = Number(bgRef["attrs"]["idx"]);
+    var idx = Number(getAttr(bgRef, "idx"));
     var bgcolor = "";
 
     if (idx == 0 || idx == 1000) {
@@ -207,15 +207,17 @@ class PPTXBackgroundUtils {
                 for (var i = 0; i < bgFillLstTyp.length; i++) {
                     var obj = {};
                     obj[key] = bgFillLstTyp[i];
-                    obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
-                    obj["attrs"] = { "order": bgFillLstTyp[i]["attrs"]["order"] };
+                    var order = getAttr(bgFillLstTyp[i], "order");
+                    obj["idex"] = order;
+                    obj["attrs"] = { "order": order };
                     sortblAry.push(obj);
                 }
             } else {
                 var obj = {};
                 obj[key] = bgFillLstTyp;
-                obj["idex"] = bgFillLstTyp["attrs"]["order"];
-                obj["attrs"] = { "order": bgFillLstTyp["attrs"]["order"] };
+                var order = getAttr(bgFillLstTyp, "order");
+                obj["idex"] = order;
+                obj["attrs"] = { "order": order };
                 sortblAry.push(obj);
             }
         }
@@ -259,7 +261,7 @@ class PPTXBackgroundUtils {
         var lin = grdFill["a:lin"];
         var rot = 90;
         if (lin !== undefined) {
-            rot = PPTXUtils.angleToDegrees(lin["attrs"]["ang"]);
+            rot = PPTXUtils.angleToDegrees(getAttr(lin, "ang"));
             rot = rot + 90;
         }
 
@@ -293,7 +295,7 @@ class PPTXBackgroundUtils {
     var picFillResult = PPTXColorUtils.getPicFill(source, bgPr["a:blipFill"], warpObj);
     // 提取图片 URL（picFillResult 可能是对象或字符串）
     var picFillBase64 = typeof picFillResult === 'object' && picFillResult.img ? picFillResult.img : picFillResult;
-    var ordr = bgPr["attrs"]["order"];
+    var ordr = getAttr(bgPr, "order");
     var aBlipNode = bgPr["a:blipFill"]["a:blip"];
 
     // 处理双色调效果

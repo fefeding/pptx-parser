@@ -9,44 +9,84 @@
 
 <style>
 	html, body { margin: 0; padding: 0; }
-	#warper { margin-right: auto; margin-left: auto; }
+	#wrapper { margin: 20px auto; max-width: 1200px; }
+	#uploadFileInput { margin-bottom: 20px; }
+	#progress { margin-bottom: 10px; color: #666; }
+	.error { color: #c33; padding: 10px; background: #fee; border-radius: 4px; margin-bottom: 10px; }
+	.slide-viewer { min-height: 400px; background: #f8f8f8; padding: 20px; border-radius: 4px; }
 </style>
 </head>
 <body>
-	<div id="warper">
-		<input id="uploadFileInput" type="file" />
-		<br><br>
-		<div id="container">
-			<input id="fullscreen-btn" type="button" value="Fullscreen" />
-			<br>
-			<div  id="result"></div>
+	<div id="wrapper">
+		<input id="uploadFileInput" type="file" accept=".pptx" />
+		<br>
+		<div id="progress"></div>
+		<div id="error"></div>
+		<div id="slideViewer" class="slide-viewer">
+			<div id="globalCSS"></div>
+			<div id="slides"></div>
 		</div>
 	</div>
 <script type="module">
     import { pptxToHtml } from '../dist/ppt-parser.browser.js';
-    
-    pptxToHtml(document.getElementById('result'), {
-	fileInputId: "uploadFileInput",
-	slideMode: false,
-	keyBoardShortCut: false,
-	slideModeConfig: {  //on slide mode (slideMode: true)
-	    first: 1, 
-	    nav: false, /** true,false : show or not nav buttons*/
-	    navTxtColor: "white", /** color */
-	    navNextTxt:"&#8250;", //">"
-	    navPrevTxt: "&#8249;", //"<"
-	    showPlayPauseBtn: false,/** true,false */
-	    keyBoardShortCut: false, /** true,false */
-	    showSlideNum: false, /** true,false */
-	    showTotalSlideNum: false, /** true,false */
-	    autoSlide: false, /** false or seconds (the pause time between slides) , F8 to active(keyBoardShortCut: true) */
-	    randomAutoSlide: false, /** true,false ,autoSlide:true */ 
-	    loop: false,  /** true,false */
-	    background: "black", /** false or color*/
-	    transition: "default", /** transition type: "slid","fade","default","random" , to show transition efects :transitionTime > 0.5 */
-	    transitionTime: 1 /** transition time in seconds */
-	}
-});
+
+    const uploadInput = document.getElementById('uploadFileInput');
+    const progressDiv = document.getElementById('progress');
+    const errorDiv = document.getElementById('error');
+    const slidesDiv = document.getElementById('slides');
+    const globalCSSDiv = document.getElementById('globalCSS');
+
+    uploadInput.addEventListener('change', async function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // 清空之前的内容
+        slidesDiv.innerHTML = '';
+        globalCSSDiv.innerHTML = '';
+        errorDiv.innerHTML = '';
+        progressDiv.textContent = '准备解析...';
+
+        try {
+            const result = await pptxToHtml(file, {
+                onProgress: function(percent) {
+                    progressDiv.textContent = '解析进度: ' + Math.round(percent) + '%';
+                },
+                onComplete: function(data) {
+                    console.log('解析完成:', data);
+                    progressDiv.textContent = '解析完成！共 ' + data.htmlContent.length + ' 张幻灯片';
+                },
+                onError: function(err) {
+                    console.error('解析错误:', err);
+                    errorDiv.textContent = '错误: ' + (err.message || err);
+                }
+            });
+
+            if (result.error) {
+                errorDiv.textContent = '错误: ' + (result.error.message || result.error);
+            } else {
+                // 渲染全局CSS
+                if (result.globalCSS) {
+                    const styleEl = document.createElement('style');
+                    styleEl.textContent = result.globalCSS;
+                    globalCSSDiv.appendChild(styleEl);
+                }
+
+                // 渲染幻灯片
+                result.htmlContent.forEach(function(slide) {
+                    const slideDiv = document.createElement('div');
+                    slideDiv.className = 'slide-item';
+                    slideDiv.innerHTML = slide.html;
+                    slidesDiv.appendChild(slideDiv);
+                });
+
+                console.log('幻灯片尺寸:', result.slideWidth, 'x', result.slideHeight);
+                console.log('样式表:', result.styleTable);
+            }
+        } catch (e) {
+            console.error('PPTX解析失败:', e);
+            errorDiv.textContent = '解析失败: ' + (e.message || e);
+        }
+    });
 </script>
 
 </body>

@@ -1,4 +1,7 @@
 
+import { PPTXUtils } from '../utils/utils';
+
+
 var PPTXDiagramUtils = {};
 
     /**
@@ -14,7 +17,7 @@ var PPTXDiagramUtils = {};
  * @returns {string} HTML字符串
  */
 PPTXDiagramUtils.genDiagram = function(node, warpObj, source, sType, readXmlFile, getPosition, getSize, processSpNode) {
-    var order = node["attrs"]["order"];
+    var order = PPTXUtils.getAttr(node, "order");
     var zip = warpObj["zip"];
     var xfrmNode = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
     var dgmRelIds = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
