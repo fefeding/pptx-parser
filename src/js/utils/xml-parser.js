@@ -1,51 +1,89 @@
 /**
- * XML Parser - Uses browser native APIs when available
+ * XML Parser - Compatible with tXml API
+ * Uses browser native DOMParser when available
  */
 
 let _order = 1;
 
 /**
- * Main parsing function
+ * Main parsing function - compatible with tXml API
  * @param {string} xmlString - XML string to parse
  * @param {Object} options - Parsing options
- * @returns {Object} Parsed XML structure
+ * @returns {Array|Object} Parsed XML structure with pos property
  */
-export function parserXml(xmlString, options = {}) {
-    // Reset order for each parse
+export function tXml(xmlString, options = {}) {
+    // Reset order for each parse (used in simplify)
     if (!options.attrValue) {
         _order = 1;
     }
 
+    // Handle attribute value filtering (getElementById, getElementsByClassName)
     if (options.attrValue !== undefined) {
-        return parseByAttributeValue(xmlString, options);
+        const result = parseByAttributeValue(xmlString, options);
+        result.pos = xmlString.length;
+        return result;
     }
 
-    // Try to use DOMParser (browser) or XMLDocument (Node.js)
+    // Try to use DOMParser (browser) or fast-xml-parser (Node.js)
     const doc = parseXmlString(xmlString);
 
     if (!doc) {
-        // Fallback to simple character-based parsing
-        return parseWithFallback(xmlString, options);
+        // Fallback to simple character-based parsing (original tXml behavior)
+        const fallbackResult = parseWithFallback(xmlString, options);
+        if (options.simplify) {
+            const simplified = simplify(fallbackResult);
+            simplified.pos = xmlString.length;
+            return simplified;
+        }
+        fallbackResult.pos = xmlString.length;
+        return fallbackResult;
     }
 
-    const result = convertDomToArray(doc, options.parseNode);
-    result.pos = xmlString.length;
+    // Convert DOM to array format compatible with tXml
+    let result = convertDomToArray(doc, options.parseNode);
 
+    // Apply filter if provided
     if (options.filter) {
-        return filter(result, options.filter);
+        result = filter(result, options.filter);
     }
 
+    // Apply simplify if requested
     if (options.simplify) {
-        return simplify(result);
+        console.log('tXml: calling simplify with result =', result);
+        result = simplify(result);
+        console.log('tXml: after simplify result =', result);
+        // If result is still an array (should not happen), try to simplify again
+        if (Array.isArray(result)) {
+            result = simplify(result);
+        }
     }
 
+    // Fix XML declaration structure to match original tXml behavior
+    if (options.simplify && result && typeof result === 'object' && result['?xml'] !== undefined) {
+        console.log('Fixing XML declaration structure');
+        // Original tXml nests root element under ?xml
+        // If result has both ?xml and Types as top-level keys, we need to move Types under ?xml
+        const xmlNode = result['?xml'];
+        if (result.Types !== undefined && xmlNode && typeof xmlNode === 'object' && !xmlNode.Types) {
+            xmlNode.Types = result.Types;
+            delete result.Types;
+            // Ensure xmlNode has attrs from attributes
+            if (xmlNode.attributes && !xmlNode.attrs) {
+                xmlNode.attrs = xmlNode.attributes;
+                delete xmlNode.attributes;
+            }
+        }
+    }
+
+    // Set pos property as original tXml does (position where parsing stopped)
+    result.pos = xmlString.length;
     return result;
 }
 
 /**
  * Parse XML string using native APIs
  * @param {string} xmlString - XML string to parse
- * @returns {Document|Object|null} Parsed DOM document, object with xmlDeclaration, or null
+ * @returns {Document|Object|null} Parsed DOM document or fast-xml-parser object
  */
 function parseXmlString(xmlString) {
     // Extract XML declaration if present
@@ -82,10 +120,9 @@ function parseXmlString(xmlString) {
         }
     }
 
-    // Node.js: use native XML (if available) or fast-xml-parser
+    // Node.js: use fast-xml-parser if available
     try {
         if (typeof require === 'function') {
-            // Try to use fast-xml-parser
             const { XMLParser } = require('fast-xml-parser');
             const parser = new XMLParser({
                 ignoreAttributes: false,
@@ -103,7 +140,7 @@ function parseXmlString(xmlString) {
 }
 
 /**
- * Convert DOM structure to array format (for backward compatibility)
+ * Convert DOM structure to array format compatible with tXml
  * @param {Document|Object} doc - Parsed DOM document
  * @param {boolean} parseNodeOnly - Whether to parse a single node
  * @returns {Array|Object} Converted structure
@@ -123,26 +160,37 @@ function convertDomToArray(doc, parseNodeOnly) {
         return parseNodeOnly ? {} : [];
     }
 
+    console.log('convertDomToArray: doc._xmlDeclaration =', doc._xmlDeclaration, 'doc.childNodes.length =', doc.childNodes.length);
     const result = [];
 
     // Check if there's an XML declaration attached
     if (doc._xmlDeclaration) {
         const xmlNode = createXmlDeclarationNode(doc._xmlDeclaration);
         if (xmlNode) {
+            // Make the root element a child of the XML declaration node
+            // to match original tXml behavior
+            const rootElement = doc.documentElement;
+            if (rootElement) {
+                const convertedRoot = convertDomNodeToArray(rootElement);
+                if (convertedRoot) {
+                    xmlNode.children = [convertedRoot];
+                }
+            }
             result.push(xmlNode);
         }
-    }
+    } else {
+        // No XML declaration, process all child nodes as before
+        const rootElement = doc.documentElement || doc.childNodes[0];
 
-    const rootElement = doc.documentElement || doc.childNodes[0];
+        if (parseNodeOnly && rootElement) {
+            return convertDomNodeToArray(rootElement);
+        }
 
-    if (parseNodeOnly && rootElement) {
-        return convertDomNodeToArray(rootElement);
-    }
-
-    for (let i = 0; i < doc.childNodes.length; i++) {
-        const converted = convertDomNodeToArray(doc.childNodes[i]);
-        if (converted) {
-            result.push(converted);
+        for (let i = 0; i < doc.childNodes.length; i++) {
+            const converted = convertDomNodeToArray(doc.childNodes[i]);
+            if (converted !== null) {
+                result.push(converted);
+            }
         }
     }
 
@@ -152,10 +200,9 @@ function convertDomToArray(doc, parseNodeOnly) {
 /**
  * Create XML declaration node from attributes string
  * @param {string} xmlDecl - XML declaration attributes string
- * @returns {Object} XML declaration node
+ * @returns {Object} XML declaration node compatible with tXml
  */
 function createXmlDeclarationNode(xmlDecl) {
-    // Parse attributes like 'version="1.0" encoding="UTF-8" standalone="yes"'
     const attrs = {};
     const attrRegex = /(\w+)=["']([^"']*)["']/g;
     let match;
@@ -171,26 +218,27 @@ function createXmlDeclarationNode(xmlDecl) {
 }
 
 /**
- * Convert DOM element to array format
+ * Convert DOM element to tXml node format
  * @param {Node} node - DOM node
- * @returns {Object} Converted node object
+ * @returns {Object|string|null} Converted node object, text string, or null for comments
  */
 function convertDomNodeToArray(node) {
     if (!node) return null;
 
     // Handle text nodes
     if (node.nodeType === Node.TEXT_NODE) {
-        return node.textContent;
+        const text = node.textContent;
+        // Return empty string? Original tXml includes non-empty text nodes
+        return text.trim().length > 0 ? text : null;
     }
 
-    // Handle comment nodes
+    // Handle comment nodes - original tXml skips them
     if (node.nodeType === Node.COMMENT_NODE) {
         return null;
     }
 
-    const result = {
-        tagName: node.tagName || node.nodeName
-    };
+    const tagName = node.tagName || node.nodeName;
+    const result = { tagName };
 
     // Parse attributes
     if (node.attributes && node.attributes.length > 0) {
@@ -201,7 +249,17 @@ function convertDomNodeToArray(node) {
         }
     }
 
-    // Parse children
+    // Special handling for script and style tags (preserve raw content)
+    if (tagName.toLowerCase() === 'script' || tagName.toLowerCase() === 'style') {
+        // Get raw text content as a single child string
+        const textContent = node.textContent;
+        if (textContent.trim().length > 0) {
+            result.children = [textContent];
+        }
+        return result;
+    }
+
+    // Parse children recursively
     const children = [];
     for (let i = 0; i < node.childNodes.length; i++) {
         const child = convertDomNodeToArray(node.childNodes[i]);
@@ -210,7 +268,12 @@ function convertDomNodeToArray(node) {
         }
     }
 
-    if (children.length > 0) {
+    // Self-closing tags detection (img, br, input, meta, link)
+    const selfClosingTags = ['img', 'br', 'input', 'meta', 'link'];
+    const isSelfClosing = selfClosingTags.includes(tagName.toLowerCase()) ||
+                         (node.childNodes.length === 0 && !node.hasChildNodes());
+
+    if (!isSelfClosing && children.length > 0) {
         result.children = children;
     }
 
@@ -219,8 +282,6 @@ function convertDomNodeToArray(node) {
 
 /**
  * Convert fast-xml-parser object to array format
- * @param {Object} obj - fast-xml-parser object
- * @returns {Array} Array format
  */
 function convertFastXmlObjToArray(obj) {
     const result = [];
@@ -248,9 +309,6 @@ function convertFastXmlObjToArray(obj) {
 
 /**
  * Convert fast-xml-parser object to node format
- * @param {Object} item - fast-xml-parser item
- * @param {string} explicitTagName - Explicit tag name (for ?xml nodes)
- * @returns {Object} Node object
  */
 function convertFastXmlObjToNode(item, explicitTagName = null) {
     if (typeof item === 'string') {
@@ -261,7 +319,6 @@ function convertFastXmlObjToNode(item, explicitTagName = null) {
         return null;
     }
 
-    // Find the actual tag name (key that's not '@' or '#')
     let tagName = explicitTagName;
     let attrs = {};
     let children = [];
@@ -306,9 +363,7 @@ function convertFastXmlObjToNode(item, explicitTagName = null) {
         }
     }
 
-    const result = {
-        tagName: tagName
-    };
+    const result = { tagName };
 
     if (Object.keys(attrs).length > 0) {
         result.attributes = attrs;
@@ -322,14 +377,11 @@ function convertFastXmlObjToNode(item, explicitTagName = null) {
 }
 
 /**
- * Fallback character-based parser (for environments without native APIs)
- * @param {string} xmlString - XML string to parse
- * @param {Object} options - Parsing options
- * @returns {Object} Parsed structure
+ * Fallback character-based parser (original tXml logic)
  */
 function parseWithFallback(xmlString, options) {
-    // Simple character-based parser (original logic)
-    // This is a simplified version - in practice, this should rarely be used
+    // This is a simplified version of the original tXml parser
+    // We should try to match its behavior as closely as possible
     const result = [];
     let pos = options.pos || 0;
     const selfClosingTags = ['img', 'br', 'input', 'meta', 'link', 'Default', 'Override'];
@@ -394,8 +446,8 @@ function parseWithFallback(xmlString, options) {
                                (tagName.includes('xml') && xmlString[pos - 1] === '?');
 
             if (!isSelfClosing && xmlString[pos]) {
-                // Parse children recursively would go here
-                // For simplicity, skip this part in fallback
+                // Note: original tXml would recursively parse children here
+                // For fallback simplicity, we skip child parsing
             }
 
             result.push(node);
@@ -442,9 +494,7 @@ function parseByAttributeValue(xmlString, options) {
 }
 
 /**
- * Simplify parsed XML structure
- * @param {Array} children - Parsed children array
- * @returns {Object} Simplified object structure
+ * Simplify parsed XML structure (compatible with tXml.simplify)
  */
 export function simplify(children) {
     const result = {};
@@ -460,7 +510,7 @@ export function simplify(children) {
 
             const simplifiedChild = simplify(child.children || []);
             result[child.tagName].push(simplifiedChild);
-            if(typeof simplifiedChild === 'object') {
+            if (typeof simplifiedChild === 'object') {
                 if (child.attributes) {
                     simplifiedChild.attrs = child.attributes;
                 }
@@ -482,14 +532,31 @@ export function simplify(children) {
         }
     }
 
+    // Fix XML declaration structure to match original tXml behavior
+    // If we have both ?xml and other top-level keys, move other keys under ?xml
+    if (result['?xml'] !== undefined && Object.keys(result).length > 1) {
+        const xmlNode = result['?xml'];
+        if (xmlNode && typeof xmlNode === 'object') {
+            // Move all other keys under xmlNode
+            for (const key in result) {
+                if (key !== '?xml' && key !== 'pos') {
+                    xmlNode[key] = result[key];
+                    delete result[key];
+                }
+            }
+            // Ensure attributes are moved to attrs
+            if (xmlNode.attributes && !xmlNode.attrs) {
+                xmlNode.attrs = xmlNode.attributes;
+                delete xmlNode.attributes;
+            }
+        }
+    }
+
     return result;
 }
 
 /**
  * Filter nodes based on a predicate function
- * @param {Array} nodes - Nodes to filter
- * @param {Function} predicate - Filter function
- * @returns {Array} Filtered nodes
  */
 export function filter(nodes, predicate) {
     const result = [];
@@ -501,7 +568,7 @@ export function filter(nodes, predicate) {
 
         if (node.children) {
             const filteredChildren = filter(node.children, predicate);
-            result = result.concat(filteredChildren);
+            result.push(...filteredChildren);
         }
     });
 
@@ -510,8 +577,6 @@ export function filter(nodes, predicate) {
 
 /**
  * Convert parsed XML back to string
- * @param {Array} nodes - Parsed XML nodes
- * @returns {string} XML string
  */
 export function stringify(nodes) {
     let output = '';
@@ -555,8 +620,6 @@ export function stringify(nodes) {
 
 /**
  * Convert parsed XML to content string
- * @param {*} node - Parsed XML node or array
- * @returns {string} Text content
  */
 export function toContentString(node) {
     if (Array.isArray(node)) {
@@ -577,34 +640,22 @@ export function toContentString(node) {
 
 /**
  * Get element by ID attribute
- * @param {string} xmlString - XML string
- * @param {string} idValue - ID value to find
- * @param {boolean} simplifyResult - Whether to simplify result
- * @returns {*} Found element
  */
 export function getElementById(xmlString, idValue, simplifyResult) {
-    const result = parserXml(xmlString, { attrValue: idValue, simplify: simplifyResult });
+    const result = tXml(xmlString, { attrValue: idValue, simplify: simplifyResult });
     return simplifyResult ? result : result[0];
 }
 
 /**
  * Get elements by class name
- * @param {string} xmlString - XML string
- * @param {string} className - Class name to find
- * @param {boolean} simplifyResult - Whether to simplify result
- * @returns {*} Found elements
  */
 export function getElementsByClassName(xmlString, className, simplifyResult) {
     const pattern = `[a-zA-Z0-9-s ]*${className}[a-zA-Z0-9-s ]*`;
-    return parserXml(xmlString, { attrName: 'class', attrValue: pattern, simplify: simplifyResult });
+    return tXml(xmlString, { attrName: 'class', attrValue: pattern, simplify: simplifyResult });
 }
 
 /**
  * Parse XML stream (Node.js only)
- * @param {string|ReadStream} source - Source file path or ReadStream
- * @param {number|Function} startOrCallback - Start position or callback
- * @param {Function} callback - Optional callback
- * @returns {ReadStream} The stream
  */
 export function parseStream(source, startOrCallback, callback) {
     if (typeof callback === 'function') {
@@ -627,7 +678,7 @@ export function parseStream(source, startOrCallback, callback) {
         buffer += chunk;
 
         // Parse complete tags from buffer
-        const result = parserXml(buffer);
+        const result = tXml(buffer);
         source.emit('xml', result);
 
         // Keep incomplete tag in buffer
@@ -641,7 +692,7 @@ export function parseStream(source, startOrCallback, callback) {
 
     source.on('end', () => {
         if (buffer.trim()) {
-            const result = parserXml(buffer);
+            const result = tXml(buffer);
             source.emit('xml', result);
         }
     });
@@ -649,25 +700,19 @@ export function parseStream(source, startOrCallback, callback) {
     return source;
 }
 
-// Export as default
-const parserXmlDefault = {
-    parse: parserXml,
-    simplify,
-    filter,
-    stringify,
-    toContentString,
-    getElementById,
-    getElementsByClassName,
-    parseStream
-};
+// Attach static methods to tXml function (for backward compatibility)
+tXml.simplify = simplify;
+tXml.filter = filter;
+tXml.stringify = stringify;
+tXml.toContentString = toContentString;
+tXml.getElementById = getElementById;
+tXml.getElementsByClassName = getElementsByClassName;
+tXml.parseStream = parseStream;
 
-// Add static methods for backward compatibility
-parserXml.simplify = simplify;
-parserXml.filter = filter;
-parserXml.stringify = stringify;
-parserXml.toContentString = toContentString;
-parserXml.getElementById = getElementById;
-parserXml.getElementsByClassName = getElementsByClassName;
-parserXml.parseStream = parseStream;
+// Export tXml as default
+export default tXml;
 
-export default parserXmlDefault;
+// Expose to global scope for browser (non-module environments)
+if (typeof window !== 'undefined' && !window.tXml) {
+    window.tXml = tXml;
+}
