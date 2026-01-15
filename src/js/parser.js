@@ -2,7 +2,7 @@
 
     import { PPTXUtils } from './utils/utils.js';
     import { PPTXColorUtils } from './core/color-utils.js';
-    import * as tXml from 'txml';
+    import { parse as tXml, simplify } from 'txml/dist/txml.mjs';
 
     // 全局变量，将在初始化时设置
     var app_verssion;
@@ -139,7 +139,7 @@
                 //remove "<![CDATA[ ... ]]>" tag
                 fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
             }
-            var xmlData = tXml.parse(fileContent, { simplify: 1 });
+            var xmlData = tXml(fileContent, { simplify: 1 });
             if (xmlData["?xml"] !== undefined) {
                 return xmlData["?xml"];
             } else {
