@@ -608,7 +608,7 @@ getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSou
 };
 }
     // Export to window
-window.PPTXTableUtils = PPTXTableUtils;
+// window.PPTXTableUtils = PPTXTableUtils; // Removed for ES modules
 
 
 export { PPTXTableUtils };

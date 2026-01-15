@@ -217,4 +217,4 @@ PPTXImageUtils.processGraphicFrameNode = function(node, warpObj, source, sType, 
 export { PPTXImageUtils };
 
 // Also export to global scope for backward compatibility
-window.PPTXImageUtils = PPTXImageUtils;
+// window.PPTXImageUtils = PPTXImageUtils; // Removed for ES modules

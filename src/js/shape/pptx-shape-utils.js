@@ -1,6 +1,5 @@
     // Initialize PPTXShapeUtils object if it doesn't exist
-
-var PPTXUtils = window.PPTXUtils;
+import { PPTXUtils } from '../utils/utils.js';
 
 function shapePie(H, w, adj1, adj2, isClose) {
     var pieVal = parseInt(adj2);
@@ -158,4 +157,4 @@ const PPTXShapeUtils = {
 export { PPTXShapeUtils };
 
 // Also export to global scope for backward compatibility
-window.PPTXShapeUtils = PPTXShapeUtils;
+// window.PPTXShapeUtils = PPTXShapeUtils; // Removed for ES modules

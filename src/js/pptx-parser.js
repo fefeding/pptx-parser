@@ -1,6 +1,7 @@
 
 
     import { PPTXUtils } from './utils/utils.js';
+    import { PPTXColorUtils } from './core/pptx-color-utils.js';
 
     // 全局变量，将在初始化时设置
     var app_verssion;
@@ -14,22 +15,32 @@
     var isSlideMode = false;
     var processFullTheme = true;
     var settings;
+    
+    // 回调函数变量（替换 window._ 全局变量）
+    var _processSingleSlideCallback = null;
+    var _processNodesInSlideCallback = null;
+    var _getBackgroundCallback = null;
+    var _getSlideBackgroundFillCallback = null;
 
     // 解析器配置
     function configure(config) {
         settings = config;
         processFullTheme = settings.themeProcess;
         if (config.processSingleSlide) {
-            window._processSingleSlideCallback = config.processSingleSlide;
+            // window._processSingleSlideCallback = config.processSingleSlide; // Removed for ES modules
+            _processSingleSlideCallback = config.processSingleSlide;
         }
         if (config.processNodesInSlide) {
-            window._processNodesInSlideCallback = config.processNodesInSlide;
+            // window._processNodesInSlideCallback = config.processNodesInSlide; // Removed for ES modules
+            _processNodesInSlideCallback = config.processNodesInSlide;
         }
         if (config.getBackground) {
-            window._getBackgroundCallback = config.getBackground;
+            // window._getBackgroundCallback = config.getBackground; // Removed for ES modules
+            _getBackgroundCallback = config.getBackground;
         }
         if (config.getSlideBackgroundFill) {
-            window._getSlideBackgroundFillCallback = config.getSlideBackgroundFill;
+            // window._getSlideBackgroundFillCallback = config.getSlideBackgroundFill; // Removed for ES modules
+            _getSlideBackgroundFillCallback = config.getSlideBackgroundFill;
         }
     }
 
@@ -80,8 +91,8 @@
             }
             // Use internal processSingleSlide function if no callback provided
             var slideHtml;
-            if (typeof window._processSingleSlideCallback === 'function') {
-                slideHtml = window._processSingleSlideCallback(zip, filename, i, slideSize);
+            if (typeof _processSingleSlideCallback === 'function') {
+                slideHtml = _processSingleSlideCallback(zip, filename, i, slideSize);
             } else {
                 slideHtml = processSingleSlide(zip, filename, i, slideSize);
             }
@@ -305,7 +316,7 @@
                     // 纯色填充
                     var solidFill = PPTXUtils.getTextByPathList(bgPr, ["a:solidFill"]);
                     if (solidFill) {
-                        var color = window.PPTXColorUtils ? PPTXColorUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride) : "";
+                        var color = PPTXColorUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride);
                         if (color) {
                             bgResult = "<div class='slide-background-" + index + "' style='position:absolute;width:" + slideSize.width + "px;height:" + slideSize.height + "px;background-color:" + color + ";'></div>";
                         }
@@ -327,7 +338,7 @@
                 if (bgPr) {
                     var solidFill = PPTXUtils.getTextByPathList(bgPr, ["a:solidFill"]);
                     if (solidFill) {
-                        var color = window.PPTXColorUtils ? PPTXColorUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride) : "";
+                        var color = PPTXColorUtils.getFillColor(solidFill, warpObj.themeContent, warpObj.themeResObj, warpObj.slideLayoutClrOvride);
                         if (color) {
                             bgColor = "background-color:" + color + ";";
                         }
@@ -508,8 +519,8 @@
         var bgResult = "";
         if (processFullTheme === true) {
             // Use callback if provided, otherwise use internal function
-            if (typeof window._getBackgroundCallback === 'function') {
-                bgResult = window._getBackgroundCallback(warpObj, slideSize, index);
+            if (typeof _getBackgroundCallback === 'function') {
+                bgResult = _getBackgroundCallback(warpObj, slideSize, index);
             } else {
                 bgResult = getBackground(warpObj, slideSize, index);
             }
@@ -518,8 +529,8 @@
         var bgColor = "";
         if (processFullTheme == "colorsAndImageOnly") {
             // Use callback if provided, otherwise use internal function
-            if (typeof window._getSlideBackgroundFillCallback === 'function') {
-                bgColor = window._getSlideBackgroundFillCallback(warpObj, index);
+            if (typeof _getSlideBackgroundFillCallback === 'function') {
+                bgColor = _getSlideBackgroundFillCallback(warpObj, index);
             } else {
                 bgColor = getSlideBackgroundFill(warpObj, index);
             }
@@ -532,7 +543,7 @@
         }
         result += bgResult;
         // Use callback for processNodesInSlide if provided
-        var processNodesFunc = window._processNodesInSlideCallback || processNodesInSlide;
+        var processNodesFunc = _processNodesInSlideCallback || processNodesInSlide;
         for (var nodeKey in nodes) {
             if (nodes[nodeKey].constructor === Array) {
                 for (var i = 0; i < nodes[nodeKey].length; i++) {
@@ -576,4 +587,4 @@
 export { PPTXParser };
 
 // Also export to global scope for backward compatibility
-window.PPTXParser = PPTXParser;
+// window.PPTXParser = PPTXParser; // Removed for ES modules

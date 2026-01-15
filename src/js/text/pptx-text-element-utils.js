@@ -400,8 +400,8 @@ class PPTXTextElementUtils {
 }
 
 // 为了保持向后兼容性和全局访问，保留全局赋值
-if (typeof window !== 'undefined') {
-    window.PPTXTextElementUtils = PPTXTextElementUtils;
-}
+// if (typeof window !== 'undefined') {
+//     window.PPTXTextElementUtils = PPTXTextElementUtils;
+// } // Removed for ES modules
 
 export { PPTXTextElementUtils };

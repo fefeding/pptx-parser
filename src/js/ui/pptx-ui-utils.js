@@ -91,7 +91,6 @@ PPTXUIUtils.addRevealClass = function(divId) {
 };
 
     // Export to window
-window.PPTXUIUtils = PPTXUIUtils;
 
 
 export { PPTXUIUtils };

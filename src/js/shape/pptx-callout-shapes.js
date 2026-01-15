@@ -249,4 +249,4 @@
 export { PPTXCalloutShapes };
 
 // Also export to global scope for backward compatibility
-window.PPTXCalloutShapes = PPTXCalloutShapes;
+// window.PPTXCalloutShapes = PPTXCalloutShapes; // Removed for ES modules

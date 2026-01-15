@@ -175,4 +175,4 @@ const PPTXFlowchartShapes = {
 export { PPTXFlowchartShapes };
 
 // Also export to global scope for backward compatibility
-window.PPTXFlowchartShapes = PPTXFlowchartShapes;
+// window.PPTXFlowchartShapes = PPTXFlowchartShapes; // Removed for ES modules

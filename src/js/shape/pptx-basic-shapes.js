@@ -146,4 +146,4 @@ const PPTXBasicShapes = {
 export { PPTXBasicShapes };
 
 // Also export to global scope for backward compatibility
-window.PPTXBasicShapes = PPTXBasicShapes;
+// window.PPTXBasicShapes = PPTXBasicShapes; // Removed for ES modules

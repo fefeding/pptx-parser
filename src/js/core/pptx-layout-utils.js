@@ -58,4 +58,4 @@ PPTXLayoutUtils.getLayoutAndMasterNode = function(node, idx, type, warpObj) {
 export { PPTXLayoutUtils };
 
 // Also export to global scope for backward compatibility
-window.PPTXLayoutUtils = PPTXLayoutUtils;
+// window.PPTXLayoutUtils = PPTXLayoutUtils; // Removed for ES modules

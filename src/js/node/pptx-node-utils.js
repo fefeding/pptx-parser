@@ -152,8 +152,8 @@ class PPTXNodeUtils {
 }
 
 // 为了保持向后兼容性和全局访问，保留全局赋值
-if (typeof window !== 'undefined') {
-    window.PPTXNodeUtils = PPTXNodeUtils;
-}
+// if (typeof window !== 'undefined') {
+//     window.PPTXNodeUtils = PPTXNodeUtils;
+// } // Removed for ES modules
 
 export { PPTXNodeUtils };

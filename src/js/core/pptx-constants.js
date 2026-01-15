@@ -36,4 +36,4 @@ LIST_STYLE_MAP: {
 export { PPTXConstants };
 
 // Also export to global scope for backward compatibility
-window.PPTXConstants = PPTXConstants;
+// window.PPTXConstants = PPTXConstants; // Removed for ES modules

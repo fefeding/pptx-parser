@@ -488,4 +488,4 @@ const PPTXActionButtonShapes = {
 export { PPTXActionButtonShapes };
 
 // Also export to global scope for backward compatibility
-window.PPTXActionButtonShapes = PPTXActionButtonShapes;
+// window.PPTXActionButtonShapes = PPTXActionButtonShapes; // Removed for ES modules

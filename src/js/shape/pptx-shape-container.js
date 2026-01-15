@@ -202,4 +202,4 @@ const PPTXShapeContainer = {
 export { PPTXShapeContainer };
 
 // Also export to global scope for backward compatibility
-window.PPTXShapeContainer = PPTXShapeContainer;
+// window.PPTXShapeContainer = PPTXShapeContainer; // Removed for ES modules

@@ -1,6 +1,6 @@
 import { PPTXUtils } from '../utils/utils.js';
+import { PPTXColorUtils } from './pptx-color-utils.js';
 var PPTXBackgroundUtils = {};
-const PPTXColorUtils = window.PPTXColorUtils;
     /**
  * 获取幻灯片背景
  * @param {Object} warpObj - 包装对象,包含幻灯片内容
@@ -322,10 +322,10 @@ PPTXBackgroundUtils.getBgPicFill = function(bgPr, source, warpObj, phClr, index)
 };
 
     // Export to global scope
-window.PPTXBackgroundUtils = PPTXBackgroundUtils;
+// window.PPTXBackgroundUtils = PPTXBackgroundUtils; // Removed for ES modules
 
 
 export { PPTXBackgroundUtils };
 
 // Also export to global scope for backward compatibility
-window.PPTXBackgroundUtils = PPTXBackgroundUtils;
+// window.PPTXBackgroundUtils = PPTXBackgroundUtils; // Removed for ES modules

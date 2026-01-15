@@ -497,6 +497,6 @@ class PPTXBulletUtils {
 export { PPTXBulletUtils };
 
 // Also export to global scope for backward compatibility
-if (typeof window !== 'undefined') {
-    window.PPTXBulletUtils = PPTXBulletUtils;
-}
+// if (typeof window !== 'undefined') {
+//     window.PPTXBulletUtils = PPTXBulletUtils;
+// } // Removed for ES modules

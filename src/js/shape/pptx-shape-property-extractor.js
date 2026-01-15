@@ -93,10 +93,10 @@ const PPTXShapePropertyExtractor = {
 export { PPTXShapePropertyExtractor };
 
 // Also export to global scope for backward compatibility
-window.PPTXShapePropertyExtractor = PPTXShapePropertyExtractor;
+// window.PPTXShapePropertyExtractor = PPTXShapePropertyExtractor; // Removed for ES modules
 
 // Also add extractShapeProperties to PPTXShapeUtils for backward compatibility
-if (!window.PPTXShapeUtils) {
-    window.PPTXShapeUtils = {};
-}
-window.PPTXShapeUtils.extractShapeProperties = extractShapeProperties;
+// if (!window.PPTXShapeUtils) {
+//     window.PPTXShapeUtils = {};
+// }
+// window.PPTXShapeUtils.extractShapeProperties = extractShapeProperties; // Removed for ES modules

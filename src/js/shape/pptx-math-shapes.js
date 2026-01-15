@@ -209,4 +209,4 @@
 export { PPTXMathShapes };
 
 // Also export to global scope for backward compatibility
-window.PPTXMathShapes = PPTXMathShapes;
+// window.PPTXMathShapes = PPTXMathShapes; // Removed for ES modules

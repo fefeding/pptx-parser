@@ -79,4 +79,4 @@ const PPTXStyleManager = {
 export { PPTXStyleManager };
 
 // Also export to global scope for backward compatibility
-window.PPTXStyleManager = PPTXStyleManager;
+// window.PPTXStyleManager = PPTXStyleManager; // Removed for ES modules

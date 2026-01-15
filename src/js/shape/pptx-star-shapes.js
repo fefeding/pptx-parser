@@ -462,4 +462,4 @@
 export { PPTXStarShapes };
 
 // Also export to global scope for backward compatibility
-window.PPTXStarShapes = PPTXStarShapes;
+// window.PPTXStarShapes = PPTXStarShapes; // Removed for ES modules

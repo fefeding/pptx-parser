@@ -136,6 +136,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
             },
             revealjsConfig: {}
         }, options);
+        window.settings = settings;
 
         processFullTheme = settings.themeProcess;
 
@@ -6090,7 +6091,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
         // Ensure pptx-utils.js is loaded before this file
 
         // Export genTextBody for table module
-        window._genTextBody = PPTXTextElementUtils.genTextBody;
+        // window._genTextBody = PPTXTextElementUtils.genTextBody; // Removed for ES modules
         
         // Return API object for external control
         return api;
@@ -6100,4 +6101,4 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
 export { pptxToHtml };
 
 // Also export to global scope for backward compatibility
-window.pptxToHtml = pptxToHtml;
+// window.pptxToHtml = pptxToHtml; // Removed for ES modules

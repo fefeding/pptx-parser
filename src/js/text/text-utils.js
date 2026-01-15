@@ -344,8 +344,8 @@ class TextUtils {
 }
 
 // 为了保持向后兼容性和全局访问，保留全局赋值
-if (typeof window !== 'undefined') {
-    window.TextUtils = TextUtils;
-}
+// if (typeof window !== 'undefined') {
+//     window.TextUtils = TextUtils;
+// } // Removed for ES modules
 
 export { TextUtils };

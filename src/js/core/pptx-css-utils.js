@@ -37,5 +37,5 @@ PPTXCSSUtils.genGlobalCSS = function(styleTable, settings, slideWidth) {
 export { PPTXCSSUtils };
 
 // Also export to global scope for backward compatibility
-window.PPTXCSSUtils = PPTXCSSUtils;
+// window.PPTXCSSUtils = PPTXCSSUtils; // Removed for ES modules
 

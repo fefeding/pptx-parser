@@ -1,4 +1,7 @@
 
+import { PPTXUtils } from '../utils/utils.js';
+import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+
 var PPTXShapeFillsUtils = {};
 
     /**
@@ -376,4 +379,4 @@ PPTXShapeFillsUtils.getSvgImagePattern = function(node, fill, shpId, warpObj) {
 export { PPTXShapeFillsUtils };
 
 // Also export to global scope for backward compatibility
-window.PPTXShapeFillsUtils = PPTXShapeFillsUtils;
+// window.PPTXShapeFillsUtils = PPTXShapeFillsUtils; // Removed for ES modules

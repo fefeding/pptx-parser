@@ -149,4 +149,4 @@
 export { PPTXArrowShapes };
 
 // Also export to global scope for backward compatibility
-window.PPTXArrowShapes = PPTXArrowShapes;
+// window.PPTXArrowShapes = PPTXArrowShapes; // Removed for ES modules

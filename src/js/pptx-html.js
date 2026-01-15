@@ -1,37 +1,24 @@
 
 
     // 全局变量引用
-    var PPTXUtils = window.PPTXUtils;
+    import { PPTXUtils } from './utils/utils.js';
+    import { PPTXColorUtils } from './core/pptx-color-utils.js';
+    import { PPTXParser } from './pptx-parser.js';
     var settings = window.settings; // 将在 pptxjs.js 中设置
-    var PPTXParser = window.PPTXParser; // 从 PPTXParser 获取变量
+    // var PPTXParser = window.PPTXParser; // 从 PPTXParser 获取变量 - Removed for ES modules
 
     // 图表 ID 计数器
     var chartID = 0;
 
     // Helper function: getTextByPathList
-    var getTextByPathList = window.PPTXUtils ? PPTXUtils.getTextByPathList : function(node, path) {
-        if (path.constructor !== Array) {
-            throw Error("Error of path type! path is not array.");
-        }
-        if (node === undefined || node === null) {
-            return undefined;
-        }
-        var l = path.length;
-        for (var i = 0; i < l; i++) {
-            node = node[path[i]];
-            if (node === undefined || node === null) {
-                return undefined;
-            }
-        }
-        return node;
-    };
+    var getTextByPathList = PPTXUtils.getTextByPathList;
 
     // Helper functions for position and size - use from PPTXUtils
-    var getPosition = window.PPTXUtils ? PPTXUtils.getPosition : function() { return ""; };
-    var getSize = window.PPTXUtils ? PPTXUtils.getSize : function() { return ""; };
+    var getPosition = PPTXUtils.getPosition;
+    var getSize = PPTXUtils.getSize;
 
     // 从 PPTXParser 获取全局变量
-    var slideFactor = window.PPTXParser ? window.PPTXParser.slideFactor || (96 / 914400) : (96 / 914400);
+    var slideFactor = PPTXParser.slideFactor || (96 / 914400);
     var styleTable = PPTXParser.styleTable || {};
     var tableStyles = PPTXParser.tableStyles || {};
     var defaultTextStyle = PPTXParser.defaultTextStyle || null;
@@ -822,4 +809,4 @@
 export { PPTXHtml };
 
 // Also export to global scope for backward compatibility
-window.PPTXHtml = PPTXHtml;
+// window.PPTXHtml = PPTXHtml; // Removed for ES modules

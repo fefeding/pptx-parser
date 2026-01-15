@@ -63,4 +63,4 @@ PPTXDiagramUtils.genDiagram = function(node, warpObj, source, sType, readXmlFile
 export { PPTXDiagramUtils };
 
 // Also export to global scope for backward compatibility
-window.PPTXDiagramUtils = PPTXDiagramUtils;
+// window.PPTXDiagramUtils = PPTXDiagramUtils; // Removed for ES modules
