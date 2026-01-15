@@ -1,3 +1,4 @@
+    import { PPTXShapeUtils } from './pptx-shape-utils.js';
     // 流程图：收集
 function genFlowChartCollate(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
     var fillAttr = imgFillFlg ? "url(#imgPtrn_" + shpId + ")" : (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor);
@@ -74,9 +75,9 @@ function genFlowChartTerminator(w, h, imgFillFlg, grndFillFlg, shpId, fillColor,
     var cd2 = 180, cd4 = 90, c3d4 = 270;
     var d = "M" + x1 + "," + 0 +
         " L" + x2 + "," + 0 +
-        window.PPTXShapeUtils.shapeArc(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
         " L" + x1 + "," + h +
-        window.PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
         " z";
     return "<path d='" + d + "'  fill='" + fillAttr +
         "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -90,11 +91,11 @@ function genFlowChartPunchedTape(w, h, imgFillFlg, grndFillFlg, shpId, fillColor
     var y2 = h * 18 / 20;
     var cd2 = 180;
     var d = "M" + 0 + "," + y1 +
-        window.PPTXShapeUtils.shapeArc(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
-        window.PPTXShapeUtils.shapeArc(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
         " L" + w + "," + y2 +
-        window.PPTXShapeUtils.shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
-        window.PPTXShapeUtils.shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
         " z";
     return "<path d='" + d + "'  fill='" + fillAttr +
         "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -108,9 +109,9 @@ function genFlowChartOnlineStorage(w, h, imgFillFlg, grndFillFlg, shpId, fillCol
     var c3d4 = 270, cd4 = 90;
     var d = "M" + x1 + "," + 0 +
         " L" + w + "," + 0 +
-        window.PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
         " L" + x1 + "," + h +
-        window.PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
         " z";
     return "<path d='" + d + "'  fill='" + fillAttr +
         "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -146,7 +147,7 @@ function genFlowChartDelay(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, bord
     var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
     var d = "M" + 0 + "," + 0 +
         " L" + w + "," + 0 +
-        window.PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 0, cd2, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 0, cd2, false).replace("M", "L") +
         " L" + 0 + "," + h +
         " z";
     return "<path d='" + d + "'  fill='" + fillAttr +

@@ -1,4 +1,6 @@
 
+import { PPTXUtils } from '../utils/utils.js';
+
 const PPTXLayoutUtils = {};
 
     /**

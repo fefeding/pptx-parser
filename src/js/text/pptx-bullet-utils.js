@@ -1,4 +1,11 @@
 import { PPTXUtils } from '../utils/utils.js';
+import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js';
+import { PPTXConstants } from '../core/pptx-constants.js';
+import { PPTXTextStyleUtils } from './pptx-text-style-utils.js';
+import { TextUtils } from './text-utils.js';
+
+const slideFactor = PPTXConstants.SLIDE_FACTOR;
 
 class PPTXBulletUtils {
     /**
@@ -31,9 +38,9 @@ class PPTXBulletUtils {
     var dfltBultColor, dfltBultSize, bultColor, bultSize, color_tye;
 
     if (rNode !== undefined) {
-        dfltBultColor = window.PPTXTextStyleUtils.getFontColorPr(rNode, spNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
+        dfltBultColor = PPTXTextStyleUtils.getFontColorPr(rNode, spNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
         color_tye = dfltBultColor[2];
-        dfltBultSize = window.PPTXTextStyleUtils.getFontSize(rNode, textBodyNode, pFontStyle, lvl, type, warpObj);
+        dfltBultSize = PPTXTextStyleUtils.getFontSize(rNode, textBodyNode, pFontStyle, lvl, type, warpObj);
     } else {
         return "";
     }
@@ -50,7 +57,7 @@ class PPTXBulletUtils {
 
     var buType = "TYPE_NONE";
 
-    var layoutMasterNode = window.PPTXLayoutUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
+    var layoutMasterNode = PPTXLayoutUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
     var pPrNodeLaout = layoutMasterNode.nodeLaout;
     var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
@@ -78,7 +85,7 @@ class PPTXBulletUtils {
             bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
         }
     } else {
-        bultSize = (parseInt(buFontSize) / 100) * window.PPTXConstants.FONT_SIZE_FACTOR + "px";
+        bultSize = (parseInt(buFontSize) / 100) * PPTXConstants.FONT_SIZE_FACTOR + "px";
     }
 
     //get definde bullet COLOR
@@ -186,7 +193,7 @@ class PPTXBulletUtils {
     }
     var indent = 0;
     if (indentNode !== undefined) {
-        indent = parseInt(indentNode) * window.PPTXConstants.SLIDE_FACTOR;
+        indent = parseInt(indentNode) * PPTXConstants.SLIDE_FACTOR;
     }
     //marL
     var marLNode = PPTXUtils.getTextByPathList(pPrNode, ["attrs", "marL"]);
@@ -198,7 +205,7 @@ class PPTXBulletUtils {
     }
     //console.log("genBuChar() isRTL", isRTL, "alignNode:", alignNode)
     if (marLNode !== undefined) {
-        var marginLeft = parseInt(marLNode) * window.PPTXConstants.SLIDE_FACTOR;
+        var marginLeft = parseInt(marLNode) * PPTXConstants.SLIDE_FACTOR;
         if (isRTL) {// && alignNode == "r") {
             marLStr = "padding-right:";// "margin-right: ";
         } else {
@@ -218,7 +225,7 @@ class PPTXBulletUtils {
         }
     }
     if (marRNode !== undefined) {
-        var marginRight = parseInt(marRNode) * window.PPTXConstants.SLIDE_FACTOR;
+        var marginRight = parseInt(marRNode) * PPTXConstants.SLIDE_FACTOR;
         if (isRTL) {// && alignNode == "r") {
             marLStr = "padding-right:";// "margin-right: ";
         } else {
@@ -274,7 +281,7 @@ class PPTXBulletUtils {
                 bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
             }
         }else{
-            bultSize = (parseInt(buFontSize) / 100) * window.PPTXConstants.FONT_SIZE_FACTOR + "px";
+            bultSize = (parseInt(buFontSize) / 100) * PPTXConstants.FONT_SIZE_FACTOR + "px";
         }
     }
     if (buFontSize === undefined) {
@@ -289,7 +296,7 @@ class PPTXBulletUtils {
                 bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
             }
         } else {
-            bultSize = (parseInt(buFontSize) / 100) * window.PPTXConstants.FONT_SIZE_FACTOR + "px";
+            bultSize = (parseInt(buFontSize) / 100) * PPTXConstants.FONT_SIZE_FACTOR + "px";
         }
     }
     if (buFontSize === undefined) {

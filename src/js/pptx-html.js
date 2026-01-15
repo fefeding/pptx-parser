@@ -4,6 +4,7 @@
     import { PPTXUtils } from './utils/utils.js';
     import { PPTXColorUtils } from './core/pptx-color-utils.js';
     import { PPTXParser } from './pptx-parser.js';
+    import { PPTXTableUtils } from './table/pptx-table-utils.js';
     var settings = window.settings; // 将在 pptxjs.js 中设置
     // var PPTXParser = window.PPTXParser; // 从 PPTXParser 获取变量 - Removed for ES modules
 
@@ -265,7 +266,7 @@
                                 a_sorce = "a:lastCol";
                             }
 
-                            var cellParmAry = window.PPTXTableUtils.getTableCellParams(tcNodes[j], getColsGrid, i, j, thisTblStyle, a_sorce, warpObj, styleTable);
+                            var cellParmAry = PPTXTableUtils.getTableCellParams(tcNodes[j], getColsGrid, i, j, thisTblStyle, a_sorce, warpObj, styleTable);
                             var text = cellParmAry[0];
                             var colStyl = cellParmAry[1];
                             var cssName = cellParmAry[2];
@@ -296,7 +297,7 @@
                     if (tblStylAttrObj["isFrstColAttr"] == 1) {
                         a_sorce = "a:firstCol";
                     }
-                    var cellParmAry = window.PPTXTableUtils.getTableCellParams(tcNodes, getColsGrid, i, undefined, thisTblStyle, a_sorce, warpObj, styleTable);
+                    var cellParmAry = PPTXTableUtils.getTableCellParams(tcNodes, getColsGrid, i, undefined, thisTblStyle, a_sorce, warpObj, styleTable);
                     var text = cellParmAry[0];
                     var colStyl = cellParmAry[1];
                     var cssName = cellParmAry[2];

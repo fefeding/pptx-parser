@@ -15,23 +15,31 @@
 
 
 // Import dependencies
+import { PPTXConstants } from './core/pptx-constants.js';
 import { PPTXUtils } from './utils/utils.js';
 import { PPTXParser } from './pptx-parser.js';
 import { PPTXHtml } from './pptx-html.js';
+import { PPTXStyleManager } from './core/pptx-style-manager.js';
 import { PPTXShapeUtils } from './shape/pptx-shape-utils.js';
 import { PPTXShapePropertyExtractor } from './shape/pptx-shape-property-extractor.js';
+import { PPTXShapeFillsUtils } from './shape/pptx-shape-fills-utils.js'
+import { PPTXBasicShapes } from './shape/pptx-basic-shapes.js';
 import { PPTXNodeUtils } from './node/pptx-node-utils.js';
 import { PPTXBackgroundUtils } from './core/pptx-background-utils.js';
 import { PPTXImageUtils } from './image/pptx-image-utils.js';
 import { PPTXDiagramUtils } from './diagram/pptx-diagram-utils.js';
 import { TextUtils } from './text/text-utils.js';
-import { PPTXConstants } from './core/pptx-constants.js';
 import { PPTXUIUtils } from './ui/pptx-ui-utils.js';
 import { PPTXCSSUtils } from './core/pptx-css-utils.js';
 import { PPTXColorUtils } from './core/pptx-color-utils.js';
 import { PPTXTableUtils } from './table/pptx-table-utils.js';
 import { PPTXTextStyleUtils } from './text/pptx-text-style-utils.js';
 import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
+import { PPTXShapeContainer } from './shape/pptx-shape-container.js';
+import { PPTXStarShapes } from './shape/pptx-star-shapes.js';
+import { PPTXCalloutShapes } from './shape/pptx-callout-shapes.js';
+import { PPTXArrowShapes } from './shape/pptx-arrow-shapes.js';
+import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
 
         //var slideLayoutClrOvride = "";
         var defaultTextStyle = null;
@@ -633,7 +641,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                     }
                 }
                 // Border Color
-                var border = PPTXShapeFillsUtils.getBorder(node, pNode, true, "shape", warpObj);
+                var border = PPTXStyleManager.getBorder(node, pNode, true, "shape", warpObj);
 
                 var headEndNodeAttrs = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:headEnd", "attrs"]);
                 var tailEndNodeAttrs = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:tailEnd", "attrs"]);
@@ -825,7 +833,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 " L" + w * 9722 / 21600 + "," + h * 1887 / 21600 +
                                 " z";
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -841,7 +849,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + h +
                             PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -857,7 +865,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -871,7 +879,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + h +
                             PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -887,7 +895,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -898,7 +906,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + 0 + "," + h +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -917,7 +925,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + w + "," + ib +
                             " L" + w + "," + h +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1023,7 +1031,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 break;
                         }
                         var d_val = PPTXShapeUtils.shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1046,7 +1054,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         var d_val = "M0," + h + " L" + w + "," + h + " L" + w + "," + (h / 2) * sAdj2_val +
                             " L" + (w / 2 + (w / 2) * (1 - sAdj2_val)) + ",0 L" + (w / 2) * sAdj1_val + ",0 Q0,0 0," + (h / 2) * sAdj1_val + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1068,7 +1076,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         result += "/>";
                         break;
                     case "rtTriangle":
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='0 0,0 " + h + "," + w + " " + h + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1085,14 +1093,14 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         if (shapType == "flowChartMerge") {
                             tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon " + tranglRott + " points='" + (w * shapAdjst_val) + " 0,0 " + h + "," + w + " " + h + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "diamond":
                     case "flowChartDecision":
                     case "flowChartSort":
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (w / 2) + " 0,0 " + (h / 2) + "," + (w / 2) + " " + h + "," + w + " " + (h / 2) + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         if (shapType == "flowChartSort") {
@@ -1119,7 +1127,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             adjst_val = 0;
                             cnstVal = h / 5;
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon " + tranglRott + " points='" + (w * adjst_val) + " " + cnstVal + ",0 " + h + "," + w + " " + h + "," + (1 - adjst_val) * w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1138,14 +1146,14 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             adjst_val = adjst / max_adj_const;
                             //console.log("w: "+w+"\nh: "+h+"\nadjst: "+adjst_val+"\nmax_adj_const: "+max_adj_const);
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + adjst_val * w + " 0,0 " + h + "," + (1 - adjst_val) * w + " " + h + "," + w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
 
                         break;
                     case "pentagon":
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (0.5 * w) + " 0,0 " + (0.375 * h) + "," + (0.15 * w) + " " + h + "," + 0.85 * w + " " + h + "," + w + " " + 0.375 * h + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1179,12 +1187,12 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + y2 +
                             " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "heptagon":
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (0.5 * w) + " 0," + w / 8 + " " + h / 4 + ",0 " + (5 / 8) * h + "," + w / 4 + " " + h + "," + (3 / 4) * w + " " + h + "," +
                             w + " " + (5 / 8) * h + "," + (7 / 8) * w + " " + h / 4 + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1198,82 +1206,82 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         }
                         var adj2 = (1 - adj1);
                         //console.log("adj1: "+adj1+"\nadj2: "+adj2);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + adj1 * w + " 0,0 " + adj1 * h + ",0 " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," +
                             w + " " + adj2 * h + "," + w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "decagon":
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + h / 2 + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
                             (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + h / 2 + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "dodecagon":
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + (3 / 8) * h + ",0 " + (5 / 8) * h + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
                             (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + (5 / 8) * h + "," + w + " " + (3 / 8) * h + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star4":
-                        var d = window.PPTXStarShapes.genStar4(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar4(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star5":
-                        var d = window.PPTXStarShapes.genStar5(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar5(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star6":
-                        var d = window.PPTXStarShapes.genStar6(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar6(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star7":
-                        var d = window.PPTXStarShapes.genStar7(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar7(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star8":
-                        var d = window.PPTXStarShapes.genStar8(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar8(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
 
                     case "star10":
-                        var d = window.PPTXStarShapes.genStar10(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar10(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star12":
-                        var d = window.PPTXStarShapes.genStar12(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar12(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star16":
-                        var d = window.PPTXStarShapes.genStar16(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar16(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star24":
-                        var d = window.PPTXStarShapes.genStar24(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar24(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star32":
-                        var d = window.PPTXStarShapes.genStar32(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d = PPTXStarShapes.genStar32(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1315,7 +1323,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         }
                         var pieVals = PPTXShapeUtils.shapePie(H, w, adj1, adj2, isClose);
                         //console.log("shapType: ",shapType,"\nimgFillFlg: ",imgFillFlg,"\ngrndFillFlg: ",grndFillFlg,"\nshpId: ",shpId,"\nfillColor: ",fillColor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1339,7 +1347,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         var wR = w / 2;
                         var d_val = PPTXShapeUtils.shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
                         //console.log("shapType: ",shapType,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val)
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1368,7 +1376,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x4 + "," + y4 +
                             " L" + x4 + "," + x1 +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1399,7 +1407,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1459,7 +1467,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " z";
                         //console.log("adj: ",adj,"x1:",x1,",y1:",y1," x2:",x2,",y2:",y2,",stAng1:",stAng1,",stAng1deg:",stAng1deg,",stAng2:",stAng2,",stAng2deg:",stAng2deg,",swAng:",swAng,",swAng2deg:",swAng2deg)
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1505,7 +1513,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + y2 +
                             " L0," + h + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         //console.log("w: ",w,", h: ",h,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val,",maxAdj1: ",maxAdj1,",maxAdj2: ",maxAdj2)
@@ -1607,7 +1615,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x2 + "," + y2 +
                             PPTXShapeUtils.shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1648,7 +1656,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x4 + "," + y4 +
                             PPTXShapeUtils.shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1695,7 +1703,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + w / 2 + "," + y1 +
                             PPTXShapeUtils.shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1742,7 +1750,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + w / 2 + "," + y4 +
                             PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1766,7 +1774,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
                             PPTXShapeUtils.shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1791,7 +1799,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + 0 + "," + y1 +
                             PPTXShapeUtils.shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
                             " L" + r + "," + 0
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1818,7 +1826,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + w + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
                             " L" + 0 + "," + 0
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1839,7 +1847,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1882,7 +1890,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + w + "," + h +
                             " L0," + h + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1904,7 +1912,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + w + "," + 0 +
                             " L" + 0 + "," + h + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1917,7 +1925,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         } else { //gearNum=="9"
                             d = PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "' transform='rotate(20," + (3 / 7) * h + "," + (3 / 7) * h + ")' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1985,7 +1993,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             "Q " + w + "," + y2 + " " + w + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2015,7 +2023,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             PPTXShapeUtils.shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2119,7 +2127,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
                             " z";
                         //console.log("adj1: ",adj1,d_val);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2138,7 +2146,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             "C" + x3 + "," + y1 + " " + x4 + "," + h / 4 + " " + w / 2 + "," + h +
                             "C" + x1 + "," + h / 4 + " " + x2 + "," + y1 + " " + w / 2 + "," + h / 4 + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2179,7 +2187,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x10 + "," + y9 +
                             " L" + 0 + "," + y1 + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2213,7 +2221,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             "M" + x4 + "," + y1 +
                             " L" + x4 + "," + h;
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2253,7 +2261,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " M" + w + "," + h +
                             " L" + x2 + "," + y2;
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2286,14 +2294,14 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + w + "," + 0 +
                             " L" + w + "," + y2;
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "cloud":
                     case "cloudCallout":
-                        var d1 = window.PPTXCalloutShapes.genCloudCallout(w, h, node, slideFactor, shapType);
+                        var d1 = PPTXCalloutShapes.genCloudCallout(w, h, node, slideFactor, shapType);
                         result += "<path d='" + d1 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -2340,7 +2348,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " M" + 0 + "," + hd2 +
                             PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2431,26 +2439,26 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 " L" + ch + "," + y6;
                         }
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "wedgeEllipseCallout":
-                        var d_val = window.PPTXCalloutShapes.genWedgeEllipseCallout(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d_val = PPTXCalloutShapes.genWedgeEllipseCallout(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "wedgeRectCallout":
-                        var d_val = window.PPTXCalloutShapes.genWedgeRectCallout(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d_val = PPTXCalloutShapes.genWedgeRectCallout(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "wedgeRoundRectCallout":
-                        var d_val = window.PPTXCalloutShapes.genWedgeRoundRectCallout(w, h, node, slideFactor);
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var d_val = PPTXCalloutShapes.genWedgeRoundRectCallout(w, h, node, slideFactor);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -2737,7 +2745,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
 
                         //console.log("shapType: ", shapType, ",isBorder:", isBorder)
                         //if(isBorder){
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2823,7 +2831,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             "M" + x2 + "," + y2 +
                             "L" + x2 + "," + ly3;
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2946,7 +2954,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 "M" + x9 + "," + y6 +
                                 " L" + x9 + "," + y4;
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3043,7 +3051,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 " C" + x8 + "," + y6 + " " + x7 + "," + y5 + " " + x6 + "," + y4 +
                                 " z";
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3200,7 +3208,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 "M" + x4 + "," + y1 +
                                 " L" + x4 + "," + y7;
                         }
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3229,23 +3237,23 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                         result += "/>";
                         break;
                     case "rightArrow":
-                        var points = window.PPTXArrowShapes.genRightArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genRightArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftArrow":
-                        var points = window.PPTXArrowShapes.genLeftArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genLeftArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "downArrow":
                     case "flowChartOffpageConnector":
-                        var points = window.PPTXArrowShapes.genDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "upArrow":
-                        var points = window.PPTXArrowShapes.genUpArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genUpArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -3275,7 +3283,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "upDownArrow":
-                        var points = window.PPTXArrowShapes.genUpDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        var points = PPTXArrowShapes.genUpDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -3354,7 +3362,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + y4 +
                             " L" + x1 + "," + y5 + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3427,7 +3435,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + h + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3493,7 +3501,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + h + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3552,7 +3560,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x4 + "," + h +
                             " L" + 0 + "," + h + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3630,7 +3638,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3728,7 +3736,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3788,7 +3796,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x5 + "," + y2 +
                             " L" + x4 + "," + y2 + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3835,7 +3843,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + 0 + "," + y2 +
                             " L" + x1 + "," + vc + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3887,7 +3895,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + 0 + "," + h +
                             " L" + x1 + "," + vc + " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3954,7 +3962,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x2 + "," + b +
                             " L" + l + "," + b +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4021,7 +4029,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x2 + "," + y2 +
                             " L" + l + "," + y2 +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4088,7 +4096,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + y3 +
                             " L" + x1 + "," + y4 +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4155,7 +4163,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + r + "," + b +
                             " L" + l + "," + b +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4229,7 +4237,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + x1 + "," + y3 +
                             " L" + x1 + "," + y4 +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4325,7 +4333,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + ah + "," + y6 +
                             " z";
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4415,7 +4423,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4507,7 +4515,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
 
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4600,7 +4608,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + r + "," + th +
                             PPTXShapeUtils.shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")
                         "";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4693,7 +4701,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + th + "," + t +
                             PPTXShapeUtils.shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
                             "";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4881,13 +4889,13 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                                 " L" + x1 + "," + y4 +
                                 " z";
                         } else if (shapType == "mathEqual") {
-                            dVal = window.PPTXMathShapes.genMathEqual(w, h, node, slideFactor);
+                            dVal = PPTXMathShapes.genMathEqual(w, h, node, slideFactor);
                         } else if (shapType == "mathMinus") {
-                            dVal = window.PPTXMathShapes.genMathMinus(w, h, node, slideFactor);
+                            dVal = PPTXMathShapes.genMathMinus(w, h, node, slideFactor);
                         } else if (shapType == "mathMultiply") {
-                            dVal = window.PPTXMathShapes.genMathMultiply(w, h, node, slideFactor);
+                            dVal = PPTXMathShapes.genMathMultiply(w, h, node, slideFactor);
                         } else if (shapType == "mathPlus") {
-                            dVal = window.PPTXMathShapes.genMathPlus(w, h, node, slideFactor);
+                            dVal = PPTXMathShapes.genMathPlus(w, h, node, slideFactor);
                         }
                         result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -5253,7 +5261,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + xC + "," + yC +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -5508,7 +5516,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                             " L" + xF + "," + yF +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
                             " z";
-                        var fillAttr = window.PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -5823,7 +5831,7 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
                     "' style='" +
                     getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    PPTXShapeFillsUtils.getBorder(node, pNode, false, "shape", warpObj) +
+                    PPTXStyleManager.getBorder(node, pNode, false, "shape", warpObj) +
                     PPTXShapeFillsUtils.getShapeFill(node, pNode, false, warpObj, source) +
                     " z-index: " + order + ";" +
                     "transform: rotate(" + ((txtRotate !== undefined) ? txtRotate : 0) + "deg);" +
@@ -6040,10 +6048,6 @@ import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
 
         function genTableInternal(node, warpObj) {
             return PPTXTableUtils.genTableInternal(node, warpObj, styleTable);
-        }
-
-        function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
-            return PPTXTableUtils.getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTblStyle, cellSource, warpObj, styleTable);
         }
 
 

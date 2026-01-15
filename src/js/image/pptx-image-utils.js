@@ -1,4 +1,5 @@
 import { PPTXUtils } from '../utils/utils.js';
+import { PPTXHtml } from '../pptx-html.js';
 
 var PPTXImageUtils = {};
 
@@ -193,7 +194,7 @@ PPTXImageUtils.processGraphicFrameNode = function(node, warpObj, source, sType, 
             result = genTableInternal(node, warpObj);
             break;
         case "http://schemas.openxmlformats.org/drawingml/2006/chart":
-            result = window.PPTXHtml.genChart(node, warpObj);
+            result = PPTXHtml.genChart(node, warpObj);
             break;
         case "http://schemas.openxmlformats.org/drawingml/2006/diagram":
             result = genDiagram(node, warpObj, source, sType);

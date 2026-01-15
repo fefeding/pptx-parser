@@ -1,3 +1,5 @@
+    import { PPTXUtils } from '../utils/utils.js';
+    import { PPTXShapeUtils } from './pptx-shape-utils.js';
     const PPTXCalloutShapes = {};
 
     // 楔形矩形标注
@@ -147,7 +149,7 @@
         swAng2 = swAng1 - 360;
         swAng = (swAng1 > 180) ? swAng2 : swAng1;
 
-        d_val = window.PPTXShapeUtils.shapeArc(hc, vc, wd2, hd2, stAng1, stAng1 + swAng, false) +
+        d_val = PPTXShapeUtils.shapeArc(hc, vc, wd2, hd2, stAng1, stAng1 + swAng, false) +
             " L" + xPos + "," + yPos +
             " z";
         return d_val;
@@ -232,13 +234,13 @@
         // 带边框的气泡
         d_val = "M" + r + ",0" +
             " L" + (w - r) + ",0" +
-            window.PPTXShapeUtils.shapeArc(w - r, r, r, r, 270, 360, false).replace("M", "L") +
+            PPTXShapeUtils.shapeArc(w - r, r, r, r, 270, 360, false).replace("M", "L") +
             " L" + w + "," + (h - r) +
-            window.PPTXShapeUtils.shapeArc(w - r, h - r, r, r, 0, 90, false).replace("M", "L") +
+            PPTXShapeUtils.shapeArc(w - r, h - r, r, r, 0, 90, false).replace("M", "L") +
             " L" + r + "," + h +
-            window.PPTXShapeUtils.shapeArc(r, h - r, r, r, 90, 180, false).replace("M", "L") +
+            PPTXShapeUtils.shapeArc(r, h - r, r, r, 90, 180, false).replace("M", "L") +
             " L" + 0 + "," + r +
-            window.PPTXShapeUtils.shapeArc(r, r, r, r, 180, 270, false).replace("M", "L") +
+            PPTXShapeUtils.shapeArc(r, r, r, r, 180, 270, false).replace("M", "L") +
             " M" + xPos + "," + yPos +
             " L" + (xPos - 15) + "," + (yPos - 25) +
             " L" + (xPos + 15) + "," + (yPos - 25) +

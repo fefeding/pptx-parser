@@ -1,3 +1,4 @@
+    import { PPTXShapeUtils } from './pptx-shape-utils.js';
     // 辅助函数：生成操作按钮的基础矩形
 function getActionButtonRect(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
     var fillAttr = imgFillFlg ? "url(#imgPtrn_" + shpId + ")" : (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor);
@@ -177,18 +178,18 @@ function genActionButtonHelp(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, bo
         " L" + 0 + "," + h +
         " z" +
         "M" + g33 + "," + g27 +
-        window.PPTXShapeUtils.shapeArc(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
-        window.PPTXShapeUtils.shapeArc(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
-        window.PPTXShapeUtils.shapeArc(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
         " L" + g37 + "," + g30 +
         " L" + g36 + "," + g30 +
         " L" + g36 + "," + g29 +
-        window.PPTXShapeUtils.shapeArc(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
-        window.PPTXShapeUtils.shapeArc(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
-        window.PPTXShapeUtils.shapeArc(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
         " z" +
         "M" + hc + "," + g31 +
-        window.PPTXShapeUtils.shapeArc(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
         " z";
     return genPath(d, imgFillFlg, grndFillFlg, shpId, fillColor, border);
 }
@@ -282,10 +283,10 @@ function genActionButtonInformation(w, h, imgFillFlg, grndFillFlg, shpId, fillCo
         " L" + 0 + "," + h +
         " z" +
         "M" + hc + "," + g9 +
-        window.PPTXShapeUtils.shapeArc(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
         " z" +
         "M" + hc + "," + g25 +
-        window.PPTXShapeUtils.shapeArc(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
         "M" + g32 + "," + g28 +
         " L" + g35 + "," + g28 +
         " L" + g35 + "," + g30 +
@@ -411,15 +412,15 @@ function genActionButtonReturn(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, 
         " L" + hc + "," + g21 +
         " L" + g24 + "," + g21 +
         " L" + g24 + "," + g20 +
-        window.PPTXShapeUtils.shapeArc(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
         " L" + g25 + "," + g19 +
-        window.PPTXShapeUtils.shapeArc(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
         " L" + g26 + "," + g21 +
         " L" + g11 + "," + g21 +
         " L" + g11 + "," + g20 +
-        window.PPTXShapeUtils.shapeArc(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
         " L" + hc + "," + g10 +
-        window.PPTXShapeUtils.shapeArc(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
+        PPTXShapeUtils.shapeArc(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
         " L" + g22 + "," + g21 +
         " z";
     return genPath(d, imgFillFlg, grndFillFlg, shpId, fillColor, border);

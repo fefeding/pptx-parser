@@ -1,5 +1,6 @@
 
 
+    import { PPTXConstants } from './core/pptx-constants.js';
     import { PPTXUtils } from './utils/utils.js';
     import { PPTXColorUtils } from './core/pptx-color-utils.js';
 
@@ -8,8 +9,8 @@
     var defaultTextStyle = null;
     var tableStyles;
     var styleTable = {};
-    var slideFactor = 96 / 914400;
-    var fontSizeFactor = 4 / 3.2;
+    var slideFactor = PPTXConstants.SLIDE_FACTOR;
+    var fontSizeFactor = PPTXConstants.FONT_SIZE_FACTOR;
     var slideWidth = 0;
     var slideHeight = 0;
     var isSlideMode = false;
