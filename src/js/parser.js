@@ -139,7 +139,7 @@
                 //remove "<![CDATA[ ... ]]>" tag
                 fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
             }
-            var xmlData = tXml(fileContent, { simplify: 1 });
+            var xmlData = simplify(tXml(fileContent));
             if (xmlData["?xml"] !== undefined) {
                 return xmlData["?xml"];
             } else {
