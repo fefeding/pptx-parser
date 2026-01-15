@@ -224,8 +224,8 @@ PPTXShapeFillsUtils.getSvgImagePattern = function(node, fill, shpId, warpObj) {
         ptrn += fillterNode;
     }
 
-    // Check if fill already contains data URI prefix
-    var imgSrc = (fillValue && fillValue.indexOf("data:") === 0) ? fillValue : "data:image/png;base64," + fillValue;
+    // Check if fill already contains blob: or data: URI prefix
+    var imgSrc = (fillValue && (fillValue.indexOf("blob:") === 0 || fillValue.indexOf("data:") === 0)) ? fillValue : "data:image/png;base64," + fillValue;
     ptrn += '<image x="0" y="0" width="' + width + '" height="' + height + '" xlink:href="' + imgSrc + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
     ptrn += '</pattern>';
 

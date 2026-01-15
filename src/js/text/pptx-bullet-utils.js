@@ -477,7 +477,7 @@ class PPTXBulletUtils {
                 var imgArrayBuffer = imgFile.asArrayBuffer();
                 var imgExt = imgPath.split(".").pop();
                 var imgMimeType = PPTXUtils.getMimeType(imgExt);
-                buImg = "<img src='data:" + imgMimeType + ";base64," + PPTXUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>";// height: 100%
+                buImg = "<img src='" + PPTXUtils.arrayBufferToBlobUrl(imgArrayBuffer, imgMimeType) + "' style='width: 100%;'/>";// height: 100%
                 //console.log("imgPath: "+imgPath+"\nimgMimeType: "+imgMimeType)
             }
         } else {

@@ -95,7 +95,7 @@ function getPicFill(type, node, warpObj) {
         }
         var imgArrayBuffer = imgFile.asArrayBuffer();
         var imgMimeType = PPTXUtils.getMimeType(imgExt);
-        img = "data:" + imgMimeType + ";base64," + PPTXUtils.base64ArrayBuffer(imgArrayBuffer);
+        img = PPTXUtils.arrayBufferToBlobUrl(imgArrayBuffer, imgMimeType);
         //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
         PPTXUtils.setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
     }

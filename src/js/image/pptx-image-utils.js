@@ -150,7 +150,7 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
         "transform: rotate(" + rotate + "deg);'>";
 
     if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
-        rtrnData += "<img src='data:" + mimeType + ";base64," + PPTXUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
+        rtrnData += "<img src='" + PPTXUtils.arrayBufferToBlobUrl(imgArrayBuffer, mimeType) + "' style='width: 100%; height: 100%'/>";
     } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
         if (vdoNode !== undefined && !isVdeoLink) {
             rtrnData += "<video src='" + vdoBlob + "' controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>";

@@ -31,7 +31,7 @@ function base64ArrayBuffer(arrayBuffer) {
         chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
         a = (chunk & 16515072) >> 18;
         b = (chunk & 258048)   >> 12;
-        c = (chunk & 4032)     >>  6;
+        c = (chunk & 4032)     >> 6;
         d = chunk & 63;
         base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d];
     }
@@ -44,12 +44,28 @@ function base64ArrayBuffer(arrayBuffer) {
     } else if (byteRemainder == 2) {
         chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
         a = (chunk & 64512) >> 10;
-        b = (chunk & 1008)  >>  4;
-        c = (chunk & 15)    <<  2;
+        b = (chunk & 1008)  >> 4;
+        c = (chunk & 15)    << 2;
         base64 += encodings[a] + encodings[b] + encodings[c] + '=';
     }
-
     return base64;
+}
+
+    // Base64 或 ArrayBuffer 转 Blob URL
+function arrayBufferToBlobUrl(arrayBuffer, mimeType) {
+    var blob = new Blob([arrayBuffer], { type: mimeType });
+    return URL.createObjectURL(blob);
+}
+
+    // Base64 字符串转 Blob URL
+function base64ToBlobUrl(base64Data, mimeType) {
+    var binaryString = window.atob(base64Data);
+    var bytes = new Uint8Array(binaryString.length);
+    for (var i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    var blob = new Blob([bytes], { type: mimeType });
+    return URL.createObjectURL(blob);
 }
 
     // 获取 MIME 类型
@@ -482,6 +498,8 @@ const PPTXUtils = {
     degreesToRadians: degreesToRadians,
     getMimeType: getMimeType,
     base64ArrayBuffer: base64ArrayBuffer,
+    arrayBufferToBlobUrl: arrayBufferToBlobUrl,
+    base64ToBlobUrl: base64ToBlobUrl,
     IsVideoLink: IsVideoLink,
     resolvePath: resolvePath,
     resolveRelationshipTarget: resolveRelationshipTarget,
