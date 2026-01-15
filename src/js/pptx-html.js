@@ -1,9 +1,3 @@
-/**
- * PPTXHtml - HTML 转换逻辑模块
- * 提取自 pptxjs.js
- */
-
-(function () {
 
 
     // 全局变量引用
@@ -15,7 +9,7 @@
     var chartID = 0;
 
     // Helper function: getTextByPathList
-    var getTextByPathList = window.PPTXUtils ? window.PPTXUtils.getTextByPathList : function(node, path) {
+    var getTextByPathList = window.PPTXUtils ? PPTXUtils.getTextByPathList : function(node, path) {
         if (path.constructor !== Array) {
             throw Error("Error of path type! path is not array.");
         }
@@ -33,8 +27,8 @@
     };
 
     // Helper functions for position and size - use from PPTXUtils
-    var getPosition = window.PPTXUtils ? window.PPTXUtils.getPosition : function() { return ""; };
-    var getSize = window.PPTXUtils ? window.PPTXUtils.getSize : function() { return ""; };
+    var getPosition = window.PPTXUtils ? PPTXUtils.getPosition : function() { return ""; };
+    var getSize = window.PPTXUtils ? PPTXUtils.getSize : function() { return ""; };
 
     // 从 PPTXParser 获取全局变量
     var slideFactor = window.PPTXParser ? window.PPTXParser.slideFactor || (96 / 914400) : (96 / 914400);
@@ -60,12 +54,12 @@
                 ((styleTable[key]["suffix"]) ? styleTable[key]["suffix"] : "") +
                 "{" + styleTable[key]["text"] + "}\n"; //section > div
         }
-        //cssText += " .slide{margin-bottom: 5px;}\n"; // TODO
+        cssText += " .slide{margin-bottom: 5px;}\n";
 
         if (settings.slideMode && settings.slideType == "divs2slidesjs") {
             //divId
             //console.log("slideWidth: ", slideWidth)
-            cssText += "#all_slides_warpper{margin-right: auto;margin-left: auto;padding-top:10px;width: " + slideWidth + "px;}\n"; // TODO
+            cssText += "#all_slides_warpper{margin-right: auto;margin-left: auto;padding-top:10px;width: " + slideWidth + "px;}\n";
         }
         return cssText;
     }
@@ -74,20 +68,20 @@
 
     // 获取填充颜色
     function getSolidFill(fillNode, clrMap, phClr, warpObj) {
-        return window.PPTXColorUtils.getSolidFill(fillNode, clrMap, phClr, warpObj);
+        return PPTXColorUtils.getSolidFill(fillNode, clrMap, phClr, warpObj);
     }
 
     // 获取形状填充
     function getShapeFill(node, warpObj) {
         if (!node) return "";
-        var fillType = window.PPTXColorUtils.getFillType(node);
+        var fillType = PPTXColorUtils.getFillType(node);
         var fillColor;
         
         if (fillType == "NO_FILL") {
             return "";
         } else if (fillType == "SOLID_FILL") {
             var shpFill = node["a:solidFill"];
-            fillColor = window.PPTXColorUtils.getSolidFill(shpFill, undefined, undefined, warpObj);
+            fillColor = PPTXColorUtils.getSolidFill(shpFill, undefined, undefined, warpObj);
         }
         
         if (fillColor) {
@@ -814,7 +808,7 @@
     }
 
     // 公开 API
-    window.PPTXHtml = {
+    const PPTXHtml = {
         genGlobalCSS: genGlobalCSS,
         genTable: genTable,
         genChart: genChart,
@@ -824,4 +818,8 @@
         extractChartData: extractChartData
     };
 
-})();
+
+export { PPTXHtml };
+
+// Also export to global scope for backward compatibility
+window.PPTXHtml = PPTXHtml;

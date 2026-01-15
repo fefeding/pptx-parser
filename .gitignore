@@ -13,6 +13,6 @@ dist/
 .tsbuildinfo.*
 pnpm-lock.yaml
 examples/PPTXjs
-examples/3guo
+examples/3guo*
 examples/*.pptx
 examples/ppt
