@@ -163,7 +163,18 @@ PPTXShapeFillsUtils.getSvgGradient = function(w, h, angl, color_arry, shpId) {
 PPTXShapeFillsUtils.getSvgImagePattern = function(node, fill, shpId, warpObj) {
     // 处理 fill 可能是对象的情况（当 getPicFill 返回包含属性的对象时）
     var fillValue = typeof fill === 'object' && fill.img ? fill.img : fill;
-    var pic_dim = PPTXColorUtils.getBase64ImageDimensions(fillValue);
+    // 优先使用 imgData 获取图片尺寸（base64格式）
+    var dimSrc = null;
+    if (typeof fill === 'object' && fill.imgData) {
+        dimSrc = fill.imgData;
+    } else if (fillValue && fillValue.indexOf("data:image/") === 0) {
+        // fillValue 是 data: URI，可以直接用于尺寸获取
+        dimSrc = fillValue;
+    }
+    var pic_dim = [0, 0];
+    if (dimSrc) {
+        pic_dim = PPTXColorUtils.getBase64ImageDimensions(dimSrc);
+    }
     var width = pic_dim[0];
     var height = pic_dim[1];
 

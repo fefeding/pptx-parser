@@ -74,8 +74,9 @@ function getPicFill(type, node, warpObj) {
     if (imgPath === undefined) {
         return undefined;
     }
-    img = PPTXUtils.getTextByPathList(warpObj, ["loaded-images", imgPath]); //, type, rId
-    if (img === undefined) {
+    var imgCache = PPTXUtils.getTextByPathList(warpObj, ["loaded-images", imgPath]); //, type, rId
+    var imgData = null;
+    if (imgCache === undefined) {
         imgPath = PPTXUtils.escapeHtml(imgPath);
 
         var imgExt = imgPath.split(".").pop();
@@ -96,12 +97,24 @@ function getPicFill(type, node, warpObj) {
         var imgArrayBuffer = imgFile.asArrayBuffer();
         var imgMimeType = PPTXUtils.getMimeType(imgExt);
         img = PPTXUtils.arrayBufferToBlobUrl(imgArrayBuffer, imgMimeType);
-        //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
-        PPTXUtils.setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
+        imgData = PPTXUtils.base64ArrayBuffer(imgArrayBuffer);
+        // 缓存对象，包含 URL 和 base64 数据
+        var cacheObj = { url: img, data: imgData };
+        PPTXUtils.setTextByPathList(warpObj, ["loaded-images", imgPath], cacheObj); //, type, rId
+    } else {
+        // 从缓存中提取 URL 和数据
+        if (typeof imgCache === 'object' && imgCache.url) {
+            img = imgCache.url;
+            imgData = imgCache.data;
+        } else {
+            // 向后兼容：如果缓存中是字符串，则作为 URL
+            img = imgCache;
+            // 没有 base64 数据，imgData 保持 null
+        }
     }
     // 为了保持向后兼容，默认返回图片 URL 字符串
     // 添加图像属性信息 - 支持平铺、拉伸或显示部分图像
-    var fillProps = img; // 默认返回图片 URL 以保持向后兼容
+    var fillProps = { img: img, imgData: imgData }; // 返回对象，包含 URL 和 base64 数据
     
     // 解析 a:stretch 元素 - 拉伸填充
     if (node["a:stretch"] !== undefined) {
@@ -111,6 +124,7 @@ function getPicFill(type, node, warpObj) {
         // 返回包含填充属性的对象
         fillProps = {
             img: img,
+            imgData: imgData,
             stretch: true,
             tile: false,
             cropRect: null,
@@ -128,6 +142,7 @@ function getPicFill(type, node, warpObj) {
         
         fillProps = {
             img: img,
+            imgData: imgData,
             stretch: false,
             tile: true,
             cropRect: null,
@@ -1319,10 +1334,21 @@ function SVGangle(deg, svgHeight, svgWidth) {
 }
 function getBase64ImageDimensions(imgSrc) {
     try {
-        // 提取 base64 数据部分
-        var base64Data = imgSrc.replace(/^data:image\/\w+;base64,/, '');
+        var base64Data = imgSrc;
+        // 如果是以 data:image/ 开头的 URI，提取 base64 部分
+        if (imgSrc && imgSrc.indexOf("data:image/") === 0) {
+            base64Data = imgSrc.replace(/^data:image\/\w+;base64,/, '');
+        }
+        // 如果输入是 null、undefined 或不是字符串，返回 [0,0]
+        if (!base64Data || typeof base64Data !== 'string') {
+            return [0, 0];
+        }
         // 移除可能的换行符和空格
         base64Data = base64Data.replace(/\s/g, '');
+        // 检查字符串是否可能是有效的 base64（只包含 base64 字符）
+        if (!/^[A-Za-z0-9+/]+=?=?$/.test(base64Data)) {
+            return [0, 0];
+        }
         // 解码 base64 为二进制字符串
         var binaryString = atob(base64Data);
         var bytes = new Uint8Array(binaryString.length);
