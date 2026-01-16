@@ -611,6 +611,3 @@
 
 
 export { PPTXParser };
-
-// Also export to global scope for backward compatibility
-// window.PPTXParser = PPTXParser; // Removed for ES modules

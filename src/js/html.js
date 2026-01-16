@@ -4,7 +4,7 @@
     import { PPTXUtils } from './core/utils.js';
     import { PPTXColorUtils } from './core/color.js';
     import { PPTXParser } from './parser.js';
-    import { PPTXTableUtils } from './table/table.js';
+    import { PPTXTableUtils } from './shape/table.js';
     var settings = {}; // 配置将由 configure 方法设置
     // var PPTXParser = window.PPTXParser; // 从 PPTXParser 获取变量 - Removed for ES modules
 
@@ -820,6 +820,3 @@
 
 
 export { PPTXHtml };
-
-// Also export to global scope for backward compatibility
-// window.PPTXHtml = PPTXHtml; // Removed for ES modules

@@ -1,15 +1,5 @@
 /**
- * pptxjs.js
- * Ver. : 1.21.1
- * last update: 16/11/2021
- * Author: meshesha , https://github.com/meshesha
- * LICENSE: MIT
- * url:https://pptx.js.org/
- * fix issues:
- * [#16](https://github.com/meshesha/PPTXjs/issues/16)
- *
- * New:
- *  - supports both jQuery and vanilla JavaScript
+ * pptx-parser
  */
 
 
@@ -26,13 +16,13 @@ import { PPTXShapeFillsUtils } from './shape/fills.js'
 import { PPTXBasicShapes } from './shape/basic.js';
 import { PPTXNodeUtils } from './node/node.js';
 import { PPTXBackgroundUtils } from './core/background.js';
-import { PPTXImageUtils } from './image/image.js';
-import { PPTXDiagramUtils } from './diagram/diagram.js';
+import { PPTXImageUtils } from './shape/image.js';
+import { PPTXDiagramUtils } from './shape/diagram.js';
 import { TextUtils } from './text/text.js';
 
 import { PPTXCSSUtils } from './core/css.js';
 import { PPTXColorUtils } from './core/color.js';
-import { PPTXTableUtils } from './table/table.js';
+import { PPTXTableUtils } from './shape/table.js';
 import { PPTXTextStyleUtils } from './text/style.js';
 import { PPTXTextElementUtils } from './text/element.js';
 import { PPTXShapeContainer } from './shape/container.js';
