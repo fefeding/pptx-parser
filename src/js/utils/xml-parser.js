@@ -1,12 +1,65 @@
 /**
  * XML Parser - A lightweight XML parser for PPTX parsing
- * Based on parseXml library
+ * Uses native DOMParser API but maintains original tXml output format
  */
 
 var elementOrder = 1;
 
 /**
- * Main XML parsing function
+ * Convert DOM node to custom structure (matching tXml format)
+ * @param {Node} domNode - DOM node to convert
+ * @returns {Object|string} Converted node or text
+ */
+function domNodeToCustom(domNode) {
+    // Text node
+    if (domNode.nodeType === Node.TEXT_NODE) {
+        var text = domNode.textContent;
+        return text;
+    }
+
+    // CDATA section
+    if (domNode.nodeType === Node.CDATA_SECTION_NODE) {
+        return domNode.textContent;
+    }
+
+    // Element node
+    if (domNode.nodeType === Node.ELEMENT_NODE) {
+        var node = {};
+
+        // Keep original case tagName
+        node.tagName = domNode.tagName;
+
+        // Parse attributes
+        for (var i = 0; i < domNode.attributes.length; i++) {
+            if (!node.attributes) {
+                node.attributes = {};
+            }
+            var attr = domNode.attributes[i];
+            node.attributes[attr.name] = attr.value;
+        }
+
+        // Parse children
+        var hasChildren = false;
+        for (var j = 0; j < domNode.childNodes.length; j++) {
+            var childNode = domNodeToCustom(domNode.childNodes[j]);
+            if (childNode !== null && childNode !== "") {
+                if (!hasChildren) {
+                    node.children = [];
+                    hasChildren = true;
+                }
+                node.children.push(childNode);
+            }
+        }
+
+        return node;
+    }
+
+    // Skip other node types (comments, processing instructions, etc.)
+    return null;
+}
+
+/**
+ * Main XML parsing function using native DOMParser
  * @param {string} xmlString - The XML string to parse
  * @param {Object} options - Parsing options
  * @returns {Array|Object} Parsed XML structure
@@ -14,230 +67,101 @@ var elementOrder = 1;
 function parseXml(xmlString, options) {
     "use strict";
 
-    /**
-     * Parse children nodes from current position
-     */
-    function parseChildren() {
-        var children = [];
-        while (xmlString[position]) {
-            if (xmlString.charCodeAt(position) === lessThanCode) {
-                // Check for closing tag
-                if (xmlString.charCodeAt(position + 1) === slashCode) {
-                    position = xmlString.indexOf(greaterThanChar, position);
-                    if (position + 1) {
-                        position += 1;
-                    }
-                    return children;
-                }
-
-                // Check for special tags (comments, CDATA, DOCTYPE)
-                if (xmlString.charCodeAt(position + 1) === exclamationCode) {
-                    if (xmlString.charCodeAt(position + 2) === dashCode) {
-                        // Parse comment: <!-- ... -->
-                        while (-1 !== position && 
-                               !(xmlString.charCodeAt(position) === greaterThanCode &&
-                                 xmlString.charCodeAt(position - 1) === dashCode &&
-                                 xmlString.charCodeAt(position - 2) === dashCode) &&
-                                 position !== -1) {
-                            position = xmlString.indexOf(greaterThanChar, position + 1);
-                        }
-                        if (position === -1) {
-                            position = xmlString.length;
-                        }
-                    } else {
-                        // Parse special content like <![CDATA[...]]> or <!DOCTYPE...>
-                        position += 2;
-                        while (xmlString.charCodeAt(position) !== greaterThanCode && xmlString[position]) {
-                            position++;
-                        }
-                    }
-                    position++;
-                    continue;
-                }
-
-                // Parse regular node
-                var node = parseNode();
-                children.push(node);
-            } else {
-                // Parse text content
-                var text = parseTextContent();
-                if (text.trim().length > 0) {
-                    children.push(text);
-                }
-                position++;
-            }
-        }
-        return children;
-    }
-
-    /**
-     * Parse text content between tags
-     */
-    function parseTextContent() {
-        var start = position;
-        position = xmlString.indexOf(lessThanChar, position) - 1;
-        if (position === -2) {
-            position = xmlString.length;
-        }
-        return xmlString.slice(start, position + 1);
-    }
-
-    /**
-     * Parse tag name from current position
-     */
-    function parseTagName() {
-        var start = position;
-        while (delimiterChars.indexOf(xmlString[position]) === -1 && xmlString[position]) {
-            position++;
-        }
-        return xmlString.slice(start, position);
-    }
-
-    /**
-     * Parse a single XML node (tag with attributes and children)
-     */
-    function parseNode() {
-        var node = {};
-        position++;
-        node.tagName = parseTagName();
-        var hasAttributes = false;
-
-        // Parse attributes
-        while (xmlString.charCodeAt(position) !== greaterThanCode && xmlString[position]) {
-            var charCode = xmlString.charCodeAt(position);
-            
-            // Check if this is an attribute name (letter)
-            if ((charCode > 64 && charCode < 91) || (charCode > 96 && charCode < 123)) {
-                var attrName = parseTagName();
-                var attrValue = null;
-                
-                // Skip to attribute value
-                var nextChar = xmlString.charCodeAt(position);
-                while (nextChar && 
-                       nextChar !== singleQuoteCode && 
-                       nextChar !== doubleQuoteCode && 
-                       !((nextChar > 64 && nextChar < 91) || (nextChar > 96 && nextChar < 123)) && 
-                       nextChar !== greaterThanCode) {
-                    position++;
-                    nextChar = xmlString.charCodeAt(position);
-                }
-
-                if (!hasAttributes) {
-                    node.attributes = {};
-                    hasAttributes = true;
-                }
-
-                // Parse quoted attribute value
-                if (nextChar === singleQuoteCode || nextChar === doubleQuoteCode) {
-                    attrValue = parseQuotedString();
-                    if (position === -1) {
-                        return node;
-                    }
-                } else {
-                    attrValue = null;
-                    position--;
-                }
-
-                node.attributes[attrName] = attrValue;
-            }
-            position++;
-        }
-
-        // Parse children or self-closing tag
-        if (xmlString.charCodeAt(position - 1) !== slashCode) {
-            // Check for special tags with raw content
-            if (node.tagName === "script") {
-                var contentStart = position + 1;
-                position = xmlString.indexOf("</script>", position);
-                node.children = [xmlString.slice(contentStart, position - 1)];
-                position += 8;
-            } else if (node.tagName === "style") {
-                var contentStart = position + 1;
-                position = xmlString.indexOf("</style>", position);
-                node.children = [xmlString.slice(contentStart, position - 1)];
-                position += 7;
-            } else if (voidTags.indexOf(node.tagName) === -1) {
-                // Regular tag with children
-                position++;
-                node.children = parseChildren();
-            }
-        } else {
-            // Self-closing tag
-            position++;
-        }
-
-        return node;
-    }
-
-    /**
-     * Parse a quoted string (attribute value)
-     */
-    function parseQuotedString() {
-        var quoteChar = xmlString[position];
-        var startPosition = ++position;
-        position = xmlString.indexOf(quoteChar, startPosition);
-        return xmlString.slice(startPosition, position);
-    }
-
-    /**
-     * Find attribute position in XML string (for attribute filtering)
-     */
-    function findAttributePosition() {
-        var pattern = new RegExp("\\s" + options.attrName + "\\s*=['\"]" + options.attrValue + "['\"]");
-        var match = pattern.exec(xmlString);
-        return match ? match.index : -1;
-    }
-
-    // Initialize variables
     options = options || {};
     var position = options.pos || 0;
-    
-    // Character codes for common XML characters
-    var lessThanChar = "<";
-    var lessThanCode = "<".charCodeAt(0);
-    var greaterThanChar = ">";
-    var greaterThanCode = ">".charCodeAt(0);
-    var dashCode = "-".charCodeAt(0);
-    var slashCode = "/".charCodeAt(0);
-    var exclamationCode = "!".charCodeAt(0);
-    var singleQuoteCode = "'".charCodeAt(0);
-    var doubleQuoteCode = '"'.charCodeAt(0);
-    var delimiterChars = "\n\t>/= ";
-    
-    // Tags that don't have children (void elements)
-    var voidTags = ["img", "br", "input", "meta", "link"];
-    
+
     var result = null;
 
-    // If filtering by attribute value
-    if (options.attrValue !== undefined) {
-        options.attrName = options.attrName || "id";
-        result = [];
-        while (-1 !== (position = findAttributePosition())) {
-            position = xmlString.lastIndexOf("<", position);
-            if (position !== -1) {
-                result.push(parseNode());
-                xmlString = xmlString.substring(position);
-                position = 0;
+    // Create DOMParser and parse XML
+    var parser;
+    try {
+        if (typeof DOMParser !== 'undefined') {
+            parser = new DOMParser();
+        } else if (typeof require !== 'undefined') {
+            // Node.js environment fallback
+            var xmldom = require('xmldom');
+            parser = new xmldom.DOMParser();
+        } else {
+            throw new Error('No XML parser available');
+        }
+
+        var xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+        // Check for parsing errors
+        var parserError = xmlDoc.getElementsByTagName("parsererror");
+        if (parserError.length > 0) {
+            console.error("XML Parse Error:", parserError[0].textContent);
+            return [];
+        }
+
+        // If filtering by attribute value
+        if (options.attrValue !== undefined) {
+            options.attrName = options.attrName || "id";
+            result = [];
+
+            // Find all matching elements using XPath or iteration
+            var attrName = options.attrName;
+            var attrValue = options.attrValue;
+            var matchingElements = [];
+
+            if (typeof xmlDoc.evaluate !== 'undefined') {
+                var xpath = "//*[@" + attrName + "='" + attrValue + "']";
+                var xpathResult = xmlDoc.evaluate(xpath, xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                for (var k = 0; k < xpathResult.snapshotLength; k++) {
+                    matchingElements.push(xpathResult.snapshotItem(k));
+                }
+            } else {
+                // Fallback: iterate through all elements
+                var allElements = xmlDoc.getElementsByTagName("*");
+                for (var m = 0; m < allElements.length; m++) {
+                    var elem = allElements[m];
+                    if (elem.hasAttribute(attrName) && elem.getAttribute(attrName) === attrValue) {
+                        matchingElements.push(elem);
+                    }
+                }
+            }
+
+            // Convert matching elements to custom structure
+            for (var n = 0; n < matchingElements.length; n++) {
+                var customNode = domNodeToCustom(matchingElements[n]);
+                result.push(customNode);
+            }
+        } else {
+            // Parse all nodes from document element
+            var documentElement = xmlDoc.documentElement;
+
+            if (documentElement) {
+                // Create a virtual "?xml" node wrapper to match original tXml behavior
+                var xmlDeclarationNode = { tagName: "?xml", children: [domNodeToCustom(documentElement)] };
+
+                // Parse document element itself (for parseNode option)
+                if (options.parseNode) {
+                    result = xmlDeclarationNode;
+                } else {
+                    // Simplify returns the structure with "?xml" key
+                    result = [xmlDeclarationNode];
+                }
+            } else {
+                result = [];
             }
         }
-    } else {
-        // Parse all nodes or a single node
-        result = options.parseNode ? parseNode() : parseChildren();
-    }
 
-    // Apply filter if specified
-    if (options.filter) {
-        result = parseXml.filter(result, options.filter);
-    }
+        // Apply filter if specified
+        if (options.filter) {
+            result = parseXml.filter(result, options.filter);
+        }
 
-    // Apply simplify if specified
-    if (options.simplify) {
-        result = parseXml.simplify(result);
-    }
+        // Apply simplify if specified
+        if (options.simplify) {
+            result = parseXml.simplify(result);
+        }
 
-    result.pos = position;
-    return result;
+        result.pos = position;
+        return result;
+    } catch (e) {
+        console.error("Error parsing XML:", e);
+        return [];
+    }
 }
 
 /**
@@ -247,12 +171,12 @@ function parseXml(xmlString, options) {
  */
 parseXml.simplify = function(nodes) {
     var simplified = {};
-    
+
     if (nodes === undefined) {
         return {};
     }
-    
-    // If single text node, return the text
+
+    // If single text node, return text
     if (nodes.length === 1 && typeof nodes[0] === "string") {
         return nodes[0];
     }
@@ -283,7 +207,6 @@ parseXml.simplify = function(nodes) {
                 simplifiedNode.attrs.order = elementOrder;
             }
             elementOrder++;
-            console.log(elementOrder);
         }
     });
 
@@ -305,7 +228,7 @@ parseXml.simplify = function(nodes) {
  */
 parseXml.filter = function(nodes, predicate) {
     var filtered = [];
-    
+
     nodes.forEach(function(node) {
         if (typeof node === "object" && predicate(node)) {
             filtered.push(node);
@@ -339,7 +262,7 @@ parseXml.stringify = function(nodes) {
 
     function processNode(node) {
         xmlOutput += "<" + node.tagName;
-        
+
         for (var attrName in node.attributes) {
             var attrValue = node.attributes[attrName];
             if (attrValue === null) {
@@ -419,10 +342,9 @@ parseXml.getElementsByClassName = function(xmlString, className, simplify) {
  */
 parseXml.parseStream = function(stream, position) {
     if (typeof position === "function") {
-        // Callback function is not used in this implementation
         position = 0;
     }
-    
+
     if (typeof position === "string") {
         position = position.length + 2;
     }
@@ -451,7 +373,7 @@ parseXml.parseStream = function(stream, position) {
             });
 
             currentPosition = node.pos;
-            
+
             if (currentPosition > buffer.length - 1 || eventPos > currentPosition) {
                 if (eventPos) {
                     buffer = buffer.slice(eventPos);
@@ -486,6 +408,3 @@ if (typeof module !== "undefined") {
     module.exports = parseXml;
 }
 
-// Support for ES modules - export as default and named
-// export default parseXml;
-// export { parseXml };
