@@ -426,6 +426,7 @@ static genTableInternal(node, warpObj, styleTable) {
         tableHtml += "</tr>";
     }
 
+    tableHtml += "</table>";
     return tableHtml;
 };
 
