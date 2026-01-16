@@ -1,6 +1,3 @@
-/*
-This is my custom tXml.js file
-*/
 function tXml(t, r) {
     "use strict";
     function e() {
@@ -103,7 +100,7 @@ function tXml(t, r) {
       , v = "!".charCodeAt(0)
       , p = "'".charCodeAt(0)
       , g = '"'.charCodeAt(0)
-      , A = "\n	>/= "
+      , A = "\n\t>/= "
       , C = ["img", "br", "input", "meta", "link"]
       , y = null;
     if (void 0 !== r.attrValue) {
@@ -142,8 +139,7 @@ tXml.simplify = function(t) {
     for (var e in r)
         1 == r[e].length && (r[e] = r[e][0]);
     return r
-}
-,
+};
 tXml.filter = function(t, r) {
     var e = [];
     return t.forEach(function(t) {
@@ -154,8 +150,7 @@ tXml.filter = function(t, r) {
         }
     }),
     e
-}
-,
+};
 tXml.stringify = function(t) {
     function r(t) {
         if (t)
@@ -173,8 +168,7 @@ tXml.stringify = function(t) {
     var n = "";
     return r(t),
     n
-}
-,
+};
 tXml.toContentString = function(t) {
     if (Array.isArray(t)) {
         var r = "";
@@ -185,24 +179,21 @@ tXml.toContentString = function(t) {
         r
     }
     return "object" == typeof t ? tXml.toContentString(t.children) : " " + t
-}
-,
+};
 tXml.getElementById = function(t, r, e) {
     var n = tXml(t, {
         attrValue: r,
         simplify: e
     });
     return e ? n : n[0]
-}
-,
+};
 tXml.getElementsByClassName = function(t, r, e) {
     return tXml(t, {
         attrName: "class",
         attrValue: "[a-zA-Z0-9-s ]*" + r + "[a-zA-Z0-9-s ]*",
         simplify: e
     })
-}
-,
+};
 tXml.parseStream = function(t, r) {
     if ("function" == typeof r && (cb = r,
     r = 0),
@@ -241,10 +232,6 @@ tXml.parseStream = function(t, r) {
         console.log("end")
     }),
     t
-}
-,
+};
+
 "object" == typeof module && (module.exports = tXml);
-// Expose to global scope for browser
-if (typeof window !== 'undefined') {
-    window.tXml = tXml;
-}
