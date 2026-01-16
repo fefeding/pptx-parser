@@ -1,9 +1,12 @@
 
 
+
     import { PPTXConstants } from './core/pptx-constants.js';
     import { PPTXUtils } from './utils/utils.js';
-  
+
     import { PPTXColorUtils } from './core/pptx-color-utils.js';
+    //import { parseXml } from './utils/xml-parser.js';
+    
     // 全局变量，将在初始化时设置
     var app_verssion;
     var defaultTextStyle = null;
@@ -16,6 +19,7 @@
     var isSlideMode = false;
     var processFullTheme = true;
     var settings;
+    var slideLayoutClrOvride;
     
     // 回调函数变量（替换 window._ 全局变量）
     var _processSingleSlideCallback = null;
@@ -83,12 +87,12 @@
             var filename_no_path_no_ext = "";
             if (filename_no_path.indexOf(".") != -1) {
                 var filename_no_path_no_ext_ary = filename_no_path.split(".");
-                var slide_ext = filename_no_path_no_ext_ary.pop();
+                filename_no_path_no_ext_ary.pop(); // remove extension
                 filename_no_path_no_ext = filename_no_path_no_ext_ary.join(".");
             }
             var slide_number = 1;
             if (filename_no_path_no_ext != "" && filename_no_path.indexOf("slide") != -1) {
-                slide_number = Number(filename_no_path_no_ext.substr(5));
+                slide_number = Number(filename_no_path_no_ext.substring(5));
             }
             // Use internal processSingleSlide function if no callback provided
             var slideHtml;
@@ -148,13 +152,17 @@
                 //remove "<![CDATA[ ... ]]>" tag
                 fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
             }
-            var xmlData = tXml(fileContent, { simplify: 1 });
+            console.log("[DEBUG] parseXml function exists?", typeof parseXml, parseXml);
+            console.log("[DEBUG] fileContent length:", fileContent.length, "first 200 chars:", fileContent.substring(0, 200));
+            var xmlData = parseXml(fileContent, { simplify: 1 });
+            console.log("[DEBUG] Parsed XML for", filename, ":", xmlData);
             if (xmlData["?xml"] !== undefined) {
                 return xmlData["?xml"];
             } else {
                 return xmlData;
             }
         } catch (e) {
+            console.error("Error reading XML file:", filename, e);
             //console.log("error readXmlFile: the file '", filename, "' not exit")
             return null;
         }
@@ -188,7 +196,12 @@
     function getSlideSizeAndSetDefaultTextStyle(zip) {
         //get app version
         var app = readXmlFile(zip, "docProps/app.xml");
-        var app_verssion_str = app["Properties"]["AppVersion"]
+        console.log("App XML result:", app);
+        if (!app) {
+            console.error("Failed to read docProps/app.xml");
+            return null;
+        }
+        var app_verssion_str = app["Properties"]["AppVersion"];
         app_verssion = parseInt(app_verssion_str);
         console.log("create by Office PowerPoint app verssion: ", app_verssion_str)
 

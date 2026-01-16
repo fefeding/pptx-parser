@@ -1,6 +1,6 @@
 /**
  * XML Parser - A lightweight XML parser for PPTX parsing
- * Based on tXml library
+ * Based on parseXml library
  */
 
 var elementOrder = 1;
@@ -11,8 +11,9 @@ var elementOrder = 1;
  * @param {Object} options - Parsing options
  * @returns {Array|Object} Parsed XML structure
  */
-function tXml(xmlString, options) {
+function parseXml(xmlString, options) {
     "use strict";
+    console.log('[XML-PARSER] parseXml called with xml length:', xmlString.length, 'options:', options);
 
     /**
      * Parse children nodes from current position
@@ -228,12 +229,12 @@ function tXml(xmlString, options) {
 
     // Apply filter if specified
     if (options.filter) {
-        result = tXml.filter(result, options.filter);
+        result = parseXml.filter(result, options.filter);
     }
 
     // Apply simplify if specified
     if (options.simplify) {
-        result = tXml.simplify(result);
+        result = parseXml.simplify(result);
     }
 
     result.pos = position;
@@ -245,7 +246,7 @@ function tXml(xmlString, options) {
  * @param {Array} nodes - Array of parsed nodes
  * @returns {Object} Simplified structure
  */
-tXml.simplify = function(nodes) {
+parseXml.simplify = function(nodes) {
     var simplified = {};
     
     if (nodes === undefined) {
@@ -266,7 +267,7 @@ tXml.simplify = function(nodes) {
             }
 
             // Recursively simplify children
-            var simplifiedNode = tXml.simplify(node.children || []);
+            var simplifiedNode = parseXml.simplify(node.children || []);
             simplified[node.tagName].push(simplifiedNode);
 
             // Add attributes
@@ -302,7 +303,7 @@ tXml.simplify = function(nodes) {
  * @param {Function} predicate - Filter predicate function
  * @returns {Array} Filtered nodes
  */
-tXml.filter = function(nodes, predicate) {
+parseXml.filter = function(nodes, predicate) {
     var filtered = [];
     
     nodes.forEach(function(node) {
@@ -310,7 +311,7 @@ tXml.filter = function(nodes, predicate) {
             filtered.push(node);
         }
         if (node.children) {
-            var childFiltered = tXml.filter(node.children, predicate);
+            var childFiltered = parseXml.filter(node.children, predicate);
             filtered = filtered.concat(childFiltered);
         }
     });
@@ -323,7 +324,7 @@ tXml.filter = function(nodes, predicate) {
  * @param {Array} nodes - Array of parsed nodes
  * @returns {string} XML string
  */
-tXml.stringify = function(nodes) {
+parseXml.stringify = function(nodes) {
     function processChildren(children) {
         if (children) {
             for (var i = 0; i < children.length; i++) {
@@ -365,17 +366,17 @@ tXml.stringify = function(nodes) {
  * @param {Array|Object|string} nodes - Parsed XML structure
  * @returns {string} Text content
  */
-tXml.toContentString = function(nodes) {
+parseXml.toContentString = function(nodes) {
     if (Array.isArray(nodes)) {
         var result = "";
         nodes.forEach(function(node) {
-            result += " " + tXml.toContentString(node);
+            result += " " + parseXml.toContentString(node);
             result = result.trim();
         });
         return result;
     }
     if (typeof nodes === "object") {
-        return tXml.toContentString(nodes.children);
+        return parseXml.toContentString(nodes.children);
     }
     return " " + nodes;
 };
@@ -387,8 +388,8 @@ tXml.toContentString = function(nodes) {
  * @param {boolean} simplify - Whether to simplify result
  * @returns {Object|Array} Found element
  */
-tXml.getElementById = function(xmlString, idValue, simplify) {
-    var result = tXml(xmlString, {
+parseXml.getElementById = function(xmlString, idValue, simplify) {
+    var result = parseXml(xmlString, {
         attrValue: idValue,
         simplify: simplify
     });
@@ -402,8 +403,8 @@ tXml.getElementById = function(xmlString, idValue, simplify) {
  * @param {boolean} simplify - Whether to simplify result
  * @returns {Array} Found elements
  */
-tXml.getElementsByClassName = function(xmlString, className, simplify) {
-    return tXml(xmlString, {
+parseXml.getElementsByClassName = function(xmlString, className, simplify) {
+    return parseXml(xmlString, {
         attrName: "class",
         attrValue: "[a-zA-Z0-9-s ]*" + className + "[a-zA-Z0-9-s ]*",
         simplify: simplify
@@ -416,11 +417,9 @@ tXml.getElementsByClassName = function(xmlString, className, simplify) {
  * @param {number|string} position - Start position
  * @returns {Stream} The stream for chaining
  */
-tXml.parseStream = function(stream, position) {
-    var callback;
-    
+parseXml.parseStream = function(stream, position) {
     if (typeof position === "function") {
-        callback = position;
+        // Callback function is not used in this implementation
         position = 0;
     }
     
@@ -446,7 +445,7 @@ tXml.parseStream = function(stream, position) {
 
         for (;;) {
             currentPosition = buffer.indexOf("<", currentPosition) + 1;
-            var node = tXml(buffer, {
+            var node = parseXml(buffer, {
                 pos: currentPosition,
                 parseNode: true
             });
@@ -465,9 +464,6 @@ tXml.parseStream = function(stream, position) {
             stream.emit("xml", node);
             eventPos = currentPosition;
         }
-
-        buffer = buffer.slice(currentPosition);
-        currentPosition = 0;
     });
 
     stream.on("end", function() {
@@ -481,12 +477,15 @@ tXml.parseStream = function(stream, position) {
  * Reset element order counter
  * Useful for testing when you need to start fresh
  */
-tXml.resetOrder = function() {
+parseXml.resetOrder = function() {
     elementOrder = 1;
 };
 
 // Export for Node.js environment
 if (typeof module !== "undefined") {
-    module.exports = tXml;
+    module.exports = parseXml;
 }
 
+// Support for ES modules - export as default and named
+// export default parseXml;
+// export { parseXml };
