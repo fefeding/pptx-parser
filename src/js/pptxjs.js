@@ -64,6 +64,7 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
         var isDone = false;
 
         var MsgQueue = new Array();
+        PPTXHtml.MsgQueue = MsgQueue;
 
         //var slideLayoutClrOvride = "";
 
@@ -148,7 +149,6 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
             },
             revealjsConfig: {}
         }, options);
-        window.settings = settings;
 
         processFullTheme = settings.themeProcess;
 
@@ -156,7 +156,7 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
         if (Array.isArray(container)) {
             container = container[0];
         }
-        if (container) {
+            if (container) {
             var loadingMsg = document.createElement("div");
             loadingMsg.className = "slides-loadnig-msg";
             loadingMsg.style.display = "block";
@@ -172,37 +172,31 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
 
             loadingMsg.appendChild(progressBar);
             container.prepend(loadingMsg);
-        }
-        if (settings.slideMode) {
-            if (!window.pptxjslideObj) {
-                var script = document.createElement('script');
-                script.src = './js/divs2slides.js';
-                document.head.appendChild(script);
-            }
-        }
-        if (settings.jsZipV2 !== false) {
-            var script = document.createElement('script');
-            script.src = settings.jsZipV2;
-            document.head.appendChild(script);
-            if (localStorage.getItem('isPPTXjsReLoaded') !== 'yes') {
-                localStorage.setItem('isPPTXjsReLoaded', 'yes');
-                location.reload();
-            }
+        } else {
+            console.warn("Container not found for loading message");
         }
 
-        if (settings.keyBoardShortCut) {
-            document.addEventListener("keydown", function (event) {
-                event.preventDefault();
-                var key = event.keyCode;
-                console.log(key, isDone)
-                if (key == 116 && !isSlideMode) { //F5
-                    isSlideMode = true;
-                    initSlideMode(divId, settings);
-                } else if (key == 116 && isSlideMode) { //F5 again - exit slide mode
-                    isSlideMode = false;
-                    exitSlideMode(divId);
+        // 动态加载脚本已改为通过配置提供，调用方应自行加载依赖
+        // 这里保留向后兼容性，但发出警告
+        if (settings.slideMode && typeof window.pptxjslideObj === 'undefined') {
+            console.warn('Slide mode is enabled but divs2slides.js is not loaded. Please load it manually or use the appropriate configuration.');
+        }
+        if (settings.jsZipV2 !== false) {
+            console.warn('jsZipV2 option is deprecated. Please configure JSZip properly in your build system or load it explicitly.');
+        }
+
+        if (settings.keyBoardShortCut && $result) {
+            var keyHandler = function(event) {
+                if (event.key === 'F5') {
+                    event.preventDefault();
+                    if (!isSlideMode) {
+                        api.initSlideMode();
+                    } else {
+                        api.exitSlideMode();
+                    }
                 }
-            });
+            };
+            document.addEventListener("keydown", keyHandler);
         }
         
         if (settings.pptxFileUrl != "") {
@@ -247,9 +241,15 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
                     alert("This is not pptx file");
                 }
             });
+        } else {
+            console.warn("fileInputId not provided, file upload listener not attached");
         }
 
         function updateProgressBar(percent) {
+            if (options.onProgress) {
+                options.onProgress(percent);
+            }
+            // 同时更新 PPTXUIUtils 中的进度条（向后兼容）
             PPTXUIUtils.updateProgressBar(percent);
         }
 
@@ -274,12 +274,23 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
             });
 
             var rslt_ary = PPTXParser.processPPTX(zip);
+
+            // 收集生成的 HTML、CSS 和数据
+            var result = {
+                html: "",
+                css: "",
+                slides: [],
+                slideSize: null,
+                chartQueue: []
+            };
+
             //s = readXmlFile(zip, 'ppt/tableStyles.xml');
             //var slidesHeight = $("#" + divId + " .slide").height();
             for (var i = 0; i < rslt_ary.length; i++) {
                 switch (rslt_ary[i]["type"]) {
                     case "slide":
-                        $result.insertAdjacentHTML('beforeend', rslt_ary[i]["data"]);
+                        result.html += rslt_ary[i]["data"];
+                        result.slides.push(rslt_ary[i]["data"]);
                         break;
                     case "pptx-thumb":
                         //$("#pptx-thumb").attr("src", "data:image/jpeg;base64," +rslt_ary[i]["data"]);
@@ -287,6 +298,7 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
                     case "slideSize":
                         slideWidth = rslt_ary[i]["data"].width;
                         slideHeight = rslt_ary[i]["data"].height;
+                        result.slideSize = rslt_ary[i]["data"];
                         /*
                         $("#"+divId).css({
                             'width': slideWidth + 80,
@@ -296,16 +308,33 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
                         break;
                     case "globalCSS":
                         //console.log(rslt_ary[i]["data"])
-                        $result.insertAdjacentHTML('beforeend', "<style>" + rslt_ary[i]["data"] + "</style>");
+                        result.css += rslt_ary[i]["data"];
                         break;
                     case "ExecutionTime":
                         // 生成并添加全局 CSS
                         if (typeof PPTXCSSUtils.genGlobalCSS === 'function') {
-                            $result.insertAdjacentHTML('beforeend', "<style>" + PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth) + "</style>");
+                            result.css += PPTXCSSUtils.genGlobalCSS(styleTable, settings, slideWidth);
                         }
-                        PPTXHtml.processMsgQueue(MsgQueue);
-                        PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));
-                        PPTXHtml.setNumericBullets(document.querySelectorAll("table td"));
+                        result.chartQueue = MsgQueue.slice(); // 复制图表队列
+
+                        // 如果调用方提供了 DOM 容器，则插入（向后兼容）
+                        if ($result && typeof $result.insertAdjacentHTML === 'function') {
+                            $result.insertAdjacentHTML('beforeend', result.html);
+                            $result.insertAdjacentHTML('beforeend', "<style>" + result.css + "</style>");
+                            PPTXHtml.processMsgQueue(MsgQueue);
+                            PPTXHtml.setNumericBullets($result.querySelectorAll ? $result.querySelectorAll(".block") : document.querySelectorAll(".block"));
+                            PPTXHtml.setNumericBullets($result.querySelectorAll ? $result.querySelectorAll("table td") : document.querySelectorAll("table td"));
+
+                            if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
+                                PPTXUIUtils.getSlidesWrapper(divId);
+
+                                if (settings.slideMode && settings.slideType == "revealjs") {
+                                    PPTXUIUtils.addRevealClass(divId);
+                                }
+                            }
+
+                            PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
+                        }
 
                         isDone = true;
 
@@ -323,17 +352,9 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
                     default:
                 }
             }
-            if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
-                PPTXUIUtils.getSlidesWrapper(divId);
 
-                if (settings.slideMode && settings.slideType == "revealjs") {
-                    PPTXUIUtils.addRevealClass(divId);
-                }
-            }
-
-            PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
-
-            //}
+            // 返回结果对象供调用方使用
+            return result;
         }
 
         function initSlideMode(divId, settings) {
@@ -568,7 +589,8 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
 
         function genDiagram(node, warpObj, source, sType) {
             var readXmlFileFunc = PPTXParser && PPTXParser.readXmlFile ? PPTXParser.readXmlFile : function() { return null; };
-            return PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, processSpNode);
+            // processSpNode is defined inside processNodesInSlide handlers, use a placeholder here
+            return PPTXDiagramUtils.genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, null);
         }
 
 

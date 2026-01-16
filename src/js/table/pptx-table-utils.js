@@ -316,7 +316,7 @@ static genTableInternal(node, warpObj, styleTable) {
             if (tcNodes.constructor === Array) {
                 var j = 0;
                 if (rowSpanAry.length == 0) {
-                    rowSpanAry = Array.apply(null, Array(tcNodes.length)).map(function () { return 0 });
+                    rowSpanAry = new Array(tcNodes.length).fill(0);
                 }
                 var totalColSpan = 0;
                 while (j < tcNodes.length) {

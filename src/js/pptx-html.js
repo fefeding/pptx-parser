@@ -5,7 +5,7 @@
     import { PPTXColorUtils } from './core/pptx-color-utils.js';
     import { PPTXParser } from './pptx-parser.js';
     import { PPTXTableUtils } from './table/pptx-table-utils.js';
-    var settings = window.settings; // 将在 pptxjs.js 中设置
+    var settings = {}; // 配置将由 configure 方法设置
     // var PPTXParser = window.PPTXParser; // 从 PPTXParser 获取变量 - Removed for ES modules
 
     // 图表 ID 计数器
@@ -253,7 +253,7 @@
                 if (tcNodes.constructor === Array) {
                     var j = 0;
                     if (rowSpanAry.length == 0) {
-                        rowSpanAry = Array.apply(null, Array(tcNodes.length)).map(function() { return 0; });
+                        rowSpanAry = new Array(tcNodes.length).fill(0);
                     }
                     var totalColSpan = 0;
                     while (j < tcNodes.length) {
@@ -417,13 +417,13 @@
 
         // Store all chart data for later processing
         if (chartDatas.length > 0) {
-            if (!window.MsgQueue) {
-                window.MsgQueue = [];
+            if (!PPTXHtml.MsgQueue) {
+                PPTXHtml.MsgQueue = [];
             }
-            
+
             // 将所有图表数据添加到队列
             for (var j = 0; j < chartDatas.length; j++) {
-                window.MsgQueue.push(chartDatas[j]);
+                PPTXHtml.MsgQueue.push(chartDatas[j]);
             }
         }
 
@@ -716,6 +716,12 @@
 
     // 处理单个消息
     function processSingleMsg(d) {
+        // 检查外部图表库是否可用
+        if (typeof nv === 'undefined' || typeof d3 === 'undefined') {
+            console.warn('NVD3 (nv) or D3 (d3) libraries are not loaded. Charts cannot be rendered. Please include these libraries in your HTML.');
+            return false;
+        }
+
         var chartID = d.chartID;
         var chartType = d.chartType;
         var chartData = d.chartData;
@@ -786,12 +792,16 @@
     // 获取背景
     // getBackground 和 getSlideBackgroundFill 已移至 PPTXBackgroundUtils 模块
 
-    // 更新加载进度条
+    // 更新加载进度条 - 使用回调而不是直接操作 DOM
+    var progressCallback = null;
+
+    function setProgressCallback(callback) {
+        progressCallback = callback;
+    }
+
     function updateProgressBar(percent) {
-        var progressBarElemtnt = document.querySelector(".slides-loading-progress-bar");
-        if (progressBarElemtnt) {
-            progressBarElemtnt.style.width = percent + "%";
-            progressBarElemtnt.innerHTML = "<span style='text-align: center;'>Loading...(" + percent + "%)</span>";
+        if (progressCallback) {
+            progressCallback(percent);
         }
     }
 
@@ -803,7 +813,9 @@
         setNumericBullets: setNumericBullets,
         processMsgQueue: processMsgQueue,
         processSingleMsg: processSingleMsg,
-        extractChartData: extractChartData
+        extractChartData: extractChartData,
+        setProgressCallback: setProgressCallback,
+        MsgQueue: null  // 图表数据队列，将在 processMsgQueue 中初始化
     };
 
 

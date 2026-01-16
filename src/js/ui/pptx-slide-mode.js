@@ -98,7 +98,7 @@ function exitSlideMode(divId, settings, updateWrapperHeight) {
         slideElements[i].style.display = "block";
     }
     // If pptxjslideObj exists and has a destroy method, call it
-    if (window.pptxjslideObj && typeof window.pptxjslideObj.destroy === 'function') {
+    if (typeof window.pptxjslideObj !== 'undefined' && window.pptxjslideObj && typeof window.pptxjslideObj.destroy === 'function') {
         window.pptxjslideObj.destroy();
     }
     // Update wrapper height for normal mode
