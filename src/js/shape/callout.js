@@ -1,4 +1,4 @@
-    import { PPTXUtils } from '../utils/utils.js';
+    import { PPTXUtils } from '../core/utils.js';
     import { PPTXShapeUtils } from './shape.js';
     const PPTXCalloutShapes = {};
 

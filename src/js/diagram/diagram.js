@@ -1,5 +1,5 @@
 
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils } from '../core/utils.js';
 
 var PPTXDiagramUtils = {};
 

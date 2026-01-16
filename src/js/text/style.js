@@ -1,5 +1,5 @@
 import { PPTXConstants } from '../core/constants.js';
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils } from '../core/utils.js';
 import { PPTXShapeFillsUtils } from '../shape/fills.js';
 import { PPTXLayoutUtils } from '../core/layout.js';
 import { PPTXStyleManager } from '../core/style-manager.js';

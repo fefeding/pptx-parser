@@ -1,5 +1,5 @@
 import { PPTXColorUtils } from "./color.js";
-import { PPTXUtils } from "../utils/utils.js";
+import { PPTXUtils } from './utils.js';
 var StyleManager = function() {
     this.styleTable = {};
 };

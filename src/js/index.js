@@ -16,7 +16,7 @@
 
 // Import dependencies
 import { PPTXConstants } from './core/constants.js';
-import { PPTXUtils, PPTXFileReader } from './utils/utils.js';
+import { PPTXUtils, PPTXFileReader } from './core/utils.js';
 import { PPTXParser } from './parser.js';
 import { PPTXHtml } from './html.js';
 import { PPTXStyleManager } from './core/style-manager.js';
@@ -29,7 +29,7 @@ import { PPTXBackgroundUtils } from './core/background.js';
 import { PPTXImageUtils } from './image/image.js';
 import { PPTXDiagramUtils } from './diagram/diagram.js';
 import { TextUtils } from './text/text.js';
-import { PPTXUIUtils } from './ui/ui.js';
+
 import { PPTXCSSUtils } from './core/css.js';
 import { PPTXColorUtils } from './core/color.js';
 import { PPTXTableUtils } from './table/table.js';
@@ -40,7 +40,7 @@ import { PPTXStarShapes } from './shape/star.js';
 import { PPTXCalloutShapes } from './shape/callout.js';
 import { PPTXArrowShapes } from './shape/arrow.js';
 import { PPTXMathShapes } from './shape/math.js';
-import { initSlideMode as initSlideModeModule, exitSlideMode as exitSlideModeModule } from './ui/slide-mode.js';
+
 import { processSpNode as processSpNodeModule, processCxnSpNode as processCxnSpNodeModule } from './node/shape-node-processor.js';
 import { genShape as genShapeModule } from './shape/generator.js';
 
@@ -138,8 +138,6 @@ import { genShape as genShapeModule } from './shape/generator.js';
             if (options.onProgress) {
                 options.onProgress(percent);
             }
-            // 同时更新 PPTXUIUtils 中的进度条（向后兼容）
-            PPTXUIUtils.updateProgressBar(percent);
         }
 
         function convertToHtml(file) {
@@ -261,13 +259,11 @@ import { genShape as genShapeModule } from './shape/generator.js';
         }
 
         function initSlideMode(divId, settings) {
-            // 使用外部模块的 initSlideMode 函数
-            return initSlideModeModule(divId || settings.container, settings, PPTXUIUtils.updateWrapperHeight.bind(PPTXUIUtils));
+            console.warn('initSlideMode: UI functionality has been removed from the library. Please implement slide mode in your application.');
         }
 
         function exitSlideMode(divId) {
-            // 使用外部模块的 exitSlideMode 函数
-            return exitSlideModeModule(divId || settings.container, settings, PPTXUIUtils.updateWrapperHeight.bind(PPTXUIUtils));
+            console.warn('exitSlideMode: UI functionality has been removed from the library. Please implement slide mode in your application.');
         }
 
 

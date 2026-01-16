@@ -2,10 +2,10 @@
 
 
     import { PPTXConstants } from './core/constants.js';
-    import { PPTXUtils } from './utils/utils.js';
+    import { PPTXUtils } from './core/utils.js';
 
     import { PPTXColorUtils } from './core/color.js';
-    import parseXml from './utils/xml-parser.js';
+    import parseXml from './core/xml-parser.js';
 
     // 全局变量，将在初始化时设置
     var app_verssion;

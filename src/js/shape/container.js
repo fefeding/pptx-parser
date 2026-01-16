@@ -1,4 +1,4 @@
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils } from '../core/utils.js';
 import { PPTXShapeFillsUtils } from './fills.js';
 // 辅助函数：获取形状变换参数（flip, rotate等）
 function getShapeTransformParams(node) {

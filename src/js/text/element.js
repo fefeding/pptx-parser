@@ -1,5 +1,5 @@
 
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils } from '../core/utils.js';
 import { PPTXColorUtils } from '../core/color.js';
 import { PPTXLayoutUtils } from '../core/layout.js';
 import { PPTXBulletUtils } from './bullet.js';

@@ -13,7 +13,7 @@
 
 
 <script type="text/javascript" src="./js/jszip.min.js"></script>
-    <script type="text/javascript" src="./js/utils/jszip.js"></script>
+    <script type="text/javascript" src="./js/core/jszip.js"></script>
     <script type="text/javascript" src="./js/tinycolor.js"></script>
 
 <script type="module">
@@ -91,7 +91,20 @@
 <script type="module">
     import { pptxToHtml } from './js/index.js';
     import { PPTXHtml } from './js/html.js';
-    import { PPTXUIUtils } from './js/ui/ui.js';
+
+    // 自定义 UI 工具，替换原 PPTXUIUtils
+    const PPTXUIUtils = {
+        updateProgressBar: function(percent) {
+            // 这里可以添加自定义进度条更新逻辑
+            console.log('Progress:', percent);
+        },
+        removeLoadingMessage: function() {
+            // 移除加载消息
+            const loadingMsg = document.querySelector('.slides-loadnig-msg');
+            if (loadingMsg) loadingMsg.remove();
+        }
+    };
+
 
     const resultDiv = document.getElementById('result');
     const fileInput = document.getElementById('uploadFileInput');

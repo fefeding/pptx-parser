@@ -6,7 +6,7 @@
  * 由于 genShape 函数非常庞大（超过5000行），它处理所有形状类型的生成逻辑
  */
 
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils } from '../core/utils.js';
 import { PPTXConstants } from '../core/constants.js'
 import { PPTXShapePropertyExtractor } from './property-extractor.js';
 import { PPTXShapeFillsUtils } from './fills.js';

@@ -1,4 +1,4 @@
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils } from '../core/utils.js';
 import { PPTXShapeFillsUtils } from '../shape/fills.js';
 import { PPTXColorUtils } from '../core/color.js';
 import { PPTXConstants } from '../core/constants.js';

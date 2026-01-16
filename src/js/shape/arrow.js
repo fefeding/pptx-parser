@@ -1,4 +1,4 @@
-    import { PPTXUtils } from '../utils/utils.js';
+    import { PPTXUtils } from '../core/utils.js';
     const PPTXArrowShapes = {};
 
     // 右箭头

@@ -1,4 +1,4 @@
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils } from './utils.js';
 function getFillType(node) {
     //Need to test/////////////////////////////////////////////
     //SOLID_FILL

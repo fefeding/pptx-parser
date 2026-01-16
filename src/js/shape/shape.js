@@ -1,5 +1,5 @@
     // Initialize PPTXShapeUtils object if it doesn't exist
-import { PPTXUtils } from '../utils/utils.js';
+import { PPTXUtils } from '../core/utils.js';
 
 function shapePie(H, w, adj1, adj2, isClose) {
     var pieVal = parseInt(adj2);
