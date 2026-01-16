@@ -1,239 +1,492 @@
+/**
+ * XML Parser - A lightweight XML parser for PPTX parsing
+ * Based on tXml library
+ */
 
-var _order = 1;
-function tXml(t, r) {
+var elementOrder = 1;
+
+/**
+ * Main XML parsing function
+ * @param {string} xmlString - The XML string to parse
+ * @param {Object} options - Parsing options
+ * @returns {Array|Object} Parsed XML structure
+ */
+function tXml(xmlString, options) {
     "use strict";
-    function e() {
-        for (var r = []; t[l]; )
-            if (t.charCodeAt(l) == s) {
-                if (t.charCodeAt(l + 1) === h)
-                    return l = t.indexOf(u, l),
-                    l + 1 && (l += 1),
-                    r;
-                if (t.charCodeAt(l + 1) === v) {
-                    if (t.charCodeAt(l + 2) == m) {
-                        for (; -1 !== l && (t.charCodeAt(l) !== d || t.charCodeAt(l - 1) != m || t.charCodeAt(l - 2) != m || -1 == l); )
-                            l = t.indexOf(u, l + 1);
-                        -1 === l && (l = t.length)
-                    } else
-                        for (l += 2; t.charCodeAt(l) !== d && t[l]; )
-                            l++;
-                    l++;
-                    continue
+
+    /**
+     * Parse children nodes from current position
+     */
+    function parseChildren() {
+        var children = [];
+        while (xmlString[position]) {
+            if (xmlString.charCodeAt(position) === lessThanCode) {
+                // Check for closing tag
+                if (xmlString.charCodeAt(position + 1) === slashCode) {
+                    position = xmlString.indexOf(greaterThanChar, position);
+                    if (position + 1) {
+                        position += 1;
+                    }
+                    return children;
                 }
-                var e = a();
-                r.push(e)
+
+                // Check for special tags (comments, CDATA, DOCTYPE)
+                if (xmlString.charCodeAt(position + 1) === exclamationCode) {
+                    if (xmlString.charCodeAt(position + 2) === dashCode) {
+                        // Parse comment: <!-- ... -->
+                        while (-1 !== position && 
+                               !(xmlString.charCodeAt(position) === greaterThanCode &&
+                                 xmlString.charCodeAt(position - 1) === dashCode &&
+                                 xmlString.charCodeAt(position - 2) === dashCode) &&
+                                 position !== -1) {
+                            position = xmlString.indexOf(greaterThanChar, position + 1);
+                        }
+                        if (position === -1) {
+                            position = xmlString.length;
+                        }
+                    } else {
+                        // Parse special content like <![CDATA[...]]> or <!DOCTYPE...>
+                        position += 2;
+                        while (xmlString.charCodeAt(position) !== greaterThanCode && xmlString[position]) {
+                            position++;
+                        }
+                    }
+                    position++;
+                    continue;
+                }
+
+                // Parse regular node
+                var node = parseNode();
+                children.push(node);
             } else {
-                var i = n();
-                i.trim().length > 0 && r.push(i),
-                l++
+                // Parse text content
+                var text = parseTextContent();
+                if (text.trim().length > 0) {
+                    children.push(text);
+                }
+                position++;
             }
-        return r
-    }
-    function n() {
-        var r = l;
-        return l = t.indexOf(c, l) - 1,
-        -2 === l && (l = t.length),
-        t.slice(r, l + 1)
-    }
-    function i() {
-        for (var r = l; -1 === A.indexOf(t[l]) && t[l]; )
-            l++;
-        return t.slice(r, l)
-    }
-    function a() {
-        var r = {};
-        l++,
-        r.tagName = i();
-        for (var n = !1; t.charCodeAt(l) !== d && t[l]; ) {
-            var a = t.charCodeAt(l);
-            if (a > 64 && 91 > a || a > 96 && 123 > a) {
-                for (var f = i(), c = t.charCodeAt(l); c && c !== p && c !== g && !(c > 64 && 91 > c || c > 96 && 123 > c) && c !== d; )
-                    l++,
-                    c = t.charCodeAt(l);
-                if (n || (r.attributes = {},
-                n = !0),
-                c === p || c === g) {
-                    var s = o();
-                    if (-1 === l)
-                        return r
-                } else
-                    s = null,
-                    l--;
-                r.attributes[f] = s
-            }
-            l++
         }
-        if (t.charCodeAt(l - 1) !== h)
-            if ("script" == r.tagName) {
-                var u = l + 1;
-                l = t.indexOf("</script>", l),
-                r.children = [t.slice(u, l - 1)],
-                l += 8
-            } else if ("style" == r.tagName) {
-                var u = l + 1;
-                l = t.indexOf("</style>", l),
-                r.children = [t.slice(u, l - 1)],
-                l += 7
-            } else
-                -1 == C.indexOf(r.tagName) && (l++,
-                r.children = e(f));
-        else
-            l++;
-        return r
+        return children;
     }
-    function o() {
-        var r = t[l]
-          , e = ++l;
-        return l = t.indexOf(r, e),
-        t.slice(e, l)
+
+    /**
+     * Parse text content between tags
+     */
+    function parseTextContent() {
+        var start = position;
+        position = xmlString.indexOf(lessThanChar, position) - 1;
+        if (position === -2) {
+            position = xmlString.length;
+        }
+        return xmlString.slice(start, position + 1);
     }
-    function f() {
-        var e = new RegExp("\\s" + r.attrName + "\\s*=['\"]" + r.attrValue + "['\"]").exec(t);
-        return e ? e.index : -1
+
+    /**
+     * Parse tag name from current position
+     */
+    function parseTagName() {
+        var start = position;
+        while (delimiterChars.indexOf(xmlString[position]) === -1 && xmlString[position]) {
+            position++;
+        }
+        return xmlString.slice(start, position);
     }
-    r = r || {};
-    var l = r.pos || 0
-      , c = "<"
-      , s = "<".charCodeAt(0)
-      , u = ">"
-      , d = ">".charCodeAt(0)
-      , m = "-".charCodeAt(0)
-      , h = "/".charCodeAt(0)
-      , v = "!".charCodeAt(0)
-      , p = "'".charCodeAt(0)
-      , g = '"'.charCodeAt(0)
-      , A = "\n\t>/= "
-      , C = ["img", "br", "input", "meta", "link"]
-      , y = null;
-    if (void 0 !== r.attrValue) {
-        r.attrName = r.attrName || "id";
-        for (var y = []; -1 !== (l = f()); )
-            l = t.lastIndexOf("<", l),
-            -1 !== l && y.push(a()),
-            t = t.substr(l),
-            l = 0
-    } else
-        y = r.parseNode ? a() : e();
-    return r.filter && (y = tXml.filter(y, r.filter)),
-    r.simplify && (y = tXml.simplify(y)),
-    y.pos = l,
-    y
+
+    /**
+     * Parse a single XML node (tag with attributes and children)
+     */
+    function parseNode() {
+        var node = {};
+        position++;
+        node.tagName = parseTagName();
+        var hasAttributes = false;
+
+        // Parse attributes
+        while (xmlString.charCodeAt(position) !== greaterThanCode && xmlString[position]) {
+            var charCode = xmlString.charCodeAt(position);
+            
+            // Check if this is an attribute name (letter)
+            if ((charCode > 64 && charCode < 91) || (charCode > 96 && charCode < 123)) {
+                var attrName = parseTagName();
+                var attrValue = null;
+                
+                // Skip to attribute value
+                var nextChar = xmlString.charCodeAt(position);
+                while (nextChar && 
+                       nextChar !== singleQuoteCode && 
+                       nextChar !== doubleQuoteCode && 
+                       !((nextChar > 64 && nextChar < 91) || (nextChar > 96 && nextChar < 123)) && 
+                       nextChar !== greaterThanCode) {
+                    position++;
+                    nextChar = xmlString.charCodeAt(position);
+                }
+
+                if (!hasAttributes) {
+                    node.attributes = {};
+                    hasAttributes = true;
+                }
+
+                // Parse quoted attribute value
+                if (nextChar === singleQuoteCode || nextChar === doubleQuoteCode) {
+                    attrValue = parseQuotedString();
+                    if (position === -1) {
+                        return node;
+                    }
+                } else {
+                    attrValue = null;
+                    position--;
+                }
+
+                node.attributes[attrName] = attrValue;
+            }
+            position++;
+        }
+
+        // Parse children or self-closing tag
+        if (xmlString.charCodeAt(position - 1) !== slashCode) {
+            // Check for special tags with raw content
+            if (node.tagName === "script") {
+                var contentStart = position + 1;
+                position = xmlString.indexOf("</script>", position);
+                node.children = [xmlString.slice(contentStart, position - 1)];
+                position += 8;
+            } else if (node.tagName === "style") {
+                var contentStart = position + 1;
+                position = xmlString.indexOf("</style>", position);
+                node.children = [xmlString.slice(contentStart, position - 1)];
+                position += 7;
+            } else if (voidTags.indexOf(node.tagName) === -1) {
+                // Regular tag with children
+                position++;
+                node.children = parseChildren();
+            }
+        } else {
+            // Self-closing tag
+            position++;
+        }
+
+        return node;
+    }
+
+    /**
+     * Parse a quoted string (attribute value)
+     */
+    function parseQuotedString() {
+        var quoteChar = xmlString[position];
+        var startPosition = ++position;
+        position = xmlString.indexOf(quoteChar, startPosition);
+        return xmlString.slice(startPosition, position);
+    }
+
+    /**
+     * Find attribute position in XML string (for attribute filtering)
+     */
+    function findAttributePosition() {
+        var pattern = new RegExp("\\s" + options.attrName + "\\s*=['\"]" + options.attrValue + "['\"]");
+        var match = pattern.exec(xmlString);
+        return match ? match.index : -1;
+    }
+
+    // Initialize variables
+    options = options || {};
+    var position = options.pos || 0;
+    
+    // Character codes for common XML characters
+    var lessThanChar = "<";
+    var lessThanCode = "<".charCodeAt(0);
+    var greaterThanChar = ">";
+    var greaterThanCode = ">".charCodeAt(0);
+    var dashCode = "-".charCodeAt(0);
+    var slashCode = "/".charCodeAt(0);
+    var exclamationCode = "!".charCodeAt(0);
+    var singleQuoteCode = "'".charCodeAt(0);
+    var doubleQuoteCode = '"'.charCodeAt(0);
+    var delimiterChars = "\n\t>/= ";
+    
+    // Tags that don't have children (void elements)
+    var voidTags = ["img", "br", "input", "meta", "link"];
+    
+    var result = null;
+
+    // If filtering by attribute value
+    if (options.attrValue !== undefined) {
+        options.attrName = options.attrName || "id";
+        result = [];
+        while (-1 !== (position = findAttributePosition())) {
+            position = xmlString.lastIndexOf("<", position);
+            if (position !== -1) {
+                result.push(parseNode());
+                xmlString = xmlString.substring(position);
+                position = 0;
+            }
+        }
+    } else {
+        // Parse all nodes or a single node
+        result = options.parseNode ? parseNode() : parseChildren();
+    }
+
+    // Apply filter if specified
+    if (options.filter) {
+        result = tXml.filter(result, options.filter);
+    }
+
+    // Apply simplify if specified
+    if (options.simplify) {
+        result = tXml.simplify(result);
+    }
+
+    result.pos = position;
+    return result;
 }
 
-tXml.simplify = function(t) {
-    var r = {};
-    if (void 0 === t)
+/**
+ * Simplify parsed XML structure to a more user-friendly format
+ * @param {Array} nodes - Array of parsed nodes
+ * @returns {Object} Simplified structure
+ */
+tXml.simplify = function(nodes) {
+    var simplified = {};
+    
+    if (nodes === undefined) {
         return {};
-    if (1 === t.length && "string" == typeof t[0])
-        return t[0];
-    t.forEach(function(t) {
-        if ("object" == typeof t) {
-            r[t.tagName] || (r[t.tagName] = []);
-            var e = tXml.simplify(t.children || []);
-            r[t.tagName].push(e),
-            t.attributes && (e.attrs = t.attributes),
-            void 0 === e.attrs ? e.attrs = {
-                order: _order
-            } : e.attrs.order = _order,
-            _order++
+    }
+    
+    // If single text node, return the text
+    if (nodes.length === 1 && typeof nodes[0] === "string") {
+        return nodes[0];
+    }
+
+    // Process each node
+    nodes.forEach(function(node) {
+        if (typeof node === "object") {
+            // Create array for this tag name
+            if (!simplified[node.tagName]) {
+                simplified[node.tagName] = [];
+            }
+
+            // Recursively simplify children
+            var simplifiedNode = tXml.simplify(node.children || []);
+            simplified[node.tagName].push(simplifiedNode);
+
+            // Add attributes
+            if (node.attributes) {
+                simplifiedNode.attrs = node.attributes;
+            }
+
+            // Add order attribute
+            if (simplifiedNode.attrs === undefined) {
+                simplifiedNode.attrs = {
+                    order: elementOrder
+                };
+            } else {
+                simplifiedNode.attrs.order = elementOrder;
+            }
+            elementOrder++;
         }
     });
-    for (var e in r)
-        1 == r[e].length && (r[e] = r[e][0]);
-    return r
-};
-tXml.filter = function(t, r) {
-    var e = [];
-    return t.forEach(function(t) {
-        if ("object" == typeof t && r(t) && e.push(t),
-        t.children) {
-            var n = tXml.filter(t.children, r);
-            e = e.concat(n)
+
+    // Unwrap single-element arrays
+    for (var tagName in simplified) {
+        if (simplified[tagName].length === 1) {
+            simplified[tagName] = simplified[tagName][0];
         }
-    }),
-    e
-};
-tXml.stringify = function(t) {
-    function r(t) {
-        if (t)
-            for (var r = 0; r < t.length; r++)
-                "string" == typeof t[r] ? n += t[r].trim() : e(t[r])
     }
-    function e(t) {
-        n += "<" + t.tagName;
-        for (var e in t.attributes)
-            n += null === t.attributes[e] ? " " + e : -1 === t.attributes[e].indexOf('"') ? " " + e + '="' + t.attributes[e].trim() + '"' : " " + e + "='" + t.attributes[e].trim() + "'";
-        n += ">",
-        r(t.children),
-        n += "</" + t.tagName + ">"
-    }
-    var n = "";
-    return r(t),
-    n
-};
-tXml.toContentString = function(t) {
-    if (Array.isArray(t)) {
-        var r = "";
-        return t.forEach(function(t) {
-            r += " " + tXml.toContentString(t),
-            r = r.trim()
-        }),
-        r
-    }
-    return "object" == typeof t ? tXml.toContentString(t.children) : " " + t
-};
-tXml.getElementById = function(t, r, e) {
-    var n = tXml(t, {
-        attrValue: r,
-        simplify: e
-    });
-    return e ? n : n[0]
-};
-tXml.getElementsByClassName = function(t, r, e) {
-    return tXml(t, {
-        attrName: "class",
-        attrValue: "[a-zA-Z0-9-s ]*" + r + "[a-zA-Z0-9-s ]*",
-        simplify: e
-    })
-};
-tXml.parseStream = function(t, r) {
-    if ("function" == typeof r && (cb = r,
-    r = 0),
-    "string" == typeof r && (r = r.length + 2),
-    "string" == typeof t) {
-        var e = require("fs");
-        t = e.createReadStream(t, {
-            start: r
-        }),
-        r = 0
-    }
-    var n = r
-      , i = ""
-      , a = 0;
-    return t.on("data", function(r) {
-        a++,
-        i += r;
-        for (var e = 0; ; ) {
-            n = i.indexOf("<", n) + 1;
-            var o = tXml(i, {
-                pos: n,
-                parseNode: !0
-            });
-            if (n = o.pos,
-            n > i.length - 1 || e > n)
-                return void (e && (i = i.slice(e),
-                n = 0,
-                e = 0));
-            t.emit("xml", o),
-            e = n
-        }
-        i = i.slice(n),
-        n = 0
-    }),
-    t.on("end", function() {
-        console.log("end")
-    }),
-    t
+
+    return simplified;
 };
 
-"object" == typeof module && (module.exports = tXml);
+/**
+ * Filter nodes by predicate function
+ * @param {Array} nodes - Array of nodes to filter
+ * @param {Function} predicate - Filter predicate function
+ * @returns {Array} Filtered nodes
+ */
+tXml.filter = function(nodes, predicate) {
+    var filtered = [];
+    
+    nodes.forEach(function(node) {
+        if (typeof node === "object" && predicate(node)) {
+            filtered.push(node);
+        }
+        if (node.children) {
+            var childFiltered = tXml.filter(node.children, predicate);
+            filtered = filtered.concat(childFiltered);
+        }
+    });
+
+    return filtered;
+};
+
+/**
+ * Convert parsed XML structure back to XML string
+ * @param {Array} nodes - Array of parsed nodes
+ * @returns {string} XML string
+ */
+tXml.stringify = function(nodes) {
+    function processChildren(children) {
+        if (children) {
+            for (var i = 0; i < children.length; i++) {
+                if (typeof children[i] === "string") {
+                    xmlOutput += children[i].trim();
+                } else {
+                    processNode(children[i]);
+                }
+            }
+        }
+    }
+
+    function processNode(node) {
+        xmlOutput += "<" + node.tagName;
+        
+        for (var attrName in node.attributes) {
+            var attrValue = node.attributes[attrName];
+            if (attrValue === null) {
+                xmlOutput += " " + attrName;
+            } else if (attrValue.indexOf('"') === -1) {
+                xmlOutput += " " + attrName + '="' + attrValue.trim() + '"';
+            } else {
+                xmlOutput += " " + attrName + "='" + attrValue.trim() + "'";
+            }
+        }
+
+        xmlOutput += ">";
+        processChildren(node.children);
+        xmlOutput += "</" + node.tagName + ">";
+    }
+
+    var xmlOutput = "";
+    processChildren(nodes);
+    return xmlOutput;
+};
+
+/**
+ * Extract text content from parsed XML
+ * @param {Array|Object|string} nodes - Parsed XML structure
+ * @returns {string} Text content
+ */
+tXml.toContentString = function(nodes) {
+    if (Array.isArray(nodes)) {
+        var result = "";
+        nodes.forEach(function(node) {
+            result += " " + tXml.toContentString(node);
+            result = result.trim();
+        });
+        return result;
+    }
+    if (typeof nodes === "object") {
+        return tXml.toContentString(nodes.children);
+    }
+    return " " + nodes;
+};
+
+/**
+ * Get element by id attribute
+ * @param {string} xmlString - XML string
+ * @param {string} idValue - ID value to find
+ * @param {boolean} simplify - Whether to simplify result
+ * @returns {Object|Array} Found element
+ */
+tXml.getElementById = function(xmlString, idValue, simplify) {
+    var result = tXml(xmlString, {
+        attrValue: idValue,
+        simplify: simplify
+    });
+    return simplify ? result : result[0];
+};
+
+/**
+ * Get elements by class name
+ * @param {string} xmlString - XML string
+ * @param {string} className - Class name to find
+ * @param {boolean} simplify - Whether to simplify result
+ * @returns {Array} Found elements
+ */
+tXml.getElementsByClassName = function(xmlString, className, simplify) {
+    return tXml(xmlString, {
+        attrName: "class",
+        attrValue: "[a-zA-Z0-9-s ]*" + className + "[a-zA-Z0-9-s ]*",
+        simplify: simplify
+    });
+};
+
+/**
+ * Parse XML stream (Node.js only)
+ * @param {Stream} stream - Readable stream
+ * @param {number|string} position - Start position
+ * @returns {Stream} The stream for chaining
+ */
+tXml.parseStream = function(stream, position) {
+    var callback;
+    
+    if (typeof position === "function") {
+        callback = position;
+        position = 0;
+    }
+    
+    if (typeof position === "string") {
+        position = position.length + 2;
+    }
+
+    if (typeof stream === "string") {
+        var fs = require("fs");
+        stream = fs.createReadStream(stream, {
+            start: position
+        });
+        position = 0;
+    }
+
+    var currentPosition = position;
+    var buffer = "";
+    var eventPos = 0;
+
+    stream.on("data", function(data) {
+        eventPos++;
+        buffer += data;
+
+        for (;;) {
+            currentPosition = buffer.indexOf("<", currentPosition) + 1;
+            var node = tXml(buffer, {
+                pos: currentPosition,
+                parseNode: true
+            });
+
+            currentPosition = node.pos;
+            
+            if (currentPosition > buffer.length - 1 || eventPos > currentPosition) {
+                if (eventPos) {
+                    buffer = buffer.slice(eventPos);
+                    currentPosition = 0;
+                    eventPos = 0;
+                }
+                return;
+            }
+
+            stream.emit("xml", node);
+            eventPos = currentPosition;
+        }
+
+        buffer = buffer.slice(currentPosition);
+        currentPosition = 0;
+    });
+
+    stream.on("end", function() {
+        console.log("end");
+    });
+
+    return stream;
+};
+
+/**
+ * Reset element order counter
+ * Useful for testing when you need to start fresh
+ */
+tXml.resetOrder = function() {
+    elementOrder = 1;
+};
+
+// Export for Node.js environment
+if (typeof module !== "undefined") {
+    module.exports = tXml;
+}
+
