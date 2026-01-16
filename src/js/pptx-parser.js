@@ -481,7 +481,7 @@
 
         var diagramResObj = {};
         var digramFileContent = {};
-        if (diagramFilename !== undefined) {
+        if (diagramFilename) {
             var diagName = diagramFilename.split("/").pop();
             var diagramResFileName = diagramFilename.replace(diagName, "_rels/" + diagName) + ".rels";
             digramFileContent = PPTXParser.readXmlFile(zip, diagramFilename);
