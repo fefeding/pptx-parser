@@ -16,7 +16,7 @@
 
 // Import dependencies
 import { PPTXConstants } from './core/pptx-constants.js';
-import { PPTXUtils } from './utils/utils.js';
+import { PPTXUtils, PPTXFileReader } from './utils/utils.js';
 import { PPTXParser } from './pptx-parser.js';
 import { PPTXHtml } from './pptx-html.js';
 import { PPTXStyleManager } from './core/pptx-style-manager.js';
@@ -200,7 +200,7 @@ import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
                 }
             });
         }
-        FileReaderJS.setSync(false);
+        PPTXFileReader.setSync(false);
         if (settings.pptxFileUrl != "") {
             try{
                 JSZipUtils.getBinaryContent(settings.pptxFileUrl, function (err, content) {
@@ -209,12 +209,10 @@ import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
                     var fArry = file_name.split(".");
                     fArry.pop();
                     blob.name = fArry[0];
-                    FileReaderJS.setupBlob(blob, {
-                        readAsDefault: "ArrayBuffer",
+                    PPTXFileReader.setupBlob(blob, {
                         on: {
-                            load: function (e, file) {
-                                //console.log(e.target.result);
-                                convertToHtml(e.target.result);
+                            load: function (arrayBuffer) {
+                                convertToHtml(arrayBuffer);
                             }
                         }
                     });
@@ -234,12 +232,10 @@ import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
                 //var fileSize = file[0].size;
                 var fileType = file.type;
                 if (fileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
-                    FileReaderJS.setupBlob(file, {
-                        readAsDefault: "ArrayBuffer",
+                    PPTXFileReader.setupBlob(file, {
                         on: {
-                            load: function (e, file) {
-                                //console.log(e.target.result);
-                                convertToHtml(e.target.result);
+                            load: function (arrayBuffer) {
+                                convertToHtml(arrayBuffer);
                             }
                         }
                     });

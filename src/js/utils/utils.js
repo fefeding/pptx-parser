@@ -521,3 +521,158 @@ const PPTXUtils = {
 
 
 export { PPTXUtils };
+
+// ============================================================================
+// 文件读写工具函数 (File Reader Utils)
+// ============================================================================
+
+/**
+ * 读取 File 或 Blob 对象为 ArrayBuffer
+ * @param {File|Blob} file - File 或 Blob 对象
+ * @param {Function} onLoad - 加载成功回调，参数为 ArrayBuffer
+ * @param {Function} onError - 加载失败回调，参数为 Error 对象
+ */
+export function readAsArrayBuffer(file, onLoad, onError) {
+    var reader = new FileReader();
+    reader.onload = function(event) {
+        if (onLoad) {
+            onLoad(event.target.result);
+        }
+    };
+    reader.onerror = function(event) {
+        if (onError) {
+            onError(new Error("Failed to read file: " + event.target.error));
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+/**
+ * 读取 File 或 Blob 对象为 Text
+ * @param {File|Blob} file - File 或 Blob 对象
+ * @param {Function} onLoad - 加载成功回调，参数为文本内容
+ * @param {Function} onError - 加载失败回调，参数为 Error 对象
+ */
+export function readAsText(file, onLoad, onError) {
+    var reader = new FileReader();
+    reader.onload = function(event) {
+        if (onLoad) {
+            onLoad(event.target.result);
+        }
+    };
+    reader.onerror = function(event) {
+        if (onError) {
+            onError(new Error("Failed to read file: " + event.target.error));
+        }
+    };
+    reader.readAsText(file);
+}
+
+/**
+ * 读取 File 或 Blob 对象为 DataURL (Base64)
+ * @param {File|Blob} file - File 或 Blob 对象
+ * @param {Function} onLoad - 加载成功回调，参数为 DataURL 字符串
+ * @param {Function} onError - 加载失败回调，参数为 Error 对象
+ */
+export function readAsDataURL(file, onLoad, onError) {
+    var reader = new FileReader();
+    reader.onload = function(event) {
+        if (onLoad) {
+            onLoad(event.target.result);
+        }
+    };
+    reader.onerror = function(event) {
+        if (onError) {
+            onError(new Error("Failed to read file: " + event.target.error));
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+/**
+ * 读取 File 或 Blob 对象为 ArrayBuffer (Promise 版本)
+ * @param {File|Blob} file - File 或 Blob 对象
+ * @returns {Promise<ArrayBuffer>} Promise 对象
+ */
+export function readAsArrayBufferAsync(file) {
+    return new Promise(function(resolve, reject) {
+        readAsArrayBuffer(file, resolve, reject);
+    });
+}
+
+/**
+ * 读取 File 或 Blob 对象为 Text (Promise 版本)
+ * @param {File|Blob} file - File 或 Blob 对象
+ * @returns {Promise<string>} Promise 对象
+ */
+export function readAsTextAsync(file) {
+    return new Promise(function(resolve, reject) {
+        readAsText(file, resolve, reject);
+    });
+}
+
+/**
+ * 读取 File 或 Blob 对象为 DataURL (Promise 版本)
+ * @param {File|Blob} file - File 或 Blob 对象
+ * @returns {Promise<string>} Promise 对象
+ */
+export function readAsDataURLAsync(file) {
+    return new Promise(function(resolve, reject) {
+        readAsDataURL(file, resolve, reject);
+    });
+}
+
+/**
+ * File Reader 工具对象 (兼容旧的 FileReaderJS 接口)
+ */
+export var PPTXFileReader = {
+    /**
+     * 设置文件读取为 ArrayBuffer
+     * @param {File|Blob} file - 文件对象
+     * @param {Object} options - 配置选项
+     * @param {Function} options.on.load - 加载成功回调
+     * @param {Function} options.on.error - 加载失败回调
+     */
+    setupBlob: function(file, options) {
+        if (!file) return;
+
+        options = options || {};
+        var onCallbacks = options.on || {};
+
+        readAsArrayBuffer(file, onCallbacks.load, onCallbacks.error);
+    },
+
+    /**
+     * 设置文件读取为 Text
+     * @param {File|Blob} file - 文件对象
+     * @param {Object} options - 配置选项
+     * @param {Function} options.on.load - 加载成功回调
+     * @param {Function} options.on.error - 加载失败回调
+     */
+    setupBlobAsText: function(file, options) {
+        if (!file) return;
+
+        options = options || {};
+        var onCallbacks = options.on || {};
+
+        readAsText(file, onCallbacks.load, onCallbacks.error);
+    },
+
+    /**
+     * 设置同步模式 (兼容接口，当前不支持)
+     * @param {boolean} value - 是否同步模式
+     */
+    setSync: function(value) {
+        // 当前实现不支持同步模式
+        console.warn("PPTXFileReader: Sync mode is not supported");
+    },
+
+    /**
+     * 获取同步模式状态 (兼容接口)
+     * @returns {boolean} 始终返回 false
+     */
+    getSync: function() {
+        return false;
+    }
+};
+
