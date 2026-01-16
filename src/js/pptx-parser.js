@@ -2,8 +2,8 @@
 
     import { PPTXConstants } from './core/pptx-constants.js';
     import { PPTXUtils } from './utils/utils.js';
+  
     import { PPTXColorUtils } from './core/pptx-color-utils.js';
-
     // 全局变量，将在初始化时设置
     var app_verssion;
     var defaultTextStyle = null;

@@ -1,3 +1,5 @@
+
+var _order = 1;
 function tXml(t, r) {
     "use strict";
     function e() {
@@ -117,7 +119,7 @@ function tXml(t, r) {
     y.pos = l,
     y
 }
-var _order = 1;
+
 tXml.simplify = function(t) {
     var r = {};
     if (void 0 === t)
