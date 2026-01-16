@@ -273,7 +273,7 @@ import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
                 getSlideBackgroundFill: getSlideBackgroundFill
             });
 
-            var rslt_ary = processPPTX(zip);
+            var rslt_ary = PPTXParser.processPPTX(zip);
             //s = readXmlFile(zip, 'ppt/tableStyles.xml');
             //var slidesHeight = $("#" + divId + " .slide").height();
             for (var i = 0; i < rslt_ary.length; i++) {
@@ -421,11 +421,6 @@ import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
             }
             // Update wrapper height for normal mode
             PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
-        }
-
-        function processPPTX(zip) {
-            // 使用 PPTXParser 模块处理 PPTX 解析
-            return PPTXParser.processPPTX(zip);
         }
 
         // Process single slide function moved to PPTXParser module

@@ -13,7 +13,6 @@ var elementOrder = 1;
  */
 function parseXml(xmlString, options) {
     "use strict";
-    console.log('[XML-PARSER] parseXml called with xml length:', xmlString.length, 'options:', options);
 
     /**
      * Parse children nodes from current position
@@ -284,6 +283,7 @@ parseXml.simplify = function(nodes) {
                 simplifiedNode.attrs.order = elementOrder;
             }
             elementOrder++;
+            console.log(elementOrder);
         }
     });
 

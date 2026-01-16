@@ -54,6 +54,8 @@
         var post_ary = [];
         var dateBefore = new Date();
 
+        parseXml.resetOrder();
+
         if (zip.file("docProps/thumbnail.jpeg") !== null) {
             var pptxThumbImg = PPTXUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
             post_ary.push({
@@ -152,10 +154,9 @@
                 //remove "<![CDATA[ ... ]]>" tag
                 fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
             }
-            console.log("[DEBUG] parseXml function exists?", typeof parseXml, parseXml);
-            console.log("[DEBUG] fileContent length:", fileContent.length, "first 200 chars:", fileContent.substring(0, 200));
+            
             var xmlData = parseXml(fileContent, { simplify: 1 });
-            console.log("[DEBUG] Parsed XML for", filename, ":", xmlData);
+           
             if (xmlData["?xml"] !== undefined) {
                 return xmlData["?xml"];
             } else {
