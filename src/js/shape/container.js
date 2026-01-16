@@ -46,7 +46,7 @@ function getShapeTransformParams(node) {
     // 辅助函数：生成 SVG 容器开标签
 function getSvgContainerStart(shpId, id, idx, type, name, w, h, svgCssName, effectsClassName, rotate, flip, order, slideXfrmNode, pNode, getPosition, getSize, sType) {
     var result = "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
-        "' style='" +
+        " style='" +
         getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
         getSize(slideXfrmNode, undefined, undefined) +
         " z-index: " + order + ";" +

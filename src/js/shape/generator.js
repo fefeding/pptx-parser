@@ -70,7 +70,7 @@ import { PPTXMathShapes } from './math.js';
                 //console.log("name:", name, "svgCssName: ", svgCssName)
                 var effectsClassName = svgCssName + "_effects";
                 result += "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
-                    "' style='" +
+                    " style='" +
                    PPTXUtils.getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
                     PPTXUtils.getSize(slideXfrmNode, undefined, undefined) +
                     " z-index: " + order + ";" +

@@ -134,19 +134,8 @@
             console.log("About to insert HTML, total length:", result.html.length);
             console.log("Number of slide divs:", (result.html.match(/class='slide'/g) || []).length);
 
-            // 清空 resultDiv
-            resultDiv.innerHTML = '';
-
-            // 逐个插入 slide,而不是一次性插入所有 HTML
-            var tempDiv = document.createElement('div');
-            tempDiv.innerHTML = result.html;
-            var slides = tempDiv.querySelectorAll('.slide');
-            console.log("Found", slides.length, "slides in tempDiv");
-
-            slides.forEach(function(slide, index) {
-                console.log("Inserting slide", index, "with data-slide-index:", slide.getAttribute('data-slide-index'));
-                resultDiv.appendChild(slide);
-            });
+            // 直接渲染整个 HTML，避免逐页处理可能导致的拼接异常
+            resultDiv.innerHTML = result.html;
 
             const style = document.createElement('style');
             style.textContent = result.css;
