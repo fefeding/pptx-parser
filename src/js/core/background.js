@@ -1,5 +1,5 @@
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXColorUtils } from './pptx-color-utils.js';
+import { PPTXColorUtils } from './color.js';
 var PPTXBackgroundUtils = {};
     /**
  * 获取幻灯片背景

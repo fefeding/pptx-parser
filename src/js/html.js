@@ -2,9 +2,9 @@
 
     // 全局变量引用
     import { PPTXUtils } from './utils/utils.js';
-    import { PPTXColorUtils } from './core/pptx-color-utils.js';
-    import { PPTXParser } from './pptx-parser.js';
-    import { PPTXTableUtils } from './table/pptx-table-utils.js';
+    import { PPTXColorUtils } from './core/color.js';
+    import { PPTXParser } from './parser.js';
+    import { PPTXTableUtils } from './table/table.js';
     var settings = {}; // 配置将由 configure 方法设置
     // var PPTXParser = window.PPTXParser; // 从 PPTXParser 获取变量 - Removed for ES modules
 

@@ -1,5 +1,5 @@
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXColorUtils } from '../core/color.js';
 
     /**
  * 提取形状的基本几何属性和变换信息

@@ -1,10 +1,10 @@
 
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
-import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js';
-import { PPTXBulletUtils } from './pptx-bullet-utils.js';
-import { PPTXConstants } from '../core/pptx-constants.js';
-import { PPTXTextStyleUtils } from './pptx-text-style-utils.js';
+import { PPTXColorUtils } from '../core/color.js';
+import { PPTXLayoutUtils } from '../core/layout.js';
+import { PPTXBulletUtils } from './bullet.js';
+import { PPTXConstants } from '../core/constants.js';
+import { PPTXTextStyleUtils } from './style.js';
 
 class PPTXTextElementUtils {
     /**

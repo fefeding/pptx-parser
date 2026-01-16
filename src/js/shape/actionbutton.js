@@ -1,4 +1,4 @@
-    import { PPTXShapeUtils } from './pptx-shape-utils.js';
+    import { PPTXShapeUtils } from './shape.js';
     // 辅助函数：生成操作按钮的基础矩形
 function getActionButtonRect(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
     var fillAttr = imgFillFlg ? "url(#imgPtrn_" + shpId + ")" : (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor);

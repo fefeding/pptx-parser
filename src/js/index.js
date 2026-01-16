@@ -15,34 +15,34 @@
 
 
 // Import dependencies
-import { PPTXConstants } from './core/pptx-constants.js';
+import { PPTXConstants } from './core/constants.js';
 import { PPTXUtils, PPTXFileReader } from './utils/utils.js';
-import { PPTXParser } from './pptx-parser.js';
-import { PPTXHtml } from './pptx-html.js';
-import { PPTXStyleManager } from './core/pptx-style-manager.js';
-import { PPTXShapeUtils } from './shape/pptx-shape-utils.js';
-import { PPTXShapePropertyExtractor } from './shape/pptx-shape-property-extractor.js';
-import { PPTXShapeFillsUtils } from './shape/pptx-shape-fills-utils.js'
-import { PPTXBasicShapes } from './shape/pptx-basic-shapes.js';
-import { PPTXNodeUtils } from './node/pptx-node-utils.js';
-import { PPTXBackgroundUtils } from './core/pptx-background-utils.js';
-import { PPTXImageUtils } from './image/pptx-image-utils.js';
-import { PPTXDiagramUtils } from './diagram/pptx-diagram-utils.js';
-import { TextUtils } from './text/text-utils.js';
-import { PPTXUIUtils } from './ui/pptx-ui-utils.js';
-import { PPTXCSSUtils } from './core/pptx-css-utils.js';
-import { PPTXColorUtils } from './core/pptx-color-utils.js';
-import { PPTXTableUtils } from './table/pptx-table-utils.js';
-import { PPTXTextStyleUtils } from './text/pptx-text-style-utils.js';
-import { PPTXTextElementUtils } from './text/pptx-text-element-utils.js';
-import { PPTXShapeContainer } from './shape/pptx-shape-container.js';
-import { PPTXStarShapes } from './shape/pptx-star-shapes.js';
-import { PPTXCalloutShapes } from './shape/pptx-callout-shapes.js';
-import { PPTXArrowShapes } from './shape/pptx-arrow-shapes.js';
-import { PPTXMathShapes } from './shape/pptx-math-shapes.js';
-import { initSlideMode as initSlideModeModule, exitSlideMode as exitSlideModeModule } from './ui/pptx-slide-mode.js';
-import { processSpNode as processSpNodeModule, processCxnSpNode as processCxnSpNodeModule } from './node/pptx-shape-node-processor.js';
-import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
+import { PPTXParser } from './parser.js';
+import { PPTXHtml } from './html.js';
+import { PPTXStyleManager } from './core/style-manager.js';
+import { PPTXShapeUtils } from './shape/shape.js';
+import { PPTXShapePropertyExtractor } from './shape/property-extractor.js';
+import { PPTXShapeFillsUtils } from './shape/fills.js'
+import { PPTXBasicShapes } from './shape/basic.js';
+import { PPTXNodeUtils } from './node/node.js';
+import { PPTXBackgroundUtils } from './core/background.js';
+import { PPTXImageUtils } from './image/image.js';
+import { PPTXDiagramUtils } from './diagram/diagram.js';
+import { TextUtils } from './text/text.js';
+import { PPTXUIUtils } from './ui/ui.js';
+import { PPTXCSSUtils } from './core/css.js';
+import { PPTXColorUtils } from './core/color.js';
+import { PPTXTableUtils } from './table/table.js';
+import { PPTXTextStyleUtils } from './text/style.js';
+import { PPTXTextElementUtils } from './text/element.js';
+import { PPTXShapeContainer } from './shape/container.js';
+import { PPTXStarShapes } from './shape/star.js';
+import { PPTXCalloutShapes } from './shape/callout.js';
+import { PPTXArrowShapes } from './shape/arrow.js';
+import { PPTXMathShapes } from './shape/math.js';
+import { initSlideMode as initSlideModeModule, exitSlideMode as exitSlideModeModule } from './ui/slide-mode.js';
+import { processSpNode as processSpNodeModule, processCxnSpNode as processCxnSpNodeModule } from './node/shape-node-processor.js';
+import { genShape as genShapeModule } from './shape/generator.js';
 
 
         //var slideLayoutClrOvride = "";

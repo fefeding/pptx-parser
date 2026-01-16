@@ -1,4 +1,4 @@
-    import { PPTXShapeUtils } from './pptx-shape-utils.js';
+    import { PPTXShapeUtils } from './shape.js';
     // 流程图：收集
 function genFlowChartCollate(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
     var fillAttr = imgFillFlg ? "url(#imgPtrn_" + shpId + ")" : (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor);

@@ -1,9 +1,9 @@
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
-import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js';
-import { PPTXConstants } from '../core/pptx-constants.js';
-import { PPTXTextStyleUtils } from './pptx-text-style-utils.js';
-import { TextUtils } from './text-utils.js';
+import { PPTXColorUtils } from '../core/color.js';
+import { PPTXLayoutUtils } from '../core/layout.js';
+import { PPTXConstants } from '../core/constants.js';
+import { PPTXTextStyleUtils } from './style.js';
+import { TextUtils } from './text.js';
 
 const slideFactor = PPTXConstants.SLIDE_FACTOR;
 

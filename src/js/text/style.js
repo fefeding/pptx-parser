@@ -1,9 +1,9 @@
-import { PPTXConstants } from '../core/pptx-constants.js';
+import { PPTXConstants } from '../core/constants.js';
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXShapeFillsUtils } from '../shape/pptx-shape-fills-utils.js';
-import { PPTXLayoutUtils } from '../core/pptx-layout-utils.js';
-import { PPTXStyleManager } from '../core/pptx-style-manager.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
+import { PPTXShapeFillsUtils } from '../shape/fills.js';
+import { PPTXLayoutUtils } from '../core/layout.js';
+import { PPTXStyleManager } from '../core/style-manager.js';
+import { PPTXColorUtils } from '../core/color.js';
 
 class PPTXTextStyleUtils {
     static fontSizeFactor = PPTXConstants.FONT_SIZE_FACTOR;

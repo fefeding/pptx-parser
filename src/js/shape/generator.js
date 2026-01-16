@@ -7,22 +7,22 @@
  */
 
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXConstants } from '../core/pptx-constants.js'
-import { PPTXShapePropertyExtractor } from './pptx-shape-property-extractor.js';
-import { PPTXShapeFillsUtils } from './pptx-shape-fills-utils.js';
-import { PPTXStyleManager } from '../core/pptx-style-manager.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
-import { PPTXTextStyleUtils } from '../text/pptx-text-style-utils.js';
-import { PPTXTextElementUtils } from '../text/pptx-text-element-utils.js';
-import { PPTXBasicShapes } from './pptx-basic-shapes.js';
-import { PPTXStarShapes } from './pptx-star-shapes.js';
-import { PPTXFlowchartShapes } from './pptx-flowchart-shapes.js';
-import { PPTXActionButtonShapes } from './pptx-actionbutton-shapes.js';
-import { PPTXArrowShapes } from './pptx-arrow-shapes.js';
-import { PPTXCalloutShapes } from './pptx-callout-shapes.js';
-import { PPTXShapeContainer } from './pptx-shape-container.js';
-import { PPTXShapeUtils } from './pptx-shape-utils.js';
-import { PPTXMathShapes } from './pptx-math-shapes.js';
+import { PPTXConstants } from '../core/constants.js'
+import { PPTXShapePropertyExtractor } from './property-extractor.js';
+import { PPTXShapeFillsUtils } from './fills.js';
+import { PPTXStyleManager } from '../core/style-manager.js';
+import { PPTXColorUtils } from '../core/color.js';
+import { PPTXTextStyleUtils } from '../text/style.js';
+import { PPTXTextElementUtils } from '../text/element.js';
+import { PPTXBasicShapes } from './basic.js';
+import { PPTXStarShapes } from './star.js';
+import { PPTXFlowchartShapes } from './flowchart.js';
+import { PPTXActionButtonShapes } from './actionbutton.js';
+import { PPTXArrowShapes } from './arrow.js';
+import { PPTXCalloutShapes } from './callout.js';
+import { PPTXShapeContainer } from './container.js';
+import { PPTXShapeUtils } from './shape.js';
+import { PPTXMathShapes } from './math.js';
 
     var slideFactor = PPTXConstants.SLIDE_FACTOR;
 

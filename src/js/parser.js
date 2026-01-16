@@ -1,10 +1,10 @@
 
 
 
-    import { PPTXConstants } from './core/pptx-constants.js';
+    import { PPTXConstants } from './core/constants.js';
     import { PPTXUtils } from './utils/utils.js';
 
-    import { PPTXColorUtils } from './core/pptx-color-utils.js';
+    import { PPTXColorUtils } from './core/color.js';
     import parseXml from './utils/xml-parser.js';
 
     // 全局变量，将在初始化时设置

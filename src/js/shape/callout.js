@@ -1,5 +1,5 @@
     import { PPTXUtils } from '../utils/utils.js';
-    import { PPTXShapeUtils } from './pptx-shape-utils.js';
+    import { PPTXShapeUtils } from './shape.js';
     const PPTXCalloutShapes = {};
 
     // 楔形矩形标注

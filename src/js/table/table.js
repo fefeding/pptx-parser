@@ -1,9 +1,9 @@
 import { PPTXUtils } from '../utils/utils.js';
-import { PPTXShapeFillsUtils } from '../shape/pptx-shape-fills-utils.js';
-import { PPTXColorUtils } from '../core/pptx-color-utils.js';
-import { PPTXConstants } from '../core/pptx-constants.js';
-import { PPTXStyleManager } from '../core/pptx-style-manager.js';
-import { PPTXTextElementUtils } from '../text/pptx-text-element-utils.js';
+import { PPTXShapeFillsUtils } from '../shape/fills.js';
+import { PPTXColorUtils } from '../core/color.js';
+import { PPTXConstants } from '../core/constants.js';
+import { PPTXStyleManager } from '../core/style-manager.js';
+import { PPTXTextElementUtils } from '../text/element.js';
 
 class PPTXTableUtils {
     /**
