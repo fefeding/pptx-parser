@@ -536,10 +536,13 @@
             // Use callback if provided, otherwise use internal function
             if (typeof _getBackgroundCallback === 'function') {
                 bgResult = _getBackgroundCallback(warpObj, slideSize, index);
+                console.log("bgResult from callback (first 100 chars):", bgResult.substring(0, Math.min(100, bgResult.length)));
             } else {
                 bgResult = getBackground(warpObj, slideSize, index);
+                console.log("bgResult from internal (first 100 chars):", bgResult.substring(0, Math.min(100, bgResult.length)));
             }
         }
+        console.log("bgResult for slide", index, "length:", bgResult.length);
 
         var bgColor = "";
         if (processFullTheme == "colorsAndImageOnly") {
@@ -554,25 +557,33 @@
         if (settings.slideMode && settings.slideType == "revealjs") {
             var result = "<section class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
         } else {
-            var result = "<div class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
+            var result = "<div class='slide' data-slide-index='" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
         }
         result += bgResult;
+        console.log("After adding bgResult, result length:", result.length, "first 150 chars:", result.substring(0, 150));
         // Use callback for processNodesInSlide if provided
-        var processNodesFunc = _processNodesInSlideCallback || processNodesInSlide;
+        var processNodesFunc = _processNodesInSlideCallback;
+        if (!processNodesFunc) {
+            console.error("processNodesInSlide callback is not set! Cannot process nodes.");
+            return result + (settings.slideMode && settings.slideType == "revealjs" ? "</section>" : "</div>");
+        }
         for (var nodeKey in nodes) {
             if (nodes[nodeKey].constructor === Array) {
                 for (var i = 0; i < nodes[nodeKey].length; i++) {
-                    result += processNodesFunc(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide");
+                    var nodeResult = processNodesFunc(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide");
+                    result += nodeResult;
+                    console.log("Added node", nodeKey, "[", i, "], length:", nodeResult.length);
                 }
             } else {
-                result += processNodesFunc(nodeKey, nodes[nodeKey], nodes, warpObj, "slide");
+                var nodeResult = processNodesFunc(nodeKey, nodes[nodeKey], nodes, warpObj, "slide");
+                result += nodeResult;
+                console.log("Added node", nodeKey, ", length:", nodeResult.length);
             }
         }
-        if (settings.slideMode && settings.slideType == "revealjs") {
-            return result + "</div></section>";
-        } else {
-            return result + "</div></div>";
-        }
+        console.log("After processing nodes, result length:", result.length);
+        var finalResult = result + (settings.slideMode && settings.slideType == "revealjs" ? "</section>" : "</div>");
+        console.log("Final result for slide", index, ", last 100 chars:", finalResult.substring(Math.max(0, finalResult.length - 100)));
+        return finalResult;
     }
 
     // 公开 API

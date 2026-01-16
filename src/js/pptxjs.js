@@ -55,12 +55,9 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
         var app_verssion ;
 
 
-    // Main pptxToHtml function
-    function pptxToHtml(element, options) {
+    // Main pptxToHtml function - accepts File, Blob, or ArrayBuffer
+    function pptxToHtml(file, options) {
         //var worker;
-        var $result = typeof element === 'string' ? document.querySelector(element) : (element && element.jquery ? element[0] : element);
-        var divId = element.id || element.getAttribute("id");
-
         var isDone = false;
 
         var MsgQueue = new Array();
@@ -78,19 +75,18 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
 
         var slideFactor = PPTXConstants.SLIDE_FACTOR;
         var fontSizeFactor = PPTXConstants.FONT_SIZE_FACTOR;
-        ////////////////////// 
+        //////////////////////
         var slideWidth = 0;
     var slideHeight = 0;
     var isSlideMode = false;
-    
+
     // API object for external control
     var api = {
         get isSlideMode() { return isSlideMode; },
         set isSlideMode(value) { isSlideMode = value; },
-        initSlideMode: function() { initSlideMode(divId, settings); },
-        exitSlideMode: function() { exitSlideMode(divId); },
-        updateProgress: function(percent) { updateProgressBar(percent); },
-        removeLoading: function() { PPTXUIUtils.removeLoadingMessage(); }
+        initSlideMode: function() { initSlideMode(options.container, options); },
+        exitSlideMode: function() { exitSlideMode(options.container, options); },
+        updateProgress: function(percent) { updateProgressBar(percent); }
     };
 
     // 计算元素位置和尺寸 - 使用 PPTXUtils 中的函数
@@ -99,7 +95,7 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
 
     var processFullTheme = true;
         var styleTable = {};
-        
+
         // Deep extend function
         function deepExtend(destination) {
             for (var i = 1; i < arguments.length; i++) {
@@ -117,132 +113,25 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
             }
             return destination;
         }
-        
+
         var settings = deepExtend({
             // These are the defaults.
-            pptxFileUrl: "",
-            fileInputId: "",
             slidesScale: "", //Change Slides scale by percent
-            slideMode: false, /** true,false - enable slideshow mode */
-            slideType: "divs2slidesjs",  /*'divs2slidesjs' (default), 'revealjs' - slideshow engine */
-            revealjsPath: "./revealjs/reveal.js", /* path to reveal.js library */
             mediaProcess: true, /** true,false: if true then process video and audio files */
-            jsZipV2: false,
             themeProcess: true, /*true (default) , false, "colorsAndImageOnly"*/
             incSlide:{
                 width: 0,
                 height: 0
-            },
-            slideModeConfig: {
-                first: 1,
-                nav: true, /** true,false : show or not nav buttons*/
-                navTxtColor: "black", /** color */
-                keyBoardShortCut: true, /** true,false ,condition: */
-                showSlideNum: true, /** true,false */
-                showTotalSlideNum: true, /** true,false */
-                autoSlide: true, /** false or seconds , F8 to active ,keyBoardShortCut: true */
-                randomAutoSlide: false, /** true,false ,autoSlide:true */
-                loop: false,  /** true,false */
-                background: false, /** false or color*/
-                transition: "default", /** transition type: "slid","fade","default","random" , to show transition efects :transitionTime > 0.5 */
-                transitionTime: 1 /** transition time between slides in seconds */
-            },
-            revealjsConfig: {}
+            }
         }, options);
 
         processFullTheme = settings.themeProcess;
 
-        var container = document.getElementById(divId);
-        if (Array.isArray(container)) {
-            container = container[0];
-        }
-            if (container) {
-            var loadingMsg = document.createElement("div");
-            loadingMsg.className = "slides-loadnig-msg";
-            loadingMsg.style.display = "block";
-            loadingMsg.style.width = "100%";
-            loadingMsg.style.color = "white";
-            loadingMsg.style.backgroundColor = "#ddd";
-
-            var progressBar = document.createElement("div");
-            progressBar.className = "slides-loading-progress-bar";
-            progressBar.style.width = "1%";
-            progressBar.style.backgroundColor = "#4775d1";
-            progressBar.innerHTML = "<span style='text-align: center;'>Loading... (1%)</span>";
-
-            loadingMsg.appendChild(progressBar);
-            container.prepend(loadingMsg);
-        } else {
-            console.warn("Container not found for loading message");
-        }
-
-        // 动态加载脚本已改为通过配置提供，调用方应自行加载依赖
-        // 这里保留向后兼容性，但发出警告
-        if (settings.slideMode && typeof window.pptxjslideObj === 'undefined') {
-            console.warn('Slide mode is enabled but divs2slides.js is not loaded. Please load it manually or use the appropriate configuration.');
-        }
-        if (settings.jsZipV2 !== false) {
-            console.warn('jsZipV2 option is deprecated. Please configure JSZip properly in your build system or load it explicitly.');
-        }
-
-        if (settings.keyBoardShortCut && $result) {
-            var keyHandler = function(event) {
-                if (event.key === 'F5') {
-                    event.preventDefault();
-                    if (!isSlideMode) {
-                        api.initSlideMode();
-                    } else {
-                        api.exitSlideMode();
-                    }
-                }
-            };
-            document.addEventListener("keydown", keyHandler);
-        }
-        
-        if (settings.pptxFileUrl != "") {
-            try{
-                JSZipUtils.getBinaryContent(settings.pptxFileUrl, function (err, content) {
-                    var blob = new Blob([content]);
-                    var file_name = settings.pptxFileUrl;
-                    var fArry = file_name.split(".");
-                    fArry.pop();
-                    blob.name = fArry[0];
-                    PPTXFileReader.setupBlob(blob, {
-                        on: {
-                            load: function (arrayBuffer) {
-                                convertToHtml(arrayBuffer);
-                            }
-                        }
-                    });
-                });
-            }catch(e){
-                console.error("file url error (" + settings.pptxFileUrl+ "0)")
-                PPTXUIUtils.removeLoadingMessage();
+        // 进度回调
+        function updateProgressBar(percent) {
+            if (settings.onProgress) {
+                settings.onProgress(percent);
             }
-        } else {
-            PPTXUIUtils.removeLoadingMessage();
-        }
-        if (settings.fileInputId != "") {
-            document.getElementById(settings.fileInputId).addEventListener("change", function (evt) {
-                $result.innerHTML = "";
-                var file = evt.target.files[0];
-                // var fileName = file[0].name;
-                //var fileSize = file[0].size;
-                var fileType = file.type;
-                if (fileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
-                    PPTXFileReader.setupBlob(file, {
-                        on: {
-                            load: function (arrayBuffer) {
-                                convertToHtml(arrayBuffer);
-                            }
-                        }
-                    });
-                } else {
-                    alert("This is not pptx file");
-                }
-            });
-        } else {
-            console.warn("fileInputId not provided, file upload listener not attached");
         }
 
         function updateProgressBar(percent) {
@@ -256,14 +145,43 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
         function convertToHtml(file) {
             //'use strict';
             //console.log("file", file, "size:", file.byteLength);
-            if (file.byteLength < 10){
-                console.error("file url error (" + settings.pptxFileUrl + "0)")
-                PPTXUIUtils.removeLoadingMessage();
+
+            // Convert File or Blob to ArrayBuffer if needed
+            var fileArrayBuffer = file;
+            if (file instanceof File || file instanceof Blob) {
+                return new Promise(function(resolve, reject) {
+                    var reader = new FileReader();
+                    reader.onload = function(event) {
+                        fileArrayBuffer = event.target.result;
+                        processZip(fileArrayBuffer, resolve, reject);
+                    };
+                    reader.onerror = function(event) {
+                        reject(new Error("Failed to read file: " + event.target.error));
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            } else if (file instanceof ArrayBuffer) {
+                return new Promise(function(resolve, reject) {
+                    processZip(file, resolve, reject);
+                });
+            } else {
+                return Promise.reject(new Error("Invalid file type: must be File, Blob, or ArrayBuffer"));
+            }
+        }
+
+        function processZip(fileArrayBuffer, resolve, reject) {
+            if (fileArrayBuffer.byteLength < 10) {
+                console.error("Invalid file: too small");
+                if (settings.onError) {
+                    settings.onError(new Error("Invalid file: too small"));
+                }
+                reject(new Error("Invalid file: too small"));
                 return;
             }
+
             var zip = new JSZip(), s;
             //if (typeof file === 'string') { // Load
-            zip = zip.load(file);  //zip.load(file, { base64: true });
+            zip = zip.load(fileArrayBuffer);  //zip.load(file, { base64: true });
 
             // 配置 PPTXParser 模块 - 传递必要的回调函数
             PPTXParser.configure({
@@ -286,9 +204,12 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
 
             //s = readXmlFile(zip, 'ppt/tableStyles.xml');
             //var slidesHeight = $("#" + divId + " .slide").height();
+            console.log("Total slides to process:", rslt_ary.length);
             for (var i = 0; i < rslt_ary.length; i++) {
                 switch (rslt_ary[i]["type"]) {
                     case "slide":
+                        console.log("Processing slide", rslt_ary[i].slide_num, "HTML length:", rslt_ary[i].data.length);
+                        console.log("Slide HTML preview (first 100 chars):", rslt_ary[i].data.substring(0, 100));
                         result.html += rslt_ary[i]["data"];
                         result.slides.push(rslt_ary[i]["data"]);
                         break;
@@ -317,33 +238,9 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
                         }
                         result.chartQueue = MsgQueue.slice(); // 复制图表队列
 
-                        // 如果调用方提供了 DOM 容器，则插入（向后兼容）
-                        if ($result && typeof $result.insertAdjacentHTML === 'function') {
-                            $result.insertAdjacentHTML('beforeend', result.html);
-                            $result.insertAdjacentHTML('beforeend', "<style>" + result.css + "</style>");
-                            PPTXHtml.processMsgQueue(MsgQueue);
-                            PPTXHtml.setNumericBullets($result.querySelectorAll ? $result.querySelectorAll(".block") : document.querySelectorAll(".block"));
-                            PPTXHtml.setNumericBullets($result.querySelectorAll ? $result.querySelectorAll("table td") : document.querySelectorAll("table td"));
-
-                            if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
-                                PPTXUIUtils.getSlidesWrapper(divId);
-
-                                if (settings.slideMode && settings.slideType == "revealjs") {
-                                    PPTXUIUtils.addRevealClass(divId);
-                                }
-                            }
-
-                            PPTXUIUtils.updateWrapperHeight(divId, settings.slidesScale, false, settings.slideType, null);
-                        }
+                        // 不要在这里处理图表队列,需要在 HTML 插入 DOM 之后处理
 
                         isDone = true;
-
-                        if (settings.slideMode && !isSlideMode) {
-                            isSlideMode = true;
-                            initSlideMode(divId, settings);
-                        } else if (!settings.slideMode) {
-                            PPTXUIUtils.removeLoadingMessage();
-                        }
                         break;
                     case "progress-update":
                         //console.log(rslt_ary[i]["data"]); //update progress bar
@@ -354,17 +251,23 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
             }
 
             // 返回结果对象供调用方使用
-            return result;
+            console.log("Final HTML length:", result.html.length);
+            console.log("Final HTML preview (first 300 chars):", result.html.substring(0, 300));
+            console.log("Final HTML end preview (last 300 chars):", result.html.substring(Math.max(0, result.html.length - 300)));
+            console.log("Total slide elements in HTML:", (result.html.match(/class="slide"/g) || []).length);
+            console.log("Open div count in final HTML:", (result.html.match(/<div/g) || []).length);
+            console.log("Close div count in final HTML:", (result.html.match(/<\/div>/g) || []).length);
+            resolve(result);
         }
 
         function initSlideMode(divId, settings) {
             // 使用外部模块的 initSlideMode 函数
-            return initSlideModeModule(divId, settings, PPTXUIUtils.updateWrapperHeight.bind(PPTXUIUtils));
+            return initSlideModeModule(divId || settings.container, settings, PPTXUIUtils.updateWrapperHeight.bind(PPTXUIUtils));
         }
 
         function exitSlideMode(divId) {
             // 使用外部模块的 exitSlideMode 函数
-            return exitSlideModeModule(divId, settings, PPTXUIUtils.updateWrapperHeight.bind(PPTXUIUtils));
+            return exitSlideModeModule(divId || settings.container, settings, PPTXUIUtils.updateWrapperHeight.bind(PPTXUIUtils));
         }
 
 
@@ -607,11 +510,9 @@ import { genShape as genShapeModule } from './shape/pptx-shape-generator.js';
 
 
 
-        return api;
+        // 调用主处理函数并返回 Promise
+        return convertToHtml(file);
     }
 
 // Export for use in ES6 modules
 export { pptxToHtml };
-
-// Also export to global scope for backward compatibility
-// window.pptxToHtml = pptxToHtml; // Removed for ES modules

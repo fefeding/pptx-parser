@@ -19,7 +19,7 @@ PPTXBackgroundUtils.getBackground = function(warpObj, slideSize, index, processN
 
     var showMasterSp = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "attrs", "showMasterSp"]);
     var bgColor = this.getSlideBackgroundFill(warpObj, index);
-    var result = "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
+    var result = "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>";
     var node_ph_type_ary = [];
     if (nodesSldLayout !== undefined) {
         for (var nodeKey in nodesSldLayout) {
@@ -51,7 +51,7 @@ PPTXBackgroundUtils.getBackground = function(warpObj, slideSize, index, processN
             }
         }
     }
-    return result;
+    return result + "</div>";
 };
 
     /**
