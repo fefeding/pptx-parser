@@ -31,7 +31,7 @@ import { PPTXCalloutShapes } from './shape/callout.js';
 import { PPTXArrowShapes } from './shape/arrow.js';
 import { PPTXMathShapes } from './shape/math.js';
 
-import { processSpNode as processSpNodeModule, processCxnSpNode as processCxnSpNodeModule } from './node/shape-node-processor.js';
+import { processSpNode as processSpNodeModule, processCxnSpNode as processCxnSpNodeModule } from './shape/node-processor.js';
 import { genShape as genShapeModule } from './shape/generator.js';
 
 
