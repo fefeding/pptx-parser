@@ -5,9 +5,7 @@
     import { PPTXUtils } from './utils/utils.js';
 
     import { PPTXColorUtils } from './core/pptx-color-utils.js';
-    // parseXml is loaded as global via <script> tag in index.html
-    var parseXml = window.parseXml;
-    console.log('[DEBUG] parseXml imported from window:', parseXml, 'simplify exists?', parseXml && parseXml.simplify);
+    import parseXml from './utils/xml-parser.js';
 
     // 全局变量，将在初始化时设置
     var app_verssion;

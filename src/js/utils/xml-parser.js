@@ -1,12 +1,13 @@
 /**
  * XML Parser - A lightweight XML parser for PPTX parsing
- * Uses native DOMParser API but maintains original tXml output format
+ * Uses native DOMParser API but maintains original parseXml output format
  */
 
+// Module-level variable to track element order across multiple parseXml calls
 var elementOrder = 1;
 
 /**
- * Convert DOM node to custom structure (matching tXml format)
+ * Convert DOM node to custom structure (matching parseXml format)
  * @param {Node} domNode - DOM node to convert
  * @returns {Object|string} Converted node or text
  */
@@ -131,7 +132,7 @@ function parseXml(xmlString, options) {
             var documentElement = xmlDoc.documentElement;
 
             if (documentElement) {
-                // Create a virtual "?xml" node wrapper to match original tXml behavior
+                // Create a virtual "?xml" node wrapper to match original parseXml behavior
                 var xmlDeclarationNode = { tagName: "?xml", children: [domNodeToCustom(documentElement)] };
 
                 // Parse document element itself (for parseNode option)
@@ -193,18 +194,17 @@ parseXml.simplify = function(nodes) {
             var simplifiedNode = parseXml.simplify(node.children || []);
             simplified[node.tagName].push(simplifiedNode);
 
-            // Add attributes
-            if (node.attributes) {
+            // Add attributes (only if simplifiedNode is an object, not a string)
+            if (node.attributes && typeof simplifiedNode === "object") {
                 simplifiedNode.attrs = node.attributes;
-            }
 
-            // Add order attribute
-            if (simplifiedNode.attrs === undefined) {
+                // Add order attribute
+                simplifiedNode.attrs.order = elementOrder;
+            } else if (typeof simplifiedNode === "object") {
+                // Create attrs object if node has no attributes
                 simplifiedNode.attrs = {
                     order: elementOrder
                 };
-            } else {
-                simplifiedNode.attrs.order = elementOrder;
             }
             elementOrder++;
         }
@@ -397,14 +397,23 @@ parseXml.parseStream = function(stream, position) {
 
 /**
  * Reset element order counter
- * Useful for testing when you need to start fresh
+ * Useful for starting a fresh document
  */
-parseXml.resetOrder = function() {
+function resetOrder() {
     elementOrder = 1;
-};
+}
+
+// Also attach to parseXml object for compatibility
+parseXml.resetOrder = resetOrder;
 
 // Export for Node.js environment
 if (typeof module !== "undefined") {
     module.exports = parseXml;
 }
+
+// ES Module exports
+export default parseXml;
+export { parseXml };
+export { resetOrder };
+
 
