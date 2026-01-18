@@ -160,7 +160,7 @@ StyleManager.prototype.getBorder = function(node, pNode, isSvgMode, bType, warpO
     }
 
     if (borderColor === undefined) {
-        var lnRefNode = PPTXUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
+lnRefNode = PPTXUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
         if (lnRefNode !== undefined) {
             borderColor = PPTXColorUtils.getSolidFill(lnRefNode, undefined, undefined, warpObj);
         }

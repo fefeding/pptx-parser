@@ -55,12 +55,12 @@ function base64ArrayBuffer(arrayBuffer) {
     
     // 处理剩余字节
     if (byteRemainder === 1) {
-        const chunk = bytes[mainLength];
+        let chunk = bytes[mainLength];
         const a = (chunk & 252) >> 2;
         const b = (chunk & 3) << 4;
         base64 += encodings[a] + encodings[b] + '==';
     } else if (byteRemainder === 2) {
-        const chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
+        let chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
         const a = (chunk & 64512) >> 10;
         const b = (chunk & 1008) >> 4;
         const c = (chunk & 15) << 2;
@@ -343,11 +343,12 @@ function getPosition(xfrmNode, pNode, parentOff, parentExt, sType) {
 
     let offX = 0, offY = 0;
     let grpX = 0, grpY = 0;
+    let offAttrs, chx, chy;
     
     if (sType === 'group') {
         const grpXfrmNode = getTextByPathList(pNode, ['p:grpSpPr', 'a:xfrm']);
         if (grpXfrmNode?.['a:off']?.['attrs']) {
-            const offAttrs = grpXfrmNode['a:off']['attrs'];
+offAttrs = grpXfrmNode['a:off']['attrs'];
             const tmpX = parseInt(offAttrs['x']) * slideFactor;
             const tmpY = parseInt(offAttrs['y']) * slideFactor;
             if (!isNaN(tmpX) && !isNaN(tmpY)) {
@@ -361,8 +362,8 @@ function getPosition(xfrmNode, pNode, parentOff, parentExt, sType) {
         const grpXfrmNode2 = pNode['p:grpSpPr']['a:xfrm'];
         if (grpXfrmNode2?.['a:chOff']?.['attrs']) {
             const chAttrs = grpXfrmNode2['a:chOff']['attrs'];
-            const chx = parseInt(chAttrs['x']) * slideFactor;
-            const chy = parseInt(chAttrs['y']) * slideFactor;
+chx = parseInt(chAttrs['x']) * slideFactor;
+chy = parseInt(chAttrs['y']) * slideFactor;
             if (!isNaN(chx) && !isNaN(chy)) {
                 offX = chx;
                 offY = chy;
@@ -584,7 +585,7 @@ export function readAsArrayBuffer(file, onLoad, onError) {
  * @param {Function} onError - 加载失败回调
  */
 export function readAsText(file, onLoad, onError) {
-    const reader = new FileReader();
+reader = new FileReader();
     reader.onload = (event) => {
         if (onLoad) onLoad(event.target.result);
     };
@@ -601,7 +602,7 @@ export function readAsText(file, onLoad, onError) {
  * @param {Function} onError - 加载失败回调
  */
 export function readAsDataURL(file, onLoad, onError) {
-    const reader = new FileReader();
+reader = new FileReader();
     reader.onload = (event) => {
         if (onLoad) onLoad(event.target.result);
     };
@@ -656,7 +657,7 @@ export const PPTXFileReader = {
     
     setupBlobAsText(file, options) {
         if (!file) return;
-        const onCallbacks = options?.on || {};
+onCallbacks = options?.on || {};
         readAsText(file, onCallbacks.load, onCallbacks.error);
     },
     

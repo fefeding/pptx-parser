@@ -2,7 +2,7 @@
 import { PPTXUtils } from '../core/utils.js';
 import { PPTXColorUtils } from '../core/color.js';
 
-var PPTXShapeFillsUtils = {};
+const PPTXShapeFillsUtils = {};
 
     
 
@@ -16,29 +16,29 @@ var PPTXShapeFillsUtils = {};
  * @returns {String} Fill CSS or SVG format
  */
 PPTXShapeFillsUtils.getShapeFill = function(node, pNode, isSvgMode, warpObj, source) {
-    var fillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:spPr"]));
-    var fillColor;
+    const fillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:spPr"]));
+    let fillColor;
 
     if (fillType == "NO_FILL") {
         return isSvgMode ? "none" : "";
     } else if (fillType == "SOLID_FILL") {
-        var shpFill = node["p:spPr"]["a:solidFill"];
+        const shpFill = node["p:spPr"]["a:solidFill"];
         fillColor = PPTXColorUtils.getSolidFill(shpFill, undefined, undefined, warpObj);
     } else if (fillType == "GRADIENT_FILL") {
-        var shpFill = node["p:spPr"]["a:gradFill"];
+        const shpFill = node["p:spPr"]["a:gradFill"];
         fillColor = PPTXColorUtils.getGradientFill(shpFill, warpObj);
     } else if (fillType == "PATTERN_FILL") {
-        var shpFill = node["p:spPr"]["a:pattFill"];
+        const shpFill = node["p:spPr"]["a:pattFill"];
         fillColor = PPTXColorUtils.getPatternFill(shpFill, warpObj);
     } else if (fillType == "PIC_FILL") {
-        var shpFill = node["p:spPr"]["a:blipFill"];
+        const shpFill = node["p:spPr"]["a:blipFill"];
         fillColor = PPTXColorUtils.getPicFill(source, shpFill, warpObj);
     }
 
     // drawingML namespace
     if (fillColor === undefined) {
-        var clrName = PPTXUtils.getTextByPathList(node, ["p:style", "a:fillRef"]);
-        var idx = parseInt(PPTXUtils.getTextByPathList(node, ["p:style", "a:fillRef", "attrs", "idx"]));
+        const clrName = PPTXUtils.getTextByPathList(node, ["p:style", "a:fillRef"]);
+        let idx = parseInt(PPTXUtils.getTextByPathList(node, ["p:style", "a:fillRef", "attrs", "idx"]));
         if (idx == 0 || idx == 1000) {
             return isSvgMode ? "none" : "";
         } else if (idx > 0 && idx < 1000) {
@@ -51,10 +51,10 @@ PPTXShapeFillsUtils.getShapeFill = function(node, pNode, isSvgMode, warpObj, sou
 
     // is group fill
     if (fillColor === undefined) {
-        var grpFill = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:grpFill"]);
+        const grpFill = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:grpFill"]);
         if (grpFill !== undefined) {
-            var grpShpFill = pNode["p:grpSpPr"];
-            var spShpNode = { "p:spPr": grpShpFill };
+            const grpShpFill = pNode["p:grpSpPr"];
+            const spShpNode = { "p:spPr": grpShpFill };
             return PPTXShapeFillsUtils.getShapeFill(spShpNode, node, isSvgMode, warpObj, source);
         } else if (fillType == "NO_FILL") {
             return isSvgMode ? "none" : "";
@@ -66,10 +66,10 @@ PPTXShapeFillsUtils.getShapeFill = function(node, pNode, isSvgMode, warpObj, sou
             if (isSvgMode) {
                 return fillColor;
             } else {
-                var colorAry = fillColor.color;
-                var rot = fillColor.rot;
-                var bgcolor = "background: linear-gradient(" + rot + "deg,";
-                for (var i = 0; i < colorAry.length; i++) {
+                const colorAry = fillColor.color;
+                const rot = fillColor.rot;
+                const bgcolor = "background: linear-gradient(" + rot + "deg,";
+                for (let i = 0; i < colorAry.length; i++) {
                     if (i == colorAry.length - 1) {
                         bgcolor += "#" + colorAry[i] + ");";
                     } else {
@@ -85,7 +85,7 @@ PPTXShapeFillsUtils.getShapeFill = function(node, pNode, isSvgMode, warpObj, sou
                 return "background-image:url(" + fillColor + ");";
             }
         } else if (fillType == "PATTERN_FILL") {
-            var bgPtrn = "", bgSize = "", bgPos = "";
+            let bgPtrn = "", bgSize = "", bgPos = "";
             bgPtrn = fillColor[0];
             if (fillColor[1] !== null && fillColor[1] !== undefined && fillColor[1] != "") {
                 bgSize = " background-size:" + fillColor[1] + ";";
@@ -96,7 +96,7 @@ PPTXShapeFillsUtils.getShapeFill = function(node, pNode, isSvgMode, warpObj, sou
             return "background: " + bgPtrn + ";" + bgSize + bgPos;
         } else {
             if (isSvgMode) {
-                var color = tinycolor(fillColor);
+                const color = tinycolor(fillColor);
                 fillColor = color.toRgbString();
                 return fillColor;
             } else {
@@ -122,27 +122,27 @@ PPTXShapeFillsUtils.getShapeFill = function(node, pNode, isSvgMode, warpObj, sou
  * @returns {String} SVG gradient XML
  */
 PPTXShapeFillsUtils.getSvgGradient = function(w, h, angl, color_arry, shpId) {
-    var stopsArray = PPTXColorUtils.getMiddleStops(color_arry - 2);
+    const stopsArray = PPTXColorUtils.getMiddleStops(color_arry - 2);
 
-    var svgAngle = '',
-        svgHeight = h,
-        svgWidth = w,
-        svg = '',
-        xy_ary = PPTXColorUtils.SVGangle(angl, svgHeight, svgWidth),
+    const svgHeight = h,
+        svgWidth = w;
+    let svgAngle = '',
+        svg = '';
+    const xy_ary = PPTXColorUtils.SVGangle(angl, svgHeight, svgWidth),
         x1 = xy_ary[0],
         y1 = xy_ary[1],
         x2 = xy_ary[2],
         y2 = xy_ary[3];
 
-    var sal = stopsArray.length,
+    const sal = stopsArray.length,
         sr = sal < 20 ? 100 : 1000;
     svgAngle = ' gradientUnits="userSpaceOnUse" x1="' + x1 + '%" y1="' + y1 + '%" x2="' + x2 + '%" y2="' + y2 + '%"';
     svgAngle = '<linearGradient id="linGrd_' + shpId + '"' + svgAngle + '>\n';
     svg += svgAngle;
 
-    for (var i = 0; i < sal; i++) {
-        var tinClr = tinycolor("#" + color_arry[i]);
-        var alpha = tinClr.getAlpha();
+    for (let i = 0; i < sal; i++) {
+        const tinClr = tinycolor("#" + color_arry[i]);
+        let alpha = tinClr.getAlpha();
         svg += '<stop offset="' + Math.round(parseFloat(stopsArray[i]) / 100 * sr) / sr + '" style="stop-color:' + tinClr.toHexString() + '; stop-opacity:' + (alpha) + ';"';
         svg += '/>\n';
     }
@@ -162,56 +162,58 @@ PPTXShapeFillsUtils.getSvgGradient = function(w, h, angl, color_arry, shpId) {
  */
 PPTXShapeFillsUtils.getSvgImagePattern = function(node, fill, shpId, warpObj) {
     // 处理 fill 可能是对象的情况（当 getPicFill 返回包含属性的对象时）
-    var fillValue = typeof fill === 'object' && fill.img ? fill.img : fill;
+    const fillValue = typeof fill === 'object' && fill.img ? fill.img : fill;
     // 优先使用 imgData 获取图片尺寸（base64格式）
-    var dimSrc = null;
+    const dimSrc = null;
     if (typeof fill === 'object' && fill.imgData) {
         dimSrc = fill.imgData;
     } else if (fillValue && fillValue.indexOf("data:image/") === 0) {
         // fillValue 是 data: URI，可以直接用于尺寸获取
         dimSrc = fillValue;
     }
-    var pic_dim = [0, 0];
+    let pic_dim = [0, 0];
     if (dimSrc) {
         pic_dim = PPTXColorUtils.getBase64ImageDimensions(dimSrc);
     }
-    var width = pic_dim[0];
-    var height = pic_dim[1];
+    let width = pic_dim[0];
+    let height = pic_dim[1];
 
-    var blipFillNode = node["p:spPr"]["a:blipFill"];
-    var tileNode = PPTXUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"]);
+    const blipFillNode = node["p:spPr"]["a:blipFill"];
+    const tileNode = PPTXUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"]);
+    let sx, sy;
     if (tileNode !== undefined && tileNode["sx"] !== undefined) {
-        var sx = (parseInt(tileNode["sx"]) / 100000) * width;
-        var sy = (parseInt(tileNode["sy"]) / 100000) * height;
+        sx = (parseInt(tileNode["sx"]) / 100000) * width;
+        sy = (parseInt(tileNode["sy"]) / 100000) * height;
     }
 
-    var blipNode = node["p:spPr"]["a:blipFill"]["a:blip"];
-    var tialphaModFixNode = PPTXUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"]);
-    var imgOpacity = "";
+    const blipNode = node["p:spPr"]["a:blipFill"]["a:blip"];
+    const tialphaModFixNode = PPTXUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"]);
+    let imgOpacity = "";
     if (tialphaModFixNode !== undefined && tialphaModFixNode["amt"] !== undefined && tialphaModFixNode["amt"] != "") {
-        var amt = parseInt(tialphaModFixNode["amt"]) / 100000;
-        var opacity = amt;
-        var imgOpacity = "opacity='" + opacity + "'";
+        const amt = parseInt(tialphaModFixNode["amt"]) / 100000;
+        const opacity = amt;
+        imgOpacity = "opacity='" + opacity + "'";
     }
 
+    let ptrn;
     if (sx !== undefined && sx != 0) {
-        var ptrn = '<pattern id="imgPtrn_' + shpId + '" x="0" y="0"  width="' + sx + '" height="' + sy + '" patternUnits="userSpaceOnUse">';
+        ptrn = '<pattern id="imgPtrn_' + shpId + '" x="0" y="0"  width="' + sx + '" height="' + sy + '" patternUnits="userSpaceOnUse">';
     } else {
-        var ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
+        ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
     }
 
-    var duotoneNode = PPTXUtils.getTextByPathList(blipNode, ["a:duotone"]);
-    var fillterNode = "";
-    var filterUrl = "";
+    const duotoneNode = PPTXUtils.getTextByPathList(blipNode, ["a:duotone"]);
+    let fillterNode = "";
+    let filterUrl = "";
 
     if (duotoneNode !== undefined) {
-        var clr_ary = [];
+        const clr_ary = [];
         Object.keys(duotoneNode).forEach(function (clr_type) {
             if (clr_type != "attrs") {
-                var obj = {};
+                let obj = {};
                 obj[clr_type] = duotoneNode[clr_type];
-                var hexClr = PPTXColorUtils.getSolidFill(obj, undefined, undefined, warpObj);
-                var color = tinycolor("#" + hexClr);
+                const hexClr = PPTXColorUtils.getSolidFill(obj, undefined, undefined, warpObj);
+color = tinycolor("#" + hexClr);
                 clr_ary.push(color.toRgb());
             }
         });
@@ -236,7 +238,7 @@ PPTXShapeFillsUtils.getSvgImagePattern = function(node, fill, shpId, warpObj) {
     }
 
     // Check if fill already contains blob: or data: URI prefix
-    var imgSrc = (fillValue && (fillValue.indexOf("blob:") === 0 || fillValue.indexOf("data:") === 0)) ? fillValue : "data:image/png;base64," + fillValue;
+    const imgSrc = (fillValue && (fillValue.indexOf("blob:") === 0 || fillValue.indexOf("data:") === 0)) ? fillValue : "data:image/png;base64," + fillValue;
     ptrn += '<image x="0" y="0" width="' + width + '" height="' + height + '" xlink:href="' + imgSrc + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
     ptrn += '</pattern>';
 

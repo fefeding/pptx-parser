@@ -1,6 +1,6 @@
     // 生成矩形
 function genRect(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr) {
-    var fillAttr;
+    let fillAttr;
     if (imgFillFlg) {
         fillAttr = "url(#imgPtrn_" + shpId + ")";
     } else if (grndFillFlg) {
@@ -14,7 +14,7 @@ function genRect(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShado
 
     // 生成椭圆
 function genEllipse(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
-    var fillAttr;
+    let fillAttr;
     if (imgFillFlg) {
         fillAttr = "url(#imgPtrn_" + shpId + ")";
     } else if (grndFillFlg) {
@@ -28,7 +28,7 @@ function genEllipse(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
 
     // 生成菱形
 function genDiamond(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
-    var fillAttr;
+    let fillAttr;
     if (imgFillFlg) {
         fillAttr = "url(#imgPtrn_" + shpId + ")";
     } else if (grndFillFlg) {
@@ -42,7 +42,7 @@ function genDiamond(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
 
     // 生成三角形
 function genTriangle(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
-    var fillAttr;
+    let fillAttr;
     if (imgFillFlg) {
         fillAttr = "url(#imgPtrn_" + shpId + ")";
     } else if (grndFillFlg) {
@@ -56,10 +56,10 @@ function genTriangle(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
 
     // 生成圆形
 function genCircle(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
-    var r = Math.min(w, h) / 2;
-    var cx = w / 2;
-    var cy = h / 2;
-    var fillAttr;
+    const r = Math.min(w, h) / 2;
+    const cx = w / 2;
+    const cy = h / 2;
+    let fillAttr;
     if (imgFillFlg) {
         fillAttr = "url(#imgPtrn_" + shpId + ")";
     } else if (grndFillFlg) {
@@ -73,10 +73,10 @@ function genCircle(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
 
     // 生成五边形
 function genPentagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
-    var hc = w / 2, vc = h / 2, r = Math.min(w, h) / 2;
-    var dx2 = r * Math.sin(Math.PI * 2 / 5);
-    var dy2 = r * Math.cos(Math.PI * 2 / 5);
-    var fillAttr;
+    const hc = w / 2, vc = h / 2, r = Math.min(w, h) / 2;
+    let dx2 = r * Math.sin(Math.PI * 2 / 5);
+    let dy2 = r * Math.cos(Math.PI * 2 / 5);
+    let fillAttr;
     if (imgFillFlg) {
         fillAttr = "url(#imgPtrn_" + shpId + ")";
     } else if (grndFillFlg) {
@@ -84,7 +84,7 @@ function genPentagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
     } else {
         fillAttr = fillColor;
     }
-    var d = "M" + hc + "," + (vc - r) +
+    let d = "M" + hc + "," + (vc - r) +
         " L" + (hc + dx2) + "," + (vc - dy2) +
         " L" + (hc + dx2) + "," + (vc + dy2) +
         " L" + (hc - dx2) + "," + (vc + dy2) +
@@ -96,10 +96,10 @@ function genPentagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
 
     // 生成六边形
 function genHexagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
-    var hc = w / 2, vc = h / 2, r = Math.min(w, h) / 2;
-    var dx2 = r * Math.sin(Math.PI / 3);
-    var dy2 = r * Math.cos(Math.PI / 3);
-    var fillAttr;
+hc = w / 2, vc = h / 2, r = Math.min(w, h) / 2;
+dx2 = r * Math.sin(Math.PI / 3);
+dy2 = r * Math.cos(Math.PI / 3);
+    let fillAttr;
     if (imgFillFlg) {
         fillAttr = "url(#imgPtrn_" + shpId + ")";
     } else if (grndFillFlg) {
@@ -107,7 +107,7 @@ function genHexagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
     } else {
         fillAttr = fillColor;
     }
-    var d = "M" + hc + "," + (vc - r) +
+d = "M" + hc + "," + (vc - r) +
         " L" + (hc + dx2) + "," + (vc - dy2) +
         " L" + (hc + dx2) + "," + (vc + dy2) +
         " L" + hc + "," + (vc + r) +
@@ -120,7 +120,7 @@ function genHexagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border) {
 
     // 生成带特殊标记的矩形（用于流程图）
 function genRectWithDecoration(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, shapType) {
-    var result = genRect(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr);
+    let result = genRect(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr);
 
     if (shapType == "flowChartPredefinedProcess") {
         result += "<rect x='" + w * (1 / 8) + "' y='0' width='" + w * (6 / 8) + "' height='" + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";

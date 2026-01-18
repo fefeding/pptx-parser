@@ -3,26 +3,26 @@
 
     // 加号
     PPTXMathShapes.genMathPlus = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        const shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, adj1 = 23520 * slideFactor;
-        var cnstVal1 = 50000 * slideFactor;
-        var cnstVal2 = 100000 * slideFactor;
-        var cnstVal3 = 200000 * slideFactor;
+        const cnstVal1 = 50000 * slideFactor;
+        const cnstVal2 = 100000 * slideFactor;
+        const cnstVal3 = 200000 * slideFactor;
         if (shapAdjst_ary !== undefined) {
             Object.keys(shapAdjst_ary).forEach(function (key) {
-                var name = shapAdjst_ary[key]["attrs"]["name"];
+                let name = shapAdjst_ary[key]["attrs"]["name"];
                 if (name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[key], ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                 }
             });
         }
-        var cnstVal6 = 73490 * slideFactor;
-        var ss = Math.min(w, h);
+        const cnstVal6 = 73490 * slideFactor;
+        const ss = Math.min(w, h);
         var a1, dx1, dy1, dx2, x1, x2, x3, x4, y1, y2, y3, y4;
 
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal6) ? cnstVal6 : adj1;
-        var hc = w / 2, vc = h / 2;
+        const hc = w / 2, vc = h / 2;
         dx1 = w * cnstVal6 / cnstVal3;
         dy1 = h * cnstVal6 / cnstVal3;
         dx2 = ss * a1 / cnstVal3;
@@ -52,23 +52,23 @@
 
     // 减号
     PPTXMathShapes.genMathMinus = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, adj1 = 23520 * slideFactor;
-        var cnstVal1 = 50000 * slideFactor;
-        var cnstVal2 = 100000 * slideFactor;
-        var cnstVal3 = 200000 * slideFactor;
+        const shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, adj1 = 23520 * slideFactor;
+        const cnstVal1 = 50000 * slideFactor;
+        const cnstVal2 = 100000 * slideFactor;
+        const cnstVal3 = 200000 * slideFactor;
         if (shapAdjst_ary !== undefined) {
             Object.keys(shapAdjst_ary).forEach(function (key) {
-                var name = shapAdjst_ary[key]["attrs"]["name"];
+name = shapAdjst_ary[key]["attrs"]["name"];
                 if (name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[key], ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                 }
             });
         }
-        var cnstVal6 = 73490 * slideFactor;
-        var a1, dy1, dx1, y1, y2, x1, x2;
-        var hc = w / 2, vc = h / 2;
+cnstVal6 = 73490 * slideFactor;
+a1, dy1, dx1, y1, y2, x1, x2;
+hc = w / 2, vc = h / 2;
 
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal2) ? cnstVal2 : adj1;
         dy1 = h * a1 / cnstVal3;
@@ -87,26 +87,26 @@
 
     // 乘号
     PPTXMathShapes.genMathMultiply = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, adj1 = 23520 * slideFactor;
-        var cnstVal1 = 50000 * slideFactor;
-        var cnstVal2 = 100000 * slideFactor;
-        var cnstVal3 = 200000 * slideFactor;
+shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+sAdj1, adj1 = 23520 * slideFactor;
+cnstVal1 = 50000 * slideFactor;
+cnstVal2 = 100000 * slideFactor;
+cnstVal3 = 200000 * slideFactor;
         if (shapAdjst_ary !== undefined) {
             Object.keys(shapAdjst_ary).forEach(function (key) {
-                var name = shapAdjst_ary[key]["attrs"]["name"];
+name = shapAdjst_ary[key]["attrs"]["name"];
                 if (name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[key], ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                 }
             });
         }
-        var cnstVal6 = 51965 * slideFactor;
-        var ss = Math.min(w, h);
-        var a1, th, a, sa, ca, ta, dl, rw, lM, xM, yM, dxAM, dyAM,
+cnstVal6 = 51965 * slideFactor;
+ss = Math.min(w, h);
+a1, th, a, sa, ca, ta, dl, rw, lM, xM, yM, dxAM, dyAM,
             xA, yA, xB, yB, xBC, yBC, yC, xD, xE, yFE, xFE, xF, xL, yG, yH, yI, xC2, yC3;
 
-        var hc = w / 2, vc = h / 2;
+hc = w / 2, vc = h / 2;
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal6) ? cnstVal6 : adj1;
         th = ss * a1 / cnstVal2;
         a = Math.atan(h / w);
@@ -156,15 +156,15 @@
 
     // 等号
     PPTXMathShapes.genMathEqual = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, adj1 = 23520 * slideFactor;
+shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+sAdj1, adj1 = 23520 * slideFactor;
         var sAdj2, adj2 = 11760 * slideFactor;
-        var cnstVal1 = 50000 * slideFactor;
-        var cnstVal2 = 100000 * slideFactor;
-        var cnstVal3 = 200000 * slideFactor;
+cnstVal1 = 50000 * slideFactor;
+cnstVal2 = 100000 * slideFactor;
+cnstVal3 = 200000 * slideFactor;
         if (shapAdjst_ary !== undefined) {
             Object.keys(shapAdjst_ary).forEach(function (key) {
-                var name = shapAdjst_ary[key]["attrs"]["name"];
+name = shapAdjst_ary[key]["attrs"]["name"];
                 if (name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[key], ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -174,10 +174,10 @@
                 }
             });
         }
-        var cnstVal5 = 36745 * slideFactor;
-        var cnstVal6 = 73490 * slideFactor;
-        var a1, a2a1, mAdj2, a2, dy1, dy2, dx1, y2, y3, y1, y4, x1, x2, yC1, yC2;
-        var hc = w / 2, vc = h / 2;
+        const cnstVal5 = 36745 * slideFactor;
+cnstVal6 = 73490 * slideFactor;
+a1, a2a1, mAdj2, a2, dy1, dy2, dx1, y2, y3, y1, y4, x1, x2, yC1, yC2;
+hc = w / 2, vc = h / 2;
 
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
         a2a1 = a1 * 2;
@@ -199,8 +199,7 @@
             " L" + x2 + "," + y1 +
             " L" + x2 + "," + y2 +
             " L" + x1 + "," + y2 +
-            " z" +
-            "M" + x1 + "," + y3 +
+            ` zM` + x1 + "," + y3 +
             " L" + x2 + "," + y3 +
             " L" + x2 + "," + y4 +
             " L" + x1 + "," + y4 +

@@ -328,10 +328,10 @@ function pptxToHtml(file, options) {
                         vdoBlob = URL.createObjectURL(blob);
                             mediaSupportFlag = true;
                             mediaPicFlag = true;
-                        }
                     }
                 }
             }
+        }
         // 音频处理
         const audioNode = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
         let audioRid, audioFile, audioFileExt, audioMimeType, uInt8ArrayAudio, blobAudio, audioBlob;
@@ -393,22 +393,22 @@ function pptxToHtml(file, options) {
             rtrnData += "</div>";
             //console.log(rtrnData)
             return rtrnData;
-        }
+    }
 
-        function processGraphicFrameNode(node, warpObj, source, sType) {
-            // 使用 PPTXImageUtils 模块处理图形框架节点
-            return PPTXImageUtils.processGraphicFrameNode(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode);
-        }
-
-
+    function processGraphicFrameNode(node, warpObj, source, sType) {
+        // 使用 PPTXImageUtils 模块处理图形框架节点
+        return PPTXImageUtils.processGraphicFrameNode(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode);
+    }
 
 
 
-        // genGlobalCSS 已移至 PPTXCSSUtils 模块
 
-        function genTableInternal(node, warpObj) {
-            return PPTXTableUtils.genTableInternal(node, warpObj, styleTable);
-        }
+
+    // genGlobalCSS 已移至 PPTXCSSUtils 模块
+
+    function genTableInternal(node, warpObj) {
+        return PPTXTableUtils.genTableInternal(node, warpObj, styleTable);
+    }
 
 
     function genDiagram(node, warpObj, source, sType) {

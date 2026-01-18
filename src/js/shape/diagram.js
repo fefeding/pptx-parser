@@ -1,7 +1,7 @@
 
 import { PPTXUtils } from '../core/utils.js';
 
-var PPTXDiagramUtils = {};
+const PPTXDiagramUtils = {};
 
     /**
  * 生成图表/图表演示 (SmartArt)
@@ -16,41 +16,41 @@ var PPTXDiagramUtils = {};
  * @returns {string} HTML字符串
  */
 PPTXDiagramUtils.genDiagram = function(node, warpObj, source, sType, readXmlFile, getPosition, getSize, processSpNode) {
-    var order = node["attrs"]["order"];
-    var zip = warpObj["zip"];
-    var xfrmNode = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
-    var dgmRelIds = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
+    const order = node["attrs"]["order"];
+    const zip = warpObj["zip"];
+    const xfrmNode = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
+    const dgmRelIds = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
 
     if (!dgmRelIds) {
         return "";
     }
 
     // 获取图表相关文件的ID
-    var dgmClrFileId = dgmRelIds["r:cs"];
-    var dgmDataFileId = dgmRelIds["r:dm"];
-    var dgmLayoutFileId = dgmRelIds["r:lo"];
-    var dgmQuickStyleFileId = dgmRelIds["r:qs"];
+    const dgmClrFileId = dgmRelIds["r:cs"];
+    const dgmDataFileId = dgmRelIds["r:dm"];
+    const dgmLayoutFileId = dgmRelIds["r:lo"];
+    const dgmQuickStyleFileId = dgmRelIds["r:qs"];
 
     // 获取文件名
-    var dgmClrFileName = warpObj["slideResObj"][dgmClrFileId].target;
-    var dgmDataFileName = warpObj["slideResObj"][dgmDataFileId].target;
-    var dgmLayoutFileName = warpObj["slideResObj"][dgmLayoutFileId].target;
-    var dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
+    const dgmClrFileName = warpObj["slideResObj"][dgmClrFileId].target;
+    const dgmDataFileName = warpObj["slideResObj"][dgmDataFileId].target;
+    const dgmLayoutFileName = warpObj["slideResObj"][dgmLayoutFileId].target;
+    const dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
 
     // 读取XML文件
-    var dgmClr = readXmlFile(zip, dgmClrFileName);
-    var dgmData = readXmlFile(zip, dgmDataFileName);
-    var dgmLayout = readXmlFile(zip, dgmLayoutFileName);
-    var dgmQuickStyle = readXmlFile(zip, dgmQuickStyleFileName);
+    const dgmClr = readXmlFile(zip, dgmClrFileName);
+    const dgmData = readXmlFile(zip, dgmDataFileName);
+    const dgmLayout = readXmlFile(zip, dgmLayoutFileName);
+    const dgmQuickStyle = readXmlFile(zip, dgmQuickStyleFileName);
 
     // 获取绘图文件内容
-    var dgmDrwSpArray = PPTXUtils.getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
-    var rslt = "";
+    const dgmDrwSpArray = PPTXUtils.getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
+    const rslt = "";
 
     if (dgmDrwSpArray !== undefined) {
-        var dgmDrwSpArrayLen = dgmDrwSpArray.length;
-        for (var i = 0; i < dgmDrwSpArrayLen; i++) {
-            var dspSp = dgmDrwSpArray[i];
+        const dgmDrwSpArrayLen = dgmDrwSpArray.length;
+        for (let i = 0; i < dgmDrwSpArrayLen; i++) {
+            const dspSp = dgmDrwSpArray[i];
             rslt += processSpNode(dspSp, node, warpObj, "diagramBg", sType);
         }
     }

@@ -24,7 +24,7 @@ import { PPTXShapeContainer } from './container.js';
 import { PPTXShapeUtils } from './shape.js';
 import { PPTXMathShapes } from './math.js';
 
-    var slideFactor = PPTXConstants.SLIDE_FACTOR;
+    const slideFactor = PPTXConstants.SLIDE_FACTOR;
 
 /**
          * 生成形状的SVG HTML表示
@@ -45,57 +45,63 @@ import { PPTXMathShapes } from './math.js';
          * @returns {string} 形状的SVG HTML字符串
          */
         function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, styleTable={}) {
-            //var dltX = 0;
-            //var dltY = 0;
-            var result = "";
+            //const dltX = 0;
+            //const dltY = 0;
+            let result = "";
+            let dVal;
             // 使用属性提取器获取形状属性
-            var props = PPTXShapePropertyExtractor.extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, slideMasterSpNode);
-            var slideXfrmNode = props.slideXfrmNode;
-            var shapType = props.shapType;
-            var custShapType = props.custShapType;
-            var rotate = props.rotate;
-            var flip = props.flip;
-            var txtRotate = props.txtRotate;
-            var shpId = props.shpId;
-            var w = props.w;
-            var h = props.h;
-            var x = props.x;
-            var y = props.y;
-            var slideLayoutXfrmNode = props.slideLayoutXfrmNode;
-            var slideMasterXfrmNode = props.slideMasterXfrmNode;
+            const props = PPTXShapePropertyExtractor.extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, slideMasterSpNode);
+            const slideXfrmNode = props.slideXfrmNode;
+            const shapType = props.shapType;
+            const custShapType = props.custShapType;
+            const rotate = props.rotate;
+            const flip = props.flip;
+            const txtRotate = props.txtRotate;
+            const shpId = props.shpId;
+            const w = props.w;
+            const h = props.h;
+            let x = props.x;
+            let y = props.y;
+            const slideLayoutXfrmNode = props.slideLayoutXfrmNode;
+            const slideMasterXfrmNode = props.slideMasterXfrmNode;
+
+            let grndFillFlg = false;
+            let imgFillFlg = false;
+            let fillColor;
+            let border;
+            let oShadowSvgUrlStr;
+            let headEndNodeAttrs;
+            let tailEndNodeAttrs;
 
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
 
-                var svgCssName = "_svg_css_" + (Object.keys(styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
+                const svgCssName = "_svg_css_" + (Object.keys(styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
                 //console.log("name:", name, "svgCssName: ", svgCssName)
-                var effectsClassName = svgCssName + "_effects";
-                result += "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
-                    " style='" +
+                const effectsClassName = svgCssName + "_effects";
+                result += "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + `' style='` +
                    PPTXUtils.getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
                     PPTXUtils.getSize(slideXfrmNode, undefined, undefined) +
-                    " z-index: " + order + ";" +
-                    "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";" +
-                    "'>";
+                    " z-index: " + order + `;transform: rotate(` + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + `;'>`;
                 result += '<defs>'
                 // Fill Color
-                var fillColor = PPTXShapeFillsUtils.getShapeFill(node, pNode, true, warpObj, source);
+                fillColor = PPTXShapeFillsUtils.getShapeFill(node, pNode, true, warpObj, source);
                 //console.log("genShape: fillColor: ", fillColor)
-                var grndFillFlg = false;
-                var imgFillFlg = false;
-                var clrFillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:spPr"]));
+                grndFillFlg = false;
+                imgFillFlg = false;
+                let clrFillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:spPr"]));
                 if (clrFillType == "GROUP_FILL") {
                     clrFillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(pNode, ["p:grpSpPr"]));
                 }
                 // if (clrFillType == "") {
-                //     var clrFillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:style","a:fillRef"]));
+                //     const clrFillType = PPTXColorUtils.getFillType(PPTXUtils.getTextByPathList(node, ["p:style","a:fillRef"]));
                 // }
                 //console.log("genShape: fillColor: ", fillColor, ", clrFillType: ", clrFillType, ", node: ", node)
                 /////////////////////////////////////////                    
                 if (clrFillType == "GRADIENT_FILL") {
                     grndFillFlg = true;
-                    var color_arry = fillColor.color;
-                    var angl = fillColor.rot + 90;
-                    var svgGrdnt = PPTXShapeFillsUtils.getSvgGradient(w, h, angl, color_arry, shpId);
+                    const color_arry = fillColor.color;
+                    const angl = fillColor.rot + 90;
+                    const svgGrdnt = PPTXShapeFillsUtils.getSvgGradient(w, h, angl, color_arry, shpId);
                     //fill="url(#linGrd)"
                     //console.log("genShape: svgGrdnt: ", svgGrdnt)
                     result += svgGrdnt;
@@ -103,13 +109,13 @@ import { PPTXMathShapes } from './math.js';
                 } else if (clrFillType == "PIC_FILL") {
                     imgFillFlg = true;
                     // 提取图片 URL（fillColor 可能是对象或字符串）
-                    var imgFill = typeof fillColor === 'object' && fillColor.img ? fillColor.img : fillColor;
-                    var svgBgImg = PPTXShapeFillsUtils.getSvgImagePattern(node, imgFill, shpId, warpObj);
+                    const imgFill = typeof fillColor === 'object' && fillColor.img ? fillColor.img : fillColor;
+                    const svgBgImg = PPTXShapeFillsUtils.getSvgImagePattern(node, imgFill, shpId, warpObj);
                     //fill="url(#imgPtrn)"
                     //console.log(svgBgImg)
                     result += svgBgImg;
                 } else if (clrFillType == "PATTERN_FILL") {
-                    var styleText = fillColor;
+                    let styleText = fillColor;
                     if (styleText in styleTable) {
                         styleText += "do-nothing: " + svgCssName +";";
                     }
@@ -134,10 +140,10 @@ import { PPTXMathShapes } from './math.js';
                     }
                 }
                 // Border Color
-                var border = PPTXStyleManager.getBorder(node, pNode, true, "shape", warpObj);
+                border = PPTXStyleManager.getBorder(node, pNode, true, "shape", warpObj);
 
-                var headEndNodeAttrs = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:headEnd", "attrs"]);
-                var tailEndNodeAttrs = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:tailEnd", "attrs"]);
+                headEndNodeAttrs = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:headEnd", "attrs"]);
+                tailEndNodeAttrs = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:tailEnd", "attrs"]);
                 // type: none, triangle, stealth, diamond, oval, arrow
 
                 ////////////////////effects/////////////////////////////////////////////////////
@@ -163,25 +169,25 @@ import { PPTXMathShapes } from './math.js';
                 //"a:extLst"?
                 //////////////////////////////outerShdw///////////////////////////////////////////
                 //not support sizing the shadow
-                var outerShdwNode = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
-                var oShadowSvgUrlStr = ""
+                const outerShdwNode = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
+                oShadowSvgUrlStr = ""
                 if (outerShdwNode !== undefined) {
-                    var chdwClrNode = PPTXColorUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
-                    var outerShdwAttrs = outerShdwNode["attrs"];
+                    const chdwClrNode = PPTXColorUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
+                    const outerShdwAttrs = outerShdwNode["attrs"];
 
-                    //var algn = outerShdwAttrs["algn"];
-                    var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
-                    var dist = parseInt(outerShdwAttrs["dist"]) * slideFactor;//(px) //* (3 / 4); //(pt)
-                    //var rotWithShape = outerShdwAttrs["rotWithShape"];
-                    var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * slideFactor) : ""; //+ "px"
-                    //var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
-                    //var sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
-                    var vx = dist * Math.sin(dir * Math.PI / 180);
-                    var hx = dist * Math.cos(dir * Math.PI / 180);
+                    //const algn = outerShdwAttrs["algn"];
+                    let dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
+                    const dist = parseInt(outerShdwAttrs["dist"]) * slideFactor;//(px) //* (3 / 4); //(pt)
+                    //const rotWithShape = outerShdwAttrs["rotWithShape"];
+                    const blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * slideFactor) : ""; //+ "px"
+                    //let sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
+                    //let sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
+                    const vx = dist * Math.sin(dir * Math.PI / 180);
+                    const hx = dist * Math.cos(dir * Math.PI / 180);
                     //SVG
-                    //var oShadowId = "outerhadow_" + shpId;
+                    //const oShadowId = "outerhadow_" + shpId;
                     //oShadowSvgUrlStr = "filter='url(#" + oShadowId+")'";
-                    //var shadowFilterStr = '<filter id="' + oShadowId + '" x="0" y="0" width="' + w * (6 / 8) + '" height="' + h + '">';
+                    //const shadowFilterStr = '<filter id="' + oShadowId + '" x="0" y="0" width="' + w * (6 / 8) + '" height="' + h + '">';
                     //1:
                     //shadowFilterStr += '<feDropShadow dx="' + vx + '" dy="' + hx + '" stdDeviation="' + blurRad * (3 / 4) + '" flood-color="#' + chdwClrNode +'" flood-opacity="1" />'
                     //2:
@@ -194,7 +200,7 @@ import { PPTXMathShapes } from './math.js';
                     //result += shadowFilterStr;
 
                     //css:
-                    var svg_css_shadow = "filter:drop-shadow(" + hx + "px " + vx + "px " + blurRad + "px #" + chdwClrNode + ");";
+                    let svg_css_shadow = "filter:drop-shadow(" + hx + "px " + vx + "px " + blurRad + "px #" + chdwClrNode + ");";
 
                     if (svg_css_shadow in styleTable) {
                         svg_css_shadow += "do-nothing: " + svgCssName + ";";
@@ -209,7 +215,7 @@ import { PPTXMathShapes } from './math.js';
                 ////////////////////////////////////////////////////////////////////////////////////////
                 if ((headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) ||
                     (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow"))) {
-                    var triangleMarker = "<marker id='markerTriangle_" + shpId + "' viewBox='0 0 10 10' refX='1' refY='5' markerWidth='5' markerHeight='5' stroke='" + border.color + "' fill='" + border.color +
+                    const triangleMarker = "<marker id='markerTriangle_" + shpId + "' viewBox='0 0 10 10' refX='1' refY='5' markerWidth='5' markerHeight='5' stroke='" + border.color + "' fill='" + border.color +
                         "' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>";
                     result += triangleMarker;
                 }
@@ -217,6 +223,30 @@ import { PPTXMathShapes } from './math.js';
             }
             if (shapType !== undefined && custShapType === undefined) {
                 //console.log("shapType: ", shapType)
+                let d = "", d_val, points;
+                let x1, x2, y1, y2, c3d4, cd4, cd2, wd2, hd2;
+                let fillAttr, shapAdjst, shapAdjst_ary, sAdj1, sAdj2, sAdj1_val, sAdj2_val, sAdj_name;
+                let tranglRott, adjst_val, max_adj_const;
+                let adj, adj1, adj2, adj3, adj4, adj5, adj6, adj7, adj8;
+                let cnstVal, cnstVal1, cnstVal2, cnstVal3, cnstVal4, cnstVal5;
+                let angVal, angVal1, angVal2, angVal3, angVal4;
+                let a, a1, a2, a3;
+                let dx, dy, dx1, dx2, dx3, dx4, dx5, dy1, dy2, dy3, dy4, dy5, dz;
+                let vc, hc, idy, ib, iDx, il, ir, it;
+                let ss, maxAdj, maxAdj1, maxAdj2, maxAdj3, minWH;
+                let refr, H, isClose, shapAdjst1, shapAdjst2;
+                let x3, x4, x5, x6, x7, y3, y4, y5, y6;
+                let t, l, b, r, wd8, wd32;
+                let g0, g1, g2, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11;
+                let shd2, vf;
+                let ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2, stAng1deg, stAng2deg, swAng2deg;
+                let ct1, st1, m1, n1;
+                let pieVals, hR, wR;
+                let ang, ang2rad;
+                let cX1, cY1, cX2, cY2, cy1, cy3;
+                let bl, br, dt;
+                let prcnt, dfltBultSizeNoPt, font_val;
+                let offAttrs;
                 switch (shapType) {
                     case "rect":
                     case "flowChartProcess":
@@ -270,7 +300,7 @@ import { PPTXMathShapes } from './math.js';
                     case "irregularSeal1":
                     case "irregularSeal2":
                         if (shapType == "irregularSeal1") {
-                            var d = "M" + w * 10800 / 21600 + "," + h * 5800 / 21600 +
+                            d = "M" + w * 10800 / 21600 + "," + h * 5800 / 21600 +
                                 " L" + w * 14522 / 21600 + "," + 0 +
                                 " L" + w * 14155 / 21600 + "," + h * 5325 / 21600 +
                                 " L" + w * 18380 / 21600 + "," + h * 4457 / 21600 +
@@ -296,7 +326,7 @@ import { PPTXMathShapes } from './math.js';
                                 " L" + w * 8352 / 21600 + "," + h * 2295 / 21600 +
                                 " z";
                         } else if (shapType == "irregularSeal2") {
-                            var d = "M" + w * 11462 / 21600 + "," + h * 4342 / 21600 +
+                            d = "M" + w * 11462 / 21600 + "," + h * 4342 / 21600 +
                                 " L" + w * 14790 / 21600 + "," + 0 +
                                 " L" + w * 14525 / 21600 + "," + h * 5777 / 21600 +
                                 " L" + w * 18007 / 21600 + "," + h * 3172 / 21600 +
@@ -326,91 +356,91 @@ import { PPTXMathShapes } from './math.js';
                                 " L" + w * 9722 / 21600 + "," + h * 1887 / 21600 +
                                 " z";
                         }
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartTerminator":
-                        var x1, x2, y1, cd2 = 180, cd4 = 90, c3d4 = 270;
+                        x1 = undefined, x2 = undefined, y1 = undefined, cd2 = 180, cd4 = 90, c3d4 = 270;
                         x1 = w * 3475 / 21600;
                         x2 = w * 18125 / 21600;
                         y1 = h * 10800 / 21600;
                         //path attrs: w = 21600; h = 21600; 
-                        var d = "M" + x1 + "," + 0 +
+                        d = "M" + x1 + "," + 0 +
                             " L" + x2 + "," + 0 +
                             PPTXShapeUtils.shapeArc(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartPunchedTape":
-                        var x1, x1, y1, y2, cd2 = 180;
+                        x1 = undefined, y1 = undefined, y2 = undefined, cd2 = 180;
                         x1 = w * 5 / 20;
                         y1 = h * 2 / 20;
                         y2 = h * 18 / 20;
-                        var d = "M" + 0 + "," + y1 +
+                        d = "M" + 0 + "," + y1 +
                             PPTXShapeUtils.shapeArc(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
                             " L" + w + "," + y2 +
                             PPTXShapeUtils.shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartOnlineStorage":
-                        var x1, y1, c3d4 = 270, cd4 = 90;
+                        x1 = undefined, y1 = undefined, c3d4 = 270, cd4 = 90;
                         x1 = w * 1 / 6;
                         y1 = h * 3 / 6;
-                        var d = "M" + x1 + "," + 0 +
+                        d = "M" + x1 + "," + 0 +
                             " L" + w + "," + 0 +
                             PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             PPTXShapeUtils.shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartDisplay":
-                        var x1, x2, y1, c3d4 = 270, cd2 = 180;
+                        x1 = undefined, x2 = undefined, y1 = undefined, c3d4 = 270, cd2 = 180;
                         x1 = w * 1 / 6;
                         x2 = w * 5 / 6;
                         y1 = h * 3 / 6;
                         //path attrs: w = 6; h = 6; 
-                        var d = "M" + 0 + "," + y1 +
+                        d = "M" + 0 + "," + y1 +
                             " L" + x1 + "," + 0 +
                             " L" + x2 + "," + 0 +
                             PPTXShapeUtils.shapeArc(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartDelay":
-                        var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
-                        var d = "M" + 0 + "," + 0 +
+                        wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
+                        d = "M" + 0 + "," + 0 +
                             " L" + wd2 + "," + 0 +
                             PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + 0 + "," + h +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartMagneticTape":
-                        var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
-                        var idy, ib, ang1;
+                        wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
+                        let idy, ib, ang1, ang1Dg;
                         idy = hd2 * Math.sin(Math.PI / 4);
                         ib = hd2 + idy;
                         ang1 = Math.atan(h / w);
-                        var ang1Dg = ang1 * 180 / Math.PI;
-                        var d = "M" + wd2 + "," + h +
+                        ang1Dg = ang1 * 180 / Math.PI;
+                        d = "M" + wd2 + "," + h +
                             PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
@@ -418,7 +448,7 @@ import { PPTXMathShapes } from './math.js';
                             " L" + w + "," + ib +
                             " L" + w + "," + h +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -431,8 +461,8 @@ import { PPTXMathShapes } from './math.js';
                             result += " <polyline points='" + w / 2 + " " + 0 + "," + w / 2 + " " + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                             result += " <polyline points='" + 0 + " " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         } else if (shapType == "flowChartSummingJunction") {
-                            var iDx, idy, il, ir, it, ib, hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
-                            var angVal = Math.PI / 4;
+                            iDx, idy, il, ir, it, ib, hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
+                            const angVal = Math.PI / 4;
                             iDx = wd2 * Math.cos(angVal);
                             idy = hd2 * Math.sin(angVal);
                             il = hc - iDx;
@@ -452,13 +482,13 @@ import { PPTXMathShapes } from './math.js';
                     case "snip2SameRect":
                     case "flowChartAlternateProcess":
                     case "flowChartPunchedCard":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val;// = 0.33334;
-                        var sAdj2, sAdj2_val;// = 0.33334;
-                        var shpTyp, adjTyp;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, sAdj1_val;// = 0.33334;
+                        let sAdj2, sAdj2_val;// = 0.33334;
+                        let shpTyp, adjTyp;
                         if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor === Array) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
@@ -468,12 +498,12 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         } else if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor !== Array) {
-                            var sAdj = PPTXUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
+                            const sAdj = PPTXUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
                             sAdj1_val = parseInt(sAdj.substr(4)) / 50000;
                             sAdj2_val = 0;
                         }
                         //console.log("shapType: ",shapType,",node: ",node )
-                        var tranglRott = "";
+                        tranglRott = "";
                         switch (shapType) {
                             case "roundRect":
                             case "flowChartAlternateProcess":
@@ -523,18 +553,18 @@ import { PPTXMathShapes } from './math.js';
                                 if (sAdj2_val === undefined) sAdj2_val = 0;
                                 break;
                         }
-                        var d_val = PPTXShapeUtils.shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d_val = PPTXShapeUtils.shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "snipRoundRect":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.33334;
-                        var sAdj2, sAdj2_val = 0.33334;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, sAdj1_val = 0.33334;
+                        sAdj2 = undefined, sAdj2_val = 0.33334;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
@@ -544,15 +574,14 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var d_val = "M0," + h + " L" + w + "," + h + " L" + w + "," + (h / 2) * sAdj2_val +
+                        d_val = "M0," + h + " L" + w + "," + h + " L" + w + "," + (h / 2) * sAdj2_val +
                             " L" + (w / 2 + (w / 2) * (1 - sAdj2_val)) + ",0 L" + (w / 2) * sAdj1_val + ",0 Q0,0 0," + (h / 2) * sAdj1_val + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bentConnector2":
-                        var d = "";
                         // if (isFlipV) {
                         //     d = "M 0 " + w + " L " + h + " " + w + " L " + h + " 0";
                         // } else {
@@ -569,31 +598,31 @@ import { PPTXMathShapes } from './math.js';
                         result += "/>";
                         break;
                     case "rtTriangle":
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='0 0,0 " + h + "," + w + " " + h + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "triangle":
                     case "flowChartExtract":
                     case "flowChartMerge":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var shapAdjst_val = 0.5;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) * slideFactor;
                             //console.log("w: "+w+"\nh: "+h+"\nshapAdjst: "+shapAdjst+"\nshapAdjst_val: "+shapAdjst_val);
                         }
-                        var tranglRott = "";
+                        tranglRott = "";
                         if (shapType == "flowChartMerge") {
                             tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
                         }
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon " + tranglRott + " points='" + (w * shapAdjst_val) + " 0,0 " + h + "," + w + " " + h + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "diamond":
                     case "flowChartDecision":
                     case "flowChartSort":
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (w / 2) + " 0,0 " + (h / 2) + "," + (w / 2) + " " + h + "," + w + " " + (h / 2) + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         if (shapType == "flowChartSort") {
@@ -603,16 +632,16 @@ import { PPTXMathShapes } from './math.js';
                     case "trapezoid":
                     case "flowChartManualOperation":
                     case "flowChartManualInput":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adjst_val = 0.2;
-                        var max_adj_const = 0.7407;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adjst_val = 0.2;
+                        max_adj_const = 0.7407;
                         if (shapAdjst !== undefined) {
-                            var adjst = parseInt(shapAdjst.substr(4)) * slideFactor;
+                            const adjst = parseInt(shapAdjst.substr(4)) * slideFactor;
                             adjst_val = (adjst * 0.5) / max_adj_const;
                             // console.log("w: "+w+"\nh: "+h+"\nshapAdjst: "+shapAdjst+"\nadjst_val: "+adjst_val);
                         }
-                        var cnstVal = 0;
-                        var tranglRott = "";
+                        let cnstVal = 0;
+                        tranglRott = "";
                         if (shapType == "flowChartManualOperation") {
                             tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
                         }
@@ -620,49 +649,50 @@ import { PPTXMathShapes } from './math.js';
                             adjst_val = 0;
                             cnstVal = h / 5;
                         }
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon " + tranglRott + " points='" + (w * adjst_val) + " " + cnstVal + ",0 " + h + "," + w + " " + h + "," + (1 - adjst_val) * w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "parallelogram":
                     case "flowChartInputOutput":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adjst_val = 0.25;
-                        var max_adj_const;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adjst_val = 0.25;
+                        max_adj_const = undefined;
                         if (w > h) {
                             max_adj_const = w / h;
                         } else {
                             max_adj_const = h / w;
                         }
                         if (shapAdjst !== undefined) {
-                            var adjst = parseInt(shapAdjst.substr(4)) / 100000;
+                            const adjst = parseInt(shapAdjst.substr(4)) / 100000;
                             adjst_val = adjst / max_adj_const;
                             //console.log("w: "+w+"\nh: "+h+"\nadjst: "+adjst_val+"\nmax_adj_const: "+max_adj_const);
                         }
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + adjst_val * w + " 0,0 " + h + "," + (1 - adjst_val) * w + " " + h + "," + w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
 
                         break;
                     case "pentagon":
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (0.5 * w) + " 0,0 " + (0.375 * h) + "," + (0.15 * w) + " " + h + "," + 0.85 * w + " " + h + "," + w + " " + 0.375 * h + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "hexagon":
                     case "flowChartPreparation":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 25000 * slideFactor;
-                        var vf = 115470 * slideFactor;;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var angVal1 = 60 * Math.PI / 180;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 25000 * slideFactor;
+                        vf = 115470 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        angVal1 = 60 * Math.PI / 180;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var maxAdj, a, shd2, x1, x2, dy1, y1, y2, vc = h / 2, hd2 = h / 2;
-                        var ss = Math.min(w, h);
+                        vc = h / 2;
+                        hd2 = h / 2;
+                        ss = Math.min(w, h);
                         maxAdj = cnstVal1 * w / ss;
                         a = (adj < 0) ? 0 : (adj > maxAdj) ? maxAdj : adj;
                         shd2 = hd2 * vf / cnstVal2;
@@ -672,7 +702,7 @@ import { PPTXMathShapes } from './math.js';
                         y1 = vc - dy1;
                         y2 = vc + dy1;
 
-                        var d = "M" + 0 + "," + vc +
+                        d = "M" + 0 + "," + vc +
                             " L" + x1 + "," + y1 +
                             " L" + x2 + "," + y1 +
                             " L" + w + "," + vc +
@@ -680,101 +710,101 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x1 + "," + y2 +
                             " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "heptagon":
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (0.5 * w) + " 0," + w / 8 + " " + h / 4 + ",0 " + (5 / 8) * h + "," + w / 4 + " " + h + "," + (3 / 4) * w + " " + h + "," +
                             w + " " + (5 / 8) * h + "," + (7 / 8) * w + " " + h / 4 + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "octagon":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 0.25;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
 
                         }
-                        var adj2 = (1 - adj1);
+                        adj2 = (1 - adj1);
                         //console.log("adj1: "+adj1+"\nadj2: "+adj2);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + adj1 * w + " 0,0 " + adj1 * h + ",0 " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," +
                             w + " " + adj2 * h + "," + w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "decagon":
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + h / 2 + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
                             (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + h / 2 + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "dodecagon":
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + (3 / 8) * h + ",0 " + (5 / 8) * h + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
                             (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + (5 / 8) * h + "," + w + " " + (3 / 8) * h + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star4":
-                        var d = PPTXStarShapes.genStar4(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar4(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star5":
-                        var d = PPTXStarShapes.genStar5(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar5(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star6":
-                        var d = PPTXStarShapes.genStar6(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar6(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star7":
-                        var d = PPTXStarShapes.genStar7(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar7(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star8":
-                        var d = PPTXStarShapes.genStar8(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar8(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
 
                     case "star10":
-                        var d = PPTXStarShapes.genStar10(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar10(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star12":
-                        var d = PPTXStarShapes.genStar12(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar12(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star16":
-                        var d = PPTXStarShapes.genStar16(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar16(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star24":
-                        var d = PPTXStarShapes.genStar24(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar24(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "star32":
-                        var d = PPTXStarShapes.genStar32(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d = PPTXStarShapes.genStar32(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -782,8 +812,8 @@ import { PPTXMathShapes } from './math.js';
                     case "pie":
                     case "pieWedge":
                     case "arc":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        adj1 = undefined, adj2, H, shapAdjst1, shapAdjst2, isClose;
                         if (shapType == "pie") {
                             adj1 = 0;
                             adj2 = 270;
@@ -814,19 +844,19 @@ import { PPTXMathShapes } from './math.js';
                                 adj2 = parseInt(shapAdjst2.substr(4)) / 60000;
                             }
                         }
-                        var pieVals = PPTXShapeUtils.shapePie(H, w, adj1, adj2, isClose);
+                        pieVals = PPTXShapeUtils.shapePie(H, w, adj1, adj2, isClose);
                         //console.log("shapType: ",shapType,"\nimgFillFlg: ",imgFillFlg,"\ngrndFillFlg: ",grndFillFlg,"\nshpId: ",shpId,"\nfillColor: ",fillColor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "chord":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 45;
-                        var sAdj2, sAdj2_val = 270;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, sAdj1_val = 45;
+                        sAdj2 = undefined, sAdj2_val = 270;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
@@ -836,83 +866,81 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var hR = h / 2;
-                        var wR = w / 2;
-                        var d_val = PPTXShapeUtils.shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
+                        hR = h / 2;
+                        wR = w / 2;
+                        d_val = PPTXShapeUtils.shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
                         //console.log("shapType: ",shapType,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val)
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "frame":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 12500 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj1 = 12500 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a1, x1, x4, y4;
+                        a1 = undefined, x1, x4, y4;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
                         else a1 = adj1
                         x1 = Math.min(w, h) * a1 / cnstVal2;
                         x4 = w - x1;
                         y4 = h - x1;
-                        var d = "M" + 0 + "," + 0 +
+                        d = "M" + 0 + "," + 0 +
                             " L" + w + "," + 0 +
                             " L" + w + "," + h +
                             " L" + 0 + "," + h +
-                            " z" +
-                            "M" + x1 + "," + x1 +
+                            ` zM` + x1 + "," + x1 +
                             " L" + x1 + "," + y4 +
                             " L" + x4 + "," + y4 +
                             " L" + x4 + "," + x1 +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "donut":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a, dr, iwd2, ihd2;
+                        a = undefined, dr, iwd2, ihd2;
                         if (adj < 0) a = 0
                         else if (adj > cnstVal1) a = cnstVal1
                         else a = adj
                         dr = Math.min(w, h) * a / cnstVal2;
                         iwd2 = w / 2 - dr;
                         ihd2 = h / 2 - dr;
-                        var d = "M" + 0 + "," + h / 2 +
+                        d = "M" + 0 + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
-                            " z" +
-                            "M" + dr + "," + h / 2 +
+                            ` zM` + dr + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "noSmoking":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 18750 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 18750 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a, dr, iwd2, ihd2, ang, ang2rad, ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2;
+                        a = undefined, dr, iwd2, ihd2, ang, ang2rad, ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2;
                         if (adj < 0) a = 0
                         else if (adj > cnstVal1) a = cnstVal1
                         else a = adj
@@ -932,7 +960,6 @@ import { PPTXMathShapes } from './math.js';
                         //t3 = Math.atan(h/w);
                         stAng1 = ang - dang;
                         stAng2 = stAng1 - Math.PI;
-                        var ct1, st1, m1, n1, dx1, dy1, x1, y1, y1, y2;
                         ct1 = ihd2 * Math.cos(stAng1);
                         st1 = iwd2 * Math.sin(stAng1);
                         m1 = Math.sqrt(ct1 * ct1 + st1 * st1); //"mod ct1 st1 0"
@@ -943,35 +970,43 @@ import { PPTXMathShapes } from './math.js';
                         y1 = h / 2 + dy1;
                         x2 = w / 2 - dx1;
                         y2 = h / 2 - dy1;
-                        var stAng1deg = stAng1 * 180 / Math.PI;
-                        var stAng2deg = stAng2 * 180 / Math.PI;
-                        var swAng2deg = swAng * 180 / Math.PI;
-                        var d = "M" + 0 + "," + h / 2 +
+                        ct1 = ihd2 * Math.cos(stAng1);
+                        st1 = iwd2 * Math.sin(stAng1);
+                        m1 = Math.sqrt(ct1 * ct1 + st1 * st1); //"mod ct1 st1 0"
+                        n1 = iwd2 * ihd2 / m1;
+                        dx1 = n1 * Math.cos(stAng1);
+                        dy1 = n1 * Math.sin(stAng1);
+                        x1 = w / 2 + dx1;
+                        y1 = h / 2 + dy1;
+                        x2 = w / 2 - dx1;
+                        y2 = h / 2 - dy1;
+                        stAng1deg = stAng1 * 180 / Math.PI;
+                        stAng2deg = stAng2 * 180 / Math.PI;
+                        swAng2deg = swAng * 180 / Math.PI;
+                        d = "M" + 0 + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
-                            " z" +
-                            "M" + x1 + "," + y1 +
+                            ` zM` + x1 + "," + y1 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
-                            " z" +
-                            "M" + x2 + "," + y2 +
+                            ` zM` + x2 + "," + y2 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
                             " z";
                         //console.log("adj: ",adj,"x1:",x1,",y1:",y1," x2:",x2,",y2:",y2,",stAng1:",stAng1,",stAng1deg:",stAng1deg,",stAng2:",stAng2,",stAng2deg:",stAng2deg,",swAng:",swAng,",swAng2deg:",swAng2deg)
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "halfFrame":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 3.5;
-                        var sAdj2, sAdj2_val = 3.5;
-                        var cnsVal = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, sAdj1_val = 3.5;
+                        sAdj2 = undefined, sAdj2_val = 3.5;
+                        cnsVal = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -981,46 +1016,45 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var minWH = Math.min(w, h);
-                        var maxAdj2 = (cnsVal * w) / minWH;
-                        var a1, a2;
+                        minWH = Math.min(w, h);
+                        maxAdj2 = (cnsVal * w) / minWH;
+                        a1 = undefined, a2;
                         if (sAdj2_val < 0) a2 = 0
                         else if (sAdj2_val > maxAdj2) a2 = maxAdj2
                         else a2 = sAdj2_val
-                        var x1 = (minWH * a2) / cnsVal;
-                        var g1 = h * x1 / w;
-                        var g2 = h - g1;
-                        var maxAdj1 = (cnsVal * g2) / minWH;
+                        x1 = (minWH * a2) / cnsVal;
+                        g1 = h * x1 / w;
+                        g2 = h - g1;
+                        maxAdj1 = (cnsVal * g2) / minWH;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > maxAdj1) a1 = maxAdj1
                         else a1 = sAdj1_val
-                        var y1 = minWH * a1 / cnsVal;
-                        var dx2 = y1 * w / h;
-                        var x2 = w - dx2;
-                        var dy2 = x1 * h / w;
-                        var y2 = h - dy2;
-                        var d = "M0,0" +
-                            " L" + w + "," + 0 +
+                        y1 = minWH * a1 / cnsVal;
+                        dx2 = y1 * w / h;
+                        x2 = w - dx2;
+                        dy2 = x1 * h / w;
+                        y2 = h - dy2;
+                        d = `M0,0 L` + w + "," + 0 +
                             " L" + x2 + "," + y1 +
                             " L" + x1 + "," + y1 +
                             " L" + x1 + "," + y2 +
                             " L0," + h + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         //console.log("w: ",w,", h: ",h,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val,",maxAdj1: ",maxAdj1,",maxAdj2: ",maxAdj2)
                         break;
                     case "blockArc":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 180;
-                        var sAdj2, adj2 = 0;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 180;
+                        sAdj2 = undefined, adj2 = 0;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) / 60000;
@@ -1034,8 +1068,8 @@ import { PPTXMathShapes } from './math.js';
                             }
                         }
 
-                        var stAng, istAng, a3, sw11, sw12, swAng, iswAng;
-                        var cd1 = 360;
+                        let stAng, istAng, a3, sw11, sw12, swAng, iswAng;
+                        cd1 = 360;
                         if (adj1 < 0) stAng = 0
                         else if (adj1 > cd1) stAng = cd1
                         else stAng = adj1 //180
@@ -1053,10 +1087,10 @@ import { PPTXMathShapes } from './math.js';
                         swAng = (sw11 > 0) ? sw11 : sw12; //180
                         iswAng = -swAng; //-180
 
-                        var endAng = stAng + swAng;
-                        var iendAng = istAng + iswAng;
+                        endAng = stAng + swAng;
+                        iendAng = istAng + iswAng;
 
-                        var wt1, ht1, dx1, dy1, x1, y1, stRd, istRd, wd2, hd2, hc, vc;
+                        wt1, ht1, stRd, istRd, wd2, hd2, hc, vc;
                         stRd = stAng * (Math.PI) / 180;
                         istRd = istAng * (Math.PI) / 180;
                         wd2 = w / 2;
@@ -1082,7 +1116,7 @@ import { PPTXMathShapes } from './math.js';
                             x1 = hc + dx1;
                             y1 = vc + dy1;
                         }
-                        var dr, iwd2, ihd2, wt2, ht2, dx2, dy2, x2, y2;
+                        let dr, iwd2, ihd2, wt2, ht2;
                         dr = Math.min(w, h) * a3 / cnstVal2;
                         iwd2 = wd2 - dr;
                         ihd2 = hd2 - dr;
@@ -1103,29 +1137,29 @@ import { PPTXMathShapes } from './math.js';
                             x2 = hc - dx2;
                             y2 = vc - dy2;
                         }
-                        var d = "M" + x1 + "," + y1 +
+                        d = "M" + x1 + "," + y1 +
                             PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
                             " L" + x2 + "," + y2 +
                             PPTXShapeUtils.shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bracePair":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 8333 * slideFactor;
-                        var cnstVal1 = 25000 * slideFactor;
-                        var cnstVal2 = 50000 * slideFactor;
-                        var cnstVal3 = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 8333 * slideFactor;
+                        cnstVal1 = 25000 * slideFactor;
+                        cnstVal2 = 50000 * slideFactor;
+                        cnstVal3 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, x3, x4, y2, y3, y4;
+                        vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, x3, x4, y2, y3, y4;
                         if (adj < 0) a = 0
                         else if (adj > cnstVal1) a = cnstVal1
                         else a = adj
-                        var minWH = Math.min(w, h);
+                        minWH = Math.min(w, h);
                         x1 = minWH * a / cnstVal3;
                         x2 = minWH * a / cnstVal2;
                         x3 = w - x2;
@@ -1134,7 +1168,7 @@ import { PPTXMathShapes } from './math.js';
                         y3 = vc + x1;
                         y4 = h - x1;
                         //console.log("w:",w," h:",h," x1:",x1," x2:",x2," x3:",x3," x4:",x4," y2:",y2," y3:",y3," y4:",y4)
-                        var d = "M" + x2 + "," + h +
+                        d = "M" + x2 + "," + h +
                             PPTXShapeUtils.shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
                             " L" + x1 + "," + y3 +
                             PPTXShapeUtils.shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
@@ -1149,18 +1183,18 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x4 + "," + y4 +
                             PPTXShapeUtils.shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftBrace":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 8333 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 8333 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -1170,16 +1204,16 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
+                        vc = h / 2, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal2) a2 = cnstVal2
                         else a2 = adj2
-                        var minWH = Math.min(w, h);
+                        minWH = Math.min(w, h);
                         q1 = cnstVal2 - a2;
                         if (q1 < a2) q2 = q1
                         else q2 = a2
                         q3 = q2 / 2;
-                        var maxAdj1 = q3 * h / minWH;
+                        maxAdj1 = q3 * h / minWH;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > maxAdj1) a1 = maxAdj1
                         else a1 = adj1
@@ -1188,7 +1222,7 @@ import { PPTXMathShapes } from './math.js';
                         y2 = y3 - y1;
                         y4 = y3 + y1;
                         //console.log("w:",w," h:",h," q1:",q1," q2:",q2," q3:",q3," y1:",y1," y3:",y3," y4:",y4," maxAdj1:",maxAdj1)
-                        var d = "M" + w + "," + h +
+                        d = "M" + w + "," + h +
                             PPTXShapeUtils.shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + w / 2 + "," + y4 +
                             PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
@@ -1196,18 +1230,18 @@ import { PPTXMathShapes } from './math.js';
                             " L" + w / 2 + "," + y1 +
                             PPTXShapeUtils.shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "rightBrace":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 8333 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 8333 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -1217,16 +1251,16 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
+                        vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal2) a2 = cnstVal2
                         else a2 = adj2
-                        var minWH = Math.min(w, h);
+                        minWH = Math.min(w, h);
                         q1 = cnstVal2 - a2;
                         if (q1 < a2) q2 = q1
                         else q2 = a2
                         q3 = q2 / 2;
-                        var maxAdj1 = q3 * h / minWH;
+                        maxAdj1 = q3 * h / minWH;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > maxAdj1) a1 = maxAdj1
                         else a1 = adj1
@@ -1235,7 +1269,7 @@ import { PPTXMathShapes } from './math.js';
                         y2 = y3 - y1;
                         y4 = h - y1;
                         //console.log("w:",w," h:",h," q1:",q1," q2:",q2," q3:",q3," y1:",y1," y2:",y2," y3:",y3," y4:",y4," maxAdj1:",maxAdj1)
-                        var d = "M" + 0 + "," + 0 +
+                        d = "M" + 0 + "," + 0 +
                             PPTXShapeUtils.shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
                             " L" + w / 2 + "," + y2 +
                             PPTXShapeUtils.shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
@@ -1243,19 +1277,19 @@ import { PPTXMathShapes } from './math.js';
                             " L" + w / 2 + "," + y4 +
                             PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bracketPair":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 16667 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 16667 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, y2;
+                        r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, y2;
                         if (adj < 0) a = 0
                         else if (adj > cnstVal1) a = cnstVal1
                         else a = adj
@@ -1263,49 +1297,49 @@ import { PPTXMathShapes } from './math.js';
                         x2 = r - x1;
                         y2 = b - x1;
                         //console.log("w:",w," h:",h," x1:",x1," x2:",x2," y2:",y2)
-                        var d = PPTXShapeUtils.shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
+                        d = PPTXShapeUtils.shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
                             PPTXShapeUtils.shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
                             PPTXShapeUtils.shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftBracket":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 8333 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var maxAdj = cnstVal1 * h / Math.min(w, h);
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 8333 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        maxAdj = cnstVal1 * h / Math.min(w, h);
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2;
+                        r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2;
                         if (adj < 0) a = 0
                         else if (adj > maxAdj) a = maxAdj
                         else a = adj
                         y1 = Math.min(w, h) * a / cnstVal2;
                         if (y1 > w) y1 = w;
                         y2 = b - y1;
-                        var d = "M" + r + "," + b +
+                        d = "M" + r + "," + b +
                             PPTXShapeUtils.shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + 0 + "," + y1 +
                             PPTXShapeUtils.shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
                             " L" + r + "," + 0
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "rightBracket":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 8333 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var maxAdj = cnstVal1 * h / Math.min(w, h);
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 8333 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        maxAdj = cnstVal1 * h / Math.min(w, h);
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2, y3;
+                        cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2, y3;
                         if (adj < 0) a = 0
                         else if (adj > maxAdj) a = maxAdj
                         else a = adj
@@ -1313,45 +1347,43 @@ import { PPTXMathShapes } from './math.js';
                         y2 = h - y1;
                         y3 = w - y1;
                         //console.log("w:",w," h:",h," y1:",y1," y2:",y2," y3:",y3)
-                        var d = "M" + 0 + "," + h +
+                        d = "M" + 0 + "," + h +
                             PPTXShapeUtils.shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
                             //" L"+ r + "," + y2 +
                             " L" + w + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
                             " L" + 0 + "," + 0
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "moon":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 0.5;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 0.5;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) / 100000;//*96/914400;;
                         }
-                        var hd2, cd2, cd4;
-
                         hd2 = h / 2;
                         cd2 = 180;
                         cd4 = 90;
 
-                        var adj2 = (1 - adj) * w;
-                        var d = "M" + w + "," + h +
+                        adj2 = (1 - adj) * w;
+                        d = "M" + w + "," + h +
                             PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "corner":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 50000 * slideFactor;
-                        var sAdj2, sAdj2_val = 50000 * slideFactor;
-                        var cnsVal = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, sAdj1_val = 50000 * slideFactor;
+                        sAdj2 = undefined, sAdj2_val = 50000 * slideFactor;
+                        cnsVal = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -1361,10 +1393,10 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var minWH = Math.min(w, h);
-                        var maxAdj1 = cnsVal * h / minWH;
-                        var maxAdj2 = cnsVal * w / minWH;
-                        var a1, a2, x1, dy1, y1;
+                        minWH = Math.min(w, h);
+                        maxAdj1 = cnsVal * h / minWH;
+                        maxAdj2 = cnsVal * w / minWH;
+                        a1 = undefined, a2, x1, dy1, y1;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > maxAdj1) a1 = maxAdj1
                         else a1 = sAdj1_val
@@ -1376,63 +1408,61 @@ import { PPTXMathShapes } from './math.js';
                         dy1 = minWH * a1 / cnsVal;
                         y1 = h - dy1;
 
-                        var d = "M0,0" +
-                            " L" + x1 + "," + 0 +
+                        d = `M0,0 L` + x1 + "," + 0 +
                             " L" + x1 + "," + y1 +
                             " L" + w + "," + y1 +
                             " L" + w + "," + h +
                             " L0," + h + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "diagStripe":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var sAdj1_val = 50000 * slideFactor;
-                        var cnsVal = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        sAdj1_val = 50000 * slideFactor;
+                        cnsVal = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             sAdj1_val = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a1, x2, y2;
+                        a1 = undefined, x2, y2;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > cnsVal) a1 = cnsVal
                         else a1 = sAdj1_val
                         x2 = w * a1 / cnsVal;
                         y2 = h * a1 / cnsVal;
-                        var d = "M" + 0 + "," + y2 +
+                        d = "M" + 0 + "," + y2 +
                             " L" + x2 + "," + 0 +
                             " L" + w + "," + 0 +
                             " L" + 0 + "," + h + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "gear6":
                     case "gear9":
                         txtRotate = 0;
-                        var gearNum = shapType.substr(4), d;
+                        gearNum = shapType.substr(4), d;
                         if (gearNum == "6") {
                             d = PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
                         } else { //gearNum=="9"
                             d = PPTXShapeUtils.shapeGear(w, h / 3.5, parseInt(gearNum));
                         }
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d + "' transform='rotate(20," + (3 / 7) * h + "," + (3 / 7) * h + ")' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bentConnector3":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var shapAdjst_val = 0.5;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
                             // if (isFlipV) {
                             //     result += " <polyline points='" + w + " 0," + ((1 - shapAdjst_val) * w) + " 0," + ((1 - shapAdjst_val) * w) + " " + h + ",0 " + h + "' fill='transparent'" +
                             //         "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                             // } else {
-                            result += " <polyline points='0 0," + (shapAdjst_val) * w + " 0," + (shapAdjst_val) * w + " " + h + "," + w + " " + h + "' fill='transparent'" +
-                                "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
+                            result += " <polyline points='0 0," + (shapAdjst_val) * w + " 0," + (shapAdjst_val) * w + " " + h + "," + w + " " + h + `' fill='transparent'' stroke='` + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                             //}
                             if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
                                 result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
@@ -1444,27 +1474,27 @@ import { PPTXMathShapes } from './math.js';
                         }
                         break;
                     case "plus":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 0.25;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
 
                         }
-                        var adj2 = (1 - adj1);
+                        adj2 = (1 - adj1);
                         result += " <polygon points='" + adj1 * w + " 0," + adj1 * w + " " + adj1 * h + ",0 " + adj1 * h + ",0 " + adj2 * h + "," +
                             adj1 * w + " " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," + adj2 * w + " " + adj2 * h + "," + w + " " + adj2 * h + "," +
                             +w + " " + adj1 * h + "," + adj2 * w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "teardrop":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 100000 * slideFactor;
-                        var cnsVal1 = adj1;
-                        var cnsVal2 = 200000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj1 = 100000 * slideFactor;
+                        cnsVal1 = adj1;
+                        cnsVal2 = 200000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a1, r2, tw, th, sw, sh, dx1, dy1, x1, y1, x2, y2, rd45;
+                        a1 = undefined, r2, tw, th, sw, sh, dx1, dy1, x1, y1, x2, y2, rd45;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnsVal2) a1 = cnsVal2
                         else a1 = adj1
@@ -1481,26 +1511,26 @@ import { PPTXMathShapes } from './math.js';
                         x2 = ((w / 2) + x1) / 2;
                         y2 = ((h / 2) + y1) / 2;
 
-                        var d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
+                        d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
                             "Q " + x2 + ",0 " + x1 + "," + y1 +
                             "Q " + w + "," + y2 + " " + w + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         // console.log("shapAdjst: ",shapAdjst,", adj1: ",adj1);
                         break;
                     case "plaque":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 16667 * slideFactor;
-                        var cnsVal1 = 50000 * slideFactor;
-                        var cnsVal2 = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj1 = 16667 * slideFactor;
+                        cnsVal1 = 50000 * slideFactor;
+                        cnsVal2 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a1, x1, x2, y2;
+                        a1 = undefined, x1, x2, y2;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnsVal1) a1 = cnsVal1
                         else a1 = adj1
@@ -1508,7 +1538,7 @@ import { PPTXMathShapes } from './math.js';
                         x2 = w - x1;
                         y2 = h - x1;
 
-                        var d_val = "M0," + x1 +
+                        d_val = "M0," + x1 +
                             PPTXShapeUtils.shapeArc(0, 0, x1, x1, 90, 0, false).replace("M", "L") +
                             " L" + x2 + "," + 0 +
                             PPTXShapeUtils.shapeArc(w, 0, x1, x1, 180, 90, false).replace("M", "L") +
@@ -1516,28 +1546,28 @@ import { PPTXMathShapes } from './math.js';
                             PPTXShapeUtils.shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             PPTXShapeUtils.shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "sun":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = slideFactor;
-                        var adj1 = 25000 * refr;
-                        var cnstVal1 = 12500 * refr;
-                        var cnstVal2 = 46875 * refr;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        refr = slideFactor;
+                        adj1 = 25000 * refr;
+                        cnstVal1 = 12500 * refr;
+                        cnstVal2 = 46875 * refr;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var a1;
+                        let a1;
                         if (adj1 < cnstVal1) a1 = cnstVal1
                         else if (adj1 > cnstVal2) a1 = cnstVal2
                         else a1 = adj1
 
-                        var cnstVa3 = 50000 * refr;
-                        var cnstVa4 = 100000 * refr;
-                        var g0 = cnstVa3 - a1,
+                        cnstVa3 = 50000 * refr;
+                        cnstVa4 = 100000 * refr;
+                        g0 = cnstVa3 - a1,
                             g1 = g0 * (30274 * refr) / (32768 * refr),
                             g2 = g0 * (12540 * refr) / (32768 * refr),
                             g3 = g1 + cnstVa3,
@@ -1584,68 +1614,59 @@ import { PPTXMathShapes } from './math.js';
                             y17 = h * g17 / cnstVa4,
                             y18 = h * g18 / cnstVa4;
 
-                        var d_val = "M" + w + "," + h / 2 +
+                        d_val = "M" + w + "," + h / 2 +
                             " L" + x15 + "," + y18 +
                             " L" + x15 + "," + y14 +
-                            "z" +
-                            " M" + ox1 + "," + oy1 +
+                            `z M` + ox1 + "," + oy1 +
                             " L" + x16 + "," + y17 +
                             " L" + x13 + "," + y12 +
-                            "z" +
-                            " M" + w / 2 + "," + 0 +
+                            `z M` + w / 2 + "," + 0 +
                             " L" + x18 + "," + y10 +
                             " L" + x14 + "," + y10 +
-                            "z" +
-                            " M" + ox2 + "," + oy1 +
+                            `z M` + ox2 + "," + oy1 +
                             " L" + x17 + "," + y12 +
                             " L" + x12 + "," + y17 +
-                            "z" +
-                            " M" + 0 + "," + h / 2 +
+                            `z M` + 0 + "," + h / 2 +
                             " L" + x10 + "," + y14 +
                             " L" + x10 + "," + y18 +
-                            "z" +
-                            " M" + ox2 + "," + oy2 +
+                            `z M` + ox2 + "," + oy2 +
                             " L" + x12 + "," + y13 +
                             " L" + x17 + "," + y16 +
-                            "z" +
-                            " M" + w / 2 + "," + h +
+                            `z M` + w / 2 + "," + h +
                             " L" + x14 + "," + y15 +
                             " L" + x18 + "," + y15 +
-                            "z" +
-                            " M" + ox1 + "," + oy2 +
+                            `z M` + ox1 + "," + oy2 +
                             " L" + x13 + "," + y16 +
                             " L" + x16 + "," + y13 +
-                            " z" +
-                            " M" + x19 + "," + h / 2 +
+                            ` z M` + x19 + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
                             " z";
                         //console.log("adj1: ",adj1,d_val);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
 
                         break;
                     case "heart":
-                        var dx1, dx2, x1, x2, x3, x4, y1;
                         dx1 = w * 49 / 48;
-                        dx2 = w * 10 / 48
-                        x1 = w / 2 - dx1
-                        x2 = w / 2 - dx2
-                        x3 = w / 2 + dx2
-                        x4 = w / 2 + dx1
+                        dx2 = w * 10 / 48;
+                        x1 = w / 2 - dx1;
+                        x2 = w / 2 - dx2;
+                        x3 = w / 2 + dx2;
+                        x4 = w / 2 + dx1;
                         y1 = -h / 3;
-                        var d_val = "M" + w / 2 + "," + h / 4 +
+                        d_val = "M" + w / 2 + "," + h / 4 +
                             "C" + x3 + "," + y1 + " " + x4 + "," + h / 4 + " " + w / 2 + "," + h +
                             "C" + x1 + "," + h / 4 + " " + x2 + "," + y1 + " " + w / 2 + "," + h / 4 + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path   d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "lightningBolt":
-                        var x1 = w * 5022 / 21600,
+                        x1 = w * 5022 / 21600,
                             x2 = w * 11050 / 21600,
                             x3 = w * 8472 / 21600,
                             x4 = w * 8757 / 21600,
@@ -1668,7 +1689,7 @@ import { PPTXMathShapes } from './math.js';
                             y10 = h * 14277 / 21600,
                             y11 = h * 14915 / 21600;
 
-                        var d_val = "M" + x3 + "," + 0 +
+                        d_val = "M" + x3 + "," + 0 +
                             " L" + x8 + "," + y2 +
                             " L" + x2 + "," + y3 +
                             " L" + x11 + "," + y7 +
@@ -1680,22 +1701,23 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x10 + "," + y9 +
                             " L" + 0 + "," + y1 + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "cube":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = slideFactor;
-                        var adj = 25000 * refr;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        refr = slideFactor;
+                        adj = 25000 * refr;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var d_val;
-                        var cnstVal2 = 100000 * refr;
-                        var ss = Math.min(w, h);
-                        var a, y1, y4, x4;
+                        d_val = undefined;
+                        cnstVal2 = 100000 * refr;
+                        ss = Math.min(w, h);
+                        y4 = undefined;
+                        x4 = undefined;
                         a = (adj < 0) ? 0 : (adj > cnstVal2) ? cnstVal2 : adj;
                         y1 = ss * a / cnstVal2;
                         y4 = h - y1;
@@ -1706,31 +1728,30 @@ import { PPTXMathShapes } from './math.js';
                             " L" + w + "," + y4 +
                             " L" + x4 + "," + h +
                             " L" + 0 + "," + h +
-                            " z" +
-                            "M" + 0 + "," + y1 +
+                            ` zM` + 0 + "," + y1 +
                             " L" + x4 + "," + y1 +
                             " M" + x4 + "," + y1 +
                             " L" + w + "," + 0 +
                             "M" + x4 + "," + y1 +
                             " L" + x4 + "," + h;
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "bevel":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = slideFactor;
-                        var adj = 12500 * refr;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        refr = slideFactor;
+                        adj = 12500 * refr;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var d_val;
-                        var cnstVal1 = 50000 * refr;
-                        var cnstVal2 = 100000 * refr;
-                        var ss = Math.min(w, h);
-                        var a, x1, x2, y2;
+                        d_val = undefined;
+                        cnstVal1 = 50000 * refr;
+                        cnstVal2 = 100000 * refr;
+                        ss = Math.min(w, h);
+                        a = undefined, x1, x2, y2;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         x1 = ss * a / cnstVal2;
                         x2 = w - x1;
@@ -1739,13 +1760,11 @@ import { PPTXMathShapes } from './math.js';
                             " L" + w + "," + 0 +
                             " L" + w + "," + h +
                             " L" + 0 + "," + h +
-                            " z" +
-                            " M" + x1 + "," + x1 +
+                            ` z M` + x1 + "," + x1 +
                             " L" + x2 + "," + x1 +
                             " L" + x2 + "," + y2 +
                             " L" + x1 + "," + y2 +
-                            " z" +
-                            " M" + 0 + "," + 0 +
+                            ` z M` + 0 + "," + 0 +
                             " L" + x1 + "," + x1 +
                             " M" + 0 + "," + h +
                             " L" + x1 + "," + y2 +
@@ -1754,23 +1773,23 @@ import { PPTXMathShapes } from './math.js';
                             " M" + w + "," + h +
                             " L" + x2 + "," + y2;
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "foldedCorner":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = slideFactor;
-                        var adj = 16667 * refr;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        refr = slideFactor;
+                        adj = 16667 * refr;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var d_val;
-                        var cnstVal1 = 50000 * refr;
-                        var cnstVal2 = 100000 * refr;
-                        var ss = Math.min(w, h);
-                        var a, dy2, dy1, x1, x2, y2, y1;
+                        d_val = undefined;
+                        cnstVal1 = 50000 * refr;
+                        cnstVal2 = 100000 * refr;
+                        ss = Math.min(w, h);
+                        a = undefined, dy2, dy1, x1, x2, y2, y1;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         dy2 = ss * a / cnstVal2;
                         dy1 = dy2 / 5;
@@ -1787,30 +1806,30 @@ import { PPTXMathShapes } from './math.js';
                             " L" + w + "," + 0 +
                             " L" + w + "," + y2;
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "cloud":
                     case "cloudCallout":
-                        var d1 = PPTXCalloutShapes.genCloudCallout(w, h, node, slideFactor, shapType);
+                        d1 = PPTXCalloutShapes.genCloudCallout(w, h, node, slideFactor, shapType);
                         result += "<path d='" + d1 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "smileyFace":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = slideFactor;
-                        var adj = 4653 * refr;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        refr = slideFactor;
+                        adj = 4653 * refr;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var d_val;
-                        var cnstVal1 = 50000 * refr;
-                        var cnstVal2 = 100000 * refr;
-                        var cnstVal3 = 4653 * refr;
-                        var ss = Math.min(w, h);
-                        var a, x1, x2, x3, x4, y1, y3, dy2, y2, y4, dy3, y5, wR, hR, wd2, hd2;
+                        d_val = undefined;
+                        cnstVal1 = 50000 * refr;
+                        cnstVal2 = 100000 * refr;
+                        cnstVal3 = 4653 * refr;
+                        ss = Math.min(w, h);
+                        a = undefined, x1, x2, x3, x4, y1, y3, dy2, y2, y4, dy3, y5, wR, hR, wd2, hd2;
                         wd2 = w / 2;
                         hd2 = h / 2;
                         a = (adj < -cnstVal3) ? -cnstVal3 : (adj > cnstVal3) ? cnstVal3 : adj;
@@ -1827,9 +1846,9 @@ import { PPTXMathShapes } from './math.js';
                         y5 = y4 + dy3;
                         wR = w * 1125 / 21600;
                         hR = h * 1125 / 21600;
-                        var cX1 = x2 - wR * Math.cos(Math.PI);
-                        var cY1 = y1 - hR * Math.sin(Math.PI);
-                        var cX2 = x3 - wR * Math.cos(Math.PI);
+                        cX1 = x2 - wR * Math.cos(Math.PI);
+                        cY1 = y1 - hR * Math.sin(Math.PI);
+                        cX2 = x3 - wR * Math.cos(Math.PI);
                         d_val = //eyes
                             PPTXShapeUtils.shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
                             PPTXShapeUtils.shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
@@ -1841,31 +1860,31 @@ import { PPTXMathShapes } from './math.js';
                             " M" + 0 + "," + hd2 +
                             PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "verticalScroll":
                     case "horizontalScroll":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = slideFactor;
-                        var adj = 12500 * refr;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        refr = slideFactor;
+                        adj = 12500 * refr;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var d_val;
-                        var cnstVal1 = 25000 * refr;
-                        var cnstVal2 = 100000 * refr;
-                        var ss = Math.min(w, h);
-                        var t = 0, l = 0, b = h, r = w;
-                        var a, ch, ch2, ch4;
+                        d_val = undefined;
+                        cnstVal1 = 25000 * refr;
+                        cnstVal2 = 100000 * refr;
+                        ss = Math.min(w, h);
+                        t = 0, l = 0, b = h, r = w;
+                        a = undefined, ch, ch2, ch4;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         ch = ss * a / cnstVal2;
                         ch2 = ch / 2;
                         ch4 = ch / 4;
                         if (shapType == "verticalScroll") {
-                            var x3, x4, x6, x7, x5, y3, y4;
+                            let x3, x4, x6, x7, x5, y3, y4;
                             x3 = ch + ch2;
                             x4 = ch + ch;
                             x6 = r - ch;
@@ -1884,8 +1903,7 @@ import { PPTXMathShapes } from './math.js';
                                 PPTXShapeUtils.shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
                                 " L" + ch2 + "," + b +
                                 PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
-                                " z" +
-                                " M" + x3 + "," + t +
+                                ` z M` + x3 + "," + t +
                                 PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
                                 PPTXShapeUtils.shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
                                 " L" + x4 + "," + ch2 +
@@ -1894,11 +1912,10 @@ import { PPTXMathShapes } from './math.js';
                                 " M" + ch + "," + y4 +
                                 PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
                                 PPTXShapeUtils.shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
-                                " z" +
-                                " M" + ch + "," + y4 +
+                                ` z M` + ch + "," + y4 +
                                 " L" + ch + "," + y3;
                         } else if (shapType == "horizontalScroll") {
-                            var y3, y4, y6, y7, y5, x3, x4;
+                            y3, y4, y6, y7, y5, x3, x4;
                             y3 = ch + ch2;
                             y4 = ch + ch;
                             y6 = b - ch;
@@ -1917,12 +1934,10 @@ import { PPTXMathShapes } from './math.js';
                                 " L" + ch + "," + y6 +
                                 " L" + ch + "," + y7 +
                                 PPTXShapeUtils.shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
-                                " z" +
-                                "M" + x4 + "," + ch +
+                                ` zM` + x4 + "," + ch +
                                 PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
                                 PPTXShapeUtils.shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
-                                " z" +
-                                " M" + x4 + "," + ch +
+                                ` z M` + x4 + "," + ch +
                                 " L" + x3 + "," + ch +
                                 " M" + ch2 + "," + y4 +
                                 " L" + ch2 + "," + y3 +
@@ -1932,26 +1947,26 @@ import { PPTXMathShapes } from './math.js';
                                 " L" + ch + "," + y6;
                         }
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "wedgeEllipseCallout":
-                        var d_val = PPTXCalloutShapes.genWedgeEllipseCallout(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d_val = PPTXCalloutShapes.genWedgeEllipseCallout(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "wedgeRectCallout":
-                        var d_val = PPTXCalloutShapes.genWedgeRectCallout(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d_val = PPTXCalloutShapes.genWedgeRectCallout(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "wedgeRoundRectCallout":
-                        var d_val = PPTXCalloutShapes.genWedgeRoundRectCallout(w, h, node, slideFactor);
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        d_val = PPTXCalloutShapes.genWedgeRoundRectCallout(w, h, node, slideFactor);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -1967,19 +1982,19 @@ import { PPTXMathShapes } from './math.js';
                     case "callout1":
                     case "callout2":
                     case "callout3":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = slideFactor;
-                        var sAdj1, adj1 = 18750 * refr;
-                        var sAdj2, adj2 = -8333 * refr;
-                        var sAdj3, adj3 = 18750 * refr;
-                        var sAdj4, adj4 = -16667 * refr;
-                        var sAdj5, adj5 = 100000 * refr;
-                        var sAdj6, adj6 = -16667 * refr;
-                        var sAdj7, adj7 = 112963 * refr;
-                        var sAdj8, adj8 = -8333 * refr;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        refr = slideFactor;
+                        sAdj1 = undefined, adj1 = 18750 * refr;
+                        sAdj2 = undefined, adj2 = -8333 * refr;
+                        sAdj3 = undefined, adj3 = 18750 * refr;
+                        sAdj4 = undefined, adj4 = -16667 * refr;
+                        sAdj5 = undefined, adj5 = 100000 * refr;
+                        let sAdj6, adj6 = -16667 * refr;
+                        let sAdj7, adj7 = 112963 * refr;
+                        let sAdj8, adj8 = -8333 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2007,9 +2022,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 100000 * refr;
-                        var isBorder = true;
+                        d_val = undefined;
+                        cnstVal1 = 100000 * refr;
+                        isBorder = true;
                         switch (shapType) {
                             case "borderCallout1":
                             case "callout1":
@@ -2024,7 +2039,7 @@ import { PPTXMathShapes } from './math.js';
                                     adj3 = 112500 * refr;
                                     adj4 = -38333 * refr;
                                 }
-                                var y1, x1, y2, x2;
+                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined;
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
@@ -2033,8 +2048,7 @@ import { PPTXMathShapes } from './math.js';
                                     " L" + w + "," + 0 +
                                     " L" + w + "," + h +
                                     " L" + 0 + "," + h +
-                                    " z" +
-                                    " M" + x1 + "," + y1 +
+                                    ` z M` + x1 + "," + y1 +
                                     " L" + x2 + "," + y2;
                                 break;
                             case "borderCallout2":
@@ -2053,7 +2067,7 @@ import { PPTXMathShapes } from './math.js';
                                     adj5 = 112500 * refr;
                                     adj6 = -46667 * refr;
                                 }
-                                var y1, x1, y2, x2, y3, x3;
+                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined, y3 = undefined, x3 = undefined;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2066,9 +2080,7 @@ import { PPTXMathShapes } from './math.js';
                                     " L" + w + "," + 0 +
                                     " L" + w + "," + h +
                                     " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
+                                    ` z M` + x1 + "," + y1 +
                                     " L" + x2 + "," + y2 +
 
                                     " L" + x3 + "," + y3 +
@@ -2094,7 +2106,7 @@ import { PPTXMathShapes } from './math.js';
                                     adj7 = 112963 * refr;
                                     adj8 = -8333 * refr;
                                 }
-                                var y1, x1, y2, x2, y3, x3, y4, x4;
+                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined, y3 = undefined, x3 = undefined, y4 = undefined, x4 = undefined;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2110,9 +2122,7 @@ import { PPTXMathShapes } from './math.js';
                                     " L" + w + "," + 0 +
                                     " L" + w + "," + h +
                                     " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
+                                    ` z M` + x1 + "," + y1 +
                                     " L" + x2 + "," + y2 +
 
                                     " L" + x3 + "," + y3 +
@@ -2135,7 +2145,7 @@ import { PPTXMathShapes } from './math.js';
                                     adj3 = 112500 * refr;
                                     adj4 = -38333 * refr;
                                 }
-                                var y1, x1, y2, x2;
+                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined;
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
@@ -2144,9 +2154,7 @@ import { PPTXMathShapes } from './math.js';
                                     " L" + w + "," + 0 +
                                     " L" + w + "," + h +
                                     " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
+                                    ` z M` + x1 + "," + y1 +
                                     " L" + x2 + "," + y2 +
 
                                     " M" + x1 + "," + 0 +
@@ -2167,7 +2175,7 @@ import { PPTXMathShapes } from './math.js';
                                     adj5 = 112500 * refr;
                                     adj6 = -46667 * refr;
                                 }
-                                var y1, x1, y2, x2, y3, x3;
+                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined, y3 = undefined, x3 = undefined;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2179,9 +2187,7 @@ import { PPTXMathShapes } from './math.js';
                                     " L" + w + "," + 0 +
                                     " L" + w + "," + h +
                                     " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
+                                    ` z M` + x1 + "," + y1 +
                                     " L" + x2 + "," + y2 +
                                     " L" + x3 + "," + y3 +
                                     " L" + x2 + "," + y2 +
@@ -2208,7 +2214,7 @@ import { PPTXMathShapes } from './math.js';
                                     adj7 = 112963 * refr;
                                     adj8 = -8333 * refr;
                                 }
-                                var y1, x1, y2, x2, y3, x3, y4, x4;
+                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined, y3 = undefined, x3 = undefined, y4 = undefined, x4 = undefined;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2222,9 +2228,7 @@ import { PPTXMathShapes } from './math.js';
                                     " L" + w + "," + 0 +
                                     " L" + w + "," + h +
                                     " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
+                                    ` z M` + x1 + "," + y1 +
                                     " L" + x2 + "," + y2 +
                                     " L" + x3 + "," + y3 +
                                     " L" + x4 + "," + y4 +
@@ -2238,7 +2242,7 @@ import { PPTXMathShapes } from './math.js';
 
                         //console.log("shapType: ", shapType, ",isBorder:", isBorder)
                         //if(isBorder){
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2249,14 +2253,14 @@ import { PPTXMathShapes } from './math.js';
                         //}
                         break;
                     case "leftRightRibbon":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = slideFactor;
-                        var sAdj1, adj1 = 50000 * refr;
-                        var sAdj2, adj2 = 50000 * refr;
-                        var sAdj3, adj3 = 16667 * refr;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        refr = slideFactor;
+                        sAdj1 = undefined, adj1 = 50000 * refr;
+                        sAdj2 = undefined, adj2 = 50000 * refr;
+                        sAdj3 = undefined, adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2269,13 +2273,13 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 33333 * refr;
-                        var cnstVal2 = 100000 * refr;
-                        var cnstVal3 = 200000 * refr;
-                        var cnstVal4 = 400000 * refr;
-                        var ss = Math.min(w, h);
-                        var a3, maxAdj1, a1, w1, maxAdj2, a2, x1, x4, dy1, dy2, ly1, ry4, ly2, ry3, ly4, ry1,
+                        d_val = undefined;
+                        cnstVal1 = 33333 * refr;
+                        cnstVal2 = 100000 * refr;
+                        cnstVal3 = 200000 * refr;
+                        cnstVal4 = 400000 * refr;
+                        ss = Math.min(w, h);
+                        a3, maxAdj1, a1, w1, maxAdj2, a2, x1, x4, dy1, dy2, ly1, ry4, ly2, ry3, ly4, ry1,
                             ly3, ry2, hR, x2, x3, y1, y2, wd32 = w / 32, vc = h / 2, hc = w / 2;
 
                         a3 = (adj3 < 0) ? 0 : (adj3 > cnstVal1) ? cnstVal1 : adj3;
@@ -2318,25 +2322,24 @@ import { PPTXMathShapes } from './math.js';
                             "L" + x2 + "," + ly3 +
                             "L" + x1 + "," + ly3 +
                             "L" + x1 + "," + ly4 +
-                            " z" +
-                            "M" + x3 + "," + y1 +
+                            ` zM` + x3 + "," + y1 +
                             "L" + x3 + "," + ry2 +
                             "M" + x2 + "," + y2 +
                             "L" + x2 + "," + ly3;
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "ribbon":
                     case "ribbon2":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 16667 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 16667 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2346,15 +2349,15 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 25000 * slideFactor;
-                        var cnstVal2 = 33333 * slideFactor;
-                        var cnstVal3 = 75000 * slideFactor;
-                        var cnstVal4 = 100000 * slideFactor;
-                        var cnstVal5 = 200000 * slideFactor;
-                        var cnstVal6 = 400000 * slideFactor;
-                        var hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
-                        var a1, a2, x10, dx2, x2, x9, x3, x8, x5, x6, x4, x7, y1, y2, y4, y3, hR, y6;
+                        d_val = undefined;
+                        cnstVal1 = 25000 * slideFactor;
+                        cnstVal2 = 33333 * slideFactor;
+                        cnstVal3 = 75000 * slideFactor;
+                        cnstVal4 = 100000 * slideFactor;
+                        cnstVal5 = 200000 * slideFactor;
+                        cnstVal6 = 400000 * slideFactor;
+                        hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
+                        a1 = undefined, a2, x10, dx2, x2, x9, x3, x8, x5, x6, x4, x7, y1, y2, y4, y3, hR, y6;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal2) ? cnstVal2 : adj1;
                         a2 = (adj2 < cnstVal1) ? cnstVal1 : (adj2 > cnstVal3) ? cnstVal3 : adj2;
                         x10 = r - wd8;
@@ -2369,7 +2372,7 @@ import { PPTXMathShapes } from './math.js';
                         x7 = x6 + wd32;
                         hR = h * a1 / cnstVal6;
                         if (shapType == "ribbon2") {
-                            var dy1, dy2, y7;
+                            dy1, dy2, y7;
                             dy1 = h * a1 / cnstVal5;
                             y1 = b - dy1;
                             dy2 = h * a1 / cnstVal4;
@@ -2400,8 +2403,7 @@ import { PPTXMathShapes } from './math.js';
                                 PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
                                 " L" + x4 + "," + y1 +
                                 PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
-                                " z" +
-                                " M" + x5 + "," + y2 +
+                                ` z M` + x5 + "," + y2 +
                                 " L" + x5 + "," + y6 +
                                 "M" + x6 + "," + y6 +
                                 " L" + x6 + "," + y2 +
@@ -2410,7 +2412,7 @@ import { PPTXMathShapes } from './math.js';
                                 "M" + x9 + "," + y4 +
                                 " L" + x9 + "," + y7;
                         } else if (shapType == "ribbon") {
-                            var y5;
+                            y5;
                             y1 = h * a1 / cnstVal5;
                             y2 = h * a1 / cnstVal4;
                             y4 = b - y2;
@@ -2437,8 +2439,7 @@ import { PPTXMathShapes } from './math.js';
                                 " L" + x2 + "," + y4 +
                                 " L" + l + "," + y4 +
                                 " L" + wd8 + "," + y3 +
-                                " z" +
-                                " M" + x5 + "," + hR +
+                                ` z M` + x5 + "," + hR +
                                 " L" + x5 + "," + y2 +
                                 "M" + x6 + "," + y2 +
                                 " L" + x6 + "," + hR +
@@ -2447,19 +2448,19 @@ import { PPTXMathShapes } from './math.js';
                                 "M" + x9 + "," + y6 +
                                 " L" + x9 + "," + y4;
                         }
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "doubleWave":
                     case "wave":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = (shapType == "doubleWave") ? 6250 * slideFactor : 12500 * slideFactor;
-                        var sAdj2, adj2 = 0;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = (shapType == "doubleWave") ? 6250 * slideFactor : 12500 * slideFactor;
+                        sAdj2 = undefined, adj2 = 0;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2469,14 +2470,14 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal2 = -10000 * slideFactor;
-                        var cnstVal3 = 50000 * slideFactor;
-                        var cnstVal4 = 100000 * slideFactor;
-                        var hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
+                        d_val = undefined;
+                        cnstVal2 = -10000 * slideFactor;
+                        cnstVal3 = 50000 * slideFactor;
+                        cnstVal4 = 100000 * slideFactor;
+                        hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
                         if (shapType == "doubleWave") {
-                            var cnstVal1 = 12500 * slideFactor;
-                            var a1, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx8, x8, dx3, x3, dx4, x4, x5, x6, x7, x9, x15, x10, x11, x12, x13, x14;
+                            const cnstVal1 = 12500 * slideFactor;
+                            a1 = undefined, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx8, x8, dx3, x3, dx4, x4, x5, x6, x7, x9, x15, x10, x11, x12, x13, x14;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal1) ? cnstVal1 : adj1;
                             a2 = (adj2 < cnstVal2) ? cnstVal2 : (adj2 > cnstVal4) ? cnstVal4 : adj2;
                             y1 = h * a1 / cnstVal4;
@@ -2514,8 +2515,8 @@ import { PPTXMathShapes } from './math.js';
                                 " C" + x11 + "," + y6 + " " + x10 + "," + y5 + " " + x9 + "," + y4 +
                                 " z";
                         } else if (shapType == "wave") {
-                            var cnstVal5 = 20000 * slideFactor;
-                            var a1, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx5, x5, dx3, x3, x4, x6, x10, x7, x8;
+                            const cnstVal5 = 20000 * slideFactor;
+                            a1 = undefined, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx5, x5, dx3, x3, x4, x6, x10, x7, x8;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
                             a2 = (adj2 < cnstVal2) ? cnstVal2 : (adj2 > cnstVal4) ? cnstVal4 : adj2;
                             y1 = h * a1 / cnstVal4;
@@ -2544,20 +2545,20 @@ import { PPTXMathShapes } from './math.js';
                                 " C" + x8 + "," + y6 + " " + x7 + "," + y5 + " " + x6 + "," + y4 +
                                 " z";
                         }
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "ellipseRibbon":
                     case "ellipseRibbon2":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var sAdj3, adj3 = 12500 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2570,13 +2571,13 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 25000 * slideFactor;
-                        var cnstVal3 = 75000 * slideFactor;
-                        var cnstVal4 = 100000 * slideFactor;
-                        var cnstVal5 = 200000 * slideFactor;
-                        var hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8;
-                        var a1, a2, q10, q11, q12, minAdj3, a3, dx2, x2, x3, x4, x5, x6, dy1, f1, q1, q2,
+                        d_val = undefined;
+                        cnstVal1 = 25000 * slideFactor;
+                        cnstVal3 = 75000 * slideFactor;
+                        cnstVal4 = 100000 * slideFactor;
+                        cnstVal5 = 200000 * slideFactor;
+                        hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8;
+                        a1 = undefined, a2, q10, q11, q12, minAdj3, a3, dx2, x2, x3, x4, x5, x6, dy1, f1, q1, q2,
                             cx1, cx2, q1, dy3, q3, q4, q5, rh, q8, cx4, q9, cx5;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal4) ? cnstVal4 : adj1;
                         a2 = (adj2 < cnstVal1) ? cnstVal1 : (adj2 > cnstVal3) ? cnstVal3 : adj2;
@@ -2608,7 +2609,7 @@ import { PPTXMathShapes } from './math.js';
                         q9 = f1 * cx4;
                         cx5 = r - cx4;
                         if (shapType == "ellipseRibbon") {
-                            var y1, cy1, y3, q6, q7, cy3, y2, y5, y6,
+                            y1 = undefined, cy1 = undefined, y3 = undefined, q6 = undefined, q7 = undefined, cy3 = undefined, y2 = undefined, y5 = undefined, y6 = undefined,
                                 cy4, cy6, y7, cy7, y8;
                             y1 = f1 * q2;
                             cy1 = f1 * cx1;
@@ -2639,8 +2640,7 @@ import { PPTXMathShapes } from './math.js';
                                 " L" + x2 + "," + y5 +
                                 " Q" + cx4 + "," + cy4 + " " + l + "," + rh +
                                 " L" + wd8 + "," + y2 +
-                                " z" +
-                                "M" + x2 + "," + y5 +
+                                ` zM` + x2 + "," + y5 +
                                 " L" + x2 + "," + y3 +
                                 "M" + x5 + "," + y3 +
                                 " L" + x5 + "," + y5 +
@@ -2649,7 +2649,7 @@ import { PPTXMathShapes } from './math.js';
                                 "M" + x4 + "," + y7 +
                                 " L" + x4 + "," + y1;
                         } else if (shapType == "ellipseRibbon2") {
-                            var u1, y1, cu1, cy1, q3, q5, u3, y3, q6, q7, cu3, cy3, rh, q8, u2, y2,
+                            u1, y1, cu1, cy1, q3, q5, u3, y3, q6, q7, cu3, cy3, rh, q8, u2, y2,
                                 u5, y5, u6, y6, cu4, cy4, cu6, cy6, u7, y7, cu7, cy7;
                             u1 = f1 * q2;
                             y1 = b - u1;
@@ -2691,8 +2691,7 @@ import { PPTXMathShapes } from './math.js';
                                 " Q" + hc + "," + cy3 + " " + x2 + "," + y3 +
                                 " L" + x3 + "," + y1 +
                                 " Q" + cx1 + "," + cy1 + " " + l + "," + b +
-                                " z" +
-                                "M" + x2 + "," + y3 +
+                                ` zM` + x2 + "," + y3 +
                                 " L" + x2 + "," + y5 +
                                 "M" + x5 + "," + y5 +
                                 " L" + x5 + "," + y3 +
@@ -2701,7 +2700,7 @@ import { PPTXMathShapes } from './math.js';
                                 "M" + x4 + "," + y1 +
                                 " L" + x4 + "," + y7;
                         }
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -2730,40 +2729,40 @@ import { PPTXMathShapes } from './math.js';
                         result += "/>";
                         break;
                     case "rightArrow":
-                        var points = PPTXArrowShapes.genRightArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        points = PPTXArrowShapes.genRightArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftArrow":
-                        var points = PPTXArrowShapes.genLeftArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        points = PPTXArrowShapes.genLeftArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "downArrow":
                     case "flowChartOffpageConnector":
-                        var points = PPTXArrowShapes.genDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        points = PPTXArrowShapes.genDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "upArrow":
-                        var points = PPTXArrowShapes.genUpArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        points = PPTXArrowShapes.genUpArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftRightArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.25;
-                        var sAdj2, sAdj2_val = 0.25;
-                        var max_sAdj2_const = w / h;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, sAdj1_val = 0.25;
+                        sAdj2 = undefined, sAdj2_val = 0.25;
+                        max_sAdj2_const = w / h;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                                 } else if (sAdj_name == "adj2") {
                                     sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                                    const sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                                 }
                             }
@@ -2776,21 +2775,21 @@ import { PPTXMathShapes } from './math.js';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "upDownArrow":
-                        var points = PPTXArrowShapes.genUpDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
+                        points = PPTXArrowShapes.genUpDownArrow(w, h, node, slideFactor).replace("polygon points='", "").replace("'", "");
                         result += " <polygon points='" + points + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "quadArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 22500 * slideFactor;
-                        var sAdj2, adj2 = 22500 * slideFactor;
-                        var sAdj3, adj3 = 22500 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 22500 * slideFactor;
+                        sAdj2 = undefined, adj2 = 22500 * slideFactor;
+                        sAdj3 = undefined, adj3 = 22500 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2803,8 +2802,8 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2, x3, dx3, x4, x5, x6, y2, y3, y4, y5, y6, maxAdj1, maxAdj3;
-                        var minWH = Math.min(w, h);
+                        vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2, x3, dx3, x4, x5, x6, y2, y3, y4, y5, y6, maxAdj1, maxAdj3;
+                        minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -2830,7 +2829,7 @@ import { PPTXMathShapes } from './math.js';
                         y3 = vc - dx3;
                         y4 = vc + dx3;
                         y6 = h - x1;
-                        var d_val = "M" + 0 + "," + vc +
+                        d_val = "M" + 0 + "," + vc +
                             " L" + x1 + "," + y2 +
                             " L" + x1 + "," + y3 +
                             " L" + x3 + "," + y3 +
@@ -2855,22 +2854,22 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x1 + "," + y4 +
                             " L" + x1 + "," + y5 + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "leftRightUpArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2883,8 +2882,8 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2, x3, dx3, x4, x5, x6, y2, dy2, y3, y4, y5, maxAdj1, maxAdj3;
-                        var minWH = Math.min(w, h);
+                        vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2, x3, dx3, x4, x5, x6, y2, dy2, y3, y4, y5, maxAdj1, maxAdj3;
+                        minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -2910,7 +2909,7 @@ import { PPTXMathShapes } from './math.js';
                         y4 = h - dx2;
                         y3 = y4 - dx3;
                         y5 = y4 + dx3;
-                        var d_val = "M" + 0 + "," + y4 +
+                        d_val = "M" + 0 + "," + y4 +
                             " L" + x1 + "," + y2 +
                             " L" + x1 + "," + y3 +
                             " L" + x3 + "," + y3 +
@@ -2928,22 +2927,22 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + h + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "leftUpArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2956,8 +2955,8 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, a1, a2, a3, x1, x2, dx4, dx3, x3, x4, x5, y2, y3, y4, y5, maxAdj1, maxAdj3;
-                        var minWH = Math.min(w, h);
+                        vc = h / 2, hc = w / 2, a1, a2, a3, x1, x2, dx4, dx3, x3, x4, x5, y2, y3, y4, y5, maxAdj1, maxAdj3;
+                        minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -2981,7 +2980,7 @@ import { PPTXMathShapes } from './math.js';
                         x5 = x4 + dx3;
                         y3 = y4 - dx3;
                         y5 = y4 + dx3;
-                        var d_val = "M" + 0 + "," + y4 +
+                        d_val = "M" + 0 + "," + y4 +
                             " L" + x1 + "," + y2 +
                             " L" + x1 + "," + y3 +
                             " L" + x3 + "," + y3 +
@@ -2994,22 +2993,22 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + h + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "bentUpArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3022,8 +3021,8 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, a1, a2, a3, dx1, x1, dx2, x2, dx3, x3, x4, y1, y2, dy2;
-                        var minWH = Math.min(w, h);
+                        vc = h / 2, hc = w / 2, a1, a2, a3, dx1, x1, dx2, x2, dx3, x3, x4, y1, y2, dy2;
+                        minWH = Math.min(w, h);
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
                         else a1 = adj1
@@ -3043,7 +3042,7 @@ import { PPTXMathShapes } from './math.js';
                         x4 = x3 + dx2;
                         dy2 = minWH * a1 / cnstVal2;
                         y2 = h - dy2;
-                        var d_val = "M" + 0 + "," + y2 +
+                        d_val = "M" + 0 + "," + y2 +
                             " L" + x2 + "," + y2 +
                             " L" + x2 + "," + y1 +
                             " L" + x1 + "," + y1 +
@@ -3053,22 +3052,22 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x4 + "," + h +
                             " L" + 0 + "," + h + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "bentArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var sAdj4, adj4 = 43750 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined, adj4 = 43750 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3084,8 +3083,8 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var a1, a2, a3, a4, x3, x4, y3, y4, y5, y6, maxAdj1, maxAdj4;
-                        var minWH = Math.min(w, h);
+                        a1 = undefined, a2, a3, a4, x3, x4, y3, y4, y5, y6, maxAdj1, maxAdj4;
+                        minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -3096,7 +3095,7 @@ import { PPTXMathShapes } from './math.js';
                         if (adj3 < 0) a3 = 0
                         else if (adj3 > cnstVal1) a3 = cnstVal1
                         else a3 = adj3
-                        var th, aw2, th2, dh2, ah, bw, bh, bs, bd, bd3, bd2,
+                        th = undefined, aw2, th2, dh2, ah, bw, bh, bs, bd, bd3, bd2,
                             th = minWH * a1 / cnstVal2;
                         aw2 = minWH * a2 / cnstVal2;
                         th2 = th / 2;
@@ -3119,7 +3118,7 @@ import { PPTXMathShapes } from './math.js';
                         y5 = dh2 + bd;
                         y6 = y3 + bd2;
 
-                        var d_val = "M" + 0 + "," + h +
+                        d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + y5 +
                             PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + dh2 +
@@ -3131,23 +3130,23 @@ import { PPTXMathShapes } from './math.js';
                             PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "uturnArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var sAdj4, adj4 = 43750 * slideFactor;
-                        var sAdj5, adj5 = 75000 * slideFactor;
-                        var cnstVal1 = 25000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined, adj4 = 43750 * slideFactor;
+                        sAdj5 = undefined, adj5 = 75000 * slideFactor;
+                        cnstVal1 = 25000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3166,8 +3165,8 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var a1, a2, a3, a4, a5, q1, q2, q3, x3, x4, x5, x6, x7, x8, x9, y4, y5, minAdj5, maxAdj1, maxAdj3, maxAdj4;
-                        var minWH = Math.min(w, h);
+                        a1 = undefined, a2, a3, a4, a5, q1, q2, q3, x3, x4, x5, x6, x7, x8, x9, y4, y5, minAdj5, maxAdj1, maxAdj3, maxAdj4;
+                        minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -3187,7 +3186,7 @@ import { PPTXMathShapes } from './math.js';
                         else if (adj5 > cnstVal2) a5 = cnstVal2
                         else a5 = adj5
 
-                        var th, aw2, th2, dh2, ah, bw, bs, bd, bd3, bd2,
+                        th = undefined, aw2, th2, dh2, ah, bw, bs, bd, bd3, bd2,
                             th = minWH * a1 / cnstVal2;
                         aw2 = minWH * a2 / cnstVal2;
                         th2 = th / 2;
@@ -3212,8 +3211,8 @@ import { PPTXMathShapes } from './math.js';
                         x4 = x9 - bd;
                         x5 = x7 - bd2;
                         cx = (th + x7) / 2
-                        var cy = (y4 + th) / 2
-                        var d_val = "M" + 0 + "," + h +
+                        cy = (y4 + th) / 2
+                        d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + bd +
                             PPTXShapeUtils.shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + 0 +
@@ -3229,21 +3228,21 @@ import { PPTXMathShapes } from './math.js';
                             PPTXShapeUtils.shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "stripedRightArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 50000 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var cnstVal1 = 100000 * slideFactor;
-                        var cnstVal2 = 200000 * slideFactor;
-                        var cnstVal3 = 84375 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 50000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        cnstVal1 = 100000 * slideFactor;
+                        cnstVal2 = 200000 * slideFactor;
+                        cnstVal3 = 84375 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3253,8 +3252,8 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var a1, a2, x4, x5, dx5, x6, dx6, y1, dy1, y2, maxAdj2, vc = h / 2;
-                        var minWH = Math.min(w, h);
+                        a1 = undefined, a2, x4, x5, dx5, x6, dx6, y1, dy1, y2, maxAdj2, vc = h / 2;
+                        minWH = Math.min(w, h);
                         maxAdj2 = cnstVal3 * w / minWH;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
@@ -3270,18 +3269,16 @@ import { PPTXMathShapes } from './math.js';
                         y2 = vc + dy1;
                         //dx6 = dy1*dx5/hd2;
                         //x6 = w-dx6;
-                        var ssd8 = minWH / 8,
+                        ssd8 = minWH / 8,
                             ssd16 = minWH / 16,
                             ssd32 = minWH / 32;
-                        var d_val = "M" + 0 + "," + y1 +
+                        d_val = "M" + 0 + "," + y1 +
                             " L" + ssd32 + "," + y1 +
                             " L" + ssd32 + "," + y2 +
-                            " L" + 0 + "," + y2 + " z" +
-                            " M" + ssd16 + "," + y1 +
+                            " L" + 0 + "," + y2 + ` z M` + ssd16 + "," + y1 +
                             " L" + ssd8 + "," + y1 +
                             " L" + ssd8 + "," + y2 +
-                            " L" + ssd16 + "," + y2 + " z" +
-                            " M" + x4 + "," + y1 +
+                            " L" + ssd16 + "," + y2 + ` z M` + x4 + "," + y1 +
                             " L" + x5 + "," + y1 +
                             " L" + x5 + "," + 0 +
                             " L" + w + "," + vc +
@@ -3289,20 +3286,20 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x5 + "," + y2 +
                             " L" + x4 + "," + y2 + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "notchedRightArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 50000 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var cnstVal1 = 100000 * slideFactor;
-                        var cnstVal2 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 50000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        cnstVal1 = 100000 * slideFactor;
+                        cnstVal2 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3312,8 +3309,8 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var a1, a2, x1, x2, dx2, y1, dy1, y2, maxAdj2, vc = h / 2, hd2 = vc;
-                        var minWH = Math.min(w, h);
+                        a1 = undefined, a2, x1, x2, dx2, y1, dy1, y2, maxAdj2, vc = h / 2, hd2 = vc;
+                        minWH = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / minWH;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
@@ -3327,7 +3324,7 @@ import { PPTXMathShapes } from './math.js';
                         y1 = vc - dy1;
                         y2 = vc + dy1;
                         x1 = dy1 * dx2 / hd2;
-                        var d_val = "M" + 0 + "," + y1 +
+                        d_val = "M" + 0 + "," + y1 +
                             " L" + x2 + "," + y1 +
                             " L" + x2 + "," + 0 +
                             " L" + w + "," + vc +
@@ -3336,27 +3333,27 @@ import { PPTXMathShapes } from './math.js';
                             " L" + 0 + "," + y2 +
                             " L" + x1 + "," + vc + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "homePlate":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 50000 * slideFactor;
-                        var cnstVal1 = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 50000 * slideFactor;
+                        cnstVal1 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a, x1, dx1, maxAdj, vc = h / 2;
-                        var minWH = Math.min(w, h);
+                        a = undefined, x1, dx1, maxAdj, vc = h / 2;
+                        minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
                         if (adj < 0) a = 0
                         else if (adj > maxAdj) a = maxAdj
                         else a = adj
                         dx1 = minWH * a / cnstVal1;
                         x1 = w - dx1;
-                        var d_val = "M" + 0 + "," + 0 +
+                        d_val = "M" + 0 + "," + 0 +
                             " L" + x1 + "," + 0 +
                             " L" + w + "," + vc +
                             " L" + x1 + "," + h +
@@ -3367,45 +3364,45 @@ import { PPTXMathShapes } from './math.js';
 
                         break;
                     case "chevron":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 50000 * slideFactor;
-                        var cnstVal1 = 100000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 50000 * slideFactor;
+                        cnstVal1 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var a, x1, dx1, x2, maxAdj, vc = h / 2;
-                        var minWH = Math.min(w, h);
+                        a = undefined, x1, dx1, x2, maxAdj, vc = h / 2;
+                        minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
                         if (adj < 0) a = 0
                         else if (adj > maxAdj) a = maxAdj
                         else a = adj
                         x1 = minWH * a / cnstVal1;
                         x2 = w - x1;
-                        var d_val = "M" + 0 + "," + 0 +
+                        d_val = "M" + 0 + "," + 0 +
                             " L" + x2 + "," + 0 +
                             " L" + w + "," + vc +
                             " L" + x2 + "," + h +
                             " L" + 0 + "," + h +
                             " L" + x1 + "," + vc + " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
 
                         break;
                     case "rightArrowCallout":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var sAdj4, adj4 = 64977 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined, adj4 = 64977 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3421,9 +3418,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, dx3, x3, x2, x1;
-                        var vc = h / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, dx3, x3, x2, x1;
+                        vc = h / 2, r = w, b = h, l = 0, t = 0;
+                        ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         maxAdj1 = a2 * 2;
@@ -3443,7 +3440,7 @@ import { PPTXMathShapes } from './math.js';
                         x3 = r - dx3;
                         x2 = w * a4 / cnstVal2;
                         x1 = x2 / 2;
-                        var d_val = "M" + l + "," + t +
+                        d_val = "M" + l + "," + t +
                             " L" + x2 + "," + t +
                             " L" + x2 + "," + y2 +
                             " L" + x3 + "," + y2 +
@@ -3455,23 +3452,23 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x2 + "," + b +
                             " L" + l + "," + b +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "downArrowCallout":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var sAdj4, adj4 = 64977 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined, adj4 = 64977 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3487,9 +3484,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, dy3, y3, y2, y1;
-                        var hc = w / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, dy3, y3, y2, y1;
+                        hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        ss = Math.min(w, h);
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3510,7 +3507,7 @@ import { PPTXMathShapes } from './math.js';
                         y3 = b - dy3;
                         y2 = h * a4 / cnstVal2;
                         y1 = y2 / 2;
-                        var d_val = "M" + l + "," + t +
+                        d_val = "M" + l + "," + t +
                             " L" + r + "," + t +
                             " L" + r + "," + y2 +
                             " L" + x3 + "," + y2 +
@@ -3522,23 +3519,23 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x2 + "," + y2 +
                             " L" + l + "," + y2 +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "leftArrowCallout":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var sAdj4, adj4 = 64977 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined, adj4 = 64977 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3554,9 +3551,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, dx2, x2, x3;
-                        var vc = h / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, dx2, x2, x3;
+                        vc = h / 2, r = w, b = h, l = 0, t = 0;
+                        ss = Math.min(w, h);
 
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3577,7 +3574,7 @@ import { PPTXMathShapes } from './math.js';
                         dx2 = w * a4 / cnstVal2;
                         x2 = r - dx2;
                         x3 = (x2 + r) / 2;
-                        var d_val = "M" + l + "," + vc +
+                        d_val = "M" + l + "," + vc +
                             " L" + x1 + "," + y1 +
                             " L" + x1 + "," + y2 +
                             " L" + x2 + "," + y2 +
@@ -3589,23 +3586,23 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x1 + "," + y3 +
                             " L" + x1 + "," + y4 +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "upArrowCallout":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var sAdj4, adj4 = 64977 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined, adj4 = 64977 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3621,9 +3618,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, y1, dy2, y2, y3;
-                        var hc = w / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, y1, dy2, y2, y3;
+                        hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         maxAdj1 = a2 * 2;
@@ -3644,7 +3641,7 @@ import { PPTXMathShapes } from './math.js';
                         y2 = b - dy2;
                         y3 = (y2 + b) / 2;
 
-                        var d_val = "M" + l + "," + y2 +
+                        d_val = "M" + l + "," + y2 +
                             " L" + x2 + "," + y2 +
                             " L" + x2 + "," + y1 +
                             " L" + x1 + "," + y1 +
@@ -3656,23 +3653,23 @@ import { PPTXMathShapes } from './math.js';
                             " L" + r + "," + b +
                             " L" + l + "," + b +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "leftRightArrowCallout":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 25000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var sAdj4, adj4 = 48123 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined, adj4 = 48123 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3688,9 +3685,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, x4, dx2, x2, x3;
-                        var vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, x4, dx2, x2, x3;
+                        vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         maxAdj1 = a2 * 2;
@@ -3711,7 +3708,7 @@ import { PPTXMathShapes } from './math.js';
                         dx2 = w * a4 / cnstVal3;
                         x2 = hc - dx2;
                         x3 = hc + dx2;
-                        var d_val = "M" + l + "," + vc +
+                        d_val = "M" + l + "," + vc +
                             " L" + x1 + "," + y1 +
                             " L" + x1 + "," + y2 +
                             " L" + x2 + "," + y2 +
@@ -3730,23 +3727,23 @@ import { PPTXMathShapes } from './math.js';
                             " L" + x1 + "," + y3 +
                             " L" + x1 + "," + y4 +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "quadArrowCallout":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 18515 * slideFactor;
-                        var sAdj2, adj2 = 18515 * slideFactor;
-                        var sAdj3, adj3 = 18515 * slideFactor;
-                        var sAdj4, adj4 = 48123 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 18515 * slideFactor;
+                        sAdj2 = undefined, adj2 = 18515 * slideFactor;
+                        sAdj3 = undefined, adj3 = 18515 * slideFactor;
+                        sAdj4 = undefined, adj4 = 48123 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3762,9 +3759,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
-                        var a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx2, dx3, ah, dx1, dy1, x8, x2, x7, x3, x6, x4, x5, y8, y2, y7, y3, y6, y4, y5;
+                        vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        ss = Math.min(w, h);
+                        a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx2, dx3, ah, dx1, dy1, x8, x2, x7, x3, x6, x4, x5, y8, y2, y7, y3, y6, y4, y5;
                         a2 = (adj2 < 0) ? 0 : (adj2 > cnstVal1) ? cnstVal1 : adj2;
                         maxAdj1 = a2 * 2;
                         a1 = (adj1 < 0) ? 0 : (adj1 > maxAdj1) ? maxAdj1 : adj1;
@@ -3792,7 +3789,7 @@ import { PPTXMathShapes } from './math.js';
                         y6 = vc + dx2;
                         y4 = vc - dx3;
                         y5 = vc + dx3;
-                        var d_val = "M" + l + "," + vc +
+                        d_val = "M" + l + "," + vc +
                             " L" + ah + "," + y3 +
                             " L" + ah + "," + y4 +
                             " L" + x2 + "," + y4 +
@@ -3826,21 +3823,21 @@ import { PPTXMathShapes } from './math.js';
                             " L" + ah + "," + y6 +
                             " z";
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "curvedDownArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3853,9 +3850,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(w, h);
-                        var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, stAng, stAng2, swAng2, swAng3;
+                        vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
+                        ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, stAng, stAng2, swAng2, swAng3;
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3889,21 +3886,21 @@ import { PPTXMathShapes } from './math.js';
                         x6 = r - aw2;
                         y1 = b - ah;
                         swAng = Math.atan(dx / ah);
-                        var swAngDeg = swAng * 180 / Math.PI;
+                        swAngDeg = swAng * 180 / Math.PI;
                         mswAng = -swAngDeg;
                         iy = b - idy;
                         ix = (wR + x3) / 2;
                         q12 = th / 2;
                         dang2 = Math.atan(q12 / idy);
-                        var dang2Deg = dang2 * 180 / Math.PI;
+                        dang2Deg = dang2 * 180 / Math.PI;
                         stAng = c3d4 + swAngDeg;
                         stAng2 = c3d4 - dang2Deg;
                         swAng2 = dang2Deg - cd4;
                         swAng3 = cd4 + dang2Deg;
-                        //var cX = x5 - Math.cos(stAng*Math.PI/180) * wR;
-                        //var cY = y1 - Math.sin(stAng*Math.PI/180) * h;
+                        //const cX = x5 - Math.cos(stAng*Math.PI/180) * wR;
+                        //const cY = y1 - Math.sin(stAng*Math.PI/180) * h;
 
-                        var d_val = "M" + x6 + "," + b +
+                        d_val = "M" + x6 + "," + b +
                             " L" + x4 + "," + y1 +
                             " L" + x5 + "," + y1 +
                             PPTXShapeUtils.shapeArc(wR, h, wR, h, stAng, (stAng + mswAng), false).replace("M", "L") +
@@ -3911,26 +3908,25 @@ import { PPTXMathShapes } from './math.js';
                             PPTXShapeUtils.shapeArc(x3, h, wR, h, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
                             " L" + (x5 + th) + "," + y1 +
                             " L" + x8 + "," + y1 +
-                            " z" +
-                            "M" + x3 + "," + t +
+                            ` zM` + x3 + "," + t +
                             PPTXShapeUtils.shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "curvedLeftArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3943,9 +3939,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(w, h);
-                        var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
+                        vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
+                        ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
 
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3987,13 +3983,13 @@ import { PPTXMathShapes } from './math.js';
                         swAng2 = dang2 - swAng;
                         swAng3 = swAng + dang2;
                         stAng3 = -dang2;
-                        var swAngDg, swAng2Dg, swAng3Dg, stAng3dg;
+                        let swAngDg, swAng2Dg, swAng3Dg, stAng3dg;
                         swAngDg = swAng * 180 / Math.PI;
                         swAng2Dg = swAng2 * 180 / Math.PI;
                         swAng3Dg = swAng3 * 180 / Math.PI;
                         stAng3dg = stAng3 * 180 / Math.PI;
 
-                        var d_val = "M" + r + "," + y3 +
+                        d_val = "M" + r + "," + y3 +
                             PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
                             " L" + l + "," + t +
                             PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
@@ -4008,21 +4004,21 @@ import { PPTXMathShapes } from './math.js';
                             PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
 
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "curvedRightArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -4035,9 +4031,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(w, h);
-                        var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy,
+                        vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
+                        ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy,
                             y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, stAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
 
                         maxAdj2 = cnstVal1 * h / ss;
@@ -4082,13 +4078,13 @@ import { PPTXMathShapes } from './math.js';
                         swAng3 = Math.PI / 2 + dang2;
                         stAng3 = Math.PI - dang2;
 
-                        var stAngDg, mswAngDg, swAngDg, swAng2dg;
+                        stAngDg, mswAngDg, swAngDg, swAng2dg;
                         stAngDg = stAng * 180 / Math.PI;
                         mswAngDg = mswAng * 180 / Math.PI;
                         swAngDg = swAng * 180 / Math.PI;
                         swAng2dg = swAng2 * 180 / Math.PI;
 
-                        var d_val = "M" + l + "," + hR +
+                        d_val = "M" + l + "," + hR +
                             PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + y4 +
@@ -4101,21 +4097,21 @@ import { PPTXMathShapes } from './math.js';
                             " L" + r + "," + th +
                             PPTXShapeUtils.shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")
                         "";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "curvedUpArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * slideFactor;
-                        var sAdj2, adj2 = 50000 * slideFactor;
-                        var sAdj3, adj3 = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -4128,9 +4124,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(w, h);
-                        var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, swAng2, mswAng2, stAng3, swAng3, stAng2;
+                        vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
+                        ss = Math.min(w, h);
+                        maxAdj2 = undefined, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, swAng2, mswAng2, stAng3, swAng3, stAng2;
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -4175,13 +4171,13 @@ import { PPTXMathShapes } from './math.js';
                         swAng3 = swAng + dang2;
                         stAng2 = Math.PI / 2 - dang2;
 
-                        var stAng2dg, swAng2dg, swAngDg, swAng2dg;
+                        stAng2dg, swAng2dg, swAngDg, swAng2dg;
                         stAng2dg = stAng2 * 180 / Math.PI;
                         swAng2dg = swAng2 * 180 / Math.PI;
                         stAng3dg = stAng3 * 180 / Math.PI;
                         swAngDg = swAng * 180 / Math.PI;
 
-                        var d_val = //"M" + ix + "," +iy + 
+                        d_val = //"M" + ix + "," +iy + 
                             PPTXShapeUtils.shapeArc(wR, 0, wR, h, stAng2dg, stAng2dg + swAng2dg, false) + //.replace("M","L") +
                             " L" + x5 + "," + y1 +
                             " L" + x4 + "," + y1 +
@@ -4194,7 +4190,7 @@ import { PPTXMathShapes } from './math.js';
                             " L" + th + "," + t +
                             PPTXShapeUtils.shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
                             "";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4205,14 +4201,14 @@ import { PPTXMathShapes } from './math.js';
                     case "mathMultiply":
                     case "mathNotEqual":
                     case "mathPlus":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1;
-                        var sAdj2, adj2;
-                        var sAdj3, adj3;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1;
+                        sAdj2 = undefined, adj2;
+                        sAdj3 = undefined, adj3;
                         if (shapAdjst_ary !== undefined) {
                             if (shapAdjst_ary.constructor === Array) {
-                                for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                    var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
                                         sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj1 = parseInt(sAdj1.substr(4));
@@ -4229,11 +4225,10 @@ import { PPTXMathShapes } from './math.js';
                                 adj1 = parseInt(sAdj1.substr(4));
                             }
                         }
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var cnstVal3 = 200000 * slideFactor;
-                        var dVal;
-                        var hc = w / 2, vc = h / 2, hd2 = h / 2;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        cnstVal3 = 200000 * slideFactor;
+                        hc = w / 2, vc = h / 2, hd2 = h / 2;
                         if (shapType == "mathNotEqual") {
                             if (shapAdjst_ary === undefined) {
                                 adj1 = 23520 * slideFactor;
@@ -4244,13 +4239,13 @@ import { PPTXMathShapes } from './math.js';
                                 adj2 = (adj2 / 60000) * Math.PI / 180;
                                 adj3 = adj3 * slideFactor;
                             }
-                            var a1, crAng, a2a1, maxAdj3, a3, dy1, dy2, dx1, x1, x8, y2, y3, y1, y4,
+                            a1 = undefined, crAng, a2a1, maxAdj3, a3, dy1, dy2, dx1, x1, x8, y2, y3, y1, y4,
                                 cadj2, xadj2, len, bhw, bhw2, x7, dx67, x6, dx57, x5, dx47, x4, dx37,
                                 x3, dx27, x2, rx7, rx6, rx5, rx4, rx3, rx2, dx7, rxt, lxt, rx, lx,
                                 dy3, dy4, ry, ly, dlx, drx, dly, dry, xC1, xC2, yC1, yC2, yC3, yC4;
-                            var angVal1 = 70 * Math.PI / 180, angVal2 = 110 * Math.PI / 180;
-                            var cnstVal4 = 73490 * slideFactor;
-                            //var cd4 = 90;
+                            const angVal1 = 70 * Math.PI / 180, angVal2 = 110 * Math.PI / 180;
+                            const cnstVal4 = 73490 * slideFactor;
+                            //const cd4 = 90;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal1) ? cnstVal1 : adj1;
                             crAng = (adj2 < angVal1) ? angVal1 : (adj2 > angVal2) ? angVal2 : adj2;
                             a2a1 = a1 * 2;
@@ -4338,11 +4333,11 @@ import { PPTXMathShapes } from './math.js';
                                 adj2 = adj2 * slideFactor;
                                 adj3 = adj3 * slideFactor;
                             }
-                            var a1, ma1, ma3h, ma3w, maxAdj3, a3, m4a3, maxAdj2, a2, dy1, yg, rad, dx1,
+                            a1 = undefined, ma1, ma3h, ma3w, maxAdj3, a3, m4a3, maxAdj2, a2, dy1, yg, rad, dx1,
                                 y3, y4, a, y2, y1, y5, x1, x3, x2;
-                            var cnstVal4 = 1000 * slideFactor;
-                            var cnstVal5 = 36745 * slideFactor;
-                            var cnstVal6 = 73490 * slideFactor;
+cnstVal4 = 1000 * slideFactor;
+cnstVal5 = 36745 * slideFactor;
+                            const cnstVal6 = 73490 * slideFactor;
                             a1 = (adj1 < cnstVal4) ? cnstVal4 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
                             ma1 = -a1;
                             ma3h = (cnstVal6 + ma1) / 4;
@@ -4365,18 +4360,16 @@ import { PPTXMathShapes } from './math.js';
                             x1 = hc - dx1;
                             x3 = hc + dx1;
                             x2 = hc - rad;
-                            var cd4 = 90, c3d4 = 270;
-                            var cX1 = hc - Math.cos(c3d4 * Math.PI / 180) * rad;
-                            var cY1 = y1 - Math.sin(c3d4 * Math.PI / 180) * rad;
-                            var cX2 = hc - Math.cos(Math.PI / 2) * rad;
-                            var cY2 = y5 - Math.sin(Math.PI / 2) * rad;
+                            const cd4 = 90, c3d4 = 270;
+                            const cX1 = hc - Math.cos(c3d4 * Math.PI / 180) * rad;
+                            const cY1 = y1 - Math.sin(c3d4 * Math.PI / 180) * rad;
+                            const cX2 = hc - Math.cos(Math.PI / 2) * rad;
+                            const cY2 = y5 - Math.sin(Math.PI / 2) * rad;
                             dVal = "M" + hc + "," + y1 +
                                 PPTXShapeUtils.shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
-                                " z" +
-                                " M" + hc + "," + y5 +
+                                ` z M` + hc + "," + y5 +
                                 PPTXShapeUtils.shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
-                                " z" +
-                                " M" + x1 + "," + y3 +
+                                ` z M` + x1 + "," + y3 +
                                 " L" + x3 + "," + y3 +
                                 " L" + x3 + "," + y4 +
                                 " L" + x1 + "," + y4 +
@@ -4398,15 +4391,15 @@ import { PPTXMathShapes } from './math.js';
                     case "can":
                     case "flowChartMagneticDisk":
                     case "flowChartMagneticDrum":
-                        var shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 25000 * slideFactor;
-                        var cnstVal1 = 50000 * slideFactor;
-                        var cnstVal2 = 200000 * slideFactor;
+                        shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        adj = 25000 * slideFactor;
+                        cnstVal1 = 50000 * slideFactor;
+                        cnstVal2 = 200000 * slideFactor;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        var ss = Math.min(w, h);
-                        var maxAdj, a, y1, y2, y3, dVal;
+                        ss = Math.min(w, h);
+                        maxAdj = undefined, a, y1, y2, y3;
                         if (shapType == "flowChartMagneticDisk" || shapType == "flowChartMagneticDrum") {
                             adj = 50000 * slideFactor;
                         }
@@ -4415,9 +4408,9 @@ import { PPTXMathShapes } from './math.js';
                         y1 = ss * a / cnstVal2;
                         y2 = y1 + y1;
                         y3 = h - y1;
-                        var cd2 = 180, wd2 = w / 2;
+                        cd2 = 180, wd2 = w / 2;
 
-                        var tranglRott = "";
+                        tranglRott = "";
                         if (shapType == "flowChartMagneticDrum") {
                             tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
                         }
@@ -4432,13 +4425,13 @@ import { PPTXMathShapes } from './math.js';
 
                         break;
                     case "swooshArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = slideFactor;
-                        var sAdj1, adj1 = 25000 * refr;
-                        var sAdj2, adj2 = 16667 * refr;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        refr = slideFactor;
+                        sAdj1 = undefined, adj1 = 25000 * refr;
+                        sAdj2 = undefined, adj2 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -4448,15 +4441,15 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var cnstVal1 = 1 * refr;
-                        var cnstVal2 = 70000 * refr;
-                        var cnstVal3 = 75000 * refr;
-                        var cnstVal4 = 100000 * refr;
-                        var ss = Math.min(w, h);
-                        var ssd8 = ss / 8;
-                        var hd6 = h / 6;
+                        cnstVal1 = 1 * refr;
+                        cnstVal2 = 70000 * refr;
+                        cnstVal3 = 75000 * refr;
+                        cnstVal4 = 100000 * refr;
+                        ss = Math.min(w, h);
+                        ssd8 = ss / 8;
+                        hd6 = h / 6;
 
-                        var a1, maxAdj2, a2, ad1, ad2, xB, yB, alfa, dx0, xC, dx1, yF, xF, xE, yE, dy2, dy22, dy3, yD, dy4, yP1, xP1, dy5, yP2, xP2;
+                        a1 = undefined, maxAdj2, a2, ad1, ad2, xB, yB, alfa, dx0, xC, dx1, yF, xF, xE, yE, dy2, dy22, dy3, yD, dy4, yP1, xP1, dy5, yP2, xP2;
 
                         a1 = (adj1 < cnstVal1) ? cnstVal1 : (adj1 > cnstVal3) ? cnstVal3 : adj1;
                         maxAdj2 = cnstVal2 * w / ss;
@@ -4484,7 +4477,7 @@ import { PPTXMathShapes } from './math.js';
                         yP2 = yF + dy5;
                         xP2 = w / 4;
 
-                        var dVal = "M" + 0 + "," + h +
+                        dVal = "M" + 0 + "," + h +
                             " Q" + xP1 + "," + yP1 + " " + xB + "," + yB +
                             " L" + xC + "," + 0 +
                             " L" + w + "," + yD +
@@ -4498,15 +4491,15 @@ import { PPTXMathShapes } from './math.js';
 
                         break;
                     case "circularArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 12500 * slideFactor;
-                        var sAdj2, adj2 = (1142319 / 60000) * Math.PI / 180;
-                        var sAdj3, adj3 = (20457681 / 60000) * Math.PI / 180;
-                        var sAdj4, adj4 = (10800000 / 60000) * Math.PI / 180;
-                        var sAdj5, adj5 = 12500 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 12500 * slideFactor;
+                        sAdj2 = undefined, adj2 = (1142319 / 60000) * Math.PI / 180;
+                        sAdj3 = undefined, adj3 = (20457681 / 60000) * Math.PI / 180;
+                        sAdj4 = undefined, adj4 = (10800000 / 60000) * Math.PI / 180;
+                        sAdj5 = undefined, adj5 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -4525,9 +4518,9 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0, wd2 = w / 2, hd2 = h / 2;
-                        var ss = Math.min(w, h);
-                        var a5, maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH,
+                        vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0, wd2 = w / 2, hd2 = h / 2;
+                        ss = Math.min(w, h);
+                        a5 = undefined, maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH,
                             dyH, xH, yH, rI, u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12, u13, u14, u15, u16, u17,
                             u18, u19, u20, u21, maxAng, aAng, ptAng, wtA, htA, dxA, dyA, xA, yA, wtE, htE, dxE, dyE, xE, yE,
                             dxG, dyG, xG, yG, dxB, dyB, xB, yB, sx1, sy1, sx2, sy2, rO, x1O, y1O, x2O, y2O, dxO, dyO, dO,
@@ -4537,11 +4530,11 @@ import { PPTXMathShapes } from './math.js';
                             dxC1, v12, dxC2, adyI, v13, v14, dyC1, v15, dyC2, v16, v17, v18, v19, v20, v21, v22, dxC, dyC,
                             sdxC, sdyC, xC, yC, ist0, ist1, istAng, isw1, isw2, iswAng, p1, p2, p3, p4, p5, xGp, yGp,
                             xBp, yBp, en0, en1, en2, sw0, sw1, swAng;
-                        var cnstVal1 = 25000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var rdAngVal1 = (1 / 60000) * Math.PI / 180;
-                        var rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
-                        var rdAngVal3 = 2 * Math.PI;
+                        cnstVal1 = 25000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        rdAngVal1 = (1 / 60000) * Math.PI / 180;
+                        rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
+                        rdAngVal3 = 2 * Math.PI;
 
                         a5 = (adj5 < 0) ? 0 : (adj5 > cnstVal1) ? cnstVal1 : adj5;
                         maxAdj1 = a5 * 2;
@@ -4741,34 +4734,34 @@ import { PPTXMathShapes } from './math.js';
                         sw1 = sw0 + rdAngVal3;
                         swAng = (sw0 > 0) ? sw0 : sw1;
 
-                        var strtAng = stAng * 180 / Math.PI
-                        var endAng = strtAng + (swAng * 180 / Math.PI);
-                        var stiAng = istAng * 180 / Math.PI;
-                        var swiAng = iswAng * 180 / Math.PI;
-                        var ediAng = stiAng + swiAng;
+                        strtAng = stAng * 180 / Math.PI
+                        endAng = strtAng + (swAng * 180 / Math.PI);
+                        stiAng = istAng * 180 / Math.PI;
+                        swiAng = iswAng * 180 / Math.PI;
+                        ediAng = stiAng + swiAng;
 
-                        var d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
+                        d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
                             " L" + xGp + "," + yGp +
                             " L" + xA + "," + yA +
                             " L" + xBp + "," + yBp +
                             " L" + xC + "," + yC +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
                     case "leftCircularArrow":
-                        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 12500 * slideFactor;
-                        var sAdj2, adj2 = (-1142319 / 60000) * Math.PI / 180;
-                        var sAdj3, adj3 = (1142319 / 60000) * Math.PI / 180;
-                        var sAdj4, adj4 = (10800000 / 60000) * Math.PI / 180;
-                        var sAdj5, adj5 = 12500 * slideFactor;
+                        shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        sAdj1 = undefined, adj1 = 12500 * slideFactor;
+                        sAdj2 = undefined, adj2 = (-1142319 / 60000) * Math.PI / 180;
+                        sAdj3 = undefined, adj3 = (1142319 / 60000) * Math.PI / 180;
+                        sAdj4 = undefined, adj4 = (10800000 / 60000) * Math.PI / 180;
+                        sAdj5 = undefined, adj5 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -4787,14 +4780,14 @@ import { PPTXMathShapes } from './math.js';
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0, wd2 = w / 2, hd2 = h / 2;
-                        var ss = Math.min(w, h);
-                        var cnstVal1 = 25000 * slideFactor;
-                        var cnstVal2 = 100000 * slideFactor;
-                        var rdAngVal1 = (1 / 60000) * Math.PI / 180;
-                        var rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
-                        var rdAngVal3 = 2 * Math.PI;
-                        var a5, maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH, dyH, xH, yH, rI,
+                        vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0, wd2 = w / 2, hd2 = h / 2;
+                        ss = Math.min(w, h);
+                        cnstVal1 = 25000 * slideFactor;
+                        cnstVal2 = 100000 * slideFactor;
+                        rdAngVal1 = (1 / 60000) * Math.PI / 180;
+                        rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
+                        rdAngVal3 = 2 * Math.PI;
+                        a5 = undefined, maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH, dyH, xH, yH, rI,
                             u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12, u13, u14, u15, u16, u17, u18, u19, u20, u21, u22,
                             minAng, u23, a2, aAng, ptAng, wtA, htA, dxA, dyA, xA, yA, wtE, htE, dxE, dyE, xE, yE, wtD, htD, dxD, dyD,
                             xD, yD, dxG, dyG, xG, yG, dxB, dyB, xB, yB, sx1, sy1, sx2, sy2, rO, x1O, y1O, x2O, y2O, dxO, dyO, dO,
@@ -4994,13 +4987,13 @@ import { PPTXMathShapes } from './math.js';
                         swAng = (sw0 > 0) ? sw1 : sw0;
                         stAng0 = stAng + swAng;
 
-                        var strtAng = stAng0 * 180 / Math.PI;
-                        var endAng = stAng * 180 / Math.PI;
-                        var stiAng = istAng * 180 / Math.PI;
-                        var swiAng = iswAng * 180 / Math.PI;
-                        var ediAng = stiAng + swiAng;
+                        strtAng = stAng0 * 180 / Math.PI;
+                        endAng = stAng * 180 / Math.PI;
+                        stiAng = istAng * 180 / Math.PI;
+                        swiAng = iswAng * 180 / Math.PI;
+                        ediAng = stiAng + swiAng;
 
-                        var d_val = "M" + xE + "," + yE +
+                        d_val = "M" + xE + "," + yE +
                             " L" + xD + "," + yD +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " L" + xBp + "," + yBp +
@@ -5009,7 +5002,7 @@ import { PPTXMathShapes } from './math.js';
                             " L" + xF + "," + yF +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
                             " z";
-                        var fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
+                        fillAttr = PPTXShapeContainer.getFillAttrFromFlags(fillColor, imgFillFlg, grndFillFlg, shpId);
                         result += "<path d='" + d_val + "' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -5042,9 +5035,7 @@ import { PPTXMathShapes } from './math.js';
                     "' style='" +
                     PPTXUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     PPTXUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    " z-index: " + order + ";" +
-                    "transform: rotate(" + ((txtRotate !== undefined) ? txtRotate : 0) + "deg);" +
-                    "'>";
+                    " z-index: " + order + `;transform: rotate(` + ((txtRotate !== undefined) ? txtRotate : 0) + `deg);'>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -5057,25 +5048,25 @@ import { PPTXMathShapes } from './math.js';
             } else if (custShapType !== undefined) {
                 //custGeom here - Amir ///////////////////////////////////////////////////////
                 //http://officeopenxml.com/drwSp-custGeom.php
-                var pathLstNode = PPTXUtils.getTextByPathList(custShapType, ["a:pathLst"]);
-                var pathNodes = PPTXUtils.getTextByPathList(pathLstNode, ["a:path"]);
-                //var pathNode = PPTXUtils.getTextByPathList(pathLstNode, ["a:path", "attrs"]);
-                var maxX = parseInt(pathNodes["attrs"]["w"]);// * slideFactor;
-                var maxY = parseInt(pathNodes["attrs"]["h"]);// * slideFactor;
-                var cX = (1 / maxX) * w;
-                var cY = (1 / maxY) * h;
+                const pathLstNode = PPTXUtils.getTextByPathList(custShapType, ["a:pathLst"]);
+                const pathNodes = PPTXUtils.getTextByPathList(pathLstNode, ["a:path"]);
+                //const pathNode = PPTXUtils.getTextByPathList(pathLstNode, ["a:path", "attrs"]);
+                const maxX = parseInt(pathNodes["attrs"]["w"]);// * slideFactor;
+                const maxY = parseInt(pathNodes["attrs"]["h"]);// * slideFactor;
+                const cX = (1 / maxX) * w;
+                const cY = (1 / maxY) * h;
                 //console.log("w = "+w+"\nh = "+h+"\nmaxX = "+maxX +"\nmaxY = " + maxY);
                 //cheke if it is close shape
 
                 //console.log("custShapType : ", custShapType, ", pathLstNode: ", pathLstNode, ", node: ", node);//, ", y:", y, ", w:", w, ", h:", h);
 
-                var moveToNode = PPTXUtils.getTextByPathList(pathNodes, ["a:moveTo"]);
-                var total_shapes = moveToNode.length;
+                let moveToNode = PPTXUtils.getTextByPathList(pathNodes, ["a:moveTo"]);
+                const total_shapes = moveToNode.length;
 
-                var lnToNodes = pathNodes["a:lnTo"]; //total a:pt : 1
-                var cubicBezToNodes = pathNodes["a:cubicBezTo"]; //total a:pt : 3
-                var arcToNodes = pathNodes["a:arcTo"]; //total a:pt : 0?1? ; attrs: ~4 ()
-                var closeNode = PPTXUtils.getTextByPathList(pathNodes, ["a:close"]); //total a:pt : 0
+                const lnToNodes = pathNodes["a:lnTo"]; //total a:pt : 1
+                let cubicBezToNodes = pathNodes["a:cubicBezTo"]; //total a:pt : 3
+                const arcToNodes = pathNodes["a:arcTo"]; //total a:pt : 0?1? ; attrs: ~4 ()
+                let closeNode = PPTXUtils.getTextByPathList(pathNodes, ["a:close"]); //total a:pt : 0
                 //quadBezTo //total a:pt : 2
                 //console.log("ia moveToNode array: ", Array.isArray(moveToNode))
                 if (!Array.isArray(moveToNode)) {
@@ -5083,18 +5074,19 @@ import { PPTXMathShapes } from './math.js';
                 }
                 //console.log("ia moveToNode array: ", Array.isArray(moveToNode))
 
-                var multiSapeAry = [];
+                const multiSapeAry = [];
+                let ptObj, ptOrdr;
                 if (moveToNode.length > 0) {
                     //a:moveTo
                     Object.keys(moveToNode).forEach(function (key) {
-                        var moveToPtNode = moveToNode[key]["a:pt"];
+                        const moveToPtNode = moveToNode[key]["a:pt"];
                         if (moveToPtNode !== undefined) {
                             Object.keys(moveToPtNode).forEach(function (key2) {
-                                var ptObj = {};
-                                var moveToNoPt = moveToPtNode[key2];
-                                var spX = moveToNoPt["attrs", "x"];//parseInt(moveToNoPt["attrs", "x"]) * slideFactor;
-                                var spY = moveToNoPt["attrs", "y"];//parseInt(moveToNoPt["attrs", "y"]) * slideFactor;
-                                var ptOrdr = moveToNoPt["attrs", "order"];
+                                ptObj = {};
+                                const moveToNoPt = moveToPtNode[key2];
+                                const spX = moveToNoPt["attrs", "x"];//parseInt(moveToNoPt["attrs", "x"]) * slideFactor;
+                                const spY = moveToNoPt["attrs", "y"];//parseInt(moveToNoPt["attrs", "y"]) * slideFactor;
+                                const ptOrdr = moveToNoPt["attrs", "order"];
                                 ptObj.type = "movto";
                                 ptObj.order = ptOrdr;
                                 ptObj.x = spX;
@@ -5108,14 +5100,14 @@ import { PPTXMathShapes } from './math.js';
                     //a:lnTo
                     if (lnToNodes !== undefined) {
                         Object.keys(lnToNodes).forEach(function (key) {
-                            var lnToPtNode = lnToNodes[key]["a:pt"];
+                            const lnToPtNode = lnToNodes[key]["a:pt"];
                             if (lnToPtNode !== undefined) {
                                 Object.keys(lnToPtNode).forEach(function (key2) {
-                                    var ptObj = {};
-                                    var lnToNoPt = lnToPtNode[key2];
-                                    var ptX = lnToNoPt["attrs", "x"];
-                                    var ptY = lnToNoPt["attrs", "y"];
-                                    var ptOrdr = lnToNoPt["attrs", "order"];
+ptObj = {};
+                                    const lnToNoPt = lnToPtNode[key2];
+                                    const ptX = lnToNoPt["attrs", "x"];
+                                    const ptY = lnToNoPt["attrs", "y"];
+ptOrdr = lnToNoPt["attrs", "order"];
                                     ptObj.type = "lnto";
                                     ptObj.order = ptOrdr;
                                     ptObj.x = ptX;
@@ -5129,7 +5121,7 @@ import { PPTXMathShapes } from './math.js';
                     //a:cubicBezTo
                     if (cubicBezToNodes !== undefined) {
 
-                        var cubicBezToPtNodesAry = [];
+                        const cubicBezToPtNodesAry = [];
                         //console.log("cubicBezToNodes: ", cubicBezToNodes, ", is arry: ", Array.isArray(cubicBezToNodes))
                         if (!Array.isArray(cubicBezToNodes)) {
                             cubicBezToNodes = [cubicBezToNodes];
@@ -5142,12 +5134,12 @@ import { PPTXMathShapes } from './math.js';
                         //console.log("cubicBezToNodes: ", cubicBezToPtNodesAry)
                         cubicBezToPtNodesAry.forEach(function (key2) {
                             //console.log("cubicBezToPtNodesAry: key2 : ", key2)
-                            var nodeObj = {};
+                            const nodeObj = {};
                             nodeObj.type = "cubicBezTo";
                             nodeObj.order = key2[0]["attrs"]["order"];
-                            var pts_ary = [];
+                            const pts_ary = [];
                             key2.forEach(function (pt) {
-                                var pt_obj = {
+                                const pt_obj = {
                                     x: pt["attrs"]["x"],
                                     y: pt["attrs"]["y"]
                                 }
@@ -5159,21 +5151,21 @@ import { PPTXMathShapes } from './math.js';
                     }
                     //a:arcTo
                     if (arcToNodes !== undefined) {
-                        var arcToNodesAttrs = arcToNodes["attrs"];
-                        var arcOrder = arcToNodesAttrs["order"];
-                        var hR = arcToNodesAttrs["hR"];
-                        var wR = arcToNodesAttrs["wR"];
-                        var stAng = arcToNodesAttrs["stAng"];
-                        var swAng = arcToNodesAttrs["swAng"];
-                        var shftX = 0;
-                        var shftY = 0;
-                        var arcToPtNode = PPTXUtils.getTextByPathList(arcToNodes, ["a:pt", "attrs"]);
+                        const arcToNodesAttrs = arcToNodes["attrs"];
+                        const arcOrder = arcToNodesAttrs["order"];
+                        const hR = arcToNodesAttrs["hR"];
+                        const wR = arcToNodesAttrs["wR"];
+                        const stAng = arcToNodesAttrs["stAng"];
+                        const swAng = arcToNodesAttrs["swAng"];
+                        let shftX = 0;
+                        let shftY = 0;
+                        const arcToPtNode = PPTXUtils.getTextByPathList(arcToNodes, ["a:pt", "attrs"]);
                         if (arcToPtNode !== undefined) {
                             shftX = arcToPtNode["x"];
                             shftY = arcToPtNode["y"];
                             //console.log("shftX: ",shftX," shftY: ",shftY)
                         }
-                        var ptObj = {};
+ptObj = {};
                         ptObj.type = "arcTo";
                         ptObj.order = arcOrder;
                         ptObj.hR = hR;
@@ -5199,10 +5191,10 @@ import { PPTXMathShapes } from './math.js';
                         // });
                         Object.keys(closeNode).forEach(function (key) {
                             //console.log("custShapType >> closeNode: key: ", key);
-                            var clsAttrs = closeNode[key]["attrs"];
-                            //var clsAttrs = closeNode["attrs"];
-                            var clsOrder = clsAttrs["order"];
-                            var ptObj = {};
+                            const clsAttrs = closeNode[key]["attrs"];
+                            //const clsAttrs = closeNode["attrs"];
+                            const clsOrder = clsAttrs["order"];
+ptObj = {};
                             ptObj.type = "close";
                             ptObj.order = clsOrder;
                             multiSapeAry.push(ptObj);
@@ -5219,15 +5211,15 @@ import { PPTXMathShapes } from './math.js';
 
                     //console.log("custShapType >>sorted  multiSapeAry: ");
                     //console.log(multiSapeAry);
-                    var k = 0;
-                    var isClose = false;
-                    var d = "";
+                    let k = 0;
+                    let d_val = "";
+                    let spX, spY, hR, wR, stAng, swAng;
                     while (k < multiSapeAry.length) {
 
                         if (multiSapeAry[k].type == "movto") {
                             //start point
-                            var spX = parseInt(multiSapeAry[k].x) * cX;//slideFactor;
-                            var spY = parseInt(multiSapeAry[k].y) * cY;//slideFactor;
+                            spX = parseInt(multiSapeAry[k].x) * cX;//slideFactor;
+                            spY = parseInt(multiSapeAry[k].y) * cY;//slideFactor;
                             // if (d == "") {
                             //     d = "M" + spX + "," + spY;
                             // } else {
@@ -5248,48 +5240,48 @@ import { PPTXMathShapes } from './math.js';
                             //     isClose = true;
                             // }
 
-                            d += " M" + spX + "," + spY;
+                            d_val += " M" + spX + "," + spY;
 
                         } else if (multiSapeAry[k].type == "lnto") {
-                            var Lx = parseInt(multiSapeAry[k].x) * cX;//slideFactor;
-                            var Ly = parseInt(multiSapeAry[k].y) * cY;//slideFactor;
-                            d += " L" + Lx + "," + Ly;
+                            const Lx = parseInt(multiSapeAry[k].x) * cX;//slideFactor;
+                            const Ly = parseInt(multiSapeAry[k].y) * cY;//slideFactor;
+                            d_val += " L" + Lx + "," + Ly;
 
                         } else if (multiSapeAry[k].type == "cubicBezTo") {
-                            var Cx1 = parseInt(multiSapeAry[k].cubBzPt[0].x) * cX;//slideFactor;
-                            var Cy1 = parseInt(multiSapeAry[k].cubBzPt[0].y) * cY;//slideFactor;
-                            var Cx2 = parseInt(multiSapeAry[k].cubBzPt[1].x) * cX;//slideFactor;
-                            var Cy2 = parseInt(multiSapeAry[k].cubBzPt[1].y) * cY;//slideFactor;
-                            var Cx3 = parseInt(multiSapeAry[k].cubBzPt[2].x) * cX;//slideFactor;
-                            var Cy3 = parseInt(multiSapeAry[k].cubBzPt[2].y) * cY;//slideFactor;
-                            d += " C" + Cx1 + "," + Cy1 + " " + Cx2 + "," + Cy2 + " " + Cx3 + "," + Cy3;
+                            const Cx1 = parseInt(multiSapeAry[k].cubBzPt[0].x) * cX;//slideFactor;
+                            const Cy1 = parseInt(multiSapeAry[k].cubBzPt[0].y) * cY;//slideFactor;
+                            const Cx2 = parseInt(multiSapeAry[k].cubBzPt[1].x) * cX;//slideFactor;
+                            const Cy2 = parseInt(multiSapeAry[k].cubBzPt[1].y) * cY;//slideFactor;
+                            const Cx3 = parseInt(multiSapeAry[k].cubBzPt[2].x) * cX;//slideFactor;
+                            const Cy3 = parseInt(multiSapeAry[k].cubBzPt[2].y) * cY;//slideFactor;
+                            d_val += " C" + Cx1 + "," + Cy1 + " " + Cx2 + "," + Cy2 + " " + Cx3 + "," + Cy3;
                         } else if (multiSapeAry[k].type == "arcTo") {
-                            var hR = parseInt(multiSapeAry[k].hR) * cX;//slideFactor;
-                            var wR = parseInt(multiSapeAry[k].wR) * cY;//slideFactor;
-                            var stAng = parseInt(multiSapeAry[k].stAng) / 60000;
-                            var swAng = parseInt(multiSapeAry[k].swAng) / 60000;
-                            //var shftX = parseInt(multiSapeAry[k].shftX) * slideFactor;
-                            //var shftY = parseInt(multiSapeAry[k].shftY) * slideFactor;
-                            var endAng = stAng + swAng;
+                            hR = parseInt(multiSapeAry[k].hR) * cX;//slideFactor;
+                            wR = parseInt(multiSapeAry[k].wR) * cY;//slideFactor;
+                            stAng = parseInt(multiSapeAry[k].stAng) / 60000;
+                            swAng = parseInt(multiSapeAry[k].swAng) / 60000;
+                            //const shftX = parseInt(multiSapeAry[k].shftX) * slideFactor;
+                            //const shftY = parseInt(multiSapeAry[k].shftY) * slideFactor;
+                            const endAng = stAng + swAng;
 
-                            d += PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
+                            d_val += PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
                         } else if (multiSapeAry[k].type == "quadBezTo") {
                             console.log("custShapType: quadBezTo")
 
                         } else if (multiSapeAry[k].type == "close") {
-                            // result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                            // result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             //     "' stroke='" + ((border === undefined) ? "" : border.color) + "' stroke-width='" + ((border === undefined) ? "" : border.width) + "' stroke-dasharray='" + ((border === undefined) ? "" : border.strokeDasharray) + "' ";
                             // result += "/>";
-                            // d = "";
+                            // d_val = "";
                             // isClose = true;
 
-                            d += "z";
+                            d_val += "z";
                         }
                         k++;
                     }
                     //if (!isClose) {
                     //only one "moveTo" and no "close"
-                    result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                         "' stroke='" + ((border === undefined) ? "" : border.color) + "' stroke-width='" + ((border === undefined) ? "" : border.width) + "' stroke-dasharray='" + ((border === undefined) ? "" : border.strokeDasharray) + "' ";
                     result += "/>";
                     //console.log(result);
@@ -5302,9 +5294,7 @@ import { PPTXMathShapes } from './math.js';
                     "' style='" +
                     PPTXUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     PPTXUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    " z-index: " + order + ";" +
-                    "transform: rotate(" + ((txtRotate !== undefined) ? txtRotate : 0) + "deg);" +
-                    "'>";
+                    " z-index: " + order + `;transform: rotate(` + ((txtRotate !== undefined) ? txtRotate : 0) + `deg);'>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -5326,9 +5316,7 @@ import { PPTXMathShapes } from './math.js';
                     PPTXUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
                     PPTXStyleManager.getBorder(node, pNode, false, "shape", warpObj) +
                     PPTXShapeFillsUtils.getShapeFill(node, pNode, false, warpObj, source) +
-                    " z-index: " + order + ";" +
-                    "transform: rotate(" + ((txtRotate !== undefined) ? txtRotate : 0) + "deg);" +
-                    "'>";
+                    " z-index: " + order + `;transform: rotate(` + ((txtRotate !== undefined) ? txtRotate : 0) + `deg);'>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {

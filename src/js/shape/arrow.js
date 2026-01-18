@@ -3,19 +3,19 @@
 
     // 右箭头
     PPTXArrowShapes.genRightArrow = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        const shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         var sAdj1, sAdj1_val = 0.25;
         var sAdj2, sAdj2_val = 0.5;
-        var max_sAdj2_const = w / h;
+        const max_sAdj2_const = w / h;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+            for (let i = 0; i < shapAdjst_ary.length; i++) {
+                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                 } else if (sAdj_name == "adj2") {
                     sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    const sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val = 1 - ((sAdj2_val2) / max_sAdj2_const);
                 }
             }
@@ -27,19 +27,19 @@
 
     // 左箭头
     PPTXArrowShapes.genLeftArrow = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, sAdj1_val = 0.25;
-        var sAdj2, sAdj2_val = 0.5;
-        var max_sAdj2_const = w / h;
+        let shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, sAdj1_val = 0.25;
+        let sAdj2, sAdj2_val = 0.5;
+        let max_sAdj2_const = w / h;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+            for (let i = 0; i < shapAdjst_ary.length; i++) {
+                let sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                 } else if (sAdj_name == "adj2") {
                     sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    let sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
@@ -51,19 +51,19 @@
 
     // 下箭头
     PPTXArrowShapes.genDownArrow = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, sAdj1_val = 0.25;
-        var sAdj2, sAdj2_val = 0.5;
-        var max_sAdj2_const = h / w;
+        let shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, sAdj1_val = 0.25;
+        let sAdj2, sAdj2_val = 0.5;
+        let max_sAdj2_const = h / w;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+            for (let i = 0; i < shapAdjst_ary.length; i++) {
+sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
                 } else if (sAdj_name == "adj2") {
                     sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
@@ -75,19 +75,19 @@
 
     // 上箭头
     PPTXArrowShapes.genUpArrow = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, sAdj1_val = 0.25;
-        var sAdj2, sAdj2_val = 0.5;
-        var max_sAdj2_const = h / w;
+        let shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, sAdj1_val = 0.25;
+        let sAdj2, sAdj2_val = 0.5;
+        let max_sAdj2_const = h / w;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+            for (let i = 0; i < shapAdjst_ary.length; i++) {
+                let sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
                 } else if (sAdj_name == "adj2") {
                     sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    let sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
@@ -99,19 +99,19 @@
 
     // 左右箭头
     PPTXArrowShapes.genLeftRightArrow = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, sAdj1_val = 0.25;
-        var sAdj2, sAdj2_val = 0.25;
-        var max_sAdj2_const = w / h;
+        let shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, sAdj1_val = 0.25;
+        let sAdj2, sAdj2_val = 0.25;
+        let max_sAdj2_const = w / h;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+            for (let i = 0; i < shapAdjst_ary.length; i++) {
+                let sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                 } else if (sAdj_name == "adj2") {
                     sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    let sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
@@ -124,19 +124,19 @@
 
     // 上下箭头
     PPTXArrowShapes.genUpDownArrow = function(w, h, node, slideFactor) {
-        var shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, sAdj1_val = 0.25;
-        var sAdj2, sAdj2_val = 0.25;
-        var max_sAdj2_const = h / w;
+        let shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, sAdj1_val = 0.25;
+        let sAdj2, sAdj2_val = 0.25;
+        let max_sAdj2_const = h / w;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+            for (let i = 0; i < shapAdjst_ary.length; i++) {
+                let sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                 } else if (sAdj_name == "adj2") {
                     sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    let sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                 }
             }
@@ -148,6 +148,3 @@
     };
 
 export { PPTXArrowShapes };
-
-// Also export to global scope for backward compatibility
-// window.PPTXArrowShapes = PPTXArrowShapes; // Removed for ES modules

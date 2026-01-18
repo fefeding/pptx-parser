@@ -84,11 +84,12 @@ function shapeGear(w, h, points) {
 function shapeArc(cX, cY, rX, rY, stAng, endAng, isClose) {
     let dData;
     let angle = stAng;
+    let x, y;
     if (endAng >= stAng) {
         while (angle <= endAng) {
-            const radians = angle * (Math.PI / 180);
-            const x = cX + Math.cos(radians) * rX;
-            const y = cY + Math.sin(radians) * rY;
+            let radians = angle * (Math.PI / 180);
+x = cX + Math.cos(radians) * rX;
+y = cY + Math.sin(radians) * rY;
             if (angle === stAng) {
                 dData = ` M${x} ${y}`;
             }
@@ -97,9 +98,9 @@ function shapeArc(cX, cY, rX, rY, stAng, endAng, isClose) {
         }
     } else {
         while (angle > endAng) {
-            const radians = angle * (Math.PI / 180);
-            const x = cX + Math.cos(radians) * rX;
-            const y = cY + Math.sin(radians) * rY;
+radians = angle * (Math.PI / 180);
+x = cX + Math.cos(radians) * rX;
+y = cY + Math.sin(radians) * rY;
             if (angle === stAng) {
                 dData = ` M ${x} ${y}`;
             }

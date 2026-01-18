@@ -24,23 +24,23 @@ function processSpNode(node, pNode, warpObj, source, sType, genShape) {
     *  966 </xsd:complexType>
     */
 
-    var id = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "id"]);
-    var name = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
-    var idx = (PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]) === undefined) ? undefined : PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]);
-    var type = (PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]) === undefined) ? undefined : PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
-    var order = PPTXUtils.getTextByPathList(node, ["attrs", "order"]);
-    var isUserDrawnBg;
+    let id = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "id"]);
+    let name = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
+    let idx = (PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]) === undefined) ? undefined : PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]);
+    let type = (PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]) === undefined) ? undefined : PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+    const order = PPTXUtils.getTextByPathList(node, ["attrs", "order"]);
+    let isUserDrawnBg;
     if (source == "slideLayoutBg" || source == "slideMasterBg") {
-        var userDrawn = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "attrs", "userDrawn"]);
+        const userDrawn = PPTXUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "attrs", "userDrawn"]);
         if (userDrawn == "1") {
             isUserDrawnBg = true;
         } else {
             isUserDrawnBg = false;
         }
     }
-    var slideLayoutSpNode = undefined;
-    var slideMasterSpNode = undefined;
-    var txBoxVal;
+    let slideLayoutSpNode;
+    let slideMasterSpNode;
+    let txBoxVal;
 
     if (idx !== undefined) {
         slideLayoutSpNode = warpObj["slideLayoutTables"]["idxTable"][idx];
@@ -89,12 +89,12 @@ function processSpNode(node, pNode, warpObj, source, sType, genShape) {
  * @returns {string} 生成的HTML字符串
  */
 function processCxnSpNode(node, pNode, warpObj, source, sType, genShape) {
-    var id = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["id"];
-    var name = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["name"];
-    var idx = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["idx"];
-    var type = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["type"];
+    const id = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["id"];
+    const name = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["name"];
+    const idx = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["idx"];
+    const type = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["type"];
     //<p:cNvCxnSpPr>(<p:cNvCxnSpPr>, <a:endCxn>)
-    var order = node["attrs"]["order"];
+    const order = node["attrs"]["order"];
 
     return genShape(node, pNode, undefined, undefined, id, name, idx, type, order, warpObj, undefined, sType, source);
 }

@@ -1,7 +1,7 @@
 import { PPTXUtils } from '../core/utils.js';
 import { PPTXHtml } from '../html.js';
 
-var PPTXImageUtils = {};
+const PPTXImageUtils = {};
 
     /**
  * 处理图片节点
@@ -15,11 +15,11 @@ var PPTXImageUtils = {};
  * @returns {string} HTML字符串
  */
 PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPosition, getSize, settings) {
-    var rtrnData = "";
-    var mediaPicFlag = false;
-    var order = node["attrs"]["order"];
+    let rtrnData = "";
+    let mediaPicFlag = false;
+    const order = node["attrs"]["order"];
 
-    var rid = node["p:blipFill"]["a:blip"]["attrs"]["r:embed"];
+    const rid = node["p:blipFill"]["a:blip"]["attrs"]["r:embed"];
     var resObj;
     if (source == "slideMasterBg") {
         resObj = warpObj["masterResObj"];
@@ -28,13 +28,13 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
     } else {
         resObj = warpObj["slideResObj"];
     }
-    var imgName = resObj[rid]["target"];
+    const imgName = resObj[rid]["target"];
 
-    var imgFileExt = PPTXUtils.extractFileExtension(imgName).toLowerCase();
-    var zip = warpObj["zip"];
+    const imgFileExt = PPTXUtils.extractFileExtension(imgName).toLowerCase();
+    const zip = warpObj["zip"];
 
     // 尝试解析图片路径,处理相对路径问题
-    var imgFile = zip.file(imgName);
+    const imgFile = zip.file(imgName);
     if (!imgFile && !imgName.startsWith("ppt/")) {
         imgFile = zip.file("ppt/" + imgName);
     }
@@ -43,32 +43,32 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
         return "";
     }
 
-    var imgArrayBuffer = imgFile.asArrayBuffer();
-    var mimeType = "";
-    var xfrmNode = node["p:spPr"]["a:xfrm"];
+    const imgArrayBuffer = imgFile.asArrayBuffer();
+    let mimeType = "";
+    const xfrmNode = node["p:spPr"]["a:xfrm"];
     if (xfrmNode === undefined) {
-        var idx = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
+        let idx = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
         if (idx !== undefined) {
             xfrmNode = PPTXUtils.getTextByPathList(warpObj["slideLayoutTables"], ["idxTable", idx, "p:spPr", "a:xfrm"]);
         }
     }
 
     // 处理旋转
-    var rotate = 0;
-    var rotateNode = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
+    const rotate = 0;
+    const rotateNode = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
     if (rotateNode !== undefined) {
         rotate = PPTXUtils.angleToDegrees(rotateNode);
     }
 
     // 处理视频
-    var vdoNode = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
+    const vdoNode = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
     var vdoRid, vdoFile, vdoFileExt, vdoMimeType, uInt8Array, blob, vdoBlob, mediaSupportFlag = false, isVdeoLink = false;
-    var mediaProcess = settings.mediaProcess;
+    const mediaProcess = settings.mediaProcess;
 
     if (vdoNode !== undefined && mediaProcess) {
         vdoRid = vdoNode["attrs"]["r:link"];
         vdoFile = resObj[vdoRid]["target"];
-        var checkIfLink = PPTXUtils.IsVideoLink(vdoFile);
+        const checkIfLink = PPTXUtils.IsVideoLink(vdoFile);
         if (checkIfLink) {
             vdoFile = PPTXUtils.escapeHtml(vdoFile);
             isVdeoLink = true;
@@ -77,7 +77,7 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
         } else {
             vdoFileExt = PPTXUtils.extractFileExtension(vdoFile).toLowerCase();
             if (vdoFileExt == "mp4" || vdoFileExt == "webm" || vdoFileExt == "ogg") {
-                var vdoFileEntry = zip.file(vdoFile);
+                const vdoFileEntry = zip.file(vdoFile);
                 if (!vdoFileEntry && !vdoFile.startsWith("ppt/")) {
                     vdoFileEntry = zip.file("ppt/" + vdoFile);
                 }
@@ -96,9 +96,9 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
     }
 
     // 处理音频
-    var audioNode = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
+    const audioNode = PPTXUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
     var audioRid, audioFile, audioFileExt, audioMimeType, uInt8ArrayAudio, blobAudio, audioBlob;
-    var audioPlayerFlag = false;
+    const audioPlayerFlag = false;
     var audioObjc;
 
     if (audioNode !== undefined && mediaProcess) {
@@ -106,7 +106,7 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
         audioFile = resObj[audioRid]["target"];
         audioFileExt = PPTXUtils.extractFileExtension(audioFile).toLowerCase();
         if (audioFileExt == "mp3" || audioFileExt == "wav" || audioFileExt == "ogg") {
-            var audioFileEntry = zip.file(audioFile);
+            const audioFileEntry = zip.file(audioFile);
             if (!audioFileEntry && !audioFile.startsWith("ppt/")) {
                 audioFileEntry = zip.file("ppt/" + audioFile);
             }
@@ -116,10 +116,10 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
                 uInt8ArrayAudio = audioFileEntry.asArrayBuffer();
                 blobAudio = new Blob([uInt8ArrayAudio]);
                 audioBlob = URL.createObjectURL(blobAudio);
-                var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * 20;
-                var cy = xfrmNode["a:ext"]["attrs"]["cy"];
-                var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) / 2.5;
-                var y = xfrmNode["a:off"]["attrs"]["y"];
+                const cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * 20;
+                const cy = xfrmNode["a:ext"]["attrs"]["cy"];
+                let x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) / 2.5;
+                let y = xfrmNode["a:off"]["attrs"]["y"];
                 audioObjc = {
                     "a:ext": {
                         "attrs": {
@@ -146,8 +146,7 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
     rtrnData = "<div class='block content' style='" +
         ((mediaProcess && audioPlayerFlag) ? getPosition(audioObjc, node, undefined, undefined) : getPosition(xfrmNode, node, undefined, undefined)) +
         ((mediaProcess && audioPlayerFlag) ? getSize(audioObjc, undefined, undefined) : getSize(xfrmNode, undefined, undefined)) +
-        " z-index: " + order + ";" +
-        "transform: rotate(" + rotate + "deg);'>";
+        " z-index: " + order + `;transform: rotate(` + rotate + "deg);'>";
 
     if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
         rtrnData += "<img src='" + PPTXUtils.arrayBufferToBlobUrl(imgArrayBuffer, mimeType) + "' style='width: 100%; height: 100%'/>";
@@ -186,8 +185,8 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
  * @returns {string} HTML字符串
  */
 PPTXImageUtils.processGraphicFrameNode = function(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode) {
-    var result = "";
-    var graphicTypeUri = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "attrs", "uri"]);
+    let result = "";
+    const graphicTypeUri = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "attrs", "uri"]);
 
     switch (graphicTypeUri) {
         case "http://schemas.openxmlformats.org/drawingml/2006/table":
@@ -200,7 +199,7 @@ PPTXImageUtils.processGraphicFrameNode = function(node, warpObj, source, sType, 
             result = genDiagram(node, warpObj, source, sType);
             break;
         case "http://schemas.openxmlformats.org/presentationml/2006/ole":
-            var oleObjNode = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "mc:AlternateContent", "mc:Fallback", "p:oleObj"]);
+            const oleObjNode = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "mc:AlternateContent", "mc:Fallback", "p:oleObj"]);
             if (oleObjNode === undefined) {
                 oleObjNode = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "p:oleObj"]);
             }

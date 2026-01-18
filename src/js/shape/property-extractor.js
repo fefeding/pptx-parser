@@ -11,18 +11,18 @@ import { PPTXColorUtils } from '../core/color.js';
  * @returns {Object} 包含形状属性的对象
  */
 function extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, slideMasterSpNode) {
-    var xfrmList = ["p:spPr", "a:xfrm"];
-    var slideXfrmNode = PPTXUtils.getTextByPathList(node, xfrmList);
-    var slideLayoutXfrmNode = PPTXUtils.getTextByPathList(slideLayoutSpNode, xfrmList);
-    var slideMasterXfrmNode = PPTXUtils.getTextByPathList(slideMasterSpNode, xfrmList);
+    const xfrmList = ["p:spPr", "a:xfrm"];
+    const slideXfrmNode = PPTXUtils.getTextByPathList(node, xfrmList);
+    const slideLayoutXfrmNode = PPTXUtils.getTextByPathList(slideLayoutSpNode, xfrmList);
+    const slideMasterXfrmNode = PPTXUtils.getTextByPathList(slideMasterSpNode, xfrmList);
 
-    var shapType = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
-    var custShapType = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:custGeom"]);
+    const shapType = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
+    const custShapType = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:custGeom"]);
 
     // 翻转处理
-    var isFlipV = false;
-    var isFlipH = false;
-    var flip = "";
+    let isFlipV = false;
+    let isFlipH = false;
+    let flip = "";
     if (PPTXUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipV"]) === "1") {
         isFlipV = true;
     }
@@ -38,15 +38,15 @@ function extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, sli
     }
 
     // 旋转角度
-    var rotate = PPTXUtils.angleToDegrees(
+    const rotate = PPTXUtils.angleToDegrees(
         PPTXUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"])
     );
 
     // 文字旋转角度
-    var txtRotate;
-    var txtXframeNode = PPTXUtils.getTextByPathList(node, ["p:txXfrm"]);
+    let txtRotate;
+    const txtXframeNode = PPTXUtils.getTextByPathList(node, ["p:txXfrm"]);
     if (txtXframeNode !== undefined) {
-        var txtXframeRot = PPTXUtils.getTextByPathList(txtXframeNode, ["attrs", "rot"]);
+        const txtXframeRot = PPTXUtils.getTextByPathList(txtXframeNode, ["attrs", "rot"]);
         if (txtXframeRot !== undefined) {
             txtRotate = PPTXUtils.angleToDegrees(txtXframeRot) + 90;
         }
@@ -55,10 +55,10 @@ function extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, sli
     }
 
     // 位置和尺寸
-    var off = PPTXUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
-    var ext = PPTXUtils.getTextByPathList(slideXfrmNode, ["a:ext", "attrs"]);
+    const off = PPTXUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
+    const ext = PPTXUtils.getTextByPathList(slideXfrmNode, ["a:ext", "attrs"]);
     
-    var x = 0, y = 0, w = 0, h = 0;
+    let x = 0, y = 0, w = 0, h = 0;
     if (off && off["x"] !== undefined && off["y"] !== undefined) {
         x = parseInt(off["x"]) * slideFactor;
         y = parseInt(off["y"]) * slideFactor;
@@ -68,7 +68,7 @@ function extractShapeProperties(node, slideFactor, pNode, slideLayoutSpNode, sli
         h = parseInt(ext["cy"]) * slideFactor;
     }
 
-    var shpId = PPTXUtils.getTextByPathList(node, ["attrs", "order"]);
+    const shpId = PPTXUtils.getTextByPathList(node, ["attrs", "order"]);
 
     return {
         shapType: shapType,

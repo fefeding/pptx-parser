@@ -60,11 +60,11 @@ function arrayBufferToBlobUrl(arrayBuffer, mimeType) {
     // Base64 字符串转 Blob URL
 function base64ToBlobUrl(base64Data, mimeType) {
     var binaryString = window.atob(base64Data);
-    var bytes = new Uint8Array(binaryString.length);
+bytes = new Uint8Array(binaryString.length);
     for (var i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
     }
-    var blob = new Blob([bytes], { type: mimeType });
+blob = new Blob([bytes], { type: mimeType });
     return URL.createObjectURL(blob);
 }
 
@@ -242,7 +242,7 @@ function eachElement(node, doFunction) {
     }
     var result = "";
     if (node.constructor === Array) {
-        var l = node.length;
+l = node.length;
         for (var i = 0; i < l; i++) {
             result += doFunction(node[i], i);
         }
@@ -289,7 +289,7 @@ function getPosition(xfrmNode, pNode, parentOff, parentExt, sType) {
 
     // 复杂版本：支持从多个来源获取位置（slideSpNode, slideLayoutSpNode, slideMasterSpNode）
     var off;
-    var x = -1, y = -1;
+x = -1, y = -1;
 
     if (xfrmNode !== undefined && xfrmNode["a:off"] && xfrmNode["a:off"]["attrs"]) {
         off = xfrmNode["a:off"]["attrs"];
@@ -306,7 +306,7 @@ function getPosition(xfrmNode, pNode, parentOff, parentExt, sType) {
 
         var grpXfrmNode = getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
         if (grpXfrmNode !== undefined && grpXfrmNode["a:off"] && grpXfrmNode["a:off"]["attrs"]) {
-            var offAttrs = grpXfrmNode["a:off"]["attrs"];
+offAttrs = grpXfrmNode["a:off"]["attrs"];
             var tmpX = parseInt(offAttrs["x"]) * slideFactor;
             var tmpY = parseInt(offAttrs["y"]) * slideFactor;
             if (!isNaN(tmpX) && !isNaN(tmpY)) {
@@ -319,8 +319,8 @@ function getPosition(xfrmNode, pNode, parentOff, parentExt, sType) {
         var grpXfrmNode2 = pNode["p:grpSpPr"]["a:xfrm"];
         if (grpXfrmNode2 && grpXfrmNode2["a:chOff"] && grpXfrmNode2["a:chOff"]["attrs"]) {
             var chAttrs = grpXfrmNode2["a:chOff"]["attrs"];
-            var chx = parseInt(chAttrs["x"]) * slideFactor;
-            var chy = parseInt(chAttrs["y"]) * slideFactor;
+chx = parseInt(chAttrs["x"]) * slideFactor;
+chy = parseInt(chAttrs["y"]) * slideFactor;
             if (!isNaN(chx) && !isNaN(chy)) {
                 offX = chx;
                 offY = chy;
@@ -354,8 +354,8 @@ function getSize(xfrmNode, parentExt, sType) {
     }
 
     // 复杂版本：支持从多个来源获取尺寸（xfrmNode, slideLayoutSpNode, slideMasterSpNode）
-    var ext = undefined;
-    var w = -1, h = -1;
+ext = undefined;
+w = -1, h = -1;
 
     if (xfrmNode !== undefined && xfrmNode["a:ext"] && xfrmNode["a:ext"]["attrs"]) {
         ext = xfrmNode["a:ext"]["attrs"];
@@ -554,7 +554,7 @@ export function readAsArrayBuffer(file, onLoad, onError) {
  * @param {Function} onError - 加载失败回调，参数为 Error 对象
  */
 export function readAsText(file, onLoad, onError) {
-    var reader = new FileReader();
+reader = new FileReader();
     reader.onload = function(event) {
         if (onLoad) {
             onLoad(event.target.result);
@@ -575,7 +575,7 @@ export function readAsText(file, onLoad, onError) {
  * @param {Function} onError - 加载失败回调，参数为 Error 对象
  */
 export function readAsDataURL(file, onLoad, onError) {
-    var reader = new FileReader();
+reader = new FileReader();
     reader.onload = function(event) {
         if (onLoad) {
             onLoad(event.target.result);
@@ -653,7 +653,7 @@ export var PPTXFileReader = {
         if (!file) return;
 
         options = options || {};
-        var onCallbacks = options.on || {};
+onCallbacks = options.on || {};
 
         readAsText(file, onCallbacks.load, onCallbacks.error);
     },

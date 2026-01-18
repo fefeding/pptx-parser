@@ -46,9 +46,9 @@ static getFontItalic(node, type, slideMasterTextStyles) {
  */
 static getFontDecoration(node, type, slideMasterTextStyles) {
     if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]) {
-        var attrs = node["a:rPr"]["attrs"];
-        var underLine = attrs["u"] !== undefined ? attrs["u"] : "none";
-        var strikethrough = attrs["strike"] !== undefined ? attrs["strike"] : 'noStrike';
+        const attrs = node["a:rPr"]["attrs"];
+        const underLine = attrs["u"] !== undefined ? attrs["u"] : "none";
+        const strikethrough = attrs["strike"] !== undefined ? attrs["strike"] : 'noStrike';
 
         if (underLine != "none" && strikethrough == "noStrike") {
             return "underline";
@@ -273,7 +273,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
         }
     }
 
-    var baseline = PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
+    const baseline = PPTXUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
     if (baseline !== undefined && !isNaN(fontSize)) {
         var baselineVl = parseInt(baseline) / 100000;
         //fontSize -= 10; 
@@ -344,24 +344,24 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
         var lstStyledefRPr = PPTXUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]);
         filTyp = PPTXColorUtils.getFillType(lstStyledefRPr);
         if (filTyp == "SOLID_FILL") {
-            var solidFillNode = lstStyledefRPr["a:solidFill"];// PPTXUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
+solidFillNode = lstStyledefRPr["a:solidFill"];// PPTXUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
             color = PPTXColorUtils.getSolidFill(solidFillNode, undefined, undefined, warpObj);
-            var highlightNode = lstStyledefRPr["a:highlight"];
+highlightNode = lstStyledefRPr["a:highlight"];
             if (highlightNode !== undefined) {
                 highlightColor = PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
             }
             colorType = "solid";
         } else if (filTyp == "PATTERN_FILL") {
-            var pattFill = lstStyledefRPr["a:pattFill"];// PPTXUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
+pattFill = lstStyledefRPr["a:pattFill"];// PPTXUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
             color = PPTXColorUtils.getPatternFill(pattFill, warpObj);
             colorType = "pattern";
         } else if (filTyp == "PIC_FILL") {
-            var picFillResult = PPTXColorUtils.getPicFill("slideBg", lstStyledefRPr["a:blipFill"], warpObj);
+picFillResult = PPTXColorUtils.getPicFill("slideBg", lstStyledefRPr["a:blipFill"], warpObj);
             // 提取图片 URL（picFillResult 可能是对象或字符串）
             color = typeof picFillResult === 'object' && picFillResult.img ? picFillResult.img : picFillResult;
             colorType = "pic";
         } else if (filTyp == "GRADIENT_FILL") {
-            var shpFill = lstStyledefRPr["a:gradFill"];
+shpFill = lstStyledefRPr["a:gradFill"];
             color = PPTXColorUtils.getGradientFill(shpFill, warpObj);
             colorType = "gradient";
         }
@@ -374,7 +374,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
             if (color !== undefined) {
                 colorType = "solid";
             }
-            var highlightNode = sPstyle["a:highlight"]; //is "a:highlight" node in 'a:fontRef' ?
+highlightNode = sPstyle["a:highlight"]; //is "a:highlight" node in 'a:fontRef' ?
             if (highlightNode !== undefined) {
                 highlightColor = PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
             }
@@ -400,7 +400,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
             var defRpRLaout = PPTXUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:solidFill"]);
             if (defRpRLaout !== undefined) {
                 color = PPTXColorUtils.getSolidFill(defRpRLaout, undefined, undefined, warpObj);
-                var highlightNode = PPTXUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:highlight"]);
+highlightNode = PPTXUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:highlight"]);
                 if (highlightNode !== undefined) {
                     highlightColor = PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
                 }
@@ -413,7 +413,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
                 var defRprMaster = PPTXUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:solidFill"]);
                 if (defRprMaster !== undefined) {
                     color = PPTXColorUtils.getSolidFill(defRprMaster, undefined, undefined, warpObj);
-                    var highlightNode = PPTXUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:highlight"]);
+highlightNode = PPTXUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:highlight"]);
                     if (highlightNode !== undefined) {
                         highlightColor = PPTXColorUtils.getSolidFill(highlightNode, undefined, undefined, warpObj);
                     }
@@ -661,18 +661,18 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
  * @returns {String} "pregraph-ltr", "pregraph-rtl", or "pregraph-inherit"
  */
     static getPregraphDir(node, textBodyNode, idx, type, warpObj) {
-    var rtl = PPTXUtils.getTextByPathList(node, ["a:pPr", "attrs", "rtl"]);
-    //console.log("getPregraphDir node:", node, "textBodyNode", textBodyNode, "rtl:", rtl, "idx", idx, "type", type, "warpObj", warpObj)
+        let rtl = PPTXUtils.getTextByPathList(node, ["a:pPr", "attrs", "rtl"]);
+        //console.log("getPregraphDir node:", node, "textBodyNode", textBodyNode, "rtl:", rtl, "idx", idx, "type", type, "warpObj", warpObj)
 
-    if (rtl === undefined) {
-        var layoutMasterNode = PPTXLayoutUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
-        var pPrNodeLaout = layoutMasterNode.nodeLaout;
-        var pPrNodeMaster = layoutMasterNode.nodeMaster;
-        rtl = PPTXUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
-        if (rtl === undefined && type != "shape") {
-            rtl = PPTXUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtrl"]);
+        if (rtl === undefined) {
+            let layoutMasterNode = PPTXLayoutUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
+            let pPrNodeLaout = layoutMasterNode.nodeLaout;
+            let pPrNodeMaster = layoutMasterNode.nodeMaster;
+            rtl = PPTXUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
+            if (rtl === undefined && type != "shape") {
+                rtl = PPTXUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtrl"]);
+            }
         }
-    }
 
     if (rtl == "1") {
         return "pregraph-rtl";
@@ -703,19 +703,19 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
  * @returns {String} Alignment class name
  */
     static getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj) {
-    var algn = PPTXUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
+        let algn = PPTXUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
     if (algn === undefined) {
         //var layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
         // var pPrNodeLaout = layoutMasterNode.nodeLaout;
         // var pPrNodeMaster = layoutMasterNode.nodeMaster;
-        var lvlIdx = 1;
-        var lvlNode = PPTXUtils.getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
+        let lvlIdx = 1;
+        let lvlNode = PPTXUtils.getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
         if (lvlNode !== undefined) {
             lvlIdx = parseInt(lvlNode) + 1;
         }
-        var lvlStr = "a:lvl" + lvlIdx + "pPr";
+        let lvlStr = "a:lvl" + lvlIdx + "pPr";
 
-        var lstStyle = textBodyNode["a:lstStyle"];
+        let lstStyle = textBodyNode["a:lstStyle"];
         algn = PPTXUtils.getTextByPathList(lstStyle, [lvlStr, "attrs", "algn"]);
 
         if (algn === undefined && idx !== undefined ) {
@@ -920,18 +920,18 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     //a:pPr =>a:lnSpc => a:spcPts (/?) | a:spcPct (/?)
     //console.log("getVerticalMargins ", pNode, type,idx, warpObj)
     //var lstStyle = textBodyNode["a:lstStyle"];
-    var lvl = 1
-    var spcBefNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
-    var spcAftNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
-    var lnSpcNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPct", "attrs", "val"]);
-    var lnSpcNodeType = "Pct";
+    let lvl = 1;
+    let spcBefNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
+    let spcAftNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
+    let lnSpcNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPct", "attrs", "val"]);
+    let lnSpcNodeType = "Pct";
     if (lnSpcNode === undefined) {
         lnSpcNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPts", "attrs", "val"]);
         if (lnSpcNode !== undefined) {
             lnSpcNodeType = "Pts";
         }
     }
-    var lvlNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
+    let lvlNode = PPTXUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
     if (lvlNode !== undefined) {
         lvl = parseInt(lvlNode) + 1;
     }
@@ -1020,9 +1020,9 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     if (isInLayoutOrMaster && (spcBefNode === undefined || spcAftNode === undefined || lnSpcNode === undefined)) {
         //check in master
         //slideMasterTextStyles
-        var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
-        var dirLoc = "";
-        var lvl = "a:lvl" + lvl + "pPr";
+        const slideMasterTextStyles = warpObj["slideMasterTextStyles"];
+        let dirLoc = "";
+        const lvlStr = "a:lvl" + lvl + "pPr";
         switch (type) {
             case "title":
             case "ctrTitle":
@@ -1045,7 +1045,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
         // if (type == "shape" || type == "textBox") {
         //     lvl = "a:lvl1pPr";
         // }
-        var inLvlNode = PPTXUtils.getTextByPathList(slideMasterTextStyles, [dirLoc, lvl]);
+        var inLvlNode = PPTXUtils.getTextByPathList(slideMasterTextStyles, [dirLoc, lvlStr]);
         if (inLvlNode !== undefined) {
             if (spcBefNode === undefined) {
                 spcBefNode = PPTXUtils.getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);

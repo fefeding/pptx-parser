@@ -264,7 +264,7 @@ parseXml.stringify = function(nodes) {
         xmlOutput += "<" + node.tagName;
 
         for (var attrName in node.attributes) {
-            var attrValue = node.attributes[attrName];
+attrValue = node.attributes[attrName];
             if (attrValue === null) {
                 xmlOutput += " " + attrName;
             } else if (attrValue.indexOf('"') === -1) {
@@ -291,7 +291,7 @@ parseXml.stringify = function(nodes) {
  */
 parseXml.toContentString = function(nodes) {
     if (Array.isArray(nodes)) {
-        var result = "";
+result = "";
         nodes.forEach(function(node) {
             result += " " + parseXml.toContentString(node);
             result = result.trim();
@@ -312,7 +312,7 @@ parseXml.toContentString = function(nodes) {
  * @returns {Object|Array} Found element
  */
 parseXml.getElementById = function(xmlString, idValue, simplify) {
-    var result = parseXml(xmlString, {
+result = parseXml(xmlString, {
         attrValue: idValue,
         simplify: simplify
     });
@@ -367,7 +367,7 @@ parseXml.parseStream = function(stream, position) {
 
         for (;;) {
             currentPosition = buffer.indexOf("<", currentPosition) + 1;
-            var node = parseXml(buffer, {
+node = parseXml(buffer, {
                 pos: currentPosition,
                 parseNode: true
             });

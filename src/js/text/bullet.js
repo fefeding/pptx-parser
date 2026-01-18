@@ -275,9 +275,9 @@ class PPTXBulletUtils {
         if (buFontSize === undefined) {
             buFontSize = PPTXUtils.getTextByPathList(pPrNodeLaout, ["a:buSzPct", "attrs", "val"]);
             if (buFontSize !== undefined) {
-                var prcnt = parseInt(buFontSize) / 100000;
+                const prcnt = parseInt(buFontSize) / 100000;
                 //var dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
-                var dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
+                const dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
                 bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
             }
         }else{
@@ -289,10 +289,10 @@ class PPTXBulletUtils {
         if (buFontSize === undefined) {
             buFontSize = PPTXUtils.getTextByPathList(pPrNodeMaster, ["a:buSzPct", "attrs", "val"]);
             if (buFontSize !== undefined) {
-                var prcnt = parseInt(buFontSize) / 100000;
+                const prcnt = parseInt(buFontSize) / 100000;
                 //dfltBultSize = XXpt
                 //var dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
-                var dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
+                const dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
                 bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
             }
         } else {

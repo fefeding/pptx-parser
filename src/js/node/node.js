@@ -52,6 +52,7 @@ class PPTXNodeUtils {
      * @returns {string} HTML字符串
      */
     static processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide) {
+        let result = "";
         const xfrmNode = PPTXUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
         let top, left, width, height;
         let grpStyle = "";
@@ -132,7 +133,7 @@ class PPTXNodeUtils {
         }
 
         const order = node["attrs"]["order"];
-        let result = "<div class='block group' style='z-index: " + order + ";" + grpStyle + "'>";
+result = "<div class='block group' style='z-index: " + order + ";" + grpStyle + "'>";
 
         // Process all child nodes
         for (const nodeKey in node) {

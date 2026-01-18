@@ -242,8 +242,8 @@ class PPTXTextElementUtils {
      * @returns {String} HTML文本
      */
     static genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width, styleTable) {
-    var text = "";
-    var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
+        let text = "";
+        const slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
     if (textBodyNode === undefined) {
         return text;
@@ -290,7 +290,7 @@ class PPTXTextElementUtils {
             //console.log("sorted rNode:",rNode)
         }
         //rtlStr = "";//"dir='"+isRTL+"'";
-        var styleText = "";
+        let styleText = "";
         var marginsVer = PPTXTextStyleUtils.getVerticalMargins(pNode, textBodyNode, type, idx, warpObj);
         if (marginsVer != "") {
             styleText = marginsVer;
@@ -301,7 +301,7 @@ class PPTXTextElementUtils {
             styleText += "font-weight: 100;";
             styleText += "font-style: normal;";
         }
-        var cssName = "";
+        let cssName = "";
 
         if (styleText in styleTable) {
             cssName = styleTable[styleText]["name"];
@@ -356,11 +356,11 @@ class PPTXTextElementUtils {
         } else if (rNode !== undefined) {
             // with multi r
             for (var j = 0; j < rNode.length; j++) {
-                var prgr_text = PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate, styleTable);
+                const prgr_text = PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate, styleTable);
                 if (isBullate) {
-                    var txt_obj = document.createElement('div');
+                    const txt_obj = document.createElement('div');
                     txt_obj.innerHTML = prgr_text;
-                    var span = txt_obj.firstChild;
+                    const span = txt_obj.firstChild;
                     span.style.position = 'absolute';
                     span.style.float = 'left';
                     span.style.whiteSpace = 'nowrap';
