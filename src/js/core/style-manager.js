@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+import { PPTXColorUtils } from "./color.js";
+import { PPTXUtils } from './utils.js';
+>>>>>>> esmodule
 var StyleManager = function() {
     this.styleTable = {};
 };
@@ -51,6 +56,7 @@ StyleManager.prototype.reset = function() {
     this.styleTable = {};
 };
 
+<<<<<<< HEAD
     // 单例模式
 var instance = null;
 
@@ -80,3 +86,145 @@ export { PPTXStyleManager };
 
 // Also export to global scope for backward compatibility
 window.PPTXStyleManager = PPTXStyleManager;
+=======
+
+    // 获取边框样式
+StyleManager.prototype.getBorder = function(node, pNode, isSvgMode, bType, warpObj) {
+    var cssText, lineNode;
+
+    if (bType == "shape") {
+        cssText = "border: ";
+        lineNode = node["p:spPr"]["a:ln"];
+    } else if (bType == "text") {
+        cssText = "";
+        lineNode = node["a:rPr"]["a:ln"];
+    }
+
+    var is_noFill = PPTXUtils.getTextByPathList(lineNode, ["a:noFill"]);
+    if (is_noFill !== undefined) {
+        return "hidden";
+    }
+
+    if (lineNode == undefined) {
+        var lnRefNode = PPTXUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
+        if (lnRefNode !== undefined){
+            var lnIdx = PPTXUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
+            lineNode = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) - 1];
+        }
+    }
+    if (lineNode == undefined) {
+        cssText = "";
+        lineNode = node;
+    }
+
+    var borderColor;
+    if (lineNode !== undefined) {
+        var borderWidth = parseInt(PPTXUtils.getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
+        if (isNaN(borderWidth) || borderWidth < 1) {
+            cssText += (4/3) + "px ";
+        } else {
+            cssText += borderWidth + "px ";
+        }
+
+        var borderType = PPTXUtils.getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
+        if (borderType === undefined) {
+            borderType = PPTXUtils.getTextByPathList(lineNode, ["attrs", "cmpd"]);
+        }
+        var strokeDasharray = "0";
+        switch (borderType) {
+            case "solid":
+                cssText += "solid";
+                strokeDasharray = "0";
+                break;
+            case "dash":
+                cssText += "dashed";
+                strokeDasharray = "5";
+                break;
+            case "dashDot":
+                cssText += "dashed";
+                strokeDasharray = "5, 5, 1, 5";
+                break;
+            case "dot":
+                cssText += "dotted";
+                strokeDasharray = "1, 5";
+                break;
+            case "lgDash":
+                cssText += "dashed";
+                strokeDasharray = "10, 5";
+                break;
+            case "dbl":
+                cssText += "double";
+                strokeDasharray = "0";
+                break;
+            case "lgDashDotDot":
+                cssText += "dashed";
+                strokeDasharray = "10, 5, 1, 5, 1, 5";
+                break;
+            case "sysDash":
+                cssText += "dashed";
+                strokeDasharray = "5, 2";
+                break;
+            case "sysDashDot":
+                cssText += "dashed";
+                strokeDasharray = "5, 2, 1, 5";
+                break;
+            case "sysDashDotDot":
+                cssText += "dashed";
+                strokeDasharray = "5, 2, 1, 5, 1, 5";
+                break;
+            case "sysDot":
+                cssText += "dotted";
+                strokeDasharray = "2, 5";
+                break;
+            default:
+                cssText += "solid";
+                strokeDasharray = "0";
+        }
+
+        var fillTyp = PPTXColorUtils.getFillType(lineNode);
+        if (fillTyp == "NO_FILL") {
+            borderColor = isSvgMode ? "none" : "";
+        } else if (fillTyp == "SOLID_FILL") {
+            borderColor = PPTXColorUtils.getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
+        } else if (fillTyp == "GRADIENT_FILL") {
+            borderColor = PPTXColorUtils.getGradientFill(lineNode["a:gradFill"], warpObj);
+        } else if (fillTyp == "PATTERN_FILL") {
+            borderColor = PPTXColorUtils.getPatternFill(lineNode["a:pattFill"], warpObj);
+        }
+    }
+
+    if (borderColor === undefined) {
+lnRefNode = PPTXUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
+        if (lnRefNode !== undefined) {
+            borderColor = PPTXColorUtils.getSolidFill(lnRefNode, undefined, undefined, warpObj);
+        }
+    }
+
+    if (borderColor === undefined) {
+        if (isSvgMode) {
+            borderColor = "none";
+        } else {
+            borderColor = "hidden";
+        }
+    } else {
+        borderColor = "#" + borderColor;
+    }
+    cssText += " " + borderColor + " ";
+
+    if (isSvgMode) {
+        return { "color": borderColor, "width": borderWidth, "type": borderType, "strokeDasharray": strokeDasharray };
+    } else {
+        return cssText + ";";
+    }
+}
+
+    // 单例模式
+var PPTXStyleManager = new StyleManager();
+
+export { 
+    PPTXStyleManager
+ };
+
+// Also export to global scope for backward compatibility
+// window.PPTXStyleManager = PPTXStyleManager; // Removed for ES modules
+>>>>>>> esmodule
