@@ -5020,11 +5020,9 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "plaqueTabs":
                     case "squareTabs":
                     case "upDownArrowCallout":
-                        console.log(shapType, " -unsupported shape type.");
                         break;
                     case undefined:
                     default:
-                        console.warn("Undefine shape type.(" + shapType + ")");
                 }
 
                 result += "</svg>";
@@ -5266,7 +5264,6 @@ ptObj = {};
 
                             d_val += PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
                         } else if (multiSapeAry[k].type == "quadBezTo") {
-                            console.log("custShapType: quadBezTo")
 
                         } else if (multiSapeAry[k].type == "close") {
                             // result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +

@@ -14,14 +14,6 @@ export default defineConfig({
         resolve(__dirname)
       ]
     },
-    // 配置服务器代理，将 /examples 请求代理到 examples 目录
-    proxy: {
-      '/examples': {
-        target: 'file://' + resolve(__dirname, 'examples'),
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/examples/, '')
-      }
-    }
   },
   // 配置依赖优化，避免处理 examples 目录
   optimizeDeps: {
@@ -33,11 +25,11 @@ export default defineConfig({
       name: 'static-examples',
       configureServer(server) {
         // 拦截对 /examples 的请求，提供静态文件服务
-        server.middlewares.use('/examples', async (req, res, next) => {
+        server.middlewares.use('/', async (req, res, next) => {
           // 移除 /examples 前缀
           const filePath = req.url ? req.url.replace(/^\//, '') : ''
           // 构建完整路径
-          const fullPath = resolve(__dirname, 'examples', filePath)
+          const fullPath = resolve(__dirname, filePath)
           
           try {
             if (fs.existsSync(fullPath)) {

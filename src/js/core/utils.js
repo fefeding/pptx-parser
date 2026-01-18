@@ -662,7 +662,6 @@ onCallbacks = options?.on || {};
     },
     
     setSync(value) {
-        console.warn("PPTXFileReader: Sync mode is not supported");
     },
     
     getSync() {

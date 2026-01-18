@@ -138,10 +138,6 @@ function pptxToHtml(file, options) {
      */
     function processZip(fileArrayBuffer, resolve, reject) {
         if (fileArrayBuffer.byteLength < 10) {
-            console.error("Invalid file: too small");
-            if (settings.onError) {
-                settings.onError(new Error("Invalid file: too small"));
-            }
             reject(new Error("Invalid file: too small"));
             return;
         }
@@ -168,12 +164,9 @@ function pptxToHtml(file, options) {
             chartQueue: []
         };
 
-        console.log("Total slides to process:", rslt_ary.length);
         for (let i = 0; i < rslt_ary.length; i++) {
             switch (rslt_ary[i].type) {
                 case "slide":
-                    console.log("Processing slide", rslt_ary[i].slide_num, "HTML length:", rslt_ary[i].data.length);
-                    console.log("Slide HTML preview (first 100 chars):", rslt_ary[i].data.substring(0, 100));
                     result.html += rslt_ary[i].data;
                     result.slides.push(rslt_ary[i].data);
                     break;
@@ -204,21 +197,13 @@ function pptxToHtml(file, options) {
             }
         }
 
-        console.log("Final HTML length:", result.html.length);
-        console.log("Final HTML preview (first 300 chars):", result.html.substring(0, 300));
-        console.log("Final HTML end preview (last 300 chars):", result.html.substring(Math.max(0, result.html.length - 300)));
-        console.log("Total slide elements in HTML:", (result.html.match(/class="slide"/g) || []).length);
-        console.log("Open div count in final HTML:", (result.html.match(/<div/g) || []).length);
-        console.log("Close div count in final HTML:", (result.html.match(/<\/div>/g) || []).length);
         resolve(result);
     }
 
     function initSlideMode(divId, settings) {
-        console.warn('initSlideMode: UI functionality has been removed from the library. Please implement slide mode in your application.');
     }
 
     function exitSlideMode(divId) {
-        console.warn('exitSlideMode: UI functionality has been removed from the library. Please implement slide mode in your application.');
     }
 
 
@@ -279,7 +264,6 @@ function pptxToHtml(file, options) {
             imgFile = zip.file("ppt/" + imgName);
         }
         if (!imgFile) {
-            console.error("Image file not found:", imgName);
             return "";
         }
         const imgArrayBuffer = imgFile.asArrayBuffer();
@@ -320,7 +304,6 @@ function pptxToHtml(file, options) {
                         vdoFileEntry = zip.file("ppt/" + vdoFile);
                     }
                     if (!vdoFileEntry) {
-                        console.error("Video file not found:", vdoFile);
                     } else {
                         uInt8Array = vdoFileEntry.asArrayBuffer();
                         vdoMimeType = PPTXUtils.getMimeType(vdoFileExt);
@@ -347,7 +330,6 @@ function pptxToHtml(file, options) {
                     audioFileEntry = zip.file("ppt/" + audioFile);
                 }
                 if (!audioFileEntry) {
-                    console.error("Audio file not found:", audioFile);
                 } else {
                     uInt8ArrayAudio = audioFileEntry.asArrayBuffer();
                     blobAudio = new Blob([uInt8ArrayAudio]);
@@ -388,7 +370,6 @@ function pptxToHtml(file, options) {
                 rtrnData += "<span style='color:red;font-size:40px;position: absolute;'>This media file Not supported by HTML5</span>";
             }
             if ((vdoNode !== undefined || audioNode !== undefined) && !mediaProcess && mediaSupportFlag) {
-                console.log("Founded supported media file but media process disabled (mediaProcess=false)");
             }
             rtrnData += "</div>";
             //console.log(rtrnData)

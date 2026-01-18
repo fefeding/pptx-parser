@@ -389,9 +389,9 @@ rowSpan = cellParmAry[3];
                         }
                     };
 
-                    // 如果有多个系列，记录警告但只使用第一个系列
+                    // 如果有多个系列，只使用第一个系列
                     if (validSeries.length > 1) {
-                        console.warn('Chart has multiple series, using only the first one:', chartType.type);
+                        // silently ignore additional series
                     }
 
                     chartDatas.push(chartData);
@@ -401,7 +401,7 @@ rowSpan = cellParmAry[3];
 
         // 如果没有找到任何图表数据，尝试更宽松的搜索
         if (chartDatas.length === 0) {
-            console.warn('No standard chart types found, trying fallback extraction');
+            // fallback extraction
 
             // 查找任何包含 c:ser 的节点
             for (const key in plotArea) {
@@ -446,7 +446,6 @@ rowSpan = cellParmAry[3];
 
         // 输入验证
         if (serNode === undefined || serNode === null) {
-            console.warn('extractChartData: serNode is undefined or null');
             return dataMat;
         }
 
@@ -457,7 +456,6 @@ rowSpan = cellParmAry[3];
         }
 
         if (seriesArray.length === 0) {
-            console.warn('extractChartData: serNode array is empty');
             return dataMat;
         }
 
@@ -537,11 +535,10 @@ rowSpan = cellParmAry[3];
 
                 // 如果成功提取到数据，返回
                 if (dataMat.length >= 2) {
-                    console.log('Successfully extracted simple chart data:', dataMat.length, 'rows');
                     return dataMat;
                 }
             } catch (e) {
-                console.warn('Error extracting simple chart data:', e);
+                // extraction failed
             }
         }
 
@@ -602,15 +599,12 @@ rowSpan = cellParmAry[3];
             });
 
             if (dataMat.length > 0) {
-                console.log('Successfully extracted complex chart data:', dataMat.length, 'series');
                 return dataMat;
             }
         } catch (e) {
-            console.warn('Error extracting complex chart data:', e);
+            // extraction failed
         }
 
-        // 如果所有方法都失败，记录错误并返回空数组
-        console.error('Failed to extract chart data from series:', seriesArray);
         return [];
     }
 
@@ -722,8 +716,6 @@ element = elements[i];
             const msg = msgQueue[i];
             if (msg && msg.type === "createChart" && msg.data) {
                 processSingleMsg(msg.data);
-            } else {
-                console.log("PPTXjs Message:", msg);
             }
         }
         // Clear after processing
@@ -738,7 +730,6 @@ element = elements[i];
     function processSingleMsg(d) {
         // 检查外部图表库是否可用
         if (typeof nv === 'undefined' || typeof d3 === 'undefined') {
-            console.warn('NVD3 (nv) or D3 (d3) libraries are not loaded. Charts cannot be rendered. Please include these libraries in your HTML.');
             return false;
         }
 
@@ -807,7 +798,7 @@ element = elements[i];
                 nv.utils.windowResize(chart.update);
                 isDone = true;
             } else {
-                console.warn(`Chart element with id "${chartID}" not found in DOM`);
+                // chart element not found
             }
         }
 

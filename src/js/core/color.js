@@ -114,8 +114,6 @@ function getPicFill(type, node, warpObj) {
         }
 
         if (!imgFile) {
-            // 如果仍然找不到，记录错误并返回 undefined
-            console.error("Image file not found in getPicFill:", imgPath);
             return undefined;
         }
 
@@ -1411,7 +1409,6 @@ function getBase64ImageDimensions(imgSrc) {
         }
     } catch (e) {
         // 发生错误时返回 [0,0]
-        console.warn('Failed to get image dimensions:', e);
     }
     
     // 默认返回 [0,0] 避免破坏现有代码

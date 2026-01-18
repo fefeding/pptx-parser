@@ -144,7 +144,6 @@
                 fileEntry = zip.file("ppt/" + filename);
             }
             if (!fileEntry) {
-                console.warn("XML file not found:", filename);
                 return null;
             }
             let fileContent = fileEntry.asText();
@@ -161,7 +160,6 @@
                 return xmlData;
             }
         } catch (e) {
-            console.error("Error reading XML file:", filename, e);
             return null;
         }
     }
@@ -202,21 +200,17 @@
      */
     function getSlideSizeAndSetDefaultTextStyle(zip) {
         const app = readXmlFile(zip, "docProps/app.xml");
-        console.log("App XML result:", app);
         if (!app) {
-            console.error("Failed to read docProps/app.xml");
             return null;
         }
         const app_verssion_str = app.Properties.AppVersion;
         app_verssion = parseInt(app_verssion_str);
-        console.log("create by Office PowerPoint app version: ", app_verssion_str);
 
         const content = readXmlFile(zip, "ppt/presentation.xml");
         const sldSzAttrs = content["p:presentation"]["p:sldSz"].attrs;
         const sldSzWidth = parseInt(sldSzAttrs.cx);
         const sldSzHeight = parseInt(sldSzAttrs.cy);
         const sldSzType = sldSzAttrs.type;
-        console.log("Presentation size type: ", sldSzType);
 
         // 1 inches = 96px = 2.54cm
         // 1 EMU = 1 / 914400 inch
@@ -528,13 +522,10 @@
         if (processFullTheme === true) {
             if (typeof _getBackgroundCallback === 'function') {
                 bgResult = _getBackgroundCallback(warpObj, slideSize, index);
-                console.log("bgResult from callback (first 100 chars):", bgResult.substring(0, Math.min(100, bgResult.length)));
             } else {
                 bgResult = getBackground(warpObj, slideSize, index);
-                console.log("bgResult from internal (first 100 chars):", bgResult.substring(0, Math.min(100, bgResult.length)));
             }
         }
-        console.log("bgResult for slide", index, "length:", bgResult.length);
 
         let bgColor = "";
         if (processFullTheme === "colorsAndImageOnly") {
@@ -552,11 +543,9 @@
             result = `<div class='slide' data-slide-index='${index}' style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
         }
         result += bgResult;
-        console.log("After adding bgResult, result length:", result.length, "first 150 chars:", result.substring(0, 150));
 
         const processNodesFunc = _processNodesInSlideCallback;
         if (!processNodesFunc) {
-            console.error("processNodesInSlide callback is not set! Cannot process nodes.");
             return result + (settings.slideMode && settings.slideType === "revealjs" ? "</section>" : "</div>");
         }
         for (const nodeKey in nodes) {
@@ -564,18 +553,13 @@
                 for (let i = 0; i < nodes[nodeKey].length; i++) {
                     const nodeResult = processNodesFunc(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide");
                     result += nodeResult;
-                    console.log("Added node", nodeKey, "[", i, "], length:", nodeResult.length);
                 }
             } else {
                 const nodeResult = processNodesFunc(nodeKey, nodes[nodeKey], nodes, warpObj, "slide");
                 result += nodeResult;
-                console.log("Added node", nodeKey, ", length:", nodeResult.length);
             }
         }
-        console.log("After processing nodes, result length:", result.length);
-        const finalResult = result + (settings.slideMode && settings.slideType === "revealjs" ? "</section>" : "</div>");
-        console.log("Final result for slide", index, ", last 100 chars:", finalResult.substring(Math.max(0, finalResult.length - 100)));
-        return finalResult;
+        return result + (settings.slideMode && settings.slideType === "revealjs" ? "</section>" : "</div>");
     }
 
     /**

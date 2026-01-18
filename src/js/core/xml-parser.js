@@ -91,7 +91,6 @@ function parseXml(xmlString, options) {
         // Check for parsing errors
         var parserError = xmlDoc.getElementsByTagName("parsererror");
         if (parserError.length > 0) {
-            console.error("XML Parse Error:", parserError[0].textContent);
             return [];
         }
 
@@ -160,7 +159,6 @@ function parseXml(xmlString, options) {
         result.pos = position;
         return result;
     } catch (e) {
-        console.error("Error parsing XML:", e);
         return [];
     }
 }
@@ -389,7 +387,6 @@ node = parseXml(buffer, {
     });
 
     stream.on("end", function() {
-        console.log("end");
     });
 
     return stream;

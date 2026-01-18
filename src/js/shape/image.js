@@ -38,9 +38,8 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
     if (!imgFile && !imgName.startsWith("ppt/")) {
         imgFile = zip.file("ppt/" + imgName);
     }
-    if (!imgFile) {
-        console.error("Image file not found:", imgName);
-        return "";
+            if (!imgFile) {
+                return "";
     }
 
     const imgArrayBuffer = imgFile.asArrayBuffer();
@@ -82,7 +81,6 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
                     vdoFileEntry = zip.file("ppt/" + vdoFile);
                 }
                 if (!vdoFileEntry) {
-                    console.error("Video file not found:", vdoFile);
                 } else {
                     uInt8Array = vdoFileEntry.asArrayBuffer();
                     vdoMimeType = PPTXUtils.getMimeType(vdoFileExt);
@@ -111,7 +109,6 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
                 audioFileEntry = zip.file("ppt/" + audioFile);
             }
             if (!audioFileEntry) {
-                console.error("Audio file not found:", audioFile);
             } else {
                 uInt8ArrayAudio = audioFileEntry.asArrayBuffer();
                 blobAudio = new Blob([uInt8ArrayAudio]);
@@ -166,7 +163,6 @@ PPTXImageUtils.processPicNode = function(node, warpObj, source, sType, getPositi
     }
 
     if ((vdoNode !== undefined || audioNode !== undefined) && !mediaProcess && mediaSupportFlag) {
-        console.log("Found supported media file but media process disabled (mediaProcess=false)");
     }
 
     rtrnData += "</div>";

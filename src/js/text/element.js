@@ -347,7 +347,6 @@ class PPTXTextElementUtils {
                 span.style.float = 'left';
                 span.style.whiteSpace = 'nowrap';
                 span.style.visibility = 'hidden';
-                console.log("txt_obj:", span);
                 document.body.appendChild(span);
                 total_text_len += span.offsetWidth;
                 document.body.removeChild(span);
@@ -365,7 +364,6 @@ class PPTXTextElementUtils {
                     span.style.float = 'left';
                     span.style.whiteSpace = 'nowrap';
                     span.style.visibility = 'hidden';
-                    console.log("txt_obj:", span);
                     document.body.appendChild(span);
                     total_text_len += span.offsetWidth;
                     document.body.removeChild(span);

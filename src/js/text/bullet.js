@@ -470,8 +470,6 @@ class PPTXBulletUtils {
                 imgFile = warpObj["zip"].file("ppt/" + imgPath);
             }
             if (!imgFile) {
-                // 如果仍然找不到，记录错误并返回默认项目符号
-                console.error("Bullet image file not found:", imgPath);
                 buImg = "&#8227;";
             } else {
                 var imgArrayBuffer = imgFile.asArrayBuffer();
