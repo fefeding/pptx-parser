@@ -36,34 +36,35 @@ const loading = ref(false)
 const error = ref('')
 const htmlContent = ref('')
 
-async function handleFileUpload(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+    async function handleFileUpload(event: Event) {
+      const target = event.target as HTMLInputElement
+      const file = target.files?.[0]
+      if (!file) return
 
-  loading.value = true
-  error.value = ''
-  htmlContent.value = ''
+      loading.value = true
+      error.value = ''
+      htmlContent.value = ''
 
-  try {
+      try {
+        // 使用本地重构后的 API：第一个参数是 File，第二个参数是配置项
+        const result = await pptxToHtml(file, {
+          mediaProcess: true, // 对应原来的 parseImages
+          onProgress: (percent: number) => {
+            // 可以接上 verbose 的逻辑，这里简单打印
+            if (percent % 20 === 0) console.log(`解析进度: ${percent}%`)
+          }
+        })
 
-    // 使用新版本的API直接渲染
-    const html = await pptxToHtml({
-      pptxFileUrl: file,
-      parseImages: true,
-      verbose: true
-    })
+        // 新 API 返回 { html, css, slides, ... }，我们取 html 字段显示
+        htmlContent.value = result.html
 
-    // 获取生成的HTML内容
-    htmlContent.value = html
-
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '解析失败'
-    console.error('PPTX解析失败:', e)
-  } finally {
-    loading.value = false
-  }
-}
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : '解析失败'
+        console.error('PPTX解析失败:', e)
+      } finally {
+        loading.value = false
+      }
+    }
 </script>
 
 <style scoped>

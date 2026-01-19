@@ -79,10 +79,10 @@ import { PPTXMathShapes } from './math.js';
                 const svgCssName = "_svg_css_" + (Object.keys(styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
                 //console.log("name:", name, "svgCssName: ", svgCssName)
                 const effectsClassName = svgCssName + "_effects";
-                result += "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + `' style='` +
-                   PPTXUtils.getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
-                    PPTXUtils.getSize(slideXfrmNode, undefined, undefined) +
-                    " z-index: " + order + `;transform: rotate(` + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + `;'>`;
+                     result += "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "' style='" +
+                         PPTXUtils.getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
+                          PPTXUtils.getSize(slideXfrmNode, undefined, undefined) +
+                          " z-index: " + order + ";transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + "'>";
                 result += '<defs>'
                 // Fill Color
                 fillColor = PPTXShapeFillsUtils.getShapeFill(node, pNode, true, warpObj, source);
@@ -226,7 +226,7 @@ import { PPTXMathShapes } from './math.js';
                 //console.log("shapType: ", shapType)
                 let d = "", d_val, points;
                 let x1, x2, y1, y2, c3d4, cd4, cd2, wd2, hd2;
-                let fillAttr, shapAdjst, shapAdjst_ary, sAdj1, sAdj2, sAdj1_val, sAdj2_val, sAdj_name;
+                let fillAttr, shapAdjst_ary, sAdj1, sAdj2, sAdj1_val, sAdj2_val, sAdj_name;
                 let tranglRott, adjst_val, max_adj_const;
                 let adj, adj1, adj2, adj3, adj4, adj5, adj6, adj7, adj8;
                 let cnstVal, cnstVal1, cnstVal2, cnstVal3, cnstVal4, cnstVal5;
@@ -1157,7 +1157,7 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bracePair":
-                        const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         const adj: any = 8333 * slideFactor;
                         const cnstVal1: any = 25000 * slideFactor;
                         cnstVal2 = 50000 * slideFactor;
@@ -1198,7 +1198,7 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "leftBrace":
+                    case "leftBrace": {
                         shapAdjst_ary: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         sAdj1 = undefined;
                         adj1 = 8333 * slideFactor;
@@ -1250,7 +1250,8 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "rightBrace":
+                    }
+                    case "rightBrace": {
                         shapAdjst_ary: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         sAdj1 = undefined;
                         adj1 = 8333 * slideFactor;
@@ -1301,8 +1302,9 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "bracketPair":
-                        const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                    }
+                    case "bracketPair": {
+                        let shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         const adj: any = 16667 * slideFactor;
                         const cnstVal1: any = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
@@ -1325,8 +1327,9 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "leftBracket":
-                        const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                    }
+                    case "leftBracket": {
+                        let shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         const adj: any = 8333 * slideFactor;
                         const cnstVal1: any = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
@@ -1350,8 +1353,9 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "rightBracket":
-                        const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                    }
+                    case "rightBracket": {
+                        let shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         const adj: any = 8333 * slideFactor;
                         const cnstVal1: any = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
@@ -1377,8 +1381,9 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "moon":
-                        const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                    }
+                    case "moon": {
+                        let shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         const adj: any = 0.5;
                         if (shapAdjst !== undefined) {
                             const adj: any = parseInt(shapAdjst.substr(4)) / 100000;//*96/914400;;
@@ -1396,8 +1401,9 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "corner":
-                        shapAdjst_ary: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        const shapAdjst_ary: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         let sAdj1: any = undefined, sAdj1_val = 50000 * slideFactor;
                         let sAdj2: any = undefined, sAdj2_val = 50000 * slideFactor;
                         const cnsVal: any = 100000 * slideFactor;
@@ -1438,14 +1444,15 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "diagStripe":
-                        const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        const sAdj1_val: any = 50000 * slideFactor;
+                    }
+                    case "diagStripe": {
+                        let shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let sAdj1_val: any = 50000 * slideFactor;
                         const cnsVal: any = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
-                            const sAdj1_val: any = parseInt(shapAdjst.substr(4)) * slideFactor;
+                            sAdj1_val = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a1 = undefined, x2, y2;
+                        let a1 = undefined, x2, y2;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > cnsVal) a1 = cnsVal
                         else a1 = sAdj1_val
@@ -1460,8 +1467,9 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "'  fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "gear6":
-                    case "gear9":
+                    case "gear9": {
                         const txtRotate: any = 0;
                         const gearNum: any = shapType.substr(4);
                         if (gearNum == "6") {
@@ -1473,8 +1481,9 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                         result += "<path   d='" + d + "' transform='rotate(20," + (3 / 7) * h + "," + (3 / 7) * h + ")' fill='" + fillAttr +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "bentConnector3":
-                        const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                    }
+                    case "bentConnector3": {
+                        let shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         const shapAdjst_val: any = 0.5;
                         if (shapAdjst !== undefined) {
                             const shapAdjst_val: any = parseInt(shapAdjst.substr(4)) / 100000;
@@ -1482,7 +1491,7 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                             //     result += " <polyline points='" + w + " 0," + ((1 - shapAdjst_val) * w) + " 0," + ((1 - shapAdjst_val) * w) + " " + h + ",0 " + h + "' fill='transparent'" +
                             //         "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                             // } else {
-                            result += " <polyline points='0 0," + (shapAdjst_val) * w + " 0," + (shapAdjst_val) * w + " " + h + "," + w + " " + h + `' fill='transparent'' stroke='` + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
+                            result += " <polyline points='0 0," + (shapAdjst_val * w) + " 0," + (shapAdjst_val * w) + " " + h + "," + w + " " + h + "' fill='transparent' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                             //}
                             if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
                                 result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
@@ -1493,7 +1502,8 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                             result += "/>";
                         }
                         break;
-                    case "plus":
+                    }
+                    case "plus":{
                         const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         adj1 = 0.25;
                         if (shapAdjst !== undefined) {
@@ -1506,6 +1516,7 @@ const sAdj_name: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "
                             +w + " " + adj1 * h + "," + adj2 * w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "teardrop":
                         const shapAdjst: any = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         adj1 = 100000 * slideFactor;
