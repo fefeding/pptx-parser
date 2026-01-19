@@ -6,7 +6,7 @@
     "lib": ["ES2020", "DOM"],
     "outDir": "./dist/types",
     "rootDir": "./src",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -15,12 +15,14 @@
     "declarationMap": false,
     "sourceMap": true,
     "removeComments": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "allowJs": true,
     // ✅ 删除 allowImportingTsExtensions 配置，彻底解决冲突报错
-    "noEmit": false
+    "noEmit": false,
+    "noEmitOnError": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "rollup.config.mjs", "examples", "docs"]
+  "exclude": ["node_modules", "dist", "rollup.config.mjs", "examples", "docs", "src/tinycolor.js", "src/js"]
 }

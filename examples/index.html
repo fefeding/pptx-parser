@@ -5,16 +5,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>PPTXjs - Meshesha</title>
 
-<link rel="stylesheet" href="../src/css/ppt.css">
+<link rel="stylesheet" href="../dist/assets/ppt.css">
 
 <!-- Use D3 v3 for NVD3 compatibility -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
-
-
-<script type="text/javascript" src="../src/js/jszip.min.js"></script>
-    <script type="text/javascript" src="../src/js/core/jszip.js"></script>
-    <script type="text/javascript" src="../src/js/tinycolor.js"></script>
 
 <script type="module">
     document.addEventListener('DOMContentLoaded', function() {
@@ -89,8 +84,8 @@
 		</div>
 	</div>
 <script type="module">
-    import { pptxToHtml } from '../src/js/index.js';
-    import { PPTXHtml } from '../src/js/html.js';
+    import { pptxToHtml } from '../dist/pptx-parser.es.js';
+    import { PPTXHtml } from '../dist/pptx-parser.es.js';
 
     // 自定义 UI 工具，替换原 PPTXUIUtils
     const PPTXUIUtils = {
