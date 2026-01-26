@@ -410,4 +410,4 @@ function pptxToHtml(file, options) {
 }
 
 // Export for use in ES6 modules
-export { pptxToHtml };
+export { pptxToHtml, PPTXHtml };

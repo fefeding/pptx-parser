@@ -28,7 +28,7 @@ import { PPTXCalloutShapes } from './shape/callout.js';
 import { PPTXArrowShapes } from './shape/arrow.js';
 import { PPTXMathShapes } from './shape/math.js';
 import { processSpNode as processSpNodeModule, processCxnSpNode as processCxnSpNodeModule } from './shape/node-processor.js';
-import { genShape as genShapeModule } from './shape/generator.js';
+import { genShape as genShapeModule } from './shape/generator';
 import JSZip from 'jszip';
 
 interface PptxToHtmlOptions {
@@ -155,13 +155,12 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
     /**
      * 处理 ZIP 文件 - 解析 PPTX 并生成 HTML
      */
-    function processZip(fileArrayBuffer: ArrayBuffer, resolve: (value: any) => void, reject: (reason?: any) => void): void {
+    async function processZip(fileArrayBuffer: ArrayBuffer, resolve: (value: any) => void, reject: (reason?: any) => void) {
         if (fileArrayBuffer.byteLength < 10) {
             reject(new Error("Invalid file: too small"));
             return;
         }
-        const zip = new JSZip();
-        zip.loadAsync(fileArrayBuffer);
+        const zip = await JSZip.loadAsync(fileArrayBuffer);
         
         // 配置 PPTXParser 模块 - 传递必要的回调函数
         (PPTXParser as any).configure({
@@ -171,7 +170,7 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
             getSlideBackgroundFill
         });
         
-        const rslt_ary = (PPTXParser as any).processPPTX(zip);
+        const rslt_ary = await (PPTXParser as any).processPPTX(zip);
         
         // 收集生成的 HTML、CSS 和数据
         const result: any = {
@@ -226,14 +225,14 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
     }
     
     interface ProcessNodeHandlers {
-        processSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => string;
-        processCxnSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => string;
-        processPicNode: (node: any, warpObj: any, source: any, sType: any) => string;
-        processGraphicFrameNode: (node: any, warpObj: any, source: any, sType: any) => string;
-        processGroupSpNode: (node: any, warpObj: any, source: any) => string;
+        processSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => string | Promise<string>;
+        processCxnSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => string | Promise<string>;
+        processPicNode: (node: any, warpObj: any, source: any, sType: any) => string | Promise<string>;
+        processGraphicFrameNode: (node: any, warpObj: any, source: any, sType: any) => string | Promise<string>;
+        processGroupSpNode: (node: any, warpObj: any, source: any) => string | Promise<string>;
     }
     
-    function processNodesInSlide(nodeKey: string, nodeValue: any, nodes: any, warpObj: any, source: any, sType: any): string {
+    async function processNodesInSlide(nodeKey: string, nodeValue: any, nodes: any, warpObj: any, source: any, sType: any): Promise<string> {
         const handlers: ProcessNodeHandlers = {
             processSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => {
                 return processSpNodeModule(node, pNode, warpObj, source, sType, (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
@@ -249,16 +248,16 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
             processGraphicFrameNode,
             processGroupSpNode
         };
-        return (PPTXNodeUtils as any).processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers);
+        return await (PPTXNodeUtils as any).processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers);
     }
     
-    function processGroupSpNode(node: any, warpObj: any, source: any): string {
+    async function processGroupSpNode(node: any, warpObj: any, source: any): Promise<string> {
         return (PPTXNodeUtils as any).processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide);
     }
     
     // processSpNode 和 processCxnSpNode 已移至 pptx-shape-node-processor.js 模块
     // 这些函数现在通过 processNodesInSlide 中的 handlers 调用
-    function processPicNode(node: any, warpObj: any, source: any, sType: any): string {
+    async function processPicNode(node: any, warpObj: any, source: any, sType: any): Promise<string> {
         let rtrnData = "";
         let mediaPicFlag = false;
         const order = node.attrs.order;
@@ -283,7 +282,7 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
         if (!imgFile) {
             return "";
         }
-        const imgArrayBuffer = imgFile.asArrayBuffer();
+        const imgArrayBuffer = await imgFile.async('arraybuffer');
         let xfrmNode = node["p:spPr"]["a:xfrm"];
         if (xfrmNode === undefined) {
             const idx = (PPTXUtils as any).getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
@@ -312,17 +311,17 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
                 mediaPicFlag = true;
             }
             else {
-                vdoFileExt = (PPTXUtils as any).extractFileExtension(vdoFile).toLowerCase();
-                if (vdoFileExt === "mp4" || vdoFileExt === "webm" || vdoFileExt === "ogg") {
-                    let vdoFileEntry = zip.file(vdoFile);
-                    if (!vdoFileEntry && !vdoFile.startsWith("ppt/")) {
-                        vdoFileEntry = zip.file("ppt/" + vdoFile);
-                    }
-                    if (!vdoFileEntry) {
-                        // File not found
-                    }
-                    else {
-                        uInt8Array = vdoFileEntry.asArrayBuffer();
+                    vdoFileExt = (PPTXUtils as any).extractFileExtension(vdoFile).toLowerCase();
+                    if (vdoFileExt === "mp4" || vdoFileExt === "webm" || vdoFileExt === "ogg") {
+                        let vdoFileEntry = zip.file(vdoFile);
+                        if (!vdoFileEntry && !vdoFile.startsWith("ppt/")) {
+                            vdoFileEntry = zip.file("ppt/" + vdoFile);
+                        }
+                        if (!vdoFileEntry) {
+                            // File not found
+                        }
+                        else {
+                            uInt8Array = await vdoFileEntry.async('arraybuffer');
                         vdoMimeType = (PPTXUtils as any).getMimeType(vdoFileExt);
                         blob = new Blob([uInt8Array], { type: vdoMimeType });
                         vdoBlob = URL.createObjectURL(blob);
@@ -350,7 +349,7 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
                     // File not found
                 }
                 else {
-                    uInt8ArrayAudio = audioFileEntry.asArrayBuffer();
+                    uInt8ArrayAudio = await audioFileEntry.async('arraybuffer');
                     blobAudio = new Blob([uInt8ArrayAudio]);
                     audioBlob = URL.createObjectURL(blobAudio);
                     const cx = parseInt(xfrmNode["a:ext"].attrs.cx) * 20;
@@ -393,9 +392,9 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
         return rtrnData;
     }
     
-    function processGraphicFrameNode(node: any, warpObj: any, source: any, sType: any): string {
+    async function processGraphicFrameNode(node: any, warpObj: any, source: any, sType: any): Promise<string> {
         // 使用 PPTXImageUtils 模块处理图形框架节点
-        return (PPTXImageUtils as any).processGraphicFrameNode(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode);
+        return await (PPTXImageUtils as any).processGraphicFrameNode(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode);
     }
     
     // genGlobalCSS 已移至 PPTXCSSUtils 模块
@@ -408,12 +407,12 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
         return (PPTXDiagramUtils as any).genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, null);
     }
     
-    function getBackground(warpObj: any, slideSize: any, index: number): string {
-        return (PPTXBackgroundUtils as any).getBackground(warpObj, slideSize, index, processNodesInSlide);
+    async function getBackground(warpObj: any, slideSize: any, index: number): Promise<string> {
+        return await (PPTXBackgroundUtils as any).getBackground(warpObj, slideSize, index, processNodesInSlide);
     }
     
-    function getSlideBackgroundFill(warpObj: any, index: number): string {
-        return (PPTXBackgroundUtils as any).getSlideBackgroundFill(warpObj, index);
+    async function getSlideBackgroundFill(warpObj: any, index: number): Promise<string> {
+        return await (PPTXBackgroundUtils as any).getSlideBackgroundFill(warpObj, index);
     }
     
     // 调用主处理函数并返回 Promise

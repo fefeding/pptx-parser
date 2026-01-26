@@ -12,7 +12,7 @@ class PPTXNodeUtils {
      * @param {Object} handlers - 处理函数集合
      * @returns {string} HTML字符串
      */
-    static processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers) {
+    static async processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, handlers) {
         let result = "";
 
         switch (nodeKey) {
@@ -26,7 +26,7 @@ class PPTXNodeUtils {
                 result = handlers.processPicNode(nodeValue, warpObj, source, sType);
                 break;
             case "p:graphicFrame":    // Chart, Diagram, Table
-                result = handlers.processGraphicFrameNode(nodeValue, warpObj, source, sType);
+                result = await handlers.processGraphicFrameNode(nodeValue, warpObj, source, sType);
                 break;
             case "p:grpSp":
                 result = handlers.processGroupSpNode(nodeValue, warpObj, source);

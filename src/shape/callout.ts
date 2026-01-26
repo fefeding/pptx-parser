@@ -12,11 +12,11 @@
             for (let i = 0; i < shapAdjst_ary.length; i++) {
                 const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
-                    const sAdj1: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj1: any = parseInt(sAdj1.substr(4)) * refr;
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj1 = parseInt(sAdj1.substr(4)) * refr;
                 } else if (sAdj_name == "adj2") {
-                    const sAdj2: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj2: any = parseInt(sAdj2.substr(4)) * refr;
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj2 = parseInt(sAdj2.substr(4)) * refr;
                 }
             }
         }
@@ -106,11 +106,11 @@
             for (let i = 0; i < shapAdjst_ary.length; i++) {
                 let sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
-                    const sAdj1: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj1: any = parseInt(sAdj1.substr(4)) * refr;
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj1 = parseInt(sAdj1.substr(4)) * refr;
                 } else if (sAdj_name == "adj2") {
-                    const sAdj2: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj2: any = parseInt(sAdj2.substr(4)) * refr;
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj2 = parseInt(sAdj2.substr(4)) * refr;
                 }
             }
         }
@@ -157,13 +157,13 @@
         let sAdj2, adj2 = 62500 * refr;
         if (shapAdjst_ary !== undefined) {
             for (let i = 0; i < shapAdjst_ary.length; i++) {
-                let sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                    let sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
-                    const sAdj1: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj1: any = parseInt(sAdj1.substr(4)) * refr;
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj1 = parseInt(sAdj1.substr(4)) * refr;
                 } else if (sAdj_name == "adj2") {
-                    const sAdj2: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj2: any = parseInt(sAdj2.substr(4)) * refr;
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj2 = parseInt(sAdj2.substr(4)) * refr;
                 }
             }
         }
@@ -202,16 +202,16 @@
             for (let i = 0; i < shapAdjst_ary.length; i++) {
                 let sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
-                    const sAdj1: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj1: any = parseInt(sAdj1.substr(4)) * refr;
+                    sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj1 = parseInt(sAdj1.substr(4)) * refr;
                 } else if (sAdj_name == "adj2") {
-                    const sAdj2: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj2: any = parseInt(sAdj2.substr(4)) * refr;
+                    sAdj2 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj2 = parseInt(sAdj2.substr(4)) * refr;
                 } else if (sAdj_name == "adj3") {
-                    const sAdj3: any = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    const adj3: any = parseInt(sAdj3.substr(4)) * refr;
+                    sAdj3 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj3 = parseInt(sAdj3.substr(4)) * refr;
+                }
             }
-        }
         }
         let cnstVal1 = 100000 * slideFactor;
         let cnstVal2 = 200000 * slideFactor;

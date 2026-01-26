@@ -1,7 +1,6 @@
 import { PPTXUtils } from '../core/utils.js';
 import { PPTXColorUtils } from '../core/color.js';
-// Assuming tinycolor is available globally or imported
-declare const tinycolor: any;
+import tinycolor from 'tinycolor2';
 
 interface PPTXShapeFillsUtilsType {
     getShapeFill: (node: any, pNode: any, isSvgMode: boolean, warpObj: any, source: string) => string;

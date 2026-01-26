@@ -223,7 +223,7 @@ import { PPTXMathShapes } from './math.js';
             }
             if (shapType !== undefined && custShapType === undefined) {
                 //console.log("shapType: ", shapType)
-                let d = "", d_val, points;
+                let d = "", d1 = '', d_val, points;
                 let x1, x2, y1, y2, c3d4, cd4, cd2, wd2, hd2;
                 let fillAttr, shapAdjst, shapAdjst_ary, sAdj1, sAdj2, sAdj1_val, sAdj2_val, sAdj_name;
                 let tranglRott, adjst_val, max_adj_const;

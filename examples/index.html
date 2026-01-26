@@ -5,8 +5,10 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>PPTXjs - Meshesha</title>
 
-<link rel="stylesheet" href="../dist/assets/ppt.css">
+<link rel="stylesheet" href="../src/css/ppt.css">
 
+<script src="../src/js/jszip.min.js"></script>
+<script src="../src/js//tinycolor.js"></script>
 <!-- Use D3 v3 for NVD3 compatibility -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
@@ -84,8 +86,7 @@
 		</div>
 	</div>
 <script type="module">
-    import { pptxToHtml } from '../dist/pptx-parser.es.js';
-    import { PPTXHtml } from '../dist/pptx-parser.es.js';
+    import * as PPTXParser from '../src/js/index.js';
 
     // 自定义 UI 工具，替换原 PPTXUIUtils
     const PPTXUIUtils = {
@@ -119,7 +120,7 @@
         PPTXUIUtils.updateProgressBar(1);
 
         // 调用 pptxToHtml 解析文件
-        pptxToHtml(file, {
+        PPTXParser.pptxToHtml(file, {
             container: resultDiv,
             onProgress: function(percent) {
                 PPTXUIUtils.updateProgressBar(percent);
@@ -137,8 +138,8 @@
             document.head.appendChild(style);
 
             // 处理数字列表
-            PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));
-            PPTXHtml.setNumericBullets(document.querySelectorAll("table td"));
+            PPTXParser.PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));
+            PPTXParser.PPTXHtml.setNumericBullets(document.querySelectorAll("table td"));
 
             // 处理图表队列(必须在 HTML 插入 DOM 之后)
             if (result.chartQueue && result.chartQueue.length > 0) {

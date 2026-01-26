@@ -2,8 +2,8 @@ import { PPTXUtils } from '../core/utils.js';
 import { PPTXHtml } from '../html.js';
 
 interface PPTXImageUtilsType {
-    processPicNode: (node: any, warpObj: any, source: string, sType: string, getPosition: Function, getSize: Function, settings: any) => string;
-    processGraphicFrameNode: (node: any, warpObj: any, source: string, sType: string, genTableInternal: Function, genDiagram: Function, processGroupSpNode: Function) => string;
+    processPicNode: (node: any, warpObj: any, source: string, sType: string, getPosition: Function, getSize: Function, settings: any) => Promise<string>;
+    processGraphicFrameNode: (node: any, warpObj: any, source: string, sType: string, genTableInternal: Function, genDiagram: Function, processGroupSpNode: Function) => string | Promise<string>;
 }
 
 const PPTXImageUtils = {} as PPTXImageUtilsType;
@@ -19,7 +19,7 @@ const PPTXImageUtils = {} as PPTXImageUtilsType;
  * @param {Object} settings - 配置设置
  * @returns {string} HTML字符串
  */
-PPTXImageUtils.processPicNode = function(node: any, warpObj: any, source: string, sType: string, getPosition: Function, getSize: Function, settings: any): string {
+PPTXImageUtils.processPicNode = async function(node: any, warpObj: any, source: string, sType: string, getPosition: Function, getSize: Function, settings: any): Promise<string> {
     let rtrnData: string = "";
     let mediaPicFlag: boolean = false;
     const order: string = node["attrs"]["order"];
@@ -47,7 +47,7 @@ PPTXImageUtils.processPicNode = function(node: any, warpObj: any, source: string
         return "";
     }
 
-    const imgArrayBuffer: ArrayBuffer = imgFile.asArrayBuffer();
+    const imgArrayBuffer: ArrayBuffer = await imgFile.async('arraybuffer');
     let mimeType: string = "";
     let xfrmNode: any = node["p:spPr"]["a:xfrm"];
     if (xfrmNode === undefined) {
@@ -86,9 +86,9 @@ PPTXImageUtils.processPicNode = function(node: any, warpObj: any, source: string
                     vdoFileEntry = zip.file("ppt/" + vdoFile);
                 }
                 if (!vdoFileEntry) {
-                    // 
+                    //
                 } else {
-                    uInt8Array = new Uint8Array(vdoFileEntry.asArrayBuffer());
+                    uInt8Array = new Uint8Array(await vdoFileEntry.async('arraybuffer'));
                     vdoMimeType = PPTXUtils.getMimeType(vdoFileExt);
                     blob = new Blob([uInt8Array], { type: vdoMimeType });
                     vdoBlob = URL.createObjectURL(blob);
@@ -117,7 +117,7 @@ PPTXImageUtils.processPicNode = function(node: any, warpObj: any, source: string
             if (!audioFileEntry) {
                 //
             } else {
-                uInt8ArrayAudio = new Uint8Array(audioFileEntry.asArrayBuffer());
+                uInt8ArrayAudio = new Uint8Array(await audioFileEntry.async('arraybuffer'));
                 blobAudio = new Blob([uInt8ArrayAudio]);
                 audioBlob = URL.createObjectURL(blobAudio);
                 const cx: number = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * 20;
@@ -188,7 +188,7 @@ PPTXImageUtils.processPicNode = function(node: any, warpObj: any, source: string
  * @param {Function} processGroupSpNode - 处理组节点的函数
  * @returns {string} HTML字符串
  */
-PPTXImageUtils.processGraphicFrameNode = function(node: any, warpObj: any, source: string, sType: string, genTableInternal: Function, genDiagram: Function, processGroupSpNode: Function): string {
+PPTXImageUtils.processGraphicFrameNode = async function(node: any, warpObj: any, source: string, sType: string, genTableInternal: Function, genDiagram: Function, processGroupSpNode: Function): Promise<string> {
     let result: string = "";
     const graphicTypeUri: string = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "attrs", "uri"]);
 
@@ -197,7 +197,7 @@ PPTXImageUtils.processGraphicFrameNode = function(node: any, warpObj: any, sourc
             result = genTableInternal(node, warpObj);
             break;
         case "http://schemas.openxmlformats.org/drawingml/2006/chart":
-            result = PPTXHtml.genChart(node, warpObj);
+            result = await PPTXHtml.genChart(node, warpObj);
             break;
         case "http://schemas.openxmlformats.org/drawingml/2006/diagram":
             result = genDiagram(node, warpObj, source, sType);

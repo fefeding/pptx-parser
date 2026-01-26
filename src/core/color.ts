@@ -72,7 +72,7 @@ function getGradientFill(node, warpObj) {
  * @param {Object} warpObj - 包装对象
  * @returns {Object} 图片填充对象
  */
-function getPicFill(type, node, warpObj) {
+async function getPicFill(type, node, warpObj) {
     //rId
     // 图像属性处理已实现 - 支持平铺、拉伸、裁剪等属性
     // 参考: http://officeopenxml.com/drwPic-tile.php
@@ -118,7 +118,7 @@ function getPicFill(type, node, warpObj) {
             return undefined;
         }
 
-        const imgArrayBuffer = imgFile.asArrayBuffer();
+        const imgArrayBuffer = await imgFile.async('arraybuffer');
         const imgMimeType = PPTXUtils.getMimeType(imgExt);
         img = PPTXUtils.arrayBufferToBlobUrl(imgArrayBuffer, imgMimeType);
         imgData = PPTXUtils.base64ArrayBuffer(imgArrayBuffer);

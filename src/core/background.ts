@@ -26,12 +26,12 @@ interface SlideSize {
  * @param processNodesInSlide - 处理幻灯片中节点的回调函数
  * @returns 背景HTML字符串
  */
-export function getBackground(
+export async function getBackground(
     warpObj: WarpObj,
     slideSize: SlideSize,
     index: number,
-    processNodesInSlide: (nodeKey: string, node: any, nodes: any, warpObj: WarpObj, type: string) => string
-): string {
+    processNodesInSlide: (nodeKey: string, node: any, nodes: any, warpObj: WarpObj, type: string) => string | Promise<string>
+): Promise<string> {
     const slideContent = warpObj.slideContent;
     const slideLayoutContent = warpObj.slideLayoutContent;
     const slideMasterContent = warpObj.slideMasterContent;
@@ -40,7 +40,7 @@ export function getBackground(
     const nodesSldMaster = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:spTree"]);
 
     const showMasterSp = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "attrs", "showMasterSp"]);
-    const bgColor = getSlideBackgroundFill(warpObj, index);
+    const bgColor = await getSlideBackgroundFill(warpObj, index);
     let result = `<div class='slide-background-${index}' style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
     const node_ph_type_ary: string[] = [];
 
@@ -50,13 +50,13 @@ export function getBackground(
                 for (let i = 0; i < nodesSldLayout[nodeKey].length; i++) {
                     const ph_type = PPTXUtils.getTextByPathList(nodesSldLayout[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                     if (ph_type != "pic") {
-                        result += processNodesInSlide(nodeKey, nodesSldLayout[nodeKey][i], nodesSldLayout, warpObj, "slideLayoutBg");
+                        result += await processNodesInSlide(nodeKey, nodesSldLayout[nodeKey][i], nodesSldLayout, warpObj, "slideLayoutBg");
                     }
                 }
             } else {
                 const ph_type = PPTXUtils.getTextByPathList(nodesSldLayout[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                 if (ph_type != "pic") {
-                    result += processNodesInSlide(nodeKey, nodesSldLayout[nodeKey], nodesSldLayout, warpObj, "slideLayoutBg");
+                    result += await processNodesInSlide(nodeKey, nodesSldLayout[nodeKey], nodesSldLayout, warpObj, "slideLayoutBg");
                 }
             }
         }
@@ -67,11 +67,11 @@ export function getBackground(
             if (Array.isArray(nodesSldMaster[nodeKey])) {
                 for (let i = 0; i < nodesSldMaster[nodeKey].length; i++) {
                     const ph_type = PPTXUtils.getTextByPathList(nodesSldMaster[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
-                    result += processNodesInSlide(nodeKey, nodesSldMaster[nodeKey][i], nodesSldMaster, warpObj, "slideMasterBg");
+                    result += await processNodesInSlide(nodeKey, nodesSldMaster[nodeKey][i], nodesSldMaster, warpObj, "slideMasterBg");
                 }
             } else {
                 const ph_type = PPTXUtils.getTextByPathList(nodesSldMaster[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
-                result += processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, warpObj, "slideMasterBg");
+                result += await processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, warpObj, "slideMasterBg");
             }
         }
     }
@@ -85,7 +85,7 @@ export function getBackground(
  * @param index - 幻灯片索引
  * @returns 背景CSS样式字符串
  */
-export function getSlideBackgroundFill(warpObj: WarpObj, index: number): string {
+export async function getSlideBackgroundFill(warpObj: WarpObj, index: number): Promise<string> {
     const slideContent = warpObj.slideContent;
     const slideLayoutContent = warpObj.slideLayoutContent;
     const slideMasterContent = warpObj.slideMasterContent;
@@ -96,9 +96,9 @@ export function getSlideBackgroundFill(warpObj: WarpObj, index: number): string 
 
     // 检查幻灯片级别的背景
     if (bgPr !== undefined) {
-        bgcolor = _getBgFillFromPr(bgPr, slideContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, undefined, index);
+        bgcolor = await _getBgFillFromPr(bgPr, slideContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, undefined, index);
     } else if (bgRef !== undefined) {
-        bgcolor = _getBgFillFromRef(bgRef, slideContent, slideLayoutContent, slideMasterContent, warpObj);
+        bgcolor = await _getBgFillFromRef(bgRef, slideContent, slideLayoutContent, slideMasterContent, warpObj);
     } else {
         // 检查幻灯片布局级别的背景
         bgPr = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgPr"]);
@@ -109,13 +109,13 @@ export function getSlideBackgroundFill(warpObj: WarpObj, index: number): string 
             if (clrMapOvr === undefined) {
                 clrMapOvr = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
             }
-            bgcolor = _getBgFillFromPr(bgPr, slideLayoutContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, clrMapOvr, index);
+            bgcolor = await _getBgFillFromPr(bgPr, slideLayoutContent, slideLayoutContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, clrMapOvr, index);
         } else if (bgRef !== undefined) {
             let clrMapOvr = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
             if (clrMapOvr === undefined) {
                 clrMapOvr = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
             }
-            bgcolor = _getBgFillFromRef(bgRef, slideLayoutContent, slideLayoutContent, slideMasterContent, warpObj, clrMapOvr);
+            bgcolor = await _getBgFillFromRef(bgRef, slideLayoutContent, slideLayoutContent, slideMasterContent, warpObj, clrMapOvr);
         } else {
             // 检查幻灯片母版级别的背景
             bgPr = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:bg", "p:bgPr"]);
@@ -123,9 +123,9 @@ export function getSlideBackgroundFill(warpObj: WarpObj, index: number): string 
             const clrMap = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
 
             if (bgPr !== undefined) {
-                bgcolor = _getBgFillFromPr(bgPr, slideMasterContent, slideMasterContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, clrMap, index);
+                bgcolor = await _getBgFillFromPr(bgPr, slideMasterContent, slideMasterContent, slideMasterContent, warpObj, slideContent, slideLayoutContent, slideMasterContent, clrMap, index);
             } else if (bgRef !== undefined) {
-                bgcolor = _getBgFillFromRef(bgRef, slideMasterContent, slideMasterContent, slideMasterContent, warpObj, clrMap);
+                bgcolor = await _getBgFillFromRef(bgRef, slideMasterContent, slideMasterContent, slideMasterContent, warpObj, clrMap);
             }
         }
     }
@@ -137,7 +137,7 @@ export function getSlideBackgroundFill(warpObj: WarpObj, index: number): string 
  * 从背景属性节点获取背景填充
  * @private
  */
-function _getBgFillFromPr(
+async function _getBgFillFromPr(
     bgPr: any,
     currentContent: any,
     slideLayoutContent: any,
@@ -148,7 +148,7 @@ function _getBgFillFromPr(
     slideMasterContentRef: any,
     clrMapOvr: any,
     index: number
-): string {
+): Promise<string> {
     const bgFillTyp = PPTXColorUtils.getFillType(bgPr);
     let bgcolor = "";
 
@@ -163,7 +163,7 @@ function _getBgFillFromPr(
         bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
     } else if (bgFillTyp == "PIC_FILL") {
         const source = currentContent === slideContent ? "slideBg" : (currentContent === slideLayoutContentRef ? "slideLayoutBg" : "slideMasterBg");
-        bgcolor = getBgPicFill(bgPr, source, warpObj, undefined, index);
+        bgcolor = await getBgPicFill(bgPr, source, warpObj, undefined, index);
     }
 
     return bgcolor;
@@ -173,14 +173,14 @@ function _getBgFillFromPr(
  * 从背景引用节点获取背景填充
  * @private
  */
-function _getBgFillFromRef(
+async function _getBgFillFromRef(
     bgRef: any,
     currentContent: any,
     slideLayoutContent: any,
     slideMasterContent: any,
     warpObj: WarpObj,
     clrMapOvr?: any
-): string {
+): Promise<string> {
     if (clrMapOvr === undefined) {
         clrMapOvr = _getClrMapOverride(currentContent, slideLayoutContent, slideMasterContent);
     }
@@ -207,7 +207,7 @@ function _getBgFillFromRef(
         } else if (bgFillTyp == "GRADIENT_FILL") {
             bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
         } else if (bgFillTyp == "PIC_FILL") {
-            bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, undefined);
+            bgcolor = await getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, undefined);
         }
     }
 
@@ -322,8 +322,8 @@ export function getBgGradientFill(bgPr: any, phClr: string | undefined, slideMas
  * @param index - 幻灯片索引
  * @returns 图片背景CSS样式字符串
  */
-export function getBgPicFill(bgPr: any, source: string, warpObj: WarpObj, phClr?: string, index?: number): string {
-    const picFillResult = PPTXColorUtils.getPicFill(source, bgPr["a:blipFill"], warpObj);
+export async function getBgPicFill(bgPr: any, source: string, warpObj: WarpObj, phClr?: string, index?: number): Promise<string> {
+    const picFillResult = await PPTXColorUtils.getPicFill(source, bgPr["a:blipFill"], warpObj);
     // 提取图片 URL（picFillResult 可能是对象或字符串）
     const picFillBase64 = typeof picFillResult === 'object' && picFillResult.img ? picFillResult.img : picFillResult;
     const ordr = bgPr["attrs"]["order"];

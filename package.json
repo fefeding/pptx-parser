@@ -22,8 +22,9 @@
     "url": "git+https://github.com/fefeding/pptx-parser.git"
   },
   "scripts": {
-    "dev": "rollup -c rollup.config.mjs -w",
-    "dev:esm": "vite --config vite.static.config.ts --watch",
+    "dev": "concurrently \"npm run dev:rollup\" \"npm run static\"",
+    "dev:rollup": "rollup -c rollup.config.mjs -w",
+    "dev:static": "vite --config vite.static.config.ts --watch",
     "build": "rimraf dist && rollup -c rollup.config.mjs --environment production",
     "build:esm": "vite build --config vite.static.config.ts",
     "type-check": "tsc --noEmit",
@@ -58,6 +59,7 @@
     "@types/html-escaper": "^3.0.2",
     "@types/node": "^20.11.17",
     "@vitest/coverage-v8": "^1.2.0",
+    "concurrently": "^9.2.1",
     "jsdom": "^27.4.0",
     "rimraf": "^5.0.5",
     "rollup": "^4.9.6",

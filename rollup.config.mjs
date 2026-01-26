@@ -42,6 +42,53 @@ export default [
     ],
     external: [...Object.keys(pkg.dependencies)]
   },
+  // 打包浏览器可用的 UMD 版本（依赖外部）
+  {
+    input: 'src/index.ts',
+    output: {
+      file: './dist/ppt-parser.umd.js',
+      format: 'umd',
+      name: 'PPTXParser',
+      banner,
+      sourcemap: true,
+      globals: {
+        'jszip': 'JSZip',
+        'tinycolor2': 'tinycolor',
+        'html-escaper': 'HTMLEscaper'
+      }
+    },
+    plugins: [
+      nodeResolve({ browser: true }),
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json' }),
+      terser({ compress: true, mangle: true })
+    ]
+  },
+  // 打包全量 bundle 版本（包含所有依赖，浏览器可直接使用）
+  {
+    input: 'src/index.ts',
+    output: [
+      {
+        file: './dist/ppt-parser.bundle.js',
+        format: 'iife',
+        name: 'PPTXParser',
+        banner,
+        sourcemap: true
+      },
+      {
+        file: './dist/ppt-parser.bundle.esm.js',
+        format: 'es',
+        banner,
+        sourcemap: true
+      }
+    ],
+    plugins: [
+      nodeResolve({ browser: true }),
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json' }),
+      terser({ compress: true, mangle: true })
+    ]
+  },
   // 打包类型声明文件：生成完整的.d.ts文件
   {
     input: 'src/index.ts',

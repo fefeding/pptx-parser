@@ -47,21 +47,21 @@ function configure(config: any): void {
  * @param {JSZip} zip - JSZip 实例
  * @returns {Array} 包含幻灯片、缩略图等数据的数组
  */
-function processPPTX(zip: any): any[] {
+async function processPPTX(zip: any): Promise<any[]> {
     const post_ary = [];
     const dateBefore = new Date();
     // parseXml.resetOrder(); // No longer needed
     if (zip.file("docProps/thumbnail.jpeg") !== null) {
-        const pptxThumbImg = PPTXUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
+        const pptxThumbImg = PPTXUtils.base64ArrayBuffer(await zip.file("docProps/thumbnail.jpeg").async("arraybuffer"));
         post_ary.push({
             type: "pptx-thumb",
             data: pptxThumbImg,
             slide_num: -1
         });
     }
-    const filesInfo = getContentTypes(zip);
-    const slideSize = getSlideSizeAndSetDefaultTextStyle(zip);
-    tableStyles = readXmlFile(zip, "ppt/tableStyles.xml");
+    const filesInfo = await getContentTypes(zip);
+    const slideSize = await getSlideSizeAndSetDefaultTextStyle(zip);
+    tableStyles = await readXmlFile(zip, "ppt/tableStyles.xml");
     post_ary.push({
         type: "slideSize",
         data: slideSize,
@@ -91,10 +91,10 @@ function processPPTX(zip: any): any[] {
         }
         let slideHtml;
         if (typeof _processSingleSlideCallback === 'function') {
-            slideHtml = _processSingleSlideCallback(zip, filename, i, slideSize);
+            slideHtml = await _processSingleSlideCallback(zip, filename, i, slideSize);
         }
         else {
-            slideHtml = processSingleSlide(zip, filename, i, slideSize);
+            slideHtml = await processSingleSlide(zip, filename, i, slideSize);
         }
         post_ary.push({
             type: "slide",
@@ -123,7 +123,7 @@ function processPPTX(zip: any): any[] {
  * @param {boolean} isSlideContent - 是否为幻灯片内容
  * @returns {Object|null} 解析后的 XML 对象
  */
-function readXmlFile(zip: any, filename: string, isSlideContent?: boolean): any {
+async function readXmlFile(zip: any, filename: string, isSlideContent?: boolean): Promise<any> {
     try {
         let fileEntry = zip.file(filename);
         if (!fileEntry && !filename.startsWith("ppt/") && !filename.startsWith("[Content_Types].xml") && !filename.startsWith("docProps/")) {
@@ -133,7 +133,9 @@ function readXmlFile(zip: any, filename: string, isSlideContent?: boolean): any 
         if (!fileEntry) {
             return null;
         }
-        let fileContent = fileEntry.asText();
+        let fileContent = "";
+        // JSZip 3.0 使用 async("text")
+        fileContent = await fileEntry.async('text');
         if (isSlideContent && app_verssion <= 12) {
             // Office 2007: 移除 "<![CDATA[ ... ]]>" 标签
             fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
@@ -155,8 +157,8 @@ function readXmlFile(zip: any, filename: string, isSlideContent?: boolean): any 
  * @param {JSZip} zip - JSZip 实例
  * @returns {Object} 包含 slides 和 slideLayouts 数组
  */
-function getContentTypes(zip) {
-    const ContentTypesJson = readXmlFile(zip, "[Content_Types].xml");
+async function getContentTypes(zip) {
+    const ContentTypesJson = await readXmlFile(zip, "[Content_Types].xml");
     const subObj = ContentTypesJson.Types.Override;
     const slidesLocArray = [];
     const slideLayoutsLocArray = [];
@@ -182,14 +184,14 @@ function getContentTypes(zip) {
  * @param {JSZip} zip - JSZip 实例
  * @returns {Object} 包含 width 和 height 的对象
  */
-function getSlideSizeAndSetDefaultTextStyle(zip: any): any {
-    const app = readXmlFile(zip, "docProps/app.xml");
+async function getSlideSizeAndSetDefaultTextStyle(zip: any): Promise<any> {
+    const app = await readXmlFile(zip, "docProps/app.xml");
     if (!app) {
         return null;
     }
     const app_verssion_str = app.Properties.AppVersion;
     app_verssion = parseInt(app_verssion_str);
-    const content = readXmlFile(zip, "ppt/presentation.xml");
+    const content = await readXmlFile(zip, "ppt/presentation.xml");
     const sldSzAttrs = content["p:presentation"]["p:sldSz"].attrs;
     const sldSzWidth = parseInt(sldSzAttrs.cx);
     const sldSzHeight = parseInt(sldSzAttrs.cy);
@@ -268,7 +270,7 @@ function indexNodes(content: any): any {
  * @param {number} index - 幻灯片索引
  * @returns {string} 背景 HTML
  */
-function getBackground(warpObj: any, slideSize: any, index: number): string {
+async function getBackground(warpObj: any, slideSize: any, index: number): Promise<string> {
     let bgResult = "";
     if (processFullTheme === true) {
         // 读取 slide 节点中的背景
@@ -295,7 +297,7 @@ function getBackground(warpObj: any, slideSize: any, index: number): string {
  * @param {number} index - 幻灯片索引
  * @returns {string} CSS 背景样式字符串
  */
-function getSlideBackgroundFill(warpObj: any, index: number): string {
+async function getSlideBackgroundFill(warpObj: any, index: number): Promise<string> {
     let bgColor = "";
     if (processFullTheme === "colorsAndImageOnly") {
         const bgNode = PPTXUtils.getTextByPathList(warpObj.slideContent, ["p:sld", "p:cSld", "p:bg"]);
@@ -322,9 +324,9 @@ function getSlideBackgroundFill(warpObj: any, index: number): string {
  * @param {Object} slideSize - 幻灯片尺寸
  * @returns {string} 幻灯片 HTML
  */
-function processSingleSlide(zip: any, sldFileName: string, index: number, slideSize: any) {
+async function processSingleSlide(zip: any, sldFileName: string, index: number, slideSize: any): Promise<string> {
     const resName = sldFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
-    const resContent = PPTXParser.readXmlFile(zip, resName);
+    const resContent = await PPTXParser.readXmlFile(zip, resName);
     let RelationshipArray = resContent.Relationships.Relationship;
     let layoutFilename = "";
     let diagramFilename = "";
@@ -353,14 +355,14 @@ function processSingleSlide(zip: any, sldFileName: string, index: number, slideS
     else {
         layoutFilename = PPTXUtils.resolveRelationshipTarget(resName, RelationshipArray.attrs.Target);
     }
-    const slideLayoutContent = PPTXParser.readXmlFile(zip, layoutFilename);
+    const slideLayoutContent = await PPTXParser.readXmlFile(zip, layoutFilename);
     const slideLayoutTables = indexNodes(slideLayoutContent);
     const sldLayoutClrOvr = PPTXUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
     if (sldLayoutClrOvr !== undefined) {
         slideLayoutClrOvride = sldLayoutClrOvr.attrs;
     }
     const slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
-    const slideLayoutResContent = PPTXParser.readXmlFile(zip, slideLayoutResFilename);
+    const slideLayoutResContent = await PPTXParser.readXmlFile(zip, slideLayoutResFilename);
     RelationshipArray = slideLayoutResContent.Relationships.Relationship;
     let masterFilename = "";
     const layoutResObj = {};
@@ -381,11 +383,11 @@ function processSingleSlide(zip: any, sldFileName: string, index: number, slideS
     else {
         masterFilename = PPTXUtils.resolveRelationshipTarget(slideLayoutResFilename, RelationshipArray.attrs.Target);
     }
-    const slideMasterContent = PPTXParser.readXmlFile(zip, masterFilename);
+    const slideMasterContent = await PPTXParser.readXmlFile(zip, masterFilename);
     const slideMasterTextStyles = PPTXUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
     const slideMasterTables = indexNodes(slideMasterContent);
     const slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
-    const slideMasterResContent = PPTXParser.readXmlFile(zip, slideMasterResFilename);
+    const slideMasterResContent = await PPTXParser.readXmlFile(zip, slideMasterResFilename);
     RelationshipArray = slideMasterResContent.Relationships.Relationship;
     let themeFilename = "";
     const masterResObj = {};
@@ -411,8 +413,8 @@ function processSingleSlide(zip: any, sldFileName: string, index: number, slideS
     if (themeFilename !== undefined) {
         const themeName = themeFilename.split("/").pop();
         const themeResFileName = themeFilename.replace(themeName, "_rels/" + themeName) + ".rels";
-        themeContent = PPTXParser.readXmlFile(zip, themeFilename);
-        const themeResContent = PPTXParser.readXmlFile(zip, themeResFileName);
+        themeContent = await PPTXParser.readXmlFile(zip, themeFilename);
+        const themeResContent = await PPTXParser.readXmlFile(zip, themeResFileName);
         if (themeResContent !== null) {
             const relationshipArray = themeResContent.Relationships.Relationship;
             if (relationshipArray !== undefined) {
@@ -438,13 +440,13 @@ function processSingleSlide(zip: any, sldFileName: string, index: number, slideS
     if (diagramFilename) {
         const diagName = diagramFilename.split("/").pop();
         const diagramResFileName = diagramFilename.replace(diagName, "_rels/" + diagName) + ".rels";
-        digramFileContent = PPTXParser.readXmlFile(zip, diagramFilename);
+        digramFileContent = await PPTXParser.readXmlFile(zip, diagramFilename);
         if (digramFileContent !== null && digramFileContent !== undefined && digramFileContent !== "") {
             let digramFileContentObjToStr = JSON.stringify(digramFileContent);
             digramFileContentObjToStr = digramFileContentObjToStr.replace(/dsp:/g, "p:");
             digramFileContent = JSON.parse(digramFileContentObjToStr);
         }
-        const digramResContent = PPTXParser.readXmlFile(zip, diagramResFileName);
+        const digramResContent = await PPTXParser.readXmlFile(zip, diagramResFileName);
         if (digramResContent !== null) {
             const relationshipArray = digramResContent.Relationships.Relationship;
             if (Array.isArray(relationshipArray)) {
@@ -463,7 +465,7 @@ function processSingleSlide(zip: any, sldFileName: string, index: number, slideS
             }
         }
     }
-    const slideContent = PPTXParser.readXmlFile(zip, sldFileName, true);
+    const slideContent = await PPTXParser.readXmlFile(zip, sldFileName, true);
     const nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
     const warpObj = {
         zip,
@@ -487,19 +489,19 @@ function processSingleSlide(zip: any, sldFileName: string, index: number, slideS
     let bgResult = "";
     if (processFullTheme === true) {
         if (typeof _getBackgroundCallback === 'function') {
-            bgResult = _getBackgroundCallback(warpObj, slideSize, index);
+            bgResult = await _getBackgroundCallback(warpObj, slideSize, index);
         }
         else {
-            bgResult = getBackground(warpObj, slideSize, index);
+            bgResult = await getBackground(warpObj, slideSize, index);
         }
     }
     let bgColor = "";
     if (processFullTheme === "colorsAndImageOnly") {
         if (typeof _getSlideBackgroundFillCallback === 'function') {
-            bgColor = _getSlideBackgroundFillCallback(warpObj, index);
+            bgColor = await _getSlideBackgroundFillCallback(warpObj, index);
         }
         else {
-            bgColor = getSlideBackgroundFill(warpObj, index);
+            bgColor = await getSlideBackgroundFill(warpObj, index);
         }
     }
     let result: string;
@@ -517,12 +519,12 @@ function processSingleSlide(zip: any, sldFileName: string, index: number, slideS
     for (const nodeKey in nodes) {
         if (Array.isArray(nodes[nodeKey])) {
             for (let i = 0; i < nodes[nodeKey].length; i++) {
-                const nodeResult = processNodesFunc(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide");
+                const nodeResult = await processNodesFunc(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide");
                 result += nodeResult;
             }
         }
         else {
-            const nodeResult = processNodesFunc(nodeKey, nodes[nodeKey], nodes, warpObj, "slide");
+            const nodeResult = await processNodesFunc(nodeKey, nodes[nodeKey], nodes, warpObj, "slide");
             result += nodeResult;
         }
     }

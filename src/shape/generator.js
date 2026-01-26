@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * pptx-shape-generator.js
  * 形状生成器模块
