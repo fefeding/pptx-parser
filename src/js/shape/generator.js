@@ -225,7 +225,7 @@ import { PPTXMathShapes } from './math.js';
                 //console.log("shapType: ", shapType)
                 let d = "", d1 = '', d_val, points;
                 let x1, x2, y1, y2, c3d4, cd4, cd2, wd2, hd2;
-                let fillAttr, shapAdjst, shapAdjst_ary, sAdj1, sAdj2, sAdj1_val, sAdj2_val, sAdj_name;
+                let fillAttr, shapAdjst, shapAdjst_ary, sAdj1, sAdj2, sAdj3, sAdj1_val, sAdj2_val, sAdj_name;
                 let tranglRott, adjst_val, max_adj_const;
                 let adj, adj1, adj2, adj3, adj4, adj5, adj6, adj7, adj8;
                 let cnstVal, cnstVal1, cnstVal2, cnstVal3, cnstVal4, cnstVal5;
@@ -237,12 +237,13 @@ import { PPTXMathShapes } from './math.js';
                 let refr, H, isClose, shapAdjst1, shapAdjst2;
                 let x3, x4, x5, x6, x7, y3, y4, y5, y6;
                 let t, l, b, r, wd8, wd32;
-                let g0, g1, g2, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11;
+                let g0, g1, g2, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13;
                 let shd2, vf;
-                let ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2, stAng1deg, stAng2deg, swAng2deg;
+                let ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng, stAng1, stAng2, stAng3, stAng1deg, stAng2deg, swAng2deg, swAng2, swAng3, mswAng;
                 let ct1, st1, m1, n1;
                 let pieVals, hR, wR;
                 let ang, ang2rad;
+                let ix, iy;
                 let cX1, cY1, cX2, cY2, cy1, cy3;
                 let bl, br, dt;
                 let prcnt, dfltBultSizeNoPt, font_val;
@@ -483,9 +484,7 @@ import { PPTXMathShapes } from './math.js';
                     case "flowChartAlternateProcess":
                     case "flowChartPunchedCard":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        let sAdj1, sAdj1_val;// = 0.33334;
-                        let sAdj2, sAdj2_val;// = 0.33334;
-                        let shpTyp, adjTyp;
+                        sAdj1 = sAdj1_val = sAdj2 = sAdj2_val = shpTyp = adjTyp = undefined;
                         if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor === Array) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
                                 const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
@@ -633,14 +632,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "flowChartManualOperation":
                     case "flowChartManualInput":
                         shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        let adjst_val = 0.2;
+                        adjst_val = 0.2;
                         max_adj_const = 0.7407;
                         if (shapAdjst !== undefined) {
                             const adjst = parseInt(shapAdjst.substr(4)) * slideFactor;
                             adjst_val = (adjst * 0.5) / max_adj_const;
                             // console.log("w: "+w+"\nh: "+h+"\nshapAdjst: "+shapAdjst+"\nadjst_val: "+adjst_val);
                         }
-                        let cnstVal = 0;
+                        cnstVal = 0;
                         tranglRott = "";
                         if (shapType == "flowChartManualOperation") {
                             tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
@@ -722,7 +721,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "octagon":
                         shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        let adj1 = 0.25;
+                        adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
 

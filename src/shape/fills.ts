@@ -173,7 +173,7 @@ PPTXShapeFillsUtils.getSvgImagePattern = function(node: any, fill: any, shpId: s
     let dimSrc: any = null;
     if (typeof fill === 'object' && fill.imgData) {
         dimSrc = fill.imgData;
-    } else if (fillValue && fillValue.indexOf("data:image/") === 0) {
+    } else if (fillValue && typeof fillValue === 'string' && fillValue.indexOf("data:image/") === 0) {
         // fillValue 是 data: URI，可以直接用于尺寸获取
         dimSrc = fillValue;
     }
@@ -244,7 +244,7 @@ PPTXShapeFillsUtils.getSvgImagePattern = function(node: any, fill: any, shpId: s
     }
 
     // Check if fill already contains blob: or data: URI prefix
-    const imgSrc: string = (fillValue && (fillValue.indexOf("blob:") === 0 || fillValue.indexOf("data:") === 0)) ? fillValue : "data:image/png;base64," + fillValue;
+    const imgSrc: string = (fillValue && typeof fillValue === 'string' && (fillValue.indexOf("blob:") === 0 || fillValue.indexOf("data:") === 0)) ? fillValue : "data:image/png;base64," + (typeof fillValue === 'string' ? fillValue : '');
     ptrn += '<image x="0" y="0" width="' + width + '" height="' + height + '" xlink:href="' + imgSrc + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
     ptrn += '</pattern>';
 

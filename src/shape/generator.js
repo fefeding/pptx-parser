@@ -230,16 +230,16 @@ import { PPTXMathShapes } from './math';
                 let adj, adj1, adj2, adj3, adj4, adj5, adj6, adj7, adj8;
                 let cnstVal, cnstVal1, cnstVal2, cnstVal3, cnstVal4, cnstVal5;
                 let angVal, angVal1, angVal2, angVal3, angVal4;
-                let a, a1, a2, a3;
-                let dx, dy, dx1, dx2, dx3, dx4, dx5, dy1, dy2, dy3, dy4, dy5, dz;
+                let a, a1, a2, a3, th, aw, ah, aw2;
+                let dx, dy, dx1, dx2, dx3, dx4, dx5, dy1, dy2, dy3, dy4, dy5, dz, dh;
                 let vc, hc, idy, ib, iDx, il, ir, it;
                 let ss, maxAdj, maxAdj1, maxAdj2, maxAdj3, minWH;
                 let refr, H, isClose, shapAdjst1, shapAdjst2;
-                let x3, x4, x5, x6, x7, y3, y4, y5, y6;
+                let x3, x4, x5, x6, x7, x8, y3, y4, y5, y6, y7, y8;
                 let t, l, b, r, wd8, wd32;
                 let g0, g1, g2, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13;
                 let shd2, vf;
-                let ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng, stAng1, stAng2, stAng3, stAng1deg, stAng2deg, swAng2deg, swAng2, swAng3, mswAng;
+                let ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng, stAng1, stAng2, stAng3, stAng1deg, stAng2deg, swAng2deg, swAng2, swAng3, mswAng, mswAng2;
                 let ct1, st1, m1, n1;
                 let pieVals, hR, wR;
                 let ang, ang2rad;
@@ -4032,8 +4032,8 @@ import { PPTXMathShapes } from './math';
                         }
                         vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         ss = Math.min(w, h);
-                        maxAdj2 = a2 = a1 = th = aw = q1 = hR = q7 = q8 = q9 = q10 = q11 = iDx = maxAdj3 = a3 = ah = y3 = q2 = q3 = q4 = q5 = dy =
-                            y5 = y7 = q6 = dh = y4 = y8 = aw2 = y6 = x1 = swAng = stAng = mswAng = ix = iy = q12 = dang2 = swAng2 = swAng3 = stAng3 = undefined;
+                        maxAdj2 = undefined; a2 = undefined; a1 = undefined; th = undefined; aw = undefined; q1 = undefined; hR = undefined; q7 = undefined; q8 = undefined; q9 = undefined; q10 = undefined; q11 = undefined; iDx = undefined; maxAdj3 = undefined; a3 = undefined; ah = undefined; y3 = undefined; q2 = undefined; q3 = undefined; q4 = undefined; q5 = undefined; dy = undefined;
+                            y5 = undefined; y7 = undefined; q6 = undefined; dh = undefined; y4 = undefined; y8 = undefined; aw2 = undefined; y6 = undefined; x1 = undefined; swAng = undefined; stAng = undefined; mswAng = undefined; ix = undefined; iy = undefined; q12 = undefined; dang2 = undefined; swAng2 = undefined; swAng3 = undefined; stAng3 = undefined;
 
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -4077,7 +4077,7 @@ import { PPTXMathShapes } from './math';
                         swAng3 = Math.PI / 2 + dang2;
                         stAng3 = Math.PI - dang2;
 
-                        stAngDg = mswAngDg = swAngDg = swAng2dg = undefined;
+                        stAngDg = undefined; mswAngDg = undefined; swAngDg = undefined; swAng2dg = undefined;
                         stAngDg = stAng * 180 / Math.PI;
                         mswAngDg = mswAng * 180 / Math.PI;
                         swAngDg = swAng * 180 / Math.PI;
@@ -4125,7 +4125,7 @@ import { PPTXMathShapes } from './math';
                         }
                         vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         ss = Math.min(w, h);
-                        maxAdj2 = a2 = a1 = th = aw = q1 = wR = q7 = q8 = q9 = q10 = q11 = idy = maxAdj3 = a3 = ah = x3 = q2 = q3 = q4 = q5 = dx = x5 = x7 = q6 = dh = x4 = x8 = aw2 = x6 = y1 = swAng = mswAng = iy = ix = q12 = dang2 = swAng2 = mswAng2 = stAng3 = swAng3 = stAng2 = undefined;
+                        maxAdj2 = undefined; a2 = undefined; a1 = undefined; th = undefined; aw = undefined; q1 = undefined; wR = undefined; q7 = undefined; q8 = undefined; q9 = undefined; q10 = undefined; q11 = undefined; idy = undefined; maxAdj3 = undefined; a3 = undefined; ah = undefined; x3 = undefined; q2 = undefined; q3 = undefined; q4 = undefined; q5 = undefined; dx = undefined; x5 = undefined; x7 = undefined; q6 = undefined; dh = undefined; x4 = undefined; x8 = undefined; aw2 = undefined; x6 = undefined; y1 = undefined; swAng = undefined; mswAng = undefined; iy = undefined; ix = undefined; q12 = undefined; dang2 = undefined; swAng2 = undefined; mswAng2 = undefined; stAng3 = undefined; swAng3 = undefined; stAng2 = undefined;
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -4170,7 +4170,7 @@ import { PPTXMathShapes } from './math';
                         swAng3 = swAng + dang2;
                         stAng2 = Math.PI / 2 - dang2;
 
-                        stAng2dg = swAng2dg = swAngDg = swAng2dg = undefined;
+                        stAng2dg = undefined; swAng2dg = undefined; swAngDg = undefined;
                         stAng2dg = stAng2 * 180 / Math.PI;
                         swAng2dg = swAng2 * 180 / Math.PI;
                         stAng3dg = stAng3 * 180 / Math.PI;

@@ -140,6 +140,7 @@ async function readXmlFile(zip: any, filename: string, isSlideContent?: boolean)
             // Office 2007: 移除 "<![CDATA[ ... ]]>" 标签
             fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
         }
+
         const xmlData = parseXml(fileContent, { simplify: 1 });
         if (xmlData["?xml"] !== undefined) {
             return xmlData["?xml"];
@@ -159,7 +160,18 @@ async function readXmlFile(zip: any, filename: string, isSlideContent?: boolean)
  */
 async function getContentTypes(zip) {
     const ContentTypesJson = await readXmlFile(zip, "[Content_Types].xml");
-    const subObj = ContentTypesJson.Types.Override;
+    // 解析后的结构可能是 {"?xml": {"Types": {...}}} 或直接 {"Types": {...}} 或 {"Override": [...]}
+    let subObj;
+    if (ContentTypesJson.Types && ContentTypesJson.Types.Override) {
+        subObj = ContentTypesJson.Types.Override;
+    } else if (ContentTypesJson.Override) {
+        subObj = ContentTypesJson.Override;
+    } else if (ContentTypesJson["?xml"] && ContentTypesJson["?xml"].Types && ContentTypesJson["?xml"].Types.Override) {
+        subObj = ContentTypesJson["?xml"].Types.Override;
+    } else {
+        console.error('Could not find Override in ContentTypesJson:', ContentTypesJson);
+        return { slides: [], slideLayouts: [] };
+    }
     const slidesLocArray = [];
     const slideLayoutsLocArray = [];
     for (let i = 0; i < subObj.length; i++) {

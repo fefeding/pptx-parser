@@ -1,0 +1,31 @@
+{
+  "name": "pptx-parser-node-example",
+  "version": "1.0.0",
+  "description": "Node.js 示例 - 使用 pptx-parser 解析 PPTX 文件",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "parse": "node index.js",
+    "ts-parse": "ts-node index.ts",
+    "dev": "tsx index.ts"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.30",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "keywords": [
+    "pptx",
+    "parser",
+    "nodejs",
+    "powerpoint",
+    "typescript"
+  ],
+  "author": "PPTX Parser",
+  "license": "MIT"
+}
