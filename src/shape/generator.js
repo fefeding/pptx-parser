@@ -223,9 +223,9 @@ import { PPTXMathShapes } from './math';
             }
             if (shapType !== undefined && custShapType === undefined) {
                 //console.log("shapType: ", shapType)
-                let d = "", d_val, points;
+                let d = "", d_val, points, d1;
                 let x1, x2, y1, y2, c3d4, cd4, cd2, wd2, hd2;
-                let fillAttr, shapAdjst, shapAdjst_ary, sAdj1, sAdj2, sAdj1_val, sAdj2_val, sAdj_name;
+                let fillAttr, shapAdjst, shapAdjst_ary, sAdj1, sAdj2, sAdj3, sAdj1_val, sAdj2_val, sAdj_name;
                 let tranglRott, adjst_val, max_adj_const;
                 let adj, adj1, adj2, adj3, adj4, adj5, adj6, adj7, adj8;
                 let cnstVal, cnstVal1, cnstVal2, cnstVal3, cnstVal4, cnstVal5;
@@ -237,12 +237,13 @@ import { PPTXMathShapes } from './math';
                 let refr, H, isClose, shapAdjst1, shapAdjst2;
                 let x3, x4, x5, x6, x7, y3, y4, y5, y6;
                 let t, l, b, r, wd8, wd32;
-                let g0, g1, g2, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11;
+                let g0, g1, g2, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13;
                 let shd2, vf;
-                let ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2, stAng1deg, stAng2deg, swAng2deg;
+                let ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng, stAng1, stAng2, stAng3, stAng1deg, stAng2deg, swAng2deg, swAng2, swAng3, mswAng;
                 let ct1, st1, m1, n1;
                 let pieVals, hR, wR;
                 let ang, ang2rad;
+                let ix, iy;
                 let cX1, cY1, cX2, cY2, cy1, cy3;
                 let bl, br, dt;
                 let prcnt, dfltBultSizeNoPt, font_val;
@@ -291,9 +292,9 @@ import { PPTXMathShapes } from './math';
                     case "actionButtonMovie":
                         result += PPTXActionButtonShapes.genActionButtonMovie(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
-    case "actionButtonReturn":
-        result += PPTXActionButtonShapes.genActionButtonReturn(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
-        break;
+                    case "actionButtonReturn":
+                        result += PPTXActionButtonShapes.genActionButtonReturn(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                        break;
                     case "actionButtonSound":
                         result += PPTXActionButtonShapes.genActionButtonSound(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
@@ -361,7 +362,7 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartTerminator":
-                        x1 = undefined, x2 = undefined, y1 = undefined, cd2 = 180, cd4 = 90, c3d4 = 270;
+                        x1 = x2 = y1 = cd2 = cd4 = c3d4 = undefined;
                         x1 = w * 3475 / 21600;
                         x2 = w * 18125 / 21600;
                         y1 = h * 10800 / 21600;
@@ -377,7 +378,7 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartPunchedTape":
-                        x1 = undefined, y1 = undefined, y2 = undefined, cd2 = 180;
+                        x1 = undefined; y1 = undefined; y2 = undefined; cd2 = 180;
                         x1 = w * 5 / 20;
                         y1 = h * 2 / 20;
                         y2 = h * 18 / 20;
@@ -393,7 +394,7 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartOnlineStorage":
-                        x1 = undefined, y1 = undefined, c3d4 = 270, cd4 = 90;
+                        x1 = undefined; y1 = undefined; c3d4 = 270, cd4 = 90;
                         x1 = w * 1 / 6;
                         y1 = h * 3 / 6;
                         d = "M" + x1 + "," + 0 +
@@ -407,7 +408,7 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "flowChartDisplay":
-                        x1 = undefined, x2 = undefined, y1 = undefined, c3d4 = 270, cd2 = 180;
+                        x1 = undefined; x2 = undefined; y1 = undefined; c3d4 = 270, cd2 = 180;
                         x1 = w * 1 / 6;
                         x2 = w * 5 / 6;
                         y1 = h * 3 / 6;
@@ -461,6 +462,7 @@ import { PPTXMathShapes } from './math';
                             result += " <polyline points='" + w / 2 + " " + 0 + "," + w / 2 + " " + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                             result += " <polyline points='" + 0 + " " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         } else if (shapType == "flowChartSummingJunction") {
+                            iDx = idy = il = ir = it = ib = hc = vc = wd2 = hd2 = undefined;
                             iDx, idy, il, ir, it, ib, hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                             const angVal = Math.PI / 4;
                             iDx = wd2 * Math.cos(angVal);
@@ -483,8 +485,6 @@ import { PPTXMathShapes } from './math';
                     case "flowChartAlternateProcess":
                     case "flowChartPunchedCard":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        let sAdj1, sAdj1_val;// = 0.33334;
-                        let sAdj2, sAdj2_val;// = 0.33334;
                         let shpTyp, adjTyp;
                         if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor === Array) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
@@ -560,11 +560,11 @@ import { PPTXMathShapes } from './math';
                         break;
                     case "snipRoundRect":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, sAdj1_val = 0.33334;
-                        sAdj2 = undefined, sAdj2_val = 0.33334;
+                        sAdj1 = undefined; sAdj1_val = 0.33334;
+                        sAdj2 = undefined; sAdj2_val = 0.33334;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
@@ -722,7 +722,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "octagon":
                         shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        let adj1 = 0.25;
+                        adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
 
@@ -813,7 +813,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "pieWedge":
                     case "arc":
                         shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        adj1 = undefined, adj2, H, shapAdjst1, shapAdjst2, isClose;
+                        adj1 = undefined; adj2, H, shapAdjst1, shapAdjst2, isClose;
                         if (shapType == "pie") {
                             adj1 = 0;
                             adj2 = 270;
@@ -852,11 +852,11 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "chord":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, sAdj1_val = 45;
-                        sAdj2 = undefined, sAdj2_val = 270;
+                        sAdj1 = undefined; sAdj1_val = 45;
+                        sAdj2 = undefined; sAdj2_val = 270;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
@@ -882,7 +882,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a1 = undefined, x1, x4, y4;
+                        a1 = undefined; x1, x4, y4;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
                         else a1 = adj1
@@ -910,7 +910,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a = undefined, dr, iwd2, ihd2;
+                        a = undefined; dr, iwd2, ihd2;
                         if (adj < 0) a = 0
                         else if (adj > cnstVal1) a = cnstVal1
                         else a = adj
@@ -940,7 +940,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a = undefined, dr, iwd2, ihd2, ang, ang2rad, ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2;
+                        a = undefined; dr, iwd2, ihd2, ang, ang2rad, ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2;
                         if (adj < 0) a = 0
                         else if (adj > cnstVal1) a = cnstVal1
                         else a = adj
@@ -1001,12 +1001,12 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "halfFrame":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, sAdj1_val = 3.5;
-                        sAdj2 = undefined, sAdj2_val = 3.5;
+                        sAdj1 = undefined; sAdj1_val = 3.5;
+                        sAdj2 = undefined; sAdj2_val = 3.5;
                         cnsVal = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -1018,7 +1018,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         }
                         minWH = Math.min(w, h);
                         maxAdj2 = (cnsVal * w) / minWH;
-                        a1 = undefined, a2;
+                        a1 = undefined; a2;
                         if (sAdj2_val < 0) a2 = 0
                         else if (sAdj2_val > maxAdj2) a2 = maxAdj2
                         else a2 = sAdj2_val
@@ -1047,14 +1047,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "blockArc":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 180;
-                        sAdj2 = undefined, adj2 = 0;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 180;
+                        sAdj2 = undefined; adj2 = 0;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) / 60000;
@@ -1068,7 +1068,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                             }
                         }
 
-                        let stAng, istAng, a3, sw11, sw12, swAng, iswAng;
+                        stAng = istAng = a3 = sw11 = sw12 = swAng = iswAng = undefined;
                         cd1 = 360;
                         if (adj1 < 0) stAng = 0
                         else if (adj1 > cd1) stAng = cd1
@@ -1090,7 +1090,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         endAng = stAng + swAng;
                         iendAng = istAng + iswAng;
 
-                        wt1, ht1, stRd, istRd, wd2, hd2, hc, vc;
+                        wt1 = ht1 = stRd = istRd = wd2 = hd2 = hc = vc = undefined;
                         stRd = stAng * (Math.PI) / 180;
                         istRd = istAng * (Math.PI) / 180;
                         wd2 = w / 2;
@@ -1116,7 +1116,6 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                             x1 = hc + dx1;
                             y1 = vc + dy1;
                         }
-                        let dr, iwd2, ihd2, wt2, ht2;
                         dr = Math.min(w, h) * a3 / cnstVal2;
                         iwd2 = wd2 - dr;
                         ihd2 = hd2 - dr;
@@ -1189,12 +1188,12 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "leftBrace":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 8333 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 8333 * slideFactor;
+                        sAdj2 = undefined; adj2 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -1236,12 +1235,12 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "rightBrace":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 8333 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 8333 * slideFactor;
+                        sAdj2 = undefined; adj2 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -1378,12 +1377,12 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "corner":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, sAdj1_val = 50000 * slideFactor;
-                        sAdj2 = undefined, sAdj2_val = 50000 * slideFactor;
+                        sAdj1 = undefined; sAdj1_val = 50000 * slideFactor;
+                        sAdj2 = undefined; sAdj2_val = 50000 * slideFactor;
                         cnsVal = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -1396,7 +1395,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         minWH = Math.min(w, h);
                         maxAdj1 = cnsVal * h / minWH;
                         maxAdj2 = cnsVal * w / minWH;
-                        a1 = undefined, a2, x1, dy1, y1;
+                        a1 = undefined; a2, x1, dy1, y1;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > maxAdj1) a1 = maxAdj1
                         else a1 = sAdj1_val
@@ -1425,7 +1424,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (shapAdjst !== undefined) {
                             sAdj1_val = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a1 = undefined, x2, y2;
+                        a1 = undefined; x2, y2;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > cnsVal) a1 = cnsVal
                         else a1 = sAdj1_val
@@ -1494,7 +1493,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a1 = undefined, r2, tw, th, sw, sh, dx1, dy1, x1, y1, x2, y2, rd45;
+                        a1 = undefined; r2, tw, th, sw, sh, dx1, dy1, x1, y1, x2, y2, rd45;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnsVal2) a1 = cnsVal2
                         else a1 = adj1
@@ -1530,7 +1529,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a1 = undefined, x1, x2, y2;
+                        a1 = undefined; x1, x2, y2;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnsVal1) a1 = cnsVal1
                         else a1 = adj1
@@ -1751,7 +1750,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         cnstVal1 = 50000 * refr;
                         cnstVal2 = 100000 * refr;
                         ss = Math.min(w, h);
-                        a = undefined, x1, x2, y2;
+                        a = undefined; x1, x2, y2;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         x1 = ss * a / cnstVal2;
                         x2 = w - x1;
@@ -1789,7 +1788,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         cnstVal1 = 50000 * refr;
                         cnstVal2 = 100000 * refr;
                         ss = Math.min(w, h);
-                        a = undefined, dy2, dy1, x1, x2, y2, y1;
+                        a = undefined; dy2, dy1, x1, x2, y2, y1;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         dy2 = ss * a / cnstVal2;
                         dy1 = dy2 / 5;
@@ -1829,7 +1828,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         cnstVal2 = 100000 * refr;
                         cnstVal3 = 4653 * refr;
                         ss = Math.min(w, h);
-                        a = undefined, x1, x2, x3, x4, y1, y3, dy2, y2, y4, dy3, y5, wR, hR, wd2, hd2;
+                        a = undefined; x1, x2, x3, x4, y1, y3, dy2, y2, y4, dy3, y5, wR, hR, wd2, hd2;
                         wd2 = w / 2;
                         hd2 = h / 2;
                         a = (adj < -cnstVal3) ? -cnstVal3 : (adj > cnstVal3) ? cnstVal3 : adj;
@@ -1878,7 +1877,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         cnstVal2 = 100000 * refr;
                         ss = Math.min(w, h);
                         t = 0, l = 0, b = h, r = w;
-                        a = undefined, ch, ch2, ch4;
+                        a = undefined; ch, ch2, ch4;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         ch = ss * a / cnstVal2;
                         ch2 = ch / 2;
@@ -1915,7 +1914,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 ` z M` + ch + "," + y4 +
                                 " L" + ch + "," + y3;
                         } else if (shapType == "horizontalScroll") {
-                            y3, y4, y6, y7, y5, x3, x4;
+                            y3 = y4 = y6 = y7 = y5 = x3 = x4 = undefined;
                             y3 = ch + ch2;
                             y4 = ch + ch;
                             y6 = b - ch;
@@ -1984,17 +1983,17 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "callout3":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         refr = slideFactor;
-                        sAdj1 = undefined, adj1 = 18750 * refr;
-                        sAdj2 = undefined, adj2 = -8333 * refr;
-                        sAdj3 = undefined, adj3 = 18750 * refr;
-                        sAdj4 = undefined, adj4 = -16667 * refr;
-                        sAdj5 = undefined, adj5 = 100000 * refr;
+                        sAdj1 = undefined; adj1 = 18750 * refr;
+                        sAdj2 = undefined; adj2 = -8333 * refr;
+                        sAdj3 = undefined; adj3 = 18750 * refr;
+                        sAdj4 = undefined; adj4 = -16667 * refr;
+                        sAdj5 = undefined; adj5 = 100000 * refr;
                         let sAdj6, adj6 = -16667 * refr;
                         let sAdj7, adj7 = 112963 * refr;
                         let sAdj8, adj8 = -8333 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2039,7 +2038,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     adj3 = 112500 * refr;
                                     adj4 = -38333 * refr;
                                 }
-                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined;
+                                y1 = undefined; x1 = undefined; y2 = undefined; x2 = undefined;
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
@@ -2067,7 +2066,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     adj5 = 112500 * refr;
                                     adj6 = -46667 * refr;
                                 }
-                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined, y3 = undefined, x3 = undefined;
+                                y1 = undefined; x1 = undefined; y2 = undefined; x2 = undefined; y3 = undefined; x3 = undefined;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2106,7 +2105,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     adj7 = 112963 * refr;
                                     adj8 = -8333 * refr;
                                 }
-                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined, y3 = undefined, x3 = undefined, y4 = undefined, x4 = undefined;
+                                y1 = undefined; x1 = undefined; y2 = undefined; x2 = undefined; y3 = undefined; x3 = undefined; y4 = undefined; x4 = undefined;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2145,7 +2144,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     adj3 = 112500 * refr;
                                     adj4 = -38333 * refr;
                                 }
-                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined;
+                                y1 = undefined; x1 = undefined; y2 = undefined; x2 = undefined;
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
@@ -2175,7 +2174,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     adj5 = 112500 * refr;
                                     adj6 = -46667 * refr;
                                 }
-                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined, y3 = undefined, x3 = undefined;
+                                y1 = undefined; x1 = undefined; y2 = undefined; x2 = undefined; y3 = undefined; x3 = undefined;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2214,7 +2213,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     adj7 = 112963 * refr;
                                     adj8 = -8333 * refr;
                                 }
-                                y1 = undefined, x1 = undefined, y2 = undefined, x2 = undefined, y3 = undefined, x3 = undefined, y4 = undefined, x4 = undefined;
+                                y1 = undefined; x1 = undefined; y2 = undefined; x2 = undefined; y3 = undefined; x3 = undefined; y4 = undefined; x4 = undefined;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2255,12 +2254,12 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "leftRightRibbon":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         refr = slideFactor;
-                        sAdj1 = undefined, adj1 = 50000 * refr;
-                        sAdj2 = undefined, adj2 = 50000 * refr;
-                        sAdj3 = undefined, adj3 = 16667 * refr;
+                        sAdj1 = undefined; adj1 = 50000 * refr;
+                        sAdj2 = undefined; adj2 = 50000 * refr;
+                        sAdj3 = undefined; adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2279,8 +2278,8 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         cnstVal3 = 200000 * refr;
                         cnstVal4 = 400000 * refr;
                         ss = Math.min(w, h);
-                        a3, maxAdj1, a1, w1, maxAdj2, a2, x1, x4, dy1, dy2, ly1, ry4, ly2, ry3, ly4, ry1,
-                            ly3, ry2, hR, x2, x3, y1, y2, wd32 = w / 32, vc = h / 2, hc = w / 2;
+                        a3 = maxAdj1 = a1 = w1 = maxAdj2 = a2 = x1 = x4 = dy1 = dy2 = ly1 = ry4 = ly2 = ry3 = ly4 = ry1 =
+                            ly3 = ry2 = hR = x2 = x3 = y1 = y2 = wd32 = w / 32, vc = h / 2, hc = w / 2;
 
                         a3 = (adj3 < 0) ? 0 : (adj3 > cnstVal1) ? cnstVal1 : adj3;
                         maxAdj1 = cnstVal2 - a3;
@@ -2335,11 +2334,11 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "ribbon":
                     case "ribbon2":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 16667 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 16667 * slideFactor;
+                        sAdj2 = undefined; adj2 = 50000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2357,7 +2356,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         cnstVal5 = 200000 * slideFactor;
                         cnstVal6 = 400000 * slideFactor;
                         hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
-                        a1 = undefined, a2, x10, dx2, x2, x9, x3, x8, x5, x6, x4, x7, y1, y2, y4, y3, hR, y6;
+                        a1 = undefined; a2, x10, dx2, x2, x9, x3, x8, x5, x6, x4, x7, y1, y2, y4, y3, hR, y6;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal2) ? cnstVal2 : adj1;
                         a2 = (adj2 < cnstVal1) ? cnstVal1 : (adj2 > cnstVal3) ? cnstVal3 : adj2;
                         x10 = r - wd8;
@@ -2372,7 +2371,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         x7 = x6 + wd32;
                         hR = h * a1 / cnstVal6;
                         if (shapType == "ribbon2") {
-                            dy1, dy2, y7;
+                            dy1 = dy2 = y7 = undefined;
                             dy1 = h * a1 / cnstVal5;
                             y1 = b - dy1;
                             dy2 = h * a1 / cnstVal4;
@@ -2412,7 +2411,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 "M" + x9 + "," + y4 +
                                 " L" + x9 + "," + y7;
                         } else if (shapType == "ribbon") {
-                            y5;
+                            y5 = undefined;
                             y1 = h * a1 / cnstVal5;
                             y2 = h * a1 / cnstVal4;
                             y4 = b - y2;
@@ -2456,11 +2455,11 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "doubleWave":
                     case "wave":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = (shapType == "doubleWave") ? 6250 * slideFactor : 12500 * slideFactor;
-                        sAdj2 = undefined, adj2 = 0;
+                        sAdj1 = undefined; adj1 = (shapType == "doubleWave") ? 6250 * slideFactor : 12500 * slideFactor;
+                        sAdj2 = undefined; adj2 = 0;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2477,7 +2476,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
                         if (shapType == "doubleWave") {
                             const cnstVal1 = 12500 * slideFactor;
-                            a1 = undefined, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx8, x8, dx3, x3, dx4, x4, x5, x6, x7, x9, x15, x10, x11, x12, x13, x14;
+                            a1 = undefined; a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx8, x8, dx3, x3, dx4, x4, x5, x6, x7, x9, x15, x10, x11, x12, x13, x14;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal1) ? cnstVal1 : adj1;
                             a2 = (adj2 < cnstVal2) ? cnstVal2 : (adj2 > cnstVal4) ? cnstVal4 : adj2;
                             y1 = h * a1 / cnstVal4;
@@ -2516,7 +2515,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 " z";
                         } else if (shapType == "wave") {
                             const cnstVal5 = 20000 * slideFactor;
-                            a1 = undefined, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx5, x5, dx3, x3, x4, x6, x10, x7, x8;
+                            a1 = undefined; a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx5, x5, dx3, x3, x4, x6, x10, x7, x8;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
                             a2 = (adj2 < cnstVal2) ? cnstVal2 : (adj2 > cnstVal4) ? cnstVal4 : adj2;
                             y1 = h * a1 / cnstVal4;
@@ -2553,12 +2552,12 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "ellipseRibbon":
                     case "ellipseRibbon2":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 12500 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 50000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2577,7 +2576,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         cnstVal4 = 100000 * slideFactor;
                         cnstVal5 = 200000 * slideFactor;
                         hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8;
-                        a1 = undefined, a2, q10, q11, q12, minAdj3, a3, dx2, x2, x3, x4, x5, x6, dy1, f1, q1, q2,
+                        a1 = undefined; a2, q10, q11, q12, minAdj3, a3, dx2, x2, x3, x4, x5, x6, dy1, f1, q1, q2,
                             cx1, cx2, q1, dy3, q3, q4, q5, rh, q8, cx4, q9, cx5;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal4) ? cnstVal4 : adj1;
                         a2 = (adj2 < cnstVal1) ? cnstVal1 : (adj2 > cnstVal3) ? cnstVal3 : adj2;
@@ -2609,7 +2608,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         q9 = f1 * cx4;
                         cx5 = r - cx4;
                         if (shapType == "ellipseRibbon") {
-                            y1 = undefined, cy1 = undefined, y3 = undefined, q6 = undefined, q7 = undefined, cy3 = undefined, y2 = undefined, y5 = undefined, y6 = undefined,
+                            y1 = undefined; cy1 = undefined; y3 = undefined; q6 = undefined; q7 = undefined; cy3 = undefined; y2 = undefined; y5 = undefined; y6 = undefined,
                                 cy4, cy6, y7, cy7, y8;
                             y1 = f1 * q2;
                             cy1 = f1 * cx1;
@@ -2649,8 +2648,8 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 "M" + x4 + "," + y7 +
                                 " L" + x4 + "," + y1;
                         } else if (shapType == "ellipseRibbon2") {
-                            u1, y1, cu1, cy1, q3, q5, u3, y3, q6, q7, cu3, cy3, rh, q8, u2, y2,
-                                u5, y5, u6, y6, cu4, cy4, cu6, cy6, u7, y7, cu7, cy7;
+                            u1 = y1 = cu1 = cy1 = q3 = q5 = u3 = y3 = q6 = q7 = cu3 = cy3 = rh = q8 = u2 = y2 =
+                                u5 = y5 = u6 = y6 = cu4 = cy4 = cu6 = cy6 = u7 = y7 = cu7 = cy7 = undefined;
                             u1 = f1 * q2;
                             y1 = b - u1;
                             cu1 = f1 * cx1;
@@ -2751,12 +2750,12 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "leftRightArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, sAdj1_val = 0.25;
-                        sAdj2 = undefined, sAdj2_val = 0.25;
+                        sAdj1 = undefined; sAdj1_val = 0.25;
+                        sAdj2 = undefined; sAdj2_val = 0.25;
                         max_sAdj2_const = w / h;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
@@ -2781,15 +2780,15 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "quadArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 22500 * slideFactor;
-                        sAdj2 = undefined, adj2 = 22500 * slideFactor;
-                        sAdj3 = undefined, adj3 = 22500 * slideFactor;
+                        sAdj1 = undefined; adj1 = 22500 * slideFactor;
+                        sAdj2 = undefined; adj2 = 22500 * slideFactor;
+                        sAdj3 = undefined; adj3 = 22500 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2861,15 +2860,15 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "leftRightUpArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -2934,15 +2933,15 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "leftUpArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3000,15 +2999,15 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "bentUpArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3059,15 +3058,15 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "bentArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
-                        sAdj4 = undefined, adj4 = 43750 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined; adj4 = 43750 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3083,7 +3082,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        a1 = undefined, a2, a3, a4, x3, x4, y3, y4, y5, y6, maxAdj1, maxAdj4;
+                        a1 = undefined; a2, a3, a4, x3, x4, y3, y4, y5, y6, maxAdj1, maxAdj4;
                         minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
@@ -3095,7 +3094,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (adj3 < 0) a3 = 0
                         else if (adj3 > cnstVal1) a3 = cnstVal1
                         else a3 = adj3
-                        th = undefined, aw2, th2, dh2, ah, bw, bh, bs, bd, bd3, bd2,
+                        th = undefined; aw2, th2, dh2, ah, bw, bh, bs, bd, bd3, bd2,
                             th = minWH * a1 / cnstVal2;
                         aw2 = minWH * a2 / cnstVal2;
                         th2 = th / 2;
@@ -3137,16 +3136,16 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "uturnArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
-                        sAdj4 = undefined, adj4 = 43750 * slideFactor;
-                        sAdj5 = undefined, adj5 = 75000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined; adj4 = 43750 * slideFactor;
+                        sAdj5 = undefined; adj5 = 75000 * slideFactor;
                         cnstVal1 = 25000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3165,7 +3164,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        a1 = undefined, a2, a3, a4, a5, q1, q2, q3, x3, x4, x5, x6, x7, x8, x9, y4, y5, minAdj5, maxAdj1, maxAdj3, maxAdj4;
+                        a1 = undefined; a2, a3, a4, a5, q1, q2, q3, x3, x4, x5, x6, x7, x8, x9, y4, y5, minAdj5, maxAdj1, maxAdj3, maxAdj4;
                         minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
@@ -3186,7 +3185,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         else if (adj5 > cnstVal2) a5 = cnstVal2
                         else a5 = adj5
 
-                        th = undefined, aw2, th2, dh2, ah, bw, bs, bd, bd3, bd2,
+                        th = undefined; aw2, th2, dh2, ah, bw, bs, bd, bd3, bd2,
                             th = minWH * a1 / cnstVal2;
                         aw2 = minWH * a2 / cnstVal2;
                         th2 = th / 2;
@@ -3235,14 +3234,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "stripedRightArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 50000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 50000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 50000 * slideFactor;
                         cnstVal1 = 100000 * slideFactor;
                         cnstVal2 = 200000 * slideFactor;
                         cnstVal3 = 84375 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3252,7 +3251,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        a1 = undefined, a2, x4, x5, dx5, x6, dx6, y1, dy1, y2, maxAdj2, vc = h / 2;
+                        a1 = undefined; a2, x4, x5, dx5, x6, dx6, y1, dy1, y2, maxAdj2, vc = h / 2;
                         minWH = Math.min(w, h);
                         maxAdj2 = cnstVal3 * w / minWH;
                         if (adj1 < 0) a1 = 0
@@ -3293,13 +3292,13 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "notchedRightArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 50000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 50000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 50000 * slideFactor;
                         cnstVal1 = 100000 * slideFactor;
                         cnstVal2 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3309,7 +3308,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        a1 = undefined, a2, x1, x2, dx2, y1, dy1, y2, maxAdj2, vc = h / 2, hd2 = vc;
+                        a1 = undefined; a2, x1, x2, dx2, y1, dy1, y2, maxAdj2, vc = h / 2, hd2 = vc;
                         minWH = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / minWH;
                         if (adj1 < 0) a1 = 0
@@ -3345,7 +3344,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a = undefined, x1, dx1, maxAdj, vc = h / 2;
+                        a = undefined; x1, dx1, maxAdj, vc = h / 2;
                         minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
                         if (adj < 0) a = 0
@@ -3370,7 +3369,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
-                        a = undefined, x1, dx1, x2, maxAdj, vc = h / 2;
+                        a = undefined; x1, dx1, x2, maxAdj, vc = h / 2;
                         minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
                         if (adj < 0) a = 0
@@ -3393,16 +3392,16 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "rightArrowCallout":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
-                        sAdj4 = undefined, adj4 = 64977 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined; adj4 = 64977 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3418,7 +3417,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, dx3, x3, x2, x1;
+                        maxAdj2 = undefined; a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, dx3, x3, x2, x1;
                         vc = h / 2, r = w, b = h, l = 0, t = 0;
                         ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * h / ss;
@@ -3459,16 +3458,16 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "downArrowCallout":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
-                        sAdj4 = undefined, adj4 = 64977 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined; adj4 = 64977 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3484,7 +3483,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, dy3, y3, y2, y1;
+                        maxAdj2 = undefined; a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, dy3, y3, y2, y1;
                         hc = w / 2, r = w, b = h, l = 0, t = 0;
                         ss = Math.min(w, h);
 
@@ -3526,16 +3525,16 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "leftArrowCallout":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
-                        sAdj4 = undefined, adj4 = 64977 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined; adj4 = 64977 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3551,7 +3550,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, dx2, x2, x3;
+                        maxAdj2 = undefined; a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, dx2, x2, x3;
                         vc = h / 2, r = w, b = h, l = 0, t = 0;
                         ss = Math.min(w, h);
 
@@ -3593,16 +3592,16 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "upArrowCallout":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
-                        sAdj4 = undefined, adj4 = 64977 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined; adj4 = 64977 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3618,7 +3617,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, y1, dy2, y2, y3;
+                        maxAdj2 = undefined; a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, y1, dy2, y2, y3;
                         hc = w / 2, r = w, b = h, l = 0, t = 0;
                         ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / ss;
@@ -3660,16 +3659,16 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "leftRightArrowCallout":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 25000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
-                        sAdj4 = undefined, adj4 = 48123 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 25000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
+                        sAdj4 = undefined; adj4 = 48123 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3685,7 +3684,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 }
                             }
                         }
-                        maxAdj2 = undefined, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, x4, dx2, x2, x3;
+                        maxAdj2 = undefined; a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, x4, dx2, x2, x3;
                         vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
                         ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * h / ss;
@@ -3734,16 +3733,16 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "quadArrowCallout":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 18515 * slideFactor;
-                        sAdj2 = undefined, adj2 = 18515 * slideFactor;
-                        sAdj3 = undefined, adj3 = 18515 * slideFactor;
-                        sAdj4 = undefined, adj4 = 48123 * slideFactor;
+                        sAdj1 = undefined; adj1 = 18515 * slideFactor;
+                        sAdj2 = undefined; adj2 = 18515 * slideFactor;
+                        sAdj3 = undefined; adj3 = 18515 * slideFactor;
+                        sAdj4 = undefined; adj4 = 48123 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3830,14 +3829,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "curvedDownArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 50000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3852,7 +3851,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         }
                         vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         ss = Math.min(w, h);
-                        maxAdj2 = undefined, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, stAng, stAng2, swAng2, swAng3;
+                        maxAdj2 = undefined; a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, stAng, stAng2, swAng2, swAng3;
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3919,14 +3918,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "curvedLeftArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj1 = undefined; adj1 = 25000 * slideFactor;
+                        sAdj2 = undefined; adj2 = 50000 * slideFactor;
+                        sAdj3 = undefined; adj3 = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -3941,7 +3940,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         }
                         vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         ss = Math.min(w, h);
-                        maxAdj2 = undefined, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
+                        maxAdj2 = undefined; a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
 
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -4011,14 +4010,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "curvedRightArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj1 = null; adj1 = 25000 * slideFactor;
+                        sAdj2 = null; adj2 = 50000 * slideFactor;
+                        sAdj3 = null; adj3 = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -4033,8 +4032,8 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         }
                         vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         ss = Math.min(w, h);
-                        maxAdj2 = undefined, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy,
-                            y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, stAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
+                        maxAdj2 = a2 = a1 = th = aw = q1 = hR = q7 = q8 = q9 = q10 = q11 = iDx = maxAdj3 = a3 = ah = y3 = q2 = q3 = q4 = q5 = dy =
+                            y5 = y7 = q6 = dh = y4 = y8 = aw2 = y6 = x1 = swAng = stAng = mswAng = ix = iy = q12 = dang2 = swAng2 = swAng3 = stAng3 = undefined;
 
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -4078,7 +4077,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         swAng3 = Math.PI / 2 + dang2;
                         stAng3 = Math.PI - dang2;
 
-                        stAngDg, mswAngDg, swAngDg, swAng2dg;
+                        stAngDg = mswAngDg = swAngDg = swAng2dg = undefined;
                         stAngDg = stAng * 180 / Math.PI;
                         mswAngDg = mswAng * 180 / Math.PI;
                         swAngDg = swAng * 180 / Math.PI;
@@ -4104,14 +4103,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "curvedUpArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 25000 * slideFactor;
-                        sAdj2 = undefined, adj2 = 50000 * slideFactor;
-                        sAdj3 = undefined, adj3 = 25000 * slideFactor;
+                        sAdj1 = null; adj1 = 25000 * slideFactor;
+                        sAdj2 = null; adj2 = 50000 * slideFactor;
+                        sAdj3 = null; adj3 = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -4126,7 +4125,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         }
                         vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
                         ss = Math.min(w, h);
-                        maxAdj2 = undefined, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, swAng2, mswAng2, stAng3, swAng3, stAng2;
+                        maxAdj2 = a2 = a1 = th = aw = q1 = wR = q7 = q8 = q9 = q10 = q11 = idy = maxAdj3 = a3 = ah = x3 = q2 = q3 = q4 = q5 = dx = x5 = x7 = q6 = dh = x4 = x8 = aw2 = x6 = y1 = swAng = mswAng = iy = ix = q12 = dang2 = swAng2 = mswAng2 = stAng3 = swAng3 = stAng2 = undefined;
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -4171,7 +4170,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         swAng3 = swAng + dang2;
                         stAng2 = Math.PI / 2 - dang2;
 
-                        stAng2dg, swAng2dg, swAngDg, swAng2dg;
+                        stAng2dg = swAng2dg = swAngDg = swAng2dg = undefined;
                         stAng2dg = stAng2 * 180 / Math.PI;
                         swAng2dg = swAng2 * 180 / Math.PI;
                         stAng3dg = stAng3 * 180 / Math.PI;
@@ -4202,13 +4201,13 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                     case "mathNotEqual":
                     case "mathPlus":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1;
-                        sAdj2 = undefined, adj2;
-                        sAdj3 = undefined, adj3;
+                        sAdj1 = null; adj1 = 0;
+                        sAdj2 = null; adj2 = 0;
+                        sAdj3 = null; adj3 = 0;
                         if (shapAdjst_ary !== undefined) {
                             if (shapAdjst_ary.constructor === Array) {
                                 for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                    sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
                                         sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj1 = parseInt(sAdj1.substr(4));
@@ -4239,10 +4238,10 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 adj2 = (adj2 / 60000) * Math.PI / 180;
                                 adj3 = adj3 * slideFactor;
                             }
-                            a1 = undefined, crAng, a2a1, maxAdj3, a3, dy1, dy2, dx1, x1, x8, y2, y3, y1, y4,
-                                cadj2, xadj2, len, bhw, bhw2, x7, dx67, x6, dx57, x5, dx47, x4, dx37,
-                                x3, dx27, x2, rx7, rx6, rx5, rx4, rx3, rx2, dx7, rxt, lxt, rx, lx,
-                                dy3, dy4, ry, ly, dlx, drx, dly, dry, xC1, xC2, yC1, yC2, yC3, yC4;
+                            a1 = crAng = a2a1 = maxAdj3 = a3 = dy1 = dy2 = dx1 = x1 = x8 = y2 = y3 = y1 = y4 =
+                                cadj2 = xadj2 = len = bhw = bhw2 = x7 = dx67 = x6 = dx57 = x5 = dx47 = x4 = dx37 =
+                                x3 = dx27 = x2 = rx7 = rx6 = rx5 = rx4 = rx3 = rx2 = dx7 = rxt = lxt = rx = lx =
+                                dy3 = dy4 = ry = ly = dlx = drx = dly = dry = xC1 = xC2 = yC1 = yC2 = yC3 = yC4 = undefined;
                             const angVal1 = 70 * Math.PI / 180, angVal2 = 110 * Math.PI / 180;
                             const cnstVal4 = 73490 * slideFactor;
                             //const cd4 = 90;
@@ -4333,10 +4332,10 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 adj2 = adj2 * slideFactor;
                                 adj3 = adj3 * slideFactor;
                             }
-                            a1 = undefined, ma1, ma3h, ma3w, maxAdj3, a3, m4a3, maxAdj2, a2, dy1, yg, rad, dx1,
-                                y3, y4, a, y2, y1, y5, x1, x3, x2;
-cnstVal4 = 1000 * slideFactor;
-cnstVal5 = 36745 * slideFactor;
+                            a1 = ma1 = ma3h = ma3w = maxAdj3 = a3 = m4a3 = maxAdj2 = a2 = dy1 = yg = rad = dx1 =
+                                y3 = y4 = a = y2 = y1 = y5 = x1 = x3 = x2 = undefined;
+                            cnstVal4 = 1000 * slideFactor;
+                            cnstVal5 = 36745 * slideFactor;
                             const cnstVal6 = 73490 * slideFactor;
                             a1 = (adj1 < cnstVal4) ? cnstVal4 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
                             ma1 = -a1;
@@ -4399,7 +4398,7 @@ cnstVal5 = 36745 * slideFactor;
                             adj = parseInt(shapAdjst.substr(4)) * slideFactor;
                         }
                         ss = Math.min(w, h);
-                        maxAdj = undefined, a, y1, y2, y3;
+                        maxAdj = a = y1 = y2 = y3 = undefined;
                         if (shapType == "flowChartMagneticDisk" || shapType == "flowChartMagneticDrum") {
                             adj = 50000 * slideFactor;
                         }
@@ -4427,11 +4426,11 @@ cnstVal5 = 36745 * slideFactor;
                     case "swooshArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         refr = slideFactor;
-                        sAdj1 = undefined, adj1 = 25000 * refr;
-                        sAdj2 = undefined, adj2 = 16667 * refr;
+                        sAdj1 = undefined; adj1 = 25000 * refr;
+                        sAdj2 = undefined; adj2 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -4449,7 +4448,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         ssd8 = ss / 8;
                         hd6 = h / 6;
 
-                        a1 = undefined, maxAdj2, a2, ad1, ad2, xB, yB, alfa, dx0, xC, dx1, yF, xF, xE, yE, dy2, dy22, dy3, yD, dy4, yP1, xP1, dy5, yP2, xP2;
+                        a1 = maxAdj2 = a2 = ad1 = ad2 = xB = yB = alfa = dx0 = xC = dx1 = yF = xF = xE = yE = dy2 = dy22 = dy3 = yD = dy4 = yP1 = xP1 = dy5 = yP2 = xP2 = undefined;
 
                         a1 = (adj1 < cnstVal1) ? cnstVal1 : (adj1 > cnstVal3) ? cnstVal3 : adj1;
                         maxAdj2 = cnstVal2 * w / ss;
@@ -4492,14 +4491,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "circularArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 12500 * slideFactor;
-                        sAdj2 = undefined, adj2 = (1142319 / 60000) * Math.PI / 180;
-                        sAdj3 = undefined, adj3 = (20457681 / 60000) * Math.PI / 180;
-                        sAdj4 = undefined, adj4 = (10800000 / 60000) * Math.PI / 180;
-                        sAdj5 = undefined, adj5 = 12500 * slideFactor;
+                        sAdj1 = undefined; adj1 = 12500 * slideFactor;
+                        sAdj2 = undefined; adj2 = (1142319 / 60000) * Math.PI / 180;
+                        sAdj3 = undefined; adj3 = (20457681 / 60000) * Math.PI / 180;
+                        sAdj4 = undefined; adj4 = (10800000 / 60000) * Math.PI / 180;
+                        sAdj5 = undefined; adj5 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -4520,16 +4519,16 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         }
                         vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0, wd2 = w / 2, hd2 = h / 2;
                         ss = Math.min(w, h);
-                        a5 = undefined, maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH,
-                            dyH, xH, yH, rI, u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12, u13, u14, u15, u16, u17,
-                            u18, u19, u20, u21, maxAng, aAng, ptAng, wtA, htA, dxA, dyA, xA, yA, wtE, htE, dxE, dyE, xE, yE,
-                            dxG, dyG, xG, yG, dxB, dyB, xB, yB, sx1, sy1, sx2, sy2, rO, x1O, y1O, x2O, y2O, dxO, dyO, dO,
-                            q1, q2, DO, q3, q4, q5, q6, q7, q8, sdelO, ndyO, sdyO, q9, q10, q11, dxF1, q12, dxF2, adyO,
-                            q13, q14, dyF1, q15, dyF2, q16, q17, q18, q19, q20, q21, q22, dxF, dyF, sdxF, sdyF, xF, yF,
-                            x1I, y1I, x2I, y2I, dxI, dyI, dI, v1, v2, DI, v3, v4, v5, v6, v7, v8, sdelI, v9, v10, v11,
-                            dxC1, v12, dxC2, adyI, v13, v14, dyC1, v15, dyC2, v16, v17, v18, v19, v20, v21, v22, dxC, dyC,
-                            sdxC, sdyC, xC, yC, ist0, ist1, istAng, isw1, isw2, iswAng, p1, p2, p3, p4, p5, xGp, yGp,
-                            xBp, yBp, en0, en1, en2, sw0, sw1, swAng;
+                        a5 = maxAdj1 = a1 = enAng = stAng = th = thh = th2 = rw1 = rh1 = rw2 = rh2 = rw3 = rh3 = wtH = htH = dxH =
+                            dyH = xH = yH = rI = u1 = u2 = u3 = u4 = u5 = u6 = u7 = u8 = u9 = u10 = u11 = u12 = u13 = u14 = u15 = u16 = u17 =
+                            u18 = u19 = u20 = u21 = maxAng = aAng = ptAng = wtA = htA = dxA = dyA = xA = yA = wtE = htE = dxE = dyE = xE = yE =
+                            dxG = dyG = xG = yG = dxB = dyB = xB = yB = sx1 = sy1 = sx2 = sy2 = rO = x1O = y1O = x2O = y2O = dxO = dyO = dO =
+                            q1 = q2 = DO = q3 = q4 = q5 = q6 = q7 = q8 = sdelO = ndyO = sdyO = q9 = q10 = q11 = dxF1 = q12 = dxF2 = adyO =
+                            q13 = q14 = dyF1 = q15 = dyF2 = q16 = q17 = q18 = q19 = q20 = q21 = q22 = dxF = dyF = sdxF = sdyF = xF = yF =
+                            x1I = y1I = x2I = y2I = dxI = dyI = dI = v1 = v2 = DI = v3 = v4 = v5 = v6 = v7 = v8 = sdelI = v9 = v10 = v11 =
+                            dxC1 = v12 = dxC2 = adyI = v13 = v14 = dyC1 = v15 = dyC2 = v16 = v17 = v18 = v19 = v20 = v21 = v22 = dxC = dyC =
+                            sdxC = sdyC = xC = yC = ist0 = ist1 = istAng = isw1 = isw2 = iswAng = p1 = p2 = p3 = p4 = p5 = xGp = yGp =
+                            xBp = yBp = en0 = en1 = en2 = sw0 = sw1 = swAng = undefined;
                         cnstVal1 = 25000 * slideFactor;
                         cnstVal2 = 100000 * slideFactor;
                         rdAngVal1 = (1 / 60000) * Math.PI / 180;
@@ -4754,14 +4753,14 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         break;
                     case "leftCircularArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        sAdj1 = undefined, adj1 = 12500 * slideFactor;
-                        sAdj2 = undefined, adj2 = (-1142319 / 60000) * Math.PI / 180;
-                        sAdj3 = undefined, adj3 = (1142319 / 60000) * Math.PI / 180;
-                        sAdj4 = undefined, adj4 = (10800000 / 60000) * Math.PI / 180;
-                        sAdj5 = undefined, adj5 = 12500 * slideFactor;
+                        sAdj1 = undefined; adj1 = 12500 * slideFactor;
+                        sAdj2 = undefined; adj2 = (-1142319 / 60000) * Math.PI / 180;
+                        sAdj3 = undefined; adj3 = (1142319 / 60000) * Math.PI / 180;
+                        sAdj4 = undefined; adj4 = (10800000 / 60000) * Math.PI / 180;
+                        sAdj5 = undefined; adj5 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (let i = 0; i < shapAdjst_ary.length; i++) {
-sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
@@ -4787,15 +4786,15 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         rdAngVal1 = (1 / 60000) * Math.PI / 180;
                         rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
                         rdAngVal3 = 2 * Math.PI;
-                        a5 = undefined, maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH, dyH, xH, yH, rI,
-                            u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12, u13, u14, u15, u16, u17, u18, u19, u20, u21, u22,
-                            minAng, u23, a2, aAng, ptAng, wtA, htA, dxA, dyA, xA, yA, wtE, htE, dxE, dyE, xE, yE, wtD, htD, dxD, dyD,
-                            xD, yD, dxG, dyG, xG, yG, dxB, dyB, xB, yB, sx1, sy1, sx2, sy2, rO, x1O, y1O, x2O, y2O, dxO, dyO, dO,
-                            q1, q2, DO, q3, q4, q5, q6, q7, q8, sdelO, ndyO, sdyO, q9, q10, q11, dxF1, q12, dxF2, adyO, q13, q14, dyF1,
-                            q15, dyF2, q16, q17, q18, q19, q20, q21, q22, dxF, dyF, sdxF, sdyF, xF, yF, x1I, y1I, x2I, y2I, dxI, dyI, dI,
-                            v1, v2, DI, v3, v4, v5, v6, v7, v8, sdelI, v9, v10, v11, dxC1, v12, dxC2, adyI, v13, v14, dyC1, v15, dyC2, v16,
-                            v17, v18, v19, v20, v21, v22, dxC, dyC, sdxC, sdyC, xC, yC, ist0, ist1, istAng0, isw1, isw2, iswAng0, istAng,
-                            iswAng, p1, p2, p3, p4, p5, xGp, yGp, xBp, yBp, en0, en1, en2, sw0, sw1, swAng, stAng0;
+                        a5 = undefined; maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH, dyH, xH, yH, rI,
+                            u1 = u2 = u3 = u4 = u5 = u6 = u7 = u8 = u9 = u10 = u11 = u12 = u13 = u14 = u15 = u16 = u17 = u18 = u19 = u20 = u21 = u22 =
+                            minAng = u23 = a2 = aAng = ptAng = wtA = htA = dxA = dyA = xA = yA = wtE = htE = dxE = dyE = xE = yE = wtD = htD = dxD = dyD =
+                            xD = yD = dxG = dyG = xG = yG = dxB = dyB = xB = yB = sx1 = sy1 = sx2 = sy2 = rO = x1O = y1O = x2O = y2O = dxO = dyO = dO =
+                            q1 = q2 = DO = q3 = q4 = q5 = q6 = q7 = q8 = sdelO = ndyO = sdyO = q9 = q10 = q11 = dxF1 = q12 = dxF2 = adyO = q13 = q14 = dyF1 =
+                            q15 = dyF2 = q16 = q17 = q18 = q19 = q20 = q21 = q22 = dxF = dyF = sdxF = sdyF = xF = yF = x1I = y1I = x2I = y2I = dxI = dyI = dI =
+                            v1 = v2 = DI = v3 = v4 = v5 = v6 = v7 = v8 = sdelI = v9 = v10 = v11 = dxC1 = v12 = dxC2 = adyI = v13 = v14 = dyC1 = v15 = dyC2 = v16 =
+                            v17 = v18 = v19 = v20 = v21 = v22 = dxC = dyC = sdxC = sdyC = xC = yC = ist0 = ist1 = istAng0 = isw1 = isw2 = iswAng0 = istAng =
+                            iswAng = p1 = p2 = p3 = p4 = p5 = xGp = yGp = xBp = yBp = en0 = en1 = en2 = sw0 = sw1 = swAng = stAng0 = undefined;
 
                         a5 = (adj5 < 0) ? 0 : (adj5 > cnstVal1) ? cnstVal1 : adj5;
                         maxAdj1 = a5 * 2;
@@ -5080,7 +5079,7 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                         const moveToPtNode = moveToNode[key]["a:pt"];
                         if (moveToPtNode !== undefined) {
                             Object.keys(moveToPtNode).forEach(function (key2) {
-                                ptObj = {};
+                                const ptObj = {};
                                 const moveToNoPt = moveToPtNode[key2];
                                 const spX = moveToNoPt["attrs", "x"];//parseInt(moveToNoPt["attrs", "x"]) * slideFactor;
                                 const spY = moveToNoPt["attrs", "y"];//parseInt(moveToNoPt["attrs", "y"]) * slideFactor;
@@ -5101,11 +5100,11 @@ sAdj_name = PPTXUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                             const lnToPtNode = lnToNodes[key]["a:pt"];
                             if (lnToPtNode !== undefined) {
                                 Object.keys(lnToPtNode).forEach(function (key2) {
-ptObj = {};
+const ptObj = {};
                                     const lnToNoPt = lnToPtNode[key2];
                                     const ptX = lnToNoPt["attrs", "x"];
                                     const ptY = lnToNoPt["attrs", "y"];
-ptOrdr = lnToNoPt["attrs", "order"];
+const ptOrdr = lnToNoPt["attrs", "order"];
                                     ptObj.type = "lnto";
                                     ptObj.order = ptOrdr;
                                     ptObj.x = ptX;
@@ -5163,7 +5162,7 @@ ptOrdr = lnToNoPt["attrs", "order"];
                             shftY = arcToPtNode["y"];
                             //console.log("shftX: ",shftX," shftY: ",shftY)
                         }
-ptObj = {};
+const ptObj = {};
                         ptObj.type = "arcTo";
                         ptObj.order = arcOrder;
                         ptObj.hR = hR;
@@ -5192,7 +5191,7 @@ ptObj = {};
                             const clsAttrs = closeNode[key]["attrs"];
                             //const clsAttrs = closeNode["attrs"];
                             const clsOrder = clsAttrs["order"];
-ptObj = {};
+const ptObj = {};
                             ptObj.type = "close";
                             ptObj.order = clsOrder;
                             multiSapeAry.push(ptObj);
