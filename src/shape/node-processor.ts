@@ -11,7 +11,7 @@ import { PPTXUtils } from '../core/utils.js';
  * @param {Function} genShape - 形状生成函数
  * @returns {string} 生成的HTML字符串
  */
-function processSpNode(node: any, pNode: any, warpObj: any, source: string, sType: string, genShape: Function): string {
+async function processSpNode(node: any, pNode: any, warpObj: any, source: string, sType: string, genShape: Function): Promise<string> {
     /*
     *  958    <xsd:complexType name="CT_GvmlShape">
     *  959   <xsd:sequence>
@@ -74,7 +74,7 @@ function processSpNode(node: any, pNode: any, warpObj: any, source: string, sTyp
         }
     }
     //console.log("processSpNode type:", type, "idx:", idx);
-    return genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source);
+    return await genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source);
 }
 
 /**
@@ -88,7 +88,7 @@ function processSpNode(node: any, pNode: any, warpObj: any, source: string, sTyp
  * @param {Function} genShape - 形状生成函数
  * @returns {string} 生成的HTML字符串
  */
-function processCxnSpNode(node: any, pNode: any, warpObj: any, source: string, sType: string, genShape: Function): string {
+async function processCxnSpNode(node: any, pNode: any, warpObj: any, source: string, sType: string, genShape: Function): Promise<string> {
     const id: any = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["id"];
     const name: any = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["name"];
     const idx: any = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["idx"];
@@ -96,7 +96,7 @@ function processCxnSpNode(node: any, pNode: any, warpObj: any, source: string, s
     //<p:cNvCxnSpPr>(<p:cNvCxnSpPr>, <a:endCxn>)
     const order: any = node["attrs"]["order"];
 
-    return genShape(node, pNode, undefined, undefined, id, name, idx, type, order, warpObj, undefined, sType, source);
+    return await genShape(node, pNode, undefined, undefined, id, name, idx, type, order, warpObj, undefined, sType, source);
 }
 
 export { processSpNode, processCxnSpNode };

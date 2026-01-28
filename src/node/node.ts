@@ -17,10 +17,10 @@ class PPTXNodeUtils {
 
         switch (nodeKey) {
             case "p:sp":    // Shape, Text
-                result = handlers.processSpNode(nodeValue, nodes, warpObj, source, sType);
+                result = await handlers.processSpNode(nodeValue, nodes, warpObj, source, sType);
                 break;
             case "p:cxnSp":    // Shape, Text (with connection)
-                result = handlers.processCxnSpNode(nodeValue, nodes, warpObj, source, sType);
+                result = await handlers.processCxnSpNode(nodeValue, nodes, warpObj, source, sType);
                 break;
             case "p:pic":    // Picture
                 result = handlers.processPicNode(nodeValue, warpObj, source, sType);
@@ -29,7 +29,7 @@ class PPTXNodeUtils {
                 result = await handlers.processGraphicFrameNode(nodeValue, warpObj, source, sType);
                 break;
             case "p:grpSp":
-                result = handlers.processGroupSpNode(nodeValue, warpObj, source);
+                result = await handlers.processGroupSpNode(nodeValue, warpObj, source);
                 break;
             case "mc:AlternateContent": // Equations and formulas as Image
                 const mcFallbackNode = PPTXUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
@@ -51,7 +51,7 @@ class PPTXNodeUtils {
      * @param {Function} processNodesInSlide - 处理幻灯片节点的函数
      * @returns {string} HTML字符串
      */
-    static processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide) {
+    static async processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide) {
         let result = "";
         const xfrmNode = PPTXUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
         let top, left, width, height;
@@ -139,10 +139,10 @@ class PPTXNodeUtils {
         for (const nodeKey in node) {
             if (node[nodeKey].constructor === Array) {
                 for (let i = 0; i < node[nodeKey].length; i++) {
-                    result += processNodesInSlide(nodeKey, node[nodeKey][i], node, warpObj, source, sType);
+                    result += await processNodesInSlide(nodeKey, node[nodeKey][i], node, warpObj, source, sType);
                 }
             } else if (typeof node[nodeKey] === 'object' && nodeKey !== "attrs") {
-                result += processNodesInSlide(nodeKey, node[nodeKey], node, warpObj, source, sType);
+                result += await processNodesInSlide(nodeKey, node[nodeKey], node, warpObj, source, sType);
             }
         }
 

@@ -194,13 +194,13 @@ PPTXImageUtils.processGraphicFrameNode = async function(node: any, warpObj: any,
 
     switch (graphicTypeUri) {
         case "http://schemas.openxmlformats.org/drawingml/2006/table":
-            result = genTableInternal(node, warpObj);
+            result = await genTableInternal(node, warpObj);
             break;
         case "http://schemas.openxmlformats.org/drawingml/2006/chart":
             result = await PPTXHtml.genChart(node, warpObj);
             break;
         case "http://schemas.openxmlformats.org/drawingml/2006/diagram":
-            result = genDiagram(node, warpObj, source, sType);
+            result = await genDiagram(node, warpObj, source, sType);
             break;
         case "http://schemas.openxmlformats.org/presentationml/2006/ole":
             let oleObjNode: any = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "mc:AlternateContent", "mc:Fallback", "p:oleObj"]);
@@ -208,7 +208,7 @@ PPTXImageUtils.processGraphicFrameNode = async function(node: any, warpObj: any,
                 oleObjNode = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "p:oleObj"]);
             }
             if (oleObjNode !== undefined) {
-                result = processGroupSpNode(oleObjNode, warpObj, source);
+                result = await processGroupSpNode(oleObjNode, warpObj, source);
             }
             break;
         default:

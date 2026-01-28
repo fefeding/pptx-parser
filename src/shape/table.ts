@@ -61,7 +61,7 @@ class PPTXTableUtils {
      * @param {Object} styleTable - The style table object
      * @returns {String} Table HTML string
      */
-    static genTableInternal(node: any, warpObj: any, styleTable: any): string {
+    static async genTableInternal(node: any, warpObj: any, styleTable: any): Promise<string> {
         const order: any = node["attrs"]["order"];
         const tableNode: any = PPTXUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
         const xfrmNode: any = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
@@ -443,7 +443,7 @@ class PPTXTableUtils {
      * @param {Object} styleTable - The style table object
      * @returns {Array} [text, colStyl, cssName, rowSpan, colSpan]
      */
-    static getTableCellParams(tcNodes: any, getColsGrid: any, row_idx: number, col_idx: number | undefined, thisTblStyle: any, cellSource: string | undefined, warpObj: any, styleTable: any): any[] {
+    static async getTableCellParams(tcNodes: any, getColsGrid: any, row_idx: number, col_idx: number | undefined, thisTblStyle: any, cellSource: string | undefined, warpObj: any, styleTable: any): Promise<any[]> {
         //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
         //text, cell-width, cell-borders,
         //const text = genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
@@ -475,7 +475,7 @@ class PPTXTableUtils {
         }
 
 
-        const text: string = PPTXTextElementUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width, styleTable);//tableStyles
+        const text: string = await PPTXTextElementUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width, styleTable);//tableStyles
 
         if (total_col_width != 0 /*&& row_idx == 0*/) {
             colWidth = parseInt(total_col_width) * PPTXConstants.SLIDE_FACTOR;

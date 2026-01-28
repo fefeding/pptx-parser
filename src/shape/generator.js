@@ -44,7 +44,7 @@ import { PPTXMathShapes } from './math';
          * @param {string} source - 来源标识
          * @returns {string} 形状的SVG HTML字符串
          */
-        function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, styleTable={}) {
+        async function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, styleTable={}) {
             //const dltX = 0;
             //const dltY = 0;
             let result = "";
@@ -5053,7 +5053,7 @@ import { PPTXMathShapes } from './math';
                     if (type != "diagram" && type != "textBox") {
                         type = "shape";
                     }
-                    result += PPTXTextElementUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, undefined, styleTable); //type='shape'
+                    result += await PPTXTextElementUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, undefined, styleTable); //type='shape'
                 }
                 result += "</div>";
             } else if (custShapType !== undefined) {

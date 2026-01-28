@@ -235,13 +235,13 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
     async function processNodesInSlide(nodeKey: string, nodeValue: any, nodes: any, warpObj: any, source: any, sType: any): Promise<string> {
         const handlers: ProcessNodeHandlers = {
             processSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => {
-                return processSpNodeModule(node, pNode, warpObj, source, sType, (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
-                    return genShapeModule(n, pn, sLSN, sMSN, id, nm, idx, typ, ord, wo, uDBg, sTy, src, styleTable);
+                return processSpNodeModule(node, pNode, warpObj, source, sType, async (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
+                    return await genShapeModule(n, pn, sLSN, sMSN, id, nm, idx, typ, ord, wo, uDBg, sTy, src, styleTable);
                 });
             },
             processCxnSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => {
-                return processCxnSpNodeModule(node, pNode, warpObj, source, sType, (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
-                    return genShapeModule(n, pn, undefined, undefined, id, nm, idx, typ, ord, wo, undefined, sTy, src, styleTable);
+                return processCxnSpNodeModule(node, pNode, warpObj, source, sType, async (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
+                    return await genShapeModule(n, pn, undefined, undefined, id, nm, idx, typ, ord, wo, undefined, sTy, src, styleTable);
                 });
             },
             processPicNode,
@@ -252,7 +252,7 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
     }
     
     async function processGroupSpNode(node: any, warpObj: any, source: any): Promise<string> {
-        return (PPTXNodeUtils as any).processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide);
+        return await (PPTXNodeUtils as any).processGroupSpNode(node, warpObj, source, slideFactor, processNodesInSlide);
     }
     
     // processSpNode 和 processCxnSpNode 已移至 pptx-shape-node-processor.js 模块
@@ -398,13 +398,13 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
     }
     
     // genGlobalCSS 已移至 PPTXCSSUtils 模块
-    function genTableInternal(node: any, warpObj: any): string {
-        return (PPTXTableUtils as any).genTableInternal(node, warpObj, styleTable);
+    async function genTableInternal(node: any, warpObj: any): Promise<string> {
+        return await (PPTXTableUtils as any).genTableInternal(node, warpObj, styleTable);
     }
     
-    function genDiagram(node: any, warpObj: any, source: any, sType: any): string {
+    async function genDiagram(node: any, warpObj: any, source: any, sType: any): Promise<string> {
         const readXmlFileFunc = PPTXParser && (PPTXParser as any).readXmlFile ? (PPTXParser as any).readXmlFile : () => null;
-        return (PPTXDiagramUtils as any).genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, null);
+        return await (PPTXDiagramUtils as any).genDiagram(node, warpObj, source, sType, readXmlFileFunc, getPosition, getSize, null);
     }
     
     async function getBackground(warpObj: any, slideSize: any, index: number): Promise<string> {
