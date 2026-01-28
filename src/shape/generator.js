@@ -7,7 +7,7 @@
  */
 
 import { PPTXUtils } from '../core/utils';
-import { PPTXConstants } from '../core/constants'
+import { PPTXConstants } from '../core/constants';
 import { PPTXShapePropertyExtractor } from './property-extractor';
 import { PPTXShapeFillsUtils } from './fills';
 import { PPTXStyleManager } from '../core/style-manager';
@@ -225,7 +225,7 @@ import { PPTXMathShapes } from './math';
                 //console.log("shapType: ", shapType)
                 let d = "", d_val, points, d1;
                 let x1, x2, y1, y2, c3d4, cd4, cd2, wd2, hd2;
-                let fillAttr, shapAdjst, shapAdjst_ary, sAdj1, sAdj2, sAdj3, sAdj1_val, sAdj2_val, sAdj_name;
+                let fillAttr, shapAdjst, shapAdjst_ary, shapAdjst_val, sAdj1, sAdj2, sAdj3, sAdj1_val, sAdj2_val, sAdj_name;
                 let tranglRott, adjst_val, max_adj_const;
                 let adj, adj1, adj2, adj3, adj4, adj5, adj6, adj7, adj8;
                 let cnstVal, cnstVal1, cnstVal2, cnstVal3, cnstVal4, cnstVal5;
@@ -249,22 +249,29 @@ import { PPTXMathShapes } from './math';
                 let prcnt, dfltBultSizeNoPt, font_val;
                 let offAttrs;
                 switch (shapType) {
-                    case "rect":
+                    case "rect": {
+                        result += PPTXBasicShapes.genRectWithDecoration(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, shapType);
+                        break;
+                    }
                     case "flowChartProcess":
                     case "flowChartPredefinedProcess":
                     case "flowChartInternalStorage":
-                    case "actionButtonBlank":
+                    case "actionButtonBlank": {
                         result += PPTXBasicShapes.genRectWithDecoration(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, shapType);
                         break;
-                    case "flowChartCollate":
+                    }
+                    case "flowChartCollate": {
                         result += PPTXFlowchartShapes.genFlowChartCollate(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
-                    case "flowChartDocument":
+                    }
+                    case "flowChartDocument": {
                         result += PPTXFlowchartShapes.genFlowChartDocument(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
-                    case "flowChartMultidocument":
+                    }
+                    case "flowChartMultidocument": {
                         result += PPTXFlowchartShapes.genFlowChartMultidocument(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
+                    }
                     case "actionButtonBackPrevious":
                         result += PPTXActionButtonShapes.genActionButtonBackPrevious(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                         break;
@@ -436,7 +443,7 @@ import { PPTXMathShapes } from './math';
                         break;
                     case "flowChartMagneticTape":
                         wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
-                        let idy, ib, ang1, ang1Dg;
+                        idy, ib, ang1, ang1Dg;
                         idy = hd2 * Math.sin(Math.PI / 4);
                         ib = hd2 + idy;
                         ang1 = Math.atan(h / w);
@@ -4101,7 +4108,7 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "curvedUpArrow":
+                    case "curvedUpArrow": {
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         sAdj1 = null; adj1 = 25000 * slideFactor;
                         sAdj2 = null; adj2 = 50000 * slideFactor;
@@ -4170,7 +4177,7 @@ import { PPTXMathShapes } from './math';
                         swAng3 = swAng + dang2;
                         stAng2 = Math.PI / 2 - dang2;
 
-                        stAng2dg = undefined; swAng2dg = undefined; swAngDg = undefined;
+                        let stAng2dg = undefined, swAng2dg = undefined, stAng3dg, swAngDg = undefined;
                         stAng2dg = stAng2 * 180 / Math.PI;
                         swAng2dg = swAng2 * 180 / Math.PI;
                         stAng3dg = stAng3 * 180 / Math.PI;
@@ -4194,12 +4201,13 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "mathDivide":
                     case "mathEqual":
                     case "mathMinus":
                     case "mathMultiply":
                     case "mathNotEqual":
-                    case "mathPlus":
+                    case "mathPlus": {
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         sAdj1 = null; adj1 = 0;
                         sAdj2 = null; adj2 = 0;
@@ -4387,9 +4395,10 @@ import { PPTXMathShapes } from './math';
 
                         //console.log(shapType);
                         break;
+                    }
                     case "can":
                     case "flowChartMagneticDisk":
-                    case "flowChartMagneticDrum":
+                    case "flowChartMagneticDrum": {
                         shapAdjst = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         adj = 25000 * slideFactor;
                         cnstVal1 = 50000 * slideFactor;
@@ -4423,7 +4432,8 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "swooshArrow":
+                    }
+                    case "swooshArrow": {
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         refr = slideFactor;
                         sAdj1 = undefined; adj1 = 25000 * refr;
@@ -4489,7 +4499,8 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "circularArrow":
+                    }
+                    case "circularArrow": {
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         sAdj1 = undefined; adj1 = 12500 * slideFactor;
                         sAdj2 = undefined; adj2 = (1142319 / 60000) * Math.PI / 180;
@@ -4751,7 +4762,8 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "leftCircularArrow":
+                    }
+                    case "leftCircularArrow": {
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         sAdj1 = undefined; adj1 = 12500 * slideFactor;
                         sAdj2 = undefined; adj2 = (-1142319 / 60000) * Math.PI / 180;
@@ -5006,6 +5018,7 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "leftRightCircularArrow":
                     case "chartPlus":
                     case "chartStar":
@@ -5018,8 +5031,9 @@ import { PPTXMathShapes } from './math';
                     case "nonIsoscelesTrapezoid":
                     case "plaqueTabs":
                     case "squareTabs":
-                    case "upDownArrowCallout":
+                    case "upDownArrowCallout": {
                         break;
+                    }
                     case undefined:
                     default:
                 }
