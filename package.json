@@ -47,7 +47,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "html-escaper": "^3.0.3",
     "jszip": "^3.10.1",
     "tinycolor2": "^1.6.0",
     "xmldom": "^0.6.0"

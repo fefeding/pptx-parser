@@ -1559,7 +1559,6 @@ import { PPTXMathShapes } from './math';
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        let a1;
                         if (adj1 < cnstVal1) a1 = cnstVal1
                         else if (adj1 > cnstVal2) a1 = cnstVal2
                         else a1 = adj1
@@ -3916,7 +3915,7 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "curvedLeftArrow":
+                    case "curvedLeftArrow": {
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         sAdj1 = undefined; adj1 = 25000 * slideFactor;
                         sAdj2 = undefined; adj2 = 50000 * slideFactor;
@@ -4008,6 +4007,7 @@ import { PPTXMathShapes } from './math';
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "curvedRightArrow":
                         shapAdjst_ary = PPTXUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         sAdj1 = null; adj1 = 25000 * slideFactor;
@@ -4077,10 +4077,10 @@ import { PPTXMathShapes } from './math';
                         swAng3 = Math.PI / 2 + dang2;
                         stAng3 = Math.PI - dang2;
 
-                        stAngDg = undefined; mswAngDg = undefined; swAngDg = undefined; swAng2dg = undefined;
+                        let stAngDg = undefined, mswAngDg = undefined, swAng2dg = undefined;
                         stAngDg = stAng * 180 / Math.PI;
                         mswAngDg = mswAng * 180 / Math.PI;
-                        swAngDg = swAng * 180 / Math.PI;
+                        let swAngDg = swAng * 180 / Math.PI;
                         swAng2dg = swAng2 * 180 / Math.PI;
 
                         d_val = "M" + l + "," + hR +

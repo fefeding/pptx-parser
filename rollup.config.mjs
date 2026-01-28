@@ -53,8 +53,7 @@ export default [
       sourcemap: true,
       globals: {
         'jszip': 'JSZip',
-        'tinycolor2': 'tinycolor',
-        'html-escaper': 'HTMLEscaper'
+        'tinycolor2': 'tinycolor'
       }
     },
     plugins: [
