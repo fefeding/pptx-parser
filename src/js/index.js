@@ -409,5 +409,22 @@ function pptxToHtml(file, options) {
     return convertToHtml(file);
 }
 
+// Enhanced API functions
+async function parsePptx(file, options = {}) {
+    const result = await pptxToHtml(file, options);
+    
+    // Return structured data as per new API specification
+    return {
+        html: result.html || result,
+        slides: result.slides || [],
+        size: result.slideSize || { width: 0, height: 0 },
+        thumb: result.thumb || null,
+        globalCSS: result.css || '',
+        title: options.title || 'Presentation',
+        author: options.author || 'Unknown',
+        elements: []
+    };
+}
+
 // Export for use in ES6 modules
-export { pptxToHtml };
+export { pptxToHtml, parsePptx };

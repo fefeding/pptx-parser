@@ -32,13 +32,13 @@ class PPTXTextElementUtils {
 
     var text = node["a:t"];
 
-    var openElemnt = "<sapn";
-    var closeElemnt = "</sapn>";
+    var openElemnt = "<span";
+    var closeElemnt = "</span>";
     var styleText = "";
     if (text === undefined && node["type"] !== undefined) {
         if (PPTXTextElementUtils.isFirstBreak()) {
             PPTXTextElementUtils.setFirstBreak(false);
-            return "<sapn class='line-break-br' ></sapn>";
+            return "<span class='line-break-br' ></span>";
         }
 
         styleText += "display: block;";

@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { pptxToHtml } from '@fefeding/ppt-parser'
+import { parsePptx } from '@fefeding/ppt-parser'
 
 const loading = ref(false)
 const error = ref('')
@@ -46,16 +46,14 @@ async function handleFileUpload(event: Event) {
   htmlContent.value = ''
 
   try {
-
-    // 使用新版本的API直接渲染
-    const html = await pptxToHtml({
-      pptxFileUrl: file,
+    // 使用新版本的API解析PPTX文件
+    const result = await parsePptx(file, {
       parseImages: true,
       verbose: true
     })
 
-    // 获取生成的HTML内容
-    htmlContent.value = html
+    // 生成HTML内容
+    htmlContent.value = result.html || ''
 
   } catch (e) {
     error.value = e instanceof Error ? e.message : '解析失败'
