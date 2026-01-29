@@ -22,7 +22,7 @@ class PPTXTextElementUtils {
      * @param {Object} styleTable - 样式表对象
      * @returns {String} HTML span 元素
      */
-    static async genSpanElement(node: any, rIndex: number, pNode: any, textBodyNode: any, pFontStyle: any, slideLayoutSpNode: any, idx: number, type: string, rNodeLength: number, warpObj: any, isBullate: boolean, styleTable: any): Promise<string> {
+    static genSpanElement(node: any, rIndex: number, pNode: any, textBodyNode: any, pFontStyle: any, slideLayoutSpNode: any, idx: number, type: string, rNodeLength: number, warpObj: any, isBullate: boolean, styleTable: any): string {
         // 需要的依赖变量: rtl_langs_array, styleTable, is_first_br
         // 这些变量需要通过参数传递或从模块中获取
         let text_style: string = "";
@@ -31,13 +31,13 @@ class PPTXTextElementUtils {
 
         let text: any = node["a:t"];
 
-        let openElemnt: string = "<sapn";
-        let closeElemnt: string = "</sapn>";
+        let openElemnt: string = "<span";
+        let closeElemnt: string = "</span>";
         let styleText: string = "";
         if (text === undefined && node["type"] !== undefined) {
             if (PPTXTextElementUtils.isFirstBreak()) {
                 PPTXTextElementUtils.setFirstBreak(false);
-                return "<sapn class='line-break-br' ></sapn>";
+                return "<span class='line-break-br' ></span>";
             }
 
             styleText += "display: block;";
@@ -240,7 +240,7 @@ class PPTXTextElementUtils {
      * @param {Object} styleTable - 样式表对象
      * @returns {String} HTML文本
      */
-    static async genTextBody(textBodyNode: any, spNode: any, slideLayoutSpNode: any, slideMasterSpNode: any, type: string, idx: number, warpObj: any, tbl_col_width: number, styleTable: any): Promise<string> {
+    static genTextBody(textBodyNode: any, spNode: any, slideLayoutSpNode: any, slideMasterSpNode: any, type: string, idx: number, warpObj: any, tbl_col_width: number, styleTable: any): string {
         let text: string = "";
         const slideMasterTextStyles: any = warpObj["slideMasterTextStyles"];
 
@@ -319,7 +319,7 @@ class PPTXTextElementUtils {
             let prg_dir: string = PPTXTextStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
             text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXTextStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + " " +
                 prg_dir + " " + cssName + "' >";
-            let buText_ary: any = await PPTXBulletUtils.genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
+            let buText_ary: any = PPTXBulletUtils.genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
             let isBullate: boolean = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
             let bu_width: number = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
             text += (buText_ary[0] !== undefined) ? buText_ary[0]:"";
@@ -337,7 +337,7 @@ class PPTXTextElementUtils {
             let total_text_len: number = 0;
             if (rNode === undefined && pNode !== undefined) {
                 // without r
-                let prgr_text: string = await PPTXTextElementUtils.genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate, styleTable);
+                let prgr_text: string = PPTXTextElementUtils.genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate, styleTable);
                 if (isBullate) {
                     // Note: DOM manipulation in Node.js might not work, assuming browser environment
                     // This code assumes browser environment for offsetWidth
@@ -347,7 +347,7 @@ class PPTXTextElementUtils {
             } else if (rNode !== undefined) {
                 // with multi r
                 for (let j: number = 0; j < rNode.length; j++) {
-                    const prgr_text: string = await PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate, styleTable);
+                    const prgr_text: string = PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate, styleTable);
                     if (isBullate) {
                         // Same note as above
                     }

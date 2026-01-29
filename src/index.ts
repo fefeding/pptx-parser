@@ -419,5 +419,33 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
     return convertToHtml(file);
 }
 
+interface ParsePptxResult {
+    html: string;
+    css: string;
+    slides: any[];
+    size: {
+        width: number;
+        height: number;
+    };
+    globalCSS: string;
+}
+
+/**
+ * 解析PPTX文件并返回结构化数据
+ * @param file - 输入文件 (File | Blob | ArrayBuffer)
+ * @returns 包含HTML、CSS、幻灯片数据和尺寸的对象
+ */
+async function parsePptx(file: File | Blob | ArrayBuffer): Promise<ParsePptxResult> {
+    const result = await pptxToHtml(file);
+    
+    return {
+        html: result.html,
+        css: result.css,
+        slides: result.slides,
+        size: result.slideSize,
+        globalCSS: result.css
+    };
+}
+
 // Export for use in ES6 modules
-export { pptxToHtml };
+export { pptxToHtml, parsePptx };

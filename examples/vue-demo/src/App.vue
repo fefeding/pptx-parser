@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { pptxToHtml } from '@fefeding/ppt-parser'
+import { parsePptx } from '@fefeding/ppt-parser'
 
 const loading = ref(false)
 const error = ref('')
@@ -46,16 +46,10 @@ const htmlContent = ref('')
       htmlContent.value = ''
 
       try {
-        // 使用本地重构后的 API：第一个参数是 File，第二个参数是配置项
-        const result = await pptxToHtml(file, {
-          mediaProcess: true, // 对应原来的 parseImages
-          onProgress: (percent: number) => {
-            // 可以接上 verbose 的逻辑，这里简单打印
-            if (percent % 20 === 0) console.log(`解析进度: ${percent}%`)
-          }
-        })
+        // 使用新的 parsePptx API：返回结构化数据
+        const result = await parsePptx(file)
 
-        // 新 API 返回 { html, css, slides, ... }，我们取 html 字段显示
+        // 从新 API 获取 HTML 内容
         htmlContent.value = result.html
 
       } catch (e) {

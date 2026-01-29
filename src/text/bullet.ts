@@ -20,7 +20,7 @@ class PPTXBulletUtils {
      * @param {Object} warpObj - 包装对象
      * @returns {Array} 返回项目符号HTML、边距值、字体值
      */
-    static async genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
+    static genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
     //console.log("genBuChar node: ", node, ", spNode: ", spNode, ", pFontStyle: ", pFontStyle, "type", type)
     ///////////////////////////////////////Amir///////////////////////////////
     var sldMstrTxtStyles: any = warpObj["slideMasterTextStyles"];
@@ -476,7 +476,7 @@ class PPTXBulletUtils {
             if (!imgFile) {
                 buImg = "&#8227;";
             } else {
-                var imgArrayBuffer: any = await imgFile.async('arraybuffer');
+                var imgArrayBuffer: any = imgFile.asArrayBuffer();
                 var imgExt: any = imgPath.split(".").pop();
                 var imgMimeType: any = PPTXUtils.getMimeType(imgExt);
                 buImg = "<img src='" + PPTXUtils.arrayBufferToBlobUrl(imgArrayBuffer, imgMimeType) + "' style='width: 100%;'/>";// height: 100%
