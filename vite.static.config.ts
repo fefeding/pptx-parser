@@ -32,19 +32,37 @@ export default defineConfig({
           const fullPath = resolve(__dirname, filePath)
           
           try {
+            console.log('Serving file from examples directory:', fullPath);
             if (fs.existsSync(fullPath)) {
-              // 读取文件内容
-              const content = fs.readFileSync(fullPath)
-              // 设置适当的 Content-Type
-              if (fullPath.endsWith('.html')) {
-                res.setHeader('Content-Type', 'text/html; charset=utf-8')
-              } else if (fullPath.endsWith('.js')) {
-                res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
-              } else if (fullPath.endsWith('.css')) {
-                res.setHeader('Content-Type', 'text/css; charset=utf-8')
+              const stats = fs.statSync(fullPath);
+              
+              // 检查路径是否为文件而不是目录
+              if (stats.isFile()) {
+                // 读取文件内容
+                const content = fs.readFileSync(fullPath)
+                // 设置适当的 Content-Type
+                if (fullPath.endsWith('.html')) {
+                  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+                } else if (fullPath.endsWith('.js')) {
+                  res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
+                } else if (fullPath.endsWith('.css')) {
+                  res.setHeader('Content-Type', 'text/css; charset=utf-8')
+                }
+                // 发送响应
+                res.end(content)
+              } else if (stats.isDirectory()) {
+                // 如果是目录，尝试读取目录下的index.html文件
+                const indexPath = resolve(fullPath, 'index.html')
+                if (fs.existsSync(indexPath)) {
+                  const content = fs.readFileSync(indexPath)
+                  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+                  res.end(content)
+                } else {
+                  next() // 目录中没有index.html，继续下一个中间件
+                }
+              } else {
+                next() // 不是文件也不是目录，继续下一个中间件
               }
-              // 发送响应
-              res.end(content)
             } else {
               // 文件不存在，继续到下一个中间件
               next()
