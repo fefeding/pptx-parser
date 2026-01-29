@@ -52,7 +52,10 @@ export default defineConfig({
                 res.end(content)
               } else if (stats.isDirectory()) {
                 // 如果是目录，尝试读取目录下的index.html文件
-                const indexPath = resolve(fullPath, 'index.html')
+                let indexPath = resolve(fullPath, 'index.html');
+                if (!fs.existsSync(indexPath)) {
+                  indexPath = resolve(__dirname, 'examples/index.html');
+                }
                 if (fs.existsSync(indexPath)) {
                   const content = fs.readFileSync(indexPath)
                   res.setHeader('Content-Type', 'text/html; charset=utf-8')

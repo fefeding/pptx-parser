@@ -87,9 +87,9 @@ function shapeArc(cX, cY, rX, rY, stAng, endAng, isClose) {
     let x, y;
     if (endAng >= stAng) {
         while (angle <= endAng) {
-            let radians = angle * (Math.PI / 180);
-x = cX + Math.cos(radians) * rX;
-y = cY + Math.sin(radians) * rY;
+            const radians = angle * (Math.PI / 180);
+            x = cX + Math.cos(radians) * rX;
+            y = cY + Math.sin(radians) * rY;
             if (angle === stAng) {
                 dData = ` M${x} ${y}`;
             }
@@ -98,9 +98,9 @@ y = cY + Math.sin(radians) * rY;
         }
     } else {
         while (angle > endAng) {
-radians = angle * (Math.PI / 180);
-x = cX + Math.cos(radians) * rX;
-y = cY + Math.sin(radians) * rY;
+            const radians = angle * (Math.PI / 180);
+            x = cX + Math.cos(radians) * rX;
+            y = cY + Math.sin(radians) * rY;
             if (angle === stAng) {
                 dData = ` M ${x} ${y}`;
             }
