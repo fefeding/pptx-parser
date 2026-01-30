@@ -433,6 +433,7 @@ interface ParsePptxResult {
         height: number;
     };
     globalCSS: string;
+    chartQueue: any[];
 }
 
 /**
@@ -448,9 +449,10 @@ async function parsePptx(file: File | Blob | ArrayBuffer): Promise<ParsePptxResu
         css: result.css,
         slides: result.slides,
         size: result.slideSize,
-        globalCSS: result.css
+        globalCSS: result.css,
+        chartQueue: result.chartQueue
     };
 }
 
 // Export for use in ES6 modules
-export { pptxToHtml, parsePptx };
+export { pptxToHtml, parsePptx, PPTXHtml };

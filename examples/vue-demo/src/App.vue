@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { parsePptx } from '@fefeding/ppt-parser'
+import { parsePptx, PPTXHtml } from '@fefeding/ppt-parser'
 
 const loading = ref(false)
 const error = ref('')
@@ -53,6 +53,18 @@ const htmlContent = ref('')
        // htmlContent.value = result.html;
         document.getElementById('slide-container').innerHTML = `<style>${result.css}</style>${result.html}`;
 
+        debugger
+        // 处理数字列表
+        if (typeof PPTXHtml.setNumericBullets !== 'undefined') {
+          PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));
+          PPTXHtml.setNumericBullets(document.querySelectorAll("table td"));
+        }
+        
+        // 处理图表队列（必须在HTML插入DOM之后）
+        if (result.chartQueue && result.chartQueue.length > 0) {
+          console.log("Processing chart queue with", result.chartQueue.length, "charts");
+          PPTXHtml.processMsgQueue(result.chartQueue);
+        }
       } catch (e) {
         error.value = e instanceof Error ? e.message : '解析失败'
         console.error('PPTX解析失败:', e)

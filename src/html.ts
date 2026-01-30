@@ -295,7 +295,7 @@ function genTable(node, warpObj) {
  * @param {Object} warpObj - 包装对象
  * @returns {string} 图表 HTML 字符串
  */
-async function genChart(node, warpObj) {
+function genChart(node, warpObj) {
     const order = node["attrs"]["order"];
     const xfrmNode = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
     const readXmlFile = PPTXParser ? PPTXParser.readXmlFile : (() => null);
@@ -303,7 +303,7 @@ async function genChart(node, warpObj) {
     const rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
     const refName = warpObj["slideResObj"][rid]["target"];
     // 读取图表文件
-    const content = await readXmlFile(warpObj["zip"], refName);
+    const content = readXmlFile(warpObj["zip"], refName);
     if (!content) {
         chartID++;
         return result;
@@ -663,6 +663,7 @@ function processSingleMsg(d: any): boolean {
     // 检查外部图表库是否可用
     // @ts-ignore - External libraries nv and d3
     if (typeof (globalThis as any).nv === 'undefined' || typeof (globalThis as any).d3 === 'undefined') {
+        console.warn('External chart libraries nv and d3 are not available.');
         return false;
     }
     // @ts-ignore
