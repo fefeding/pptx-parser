@@ -1054,31 +1054,82 @@ function extractChartData(serNode) {
     if (serNode["c:xVal"] !== undefined) {
         let dataRow = [];
         PPTXUtils.eachElement(serNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-            dataRow.push(parseFloat(innerNode["c:v"]));
+            // 尝试获取值，优先从c:v获取，如果没有则从attrs.val获取
+            let value = innerNode["c:v"];
+            if (value === undefined || value === null) {
+                value = PPTXUtils.getTextByPathList(innerNode, ["attrs", "val"]);
+            }
+            if (value !== undefined && value !== null) {
+                dataRow.push(parseFloat(value));
+            }
             return "";
         });
         dataMat.push(dataRow);
         dataRow = [];
         PPTXUtils.eachElement(serNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-            dataRow.push(parseFloat(innerNode["c:v"]));
+            // 尝试获取值，优先从c:v获取，如果没有则从attrs.val获取
+            let value = innerNode["c:v"];
+            if (value === undefined || value === null) {
+                value = PPTXUtils.getTextByPathList(innerNode, ["attrs", "val"]);
+            }
+            if (value !== undefined && value !== null) {
+                dataRow.push(parseFloat(value));
+            }
             return "";
         });
         dataMat.push(dataRow);
     } else {
         PPTXUtils.eachElement(serNode, function (innerNode, index) {
             let dataRow = [];
-            const colName = PPTXUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
+            let colName = index;
+            const ptNodes = PPTXUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt"]);
+            if (ptNodes) {
+                const ptArray = Array.isArray(ptNodes) ? ptNodes : [ptNodes];
+                const texts = [];
+                for (const pt of ptArray) {
+                    if (pt && pt["c:v"]) {
+                        texts.push(pt["c:v"]);
+                    } else {
+                        // 尝試從attrs獲取val
+                        const val = PPTXUtils.getTextByPathList(pt, ["attrs", "val"]);
+                        if (val) {
+                            texts.push(val);
+                        }
+                    }
+                }
+                if (texts.length > 0) {
+                    colName = texts.join(' ');
+                }
+            }
 
             // Category (string or number)
             const rowNames = {};
             if (PPTXUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
                 PPTXUtils.eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
-                    rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+                    // 获取索引，优先从attrs.idx获取
+                    const idx = PPTXUtils.getTextByPathList(innerNode, ["attrs", "idx"]) || index;
+                    // 获取值，优先从c:v获取，如果没有则从attrs.val获取
+                    let value = innerNode["c:v"];
+                    if (value === undefined || value === null) {
+                        value = PPTXUtils.getTextByPathList(innerNode, ["attrs", "val"]);
+                    }
+                    if (value !== undefined && value !== null) {
+                        rowNames[idx] = value;
+                    }
                     return "";
                 });
             } else if (PPTXUtils.getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
                 PPTXUtils.eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                    rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+                    // 获取索引，优先从attrs.idx获取
+                    const idx = PPTXUtils.getTextByPathList(innerNode, ["attrs", "idx"]) || index;
+                    // 获取值，优先从c:v获取，如果没有则从attrs.val获取
+                    let value = innerNode["c:v"];
+                    if (value === undefined || value === null) {
+                        value = PPTXUtils.getTextByPathList(innerNode, ["attrs", "val"]);
+                    }
+                    if (value !== undefined && value !== null) {
+                        rowNames[idx] = value;
+                    }
                     return "";
                 });
             }
@@ -1086,7 +1137,16 @@ function extractChartData(serNode) {
             // Value
             if (PPTXUtils.getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
                 PPTXUtils.eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-                    dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
+                    // 获取索引，优先从attrs.idx获取
+                    const xValue = PPTXUtils.getTextByPathList(innerNode, ["attrs", "idx"]) || index;
+                    // 获取y值，优先从c:v获取，如果没有则从attrs.val获取
+                    let yValue = innerNode["c:v"];
+                    if (yValue === undefined || yValue === null) {
+                        yValue = PPTXUtils.getTextByPathList(innerNode, ["attrs", "val"]);
+                    }
+                    if (yValue !== undefined && yValue !== null) {
+                        dataRow.push({ x: xValue, y: parseFloat(yValue) });
+                    }
                     return "";
                 });
             }

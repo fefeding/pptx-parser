@@ -320,10 +320,172 @@ async function genChart(node, warpObj) {
     // 提取图表标题
     const titleNode = PPTXUtils.getTextByPathList(chart, ["c:title"]);
     let chartTitle = null;
-    if (titleNode && titleNode["c:tx"]) {
-        const titleText = PPTXUtils.getTextByPathList(titleNode["c:tx"], ["c:rich", "a:p", "a:r", "a:t"]);
-        if (titleText) {
-            chartTitle = Array.isArray(titleText) ? titleText.join(' ') : titleText;
+    if (titleNode) {
+        // 检查是否存在c:tx节点
+        let txNode = titleNode["c:tx"];
+        
+        // 如果直接在title下没有找到c:tx，尝试其他可能的位置
+        if (!txNode) {
+            // 遍历titleNode的所有键来找c:tx
+            for (const key in titleNode) {
+                if (key === 'c:tx' && typeof titleNode[key] === 'object') {
+                    txNode = titleNode[key];
+                    break;
+                }
+                // 或者检查嵌套结构
+                if (typeof titleNode[key] === 'object' && titleNode[key]['c:tx']) {
+                    txNode = titleNode[key]['c:tx'];
+                    break;
+                }
+            }
+        }
+        
+        // 如果还是找不到c:tx，可能在某些PPTX文件中标题结构不同
+        if (!txNode) {
+            // 检查是否在其他结构中，如直接在title节点下有文本
+            // 从你提供的结构来看，文本可能在 a:p -> a:r -> a:t 结构中
+            const findAllTextNodes = (node) => {
+                let texts = [];
+                if (typeof node === 'object' && node !== null) {
+                    for (const key in node) {
+                        if (key === 'a:t' && typeof node[key] === 'string') {
+                            texts.push(node[key]);
+                        } else if (typeof node[key] === 'object') {
+                            texts = texts.concat(findAllTextNodes(node[key]));
+                        }
+                    }
+                }
+                return texts;
+            };
+            
+            const allTexts = findAllTextNodes(titleNode);
+            if (allTexts.length > 0) {
+                chartTitle = allTexts.join('');
+            }
+        } else {
+            // c:tx 存在，按原来逻辑处理
+            // 尝试多种可能的标题路径
+            let titleText = null;
+            // 由于 a:r 是数组，需要遍历处理
+            const richNode = PPTXUtils.getTextByPathList(txNode, ["c:rich"]);
+            if (richNode && richNode["a:p"]) {
+                const paragraphs = Array.isArray(richNode["a:p"]) ? richNode["a:p"] : [richNode["a:p"]];
+                const texts = [];
+                for (const p of paragraphs) {
+                    if (p && p["a:r"]) {
+                        const textRuns = Array.isArray(p["a:r"]) ? p["a:r"] : [p["a:r"]];
+                        for (const textRun of textRuns) {
+                            if (textRun && textRun["a:t"]) {
+                                texts.push(textRun["a:t"]);
+                            }
+                        }
+                    }
+                }
+                if (texts.length > 0) {
+                    titleText = texts.join('');
+                }
+            }
+            
+            // 如果上面的路径没有找到标题，尝试另一种格式
+            if (!titleText) {
+                const pNodes = PPTXUtils.getTextByPathList(txNode, ["c:rich", "a:p"]);
+                if (pNodes) {
+                    const pArray = Array.isArray(pNodes) ? pNodes : [pNodes];
+                    const texts = [];
+                    for (const p of pArray) {
+                        if (p && p["a:r"]) {
+                            const textRuns = Array.isArray(p["a:r"]) ? p["a:r"] : [p["a:r"]];
+                            for (const textRun of textRuns) {
+                                if (textRun && textRun["a:t"]) {
+                                    texts.push(textRun["a:t"]);
+                                }
+                            }
+                        }
+                    }
+                    if (texts.length > 0) {
+                        titleText = texts.join('');
+                    }
+                }
+            }
+            
+            // 如果还是没有找到，尝试strRef格式
+            if (!titleText) {
+                const strRefNode = PPTXUtils.getTextByPathList(txNode, ["c:strRef", "c:strCache", "c:pt"]);
+                if (strRefNode) {
+                    const ptNodes = Array.isArray(strRefNode) ? strRefNode : [strRefNode];
+                    titleText = ptNodes.map(pt => pt["c:v"] || "").join(" ");
+                }
+            }
+            
+            // 如果还是没有找到，尝试提取段落中的文本运行
+            if (!titleText) {
+                const richNode = PPTXUtils.getTextByPathList(txNode, ["c:rich"]);
+                if (richNode && richNode["a:p"]) {
+                    const paragraphs = Array.isArray(richNode["a:p"]) ? richNode["a:p"] : [richNode["a:p"]];
+                    const texts = [];
+                    for (const p of paragraphs) {
+                        if (p && p["a:r"]) {
+                            const textRuns = Array.isArray(p["a:r"]) ? p["a:r"] : [p["a:r"]];
+                            for (const textRun of textRuns) {
+                                if (textRun && textRun["a:t"]) {
+                                    texts.push(textRun["a:t"]);
+                                }
+                            }
+                        }
+                    }
+                    if (texts.length > 0) {
+                        titleText = texts.join('');
+                    }
+                }
+            }
+            
+            // 再尝试另一种结构：可能直接在 a:p 下有 a:r 和 a:t
+            if (!titleText) {
+                const pNodes = PPTXUtils.getTextByPathList(txNode, ["a:p"]);
+                if (pNodes) {
+                    const texts = [];
+                    const pArray = Array.isArray(pNodes) ? pNodes : [pNodes];
+                    for (const pNode of pArray) {
+                        if (pNode && pNode["a:r"]) {
+                            const rNodes = Array.isArray(pNode["a:r"]) ? pNode["a:r"] : [pNode["a:r"]];
+                            for (const rNode of rNodes) {
+                                if (rNode && rNode["a:t"]) {
+                                    texts.push(rNode["a:t"]);
+                                }
+                            }
+                        }
+                    }
+                    if (texts.length > 0) {
+                        titleText = texts.join('');
+                    }
+                }
+            }
+            
+            // 最后的兜底方案：深度遍历节点寻找所有a:t标签
+            if (!titleText) {
+                const findAllTextNodes = (node) => {
+                    let texts = [];
+                    if (typeof node === 'object' && node !== null) {
+                        for (const key in node) {
+                            if (key === 'a:t' && typeof node[key] === 'string') {
+                                texts.push(node[key]);
+                            } else if (typeof node[key] === 'object') {
+                                texts = texts.concat(findAllTextNodes(node[key]));
+                            }
+                        }
+                    }
+                    return texts;
+                };
+                
+                const allTexts = findAllTextNodes(txNode);
+                if (allTexts.length > 0) {
+                    titleText = allTexts.join('');
+                }
+            }
+            
+            if (titleText) {
+                chartTitle = Array.isArray(titleText) ? titleText.join(' ') : titleText;
+            }
         }
     }
     
@@ -331,7 +493,29 @@ async function genChart(node, warpObj) {
     let legendPos = "r"; // 默认位置
     const legendNode = PPTXUtils.getTextByPathList(chart, ["c:legend"]);
     if (legendNode && legendNode["c:legendPos"]) {
-        legendPos = legendNode["c:legendPos"]["val"];
+        legendPos = PPTXUtils.getTextByPathList(legendNode["c:legendPos"], ["attrs", "val"]); 
+    }
+    
+    // 提取图表颜色方案
+    const colorSchemes = [];
+    const plotAreaCharts = Object.keys(plotArea).filter(key => key.includes('Chart'));
+    for (const chartKey of plotAreaCharts) {
+        const chartData = plotArea[chartKey];
+        if (chartData && chartData['c:ser']) {
+            const seriesArray = Array.isArray(chartData['c:ser']) ? chartData['c:ser'] : [chartData['c:ser']];
+            for (const series of seriesArray) {
+                if (series && series['c:spPr']) {
+                    // 提取系列颜色
+                    const solidFill = series['c:spPr']['a:solidFill'];
+                    if (solidFill) {
+                        const color = PPTXColorUtils.getSolidFill(solidFill, undefined, undefined, warpObj);
+                        if (color) {
+                            colorSchemes.push(color);
+                        }
+                    }
+                }
+            }
+        }
     }
     
     // 收集所有有效的图表数据
@@ -378,7 +562,8 @@ async function genChart(node, warpObj) {
                         "chartData": extractedSeriesData,
                         "hasMultipleSeries": validSeries.length > 1,
                         "title": chartTitle,
-                        "legendPos": legendPos
+                        "legendPos": legendPos,
+                        "colorSchemes": colorSchemes
                     }
                 };
                 chartDatas.push(chartData);
@@ -442,13 +627,25 @@ function extractSeriesName(seriesNode) {
     if (!seriesNode || !seriesNode["c:ser"]) return `Series ${Math.floor(Math.random() * 1000)}`;
     
     const series = seriesNode["c:ser"];
-    const txNode = PPTXUtils.getTextByPathList(series, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]);
+    const txNode = PPTXUtils.getTextByPathList(series, ["c:tx", "c:strRef", "c:strCache", "c:pt"]);
     
     if (txNode) {
         if (Array.isArray(txNode)) {
-            return txNode.map(item => item && item["c:v"] ? item["c:v"] : '').join(' ');
+            return txNode.map(item => {
+                if (item && item["c:v"]) {
+                    return item["c:v"];
+                } else {
+                    // 尝试从attrs中获取val
+                    return PPTXUtils.getTextByPathList(item, ["attrs", "val"]) || '';
+                }
+            }).join(' ');
         } else {
-            return txNode["c:v"] || `Series ${Math.floor(Math.random() * 1000)}`;
+            if (txNode["c:v"]) {
+                return txNode["c:v"];
+            } else {
+                // 尝试从attrs中获取val
+                return PPTXUtils.getTextByPathList(txNode, ["attrs", "val"]) || `Series ${Math.floor(Math.random() * 1000)}`;
+            }
         }
     }
     
@@ -510,7 +707,11 @@ function extractChartData(serNode) {
             if (xCache) {
                 const xDataRow = [];
                 safeEachElement(xCache, (pointNode) => {
-                    const value = safeGetPath(pointNode, ["c:v"], null);
+                    // 尝试获取值，优先从c:v获取，如果没有则从attrs.val获取
+                    let value = safeGetPath(pointNode, ["c:v"], null);
+                    if (value === null) {
+                        value = safeGetPath(pointNode, ["attrs", "val"], null);
+                    }
                     if (value !== null) {
                         const numValue = parseFloat(value);
                         if (!isNaN(numValue)) {
@@ -527,7 +728,11 @@ function extractChartData(serNode) {
             if (yCache) {
                 const yDataRow = [];
                 safeEachElement(yCache, (pointNode) => {
-                    const value = safeGetPath(pointNode, ["c:v"], null);
+                    // 尝试获取值，优先从c:v获取，如果没有则从attrs.val获取
+                    let value = safeGetPath(pointNode, ["c:v"], null);
+                    if (value === null) {
+                        value = safeGetPath(pointNode, ["attrs", "val"], null);
+                    }
                     if (value !== null) {
                         const numValue = parseFloat(value);
                         if (!isNaN(numValue)) {
@@ -570,8 +775,16 @@ function extractChartData(serNode) {
                 const catPoints = Array.isArray(catNode["c:pt"]) ? catNode["c:pt"] : [catNode["c:pt"]];
                 for (let j = 0; j < catPoints.length; j++) {
                     const pt = catPoints[j];
-                    if (pt && pt["c:v"]) {
-                        categories.push(pt["c:v"]);
+                    if (pt) {
+                        // 检查是否有c:v值
+                        let value = pt["c:v"];
+                        // 如果没有直接的c:v，尝试从attrs获取
+                        if (!value) {
+                            value = PPTXUtils.getTextByPathList(pt, ["attrs", "val"]);
+                        }
+                        if (value !== undefined && value !== null) {
+                            categories.push(value);
+                        }
                     }
                 }
             }
@@ -581,23 +794,102 @@ function extractChartData(serNode) {
                 const valPoints = Array.isArray(valNode["c:pt"]) ? valNode["c:pt"] : [valNode["c:pt"]];
                 for (let j = 0; j < valPoints.length; j++) {
                     const pt = valPoints[j];
-                    if (pt && pt["c:v"]) {
-                        const numValue = parseFloat(pt["c:v"]);
-                        if (!isNaN(numValue)) {
-                            values.push(numValue);
+                    if (pt) {
+                        // 检查是否有c:v值
+                        let value = pt["c:v"];
+                        // 如果没有直接的c:v，尝试从attrs获取
+                        if (!value) {
+                            value = PPTXUtils.getTextByPathList(pt, ["attrs", "val"]);
+                        }
+                        if (value !== undefined && value !== null) {
+                            const numValue = parseFloat(value);
+                            if (!isNaN(numValue)) {
+                                values.push(numValue);
+                            }
                         }
                     }
                 }
             }
             
-            // 创建数据序列
+            // 创建数据序列 - 现在将类别标签和值配对为对象格式
             if (categories.length > 0 && values.length > 0) {
-                const seriesName = safeGetPath(seriesItem, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"], `Series ${i + 1}`);
+                const seriesNameNode = safeGetPath(seriesItem, ["c:tx", "c:strRef", "c:strCache", "c:pt"], null);
+                let seriesName;
+                if (seriesNameNode) {
+                    if (Array.isArray(seriesNameNode)) {
+                        seriesName = seriesNameNode.map(item => {
+                            if (item && item["c:v"]) {
+                                return item["c:v"];
+                            } else {
+                                // 尝试从attrs中获取val
+                                return PPTXUtils.getTextByPathList(item, ["attrs", "val"]) || `Series ${i + 1}-part`;
+                            }
+                        }).join(' ');
+                    } else {
+                        if (seriesNameNode["c:v"]) {
+                            seriesName = seriesNameNode["c:v"];
+                        } else {
+                            // 尝试从attrs中获取val
+                            seriesName = PPTXUtils.getTextByPathList(seriesNameNode, ["attrs", "val"]) || `Series ${i + 1}`;
+                        }
+                    }
+                } else {
+                    seriesName = `Series ${i + 1}`;
+                }
+                
+                // 将类别和值配对成 {x: category, y: value} 格式
+                const pairedValues = [];
+                for (let k = 0; k < Math.min(categories.length, values.length); k++) {
+                    pairedValues.push({
+                        x: categories[k],
+                        y: values[k]
+                    });
+                }
                 
                 dataMat.push({
-                    key: typeof seriesName === 'object' && seriesName["c:v"] ? seriesName["c:v"] : seriesName,
-                    values: values,
+                    key: seriesName,
+                    values: pairedValues,
                     labels: categories
+                });
+            } else if (values.length > 0) {
+                // 如果只有值没有类别标签，使用默认标签
+                const seriesNameNode = safeGetPath(seriesItem, ["c:tx", "c:strRef", "c:strCache", "c:pt"], null);
+                let seriesName;
+                if (seriesNameNode) {
+                    if (Array.isArray(seriesNameNode)) {
+                        seriesName = seriesNameNode.map(item => {
+                            if (item && item["c:v"]) {
+                                return item["c:v"];
+                            } else {
+                                // 尝试从attrs中获取val
+                                return PPTXUtils.getTextByPathList(item, ["attrs", "val"]) || `Series ${i + 1}-part`;
+                            }
+                        }).join(' ');
+                    } else {
+                        if (seriesNameNode["c:v"]) {
+                            seriesName = seriesNameNode["c:v"];
+                        } else {
+                            // 尝试从attrs中获取val
+                            seriesName = PPTXUtils.getTextByPathList(seriesNameNode, ["attrs", "val"]) || `Series ${i + 1}`;
+                        }
+                    }
+                } else {
+                    seriesName = `Series ${i + 1}`;
+                }
+                
+                // 使用默认类别名称
+                const pairedValues = [];
+                for (let k = 0; k < values.length; k++) {
+                    pairedValues.push({
+                        x: `Item ${k + 1}`,
+                        y: values[k]
+                    });
+                }
+                
+                dataMat.push({
+                    key: seriesName,
+                    values: pairedValues,
+                    labels: []
                 });
             }
         }
@@ -741,6 +1033,7 @@ function processSingleMsg(d) {
     let chartData = d.chartData;
     let title = d.title;
     let legendPos = d.legendPos;
+    let colorSchemes = d.colorSchemes || [];
     let data = [];
     let chart = null;
     let isDone = false;
@@ -890,6 +1183,11 @@ function processSingleMsg(d) {
             // @ts-ignore
             chart = (globalThis as any).nv.models.lineChart()
                 .useInteractiveGuideline(true);
+            
+            // 设置颜色方案，如果有的话
+            if (colorSchemes && colorSchemes.length > 0) {
+                chart.color(colorSchemes);
+            }
             break;
         case "barChart":
             // 确保柱状图数据格式正确
@@ -922,6 +1220,11 @@ function processSingleMsg(d) {
             chart = (globalThis as any).nv.models.multiBarChart()
                 .reduceXTicks(false)
                 .rotateLabels(-45);
+            
+            // 设置颜色方案，如果有的话
+            if (colorSchemes && colorSchemes.length > 0) {
+                chart.color(colorSchemes);
+            }
             break;
         case "pieChart":
         case "pie3DChart":
@@ -958,6 +1261,11 @@ function processSingleMsg(d) {
                 .showLabels(true)
                 .labelThreshold(.05)
                 .labelType('key');
+            
+            // 设置颜色方案，如果有的话
+            if (colorSchemes && colorSchemes.length > 0) {
+                chart.color(colorSchemes);
+            }
             break;
         case "areaChart":
             // 确保区域图数据格式正确
@@ -990,6 +1298,11 @@ function processSingleMsg(d) {
             chart = (globalThis as any).nv.models.stackedAreaChart()
                 .clipEdge(true)
                 .useInteractiveGuideline(true);
+            
+            // 设置颜色方案，如果有的话
+            if (colorSchemes && colorSchemes.length > 0) {
+                chart.color(colorSchemes);
+            }
             break;
         case "scatterChart":
             // 确保散点图数据格式正确
@@ -1021,8 +1334,15 @@ function processSingleMsg(d) {
             // @ts-ignore
             chart = (globalThis as any).nv.models.scatterChart()
                 .showDistX(true)
-                .showDistY(true)
-                .color((globalThis as any).d3.scale.category10().range());
+                .showDistY(true);
+            
+            // 设置颜色方案，如果有的话
+            if (colorSchemes && colorSchemes.length > 0) {
+                chart.color(colorSchemes);
+            } else {
+                // 如果没有自定义颜色方案，使用默认的d3颜色比例尺
+                chart.color((globalThis as any).d3.scale.category10().range());
+            }
             chart.xAxis.axisLabel('X').tickFormat((globalThis as any).d3.format('.02f'));
             chart.yAxis.axisLabel('Y').tickFormat((globalThis as any).d3.format('.02f'));
             break;
@@ -1031,6 +1351,12 @@ function processSingleMsg(d) {
             data = processedChartData;
             // @ts-ignore
             chart = (globalThis as any).nv.models.multiBarChart();
+            
+            // 设置颜色方案，如果有的话
+            if (colorSchemes && colorSchemes.length > 0) {
+                chart.color(colorSchemes);
+            }
+            break;
     }
     
     if (chart !== null) {
