@@ -312,6 +312,74 @@ async function genChart(node, warpObj) {
     const chartSpace = PPTXUtils.getTextByPathList(content, ["c:chartSpace"]);
     const chart = PPTXUtils.getTextByPathList(content, ["c:chartSpace", "c:chart"]);
     const plotArea = PPTXUtils.getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
+    
+    // 检查是否有外部颜色和样式引用
+    let colorStyleData = null;
+    let chartStyleData = null;
+    
+    // 检查是否有外部数据引用（可能包含颜色和样式）
+    const externalDataRef = PPTXUtils.getTextByPathList(content, ["c:chartSpace", "c:externalData"]);
+    if (externalDataRef && externalDataRef["attrs"] && externalDataRef["attrs"]["r:id"]) {
+        const extRid = externalDataRef["attrs"]["r:id"];
+        const extRefName = warpObj["slideResObj"][extRid]?.["target"];
+        if (extRefName) {
+            try {
+                const extContent = await readXmlFile(warpObj["zip"], extRefName);
+                if (extContent) {
+                    // 尝试解析颜色样式文件
+                    if (extRefName.includes('colors')) {
+                        colorStyleData = extContent;
+                    } else if (extRefName.includes('style')) {
+                        chartStyleData = extContent;
+                    }
+                }
+            } catch (e) {
+                console.warn('无法读取外部数据文件:', extRefName, e);
+            }
+        }
+    }
+    
+    // 尝试直接查找可能的colors和style文件
+    // 在PPTX文件中，这些通常在charts文件夹中
+    try {
+        // 检查是否有颜色样式文件的引用
+        const relsPath = refName.replace('charts/', 'charts/_rels/').replace('.xml', '.xml.rels');
+        const relsContent = await readXmlFile(warpObj["zip"], relsPath);
+        
+        if (relsContent && relsContent["Relationships"]) {
+            const relationships = Array.isArray(relsContent["Relationships"]["Relationship"]) 
+                ? relsContent["Relationships"]["Relationship"] 
+                : [relsContent["Relationships"]["Relationship"]];
+            
+            for (const rel of relationships) {
+                if (rel && rel["attrs"]) {
+                    const relType = rel["attrs"]["Type"];
+                    const relTarget = rel["attrs"]["Target"];
+                    const relId = rel["attrs"]["Id"];
+                    
+                    // 检查是否是颜色或样式引用
+                    if (relTarget && (relTarget.includes('colors') || relTarget.includes('style'))) {
+                        const fullTargetPath = `charts/${relTarget}`;
+                        try {
+                            const styleContent = await readXmlFile(warpObj["zip"], fullTargetPath);
+                            if (styleContent) {
+                                if (relTarget.includes('colors')) {
+                                    colorStyleData = styleContent;
+                                } else if (relTarget.includes('style')) {
+                                    chartStyleData = styleContent;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('无法读取样式文件:', fullTargetPath, e);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('无法读取关系文件:', e);
+    }
+    
     if (!plotArea) {
         chartID++;
         return result;
@@ -489,6 +557,66 @@ async function genChart(node, warpObj) {
         }
     }
     
+    // 提取Y轴（值轴）标题
+    const valAxNode = PPTXUtils.getTextByPathList(plotArea, ["c:valAx"]);
+    let yAxisTitle = null;
+    if (valAxNode && valAxNode["c:title"]) {
+        const yAxisTitleNode = valAxNode["c:title"];
+        const yAxisTxNode = yAxisTitleNode["c:tx"];
+        
+        if (yAxisTxNode) {
+            // 从Y轴标题中提取文本，处理多个 a:r 节点的情况
+            const yAxisRichNode = PPTXUtils.getTextByPathList(yAxisTxNode, ["c:rich"]);
+            if (yAxisRichNode && yAxisRichNode["a:p"]) {
+                const yAxisParagraphs = Array.isArray(yAxisRichNode["a:p"]) ? yAxisRichNode["a:p"] : [yAxisRichNode["a:p"]];
+                const yAxisTexts = [];
+                for (const p of yAxisParagraphs) {
+                    if (p && p["a:r"]) {
+                        const yAxisTextRuns = Array.isArray(p["a:r"]) ? p["a:r"] : [p["a:r"]];
+                        for (const textRun of yAxisTextRuns) {
+                            if (textRun && textRun["a:t"]) {
+                                yAxisTexts.push(textRun["a:t"]);
+                            }
+                        }
+                    }
+                }
+                if (yAxisTexts.length > 0) {
+                    yAxisTitle = yAxisTexts.join('');
+                }
+            }
+        }
+    }
+    
+    // 提取X轴（分类轴）标题
+    const catAxNode = PPTXUtils.getTextByPathList(plotArea, ["c:catAx"]);
+    let xAxisTitle = null;
+    if (catAxNode && catAxNode["c:title"]) {
+        const xAxisTitleNode = catAxNode["c:title"];
+        const xAxisTxNode = xAxisTitleNode["c:tx"];
+        
+        if (xAxisTxNode) {
+            // 从X轴标题中提取文本，处理多个 a:r 节点的情况
+            const xAxisRichNode = PPTXUtils.getTextByPathList(xAxisTxNode, ["c:rich"]);
+            if (xAxisRichNode && xAxisRichNode["a:p"]) {
+                const xAxisParagraphs = Array.isArray(xAxisRichNode["a:p"]) ? xAxisRichNode["a:p"] : [xAxisRichNode["a:p"]];
+                const xAxisTexts = [];
+                for (const p of xAxisParagraphs) {
+                    if (p && p["a:r"]) {
+                        const xAxisTextRuns = Array.isArray(p["a:r"]) ? p["a:r"] : [p["a:r"]];
+                        for (const textRun of xAxisTextRuns) {
+                            if (textRun && textRun["a:t"]) {
+                                xAxisTexts.push(textRun["a:t"]);
+                            }
+                        }
+                    }
+                }
+                if (xAxisTexts.length > 0) {
+                    xAxisTitle = xAxisTexts.join('');
+                }
+            }
+        }
+    }
+    
     // 提取图例位置
     let legendPos = "r"; // 默认位置
     const legendNode = PPTXUtils.getTextByPathList(chart, ["c:legend"]);
@@ -498,23 +626,120 @@ async function genChart(node, warpObj) {
     
     // 提取图表颜色方案
     const colorSchemes = [];
-    const plotAreaCharts = Object.keys(plotArea).filter(key => key.includes('Chart'));
-    for (const chartKey of plotAreaCharts) {
-        const chartData = plotArea[chartKey];
-        if (chartData && chartData['c:ser']) {
-            const seriesArray = Array.isArray(chartData['c:ser']) ? chartData['c:ser'] : [chartData['c:ser']];
-            for (const series of seriesArray) {
-                if (series && series['c:spPr']) {
-                    // 提取系列颜色
-                    const solidFill = series['c:spPr']['a:solidFill'];
-                    if (solidFill) {
-                        const color = PPTXColorUtils.getSolidFill(solidFill, undefined, undefined, warpObj);
-                        if (color) {
-                            colorSchemes.push(color);
+    
+    // 首先尝试从颜色样式文件（colors1.xml）中提取颜色
+    if (colorStyleData) {
+        // 解析颜色样式文件，提取颜色列表
+        const colorStyleRoot = colorStyleData["cs:colorStyle"] || colorStyleData["a:clrScheme"];
+        if (colorStyleRoot) {
+            // 处理Microsoft Office颜色样式文件格式
+            if (colorStyleRoot["a:schemeClr"]) {
+                const schemeColors = Array.isArray(colorStyleRoot["a:schemeClr"]) 
+                    ? colorStyleRoot["a:schemeClr"] 
+                    : [colorStyleRoot["a:schemeClr"]];
+                
+                for (const schemeClr of schemeColors) {
+                    if (schemeClr && schemeClr["attrs"] && schemeClr["attrs"]["val"]) {
+                        const colorValue = schemeClr["attrs"]["val"];
+                        // 转换颜色值为实际颜色
+                        // 使用主题颜色映射
+                        const themeColor = PPTXColorUtils.getSchemeColorFromTheme(`a:${colorValue}`, undefined, undefined, warpObj);
+                        if (themeColor) {
+                            colorSchemes.push(themeColor);
                         }
                     }
                 }
             }
+            
+            // 处理颜色变体
+            if (colorStyleRoot["cs:variation"]) {
+                const variations = Array.isArray(colorStyleRoot["cs:variation"]) 
+                    ? colorStyleRoot["cs:variation"] 
+                    : [colorStyleRoot["cs:variation"]];
+                
+                for (const variation of variations) {
+                    if (variation && variation["a:lumMod"]) {
+                        const lumMod = variation["a:lumMod"];
+                        if (lumMod && lumMod["attrs"] && lumMod["attrs"]["val"]) {
+                            // 这里可以根据亮度调整值来调整颜色，暂时跳过
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 如果从样式文件中没有获得足够的颜色，或者没有样式文件，则从图表数据中提取
+    if (colorSchemes.length === 0) {
+        const plotAreaCharts = Object.keys(plotArea).filter(key => key.includes('Chart'));
+        for (const chartKey of plotAreaCharts) {
+            const chartData = plotArea[chartKey];
+            if (chartData && chartData['c:ser']) {
+                const seriesArray = Array.isArray(chartData['c:ser']) ? chartData['c:ser'] : [chartData['c:ser']];
+                for (const series of seriesArray) {
+                    if (series && series['c:spPr']) {
+                        // 提取系列颜色
+                        const solidFill = series['c:spPr']['a:solidFill'];
+                        if (solidFill) {
+                            const color = PPTXColorUtils.getSolidFill(solidFill, undefined, undefined, warpObj);
+                            if (color) {
+                                colorSchemes.push(color);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 提取图表样式信息（从style1.xml）
+    let chartStyleInfo: any = {};
+    if (chartStyleData && chartStyleData["cs:chartStyle"]) {
+        // 提取轴标题样式
+        const axisTitleStyle = chartStyleData["cs:chartStyle"]["cs:axisTitle"];
+        if (axisTitleStyle) {
+            chartStyleInfo.axisTitleStyle = axisTitleStyle;
+        }
+        
+        // 提取分类轴样式
+        const catAxisStyle = chartStyleData["cs:chartStyle"]["cs:categoryAxis"];
+        if (catAxisStyle) {
+            chartStyleInfo.catAxisStyle = catAxisStyle;
+        }
+        
+        // 提取值轴样式
+        const valAxisStyle = chartStyleData["cs:chartStyle"]["cs:valueAxis"];
+        if (valAxisStyle) {
+            chartStyleInfo.valAxisStyle = valAxisStyle;
+        }
+        
+        // 提取图例样式
+        const legendStyle = chartStyleData["cs:chartStyle"]["cs:legend"];
+        if (legendStyle) {
+            chartStyleInfo.legendStyle = legendStyle;
+        }
+        
+        // 提取数据标签样式
+        const dataLabelStyle = chartStyleData["cs:chartStyle"]["cs:dataLabel"];
+        if (dataLabelStyle) {
+            chartStyleInfo.dataLabelStyle = dataLabelStyle;
+        }
+        
+        // 提取网格线样式
+        const gridlineMajorStyle = chartStyleData["cs:chartStyle"]["cs:gridlineMajor"];
+        if (gridlineMajorStyle) {
+            chartStyleInfo.gridlineMajorStyle = gridlineMajorStyle;
+        }
+        
+        const gridlineMinorStyle = chartStyleData["cs:chartStyle"]["cs:gridlineMinor"];
+        if (gridlineMinorStyle) {
+            chartStyleInfo.gridlineMinorStyle = gridlineMinorStyle;
+        }
+        
+        // 提取图表标题样式
+        const titleStyle = chartStyleData["cs:chartStyle"]["cs:title"];
+        if (titleStyle) {
+            chartStyleInfo.titleStyle = titleStyle;
         }
     }
     
@@ -562,8 +787,11 @@ async function genChart(node, warpObj) {
                         "chartData": extractedSeriesData,
                         "hasMultipleSeries": validSeries.length > 1,
                         "title": chartTitle,
+                        "yAxisTitle": yAxisTitle,
+                        "xAxisTitle": xAxisTitle,
                         "legendPos": legendPos,
-                        "colorSchemes": colorSchemes
+                        "colorSchemes": colorSchemes,
+                        "chartStyleInfo": chartStyleInfo
                     }
                 };
                 chartDatas.push(chartData);
@@ -596,7 +824,10 @@ async function genChart(node, warpObj) {
                         "chartType": "lineChart",
                         "chartData": extractedSeriesData,
                         "title": chartTitle,
-                        "legendPos": legendPos
+                        "yAxisTitle": yAxisTitle,
+                        "xAxisTitle": xAxisTitle,
+                        "legendPos": legendPos,
+                        "chartStyleInfo": chartStyleInfo
                     }
                 };
                 chartDatas.push(fallbackData);
@@ -1032,8 +1263,11 @@ function processSingleMsg(d) {
     let chartType = d.chartType;
     let chartData = d.chartData;
     let title = d.title;
+    let yAxisTitle = d.yAxisTitle;
+    let xAxisTitle = d.xAxisTitle;
     let legendPos = d.legendPos;
     let colorSchemes = d.colorSchemes || [];
+    let chartStyleInfo = d.chartStyleInfo || {};
     let data = [];
     let chart = null;
     let isDone = false;
@@ -1182,11 +1416,47 @@ function processSingleMsg(d) {
             }
             // @ts-ignore
             chart = (globalThis as any).nv.models.lineChart()
-                .useInteractiveGuideline(true);
+                .useInteractiveGuideline(true)
+                .margin({top: 20})
+                .showControls(false)
+                .showXAxis(true)
+                .showYAxis(true);
             
             // 设置颜色方案，如果有的话
             if (colorSchemes && colorSchemes.length > 0) {
                 chart.color(colorSchemes);
+            } else {
+                // 如果没有从样式文件中获取到颜色，则使用默认的nvd3颜色方案
+                chart.color((globalThis as any).d3.scale.category10().range());
+            }
+            
+            // 应用样式信息，如果有的话
+            if (chartStyleInfo && chartStyleInfo.lineChartStyle) {
+                // 应用线条图表特定的样式
+            }
+            
+            // 设置坐标轴标签
+            try {
+                // 使用从XML解析出的轴标题，如果不存在则使用默认值
+                chart.xAxis.axisLabel(xAxisTitle || 'X轴');
+                chart.yAxis.axisLabel(yAxisTitle || 'Y轴');
+                
+                // 应用轴标题样式
+                if (chartStyleInfo.axisTitleStyle) {
+                    // 可以根据样式信息进一步定制轴标题
+                }
+                
+                // 应用分类轴样式
+                if (chartStyleInfo.catAxisStyle) {
+                    // 可以根据样式信息定制分类轴
+                }
+                
+                // 应用值轴样式
+                if (chartStyleInfo.valAxisStyle) {
+                    // 可以根据样式信息定制值轴
+                }
+            } catch(e) {
+                console.warn('无法设置坐标轴标签:', e);
             }
             break;
         case "barChart":
@@ -1219,11 +1489,47 @@ function processSingleMsg(d) {
             // @ts-ignore
             chart = (globalThis as any).nv.models.multiBarChart()
                 .reduceXTicks(false)
-                .rotateLabels(-45);
+                .rotateLabels(-45)
+                .margin({top: 20})
+                .showControls(false)
+                .showXAxis(true)
+                .showYAxis(true);
             
             // 设置颜色方案，如果有的话
             if (colorSchemes && colorSchemes.length > 0) {
                 chart.color(colorSchemes);
+            } else {
+                // 如果没有从样式文件中获取到颜色，则使用默认的nvd3颜色方案
+                chart.color((globalThis as any).d3.scale.category10().range());
+            }
+            
+            // 应用样式信息，如果有的话
+            if (chartStyleInfo && chartStyleInfo.barChartStyle) {
+                // 应用柱状图表特定的样式
+            }
+            
+            // 设置坐标轴标签
+            try {
+                // 使用从XML解析出的轴标题，如果不存在则使用默认值
+                chart.xAxis.axisLabel(xAxisTitle || 'X轴');
+                chart.yAxis.axisLabel(yAxisTitle || 'Y轴');
+                
+                // 应用轴标题样式
+                if (chartStyleInfo.axisTitleStyle) {
+                    // 可以根据样式信息进一步定制轴标题
+                }
+                
+                // 应用分类轴样式
+                if (chartStyleInfo.catAxisStyle) {
+                    // 可以根据样式信息定制分类轴
+                }
+                
+                // 应用值轴样式
+                if (chartStyleInfo.valAxisStyle) {
+                    // 可以根据样式信息定制值轴
+                }
+            } catch(e) {
+                console.warn('无法设置坐标轴标签:', e);
             }
             break;
         case "pieChart":
@@ -1260,12 +1566,29 @@ function processSingleMsg(d) {
                 .y(function(d) { return d.value })
                 .showLabels(true)
                 .labelThreshold(.05)
-                .labelType('key');
+                .labelType('key')
+                .margin({top: 20})
+                .showControls(false);
             
             // 设置颜色方案，如果有的话
             if (colorSchemes && colorSchemes.length > 0) {
                 chart.color(colorSchemes);
+            } else {
+                // 如果没有从样式文件中获取到颜色，则使用默认的nvd3颜色方案
+                chart.color((globalThis as any).d3.scale.category10().range());
             }
+            
+            // 饼图通常不设置坐标轴，但可以设置标签格式
+            try {
+                chart.tooltip.contentGenerator(function(obj) {
+                    return '<h3>' + obj.data.label + '</h3>' +
+                           '<p>' + obj.data.value + '</p>';
+                });
+            } catch(e) {
+                console.warn('无法设置饼图工具提示:', e);
+            }
+            
+            // 饼图不需要坐标轴标签，跳过这部分
             break;
         case "areaChart":
             // 确保区域图数据格式正确
@@ -1297,11 +1620,47 @@ function processSingleMsg(d) {
             // @ts-ignore
             chart = (globalThis as any).nv.models.stackedAreaChart()
                 .clipEdge(true)
-                .useInteractiveGuideline(true);
+                .useInteractiveGuideline(true)
+                .margin({top: 20})
+                .showControls(false)
+                .showXAxis(true)
+                .showYAxis(true);
             
             // 设置颜色方案，如果有的话
             if (colorSchemes && colorSchemes.length > 0) {
                 chart.color(colorSchemes);
+            } else {
+                // 如果没有从样式文件中获取到颜色，则使用默认的nvd3颜色方案
+                chart.color((globalThis as any).d3.scale.category10().range());
+            }
+            
+            // 应用样式信息，如果有的话
+            if (chartStyleInfo && chartStyleInfo.areaChartStyle) {
+                // 应用区域图表特定的样式
+            }
+            
+            // 设置坐标轴标签
+            try {
+                // 使用从XML解析出的轴标题，如果不存在则使用默认值
+                chart.xAxis.axisLabel(xAxisTitle || 'X轴');
+                chart.yAxis.axisLabel(yAxisTitle || 'Y轴');
+                
+                // 应用轴标题样式
+                if (chartStyleInfo.axisTitleStyle) {
+                    // 可以根据样式信息进一步定制轴标题
+                }
+                
+                // 应用分类轴样式
+                if (chartStyleInfo.catAxisStyle) {
+                    // 可以根据样式信息定制分类轴
+                }
+                
+                // 应用值轴样式
+                if (chartStyleInfo.valAxisStyle) {
+                    // 可以根据样式信息定制值轴
+                }
+            } catch(e) {
+                console.warn('无法设置坐标轴标签:', e);
             }
             break;
         case "scatterChart":
@@ -1334,7 +1693,11 @@ function processSingleMsg(d) {
             // @ts-ignore
             chart = (globalThis as any).nv.models.scatterChart()
                 .showDistX(true)
-                .showDistY(true);
+                .showDistY(true)
+                .margin({top: 20})
+                .showControls(false)
+                .showXAxis(true)
+                .showYAxis(true);
             
             // 设置颜色方案，如果有的话
             if (colorSchemes && colorSchemes.length > 0) {
@@ -1343,18 +1706,81 @@ function processSingleMsg(d) {
                 // 如果没有自定义颜色方案，使用默认的d3颜色比例尺
                 chart.color((globalThis as any).d3.scale.category10().range());
             }
-            chart.xAxis.axisLabel('X').tickFormat((globalThis as any).d3.format('.02f'));
-            chart.yAxis.axisLabel('Y').tickFormat((globalThis as any).d3.format('.02f'));
+            
+            // 应用样式信息，如果有的话
+            if (chartStyleInfo && chartStyleInfo.scatterChartStyle) {
+                // 应用散点图表特定的样式
+            }
+            
+            // 设置坐标轴标签
+            try {
+                // 使用从XML解析出的轴标题，如果不存在则使用默认值
+                chart.xAxis.axisLabel(xAxisTitle || 'X轴');
+                chart.yAxis.axisLabel(yAxisTitle || 'Y轴');
+                
+                // 应用轴标题样式
+                if (chartStyleInfo.axisTitleStyle) {
+                    // 可以根据样式信息进一步定制轴标题
+                }
+                
+                // 应用分类轴样式
+                if (chartStyleInfo.catAxisStyle) {
+                    // 可以根据样式信息定制分类轴
+                }
+                
+                // 应用值轴样式
+                if (chartStyleInfo.valAxisStyle) {
+                    // 可以根据样式信息定制值轴
+                }
+            } catch(e) {
+                console.warn('无法设置坐标轴标签:', e);
+            }
             break;
         default:
             // 如果未识别的图表类型，默认为多柱状图
             data = processedChartData;
             // @ts-ignore
-            chart = (globalThis as any).nv.models.multiBarChart();
+            chart = (globalThis as any).nv.models.multiBarChart()
+                .margin({top: 20})
+                .showControls(false)
+                .showXAxis(true)
+                .showYAxis(true);
             
             // 设置颜色方案，如果有的话
             if (colorSchemes && colorSchemes.length > 0) {
                 chart.color(colorSchemes);
+            } else {
+                // 如果没有从样式文件中获取到颜色，则使用默认的nvd3颜色方案
+                chart.color((globalThis as any).d3.scale.category10().range());
+            }
+            
+            // 应用样式信息，如果有的话
+            if (chartStyleInfo && chartStyleInfo.defaultChartStyle) {
+                // 应用默认图表特定的样式
+            }
+            
+            // 设置坐标轴标签
+            try {
+                // 使用从XML解析出的轴标题，如果不存在则使用默认值
+                chart.xAxis.axisLabel(xAxisTitle || 'X轴');
+                chart.yAxis.axisLabel(yAxisTitle || 'Y轴');
+                
+                // 应用轴标题样式
+                if (chartStyleInfo.axisTitleStyle) {
+                    // 可以根据样式信息进一步定制轴标题
+                }
+                
+                // 应用分类轴样式
+                if (chartStyleInfo.catAxisStyle) {
+                    // 可以根据样式信息定制分类轴
+                }
+                
+                // 应用值轴样式
+                if (chartStyleInfo.valAxisStyle) {
+                    // 可以根据样式信息定制值轴
+                }
+            } catch(e) {
+                console.warn('无法设置坐标轴标签:', e);
             }
             break;
     }
@@ -1362,6 +1788,9 @@ function processSingleMsg(d) {
     if (chart !== null) {
         const chartElement = document.getElementById(chartID);
         if (chartElement) {
+            // 清空图表容器
+            chartElement.innerHTML = '';
+            
             // 如果有标题，创建一个包含标题的包装元素
             if (title) {
                 // 添加标题元素
@@ -1371,21 +1800,37 @@ function processSingleMsg(d) {
                 titleDiv.style.textAlign = 'center';
                 titleDiv.style.fontWeight = 'bold';
                 titleDiv.style.marginBottom = '10px';
+                titleDiv.style.fontSize = '16px';
                 
-                // 在图表容器前插入标题
-                if(chartElement.parentNode) {
-                    chartElement.parentNode.insertBefore(titleDiv, chartElement);
-                }
+                // 将标题添加到图表容器中
+                chartElement.appendChild(titleDiv);
             }
             
+            // 创建SVG元素用于图表
             // @ts-ignore
-            (globalThis as any).d3.select(`#${chartID}`)
+            (globalThis as any).d3.select(chartElement)
                 .append("svg")
+                .attr('width', '100%')
+                .attr('height', '400px')
                 .datum(data)
                 .transition().duration(500)
                 .call(chart);
             // @ts-ignore
             (globalThis as any).nv.utils.windowResize(chart.update);
+            
+            // 如果有图例位置信息，调整图例
+            if (legendPos) {
+                try {
+                    // 尝试设置图例位置
+                    const svgElement = chartElement.querySelector('svg');
+                    if (svgElement) {
+                        // 根据图例位置调整布局
+                        // 注意：nvd3中图例位置通常是通过CSS或特定的图例组件来控制的
+                    }
+                } catch (e) {
+                    console.warn('无法设置图例位置:', e);
+                }
+            }
             
             isDone = true;
         }
