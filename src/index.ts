@@ -239,13 +239,13 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
     
     async function processNodesInSlide(nodeKey: string, nodeValue: any, nodes: any, warpObj: any, source: any, sType: any): Promise<string> {
         const handlers: ProcessNodeHandlers = {
-            processSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => {
-                return processSpNodeModule(node, pNode, warpObj, source, sType, async (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
+            processSpNode: async (node: any, pNode: any, warpObj: any, source: any, sType: any) => {
+                return await processSpNodeModule(node, pNode, warpObj, source, sType, async (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
                     return await genShapeModule(n, pn, sLSN, sMSN, id, nm, idx, typ, ord, wo, uDBg, sTy, src, styleTable);
                 });
             },
-            processCxnSpNode: (node: any, pNode: any, warpObj: any, source: any, sType: any) => {
-                return processCxnSpNodeModule(node, pNode, warpObj, source, sType, async (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
+            processCxnSpNode: async (node: any, pNode: any, warpObj: any, source: any, sType: any) => {
+                return await processCxnSpNodeModule(node, pNode, warpObj, source, sType, async (n: any, pn: any, sLSN: any, sMSN: any, id: any, nm: any, idx: any, typ: any, ord: any, wo: any, uDBg: any, sTy: any, src: any) => {
                     return await genShapeModule(n, pn, undefined, undefined, id, nm, idx, typ, ord, wo, undefined, sTy, src, styleTable);
                 });
             },
@@ -399,6 +399,7 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
     
     async function processGraphicFrameNode(node: any, warpObj: any, source: any, sType: any): Promise<string> {
         // 使用 PPTXImageUtils 模块处理图形框架节点
+        // 需要将此函数设为异步，以便处理异步的图表生成
         return await (PPTXImageUtils as any).processGraphicFrameNode(node, warpObj, source, sType, genTableInternal, genDiagram, processGroupSpNode);
     }
     

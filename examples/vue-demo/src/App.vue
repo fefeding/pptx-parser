@@ -53,7 +53,6 @@ const htmlContent = ref('')
        // htmlContent.value = result.html;
         document.getElementById('slide-container').innerHTML = `<style>${result.css}</style>${result.html}`;
 
-        debugger
         // 处理数字列表
         if (typeof PPTXHtml.setNumericBullets !== 'undefined') {
           PPTXHtml.setNumericBullets(document.querySelectorAll(".block"));

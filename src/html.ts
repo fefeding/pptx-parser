@@ -295,7 +295,7 @@ function genTable(node, warpObj) {
  * @param {Object} warpObj - 包装对象
  * @returns {string} 图表 HTML 字符串
  */
-function genChart(node, warpObj) {
+async function genChart(node, warpObj) {
     const order = node["attrs"]["order"];
     const xfrmNode = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
     const readXmlFile = PPTXParser ? PPTXParser.readXmlFile : (() => null);
@@ -303,11 +303,12 @@ function genChart(node, warpObj) {
     const rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
     const refName = warpObj["slideResObj"][rid]["target"];
     // 读取图表文件
-    const content = readXmlFile(warpObj["zip"], refName);
+    const content = await readXmlFile(warpObj["zip"], refName);
     if (!content) {
         chartID++;
         return result;
     }
+    
     const plotArea = PPTXUtils.getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
     if (!plotArea) {
         chartID++;
