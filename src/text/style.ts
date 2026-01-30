@@ -313,7 +313,7 @@ static getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     //themeContent
     //console.log("getFontColorPr>> type:", type, ", node: ", node)
     var rPrNode: any = PPTXUtils.getTextByPathList(node, ["a:rPr"]);
-    var filTyp: any, color: any = '', textBordr: any = '', colorType: any = '', highlightColor: any = '';
+    var filTyp: any, color: any, textBordr: any = '', colorType: any = '', highlightColor: any = '';
     //console.log("getFontColorPr type:", type, ", node: ", node, "pNode:", pNode, "pFontStyle:", pFontStyle)
     if (rPrNode !== undefined) {
         filTyp = PPTXColorUtils.getFillType(rPrNode);
