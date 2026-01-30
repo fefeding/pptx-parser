@@ -660,7 +660,7 @@ function processMsgQueue(msgQueue) {
  * @param {Object} d - 消息数据
  * @returns {boolean} 是否处理成功
  */
-function processSingleMsg(d: any): boolean {
+function processSingleMsg(d) {
     // 检查外部图表库是否可用
     // @ts-ignore - External libraries nv and d3
     if (typeof (globalThis as any).nv === 'undefined' || typeof (globalThis as any).d3 === 'undefined') {
@@ -671,8 +671,8 @@ function processSingleMsg(d: any): boolean {
     let chartID = d.chartID;
     let chartType = d.chartType;
     let chartData = d.chartData;
-    let data: any[] = [];
-    let chart: any = null;
+    let data = [];
+    let chart = null;
     let isDone = false;
     switch (chartType) {
         case "lineChart":

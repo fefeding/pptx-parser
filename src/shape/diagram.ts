@@ -1,7 +1,7 @@
 import { PPTXUtils } from '../core/utils.js';
 
 interface PPTXDiagramUtilsType {
-    genDiagram: (node: any, warpObj: any, source: string, sType: string, readXmlFile: Function, getPosition: Function, getSize: Function, processSpNode: Function) => string;
+    genDiagram: (node: any, warpObj: any, source: string, sType: string, readXmlFile: Function, getPosition: Function, getSize: Function, processSpNode: Function) => Promise<string>;
 }
 
 const PPTXDiagramUtils = {} as PPTXDiagramUtilsType;
@@ -18,7 +18,7 @@ const PPTXDiagramUtils = {} as PPTXDiagramUtilsType;
  * @param {Function} processSpNode - 处理形状节点的函数
  * @returns {string} HTML字符串
  */
-PPTXDiagramUtils.genDiagram = function(node: any, warpObj: any, source: string, sType: string, readXmlFile: Function, getPosition: Function, getSize: Function, processSpNode: Function): string {
+PPTXDiagramUtils.genDiagram = async function(node: any, warpObj: any, source: string, sType: string, readXmlFile: Function, getPosition: Function, getSize: Function, processSpNode: Function): Promise<string> {
     const order: string = node["attrs"]["order"];
     const zip: any = warpObj["zip"];
     const xfrmNode: any = PPTXUtils.getTextByPathList(node, ["p:xfrm"]);
@@ -41,10 +41,10 @@ PPTXDiagramUtils.genDiagram = function(node: any, warpObj: any, source: string, 
     const dgmQuickStyleFileName: string = warpObj["slideResObj"][dgmQuickStyleFileId].target;
 
     // 读取XML文件
-    const dgmClr: any = readXmlFile(zip, dgmClrFileName);
-    const dgmData: any = readXmlFile(zip, dgmDataFileName);
-    const dgmLayout: any = readXmlFile(zip, dgmLayoutFileName);
-    const dgmQuickStyle: any = readXmlFile(zip, dgmQuickStyleFileName);
+    const dgmClr: any = await readXmlFile(zip, dgmClrFileName);
+    const dgmData: any = await readXmlFile(zip, dgmDataFileName);
+    const dgmLayout: any = await readXmlFile(zip, dgmLayoutFileName);
+    const dgmQuickStyle: any = await readXmlFile(zip, dgmQuickStyleFileName);
 
     // 获取绘图文件内容
     const dgmDrwSpArray: any = PPTXUtils.getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
