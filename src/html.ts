@@ -309,11 +309,31 @@ async function genChart(node, warpObj) {
         return result;
     }
     
+    const chartSpace = PPTXUtils.getTextByPathList(content, ["c:chartSpace"]);
+    const chart = PPTXUtils.getTextByPathList(content, ["c:chartSpace", "c:chart"]);
     const plotArea = PPTXUtils.getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
     if (!plotArea) {
         chartID++;
         return result;
     }
+    
+    // 提取图表标题
+    const titleNode = PPTXUtils.getTextByPathList(chart, ["c:title"]);
+    let chartTitle = null;
+    if (titleNode && titleNode["c:tx"]) {
+        const titleText = PPTXUtils.getTextByPathList(titleNode["c:tx"], ["c:rich", "a:p", "a:r", "a:t"]);
+        if (titleText) {
+            chartTitle = Array.isArray(titleText) ? titleText.join(' ') : titleText;
+        }
+    }
+    
+    // 提取图例位置
+    let legendPos = "r"; // 默认位置
+    const legendNode = PPTXUtils.getTextByPathList(chart, ["c:legend"]);
+    if (legendNode && legendNode["c:legendPos"]) {
+        legendPos = legendNode["c:legendPos"]["val"];
+    }
+    
     // 收集所有有效的图表数据
     const chartDatas = [];
     // 处理不同类型的图表
@@ -337,19 +357,30 @@ async function genChart(node, warpObj) {
             // 过滤掉空的系列
             const validSeries = seriesArray.filter((series) => series && series["c:ser"]);
             if (validSeries.length > 0) {
+                const extractedSeriesData = [];
+                // 提取所有系列的数据，而不仅仅是第一个
+                for (let k = 0; k < validSeries.length; k++) {
+                    const series = validSeries[k];
+                    const seriesData = extractChartData(series["c:ser"]);
+                    // 添加系列名称
+                    const seriesName = extractSeriesName(series);
+                    extractedSeriesData.push({
+                        data: seriesData,
+                        name: seriesName
+                    });
+                }
+                
                 const chartData = {
                     "type": "createChart",
                     "data": {
                         "chartID": `chart${chartID}`,
                         "chartType": chartType.type,
-                        "chartData": extractChartData(validSeries[0]["c:ser"]),
-                        "hasMultipleSeries": validSeries.length > 1
+                        "chartData": extractedSeriesData,
+                        "hasMultipleSeries": validSeries.length > 1,
+                        "title": chartTitle,
+                        "legendPos": legendPos
                     }
                 };
-                // 如果有多个系列，只使用第一个系列
-                if (validSeries.length > 1) {
-                    // silently ignore additional series
-                }
                 chartDatas.push(chartData);
             }
         }
@@ -360,12 +391,27 @@ async function genChart(node, warpObj) {
         // 查找任何包含 c:ser 的节点
         for (const key in plotArea) {
             if (key.indexOf('Chart') > -1 && plotArea[key]["c:ser"]) {
+                const extractedSeriesData = [];
+                const seriesArray = Array.isArray(plotArea[key]["c:ser"]) ? plotArea[key]["c:ser"] : [plotArea[key]["c:ser"]];
+                
+                for (let k = 0; k < seriesArray.length; k++) {
+                    const series = seriesArray[k];
+                    const seriesData = extractChartData(series);
+                    const seriesName = extractSeriesName({"c:ser": series});
+                    extractedSeriesData.push({
+                        data: seriesData,
+                        name: seriesName
+                    });
+                }
+                
                 const fallbackData = {
                     "type": "createChart",
                     "data": {
                         "chartID": `chart${chartID}`,
                         "chartType": "lineChart",
-                        "chartData": extractChartData(plotArea[key]["c:ser"])
+                        "chartData": extractedSeriesData,
+                        "title": chartTitle,
+                        "legendPos": legendPos
                     }
                 };
                 chartDatas.push(fallbackData);
@@ -391,6 +437,24 @@ async function genChart(node, warpObj) {
  * @param {Object} serNode - 系列节点
  * @returns {Array} 提取的图表数据
  */
+// 提取系列名称的辅助函数
+function extractSeriesName(seriesNode) {
+    if (!seriesNode || !seriesNode["c:ser"]) return `Series ${Math.floor(Math.random() * 1000)}`;
+    
+    const series = seriesNode["c:ser"];
+    const txNode = PPTXUtils.getTextByPathList(series, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]);
+    
+    if (txNode) {
+        if (Array.isArray(txNode)) {
+            return txNode.map(item => item && item["c:v"] ? item["c:v"] : '').join(' ');
+        } else {
+            return txNode["c:v"] || `Series ${Math.floor(Math.random() * 1000)}`;
+        }
+    }
+    
+    return `Series ${Math.floor(Math.random() * 1000)}`;
+}
+
 function extractChartData(serNode) {
     const dataMat = [];
     // 输入验证
@@ -484,56 +548,60 @@ function extractChartData(serNode) {
             // extraction failed
         }
     }
-    // 处理第二种图表格式：复杂的多系列格式
+    // 处理第三种图表格式：从XML中直接提取数据点
     try {
-        safeEachElement(seriesArray, (seriesItem) => {
-            if (!seriesItem)
-                return '';
-            const dataRow = [];
-            let colName = safeGetPath(seriesItem, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"], null);
-            if (colName === null) {
-                // 如果没有名称，使用索引
-                const seriesIndex = seriesArray.indexOf(seriesItem);
-                colName = `Series ${seriesIndex + 1}`;
-            }
-            // 提取类别标签
-            const rowNames = {};
-            const catStrRef = safeGetPath(seriesItem, ["c:cat", "c:strRef", "c:strCache", "c:pt"], null);
-            const catNumRef = safeGetPath(seriesItem, ["c:cat", "c:numRef", "c:numCache", "c:pt"], null);
-            const catPoints = catStrRef || catNumRef;
-            if (catPoints) {
-                safeEachElement(catPoints, (pointNode) => {
-                    const idx = safeGetPath(pointNode, ["attrs", "idx"], null);
-                    const val = safeGetPath(pointNode, ["c:v"], null);
-                    if (idx !== null && val !== null) {
-                        rowNames[idx] = val;
+        // 提取所有系列数据
+        for (let i = 0; i < seriesArray.length; i++) {
+            const seriesItem = seriesArray[i];
+            if (!seriesItem) continue;
+            
+            // 提取类别标签（X轴）
+            const catNode = safeGetPath(seriesItem, ["c:cat", "c:strRef", "c:strCache"], null) || 
+                           safeGetPath(seriesItem, ["c:cat", "c:numRef", "c:numCache"], null);
+            
+            // 提取值数据（Y轴）
+            const valNode = safeGetPath(seriesItem, ["c:val", "c:numRef", "c:numCache"], null);
+            
+            const categories = [];
+            const values = [];
+            
+            // 提取类别名称
+            if (catNode && catNode["c:pt"]) {
+                const catPoints = Array.isArray(catNode["c:pt"]) ? catNode["c:pt"] : [catNode["c:pt"]];
+                for (let j = 0; j < catPoints.length; j++) {
+                    const pt = catPoints[j];
+                    if (pt && pt["c:v"]) {
+                        categories.push(pt["c:v"]);
                     }
-                });
+                }
             }
-            // 提取值数据
-            const valNode = safeGetPath(seriesItem, ["c:val", "c:numRef", "c:numCache", "c:pt"], null);
-            if (valNode) {
-                safeEachElement(valNode, (pointNode) => {
-                    const idx = safeGetPath(pointNode, ["attrs", "idx"], null);
-                    const val = safeGetPath(pointNode, ["c:v"], null);
-                    if (idx !== null && val !== null) {
-                        const numValue = parseFloat(val);
+            
+            // 提取数值
+            if (valNode && valNode["c:pt"]) {
+                const valPoints = Array.isArray(valNode["c:pt"]) ? valNode["c:pt"] : [valNode["c:pt"]];
+                for (let j = 0; j < valPoints.length; j++) {
+                    const pt = valPoints[j];
+                    if (pt && pt["c:v"]) {
+                        const numValue = parseFloat(pt["c:v"]);
                         if (!isNaN(numValue)) {
-                            dataRow.push({ x: parseInt(idx), y: numValue });
+                            values.push(numValue);
                         }
                     }
-                });
+                }
             }
-            // 只有当有实际数据时才添加到结果中
-            if (dataRow.length > 0) {
+            
+            // 创建数据序列
+            if (categories.length > 0 && values.length > 0) {
+                const seriesName = safeGetPath(seriesItem, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"], `Series ${i + 1}`);
+                
                 dataMat.push({
-                    key: colName,
-                    values: dataRow,
-                    xlabels: rowNames
+                    key: typeof seriesName === 'object' && seriesName["c:v"] ? seriesName["c:v"] : seriesName,
+                    values: values,
+                    labels: categories
                 });
             }
-            return '';
-        });
+        }
+        
         if (dataMat.length > 0) {
             return dataMat;
         }
@@ -541,7 +609,7 @@ function extractChartData(serNode) {
     catch (e) {
         // extraction failed
     }
-    return [];
+    return dataMat;
 }
 /**
  * Convert plain numeric lists to proper HTML numbered lists
@@ -671,46 +739,284 @@ function processSingleMsg(d) {
     let chartID = d.chartID;
     let chartType = d.chartType;
     let chartData = d.chartData;
+    let title = d.title;
+    let legendPos = d.legendPos;
     let data = [];
     let chart = null;
     let isDone = false;
+    
+    // 处理chartData格式，确保是正确的格式
+    let processedChartData = [];
+    
+    if (Array.isArray(chartData) && chartData.length > 0) {
+        if (typeof chartData[0].data !== 'undefined') {
+            // 如果是新的数据格式（包含名称和数据）
+            for (let i = 0; i < chartData.length; i++) {
+                const series = chartData[i];
+                if (Array.isArray(series.data) && series.data.length > 0 && typeof series.data[0].values !== 'undefined') {
+                    // 如果是复杂数据格式
+                    for (let j = 0; j < series.data.length; j++) {
+                        const subSeries = series.data[j];
+                        processedChartData.push({
+                            key: subSeries.key || series.name || `Series ${i + 1}-${j + 1}`,
+                            values: subSeries.values || subSeries
+                        });
+                    }
+                } else if (series.data && series.data.labels && series.data.values) {
+                    // 如果是标签和值的格式
+                    const seriesData = [];
+                    for (let j = 0; j < Math.min(series.data.labels.length, series.data.values.length); j++) {
+                        // nvd3期望值是对象，有x和y属性
+                        seriesData.push({
+                            x: series.data.labels[j],
+                            y: series.data.values[j]
+                        });
+                    }
+                    processedChartData.push({
+                        key: series.name || `Series ${i + 1}`,
+                        values: seriesData
+                    });
+                } else {
+                    // 简单数据格式 - 需要转换为nvd3期望的格式
+                    const seriesData = [];
+                    const seriesValues = Array.isArray(series.data) ? series.data : [series.data];
+                    
+                    // 尝试从series中获取标签，否则使用默认标签
+                    const labels = series.data && series.data.labels ? series.data.labels : [];
+                    
+                    for (let j = 0; j < seriesValues.length; j++) {
+                        seriesData.push({
+                            x: labels[j] || `Item ${j + 1}`,
+                            y: seriesValues[j]
+                        });
+                    }
+                    
+                    processedChartData.push({
+                        key: series.name || `Series ${i + 1}`,
+                        values: seriesData
+                    });
+                }
+            }
+        } else {
+            // 如果是旧的数据格式 - 需要转换为nvd3期望的格式
+            for (let i = 0; i < chartData.length; i++) {
+                const item = chartData[i];
+                if (item && typeof item === 'object' && item.values) {
+                    // 已经是正确格式
+                    processedChartData.push(item);
+                } else {
+                    // 转换为正确格式
+                    if (Array.isArray(item)) {
+                        const seriesData = [];
+                        for (let j = 0; j < item.length; j++) {
+                            seriesData.push({
+                                x: `Item ${j + 1}`,
+                                y: item[j]
+                            });
+                        }
+                        processedChartData.push({
+                            key: `Series ${i + 1}`,
+                            values: seriesData
+                        });
+                    } else {
+                        // 单个值处理
+                        processedChartData.push({
+                            key: `Series ${i + 1}`,
+                            values: [{x: 'Item 1', y: item}]
+                        });
+                    }
+                }
+            }
+        }
+    } else {
+        // 如果是简单的数组格式
+        if (Array.isArray(chartData)) {
+            for (let i = 0; i < chartData.length; i++) {
+                const item = chartData[i];
+                if (item && typeof item === 'object' && item.values) {
+                    processedChartData.push(item);
+                } else {
+                    if (Array.isArray(item)) {
+                        const seriesData = [];
+                        for (let j = 0; j < item.length; j++) {
+                            seriesData.push({
+                                x: `Item ${j + 1}`,
+                                y: item[j]
+                            });
+                        }
+                        processedChartData.push({
+                            key: `Series ${i + 1}`,
+                            values: seriesData
+                        });
+                    } else {
+                        processedChartData.push({
+                            key: `Series ${i + 1}`,
+                            values: [{x: 'Item 1', y: item}]
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
     switch (chartType) {
         case "lineChart":
-            data = chartData;
+            // 确保线图数据格式正确
+            data = [];
+            if (Array.isArray(processedChartData)) {
+                for (let i = 0; i < processedChartData.length; i++) {
+                    const series = processedChartData[i];
+                    if (series && series.values && Array.isArray(series.values)) {
+                        // 确保每个值都是对象格式 {x: ..., y: ...}
+                        const formattedValues = series.values.map((val, idx) => {
+                            if (typeof val === 'object' && val.x !== undefined && val.y !== undefined) {
+                                return val;
+                            } else if (typeof val === 'number') {
+                                // 如果直接是数字，则转换为对象格式
+                                return {x: `Item ${idx + 1}`, y: val};
+                            } else {
+                                // 其他情况也转换为对象格式
+                                return {x: `Item ${idx + 1}`, y: val.y !== undefined ? val.y : val};
+                            }
+                        });
+                        
+                        data.push({
+                            key: series.key || `Series ${i + 1}`,
+                            values: formattedValues
+                        });
+                    }
+                }
+            }
             // @ts-ignore
             chart = (globalThis as any).nv.models.lineChart()
                 .useInteractiveGuideline(true);
-            chart.xAxis.tickFormat((val) => chartData[0].xlabels[val] || val);
             break;
         case "barChart":
-            data = chartData;
+            // 确保柱状图数据格式正确
+            data = [];
+            if (Array.isArray(processedChartData)) {
+                for (let i = 0; i < processedChartData.length; i++) {
+                    const series = processedChartData[i];
+                    if (series && series.values && Array.isArray(series.values)) {
+                        // 确保每个值都是对象格式 {x: ..., y: ...}
+                        const formattedValues = series.values.map((val, idx) => {
+                            if (typeof val === 'object' && val.x !== undefined && val.y !== undefined) {
+                                return val;
+                            } else if (typeof val === 'number') {
+                                // 如果直接是数字，则转换为对象格式
+                                return {x: `Item ${idx + 1}`, y: val};
+                            } else {
+                                // 其他情况也转换为对象格式
+                                return {x: `Item ${idx + 1}`, y: val.y !== undefined ? val.y : val};
+                            }
+                        });
+                        
+                        data.push({
+                            key: series.key || `Series ${i + 1}`,
+                            values: formattedValues
+                        });
+                    }
+                }
+            }
             // @ts-ignore
-            chart = (globalThis as any).nv.models.multiBarChart();
-            chart.xAxis.tickFormat((val) => chartData[0].xlabels[val] || val);
+            chart = (globalThis as any).nv.models.multiBarChart()
+                .reduceXTicks(false)
+                .rotateLabels(-45);
             break;
         case "pieChart":
         case "pie3DChart":
-            if (chartData.length > 0) {
-                data = chartData[0].values;
+            if (processedChartData.length > 0) {
+                // 对于饼图，需要特别处理数据格式
+                if (processedChartData[0].values) {
+                    // 如果是带有标签和值的对象格式
+                    data = processedChartData[0].values.map((item, index) => {
+                        let label = item.x || processedChartData[0].labels?.[index] || `Item ${index + 1}`;
+                        let value = typeof item.y !== 'undefined' ? item.y : item;
+                        return { label, value };
+                    });
+                } else {
+                    // 简单数值数组格式
+                    data = [];
+                    for (let i = 0; i < processedChartData.length; i++) {
+                        const series = processedChartData[i];
+                        if (series.values) {
+                            for (let j = 0; j < series.values.length; j++) {
+                                const label = series.labels && series.labels[j] ? series.labels[j] : `Item ${j + 1}`;
+                                const value = series.values[j];
+                                data.push({ label, value });
+                            }
+                        } else {
+                            data.push({ label: `Item ${i + 1}`, value: Array.isArray(series) ? series[0] : series });
+                        }
+                    }
+                }
             }
             // @ts-ignore
-            chart = (globalThis as any).nv.models.pieChart();
+            chart = (globalThis as any).nv.models.pieChart()
+                .x(function(d) { return d.label })
+                .y(function(d) { return d.value })
+                .showLabels(true)
+                .labelThreshold(.05)
+                .labelType('key');
             break;
         case "areaChart":
-            data = chartData;
+            // 确保区域图数据格式正确
+            data = [];
+            if (Array.isArray(processedChartData)) {
+                for (let i = 0; i < processedChartData.length; i++) {
+                    const series = processedChartData[i];
+                    if (series && series.values && Array.isArray(series.values)) {
+                        // 确保每个值都是对象格式 {x: ..., y: ...}
+                        const formattedValues = series.values.map((val, idx) => {
+                            if (typeof val === 'object' && val.x !== undefined && val.y !== undefined) {
+                                return val;
+                            } else if (typeof val === 'number') {
+                                // 如果直接是数字，则转换为对象格式
+                                return {x: `Item ${idx + 1}`, y: val};
+                            } else {
+                                // 其他情况也转换为对象格式
+                                return {x: `Item ${idx + 1}`, y: val.y !== undefined ? val.y : val};
+                            }
+                        });
+                        
+                        data.push({
+                            key: series.key || `Series ${i + 1}`,
+                            values: formattedValues
+                        });
+                    }
+                }
+            }
             // @ts-ignore
             chart = (globalThis as any).nv.models.stackedAreaChart()
                 .clipEdge(true)
                 .useInteractiveGuideline(true);
-            chart.xAxis.tickFormat((val) => chartData[0].xlabels[val] || val);
             break;
         case "scatterChart":
-            for (let i = 0; i < chartData.length; i++) {
-                const arr = [];
-                for (let j = 0; j < chartData[i].length; j++) {
-                    arr.push({ x: j, y: chartData[i][j] });
+            // 确保散点图数据格式正确
+            data = [];
+            if (Array.isArray(processedChartData)) {
+                for (let i = 0; i < processedChartData.length; i++) {
+                    const series = processedChartData[i];
+                    if (series && series.values && Array.isArray(series.values)) {
+                        // 确保每个值都是对象格式 {x: ..., y: ...}
+                        const formattedValues = series.values.map((val, idx) => {
+                            if (typeof val === 'object' && val.x !== undefined && val.y !== undefined) {
+                                return val;
+                            } else if (typeof val === 'number') {
+                                // 如果直接是数字，则转换为对象格式
+                                return {x: idx, y: val};
+                            } else {
+                                // 其他情况也转换为对象格式
+                                return {x: val.x !== undefined ? val.x : idx, y: val.y !== undefined ? val.y : val};
+                            }
+                        });
+                        
+                        data.push({
+                            key: series.key || `Series ${i + 1}`,
+                            values: formattedValues
+                        });
+                    }
                 }
-                data.push({ key: `data${i + 1}`, values: arr });
             }
             // @ts-ignore
             chart = (globalThis as any).nv.models.scatterChart()
@@ -721,10 +1027,31 @@ function processSingleMsg(d) {
             chart.yAxis.axisLabel('Y').tickFormat((globalThis as any).d3.format('.02f'));
             break;
         default:
+            // 如果未识别的图表类型，默认为多柱状图
+            data = processedChartData;
+            // @ts-ignore
+            chart = (globalThis as any).nv.models.multiBarChart();
     }
+    
     if (chart !== null) {
         const chartElement = document.getElementById(chartID);
         if (chartElement) {
+            // 如果有标题，创建一个包含标题的包装元素
+            if (title) {
+                // 添加标题元素
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'chart-title';
+                titleDiv.textContent = title;
+                titleDiv.style.textAlign = 'center';
+                titleDiv.style.fontWeight = 'bold';
+                titleDiv.style.marginBottom = '10px';
+                
+                // 在图表容器前插入标题
+                if(chartElement.parentNode) {
+                    chartElement.parentNode.insertBefore(titleDiv, chartElement);
+                }
+            }
+            
             // @ts-ignore
             (globalThis as any).d3.select(`#${chartID}`)
                 .append("svg")
@@ -733,11 +1060,14 @@ function processSingleMsg(d) {
                 .call(chart);
             // @ts-ignore
             (globalThis as any).nv.utils.windowResize(chart.update);
+            
             isDone = true;
         }
         else {
-            // chart element not found
+            console.warn(`Chart element with id ${chartID} not found.`);
         }
+    } else {
+        console.warn(`Chart type ${chartType} not supported or data is invalid.`);
     }
     return isDone;
 }
