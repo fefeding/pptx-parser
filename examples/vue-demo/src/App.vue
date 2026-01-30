@@ -18,10 +18,10 @@
         {{ error }}
       </div>
 
-      <div v-if="htmlContent" class="preview-section">
+      <div class="preview-section">
         <h3>PPTX HTML预览：</h3>
         <div class="slide-viewer">
-          <div class="slide-container" v-html="htmlContent"></div>
+          <div id="slide-container" class="slide-container"></div>
         </div>
       </div>
     </main>
@@ -50,7 +50,8 @@ const htmlContent = ref('')
         const result = await parsePptx(file)
 
         // 从新 API 获取 HTML 内容
-        htmlContent.value = result.html
+       // htmlContent.value = result.html;
+        document.getElementById('slide-container').innerHTML = `<style>${result.css}</style>${result.html}`;
 
       } catch (e) {
         error.value = e instanceof Error ? e.message : '解析失败'
