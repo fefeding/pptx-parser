@@ -132,9 +132,9 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
         if (file instanceof File || (file as any) instanceof Blob) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                    fileArrayBuffer = event.target!.result as ArrayBuffer;
-                    processZip(fileArrayBuffer, resolve, reject);
+                reader.onload = async (event) => {
+                    fileArrayBuffer = event.target.result as ArrayBuffer;
+                    await processZip(fileArrayBuffer, resolve, reject);
                 };
                 reader.onerror = (event) => {
                     reject(new Error("Failed to read file: " + (event.target as any).error));
@@ -143,8 +143,8 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
             });
         }
         else if (file instanceof ArrayBuffer) {
-            return new Promise((resolve, reject) => {
-                processZip(file, resolve, reject);
+            return new Promise(async (resolve, reject) => {
+                await processZip(file, resolve, reject);
             });
         }
         else {
@@ -160,60 +160,65 @@ function pptxToHtml(file: File | Blob | ArrayBuffer, options: PptxToHtmlOptions 
             reject(new Error("Invalid file: too small"));
             return;
         }
-        const zip = await JSZip.loadAsync(fileArrayBuffer);
-        
-        // 配置 PPTXParser 模块 - 传递必要的回调函数
-        (PPTXParser as any).configure({
-            ...settings,
-            processNodesInSlide,
-            getBackground,
-            getSlideBackgroundFill
-        });
-        
+        try {
+            // 使用异步方式加载ZIP，但预先缓存所有文件内容以模拟同步访问
+            const zip = await JSZip.loadAsync(fileArrayBuffer);
+            
+            // 配置 PPTXParser 模块 - 传递必要的回调函数
+            (PPTXParser as any).configure({
+                ...settings,
+                processNodesInSlide,
+                getBackground,
+                getSlideBackgroundFill
+            });
+            
         const rslt_ary = await (PPTXParser as any).processPPTX(zip);
-        
-        // 收集生成的 HTML、CSS 和数据
-        const result: any = {
-            html: "",
-            css: "",
-            slides: [],
-            slideSize: null,
-            chartQueue: []
-        };
-        
-        for (let i = 0; i < rslt_ary.length; i++) {
-            switch (rslt_ary[i].type) {
-                case "slide":
-                    result.html += rslt_ary[i].data;
-                    result.slides.push(rslt_ary[i].data);
-                    break;
-                case "pptx-thumb":
-                    // 缩略图可以在这里处理
-                    break;
-                case "slideSize":
-                    slideWidth = rslt_ary[i].data.width;
-                    slideHeight = rslt_ary[i].data.height;
-                    result.slideSize = rslt_ary[i].data;
-                    break;
-                case "globalCSS":
-                    result.css += rslt_ary[i].data;
-                    break;
-                case "ExecutionTime":
-                    // 生成并添加全局 CSS
-                    if (typeof (PPTXCSSUtils as any).genGlobalCSS === 'function') {
-                        result.css += (PPTXCSSUtils as any).genGlobalCSS(styleTable, settings, slideWidth);
-                    }
-                    result.chartQueue = MsgQueue.slice(); // 复制图表队列
-                    isDone = true;
-                    break;
-                case "progress-update":
-                    updateProgressBar(rslt_ary[i].data);
-                    break;
-                default:
-                    break;
+            
+            // 收集生成的 HTML、CSS 和数据
+            const result: any = {
+                html: "",
+                css: "",
+                slides: [],
+                slideSize: null,
+                chartQueue: []
+            };
+            
+            for (let i = 0; i < rslt_ary.length; i++) {
+                switch (rslt_ary[i].type) {
+                    case "slide":
+                        result.html += rslt_ary[i].data;
+                        result.slides.push(rslt_ary[i].data);
+                        break;
+                    case "pptx-thumb":
+                        // 缩略图可以在这里处理
+                        break;
+                    case "slideSize":
+                        slideWidth = rslt_ary[i].data.width;
+                        slideHeight = rslt_ary[i].data.height;
+                        result.slideSize = rslt_ary[i].data;
+                        break;
+                    case "globalCSS":
+                        result.css += rslt_ary[i].data;
+                        break;
+                    case "ExecutionTime":
+                        // 生成并添加全局 CSS
+                        if (typeof (PPTXCSSUtils as any).genGlobalCSS === 'function') {
+                            result.css += (PPTXCSSUtils as any).genGlobalCSS(styleTable, settings, slideWidth);
+                        }
+                        result.chartQueue = MsgQueue.slice(); // 复制图表队列
+                        isDone = true;
+                        break;
+                    case "progress-update":
+                        updateProgressBar(rslt_ary[i].data);
+                        break;
+                    default:
+                        break;
+                }
             }
+            resolve(result);
+        } catch (error) {
+            reject(error);
         }
-        resolve(result);
     }
     
     function initSlideMode(divId: HTMLElement | undefined, settings: any): void {

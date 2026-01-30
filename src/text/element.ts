@@ -339,9 +339,22 @@ class PPTXTextElementUtils {
                 // without r
                 let prgr_text: string = PPTXTextElementUtils.genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate, styleTable);
                 if (isBullate) {
-                    // Note: DOM manipulation in Node.js might not work, assuming browser environment
-                    // This code assumes browser environment for offsetWidth
-                    // In Node.js, this would need adjustment
+                    // Measure text width for proper layout calculation
+                    // This works in browser environments
+                    if (typeof document !== 'undefined' && document.createElement) {
+                        const txt_obj = document.createElement('div');
+                        txt_obj.innerHTML = prgr_text;
+                        const span = txt_obj.firstChild as HTMLElement;
+                        if (span && span.style) {
+                            span.style.position = 'absolute';
+                            span.style.float = 'left';
+                            span.style.whiteSpace = 'nowrap';
+                            span.style.visibility = 'hidden';
+                            document.body.appendChild(span);
+                            total_text_len += span.offsetWidth;
+                            document.body.removeChild(span);
+                        }
+                    }
                 }
                 prgrph_text += prgr_text;
             } else if (rNode !== undefined) {
@@ -349,7 +362,22 @@ class PPTXTextElementUtils {
                 for (let j: number = 0; j < rNode.length; j++) {
                     const prgr_text: string = PPTXTextElementUtils.genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate, styleTable);
                     if (isBullate) {
-                        // Same note as above
+                        // Measure text width for proper layout calculation
+                        // This works in browser environments
+                        if (typeof document !== 'undefined' && document.createElement) {
+                            const txt_obj = document.createElement('div');
+                            txt_obj.innerHTML = prgr_text;
+                            const span = txt_obj.firstChild as HTMLElement;
+                            if (span && span.style) {
+                                span.style.position = 'absolute';
+                                span.style.float = 'left';
+                                span.style.whiteSpace = 'nowrap';
+                                span.style.visibility = 'hidden';
+                                document.body.appendChild(span);
+                                total_text_len += span.offsetWidth;
+                                document.body.removeChild(span);
+                            }
+                        }
                     }
                     prgrph_text += prgr_text;
                 }
