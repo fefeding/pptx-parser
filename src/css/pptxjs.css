@@ -1,5 +1,3 @@
-
-
 .slide {
 	position: relative;
 	border: 1px solid #333;
@@ -153,6 +151,22 @@
 	position: absolute;
 	overflow: visible;
 }
+
+/* 修复背景色继承问题 */
+.slide div.content,
+.slide div.block,
+.slide div.v-up,
+.slide div.h-left,
+.slide div.h-mid,
+.slide div.h-right {
+	background-color: transparent !important;
+}
+
+/* 修复无效的样式格式 */
+.slide div {
+	background-image: none !important;
+}
+
 /*
 #pptx-thumb {
 	min-width: 240px;
