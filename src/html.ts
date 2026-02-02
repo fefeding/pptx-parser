@@ -633,19 +633,41 @@ async function genChart(node, warpObj) {
         const colorStyleRoot = colorStyleData["cs:colorStyle"] || colorStyleData["a:clrScheme"];
         if (colorStyleRoot) {
             // 处理Microsoft Office颜色样式文件格式
-            if (colorStyleRoot["a:schemeClr"]) {
-                const schemeColors = Array.isArray(colorStyleRoot["a:schemeClr"]) 
-                    ? colorStyleRoot["a:schemeClr"] 
-                    : [colorStyleRoot["a:schemeClr"]];
-                
-                for (const schemeClr of schemeColors) {
-                    if (schemeClr && schemeClr["attrs"] && schemeClr["attrs"]["val"]) {
-                        const colorValue = schemeClr["attrs"]["val"];
-                        // 转换颜色值为实际颜色
-                        // 使用主题颜色映射
-                        const themeColor = PPTXColorUtils.getSchemeColorFromTheme(`a:${colorValue}`, undefined, undefined, warpObj);
-                        if (themeColor) {
-                            colorSchemes.push(themeColor);
+            const colorKeys = [
+                "a:schemeClr", "a:sysClr", "a:srgbClr"
+            ];
+            
+            for (const colorKey of colorKeys) {
+                if (colorStyleRoot[colorKey]) {
+                    const colorElements = Array.isArray(colorStyleRoot[colorKey]) 
+                        ? colorStyleRoot[colorKey] 
+                        : [colorStyleRoot[colorKey]];
+                    
+                    for (const colorEl of colorElements) {
+                        if (colorEl && colorEl["attrs"]) {
+                            let colorValue;
+                            
+                            if (colorEl["attrs"]["val"]) {
+                                // 对于 schemeClr，使用主题颜色映射
+                                if (colorKey === "a:schemeClr") {
+                                    const themeColor = PPTXColorUtils.getSchemeColorFromTheme(`a:${colorEl["attrs"]["val"]}`, undefined, undefined, warpObj);
+                                    if (themeColor) {
+                                        colorSchemes.push(themeColor);
+                                    }
+                                } else if (colorKey === "a:srgbClr") {
+                                    // 对于 srgbClr，直接使用 val 属性作为颜色值
+                                    colorValue = colorEl["attrs"]["val"];
+                                    if (colorValue) {
+                                        colorSchemes.push(colorValue);
+                                    }
+                                } else if (colorKey === "a:sysClr") {
+                                    // 对于 sysClr，使用 lastClr 属性
+                                    colorValue = colorEl["attrs"]["lastClr"] || colorEl["attrs"]["val"];
+                                    if (colorValue) {
+                                        colorSchemes.push(colorValue);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -682,6 +704,30 @@ async function genChart(node, warpObj) {
                         const solidFill = series['c:spPr']['a:solidFill'];
                         if (solidFill) {
                             const color = PPTXColorUtils.getSolidFill(solidFill, undefined, undefined, warpObj);
+                            if (color) {
+                                colorSchemes.push(color);
+                            }
+                        }
+                        // 检查是否有其他填充类型
+                        else {
+                            const fillTypes = ['a:gradFill', 'a:pattFill', 'a:blipFill'];
+                            for (const fillType of fillTypes) {
+                                if (series['c:spPr'][fillType]) {
+                                    const color = PPTXColorUtils.getSolidFill(series['c:spPr'][fillType], undefined, undefined, warpObj);
+                                    if (color) {
+                                        colorSchemes.push(color);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // 同时检查系列本身是否有颜色定义
+                    if (series && series['c:spPr'] && series['c:spPr']['a:ln']) {
+                        // 检查线条颜色
+                        const lineSolidFill = series['c:spPr']['a:ln']['a:solidFill'];
+                        if (lineSolidFill) {
+                            const color = PPTXColorUtils.getSolidFill(lineSolidFill, undefined, undefined, warpObj);
                             if (color) {
                                 colorSchemes.push(color);
                             }

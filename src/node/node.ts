@@ -1,4 +1,5 @@
 import { PPTXUtils } from '../core/utils';
+import { PPTXColorUtils } from '../core/color';
 
 class PPTXNodeUtils {
     /**
@@ -32,8 +33,49 @@ class PPTXNodeUtils {
                 result = await handlers.processGroupSpNode(nodeValue, warpObj, source);
                 break;
             case "mc:AlternateContent": // Equations and formulas as Image
+                // 尝試從選擇內容中獲取數學公式
+                const mcChoiceNode = PPTXUtils.getTextByPathList(nodeValue, ["mc:Choice"]);
+                if (mcChoiceNode) {
+                    // 檢查是否包含OMath內容
+                    const graphicData = PPTXUtils.getTextByPathList(mcChoiceNode, ["a:graphic", "a:graphicData"]);
+                    if (graphicData) {
+                        // 檢查是否包含OMath內容
+                        const oMathPara = PPTXUtils.getTextByPathList(graphicData, ["m:oMathPara"]);
+                        if (oMathPara) {
+                            // 如果找到OMath內容，生成數學公式占位符
+                            result = PPTXNodeUtils.generateMathPlaceholder(oMathPara);
+                            break;
+                        }
+                        
+                        const oMath = PPTXUtils.getTextByPathList(graphicData, ["m:oMath"]);
+                        if (oMath) {
+                            result = PPTXNodeUtils.generateMathPlaceholder(oMath);
+                            break;
+                        }
+                    }
+                }
+                
+                // 如果沒有找到數學公式，嘗試從備選內容獲取
                 const mcFallbackNode = PPTXUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
-                result = handlers.processGroupSpNode(mcFallbackNode, warpObj, source);
+                if (mcFallbackNode) {
+                    // 檢查備選內容中是否包含數學公式
+                    const fallbackGraphicData = PPTXUtils.getTextByPathList(mcFallbackNode, ["a:graphic", "a:graphicData"]);
+                    if (fallbackGraphicData) {
+                        const fallbackOMathPara = PPTXUtils.getTextByPathList(fallbackGraphicData, ["m:oMathPara"]);
+                        if (fallbackOMathPara) {
+                            result = PPTXNodeUtils.generateMathPlaceholder(fallbackOMathPara);
+                            break;
+                        }
+                        
+                        const fallbackOMath = PPTXUtils.getTextByPathList(fallbackGraphicData, ["m:oMath"]);
+                        if (fallbackOMath) {
+                            result = PPTXNodeUtils.generateMathPlaceholder(fallbackOMath);
+                            break;
+                        }
+                    }
+                    
+                    result = handlers.processGroupSpNode(mcFallbackNode, warpObj, source);
+                }
                 break;
             default:
                 // No action for unknown node types
@@ -150,6 +192,66 @@ class PPTXNodeUtils {
         return result;
     }
 
+    /**
+     * 生成数学公式占位符
+     * @param {any} oMathContent - OMath内容节点
+     * @returns {string} HTML表示
+     */
+    static generateMathPlaceholder(oMathContent: any): string {
+        // 尝試從OMath內容中提取簡單的文本表示
+        const mathText = PPTXNodeUtils.extractSimpleMathText(oMathContent);
+        
+        if (mathText) {
+            return `<span class="math-placeholder" style="font-style:italic; color:#0066cc;" title="数学公式">${mathText}</span>`;
+        }
+        
+        return "<span class='math-placeholder' style='font-style:italic; color:#0066cc;' title='数学公式'>[数学公式]</span>";
+    }
+
+    /**
+     * 从OMath内容中提取简单文本
+     * @param {any} oMathContent - OMath内容节点
+     * @returns {string} 提取的文本
+     */
+    static extractSimpleMathText(oMathContent: any): string {
+        if (!oMathContent) return '';
+
+        // 递归搜索文本节点
+        const findTextNodes = (node: any): string[] => {
+            let texts: string[] = [];
+            
+            if (typeof node === 'object' && node !== null) {
+                for (const key in node) {
+                    if (key === 'm:t' && typeof node[key] === 'string') {
+                        // 直接文本节点
+                        texts.push(node[key]);
+                    } else if (key === 'm:r' && typeof node[key] === 'object') {
+                        // 寻找文本运行中的文本
+                        const run = node[key];
+                        if (Array.isArray(run)) {
+                            for (const r of run) {
+                                if (r && r['m:t']) {
+                                    texts.push(r['m:t']);
+                                }
+                            }
+                        } else if (run && run['m:t']) {
+                            texts.push(run['m:t']);
+                        }
+                    } else if (key === 'm:sSub' || key === 'm:sSup' || key === 'm:f' || key === 'm:e' || key === 'm:num' || key === 'm:den' || key === 'm:d' || key === 'm:r') {
+                        // 数学结构节点：下标、上标、分数、分子、分母、分隔符等
+                        texts = texts.concat(findTextNodes(node[key]));
+                    } else if (typeof node[key] === 'object') {
+                        texts = texts.concat(findTextNodes(node[key]));
+                    }
+                }
+            }
+            
+            return texts;
+        };
+
+        const textNodes = findTextNodes(oMathContent);
+        return textNodes.join('');
+    }
 }
 
 export { PPTXNodeUtils };

@@ -31,6 +31,23 @@ class PPTXTextElementUtils {
 
         let text: any = node["a:t"];
 
+        // 检查是否包含数学公式内容
+        if (node["a:fld"] && node["a:fld"]["m:f"] !== undefined) {
+            // 这可能是数学公式字段
+            const mathFormula = PPTXTextElementUtils.processMathFormula(node["a:fld"]);
+            if (mathFormula) {
+                return mathFormula;
+            }
+        }
+        
+        // 检查是否直接包含OMath内容
+        if (node["m:oMath"] !== undefined) {
+            const mathContent = PPTXTextElementUtils.processOMath(node["m:oMath"]);
+            if (mathContent) {
+                return mathContent;
+            }
+        }
+        
         let openElemnt: string = "<span";
         let closeElemnt: string = "</span>";
         let styleText: string = "";
@@ -413,6 +430,68 @@ class PPTXTextElementUtils {
         PPTXTextElementUtils.#isFirstBreak = value;
     }
 
+    /**
+     * 处理数学公式字段
+     * @param {any} fieldNode - 字段节点
+     * @returns {string} HTML表示
+     */
+    static processMathFormula(fieldNode: any): string {
+        // 尝试从字段节点中提取数学内容
+        if (fieldNode && fieldNode['m:f']) {
+            // 检查是否包含OMath内容
+            const oMathContent = fieldNode['m:f'];
+            const mathText = PPTXTextElementUtils.extractSimpleMathText(oMathContent);
+            if (mathText) {
+                return `<span class='math-formula' title='${mathText}' style='font-style: italic; color: #0066cc;'>[数学公式: ${mathText}]</span>`;
+            }
+        }
+        // 如果无法提取具体内容，返回通用占位符
+        return "<span class='math-formula-placeholder' style='font-style: italic; color: #0066cc;'>[数学公式]</span>";
+    }
+
+    /**
+     * 从OMath内容中提取简单文本
+     * @param {any} oMathContent - OMath内容节点
+     * @returns {string} 提取的文本
+     */
+    static extractSimpleMathText(oMathContent: any): string {
+        if (!oMathContent) return '';
+
+        // 递归搜索文本节点
+        const findTextNodes = (node: any): string[] => {
+            let texts: string[] = [];
+            
+            if (typeof node === 'object' && node !== null) {
+                for (const key in node) {
+                    if (key === 'm:t' && typeof node[key] === 'string') {
+                        texts.push(node[key]);
+                    } else if (typeof node[key] === 'object') {
+                        texts = texts.concat(findTextNodes(node[key]));
+                    }
+                }
+            }
+            
+            return texts;
+        };
+
+        const textNodes = findTextNodes(oMathContent);
+        return textNodes.join('');
+    }
+
+    /**
+     * 处理OMath内容
+     * @param {any} oMathNode - OMath节点
+     * @returns {string} HTML表示
+     */
+    static processOMath(oMathNode: any): string {
+        // 尝试从OMath节点中提取数学内容
+        const mathText = PPTXTextElementUtils.extractSimpleMathText(oMathNode);
+        if (mathText) {
+            return `<span class='omath-placeholder' title='${mathText}' style='font-style: italic; color: #0066cc;'>[OMath公式: ${mathText}]</span>`;
+        }
+        // 如果无法提取具体内容，返回通用占位符
+        return "<span class='omath-placeholder' style='font-style: italic; color: #0066cc;'>[OMath公式]</span>";
+    }
 }
 
 export { PPTXTextElementUtils };
