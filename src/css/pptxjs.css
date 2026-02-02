@@ -1,5 +1,3 @@
-
-
 .slide {
 	width: 100%;
 	/*max-width: 920px;*/
@@ -115,6 +113,17 @@
 	position: absolute;
 	overflow: visible;
 }
+
+/* 修复特定的background-color: inherit问题，只针对有问题的元素 */
+.slide div[style*="background-color: inherit"] {
+	background-color: transparent !important;
+}
+
+/* 针对包含无效边框样式的问题元素 */
+.slide div[style*="pxsolidhidden"] {
+	border: none !important;
+}
+
 /*
 #pptx-thumb {
 	min-width: 240px;
