@@ -48,7 +48,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "html-escaper": "^3.0.3",
     "jszip": "^3.10.1"
   },
   "devDependencies": {
