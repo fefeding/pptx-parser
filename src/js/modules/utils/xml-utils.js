@@ -137,6 +137,34 @@ var PPTXXmlUtils = (function() {
         return text.replace(/[&<>"']/g, function (m) { return map[m]; });
     }
 
+    /**
+     * readXmlFile - 读取XML文件并解析为对象
+     * @param {Object} zip - JSZip实例
+     * @param {string} filename - 文件名
+     * @param {boolean} isSlideContent - 是否为幻灯片内容
+     * @param {number} appVersion - 应用版本
+     * @returns {Object} 解析后的XML对象
+     */
+    function readXmlFile(zip, filename, isSlideContent, appVersion) {
+        try {
+            var fileContent = zip.file(filename).asText();
+            if (isSlideContent && appVersion <= 12) {
+                //< office2007
+                //remove "<!CDATA[ ... ]]>" tag
+                fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
+            }
+            var xmlData = tXml(fileContent, { simplify: 1 });
+            if (xmlData["?xml"] !== undefined) {
+                return xmlData["?xml"];
+            } else {
+                return xmlData;
+            }
+        } catch (e) {
+            //console.log("error readXmlFile: the file '" + filename + "' not exit")
+            return null;
+        }
+    }
+
     return {
         getTextByPathStr: getTextByPathStr,
         getTextByPathList: getTextByPathList,
@@ -144,6 +172,7 @@ var PPTXXmlUtils = (function() {
         eachElement: eachElement,
         angleToDegrees: angleToDegrees,
         degreesToRadians: degreesToRadians,
-        escapeHtml: escapeHtml
+        escapeHtml: escapeHtml,
+        readXmlFile: readXmlFile
     };
 })();

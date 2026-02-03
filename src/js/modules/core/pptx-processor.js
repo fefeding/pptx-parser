@@ -27,11 +27,11 @@ var PPTXProcessor = (function() {
     }
 
     // 获取文件信息和幻灯片尺寸
-    var filesInfo = getContentTypes(zip, settings.appVersion);
+    var filesInfo = PPTXFileUtils.getContentTypes(zip, settings.appVersion);
     var slideSize = getSlideSizeAndSetDefaultTextStyle(zip, settings, slideFactor);
     
     // 读取表格样式
-    var tableStyles = readXmlFile(zip, "ppt/tableStyles.xml", false, settings.appVersion);
+    var tableStyles = PPTXFileUtils.readXmlFile(zip, "ppt/tableStyles.xml", false, settings.appVersion);
     
     post_ary.push({
         "type": "slideSize",
@@ -107,9 +107,40 @@ var PPTXProcessor = (function() {
  * @param {ArrayBuffer} buffer - ArrayBuffer
  * @returns {string} base64字符串
  */
-function base64ArrayBuffer(buffer) {
-    // TODO: 实现base64转换逻辑
-    return "";
+function base64ArrayBuffer(arrayBuffer) {
+    var base64 = '';
+    var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    var bytes = new Uint8Array(arrayBuffer);
+    var byteLength = bytes.byteLength;
+    var byteRemainder = byteLength % 3;
+    var mainLength = byteLength - byteRemainder;
+
+    var a, b, c, d;
+    var chunk;
+
+    for (var i = 0; i < mainLength; i = i + 3) {
+        chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | (bytes[i + 2]);
+        a = (chunk & 16515072) >> 18;
+        b = (chunk & 258048) >> 12;
+        c = (chunk & 4032) >> 6;
+        d = chunk & 63;
+        base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d];
+    }
+
+    if (byteRemainder == 1) {
+        chunk = bytes[mainLength];
+        a = (chunk & 252) >> 2;
+        b = (chunk & 3) << 4;
+        base64 += encodings[a] + encodings[b] + '==';
+    } else if (byteRemainder == 2) {
+        chunk = (bytes[mainLength] << 8) | (bytes[mainLength + 1]);
+        a = (chunk & 64512) >> 10;
+        b = (chunk & 1008) >> 4;
+        c = (chunk & 15) << 2;
+        base64 += encodings[a] + encodings[b] + encodings[c] + '=';
+    }
+
+    return base64;
 }
 
 /**
@@ -117,8 +148,18 @@ function base64ArrayBuffer(buffer) {
  * @returns {string} CSS字符串
  */
 function genGlobalCSS() {
-    // TODO: 实现全局CSS生成逻辑
-    return "";
+    var cssText = "";
+    for (var key in styleTable) {
+        var tagname = "";
+        cssText += tagname + " ." + styleTable[key]["name"] +
+            ((styleTable[key]["suffix"]) ? styleTable[key]["suffix"] : "") +
+            "{" + styleTable[key]["text"] + "}\n";
+    }
+
+    if (settings.slideMode && settings.slideType == "divs2slidesjs") {
+        cssText += "#all_slides_warpper{margin-right: auto;margin-left: auto;padding-top:10px;width: " + slideWidth + "px;}\n";
+    }
+    return cssText;
 }
 
 

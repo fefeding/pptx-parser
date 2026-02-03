@@ -2,7 +2,7 @@
  * Slide Processor
  * 幻灯片处理模块
  */
-
+var xmlUtils = PPTXXmlUtils;
 /**
  * 处理单个幻灯片
  * @param {Object} zip - JSZip实例
@@ -21,7 +21,7 @@ var SlideProcessor = (function() {
     // @sldFileName: ppt/slides/slide1.xml
     // @resName: ppt/slides/_rels/slide1.xml.rels
     var resName = sldFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
-    var resContent = readXmlFile(zip, resName, false, settings.appVersion);
+    var resContent = xmlUtils.readXmlFile(zip, resName, false, settings.appVersion);
     var RelationshipArray = resContent["Relationships"]["Relationship"];
     // console.log("RelationshipArray: ", RelationshipArray);
     
@@ -50,7 +50,7 @@ var SlideProcessor = (function() {
     }
 
     // Open slideLayoutXX.xml
-    var slideLayoutContent = readXmlFile(zip, layoutFilename, false, settings.appVersion);
+    var slideLayoutContent = xmlUtils.readXmlFile(zip, layoutFilename, false, settings.appVersion);
     var slideLayoutTables = indexNodes(slideLayoutContent);
     var sldLayoutClrOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
     
@@ -64,7 +64,7 @@ var SlideProcessor = (function() {
     // @resName: ppt/slideLayouts/slideLayout1.xml
     // @masterName: ppt/slideLayouts/_rels/slideLayout1.xml.rels
     var slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
-    var slideLayoutResContent = readXmlFile(zip, slideLayoutResFilename, false, settings.appVersion);
+    var slideLayoutResContent = xmlUtils.readXmlFile(zip, slideLayoutResFilename, false, settings.appVersion);
     RelationshipArray = slideLayoutResContent["Relationships"]["Relationship"];
     
     var masterFilename = "";
@@ -88,14 +88,14 @@ var SlideProcessor = (function() {
     }
 
     // Open slideMasterXX.xml
-    var slideMasterContent = readXmlFile(zip, masterFilename, false, settings.appVersion);
+    var slideMasterContent = xmlUtils.readXmlFile(zip, masterFilename, false, settings.appVersion);
     var slideMasterTextStyles = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
     var slideMasterTables = indexNodes(slideMasterContent);
 
     // /////////////////Amir/////////////
     // Open slideMasterXX.xml.rels
     var slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
-    var slideMasterResContent = readXmlFile(zip, slideMasterResFilename, false, settings.appVersion);
+    var slideMasterResContent = xmlUtils.readXmlFile(zip, slideMasterResFilename, false, settings.appVersion);
     RelationshipArray = slideMasterResContent["Relationships"]["Relationship"];
     
     var themeFilename = "";
@@ -125,8 +125,8 @@ var SlideProcessor = (function() {
     if (themeFilename !== undefined) {
         var themeName = themeFilename.split("/").pop();
         var themeResFileName = themeFilename.replace(themeName, "_rels/" + themeName) + ".rels";
-        themeContent = readXmlFile(zip, themeFilename, false, settings.appVersion);
-        var themeResContent = readXmlFile(zip, themeResFileName, false, settings.appVersion);
+        themeContent = xmlUtils.readXmlFile(zip, themeFilename, false, settings.appVersion);
+        var themeResContent = xmlUtils.readXmlFile(zip, themeResFileName, false, settings.appVersion);
         
         if (themeResContent !== null) {
             var relationshipArray = themeResContent["Relationships"]["Relationship"];
@@ -157,7 +157,7 @@ var SlideProcessor = (function() {
     // 省略了diagram处理的部分代码以保持简洁
 
     // =====< Step 3 >=====
-    var slideContent = readXmlFile(zip, sldFileName, true, settings.appVersion);
+    var slideContent = xmlUtils.readXmlFile(zip, sldFileName, true, settings.appVersion);
     var nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
     
     var warpObj = {
@@ -268,20 +268,231 @@ function indexNodes(content) {
     return { "idTable": idTable, "idxTable": idxTable, "typeTable": typeTable };
 }
 
-// Helper functions - 需要迁移实现
-function getTextByPathList(obj, pathList) {
-    // TODO: 实现getTextByPathList
-    return null;
+        /**
+         * getTextByPathList
+         * @param {Object} node
+         * @param {string Array} path
+         */
+        function getTextByPathList(node, path) {
+    
+            if (path.constructor !== Array) {
+                throw Error("Error of path type! path is not array.");
+            }
+
+            if (node === undefined) {
+                return undefined;
+            }
+
+            var l = path.length;
+            for (var i = 0; i < l; i++) {
+                node = node[path[i]];
+                if (node === undefined) {
+                    return undefined;
+                }
+            }
+
+            return node;
 }
 
 function getBackground(warpObj, slideSize, index) {
-    // TODO: 实现getBackground
-    return "";
+    var slideContent = warpObj["slideContent"];
+    var slideLayoutContent = warpObj["slideLayoutContent"];
+    var slideMasterContent = warpObj["slideMasterContent"];
+
+    var nodesSldLayout = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:spTree"]);
+    var nodesSldMaster = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:spTree"]);
+    var showMasterSp = getTextByPathList(slideLayoutContent, ["p:sldLayout", "attrs", "showMasterSp"]);
+    var bgColor = getSlideBackgroundFill(warpObj, index);
+    var result = "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
+    var node_ph_type_ary = [];
+    if (nodesSldLayout !== undefined) {
+        for (var nodeKey in nodesSldLayout) {
+            if (nodesSldLayout[nodeKey].constructor === Array) {
+                for (var i = 0; i < nodesSldLayout[nodeKey].length; i++) {
+                    var ph_type = getTextByPathList(nodesSldLayout[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                    if (ph_type != "pic") {
+                        result += processNodesInSlide(nodeKey, nodesSldLayout[nodeKey][i], nodesSldLayout, warpObj, "slideLayoutBg");
+                    }
+                }
+            } else {
+                var ph_type = getTextByPathList(nodesSldLayout[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                if (ph_type != "pic") {
+                    result += processNodesInSlide(nodeKey, nodesSldLayout[nodeKey], nodesSldLayout, warpObj, "slideLayoutBg");
+                }
+            }
+        }
+    }
+    if (nodesSldMaster !== undefined && (showMasterSp == "1" || showMasterSp === undefined)) {
+        for (var nodeKey in nodesSldMaster) {
+            if (nodesSldMaster[nodeKey].constructor === Array) {
+                for (var i = 0; i < nodesSldMaster[nodeKey].length; i++) {
+                    var ph_type = getTextByPathList(nodesSldMaster[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                    result += processNodesInSlide(nodeKey, nodesSldMaster[nodeKey][i], nodesSldMaster, warpObj, "slideMasterBg");
+                }
+            } else {
+                var ph_type = getTextByPathList(nodesSldMaster[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                result += processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, warpObj, "slideMasterBg");
+            }
+        }
+    }
+    return result;
 }
 
 function getSlideBackgroundFill(warpObj, index) {
-    // TODO: 实现getSlideBackgroundFill
-    return "";
+    var slideContent = warpObj["slideContent"];
+    var slideLayoutContent = warpObj["slideLayoutContent"];
+    var slideMasterContent = warpObj["slideMasterContent"];
+
+    var bgPr = getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgPr"]);
+    var bgRef = getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgRef"]);
+    var bgcolor;
+    if (bgPr !== undefined) {
+        var bgFillTyp = getFillType(bgPr);
+
+        if (bgFillTyp == "SOLID_FILL") {
+            var sldFill = bgPr["a:solidFill"];
+            var clrMapOvr;
+            var sldClrMapOvr = getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+            if (sldClrMapOvr !== undefined) {
+                clrMapOvr = sldClrMapOvr;
+            } else {
+                var sldClrMapOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                if (sldClrMapOvr !== undefined) {
+                    clrMapOvr = sldClrMapOvr;
+                } else {
+                    clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
+                }
+            }
+            var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+            bgcolor = "background: #" + sldBgClr + ";";
+        } else if (bgFillTyp == "GRADIENT_FILL") {
+            bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
+        } else if (bgFillTyp == "PIC_FILL") {
+            bgcolor = getBgPicFill(bgPr, "slideBg", warpObj, undefined, index);
+        }
+    } else if (bgRef !== undefined) {
+        var clrMapOvr;
+        var sldClrMapOvr = getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+        if (sldClrMapOvr !== undefined) {
+            clrMapOvr = sldClrMapOvr;
+        } else {
+            var sldClrMapOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+            if (sldClrMapOvr !== undefined) {
+                clrMapOvr = sldClrMapOvr;
+            } else {
+                clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
+            }
+        }
+        var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
+        var idx = Number(bgRef["attrs"]["idx"]);
+
+        if (idx == 0 || idx == 1000) {
+        } else if (idx > 0 && idx < 1000) {
+        } else if (idx > 1000) {
+            var trueIdx = idx - 1000;
+            var bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
+            var sortblAry = [];
+            Object.keys(bgFillLst).forEach(function (key) {
+                var bgFillLstTyp = bgFillLst[key];
+                if (key != "attrs") {
+                    if (bgFillLstTyp.constructor === Array) {
+                        for (var i = 0; i < bgFillLstTyp.length; i++) {
+                            var obj = {};
+                            obj[key] = bgFillLstTyp[i];
+                            obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                            obj["attrs"] = {
+                                "order": bgFillLstTyp[i]["attrs"]["order"]
+                            }
+                            sortblAry.push(obj)
+                        }
+                    } else {
+                        var obj = {};
+                        obj[key] = bgFillLstTyp;
+                        obj["idex"] = bgFillLstTyp["attrs"]["order"];
+                        obj["attrs"] = {
+                            "order": bgFillLstTyp["attrs"]["order"]
+                        }
+                        sortblAry.push(obj)
+                    }
+                }
+            });
+            var sortByOrder = sortblAry.slice(0);
+            sortByOrder.sort(function (a, b) {
+                return a.idex - b.idex;
+            });
+            var bgFillLstIdx = sortByOrder[trueIdx - 1];
+            var bgFillTyp = getFillType(bgFillLstIdx);
+            if (bgFillTyp == "SOLID_FILL") {
+                var sldFill = bgFillLstIdx["a:solidFill"];
+                var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                bgcolor = "background: #" + sldBgClr + ";";
+            } else if (bgFillTyp == "GRADIENT_FILL") {
+                bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
+            } else {
+                console.log(bgFillTyp)
+            }
+        }
+    } else {
+        bgPr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgPr"]);
+        bgRef = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgRef"]);
+        var clrMapOvr;
+        var sldClrMapOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+        if (sldClrMapOvr !== undefined) {
+            clrMapOvr = sldClrMapOvr;
+        } else {
+            clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
+        }
+        var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
+        var idx = Number(bgRef["attrs"]["idx"]);
+
+        if (idx == 0 || idx == 1000) {
+        } else if (idx > 0 && idx < 1000) {
+        } else if (idx > 1000) {
+            var trueIdx = idx - 1000;
+            var bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
+            var sortblAry = [];
+            Object.keys(bgFillLst).forEach(function (key) {
+                var bgFillLstTyp = bgFillLst[key];
+                if (key != "attrs") {
+                    if (bgFillLstTyp.constructor === Array) {
+                        for (var i = 0; i < bgFillLstTyp.length; i++) {
+                            var obj = {};
+                            obj[key] = bgFillLstTyp[i];
+                            obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                            obj["attrs"] = {
+                                "order": bgFillLstTyp[i]["attrs"]["order"]
+                            }
+                            sortblAry.push(obj)
+                        }
+                    } else {
+                        var obj = {};
+                        obj[key] = bgFillLstTyp;
+                        obj["idex"] = bgFillLstTyp["attrs"]["order"];
+                        obj["attrs"] = {
+                            "order": bgFillLstTyp["attrs"]["order"]
+                        }
+                        sortblAry.push(obj)
+                    }
+                }
+            });
+            var sortByOrder = sortblAry.slice(0);
+            sortByOrder.sort(function (a, b) {
+                return a.idex - b.idex;
+            });
+            var bgFillLstIdx = sortByOrder[trueIdx - 1];
+            var bgFillTyp = getFillType(bgFillLstIdx);
+            if (bgFillTyp == "SOLID_FILL") {
+                var sldFill = bgFillLstIdx["a:solidFill"];
+                var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                bgcolor = "background: #" + sldBgClr + ";";
+            } else if (bgFillTyp == "GRADIENT_FILL") {
+                bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
+            } else {
+                console.log(bgFillTyp)
+            }
+        }
+    }
+    return bgcolor;
 }
 
 
