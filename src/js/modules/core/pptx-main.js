@@ -324,7 +324,7 @@
             var dateBefore = new Date();
 
             if (zip.file("docProps/thumbnail.jpeg") !== null) {
-                var pptxThumbImg = base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
+                var pptxThumbImg = PPTXImageUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
                 post_ary.push({
                     "type": "pptx-thumb",
                     "data": pptxThumbImg,
@@ -8420,7 +8420,7 @@
             }
 
             //console.log("processPicNode imgName:", imgName);
-            var imgFileExt = extractFileExtension(imgName).toLowerCase();
+            var imgFileExt = PPTXImageUtils.extractFileExtension(imgName).toLowerCase();
             var zip = warpObj["zip"];
             
             // 确定上下文类型用于路径解析
@@ -8460,7 +8460,7 @@
             if (vdoNode !== undefined & mediaProcess) {
                 vdoRid = vdoNode["attrs"]["r:link"];
                 vdoFile = resObj[vdoRid]["target"];
-                var checkIfLink = IsVideoLink(vdoFile);
+                var checkIfLink = PPTXImageUtils.IsVideoLink(vdoFile);
                 if (checkIfLink) {
                     vdoFile = escapeHtml(vdoFile);
                     //vdoBlob = vdoFile;
@@ -8468,7 +8468,7 @@
                     mediaSupportFlag = true;
                     mediaPicFlag = true;
                 } else {
-                    vdoFileExt = extractFileExtension(vdoFile).toLowerCase();
+                    vdoFileExt = PPTXImageUtils.extractFileExtension(vdoFile).toLowerCase();
                     if (vdoFileExt == "mp4" || vdoFileExt == "webm" || vdoFileExt == "ogg") {
                         // 使用改进的媒体文件查找方法
                         var vdoFileObj = PPTXFileUtils.findMediaFile(zip, vdoFile, context, '');
@@ -8476,7 +8476,7 @@
                             console.warn("Video file not found:", vdoFile);
                         } else {
                             uInt8Array = vdoFileObj.asArrayBuffer();
-                            vdoMimeType = getMimeType(vdoFileExt);
+                            vdoMimeType = PPTXImageUtils.getMimeType(vdoFileExt);
                             blob = new Blob([uInt8Array], {
                                 type: vdoMimeType
                             });
@@ -8495,7 +8495,7 @@
             if (audioNode !== undefined & mediaProcess) {
                 audioRid = audioNode["attrs"]["r:link"];
                 audioFile = resObj[audioRid]["target"];
-                audioFileExt = extractFileExtension(audioFile).toLowerCase();
+                audioFileExt = PPTXImageUtils.extractFileExtension(audioFile).toLowerCase();
                 if (audioFileExt == "mp3" || audioFileExt == "wav" || audioFileExt == "ogg") {
                     // 使用改进的媒体文件查找方法
                     var audioFileObj = PPTXFileUtils.findMediaFile(zip, audioFile, context, '');
@@ -8532,14 +8532,14 @@
             }
             //console.log(node)
             //////////////////////////////////////////////////////////////////////////
-            mimeType = getMimeType(imgFileExt);
+            mimeType = PPTXImageUtils.getMimeType(imgFileExt);
             rtrnData = "<div class='block content' style='" +
                 ((mediaProcess && audioPlayerFlag) ? getPosition(audioObjc, node, undefined, undefined) : getPosition(xfrmNode, node, undefined, undefined)) +
                 ((mediaProcess && audioPlayerFlag) ? getSize(audioObjc, undefined, undefined) : getSize(xfrmNode, undefined, undefined)) +
                 " z-index: " + order + ";" +
                 "transform: rotate(" + rotate + "deg);'>";
             if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
-                rtrnData += "<img src='data:" + mimeType + ";base64," + base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
+                rtrnData += "<img src='data:" + mimeType + ";base64," + PPTXImageUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
             } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
                 if (vdoNode !== undefined && !isVdeoLink) {
                     rtrnData += "<video  src='" + vdoBlob + "' controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>";
@@ -9214,8 +9214,8 @@
                         } else {
                             var imgArrayBuffer = imgFile.asArrayBuffer();
                             var imgExt = imgPath.split(".").pop();
-                            var imgMimeType = getMimeType(imgExt);
-                            buImg = "<img src='data:" + imgMimeType + ";base64," + base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
+                            var imgMimeType = PPTXImageUtils.getMimeType(imgExt);
+                            buImg = "<img src='data:" + imgMimeType + ";base64," + PPTXImageUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
                             //console.log("imgPath: "+imgPath+"\nimgMimeType: "+imgMimeType)
                         }
                     }
@@ -12418,8 +12418,8 @@
                     return undefined;
                 }
                 var imgArrayBuffer = imgFile.asArrayBuffer();
-                var imgMimeType = getMimeType(imgExt);
-                img = "data:" + imgMimeType + ";base64," + base64ArrayBuffer(imgArrayBuffer);
+                var imgMimeType = PPTXImageUtils.getMimeType(imgExt);
+                img = "data:" + imgMimeType + ";base64," + PPTXImageUtils.base64ArrayBuffer(imgArrayBuffer);
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
                 setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
             }
@@ -13579,65 +13579,7 @@
         //     }
         //     return degrees * (Math.PI / 180);
         // }
-        function getMimeType(imgFileExt) {
-            var mimeType = "";
-            //console.log(imgFileExt)
-            switch (imgFileExt.toLowerCase()) {
-                case "jpg":
-                case "jpeg":
-                    mimeType = "image/jpeg";
-                    break;
-                case "png":
-                    mimeType = "image/png";
-                    break;
-                case "gif":
-                    mimeType = "image/gif";
-                    break;
-                case "emf": // Not native support
-                    mimeType = "image/x-emf";
-                    break;
-                case "wmf": // Not native support
-                    mimeType = "image/x-wmf";
-                    break;
-                case "svg":
-                    mimeType = "image/svg+xml";
-                    break;
-                case "mp4":
-                    mimeType = "video/mp4";
-                    break;
-                case "webm":
-                    mimeType = "video/webm";
-                    break;
-                case "ogg":
-                    mimeType = "video/ogg";
-                    break;
-                case "avi":
-                    mimeType = "video/avi";
-                    break;
-                case "mpg":
-                    mimeType = "video/mpg";
-                    break;
-                case "wmv":
-                    mimeType = "video/wmv";
-                    break;
-                case "mp3":
-                    mimeType = "audio/mpeg";
-                    break;
-                case "wav":
-                    mimeType = "audio/wav";
-                    break;
-                case "emf":
-                    mimeType = "image/emf";
-                    break;
-                case "wmf":
-                    mimeType = "image/wmf";
-                case "tif":
-                case "tiff":
-                    mimeType = "image/tiff";
-                    break;
-            }
-            return mimeType;
-        }
+
         function getSvgGradient(w, h, angl, color_arry, shpId) {
             var stopsArray = getMiddleStops(color_arry - 2);
 
@@ -14086,58 +14028,11 @@
             }
             return aNum;
         }
-        function base64ArrayBuffer(arrayBuffer) {
-            var base64 = '';
-            var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-            var bytes = new Uint8Array(arrayBuffer);
-            var byteLength = bytes.byteLength;
-            var byteRemainder = byteLength % 3;
-            var mainLength = byteLength - byteRemainder;
 
-            var a, b, c, d;
-            var chunk;
 
-            for (var i = 0; i < mainLength; i = i + 3) {
-                chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
-                a = (chunk & 16515072) >> 18;
-                b = (chunk & 258048) >> 12;
-                c = (chunk & 4032) >> 6;
-                d = chunk & 63;
-                base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d];
-            }
 
-            if (byteRemainder == 1) {
-                chunk = bytes[mainLength];
-                a = (chunk & 252) >> 2;
-                b = (chunk & 3) << 4;
-                base64 += encodings[a] + encodings[b] + '==';
-            } else if (byteRemainder == 2) {
-                chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
-                a = (chunk & 64512) >> 10;
-                b = (chunk & 1008) >> 4;
-                c = (chunk & 15) << 2;
-                base64 += encodings[a] + encodings[b] + encodings[c] + '=';
-            }
 
-            return base64;
-        }
 
-        function IsVideoLink(vdoFile) {
-            /*
-            var ext = extractFileExtension(vdoFile);
-            if (ext.length == 3){
-                return false;
-            }else{
-                return true;
-            }
-            */
-            var urlregex = /^(https?|ftp):\/\/([a-zA-Z0-9.-]+(:[a-zA-Z0-9.&%$-]+)*@)*((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(:[0-9]+)*(\/($|[a-zA-Z0-9.,?'\\+&%$#=~_-]+))*$/;
-            return urlregex.test(vdoFile);
-        }
-
-        function extractFileExtension(filename) {
-            return filename.substr((~-filename.lastIndexOf(".") >>> 0) + 2);
-        }
 
         function escapeHtml(text) {
             var map = {
