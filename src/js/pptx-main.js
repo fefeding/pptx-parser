@@ -817,12 +817,31 @@
             if (xfrmNode !== undefined) {
                 var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
                 var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-                var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-                var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+                
+                // 根据ECMA-376标准，a:chOff和a:chExt是可选元素
+                // 当不存在时，应该使用父元素的对应值作为默认值
+                var chx, chy, chcx, chcy;
+                
+                if (xfrmNode["a:chOff"] !== undefined && xfrmNode["a:chOff"]["attrs"] !== undefined) {
+                    chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
+                    chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+                } else {
+                    // 当a:chOff不存在时，使用a:off的值作为默认值
+                    chx = x;
+                    chy = y;
+                }
+                
                 var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
                 var cy = parseInt(xfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
-                var chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
-                var chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+                
+                if (xfrmNode["a:chExt"] !== undefined && xfrmNode["a:chExt"]["attrs"] !== undefined) {
+                    chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
+                    chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+                } else {
+                    // 当a:chExt不存在时，使用a:ext的值作为默认值
+                    chcx = cx;
+                    chcy = cy;
+                }
                 var rotate = parseInt(xfrmNode["attrs"]["rot"])
                 var rotStr = ""//;" border: 3px solid black;";
                 // angleToDegrees(getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
