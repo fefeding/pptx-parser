@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PPTX Parser Test</title>
+
+<link rel="stylesheet" href="./src/css/pptxjs.css">
+
+<script type="text/javascript" src="./src/js/jquery-1.11.3.min.js"></script>
+<script type="text/javascript" src="./src/js/jszip.min.js"></script>
+<script type="text/javascript" src="./src/js/filereader.js"></script>
+
+<!-- Core Dependencies -->
+<script type="text/javascript" src="./src/js/modules/utils/tXml.js"></script>
+
+<!-- Core Utilities -->
+<script type="text/javascript" src="./src/js/modules/utils/file-utils.js"></script>
+<script type="text/javascript" src="./src/js/modules/utils/color-utils.js"></script>
+<script type="text/javascript" src="./src/js/modules/utils/image-utils.js"></script>
+<script type="text/javascript" src="./src/js/modules/utils/text-utils.js"></script>
+<script type="text/javascript" src="./src/js/modules/utils/xml-utils.js"></script>
+<script type="text/javascript" src="./src/js/modules/utils/chart-utils.js"></script>
+
+<!-- Core Constants -->
+<script type="text/javascript" src="./src/js/modules/core/constants.js"></script>
+
+<!-- Main PPTX Processor -->
+<script type="text/javascript" src="./src/js/modules/core/pptx-main.js"></script>
+
+<style>
+html, body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+.container { max-width: 1200px; margin: 0 auto; }
+.test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+.test-section h3 { margin-top: 0; color: #333; }
+.status { padding: 10px; margin: 10px 0; border-radius: 3px; }
+.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+</style>
+
+</head>
+<body>
+<div class="container">
+    <h1>PPTX Parser 模块测试</h1>
+    
+    <div class="test-section">
+        <h3>1. 模块加载状态</h3>
+        <div id="module-status">正在检测模块加载状态...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. 功能测试</h3>
+        <div id="function-status">等待模块加载完成...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. PPTX文件测试</h3>
+        <input type="file" id="pptx-file" accept=".pptx" />
+        <button id="test-btn" disabled>测试PPTX解析</button>
+        <div id="pptx-result"></div>
+    </div>
+</div>
+
+<script>
+$(function() {
+    console.log('开始PPTX Parser测试...');
+    
+    // 测试模块加载
+    function testModules() {
+        const modules = [
+            'PPTXFileUtils',
+            'PPTXColorUtils',
+            'PPTXImageUtils', 
+            'PPTXTextUtils',
+            'PPTXXmlUtils',
+            'PPTXChartUtils',
+            'PPTXConstants'
+        ];
+        
+        let allLoaded = true;
+        let statusHtml = '';
+        
+        modules.forEach(module => {
+            if (window[module]) {
+                statusHtml += `<div class="status success">✓ ${module} 已成功加载</div>`;
+            } else {
+                statusHtml += `<div class="status error">✗ ${module} 未加载</div>`;
+                allLoaded = false;
+            }
+        });
+        
+        $('#module-status').html(statusHtml);
+        return allLoaded;
+    }
+    
+    // 测试关键函数
+    function testFunctions() {
+        let statusHtml = '';
+        let allFunctionsOk = true;
+        
+        // 测试PPTXFileUtils的关键函数
+        if (window.PPTXFileUtils) {
+            const requiredFuncs = ['findMediaFile', 'resolveMediaPath', 'readXmlFile'];
+            requiredFuncs.forEach(func => {
+                if (typeof PPTXFileUtils[func] === 'function') {
+                    statusHtml += `<div class="status success">✓ PPTXFileUtils.${func} 可用</div>`;
+                } else {
+                    statusHtml += `<div class="status error">✗ PPTXFileUtils.${func} 不可用</div>`;
+                    allFunctionsOk = false;
+                }
+            });
+        } else {
+            statusHtml += `<div class="status error">✗ PPTXFileUtils 未定义</div>`;
+            allFunctionsOk = false;
+        }
+        
+        // 测试其他工具函数
+        const utilsTests = [
+            { module: 'PPTXImageUtils', func: 'extractFileExtension' },
+            { module: 'PPTXImageUtils', func: 'getMimeType' },
+            { module: 'PPTXImageUtils', func: 'IsVideoLink' }
+        ];
+        
+        utilsTests.forEach(test => {
+            if (window[test.module] && typeof window[test.module][test.func] === 'function') {
+                statusHtml += `<div class="status success">✓ ${test.module}.${test.func} 可用</div>`;
+            } else {
+                statusHtml += `<div class="status warning">⚠ ${test.module}.${test.func} 不可用</div>`;
+            }
+        });
+        
+        $('#function-status').html(statusHtml);
+        return allFunctionsOk;
+    }
+    
+    // 初始化测试
+    const modulesOk = testModules();
+    if (modulesOk) {
+        const functionsOk = testFunctions();
+        if (functionsOk) {
+            $('#test-btn').prop('disabled', false);
+            $('#test-btn').addClass('success');
+        }
+    }
+    
+    // PPTX文件测试
+    $('#test-btn').click(function() {
+        const fileInput = $('#pptx-file')[0];
+        if (fileInput.files.length === 0) {
+            alert('请选择一个PPTX文件');
+            return;
+        }
+        
+        const file = fileInput.files[0];
+        $('#pptx-result').html('<div class="status warning">正在解析PPTX文件...</div>');
+        
+        try {
+            // 使用PPTX解析器
+            $('#result').pptxToHtml({
+                pptxFileUrl: "",
+                fileInputId: "pptx-file",
+                slideMode: false,
+                mediaProcess: true,
+                themeProcess: true,
+                slideModeConfig: {
+                    first: 1,
+                    nav: false,
+                    showSlideNum: false,
+                    autoSlide: false
+                }
+            });
+            
+            $('#pptx-result').html('<div class="status success">✓ PPTX解析器已启动，请查看上方结果区域</div>');
+        } catch (error) {
+            console.error('PPTX解析错误:', error);
+            $('#pptx-result').html(`<div class="status error">✗ 解析失败: ${error.message}</div>`);
+        }
+    });
+    
+    // 文件选择事件
+    $('#pptx-file').change(function() {
+        if (this.files.length > 0) {
+            $('#test-btn').prop('disabled', false);
+        } else {
+            $('#test-btn').prop('disabled', true);
+        }
+    });
+});
+</script>
+
+<div id="result" style="margin-top: 30px; min-height: 200px; border: 1px solid #ccc; padding: 10px;"></div>
+
+</body>
+</html>

@@ -14,14 +14,18 @@
 <script type="text/javascript" src="./js/d3.min.js"></script>
 <script type="text/javascript" src="./js/nv.d3.min.js"></script>
 
-<!-- Core Utilities -->
+<!-- Core Dependencies -->
 <script type="text/javascript" src="./js/modules/utils/tXml.js"></script>
+
+<!-- Core Utilities -->
 <script type="text/javascript" src="./js/modules/utils/file-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/color-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/image-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/text-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/xml-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/chart-utils.js"></script>
+
+<!-- Core Constants -->
 <script type="text/javascript" src="./js/modules/core/constants.js"></script>
 
 <!-- Main PPTX Processor (modularized version with all functionality) -->
@@ -35,8 +39,35 @@
 
 <script type="text/javascript">
     $(function() {
-		var oldWidth, oldMargin ,isFullscreenMode=false;
-		$("#fullscreen-btn").on("click", function(){
+        // 调试信息：检查模块是否正确加载
+        console.log('=== 模块加载状态检查 ===');
+        
+        const requiredModules = [
+            'PPTXFileUtils',
+            'PPTXColorUtils',
+            'PPTXImageUtils', 
+            'PPTXTextUtils',
+            'PPTXXmlUtils',
+            'PPTXChartUtils',
+            'PPTXConstants'
+        ];
+        
+        requiredModules.forEach(module => {
+            if (window[module]) {
+                console.log(`✓ ${module} 已加载`);
+                // 检查关键函数
+                if (module === 'PPTXFileUtils' && window[module].findMediaFile) {
+                    console.log(`  ✓ ${module}.findMediaFile 可用`);
+                }
+            } else {
+                console.error(`✗ ${module} 未加载`);
+            }
+        });
+        
+        console.log('=== 模块检查完成 ===');
+        
+        var oldWidth, oldMargin ,isFullscreenMode=false;
+        $("#fullscreen-btn").on("click", function(){
 			 			
 			if(!isFullscreenMode){
 				oldWidth = $("#result .slide").css("width");

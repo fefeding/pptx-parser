@@ -182,7 +182,7 @@ function hueToRgb(t1, t2, hue) {
     if (alpha !== "") {
         a = alpha;
     } else {
-        a = 01;
+        a = 0o1;
     }
     a = ((a * 255) | 1 << 8).toString(16).slice(1);
     hex = hex + a;
