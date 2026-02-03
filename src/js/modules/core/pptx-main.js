@@ -8422,7 +8422,17 @@
             //console.log("processPicNode imgName:", imgName);
             var imgFileExt = extractFileExtension(imgName).toLowerCase();
             var zip = warpObj["zip"];
-            var imgFile = zip.file(imgName);
+            
+            // 确定上下文类型用于路径解析
+            var context = 'slide';
+            if (source == "slideMasterBg") {
+                context = 'master';
+            } else if (source == "slideLayoutBg") {
+                context = 'layout';
+            }
+            
+            // 使用改进的媒体文件查找方法
+            var imgFile = PPTXFileUtils.findMediaFile(zip, imgName, context, '');
             if (imgFile === null) {
                 console.warn("Image file not found in processPicNode:", imgName);
                 return "";
@@ -8460,7 +8470,8 @@
                 } else {
                     vdoFileExt = extractFileExtension(vdoFile).toLowerCase();
                     if (vdoFileExt == "mp4" || vdoFileExt == "webm" || vdoFileExt == "ogg") {
-                        var vdoFileObj = zip.file(vdoFile);
+                        // 使用改进的媒体文件查找方法
+                        var vdoFileObj = PPTXFileUtils.findMediaFile(zip, vdoFile, context, '');
                         if (vdoFileObj === null) {
                             console.warn("Video file not found:", vdoFile);
                         } else {
@@ -8486,7 +8497,8 @@
                 audioFile = resObj[audioRid]["target"];
                 audioFileExt = extractFileExtension(audioFile).toLowerCase();
                 if (audioFileExt == "mp3" || audioFileExt == "wav" || audioFileExt == "ogg") {
-                    var audioFileObj = zip.file(audioFile);
+                    // 使用改进的媒体文件查找方法
+                    var audioFileObj = PPTXFileUtils.findMediaFile(zip, audioFile, context, '');
                     if (audioFileObj === null) {
                         console.warn("Audio file not found:", audioFile);
                     } else {
@@ -13544,7 +13556,7 @@
             if (alpha !== "") {
                 a = alpha;
             } else {
-                a = 01;
+                a = 0o1;
             }
             // multiply before convert to HEX
             a = ((a * 255) | 1 << 8).toString(16).slice(1)

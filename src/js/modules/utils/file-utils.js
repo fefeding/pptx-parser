@@ -101,10 +101,129 @@ function getSlideSizeAndSetDefaultTextStyle(zip, settings, slideFactor) {
 }
 
 // Export to global namespace
+/**
+ * 解析媒体文件路径
+ * 根据PPTX标准，处理不同上下文下的媒体文件路径
+ * @param {string} mediaPath - 媒体文件路径（来自resObj[target]）
+ * @param {string} context - 上下文类型：'slide', 'master', 'layout'
+ * @param {string} basePath - 基础路径（通常是当前XML文件所在目录）
+ * @returns {string} 解析后的完整路径
+ */
+function resolveMediaPath(mediaPath, context, basePath) {
+    // 如果已经是绝对路径（以ppt/开头），直接返回
+    if (mediaPath.startsWith('ppt/')) {
+        return mediaPath;
+    }
+        
+    // 处理相对路径
+    let resolvedPath = mediaPath;
+        
+    // 根据上下文确定基础目录
+    let baseDir = '';
+    switch (context) {
+        case 'slide':
+            // 幻灯片中的媒体文件通常相对于ppt/slides/
+            baseDir = 'ppt/slides/';
+            break;
+        case 'master':
+            // 幻灯片母版中的媒体文件通常相对于ppt/slideMasters/
+            baseDir = 'ppt/slideMasters/';
+            break;
+        case 'layout':
+            // 版式中的媒体文件通常相对于ppt/slideLayouts/
+            baseDir = 'ppt/slideLayouts/';
+            break;
+        default:
+            // 默认情况，使用传入的基础路径
+            baseDir = basePath || '';
+    }
+        
+    // 处理路径中的../
+    if (mediaPath.startsWith('../')) {
+        // 移除../并构建相对于ppt/的路径
+        resolvedPath = 'ppt/' + mediaPath.substring(3);
+    } else if (!mediaPath.includes('/')) {
+        // 如果没有路径分隔符，可能是直接在media目录下的文件
+        resolvedPath = 'ppt/media/' + mediaPath;
+    } else {
+        // 其他相对路径，拼接基础目录
+        resolvedPath = baseDir + mediaPath;
+    }
+        
+    // 清理路径中的重复斜杠
+    resolvedPath = resolvedPath.replace(/\/+/g, '/');
+        
+    // 移除开头的./
+    if (resolvedPath.startsWith('./')) {
+        resolvedPath = resolvedPath.substring(2);
+    }
+        
+    return resolvedPath;
+}
+    
+/**
+ * 查找媒体文件（尝试多种可能的路径）
+ * @param {Object} zip - JSZip实例
+ * @param {string} originalPath - 原始路径
+ * @param {string} context - 上下文类型
+ * @param {string} basePath - 基础路径
+ * @returns {Object|null} 找到的文件对象或null
+ */
+function findMediaFile(zip, originalPath, context, basePath) {
+    // 首先尝试原始路径
+    let file = zip.file(originalPath);
+    if (file) {
+        return file;
+    }
+        
+    // 尝试解析后的标准路径
+    const resolvedPath = resolveMediaPath(originalPath, context, basePath);
+    file = zip.file(resolvedPath);
+    if (file) {
+        return file;
+    }
+        
+    // 尝试常见的替代路径
+    const alternativePaths = [];
+        
+    // 如果是media目录下的文件，尝试不同的前缀
+    if (originalPath.includes('media/') || !originalPath.includes('/')) {
+        const fileName = originalPath.split('/').pop();
+        alternativePaths.push(
+            'ppt/media/' + fileName,
+            'media/' + fileName,
+            fileName
+        );
+    }
+        
+    // 如果包含embeddings，也尝试相关路径
+    if (originalPath.includes('embeddings/')) {
+        const fileName = originalPath.split('/').pop();
+        alternativePaths.push(
+            'ppt/embeddings/' + fileName,
+            'embeddings/' + fileName
+        );
+    }
+        
+    // 尝试所有备选路径
+    for (const altPath of alternativePaths) {
+        file = zip.file(altPath);
+        if (file) {
+            console.log(`Media file found at alternative path: ${altPath} (originally: ${originalPath})`);
+            return file;
+        }
+    }
+        
+    // 如果都没找到，返回null
+    return null;
+}
+    
 return {
     readXmlFile: readXmlFile,
     getContentTypes: getContentTypes,
-    getSlideSizeAndSetDefaultTextStyle: getSlideSizeAndSetDefaultTextStyle
+    getSlideSizeAndSetDefaultTextStyle: getSlideSizeAndSetDefaultTextStyle,
+    resolveMediaPath: resolveMediaPath,
+    findMediaFile: findMediaFile
 };
 
 })();
