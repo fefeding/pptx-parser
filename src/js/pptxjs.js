@@ -17,8 +17,6 @@
 
         var isDone = false;
 
-        var MsgQueue = new Array();
-
         //var slideLayoutClrOvride = "";
 
         var defaultTextStyle = null;
@@ -176,10 +174,12 @@
                 $(".slides-loadnig-msg").remove();
                 return;
             }
+            var MsgQueue = new Array();
             var zip = new JSZip(), s;
             //if (typeof file === 'string') { // Load
             zip = zip.load(file);  //zip.load(file, { base64: true });
-            var rslt_ary = processPPTX(zip);
+            var rslt_ary = processPPTX(zip, MsgQueue);
+
             //s = PPTXXmlUtils.readXmlFile(zip, 'ppt/tableStyles.xml');
             //var slidesHeight = $("#" + divId + " .slide").height();
             for (var i = 0; i < rslt_ary.length; i++) {
@@ -319,7 +319,7 @@
 
         }
 
-        function processPPTX(zip) {
+        function processPPTX(zip, MsgQueue) {
             var post_ary = [];
             var dateBefore = new Date();
 
@@ -363,7 +363,7 @@
                 if (filename_no_path_no_ext != "" && filename_no_path.indexOf("slide") != -1) {
                     slide_number = Number(filename_no_path_no_ext.substr(5));
                 }
-                var slideHtml = processSingleSlide(zip, filename, i, slideSize);
+                var slideHtml = processSingleSlide(zip, filename, i, slideSize, MsgQueue);
                 post_ary.push({
                     "type": "slide",
                     "data": slideHtml,
@@ -394,7 +394,7 @@
             return post_ary;
         }
 
-        function processSingleSlide(zip, sldFileName, index, slideSize) {
+        function processSingleSlide(zip, sldFileName, index, slideSize, MsgQueue) {
             /*
             self.postMessage({
                 "type": "INFO",
