@@ -484,7 +484,7 @@ var PPTXShapeUtils = (function() {
                     case "flowChartProcess":
                     case "flowChartPredefinedProcess":
                     case "flowChartInternalStorage":
-                    case "actionButtonBlank":
+                    case "actionButtonBlank": {
                         result += "<rect x='0' y='0' width='" + w + "' height='" + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + "  />";
 
@@ -495,7 +495,8 @@ var PPTXShapeUtils = (function() {
                             result += " <polyline points='0 " + h * (1 / 8) + "," + w + " " + h * (1 / 8) + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         }
                         break;
-                    case "flowChartCollate":
+                    }
+                    case "flowChartCollate": {
                         var d = "M 0,0" +
                             " L" + w + "," + 0 +
                             " L" + 0 + "," + h +
@@ -505,7 +506,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "flowChartDocument":
+                    }
+                    case "flowChartDocument": {
                         var y1, y2, y3, x1;
                         x1 = w * 10800 / 21600;
                         y1 = h * 17322 / 21600;
@@ -519,7 +521,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "flowChartMultidocument":
+                    }
+                    case "flowChartMultidocument": {
                         var y1, y2, y3, y4, y5, y6, y7, y8, y9, x1, x2, x3, x4, x5, x6, x7;
                         y1 = h * 18022 / 21600;
                         y2 = h * 3675 / 21600;
@@ -556,7 +559,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "actionButtonBackPrevious":
+                    }
+                    case "actionButtonBackPrevious": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12;
 
@@ -579,7 +583,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonBeginning":
+                    }
+                    case "actionButtonBeginning": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17;
 
@@ -612,7 +617,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonDocument":
+                    }
+                    case "actionButtonDocument": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, dx1, g11, g12, g13, g14, g15;
 
@@ -645,7 +651,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonEnd":
+                    }
+                    case "actionButtonEnd": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17;
 
@@ -678,7 +685,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonForwardNext":
+                    }
+                    case "actionButtonForwardNext": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12;
 
@@ -702,7 +710,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonHelp":
+                    }
+                    case "actionButtonHelp": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g11, g13, g14, g15, g16, g19, g20, g21, g23, g24, g27, g29, g30, g31, g33, g36, g37, g41, g42;
 
@@ -756,7 +765,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonHome":
+                    }
+                    case "actionButtonHome": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27, g28, g29, g30, g31, g32, g33;
 
@@ -814,7 +824,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonInformation":
+                    }
+                    case "actionButtonInformation": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g11, g13, g14, g17, g18, g19, g20, g22, g23, g24, g25, g28, g29, g30, g31, g32, g34, g35, g37, g38;
 
@@ -869,7 +880,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonMovie":
+                    }
+                    case "actionButtonMovie": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27,
                             g28, g29, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g40, g41, g42, g43, g44, g45, g46, g47, g48;
@@ -946,7 +958,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonReturn":
+                    }
+                    case "actionButtonReturn": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27;
 
@@ -1001,7 +1014,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "actionButtonSound":
+                    }
+                    case "actionButtonSound": {
                         var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
                         var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26;
 
@@ -1048,8 +1062,9 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "irregularSeal1":
-                    case "irregularSeal2":
+                    case "irregularSeal2": {
                         if (shapType == "irregularSeal1") {
                             var d = "M" + w * 10800 / 21600 + "," + h * 5800 / 21600 +
                                 " L" + w * 14522 / 21600 + "," + 0 +
@@ -1110,7 +1125,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "flowChartTerminator":
+                    }
+                    case "flowChartTerminator": {
                         var x1, x2, y1, cd2 = 180, cd4 = 90, c3d4 = 270;
                         x1 = w * 3475 / 21600;
                         x2 = w * 18125 / 21600;
@@ -1125,7 +1141,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "flowChartPunchedTape":
+                    }
+                    case "flowChartPunchedTape": {
                         var x1, x1, y1, y2, cd2 = 180;
                         x1 = w * 5 / 20;
                         y1 = h * 2 / 20;
@@ -1140,7 +1157,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "flowChartOnlineStorage":
+                    }
+                    case "flowChartOnlineStorage": {
                         var x1, y1, c3d4 = 270, cd4 = 90;
                         x1 = w * 1 / 6;
                         y1 = h * 3 / 6;
@@ -1153,7 +1171,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "flowChartDisplay":
+                    }
+                    case "flowChartDisplay": {
                         var x1, x2, y1, c3d4 = 270, cd2 = 180;
                         x1 = w * 1 / 6;
                         x2 = w * 5 / 6;
@@ -1168,7 +1187,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "flowChartDelay":
+                    }
+                    case "flowChartDelay": {
                         var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
                         var d = "M" + 0 + "," + 0 +
                             " L" + wd2 + "," + 0 +
@@ -1178,7 +1198,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "flowChartMagneticTape":
+                    }
+                    case "flowChartMagneticTape": {
                         var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
                         var idy, ib, ang1;
                         idy = hd2 * Math.sin(Math.PI / 4);
@@ -1196,10 +1217,11 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "ellipse":
                     case "flowChartConnector":
                     case "flowChartSummingJunction":
-                    case "flowChartOr":
+                    case "flowChartOr": {
                         result += "<ellipse cx='" + (w / 2) + "' cy='" + (h / 2) + "' rx='" + (w / 2) + "' ry='" + (h / 2) + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         if (shapType == "flowChartOr") {
@@ -1218,6 +1240,7 @@ var PPTXShapeUtils = (function() {
                             result += " <polyline points='" + ir + " " + it + "," + il + " " + ib + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         }
                         break;
+                    }
                     case "roundRect":
                     case "round1Rect":
                     case "round2DiagRect":
@@ -1226,7 +1249,7 @@ var PPTXShapeUtils = (function() {
                     case "snip2DiagRect":
                     case "snip2SameRect":
                     case "flowChartAlternateProcess":
-                    case "flowChartPunchedCard":
+                    case "flowChartPunchedCard": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val;// = 0.33334;
                         var sAdj2, sAdj2_val;// = 0.33334;
@@ -1251,32 +1274,36 @@ var PPTXShapeUtils = (function() {
                         var tranglRott = "";
                         switch (shapType) {
                             case "roundRect":
-                            case "flowChartAlternateProcess":
+                            case "flowChartAlternateProcess": {
                                 shpTyp = "round";
                                 adjTyp = "cornrAll";
                                 if (sAdj1_val === undefined) sAdj1_val = 0.33334;
                                 sAdj2_val = 0;
                                 break;
-                            case "round1Rect":
+                            }
+                            case "round1Rect": {
                                 shpTyp = "round";
                                 adjTyp = "cornr1";
                                 if (sAdj1_val === undefined) sAdj1_val = 0.33334;
                                 sAdj2_val = 0;
                                 break;
-                            case "round2DiagRect":
+                            }
+                            case "round2DiagRect": {
                                 shpTyp = "round";
                                 adjTyp = "diag";
                                 if (sAdj1_val === undefined) sAdj1_val = 0.33334;
                                 if (sAdj2_val === undefined) sAdj2_val = 0;
                                 break;
-                            case "round2SameRect":
+                            }
+                            case "round2SameRect": {
                                 shpTyp = "round";
                                 adjTyp = "cornr2";
                                 if (sAdj1_val === undefined) sAdj1_val = 0.33334;
                                 if (sAdj2_val === undefined) sAdj2_val = 0;
                                 break;
+                            }
                             case "snip1Rect":
-                            case "flowChartPunchedCard":
+                            case "flowChartPunchedCard": {
                                 shpTyp = "snip";
                                 adjTyp = "cornr1";
                                 if (sAdj1_val === undefined) sAdj1_val = 0.33334;
@@ -1285,24 +1312,28 @@ var PPTXShapeUtils = (function() {
                                     tranglRott = "transform='translate(" + w + ",0) scale(-1,1)'";
                                 }
                                 break;
-                            case "snip2DiagRect":
+                            }
+                            case "snip2DiagRect": {
                                 shpTyp = "snip";
                                 adjTyp = "diag";
                                 if (sAdj1_val === undefined) sAdj1_val = 0;
                                 if (sAdj2_val === undefined) sAdj2_val = 0.33334;
                                 break;
-                            case "snip2SameRect":
+                            }
+                            case "snip2SameRect": {
                                 shpTyp = "snip";
                                 adjTyp = "cornr2";
                                 if (sAdj1_val === undefined) sAdj1_val = 0.33334;
                                 if (sAdj2_val === undefined) sAdj2_val = 0;
                                 break;
+                            }
                         }
                         var d_val = PPTXShapeUtils.shapeSnipRoundRectAlt(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
                         result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "snipRoundRect":
+                    }
+                    case "snipRoundRect": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.33334;
                         var sAdj2, sAdj2_val = 0.33334;
@@ -1324,7 +1355,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "bentConnector2":
+                    }
+                    case "bentConnector2": {
                         var d = "";
                         // if (isFlipV) {
                         //     d = "M 0 " + w + " L " + h + " " + w + " L " + h + " 0";
@@ -1341,13 +1373,15 @@ var PPTXShapeUtils = (function() {
                         }
                         result += "/>";
                         break;
-                    case "rtTriangle":
+                    }
+                    case "rtTriangle": {
                         result += " <polygon points='0 0,0 " + h + "," + w + " " + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "triangle":
                     case "flowChartExtract":
-                    case "flowChartMerge":
+                    case "flowChartMerge": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
@@ -1361,18 +1395,20 @@ var PPTXShapeUtils = (function() {
                         result += " <polygon " + tranglRott + " points='" + (w * shapAdjst_val) + " 0,0 " + h + "," + w + " " + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "diamond":
                     case "flowChartDecision":
-                    case "flowChartSort":
+                    case "flowChartSort": {
                         result += " <polygon points='" + (w / 2) + " 0,0 " + (h / 2) + "," + (w / 2) + " " + h + "," + w + " " + (h / 2) + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         if (shapType == "flowChartSort") {
                             result += " <polyline points='0 " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         }
                         break;
+                    }
                     case "trapezoid":
                     case "flowChartManualOperation":
-                    case "flowChartManualInput":
+                    case "flowChartManualInput": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adjst_val = 0.2;
                         var max_adj_const = 0.7407;
@@ -1393,8 +1429,9 @@ var PPTXShapeUtils = (function() {
                         result += " <polygon " + tranglRott + " points='" + (w * adjst_val) + " " + cnstVal + ",0 " + h + "," + w + " " + h + "," + (1 - adjst_val) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "parallelogram":
-                    case "flowChartInputOutput":
+                    case "flowChartInputOutput": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adjst_val = 0.25;
                         var max_adj_const;
@@ -1411,14 +1448,14 @@ var PPTXShapeUtils = (function() {
                         result += " <polygon points='" + adjst_val * w + " 0,0 " + h + "," + (1 - adjst_val) * w + " " + h + "," + w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-
-                        break;
-                    case "pentagon":
+                    }
+                    case "pentagon": {
                         result += " <polygon points='" + (0.5 * w) + " 0,0 " + (0.375 * h) + "," + (0.15 * w) + " " + h + "," + 0.85 * w + " " + h + "," + w + " " + 0.375 * h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "hexagon":
-                    case "flowChartPreparation":
+                    case "flowChartPreparation": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var vf = 115470 * slideFactor;;
@@ -1450,12 +1487,14 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "heptagon":
+                    }
+                    case "heptagon": {
                         result += " <polygon points='" + (0.5 * w) + " 0," + w / 8 + " " + h / 4 + ",0 " + (5 / 8) * h + "," + w / 4 + " " + h + "," + (3 / 4) * w + " " + h + "," +
                             w + " " + (5 / 8) * h + "," + (7 / 8) * w + " " + h / 4 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "octagon":
+                    }
+                    case "octagon": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 0.25;
                         if (shapAdjst !== undefined) {
@@ -1469,17 +1508,20 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "decagon":
+                    }
+                    case "decagon": {
                         result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + h / 2 + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
                             (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + h / 2 + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "dodecagon":
+                    }
+                    case "dodecagon": {
                         result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + (3 / 8) * h + ",0 " + (5 / 8) * h + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
                             (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + (5 / 8) * h + "," + w + " " + (3 / 8) * h + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star4":
+                    }
+                    case "star4": {
                         var a, iwd2, ihd2, sdx, sdy, sx1, sx2, sy1, sy2, yAdj;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 19098 * slideFactor;
@@ -1518,7 +1560,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star5":
+                    }
+                    case "star5": {
                         var a, swd2, shd2, svc, dx1, dx2, dy1, dy2, x1, x2, x3, x4, y1, y2, iwd2, ihd2, sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sy1, sy2, sy3, yAdj;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 19098 * slideFactor;
@@ -1588,7 +1631,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star6":
+                    }
+                    case "star6": {
                         var a, swd2, dx1, x1, x2, y2, iwd2, ihd2, sdx2, sx1, sx2, sx3, sx4, sdy1, sy1, sy2, yAdj;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4;
                         var adj = 28868 * slideFactor;
@@ -1645,7 +1689,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star7":
+                    }
+                    case "star7": {
                         var a, swd2, shd2, svc, dx1, dx2, dx3, dy1, dy2, dy3, x1, x2, x3, x4, x5, x6, y1, y2, y3,
                             iwd2, ihd2, sdx1, sdx2, sdx3, sx1, sx2, sx3, sx4, sx5, sx6, sdy1, sdy2, sdy3, sy1, sy2, sy3, sy4, yAdj;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
@@ -1730,7 +1775,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star8":
+                    }
+                    case "star8": {
                         var a, dx1, x1, x2, dy1, y1, y2, iwd2, ihd2, sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sy1, sy2, sy3, sy4, yAdj;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 37500 * slideFactor;
@@ -1788,8 +1834,9 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
 
-                    case "star10":
+                    case "star10": {
                         var a, swd2, dx1, dx2, x1, x2, x3, x4, dy1, dy2, y1, y2, y3, y4, iwd2, ihd2,
                             sdx1, sdx2, sdy1, sdy2, sx1, sx2, sx3, sx4, sx5, sx6, sy1, sy2, sy3, sy4, yAdj;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
@@ -1866,7 +1913,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star12":
+                    }
+                    case "star12": {
                         var a, dx1, dy1, x1, x3, x4, y1, y3, y4, iwd2, ihd2, sdx1, sdx2, sdx3, sdy1,
                             sdy2, sdy3, sx1, sx2, sx3, sx4, sx5, sx6, sy1, sy2, sy3, sy4, sy5, sy6, yAdj;
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4, wd4 = w / 4;
@@ -1940,7 +1988,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star16":
+                    }
+                    case "star16": {
                         var a, dx1, dx2, dx3, dy1, dy2, dy3, x1, x2, x3, x4, x5, x6, y1, y2, y3, y4, y5, y6,
                             iwd2, ihd2, sdx1, sdx2, sdx3, sdx4, sdy1, sdy2, sdy3, sdy4, sx1, sx2, sx3, sx4,
                             sx5, sx6, sx7, sx8, sy1, sy2, sy3, sy4, sy5, sy6, sy7, sy8, iDx, idy, il, it, ir, ib, yAdj;
@@ -2045,7 +2094,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star24":
+                    }
+                    case "star24": {
                         var a, dx1, dx2, dx3, dx4, dx5, dy1, dy2, dy3, dy4, dy5, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10,
                             y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, iwd2, ihd2, sdx1, sdx2, sdx3, sdx4, sdx5, sdx6, sdy1,
                             sdy2, sdy3, sdy4, sdy5, sdy6, sx1, sx2, sx3, sx4, sx5, sx6, sx7, sx8, sx9, sx10, sx11, sx12,
@@ -2189,7 +2239,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "star32":
+                    }
+                    case "star32": {
                         var a, dx1, dx2, dx3, dx4, dx5, dx6, dx7, dy1, dy2, dy3, dy4, dy5, dy6, dy7, x1, x2, x3, x4, x5, x6,
                             x7, x8, x9, x10, x11, x12, x13, x14, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11, y12, y13, y14,
                             iwd2, ihd2, sdx1, sdx2, sdx3, sdx4, sdx5, sdx6, sdx7, sdx8, sdy1, sdy2, sdy3, sdy4, sdy5, sdy6, sdy7,
@@ -2374,10 +2425,11 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
 
                     case "pie":
                     case "pieWedge":
-                    case "arc":
+                    case "arc": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
                         if (shapType == "pie") {
@@ -2415,7 +2467,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "chord":
+                    }
+                    case "chord": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 45;
                         var sAdj2, sAdj2_val = 270;
@@ -2438,7 +2491,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "frame":
+                    }
+                    case "frame": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 12500 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
@@ -2466,7 +2520,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "donut":
+                    }
+                    case "donut": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
@@ -2496,7 +2551,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "noSmoking":
+                    }
+                    case "noSmoking": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 18750 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
@@ -2555,7 +2611,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "halfFrame":
+                    }
+                    case "halfFrame": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 3.5;
                         var sAdj2, sAdj2_val = 3.5;
@@ -2601,7 +2658,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         //console.log("w: ",w,", h: ",h,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val,",maxAdj1: ",maxAdj1,",maxAdj2: ",maxAdj2)
                         break;
-                    case "blockArc":
+                    }
+                    case "blockArc": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 180;
                         var sAdj2, adj2 = 0;
@@ -2701,7 +2759,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "bracePair":
+                    }
+                    case "bracePair": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 25000 * slideFactor;
@@ -2741,7 +2800,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "leftBrace":
+                    }
+                    case "leftBrace": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 8333 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -2787,7 +2847,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "rightBrace":
+                    }
+                    case "rightBrace": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 8333 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -2833,7 +2894,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "bracketPair":
+                    }
+                    case "bracketPair": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 16667 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
@@ -2856,7 +2918,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "leftBracket":
+                    }
+                    case "leftBracket": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
@@ -2880,7 +2943,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "rightBracket":
+                    }
+                    case "rightBracket": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
@@ -2906,7 +2970,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "moon":
+                    }
+                    case "moon": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 0.5;
                         if (shapAdjst !== undefined) {
@@ -2926,7 +2991,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "corner":
+                    }
+                    case "corner": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 50000 * slideFactor;
                         var sAdj2, sAdj2_val = 50000 * slideFactor;
@@ -2968,7 +3034,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "diagStripe":
+                    }
+                    case "diagStripe": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var sAdj1_val = 50000 * slideFactor;
                         var cnsVal = 100000 * slideFactor;
@@ -2989,8 +3056,9 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "gear6":
-                    case "gear9":
+                    case "gear9": {
                         txtRotate = 0;
                         var gearNum = shapType.substr(4), d;
                         if (gearNum == "6") {
@@ -3001,7 +3069,8 @@ var PPTXShapeUtils = (function() {
                         result += "<path   d='" + d + "' transform='rotate(20," + (3 / 7) * h + "," + (3 / 7) * h + ")' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "bentConnector3":
+                    }
+                    case "bentConnector3": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
@@ -3022,7 +3091,8 @@ var PPTXShapeUtils = (function() {
                             result += "/>";
                         }
                         break;
-                    case "plus":
+                    }
+                    case "plus": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 0.25;
                         if (shapAdjst !== undefined) {
@@ -3035,7 +3105,8 @@ var PPTXShapeUtils = (function() {
                             +w + " " + adj1 * h + "," + adj2 * w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "teardrop":
+                    }
+                    case "teardrop": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 100000 * slideFactor;
                         var cnsVal1 = adj1;
@@ -3070,7 +3141,8 @@ var PPTXShapeUtils = (function() {
 
                         // console.log("shapAdjst: ",shapAdjst,", adj1: ",adj1);
                         break;
-                    case "plaque":
+                    }
+                    case "plaque": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 16667 * slideFactor;
                         var cnsVal1 = 50000 * slideFactor;
@@ -3098,7 +3170,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "sun":
+                    }
+                    case "sun": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj1 = 25000 * refr;
@@ -3202,7 +3275,8 @@ var PPTXShapeUtils = (function() {
 
 
                         break;
-                    case "heart":
+                    }
+                    case "heart": {
                         var dx1, dx2, x1, x2, x3, x4, y1;
                         dx1 = w * 49 / 48;
                         dx2 = w * 10 / 48
@@ -3219,7 +3293,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "lightningBolt":
+                    }
+                    case "lightningBolt": {
                         var x1 = w * 5022 / 21600,
                             x2 = w * 11050 / 21600,
                             x3 = w * 8472 / 21600,
@@ -3259,7 +3334,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "cube":
+                    }
+                    case "cube": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 25000 * refr;
@@ -3292,7 +3368,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "bevel":
+                    }
+                    case "bevel": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 12500 * refr;
@@ -3331,7 +3408,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "foldedCorner":
+                    }
+                    case "foldedCorner": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 16667 * refr;
@@ -3363,8 +3441,9 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "cloud":
-                    case "cloudCallout":
+                    case "cloudCallout": {
                         var x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11,
                             rx1, rx2, rx3, rx4, rx5, rx6, rx7, rx8, rx9, rx10, rx11, ry1, ry2, ry3, ry4, ry5, ry6, ry7, ry8, ry9, ry10, ry11;
                         x0 = w * 3900 / 43200;;
@@ -3545,7 +3624,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "smileyFace":
+                    }
+                    case "smileyFace": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 4653 * refr;
@@ -3592,8 +3672,9 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "verticalScroll":
-                    case "horizontalScroll":
+                    case "horizontalScroll": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 12500 * refr;
@@ -3682,7 +3763,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "wedgeEllipseCallout":
+                    }
+                    case "wedgeEllipseCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = -20833 * refr;
@@ -3762,7 +3844,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "wedgeRectCallout":
+                    }
+                    case "wedgeRectCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = -20833 * refr;
@@ -3841,7 +3924,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "wedgeRoundRectCallout":
+                    }
+                    case "wedgeRoundRectCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = -20833 * refr;
@@ -3928,6 +4012,7 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "accentBorderCallout1":
                     case "accentBorderCallout2":
                     case "accentBorderCallout3":
@@ -3939,7 +4024,7 @@ var PPTXShapeUtils = (function() {
                     case "accentCallout3":
                     case "callout1":
                     case "callout2":
-                    case "callout3":
+                    case "callout3": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 18750 * refr;
@@ -4220,7 +4305,8 @@ var PPTXShapeUtils = (function() {
 
                         //}
                         break;
-                    case "leftRightRibbon":
+                    }
+                    case "leftRightRibbon": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 50000 * refr;
@@ -4300,6 +4386,7 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "ribbon":
                     case "ribbon2":
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -4423,7 +4510,7 @@ var PPTXShapeUtils = (function() {
 
                         break;
                     case "doubleWave":
-                    case "wave":
+                    case "wave": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = (shapType == "doubleWave") ? 6250 * slideFactor : 12500 * slideFactor;
                         var sAdj2, adj2 = 0;
@@ -4518,8 +4605,9 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "ellipseRibbon":
-                    case "ellipseRibbon2":
+                    case "ellipseRibbon2": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -4674,6 +4762,7 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "line":
                     case "straightConnector1":
                     case "bentConnector4":
@@ -4681,7 +4770,7 @@ var PPTXShapeUtils = (function() {
                     case "curvedConnector2":
                     case "curvedConnector3":
                     case "curvedConnector4":
-                    case "curvedConnector5":
+                    case "curvedConnector5": {
                         // if (isFlipV) {
                         //     result += "<line x1='" + w + "' y1='0' x2='0' y2='" + h + "' stroke='" + border.color +
                         //         "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
@@ -4697,7 +4786,8 @@ var PPTXShapeUtils = (function() {
                         }
                         result += "/>";
                         break;
-                    case "rightArrow":
+                    }
+                    case "rightArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
                         var sAdj2, sAdj2_val = 0.5;
@@ -4721,6 +4811,7 @@ var PPTXShapeUtils = (function() {
                             ",0 " + (1 - sAdj1_val) * h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + ", " + sAdj2_val * w + " " + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "leftArrow":
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
