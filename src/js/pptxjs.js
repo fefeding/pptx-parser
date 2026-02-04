@@ -619,62 +619,6 @@
 
         }
 
-        function indexNodes(content) {
-
-            var keys = Object.keys(content);
-            var spTreeNode = content[keys[0]]["p:cSld"]["p:spTree"];
-
-            var idTable = {};
-            var idxTable = {};
-            var typeTable = {};
-
-            for (var key in spTreeNode) {
-
-                if (key == "p:nvGrpSpPr" || key == "p:grpSpPr") {
-                    continue;
-                }
-
-                var targetNode = spTreeNode[key];
-
-                if (targetNode.constructor === Array) {
-                    for (var i = 0; i < targetNode.length; i++) {
-                        var nvSpPrNode = targetNode[i]["p:nvSpPr"];
-                        var id = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
-                        var idx = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
-                        var type = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
-
-                        if (id !== undefined) {
-                            idTable[id] = targetNode[i];
-                        }
-                        if (idx !== undefined) {
-                            idxTable[idx] = targetNode[i];
-                        }
-                        if (type !== undefined) {
-                            typeTable[type] = targetNode[i];
-                        }
-                    }
-                } else {
-                    var nvSpPrNode = targetNode["p:nvSpPr"];
-                    var id = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
-                    var idx = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
-                    var type = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
-
-                    if (id !== undefined) {
-                        idTable[id] = targetNode;
-                    }
-                    if (idx !== undefined) {
-                        idxTable[idx] = targetNode;
-                    }
-                    if (type !== undefined) {
-                        typeTable[type] = targetNode;
-                    }
-                }
-
-            }
-
-            return { "idTable": idTable, "idxTable": idxTable, "typeTable": typeTable };
-        }
-
         function processGroupSpNode(node, warpObj, source) {
             var slideFactor = 96 / 914400;
             var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
@@ -1036,7 +980,7 @@
             }
             /////////////////////////Amir////////////////////////
             //rotate
-            var rotate = angleToDegrees (PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
+            var rotate = PPTXXmlUtils.angleToDegrees(PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
 
             //console.log("genShape rotate: " + rotate);
             var txtRotate;
@@ -1044,7 +988,7 @@
             if (txtXframeNode !== undefined) {
                 var txtXframeRot = PPTXXmlUtils.getTextByPathList(txtXframeNode, ["attrs", "rot"]);
                 if (txtXframeRot !== undefined) {
-                    txtRotate = angleToDegrees(txtXframeRot) + 90;
+                    txtRotate = PPTXXmlUtils.angleToDegrees(txtXframeRot) + 90;
                 }
             } else {
                 txtRotate = rotate;
@@ -1899,7 +1843,7 @@
                         var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
                         var d = "M" + 0 + "," + 0 +
                             " L" + wd2 + "," + 0 +
-                            shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + 0 + "," + h +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -3160,7 +3104,7 @@
                         }
                         var hR = h / 2;
                         var wR = w / 2;
-                        var d_val = shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
+                        var d_val = PPTXShapeUtils.shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
                         //console.log("shapType: ",shapType,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val)
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3209,16 +3153,16 @@
                         iwd2 = w / 2 - dr;
                         ihd2 = h / 2 - dr;
                         var d = "M" + 0 + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
                             " z" +
                             "M" + dr + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
                             " z";
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3266,16 +3210,16 @@
                         var stAng2deg = stAng2 * 180 / Math.PI;
                         var swAng2deg = swAng * 180 / Math.PI;
                         var d = "M" + 0 + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
                             " z" +
                             "M" + x1 + "," + y1 +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
                             " z" +
                             "M" + x2 + "," + y2 +
-                            shapeArc(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
                             " z";
                         //console.log("adj: ",adj,"x1:",x1,",y1:",y1," x2:",x2,",y2:",y2,",stAng1:",stAng1,",stAng1deg:",stAng1deg,",stAng2:",stAng2,",stAng2deg:",stAng2deg,",swAng:",swAng,",swAng2deg:",swAng2deg)
 
@@ -3421,9 +3365,9 @@
                             y2 = vc - dy2;
                         }
                         var d = "M" + x1 + "," + y1 +
-                            shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
                             " L" + x2 + "," + y2 +
-                            shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
                             " z";
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3451,19 +3395,19 @@
                         y4 = h - x1;
                         //console.log("w:",w," h:",h," x1:",x1," x2:",x2," x3:",x3," x4:",x4," y2:",y2," y3:",y3," y4:",y4)
                         var d = "M" + x2 + "," + h +
-                            shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
                             " L" + x1 + "," + y3 +
-                            shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
-                            shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L") +
                             " L" + x1 + "," + x1 +
-                            shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L") +
                             " M" + x3 + "," + 0 +
-                            shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L") +
                             " L" + x4 + "," + y2 +
-                            shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-                            shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L") +
                             " L" + x4 + "," + y4 +
-                            shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3504,12 +3448,12 @@
                         y4 = y3 + y1;
                         //console.log("w:",w," h:",h," q1:",q1," q2:",q2," q3:",q3," y1:",y1," y3:",y3," y4:",y4," maxAdj1:",maxAdj1)
                         var d = "M" + w + "," + h +
-                            shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + w / 2 + "," + y4 +
-                            shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
-                            shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L") +
                             " L" + w / 2 + "," + y1 +
-                            shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3550,12 +3494,12 @@
                         y4 = h - y1;
                         //console.log("w:",w," h:",h," q1:",q1," q2:",q2," q3:",q3," y1:",y1," y2:",y2," y3:",y3," y4:",y4," maxAdj1:",maxAdj1)
                         var d = "M" + 0 + "," + 0 +
-                            shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
                             " L" + w / 2 + "," + y2 +
-                            shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
-                            shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L") +
                             " L" + w / 2 + "," + y4 +
-                            shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3576,10 +3520,10 @@
                         x2 = r - x1;
                         y2 = b - x1;
                         //console.log("w:",w," h:",h," x1:",x1," x2:",x2," y2:",y2)
-                        var d = shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
-                            shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-                            shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
-                            shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
+                        var d = PPTXShapeUtils.shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
+                            PPTXShapeUtils.shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
+                            PPTXShapeUtils.shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -3600,9 +3544,9 @@
                         if (y1 > w) y1 = w;
                         y2 = b - y1;
                         var d = "M" + r + "," + b +
-                            shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
                             " L" + 0 + "," + y1 +
-                            shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
                             " L" + r + "," + 0
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3625,10 +3569,10 @@
                         y3 = w - y1;
                         //console.log("w:",w," h:",h," y1:",y1," y2:",y2," y3:",y3)
                         var d = "M" + 0 + "," + h +
-                            shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
                             //" L"+ r + "," + y2 +
                             " L" + w + "," + h / 2 +
-                            shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
                             " L" + 0 + "," + 0
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3647,8 +3591,8 @@
 
                         var adj2 = (1 - adj) * w;
                         var d = "M" + w + "," + h +
-                            shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
-                            shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
                             " z";
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -3787,11 +3731,11 @@
                         x2 = ((w / 2) + x1) / 2;
                         y2 = ((h / 2) + y1) / 2;
 
-                        var d_val = shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
+                        var d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
                             "Q " + x2 + ",0 " + x1 + "," + y1 +
                             "Q " + w + "," + y2 + " " + w + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
                         result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3814,13 +3758,13 @@
                         y2 = h - x1;
 
                         var d_val = "M0," + x1 +
-                            shapeArc(0, 0, x1, x1, 90, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(0, 0, x1, x1, 90, 0, false).replace("M", "L") +
                             " L" + x2 + "," + 0 +
-                            shapeArc(w, 0, x1, x1, 180, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, 0, x1, x1, 180, 90, false).replace("M", "L") +
                             " L" + w + "," + y2 +
-                            shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
+                            PPTXShapeUtils.shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
                         result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3921,7 +3865,7 @@
                             " L" + x16 + "," + y13 +
                             " z" +
                             " M" + x19 + "," + h / 2 +
-                            shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
                             " z";
                         //console.log("adj1: ",adj1,d_val);
                         result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -4136,47 +4080,47 @@
 
                         cX0 = x0 - rX1 * Math.cos(sA1 * Math.PI / 180);
                         cY0 = y0 - rY1 * Math.sin(sA1 * Math.PI / 180);
-                        arc1 = shapeArc(cX0, cY0, rX1, rY1, sA1, sA1 + wA1, false).replace("M", "L");
+                        arc1 = PPTXShapeUtils.shapeArc(cX0, cY0, rX1, rY1, sA1, sA1 + wA1, false).replace("M", "L");
                         lxy1 = arc1.substr(arc1.lastIndexOf("L") + 1).split(" ");
                         cX1 = parseInt(lxy1[0]) - rX2 * Math.cos(sA2 * Math.PI / 180);
                         cY1 = parseInt(lxy1[1]) - rY2 * Math.sin(sA2 * Math.PI / 180);
-                        arc2 = shapeArc(cX1, cY1, rX2, rY2, sA2, sA2 + wA2, false).replace("M", "L");
+                        arc2 = PPTXShapeUtils.shapeArc(cX1, cY1, rX2, rY2, sA2, sA2 + wA2, false).replace("M", "L");
                         lxy2 = arc2.substr(arc2.lastIndexOf("L") + 1).split(" ");
                         cX2 = parseInt(lxy2[0]) - rX3 * Math.cos(sA3 * Math.PI / 180);
                         cY2 = parseInt(lxy2[1]) - rY3 * Math.sin(sA3 * Math.PI / 180);
-                        arc3 = shapeArc(cX2, cY2, rX3, rY3, sA3, sA3 + wA3, false).replace("M", "L");
+                        arc3 = PPTXShapeUtils.shapeArc(cX2, cY2, rX3, rY3, sA3, sA3 + wA3, false).replace("M", "L");
                         lxy3 = arc3.substr(arc3.lastIndexOf("L") + 1).split(" ");
                         cX3 = parseInt(lxy3[0]) - rX4 * Math.cos(sA4 * Math.PI / 180);
                         cY3 = parseInt(lxy3[1]) - rY4 * Math.sin(sA4 * Math.PI / 180);
-                        arc4 = shapeArc(cX3, cY3, rX4, rY4, sA4, sA4 + wA4, false).replace("M", "L");
+                        arc4 = PPTXShapeUtils.shapeArc(cX3, cY3, rX4, rY4, sA4, sA4 + wA4, false).replace("M", "L");
                         lxy4 = arc4.substr(arc4.lastIndexOf("L") + 1).split(" ");
                         cX4 = parseInt(lxy4[0]) - rX2 * Math.cos(sA5 * Math.PI / 180);
                         cY4 = parseInt(lxy4[1]) - rY5 * Math.sin(sA5 * Math.PI / 180);
-                        arc5 = shapeArc(cX4, cY4, rX2, rY5, sA5, sA5 + wA5, false).replace("M", "L");
+                        arc5 = PPTXShapeUtils.shapeArc(cX4, cY4, rX2, rY5, sA5, sA5 + wA5, false).replace("M", "L");
                         lxy5 = arc5.substr(arc5.lastIndexOf("L") + 1).split(" ");
                         cX5 = parseInt(lxy5[0]) - rX6 * Math.cos(sA6 * Math.PI / 180);
                         cY5 = parseInt(lxy5[1]) - rY6 * Math.sin(sA6 * Math.PI / 180);
-                        arc6 = shapeArc(cX5, cY5, rX6, rY6, sA6, sA6 + wA6, false).replace("M", "L");
+                        arc6 = PPTXShapeUtils.shapeArc(cX5, cY5, rX6, rY6, sA6, sA6 + wA6, false).replace("M", "L");
                         lxy6 = arc6.substr(arc6.lastIndexOf("L") + 1).split(" ");
                         cX6 = parseInt(lxy6[0]) - rX7 * Math.cos(sA7 * Math.PI / 180);
                         cY6 = parseInt(lxy6[1]) - rY7 * Math.sin(sA7 * Math.PI / 180);
-                        arc7 = shapeArc(cX6, cY6, rX7, rY7, sA7, sA7 + wA7, false).replace("M", "L");
+                        arc7 = PPTXShapeUtils.shapeArc(cX6, cY6, rX7, rY7, sA7, sA7 + wA7, false).replace("M", "L");
                         lxy7 = arc7.substr(arc7.lastIndexOf("L") + 1).split(" ");
                         cX7 = parseInt(lxy7[0]) - rX8 * Math.cos(sA8 * Math.PI / 180);
                         cY7 = parseInt(lxy7[1]) - rY8 * Math.sin(sA8 * Math.PI / 180);
-                        arc8 = shapeArc(cX7, cY7, rX8, rY8, sA8, sA8 + wA8, false).replace("M", "L");
+                        arc8 = PPTXShapeUtils.shapeArc(cX7, cY7, rX8, rY8, sA8, sA8 + wA8, false).replace("M", "L");
                         lxy8 = arc8.substr(arc8.lastIndexOf("L") + 1).split(" ");
                         cX8 = parseInt(lxy8[0]) - rX9 * Math.cos(sA9 * Math.PI / 180);
                         cY8 = parseInt(lxy8[1]) - rY9 * Math.sin(sA9 * Math.PI / 180);
-                        arc9 = shapeArc(cX8, cY8, rX9, rY9, sA9, sA9 + wA9, false).replace("M", "L");
+                        arc9 = PPTXShapeUtils.shapeArc(cX8, cY8, rX9, rY9, sA9, sA9 + wA9, false).replace("M", "L");
                         lxy9 = arc9.substr(arc9.lastIndexOf("L") + 1).split(" ");
                         cX9 = parseInt(lxy9[0]) - rX10 * Math.cos(sA10 * Math.PI / 180);
                         cY9 = parseInt(lxy9[1]) - rY10 * Math.sin(sA10 * Math.PI / 180);
-                        arc10 = shapeArc(cX9, cY9, rX10, rY10, sA10, sA10 + wA10, false).replace("M", "L");
+                        arc10 = PPTXShapeUtils.shapeArc(cX9, cY9, rX10, rY10, sA10, sA10 + wA10, false).replace("M", "L");
                         lxy10 = arc10.substr(arc10.lastIndexOf("L") + 1).split(" ");
                         cX10 = parseInt(lxy10[0]) - rX11 * Math.cos(sA11 * Math.PI / 180);
                         cY10 = parseInt(lxy10[1]) - rY3 * Math.sin(sA11 * Math.PI / 180);
-                        arc11 = shapeArc(cX10, cY10, rX11, rY3, sA11, sA11 + wA11, false).replace("M", "L");
+                        arc11 = PPTXShapeUtils.shapeArc(cX10, cY10, rX11, rY3, sA11, sA11 + wA11, false).replace("M", "L");
 
                         var d1 = "M" + x0 + "," + y0 +
                             arc1 +
@@ -4258,13 +4202,13 @@
                             x25 = g23 + g12;
 
                             d_val = //" M" + x23 + "," + yPos + 
-                                shapeArc(x23 - g26, yPos, g26, g26, 0, 360, false) + //.replace("M","L") +
+                                PPTXShapeUtils.shapeArc(x23 - g26, yPos, g26, g26, 0, 360, false) + //.replace("M","L") +
                                 " z" +
                                 " M" + x24 + "," + g17 +
-                                shapeArc(x24 - g25, g17, g25, g25, 0, 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x24 - g25, g17, g25, g25, 0, 360, false).replace("M", "L") +
                                 " z" +
                                 " M" + x25 + "," + g24 +
-                                shapeArc(x25 - g12, g24, g12, g12, 0, 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x25 - g12, g24, g12, g12, 0, 360, false).replace("M", "L") +
                                 " z";
                             d1 += d_val;
                         }
@@ -4305,15 +4249,15 @@
                         var cY1 = y1 - hR * Math.sin(Math.PI);
                         var cX2 = x3 - wR * Math.cos(Math.PI);
                         d_val = //eyes
-                            shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
-                            shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
+                            PPTXShapeUtils.shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
+                            PPTXShapeUtils.shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
                             //mouth
                             " M" + x1 + "," + y2 +
                             " Q" + wd2 + "," + y5 + " " + x4 + "," + y2 +
                             " Q" + wd2 + "," + y5 + " " + x1 + "," + y2 +
                             //head
                             " M" + 0 + "," + hd2 +
-                            shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4349,24 +4293,24 @@
 
                             d_val = "M" + ch + "," + y3 +
                                 " L" + ch + "," + ch2 +
-                                shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L") +
                                 " L" + x7 + "," + t +
-                                shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
                                 " L" + x6 + "," + ch +
                                 " L" + x6 + "," + y4 +
-                                shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
                                 " L" + ch2 + "," + b +
-                                shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
                                 " z" +
                                 " M" + x3 + "," + t +
-                                shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
-                                shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
                                 " L" + x4 + "," + ch2 +
                                 " M" + x6 + "," + ch +
                                 " L" + x3 + "," + ch +
                                 " M" + ch + "," + y4 +
-                                shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
-                                shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
                                 " z" +
                                 " M" + ch + "," + y4 +
                                 " L" + ch + "," + y3;
@@ -4381,26 +4325,26 @@
                             x4 = r - ch2;
 
                             d_val = "M" + l + "," + y3 +
-                                shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L") +
                                 " L" + x3 + "," + ch +
                                 " L" + x3 + "," + ch2 +
-                                shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L") +
                                 " L" + r + "," + y5 +
-                                shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L") +
                                 " L" + ch + "," + y6 +
                                 " L" + ch + "," + y7 +
-                                shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
                                 " z" +
                                 "M" + x4 + "," + ch +
-                                shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
-                                shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
                                 " z" +
                                 " M" + x4 + "," + ch +
                                 " L" + x3 + "," + ch +
                                 " M" + ch2 + "," + y4 +
                                 " L" + ch2 + "," + y3 +
-                                shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L") +
-                                shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L") +
                                 " M" + ch + "," + y3 +
                                 " L" + ch + "," + y6;
                         }
@@ -4483,7 +4427,7 @@
                             " L" + x2 + "," + y2 +
                             //" z" +
                             PPTXShapeUtils.shapeArcAlt(hc, vc, hc, vc, 0, 360, true);// +
-                        //shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
+                        //PPTXShapeUtils.shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
                         //" z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4631,22 +4575,22 @@
                         u2 = w - u1;
                         v2 = h - u1;
                         d_val = "M" + 0 + "," + u1 +
-                            shapeArc(u1, u1, u1, u1, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(u1, u1, u1, u1, 180, 270, false).replace("M", "L") +
                             " L" + x1 + "," + 0 +
                             " L" + xt + "," + yt +
                             " L" + x2 + "," + 0 +
                             " L" + u2 + "," + 0 +
-                            shapeArc(u2, u1, u1, u1, 270, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(u2, u1, u1, u1, 270, 360, false).replace("M", "L") +
                             " L" + w + "," + y1 +
                             " L" + xr + "," + yr +
                             " L" + w + "," + y2 +
                             " L" + w + "," + v2 +
-                            shapeArc(u2, v2, u1, u1, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(u2, v2, u1, u1, 0, 90, false).replace("M", "L") +
                             " L" + x2 + "," + h +
                             " L" + xb + "," + yb +
                             " L" + x1 + "," + h +
                             " L" + u1 + "," + h +
-                            shapeArc(u1, v2, u1, u1, 90, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(u1, v2, u1, u1, 90, 180, false).replace("M", "L") +
                             " L" + 0 + "," + y2 +
                             " L" + xl + "," + yl +
                             " L" + 0 + "," + y1 +
@@ -5013,7 +4957,7 @@
                             "L" + x4 + "," + h +
                             "L" + x4 + "," + ry4 +
                             "L" + hc + "," + ry4 +
-                            shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L") +
                             "L" + x2 + "," + ly3 +
                             "L" + x1 + "," + ly3 +
                             "L" + x1 + "," + ly4 +
@@ -5091,13 +5035,13 @@
                                 " L" + x10 + "," + y3 +
                                 " L" + r + "," + b +
                                 " L" + x7 + "," + b +
-                                shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L") +
                                 " L" + x8 + "," + y1 +
-                                shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L") +
                                 " L" + x3 + "," + y2 +
-                                shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
                                 " L" + x4 + "," + y1 +
-                                shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
                                 " z" +
                                 " M" + x5 + "," + y2 +
                                 " L" + x5 + "," + y6 +
@@ -5129,9 +5073,9 @@
                                 " L" + r + "," + y4 +
                                 " L" + x9 + "," + y4 +
                                 " L" + x9 + "," + y5 +
-                                shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L") +
                                 " L" + x3 + "," + b +
-                                shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L") +
                                 " L" + x2 + "," + y4 +
                                 " L" + l + "," + y4 +
                                 " L" + wd8 + "," + y3 +
@@ -5909,14 +5853,14 @@
 
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + y5 +
-                            shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + dh2 +
                             " L" + x4 + "," + 0 +
                             " L" + w + "," + aw2 +
                             " L" + x4 + "," + y4 +
                             " L" + x4 + "," + y3 +
                             " L" + x3 + "," + y3 +
-                            shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -6002,18 +5946,18 @@
                         var cy = (y4 + th) / 2
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + bd +
-                            shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + 0 +
-                            shapeArc(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
                             " L" + x9 + "," + y4 +
                             " L" + w + "," + y4 +
                             " L" + x8 + "," + y5 +
                             " L" + x6 + "," + y4 +
                             " L" + x7 + "," + y4 +
                             " L" + x7 + "," + x3 +
-                            shapeArc(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
                             " L" + x3 + "," + th +
-                            shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -6683,15 +6627,15 @@
                         var d_val = "M" + x6 + "," + b +
                             " L" + x4 + "," + y1 +
                             " L" + x5 + "," + y1 +
-                            shapeArc(wR, h, wR, h, stAng, (stAng + mswAng), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wR, h, wR, h, stAng, (stAng + mswAng), false).replace("M", "L") +
                             " L" + x3 + "," + t +
-                            shapeArc(x3, h, wR, h, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, h, wR, h, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
                             " L" + (x5 + th) + "," + y1 +
                             " L" + x8 + "," + y1 +
                             " z" +
                             "M" + x3 + "," + t +
-                            shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
-                            shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -6770,19 +6714,19 @@
                         stAng3dg = stAng3 * 180 / Math.PI;
 
                         var d_val = "M" + r + "," + y3 +
-                            shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
                             " L" + l + "," + t +
-                            shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
                             " L" + r + "," + y3 +
-                            shapeArc(l, y3, w, hR, 0, swAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, w, hR, 0, swAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y7 +
                             " L" + x1 + "," + y8 +
                             " L" + l + "," + y6 +
                             " L" + x1 + "," + y4 +
                             " L" + x1 + "," + y5 +
-                            shapeArc(l, hR, w, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
-                            shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
-                            shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(l, hR, w, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -6864,17 +6808,17 @@
                         swAng2dg = swAng2 * 180 / Math.PI;
 
                         var d_val = "M" + l + "," + hR +
-                            shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + y4 +
                             " L" + r + "," + y6 +
                             " L" + x1 + "," + y8 +
                             " L" + x1 + "," + y7 +
-                            shapeArc(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
                             " L" + l + "," + hR +
-                            shapeArc(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
                             " L" + r + "," + th +
-                            shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")
+                            PPTXShapeUtils.shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")
                         "";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -6956,17 +6900,17 @@
                         swAngDg = swAng * 180 / Math.PI;
 
                         var d_val = //"M" + ix + "," +iy + 
-                            shapeArc(wR, 0, wR, h, stAng2dg, stAng2dg + swAng2dg, false) + //.replace("M","L") +
+                            PPTXShapeUtils.shapeArc(wR, 0, wR, h, stAng2dg, stAng2dg + swAng2dg, false) + //.replace("M","L") +
                             " L" + x5 + "," + y1 +
                             " L" + x4 + "," + y1 +
                             " L" + x6 + "," + t +
                             " L" + x8 + "," + y1 +
                             " L" + x7 + "," + y1 +
-                            shapeArc(x3, 0, wR, h, stAng3dg, stAng3dg + swAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, 0, wR, h, stAng3dg, stAng3dg + swAngDg, false).replace("M", "L") +
                             " L" + wR + "," + b +
-                            shapeArc(wR, 0, wR, h, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wR, 0, wR, h, cd4, cd2, false).replace("M", "L") +
                             " L" + th + "," + t +
-                            shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
                             "";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -7144,10 +7088,10 @@
                             var cX2 = hc - Math.cos(Math.PI / 2) * rad;
                             var cY2 = y5 - Math.sin(Math.PI / 2) * rad;
                             dVal = "M" + hc + "," + y1 +
-                                shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
                                 " z" +
                                 " M" + hc + "," + y5 +
-                                shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
                                 " z" +
                                 " M" + x1 + "," + y3 +
                                 " L" + x3 + "," + y3 +
@@ -7335,10 +7279,10 @@
                         if (shapType == "flowChartMagneticDrum") {
                             tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
                         }
-                        dVal = shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
-                            shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
+                        dVal = PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
+                            PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
                             " L" + w + "," + y3 +
-                            shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
                             " L" + 0 + "," + y1;
 
                         result += "<path " + tranglRott + " d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -7661,12 +7605,12 @@
                         var swiAng = iswAng * 180 / Math.PI;
                         var ediAng = stiAng + swiAng;
 
-                        var d_val = shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
+                        var d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
                             " L" + xGp + "," + yGp +
                             " L" + xA + "," + yA +
                             " L" + xBp + "," + yBp +
                             " L" + xC + "," + yC +
-                            shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -7915,12 +7859,12 @@
 
                         var d_val = "M" + xE + "," + yE +
                             " L" + xD + "," + yD +
-                            shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " L" + xBp + "," + yBp +
                             " L" + xA + "," + yA +
                             " L" + xGp + "," + yGp +
                             " L" + xF + "," + yF +
-                            shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -8184,7 +8128,7 @@
                             //var shftY = parseInt(multiSapeAry[k].shftY) * slideFactor;
                             var endAng = stAng + swAng;
 
-                            d += shapeArc(wR, hR, wR, hR, stAng, endAng, false);
+                            d += PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
                         } else if (multiSapeAry[k].type == "quadBezTo") {
                             console.log("custShapType: quadBezTo - TODO")
 
@@ -8326,35 +8270,6 @@
             d += " ";
             return d;
         }
-        function shapeArc(cX, cY, rX, rY, stAng, endAng, isClose) {
-            var dData;
-            var angle = stAng;
-            if (endAng >= stAng) {
-                while (angle <= endAng) {
-                    var radians = angle * (Math.PI / 180);  // convert degree to radians
-                    var x = cX + Math.cos(radians) * rX;
-                    var y = cY + Math.sin(radians) * rY;
-                    if (angle == stAng) {
-                        dData = " M" + x + " " + y;
-                    }
-                    dData += " L" + x + " " + y;
-                    angle++;
-                }
-            } else {
-                while (angle > endAng) {
-                    var radians = angle * (Math.PI / 180);  // convert degree to radians
-                    var x = cX + Math.cos(radians) * rX;
-                    var y = cY + Math.sin(radians) * rY;
-                    if (angle == stAng) {
-                        dData = " M " + x + " " + y;
-                    }
-                    dData += " L " + x + " " + y;
-                    angle--;
-                }
-            }
-            dData += (isClose ? " z" : "");
-            return dData;
-        }
         function shapeSnipRoundRect(w, h, adj1, adj2, shapeType, adjType) {
             /* 
             shapeType: snip,round
@@ -8466,7 +8381,7 @@
             var rotate = 0;
             var rotateNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
             if (rotateNode !== undefined) {
-                rotate = angleToDegrees(rotateNode);
+                rotate = PPTXXmlUtils.angleToDegrees(rotateNode);
             }
             //video
             var vdoNode = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
@@ -12061,7 +11976,7 @@
                 var lin = grdFill["a:lin"];
                 var rot = 90;
                 if (lin !== undefined) {
-                    rot = angleToDegrees(lin["attrs"]["ang"]);// + 270;
+                    rot = PPTXXmlUtils.angleToDegrees(lin["attrs"]["ang"]);// + 270;
                     //console.log("rot: ", rot)
                     rot = rot + 90;
                 }
@@ -12389,7 +12304,7 @@
             var lin = node["a:lin"];
             var rot = 0;
             if (lin !== undefined) {
-                rot = angleToDegrees(lin["attrs"]["ang"]) + 90;
+                rot = PPTXXmlUtils.angleToDegrees(lin["attrs"]["ang"]) + 90;
             }
             return {
                 "color": color_ary,
@@ -13542,14 +13457,6 @@
             hex = hex + a;
 
             return hex;
-        }
-
-        ///////////////////////Amir////////////////
-        function angleToDegrees(angle) {
-            if (angle == "" || angle == null) {
-                return 0;
-            }
-            return Math.round(angle / 60000);
         }
         // function degreesToRadians(degrees) {
         //     //Math.PI
