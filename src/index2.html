@@ -52,7 +52,7 @@
         console.log('=== 模块加载状态检查 ===');
         
         const requiredModules = [
-            'PPTXFileUtils',
+            'PPTXXmlUtils',
             'PPTXColorUtils',
             'PPTXImageUtils', 
             'PPTXTextUtils',
@@ -65,7 +65,7 @@
             if (window[module]) {
                 console.log(`✓ ${module} 已加载`);
                 // 检查关键函数
-                if (module === 'PPTXFileUtils' && window[module].findMediaFile) {
+                if (module === 'PPTXXmlUtils' && window[module].findMediaFile) {
                     console.log(`  ✓ ${module}.findMediaFile 可用`);
                 }
             } else {

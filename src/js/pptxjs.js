@@ -323,7 +323,7 @@
             var dateBefore = new Date();
 
             if (zip.file("docProps/thumbnail.jpeg") !== null) {
-                var pptxThumbImg = PPTXFileUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
+                var pptxThumbImg = PPTXXmlUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
                 post_ary.push({
                     "type": "pptx-thumb",
                     "data": pptxThumbImg,
@@ -331,8 +331,8 @@
                 });
             }
 
-            var filesInfo = PPTXFileUtils.getContentTypes(zip);
-            var slideSize = PPTXFileUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
+            var filesInfo = PPTXXmlUtils.getContentTypes(zip);
+            var slideSize = PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
             tableStyles = PPTXXmlUtils.readXmlFile(zip, "ppt/tableStyles.xml");
             //console.log("slideSize: ", slideSize)
             post_ary.push({
@@ -8447,7 +8447,7 @@
             }
             
             // 使用改进的媒体文件查找方法
-            var imgFile = PPTXFileUtils.findMediaFile(zip, imgName, context, '');
+            var imgFile = PPTXXmlUtils.findMediaFile(zip, imgName, context, '');
             if (imgFile === null) {
                 console.warn("Image file not found in processPicNode:", imgName);
                 return "";
@@ -8486,7 +8486,7 @@
                     vdoFileExt = extractFileExtension(vdoFile).toLowerCase();
                     if (vdoFileExt == "mp4" || vdoFileExt == "webm" || vdoFileExt == "ogg") {
                         // 使用改进的媒体文件查找方法
-                        var vdoFileObj = PPTXFileUtils.findMediaFile(zip, vdoFile, context, '');
+                        var vdoFileObj = PPTXXmlUtils.findMediaFile(zip, vdoFile, context, '');
                         if (vdoFileObj === null) {
                             console.warn("Video file not found:", vdoFile);
                         } else {
@@ -8513,7 +8513,7 @@
                 audioFileExt = extractFileExtension(audioFile).toLowerCase();
                 if (audioFileExt == "mp3" || audioFileExt == "wav" || audioFileExt == "ogg") {
                     // 使用改进的媒体文件查找方法
-                    var audioFileObj = PPTXFileUtils.findMediaFile(zip, audioFile, context, '');
+                    var audioFileObj = PPTXXmlUtils.findMediaFile(zip, audioFile, context, '');
                     if (audioFileObj === null) {
                         console.warn("Audio file not found:", audioFile);
                     } else {
@@ -8554,7 +8554,7 @@
                 " z-index: " + order + ";" +
                 "transform: rotate(" + rotate + "deg);'>";
             if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
-                rtrnData += "<img src='data:" + mimeType + ";base64," + PPTXFileUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
+                rtrnData += "<img src='data:" + mimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
             } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
                 if (vdoNode !== undefined && !isVdeoLink) {
                     rtrnData += "<video  src='" + vdoBlob + "' controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>";
@@ -9230,7 +9230,7 @@
                             var imgArrayBuffer = imgFile.asArrayBuffer();
                             var imgExt = imgPath.split(".").pop();
                             var imgMimeType = getMimeType(imgExt);
-                            buImg = "<img src='data:" + imgMimeType + ";base64," + PPTXFileUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
+                            buImg = "<img src='data:" + imgMimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
                             //console.log("imgPath: "+imgPath+"\nimgMimeType: "+imgMimeType)
                         }
                     }
@@ -12434,7 +12434,7 @@
                 }
                 var imgArrayBuffer = imgFile.asArrayBuffer();
                 var imgMimeType = getMimeType(imgExt);
-                img = "data:" + imgMimeType + ";base64," + PPTXFileUtils.base64ArrayBuffer(imgArrayBuffer);
+                img = "data:" + imgMimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer);
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
                 setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
             }
