@@ -675,10 +675,141 @@ var PPTXTextUtils = (function() {
                     i++;
                 }
                 return char_unicode
+        }
+    }
+
+    /**
+     * alphaNumeric - 将数字转换为字母数字格式
+     * @param {number} num - 数字
+     * @param {string} upperLower - 大小写选项（upperCase或lowerCase）
+     * @returns {string} 字母数字格式的字符串
+     */
+    function alphaNumeric(num, upperLower) {
+        num = Number(num) - 1;
+        var aNum = "";
+        if (upperLower == "upperCase") {
+            aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toUpperCase();
+        } else if (upperLower == "lowerCase") {
+            aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toLowerCase();
+        }
+        return aNum;
+    }
+
+    /**
+     * archaicNumbers - 处理古数字格式
+     * @param {Array} arr - 数字映射数组
+     * @returns {Object} 包含format方法的对象
+     */
+    function archaicNumbers(arr) {
+        var arrParse = arr.slice().sort(function (a, b) { return b[1].length - a[1].length });
+        return {
+            format: function (n) {
+                var ret = '';
+                jQuery.each(arr, function () {
+                    var num = this[0];
+                    if (parseInt(num) > 0) {
+                        for (; n >= num; n -= num) ret += this[1];
+                    } else {
+                        ret = ret.replace(num, this[1]);
+                    }
+                });
+                return ret;
             }
         }
+    }
 
-        function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
+    /**
+     * romanize - 将数字转换为罗马数字
+     * @param {number} num - 数字
+     * @returns {string} 罗马数字字符串
+     */
+    function romanize(num) {
+        if (!+num)
+            return false;
+        var digits = String(+num).split(""),
+            key = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM",
+                "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC",
+                "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"],
+            roman = "",
+            i = 3;
+        while (i--)
+            roman = (key[+digits.pop() + (i * 10)] || "") + roman;
+        return Array(+digits.join("") + 1).join("M") + roman;
+    }
+    var hebrew2Minus = archaicNumbers([
+            [1000, ''],
+            [400, 'ת'],
+            [300, 'ש'],
+            [200, 'ר'],
+            [100, 'ק'],
+            [90, 'צ'],
+            [80, 'פ'],
+            [70, 'ע'],
+            [60, 'ס'],
+            [50, 'נ'],
+            [40, 'מ'],
+            [30, 'ל'],
+            [20, 'כ'],
+            [10, 'י'],
+            [9, 'ט'],
+            [8, 'ח'],
+            [7, 'ז'],
+            [6, 'ו'],
+            [5, 'ה'],
+            [4, 'ד'],
+            [3, 'ג'],
+            [2, 'ב'],
+            [1, 'א'],
+            [/יה/, 'ט״ו'],
+            [/יו/, 'ט״ז'],
+            [/([א-ת])([א-ת])$/, '$1״$2'],
+            [/^([א-ת])$/, "$1׳"]
+        ]);
+    /**
+     * getNumTypeNum - 根据数字类型获取格式化的数字
+     * @param {string} numTyp - 数字类型
+     * @param {number} num - 数字
+     * @returns {string} 格式化的数字字符串
+     */
+    function getNumTypeNum(numTyp, num) {
+        var rtrnNum = "";
+        switch (numTyp) {
+            case "arabicPeriod":
+                rtrnNum = num + ". ";
+                break;
+            case "arabicParenR":
+                rtrnNum = num + ") ";
+                break;
+            case "alphaLcParenR":
+                rtrnNum = alphaNumeric(num, "lowerCase") + ") ";
+                break;
+            case "alphaLcPeriod":
+                rtrnNum = alphaNumeric(num, "lowerCase") + ". ";
+                break;
+
+            case "alphaUcParenR":
+                rtrnNum = alphaNumeric(num, "upperCase") + ") ";
+                break;
+            case "alphaUcPeriod":
+                rtrnNum = alphaNumeric(num, "upperCase") + ". ";
+                break;
+
+            case "romanUcPeriod":
+                rtrnNum = romanize(num) + ". ";
+                break;
+            case "romanLcParenR":
+                rtrnNum = romanize(num) + ") ";
+                break;
+            case "hebrew2Minus":
+                rtrnNum = hebrew2Minus.format(num) + "-";
+                break;
+            default:
+                rtrnNum = num;
+        }
+        return rtrnNum;
+    }
+
+    function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
             //https://codepen.io/imdunn/pen/GRgwaye ?
             var text_style = "";
             var lstStyle = textBodyNode["a:lstStyle"];
@@ -1673,6 +1804,10 @@ var PPTXTextUtils = (function() {
         genDiagram,
         genTable,
         getTableCellParams,
+        alphaNumeric,
+        archaicNumbers,
+        romanize,
+        getNumTypeNum,
     };
 })();
 

@@ -1477,7 +1477,14 @@ var PPTXStyleUtils = (function() {
             }
             img = PPTXXmlUtils.getTextByPathList(warpObj, ["loaded-images", imgPath]); //, type, rId
             if (img === undefined) {
-                imgPath = PPTXXmlUtils.escapeHtml(imgPath);
+                 // 确定上下文类型用于路径解析
+                var context = 'slide';
+                if (type == "slideMasterBg") {
+                    context = 'master';
+                } else if (type == "slideLayoutBg") {
+                    context = 'layout';
+                }
+                imgPath = PPTXXmlUtils.resolveMediaPath(imgPath, context, '');
 
                 var imgExt = imgPath.split(".").pop();
                 if (imgExt == "xml") {
