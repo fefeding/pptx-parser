@@ -3,6 +3,199 @@
  * 幻灯片处理模块
  */
 var xmlUtils = PPTXXmlUtils;
+var colorUtils = PPTXColorUtils;
+var imageUtils = PPTXImageUtils;
+var nodeProcessors = NodeProcessors;
+
+/**
+ * getBgGradientFill - 获取渐变背景填充
+ * @param {Object} bgPr - 背景属性
+ * @param {string} phClr - 占位符颜色
+ * @param {Object} slideMasterContent - 幻灯片母版内容
+ * @param {Object} warpObj - 包装对象
+ * @returns {string} 背景样式字符串
+ */
+function getBgGradientFill(bgPr, phClr, slideMasterContent, warpObj) {
+    var bgcolor = "";
+    if (!bgPr) {
+        if (phClr !== undefined) {
+            bgcolor = "background: #" + phClr + ";";
+        }
+        return bgcolor;
+    }
+    
+    var grdFill = bgPr["a:gradFill"];
+    if (!grdFill || !grdFill["a:gsLst"] || !grdFill["a:gsLst"]["a:gs"]) {
+        return bgcolor;
+    }
+    
+    var gsLst = grdFill["a:gsLst"]["a:gs"];
+    var color_ary = [];
+    var pos_ary = [];
+    
+    for (var i = 0; i < gsLst.length; i++) {
+        var gs = gsLst[i];
+        if (!gs) continue;
+        
+        var clrMapAttrs = slideMasterContent && slideMasterContent["p:sldMaster"] && slideMasterContent["p:sldMaster"]["p:clrMap"] ? slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"] : undefined;
+        var lo_color = colorUtils.getSolidFill(gs, clrMapAttrs, phClr, warpObj);
+        var pos = xmlUtils.getTextByPathList(gs, ["attrs", "pos"]);
+        
+        if (pos !== undefined) {
+            pos_ary[i] = pos / 1000 + "%";
+        } else {
+            pos_ary[i] = "";
+        }
+        
+        color_ary[i] = "#" + lo_color;
+    }
+    
+    var lin = grdFill["a:lin"];
+    var rot = 90;
+    if (lin !== undefined && lin["attrs"] && lin["attrs"]["ang"]) {
+        rot = colorUtils.angleToDegrees(lin["attrs"]["ang"]);
+        rot = rot + 90;
+    }
+    
+    bgcolor = "background: linear-gradient(" + rot + "deg,";
+    for (var i = 0; i < gsLst.length; i++) {
+        if (i == gsLst.length - 1) {
+            bgcolor += color_ary[i] + " " + pos_ary[i] + ");";
+        } else {
+            bgcolor += color_ary[i] + " " + pos_ary[i] + ", ";
+        }
+    }
+    
+    return bgcolor;
+}
+
+/**
+ * getBgPicFill - 获取图片背景填充
+ * @param {Object} bgPr - 背景属性
+ * @param {string} sorce - 来源
+ * @param {Object} warpObj - 包装对象
+ * @param {string} phClr - 占位符颜色
+ * @param {number} index - 索引
+ * @returns {string} 背景样式字符串
+ */
+function getBgPicFill(bgPr, sorce, warpObj, phClr, index) {
+    var bgcolor;
+    if (!bgPr || !bgPr["a:blipFill"]) return bgcolor;
+    
+    var picFillBase64 = getPicFill(sorce, bgPr["a:blipFill"], warpObj);
+    var ordr = bgPr["attrs"] ? bgPr["attrs"]["order"] : undefined;
+    var aBlipNode = bgPr["a:blipFill"]["a:blip"];
+    
+    if (aBlipNode) {
+        var duotone = xmlUtils.getTextByPathList(aBlipNode, ["a:duotone"]);
+        if (duotone !== undefined) {
+            var clr_ary = [];
+            Object.keys(duotone).forEach(function (clr_type) {
+                if (clr_type != "attrs") {
+                    var obj = {};
+                    obj[clr_type] = duotone[clr_type];
+                    clr_ary.push(colorUtils.getSolidFill(obj, undefined, phClr, warpObj));
+                }
+            });
+        }
+        
+        var aphaModFixNode = colorUtils.getTextByPathList(aBlipNode, ["a:alphaModFix", "attrs"]);
+        var imgOpacity = "";
+        if (aphaModFixNode !== undefined && aphaModFixNode["amt"] !== undefined && aphaModFixNode["amt"] != "") {
+            var amt = parseInt(aphaModFixNode["amt"]) / 100000;
+            imgOpacity = "opacity:" + amt + ";";
+        }
+    }
+    
+    var tileNode = colorUtils.getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"]);
+    var prop_style = "";
+    if (tileNode !== undefined && tileNode["sx"] !== undefined) {
+        var sx = (parseInt(tileNode["sx"]) / 100000);
+        var sy = (parseInt(tileNode["sy"]) / 100000);
+        var tx = (parseInt(tileNode["tx"]) / 100000);
+        var ty = (parseInt(tileNode["ty"]) / 100000);
+        var algn = tileNode["algn"];
+        var flip = tileNode["flip"];
+        prop_style += "background-repeat: round;";
+    }
+    
+    if (picFillBase64 !== undefined) {
+        bgcolor = "background-image: url('" + picFillBase64 + "'); background-size: cover; " + imgOpacity + prop_style;
+    }
+    
+    return bgcolor;
+}
+
+/**
+ * getPicFill - 获取图片填充
+ * @param {string} type - 类型
+ * @param {Object} node - 节点
+ * @param {Object} warpObj - 包装对象
+ * @returns {string} 图片base64字符串
+ */
+function getPicFill(type, node, warpObj) {
+    if (!node || !node["a:blip"] || !node["a:blip"]["attrs"] || !node["a:blip"]["attrs"]["r:embed"]) {
+        return undefined;
+    }
+    
+    var img;
+    var rId = node["a:blip"]["attrs"]["r:embed"];
+    var imgPath;
+    
+    if (type == "slideBg" || type == "slide") {
+        imgPath = colorUtils.getTextByPathList(warpObj, ["slideResObj", rId, "target"]);
+    } else if (type == "slideLayoutBg") {
+        imgPath = colorUtils.getTextByPathList(warpObj, ["layoutResObj", rId, "target"]);
+    } else if (type == "slideMasterBg") {
+        imgPath = colorUtils.getTextByPathList(warpObj, ["masterResObj", rId, "target"]);
+    } else if (type == "themeBg") {
+        imgPath = colorUtils.getTextByPathList(warpObj, ["themeResObj", rId, "target"]);
+    } else if (type == "diagramBg") {
+        imgPath = colorUtils.getTextByPathList(warpObj, ["diagramResObj", rId, "target"]);
+    }
+    
+    if (imgPath === undefined) {
+        return undefined;
+    }
+    
+    img = colorUtils.getTextByPathList(warpObj, ["loaded-images", imgPath]);
+    if (img === undefined) {
+        imgPath = escapeHtml(imgPath);
+        var imgExt = imgPath.split(".").pop();
+        if (imgExt == "xml") {
+            return undefined;
+        }
+        
+        var imgFile = warpObj && warpObj["zip"] ? warpObj["zip"].file(imgPath) : null;
+        if (imgFile === null || imgFile === undefined) {
+            console.warn("Image file not found:", imgPath);
+            return undefined;
+        }
+        
+        var imgArrayBuffer = imgFile.asArrayBuffer();
+        var imgMimeType = imageUtils.getMimeType(imgExt);
+        img = "data:" + imgMimeType + ";base64," + imageUtils.base64ArrayBuffer(imgArrayBuffer);
+        xmlUtils.setTextByPathList(warpObj, ["loaded-images", imgPath], img);
+    }
+    
+    return img;
+}
+
+/**
+ * escapeHtml - 转义HTML
+ * @param {string} text - 文本
+ * @returns {string} 转义后的文本
+ */
+function escapeHtml(text) {
+    var map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
 /**
  * 处理单个幻灯片
  * @param {Object} zip - JSZip实例
@@ -175,13 +368,14 @@ var SlideProcessor = (function() {
         "themeResObj": themeResObj,
         "digramFileContent": digramFileContent,
         "diagramResObj": diagramResObj,
-        "defaultTextStyle": settings.defaultTextStyle
+        "defaultTextStyle": settings.defaultTextStyle,
+        "tableStyles": settings.tableStyles
     };
 
     // 处理背景
     var bgResult = "";
     if (settings.processFullTheme === true) {
-        bgResult = getBackground(warpObj, slideSize, index);
+        bgResult = getBackground(warpObj, slideSize, index, settings);
     }
 
     var bgColor = "";
@@ -198,10 +392,10 @@ var SlideProcessor = (function() {
     for (var nodeKey in nodes) {
         if (nodes[nodeKey].constructor === Array) {
             for (var i = 0; i < nodes[nodeKey].length; i++) {
-                result += processNodesInSlide(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide");
+                result += nodeProcessors.processNodesInSlide(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide", undefined, settings);
             }
         } else {
-            result += processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide");
+            result += nodeProcessors.processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide", undefined, settings);
         }
     }
 
@@ -294,7 +488,7 @@ function indexNodes(content) {
             return node;
 }
 
-function getBackground(warpObj, slideSize, index) {
+function getBackground(warpObj, slideSize, index, settings) {
     var slideContent = warpObj["slideContent"];
     var slideLayoutContent = warpObj["slideLayoutContent"];
     var slideMasterContent = warpObj["slideMasterContent"];
@@ -311,13 +505,13 @@ function getBackground(warpObj, slideSize, index) {
                 for (var i = 0; i < nodesSldLayout[nodeKey].length; i++) {
                     var ph_type = getTextByPathList(nodesSldLayout[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                     if (ph_type != "pic") {
-                        result += processNodesInSlide(nodeKey, nodesSldLayout[nodeKey][i], nodesSldLayout, warpObj, "slideLayoutBg");
+                        result += nodeProcessors.processNodesInSlide(nodeKey, nodesSldLayout[nodeKey][i], nodesSldLayout, warpObj, "slideLayoutBg", undefined, settings);
                     }
                 }
             } else {
                 var ph_type = getTextByPathList(nodesSldLayout[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                 if (ph_type != "pic") {
-                    result += processNodesInSlide(nodeKey, nodesSldLayout[nodeKey], nodesSldLayout, warpObj, "slideLayoutBg");
+                    result += nodeProcessors.processNodesInSlide(nodeKey, nodesSldLayout[nodeKey], nodesSldLayout, warpObj, "slideLayoutBg", undefined, settings);
                 }
             }
         }
@@ -327,11 +521,11 @@ function getBackground(warpObj, slideSize, index) {
             if (nodesSldMaster[nodeKey].constructor === Array) {
                 for (var i = 0; i < nodesSldMaster[nodeKey].length; i++) {
                     var ph_type = getTextByPathList(nodesSldMaster[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
-                    result += processNodesInSlide(nodeKey, nodesSldMaster[nodeKey][i], nodesSldMaster, warpObj, "slideMasterBg");
+                    result += nodeProcessors.processNodesInSlide(nodeKey, nodesSldMaster[nodeKey][i], nodesSldMaster, warpObj, "slideMasterBg", undefined, settings);
                 }
             } else {
                 var ph_type = getTextByPathList(nodesSldMaster[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
-                result += processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, warpObj, "slideMasterBg");
+                result += nodeProcessors.processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, warpObj, "slideMasterBg", undefined, settings);
             }
         }
     }
@@ -347,7 +541,7 @@ function getSlideBackgroundFill(warpObj, index) {
     var bgRef = getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgRef"]);
     var bgcolor;
     if (bgPr !== undefined) {
-        var bgFillTyp = getFillType(bgPr);
+        var bgFillTyp = colorUtils.getFillType(bgPr);
 
         if (bgFillTyp == "SOLID_FILL") {
             var sldFill = bgPr["a:solidFill"];
@@ -363,7 +557,7 @@ function getSlideBackgroundFill(warpObj, index) {
                     clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                 }
             }
-            var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+            var sldBgClr = colorUtils.getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
             bgcolor = "background: #" + sldBgClr + ";";
         } else if (bgFillTyp == "GRADIENT_FILL") {
             bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
@@ -383,7 +577,7 @@ function getSlideBackgroundFill(warpObj, index) {
                 clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
             }
         }
-        var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
+        var phClr = colorUtils.getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
         var idx = Number(bgRef["attrs"]["idx"]);
 
         if (idx == 0 || idx == 1000) {
@@ -421,10 +615,10 @@ function getSlideBackgroundFill(warpObj, index) {
                 return a.idex - b.idex;
             });
             var bgFillLstIdx = sortByOrder[trueIdx - 1];
-            var bgFillTyp = getFillType(bgFillLstIdx);
+            var bgFillTyp = colorUtils.getFillType(bgFillLstIdx);
             if (bgFillTyp == "SOLID_FILL") {
                 var sldFill = bgFillLstIdx["a:solidFill"];
-                var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                var sldBgClr = colorUtils.getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                 bgcolor = "background: #" + sldBgClr + ";";
             } else if (bgFillTyp == "GRADIENT_FILL") {
                 bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
@@ -442,8 +636,20 @@ function getSlideBackgroundFill(warpObj, index) {
         } else {
             clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
         }
-        var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
-        var idx = Number(bgRef["attrs"]["idx"]);
+        if (bgPr !== undefined) {
+            var bgFillTyp = colorUtils.getFillType(bgPr);
+            if (bgFillTyp == "SOLID_FILL") {
+                var sldFill = bgPr["a:solidFill"];
+                var sldBgClr = colorUtils.getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                bgcolor = "background: #" + sldBgClr + ";";
+            } else if (bgFillTyp == "GRADIENT_FILL") {
+                bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
+            } else if (bgFillTyp == "PIC_FILL") {
+                bgcolor = getBgPicFill(bgPr, "slideLayoutBg", warpObj, undefined, index);
+            }
+        } else if (bgRef !== undefined) {
+            var phClr = colorUtils.getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
+            var idx = Number(bgRef["attrs"]["idx"]);
 
         if (idx == 0 || idx == 1000) {
         } else if (idx > 0 && idx < 1000) {
@@ -480,18 +686,91 @@ function getSlideBackgroundFill(warpObj, index) {
                 return a.idex - b.idex;
             });
             var bgFillLstIdx = sortByOrder[trueIdx - 1];
-            var bgFillTyp = getFillType(bgFillLstIdx);
+            var bgFillTyp = colorUtils.getFillType(bgFillLstIdx);
             if (bgFillTyp == "SOLID_FILL") {
                 var sldFill = bgFillLstIdx["a:solidFill"];
-                var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                var sldBgClr = colorUtils.getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                 bgcolor = "background: #" + sldBgClr + ";";
             } else if (bgFillTyp == "GRADIENT_FILL") {
                 bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
+            } else if (bgFillTyp == "PIC_FILL") {
+                bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
             } else {
                 console.log(bgFillTyp)
             }
+                }
+            } else {
+                bgPr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:bg", "p:bgPr"]);
+                bgRef = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:bg", "p:bgRef"]);
+
+                var clrMap = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
+                if (bgPr !== undefined) {
+                    var bgFillTyp = colorUtils.getFillType(bgPr);
+                    if (bgFillTyp == "SOLID_FILL") {
+                        var sldFill = bgPr["a:solidFill"];
+                        var sldBgClr = colorUtils.getSolidFill(sldFill, clrMap, undefined, warpObj);
+                        bgcolor = "background: #" + sldBgClr + ";";
+                    } else if (bgFillTyp == "GRADIENT_FILL") {
+                        bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
+                    } else if (bgFillTyp == "PIC_FILL") {
+                        bgcolor = getBgPicFill(bgPr, "slideMasterBg", warpObj, undefined, index);
+                    }
+                } else if (bgRef !== undefined) {
+                    var phClr = colorUtils.getSolidFill(bgRef, clrMap, undefined, warpObj);
+                    var idx = Number(bgRef["attrs"]["idx"]);
+
+                    if (idx == 0 || idx == 1000) {
+                    } else if (idx > 0 && idx < 1000) {
+                    } else if (idx > 1000) {
+                        var trueIdx = idx - 1000;
+                        var bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
+                        var sortblAry = [];
+                        Object.keys(bgFillLst).forEach(function (key) {
+                            var bgFillLstTyp = bgFillLst[key];
+                            if (key != "attrs") {
+                                if (bgFillLstTyp.constructor === Array) {
+                                    for (var i = 0; i < bgFillLstTyp.length; i++) {
+                                        var obj = {};
+                                        obj[key] = bgFillLstTyp[i];
+                                        obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                                        obj["attrs"] = {
+                                            "order": bgFillLstTyp[i]["attrs"]["order"]
+                                        }
+                                        sortblAry.push(obj)
+                                    }
+                                } else {
+                                    var obj = {};
+                                    obj[key] = bgFillLstTyp;
+                                    obj["idex"] = bgFillLstTyp["attrs"]["order"];
+                                    obj["attrs"] = {
+                                        "order": bgFillLstTyp["attrs"]["order"]
+                                    }
+                                    sortblAry.push(obj)
+                                }
+                            }
+                        });
+                        var sortByOrder = sortblAry.slice(0);
+                        sortByOrder.sort(function (a, b) {
+                            return a.idex - b.idex;
+                        });
+                        var bgFillLstIdx = sortByOrder[trueIdx - 1];
+                        var bgFillTyp = colorUtils.getFillType(bgFillLstIdx);
+                        if (bgFillTyp == "SOLID_FILL") {
+                            var sldFill = bgFillLstIdx["a:solidFill"];
+                            var sldBgClr = colorUtils.getSolidFill(sldFill, clrMap, phClr, warpObj);
+                            bgcolor = "background: #" + sldBgClr + ";";
+                        } else if (bgFillTyp == "GRADIENT_FILL") {
+                            bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
+                        } else if (bgFillTyp == "PIC_FILL") {
+                            bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
+                        } else {
+                            console.log(bgFillTyp)
+                        }
+                    }
+                }
+            }
         }
-    }
+    
     return bgcolor;
 }
 
@@ -500,3 +779,5 @@ function getSlideBackgroundFill(warpObj, index) {
         processSingleSlide: processSingleSlide
     };
 })();
+
+window.SlideProcessor = SlideProcessor;

@@ -30,9 +30,12 @@
 <!-- Core Constants -->
 <script type="text/javascript" src="./js/modules/core/constants.js"></script>
 
+<!-- Shape Generator -->
+<script type="text/javascript" src="./js/modules/shapes/shape-generator.js"></script>
+
 <script type="text/javascript" src="./js/modules/core/pptx-processor.js"></script>
-<script type="text/javascript" src="./js/modules/core/slide-processor.js"></script>
 <script type="text/javascript" src="./js/modules/core/node-processors.js"></script>
+<script type="text/javascript" src="./js/modules/core/slide-processor.js"></script>
 
 <!-- Main PPTX Processor (modularized version with all functionality) -->
 <script type="text/javascript" src="./js/modules/core/pptx-main.js"></script>
@@ -120,7 +123,7 @@
 	</div>
 <script>
 $("#result").pptxToHtml({
-	pptxFileUrl: "",
+	pptxFileUrl: "/examples/3guo.pptx",
 	fileInputId: "uploadFileInput",
 	slideMode: false,
 	keyBoardShortCut: false,

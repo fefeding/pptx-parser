@@ -10,6 +10,7 @@
  * with null reference fixes for image/media file handling
  */
 
+(function ($) {
     // 引入模块化工具函数
     var chartUtils = PPTXChartUtils;
     var fileUtils = PPTXFileUtils;
@@ -18,8 +19,6 @@
     var xmlUtils = PPTXXmlUtils;
     var slideProcessor = SlideProcessor;
     var nodeProcessors = NodeProcessors;
-
-(function ($) {
     $.fn.pptxToHtml = function (options) {
         //var worker;
         var $result = $(this);
@@ -34,6 +33,8 @@
         var defaultTextStyle = null;
 
         var chartID = 0;
+
+        var tableStyles = null;
 
         var _order = 1;
 
@@ -333,7 +334,7 @@
             var dateBefore = new Date();
 
             if (zip.file("docProps/thumbnail.jpeg") !== null) {
-                var pptxThumbImg = PPTXImageUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
+                var pptxThumbImg = btoa(String.fromCharCode.apply(null, new Uint8Array(zip.file("docProps/thumbnail.jpeg").asArrayBuffer())));
                 post_ary.push({
                     "type": "pptx-thumb",
                     "data": pptxThumbImg,
@@ -341,7 +342,7 @@
                 });
             }
 
-            var filesInfo = getContentTypes(zip);
+            var filesInfo = fileUtils.getContentTypes(zip, settings.appVersion);
             var slideSize = getSlideSizeAndSetDefaultTextStyle(zip);
             tableStyles = xmlUtils.readXmlFile(zip, "ppt/tableStyles.xml", false, app_verssion);
             //console.log("slideSize: ", slideSize)
@@ -427,6 +428,21 @@
             };
         }
 
+        function genGlobalCSS() {
+            var cssText = "";
+            for (var key in styleTable) {
+                var tagname = "";
+                cssText += tagname + " ." + styleTable[key]["name"] +
+                    ((styleTable[key]["suffix"]) ? styleTable[key]["suffix"] : "") +
+                    "{" + styleTable[key]["text"] + "}\n";
+            }
+
+            if (settings.slideMode && settings.slideType == "divs2slidesjs") {
+                cssText += "#all_slides_warpper{margin-right: auto;margin-left: auto;padding-top:10px;width: " + slideWidth + "px;}\n";
+            }
+            return cssText;
+        }
+
         function getSlideSizeAndSetDefaultTextStyle(zip) {
             //get app version
             var app = xmlUtils.readXmlFile(zip, "docProps/app.xml", false, app_verssion);
@@ -493,7 +509,9 @@
                 defaultTextStyle: defaultTextStyle,
                 processFullTheme: processFullTheme,
                 slideMode: settings.slideMode,
-                slideType: settings.slideType
+                slideType: settings.slideType,
+                mediaProcess: settings.mediaProcess,
+                tableStyles: tableStyles
             }, slideFactor);
         }
 
@@ -501,8 +519,8 @@
             return slideProcessor.indexNodes(content);
         }
 
-        function processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType) {
-            return nodeProcessors.processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType);
+        function processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, settings) {
+            return nodeProcessors.processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, settings);
         }
 
 

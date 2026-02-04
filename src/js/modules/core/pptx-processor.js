@@ -167,3 +167,5 @@ function genGlobalCSS() {
         processPPTX: processPPTX
     };
 })();
+
+window.PPTXProcessor = PPTXProcessor;

@@ -201,3 +201,5 @@ return {
 };
 
 })();
+
+window.PPTXFileUtils = PPTXFileUtils;

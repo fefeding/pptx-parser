@@ -172,3 +172,5 @@ let isDone = false;
         setIsDone: setIsDone
     };
 })();
+
+window.PPTXChartUtils = PPTXChartUtils;

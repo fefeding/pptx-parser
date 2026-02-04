@@ -211,3 +211,5 @@ var PPTXTextUtils = (function() {
         setNumericBullets: setNumericBullets
     };
 })();
+
+window.PPTXTextUtils = PPTXTextUtils;

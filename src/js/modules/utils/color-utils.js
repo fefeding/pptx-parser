@@ -402,6 +402,96 @@ function SVGangle(deg, svgHeight, svgWidth) {
     return [x1, y1, x2, y2];
 }
 
+/**
+ * getFillType - 获取填充类型
+ * @param {Object} node - 节点对象
+ * @returns {string} 填充类型
+ */
+function getFillType(node) {
+    if (!node) return "NO_FILL";
+    
+    if (node["a:solidFill"] !== undefined) {
+        return "SOLID_FILL";
+    } else if (node["a:gradFill"] !== undefined) {
+        return "GRADIENT_FILL";
+    } else if (node["a:pattFill"] !== undefined) {
+        return "PATTERN_FILL";
+    } else if (node["a:blipFill"] !== undefined) {
+        return "PIC_FILL";
+    } else if (node["a:noFill"] !== undefined) {
+        return "NO_FILL";
+    } else {
+        return "NO_FILL";
+    }
+}
+
+/**
+ * getSolidFill - 获取纯色填充
+ * @param {Object} node - 节点对象
+ * @param {Object} clrMap - 颜色映射
+ * @param {string} phClr - 占位符颜色
+ * @param {Object} warpObj - 包装对象
+ * @returns {string} 十六进制颜色
+ */
+function getSolidFill(node, clrMap, phClr, warpObj) {
+    if (!node) return "000000";
+    
+    var srgbClr = node["a:srgbClr"];
+    if (srgbClr && srgbClr["attrs"] && srgbClr["attrs"]["val"]) {
+        return srgbClr["attrs"]["val"];
+    }
+    
+    var schemeClr = node["a:schemeClr"];
+    if (schemeClr && schemeClr["attrs"] && schemeClr["attrs"]["val"]) {
+        return getSchemeColorFromTheme(schemeClr["attrs"]["val"], clrMap, phClr, warpObj);
+    }
+    
+    var prstClr = node["a:prstClr"];
+    if (prstClr && prstClr["attrs"] && prstClr["attrs"]["val"]) {
+        return getColorName2Hex(prstClr["attrs"]["val"]);
+    }
+    
+    var sysClr = node["a:sysClr"];
+    if (sysClr && sysClr["attrs"] && sysClr["attrs"]["lastClr"]) {
+        return sysClr["attrs"]["lastClr"];
+    }
+    
+    return "000000";
+}
+
+/**
+ * getTextByPathList - 通过路径列表获取节点值
+ * @param {Object} node - 节点对象
+ * @param {Array} path - 路径数组
+ * @returns {*} 节点值
+ */
+function getTextByPathList(node, path) {
+    if (!node || !path || path.constructor !== Array) {
+        return undefined;
+    }
+    
+    var current = node;
+    for (var i = 0; i < path.length; i++) {
+        current = current[path[i]];
+        if (current === undefined || current === null) {
+            return undefined;
+        }
+    }
+    
+    return current;
+}
+
+/**
+ * angleToDegrees - 将角度转换为度数
+ * @param {number} angle - 角度值（EMU单位）
+ * @returns {number} 转换后的度数
+ */
+function angleToDegrees(angle) {
+    if (angle == "" || angle == null) {
+        return 0;
+    }
+    return Math.round(angle / 60000);
+}
 
     return {
         toHex: toHex,
@@ -415,6 +505,12 @@ function SVGangle(deg, svgHeight, svgWidth) {
         rgba2hex: rgba2hex,
         getColorName2Hex: getColorName2Hex,
         getSchemeColorFromTheme: getSchemeColorFromTheme,
-        getSvgGradient: getSvgGradient
+        getSvgGradient: getSvgGradient,
+        getFillType: getFillType,
+        getSolidFill: getSolidFill,
+        getTextByPathList: getTextByPathList,
+        angleToDegrees: angleToDegrees
     };
 })();
+
+window.PPTXColorUtils = PPTXColorUtils;

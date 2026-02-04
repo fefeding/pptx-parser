@@ -253,3 +253,5 @@ function escapeHtml(text) {
         getSvgImagePattern: getSvgImagePattern
     };
 })();
+
+window.PPTXImageUtils = PPTXImageUtils;

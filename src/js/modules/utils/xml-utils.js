@@ -176,3 +176,5 @@ var PPTXXmlUtils = (function() {
         readXmlFile: readXmlFile
     };
 })();
+
+window.PPTXXmlUtils = PPTXXmlUtils;
