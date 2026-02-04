@@ -759,7 +759,7 @@ var PPTXTextUtils = (function() {
                 if (linkTooltip !== undefined) {
                     linkTooltip = "title='" + linkTooltip + "'";
                 }
-                defLinkClr = getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
+                defLinkClr = PPTXStyleUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
 
                 var linkClrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
                 var rPrlinkClr = PPTXStyleUtils.getSolidFill(linkClrNode, undefined, undefined, warpObj);
@@ -1090,8 +1090,8 @@ var PPTXTextUtils = (function() {
                     // var pSpStr = dspSpObjToStr.replace(/dsp:/g, "p:");
                     // var pSpStrToObj = JSON.parse(pSpStr);
                     //console.log("pSpStrToObj[" + i + "]: ", pSpStrToObj);
-                    //rslt += processSpNode(pSpStrToObj, node, warpObj, "diagramBg", sType)
-                    rslt += processSpNode(dspSp, node, warpObj, "diagramBg", sType)
+                    //rslt += PPTXNodeUtils.processSpNode(pSpStrToObj, node, warpObj, "diagramBg", sType)
+                    rslt += PPTXNodeUtils.processSpNode(dspSp, node, warpObj, "diagramBg", sType)
                 }
                 // dgmDrwFile: "dsp:"-> "p:"
             }
