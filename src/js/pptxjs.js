@@ -323,7 +323,7 @@
             var dateBefore = new Date();
 
             if (zip.file("docProps/thumbnail.jpeg") !== null) {
-                var pptxThumbImg = base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
+                var pptxThumbImg = PPTXFileUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
                 post_ary.push({
                     "type": "pptx-thumb",
                     "data": pptxThumbImg,
@@ -441,8 +441,8 @@
             //console.log(slideResObj);
             // Open slideLayoutXX.xml
             var slideLayoutContent = PPTXXmlUtils.readXmlFile(zip, layoutFilename);
-            var slideLayoutTables = indexNodes(slideLayoutContent);
-            var sldLayoutClrOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
+            var slideLayoutTables = PPTXNodeUtils.indexNodes(slideLayoutContent);
+            var sldLayoutClrOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
 
             //console.log(slideLayoutClrOvride);
             if (sldLayoutClrOvr !== undefined) {
@@ -475,8 +475,8 @@
             }
             // Open slideMasterXX.xml
             var slideMasterContent = PPTXXmlUtils.readXmlFile(zip, masterFilename);
-            var slideMasterTextStyles = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
-            var slideMasterTables = indexNodes(slideMasterContent);
+            var slideMasterTextStyles = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
+            var slideMasterTables = PPTXNodeUtils.indexNodes(slideMasterContent);
 
             /////////////////Amir/////////////
             //Open slideMasterXX.xml.rels
@@ -639,9 +639,9 @@
                 if (targetNode.constructor === Array) {
                     for (var i = 0; i < targetNode.length; i++) {
                         var nvSpPrNode = targetNode[i]["p:nvSpPr"];
-                        var id = getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
-                        var idx = getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
-                        var type = getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
+                        var id = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
+                        var idx = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
+                        var type = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
 
                         if (id !== undefined) {
                             idTable[id] = targetNode[i];
@@ -655,9 +655,9 @@
                     }
                 } else {
                     var nvSpPrNode = targetNode["p:nvSpPr"];
-                    var id = getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
-                    var idx = getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
-                    var type = getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
+                    var id = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:cNvPr", "attrs", "id"]);
+                    var idx = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "idx"]);
+                    var type = PPTXXmlUtils.getTextByPathList(nvSpPrNode, ["p:nvPr", "p:ph", "attrs", "type"]);
 
                     if (id !== undefined) {
                         idTable[id] = targetNode;
@@ -673,6 +673,95 @@
             }
 
             return { "idTable": idTable, "idxTable": idxTable, "typeTable": typeTable };
+        }
+
+        function processGroupSpNode(node, warpObj, source) {
+            var slideFactor = 96 / 914400;
+            var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
+            if (xfrmNode !== undefined) {
+                var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+                var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+                
+                // 根据ECMA-376标准，a:chOff和a:chExt是可选元素
+                // 当不存在时，应该使用父元素的对应值作为默认值
+                var chx, chy, chcx, chcy;
+                
+                if (xfrmNode["a:chOff"] !== undefined && xfrmNode["a:chOff"]["attrs"] !== undefined) {
+                    chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
+                    chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+                } else {
+                    // 当a:chOff不存在时，使用a:off的值作为默认值
+                    chx = x;
+                    chy = y;
+                }
+                
+                var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
+                var cy = parseInt(xfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
+                
+                if (xfrmNode["a:chExt"] !== undefined && xfrmNode["a:chExt"]["attrs"] !== undefined) {
+                    chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
+                    chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+                } else {
+                    // 当a:chExt不存在时，使用a:ext的值作为默认值
+                    chcx = cx;
+                    chcy = cy;
+                }
+                var rotate = parseInt(xfrmNode["attrs"]["rot"]);
+                var rotStr = "";
+                var top = y - chy,
+                    left = x - chx,
+                    width = cx - chcx,
+                    height = cy - chcy;
+
+                var sType = "group";
+                if (!isNaN(rotate)) {
+                    rotate = PPTXXmlUtils.angleToDegrees(rotate);
+                    rotStr += "transform: rotate(" + rotate + "deg) ; transform-origin: center;";
+                    if (rotate != 0) {
+                        top = y;
+                        left = x;
+                        width = cx;
+                        height = cy;
+                        sType = "group-rotate";
+                    }
+                }
+            }
+            var grpStyle = "";
+
+            if (rotStr !== undefined && rotStr != "") {
+                grpStyle += rotStr;
+            }
+
+            if (top !== undefined) {
+                grpStyle += "top: " + top + "px;";
+            }
+            if (left !== undefined) {
+                grpStyle += "left: " + left + "px;";
+            }
+            if (width !== undefined) {
+                grpStyle += "width:" + width + "px;";
+            }
+            if (height !== undefined) {
+                grpStyle += "height: " + height + "px;";
+            }
+            var order = node["attrs"]["order"];
+
+            var result = "<div class='block group' style='z-index: " + order + ";" + grpStyle + " border:1px solid red;'>";
+
+            // Procsee all child nodes
+            for (var nodeKey in node) {
+                if (node[nodeKey].constructor === Array) {
+                    for (var i = 0; i < node[nodeKey].length; i++) {
+                        result += processNodesInSlide(nodeKey, node[nodeKey][i], node, warpObj, source, sType);
+                    }
+                } else {
+                    result += processNodesInSlide(nodeKey, node[nodeKey], node, warpObj, source, sType);
+                }
+            }
+
+            result += "</div>";
+
+            return result;
         }
 
         function processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType) {
@@ -696,7 +785,7 @@
                     break;
                 case "mc:AlternateContent": //Equations and formulas as Image
                     //console.log("mc:AlternateContent nodeValue:" , nodeValue , "nodes:",nodes, "sType:",sType)
-                    var mcFallbackNode = getTextByPathList(nodeValue, ["mc:Fallback"]);
+                    var mcFallbackNode = PPTXXmlUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
                     result = processGroupSpNode(mcFallbackNode, warpObj, source);
                     break;
                 default:
@@ -709,7 +798,7 @@
 
         function processGroupSpNode(node, warpObj, source) {
             //console.log("processGroupSpNode: node: ", node)
-            var xfrmNode = getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
+            var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
             if (xfrmNode !== undefined) {
                 var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
                 var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
@@ -750,7 +839,7 @@
 
                 var sType = "group";
                 if (!isNaN(rotate)) {
-                    rotate = angleToDegrees(rotate);
+                    rotate = PPTXXmlUtils.angleToDegrees(rotate);
                     rotStr += "transform: rotate(" + rotate + "deg) ; transform-origin: center;";
                     // var cLin = Math.sqrt(Math.pow((chy), 2) + Math.pow((chx), 2));
                     // var rdian = degreesToRadians(rotate);
@@ -804,6 +893,36 @@
             return result;
         }
 
+        function processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType) {
+            var result = "";
+
+            switch (nodeKey) {
+                case "p:sp":    // Shape, Text
+                    result = processSpNode(nodeValue, nodes, warpObj, source, sType);
+                    break;
+                case "p:cxnSp":    // Shape, Text (with connection)
+                    result = processCxnSpNode(nodeValue, nodes, warpObj, source, sType);
+                    break;
+                case "p:pic":    // Picture
+                    result = processPicNode(nodeValue, warpObj, source, sType);
+                    break;
+                case "p:graphicFrame":    // Chart, Diagram, Table
+                    result = processGraphicFrameNode(nodeValue, warpObj, source, sType);
+                    break;
+                case "p:grpSp":
+                    result = processGroupSpNode(nodeValue, warpObj, source);
+                    break;
+                case "mc:AlternateContent": //Equations and formulas as Image
+                    var mcFallbackNode = PPTXXmlUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
+                    result = processGroupSpNode(mcFallbackNode, warpObj, source);
+                    break;
+                default:
+                    //console.log("nodeKey: ", nodeKey)
+            }
+
+            return result;
+        }
+
         function processSpNode(node, pNode, warpObj, source, sType) {
 
             /*
@@ -818,14 +937,14 @@
             *  966 </xsd:complexType>
             */
 
-            var id = getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "id"]);
-            var name = getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
-            var idx = (getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]) === undefined) ? undefined : getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]);
-            var type = (getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]) === undefined) ? undefined : getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
-            var order = getTextByPathList(node, ["attrs", "order"]);
+            var id = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "id"]);
+            var name = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
+            var idx = (PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]) === undefined) ? undefined : PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]);
+            var type = (PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]) === undefined) ? undefined : PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+            var order = PPTXXmlUtils.getTextByPathList(node, ["attrs", "order"]);
             var isUserDrawnBg;
             if (source == "slideLayoutBg" || source == "slideMasterBg") {
-                var userDrawn = getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "attrs", "userDrawn"]);
+                var userDrawn = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "attrs", "userDrawn"]);
                 if (userDrawn == "1") {
                     isUserDrawnBg = true;
                 } else {
@@ -850,7 +969,7 @@
             }
 
             if (type === undefined) {
-                txBoxVal = getTextByPathList(node, ["p:nvSpPr", "p:cNvSpPr", "attrs", "txBox"]);
+                txBoxVal = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvSpPr", "attrs", "txBox"]);
                 if (txBoxVal == "1") {
                     type = "textBox";
                 }
@@ -1346,18 +1465,18 @@
                             " L" + 0 + "," + h +
                             " z" +
                             "M" + g33 + "," + g27 +
-                            shapeArc(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
-                            shapeArc(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
-                            shapeArc(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
                             " L" + g37 + "," + g30 +
                             " L" + g36 + "," + g30 +
                             " L" + g36 + "," + g29 +
-                            shapeArc(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
-                            shapeArc(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
-                            shapeArc(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
                             " z" +
                             "M" + hc + "," + g31 +
-                            shapeArc(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
                             " z";
 
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -1457,10 +1576,10 @@
                             " L" + 0 + "," + h +
                             " z" +
                             "M" + hc + "," + g9 +
-                            shapeArc(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
                             " z" +
                             "M" + hc + "," + g25 +
-                            shapeArc(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
                             "M" + g32 + "," + g28 +
                             " L" + g35 + "," + g28 +
                             " L" + g35 + "," + g30 +
@@ -1593,15 +1712,15 @@
                             " L" + hc + "," + g21 +
                             " L" + g24 + "," + g21 +
                             " L" + g24 + "," + g20 +
-                            shapeArc(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
                             " L" + g25 + "," + g19 +
-                            shapeArc(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
                             " L" + g26 + "," + g21 +
                             " L" + g11 + "," + g21 +
                             " L" + g11 + "," + g20 +
-                            shapeArc(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
                             " L" + hc + "," + g10 +
-                            shapeArc(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
                             " L" + g22 + "," + g21 +
                             " z";
 
@@ -1726,9 +1845,9 @@
                         //path attrs: w = 21600; h = 21600; 
                         var d = "M" + x1 + "," + 0 +
                             " L" + x2 + "," + 0 +
-                            shapeArc(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            shapeArc(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1739,11 +1858,11 @@
                         y1 = h * 2 / 20;
                         y2 = h * 18 / 20;
                         var d = "M" + 0 + "," + y1 +
-                            shapeArc(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
-                            shapeArc(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
                             " L" + w + "," + y2 +
-                            shapeArc(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
-                            shapeArc(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1754,9 +1873,9 @@
                         y1 = h * 3 / 6;
                         var d = "M" + x1 + "," + 0 +
                             " L" + w + "," + 0 +
-                            shapeArc(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
                             " L" + x1 + "," + h +
-                            shapeArc(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1770,7 +1889,7 @@
                         var d = "M" + 0 + "," + y1 +
                             " L" + x1 + "," + 0 +
                             " L" + x2 + "," + 0 +
-                            shapeArc(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
                             " L" + x1 + "," + h +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -1794,10 +1913,10 @@
                         ang1 = Math.atan(h / w);
                         var ang1Dg = ang1 * 180 / Math.PI;
                         var d = "M" + wd2 + "," + h +
-                            shapeArc(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
-                            shapeArc(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
-                            shapeArc(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
-                            shapeArc(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L") +
                             " L" + w + "," + ib +
                             " L" + w + "," + h +
                             " z";
@@ -1906,7 +2025,7 @@
                                 if (sAdj2_val === undefined) sAdj2_val = 0;
                                 break;
                         }
-                        var d_val = shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
+                        var d_val = PPTXShapeUtils.shapeSnipRoundRectAlt(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
                         result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
@@ -4363,7 +4482,7 @@
                             " L" + xPos + "," + yPos +
                             " L" + x2 + "," + y2 +
                             //" z" +
-                            shapeArc(hc, vc, hc, vc, 0, 360, true);// +
+                            PPTXShapeUtils.shapeArcAlt(hc, vc, hc, vc, 0, 360, true);// +
                         //shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
                         //" z";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -4886,8 +5005,8 @@
                             "L" + x1 + "," + 0 +
                             "L" + x1 + "," + ly1 +
                             "L" + hc + "," + ly1 +
-                            shapeArc(hc, y1, wd32, hR, 270, 450, false).replace("M", "L") +
-                            shapeArc(hc, y2, wd32, hR, 270, 90, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(hc, y1, wd32, hR, 270, 450, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArcAlt(hc, y2, wd32, hR, 270, 90, false).replace("M", "L") +
                             "L" + x4 + "," + ry2 +
                             "L" + x4 + "," + ry1 +
                             "L" + w + "," + ry3 +
@@ -4963,9 +5082,9 @@
                                 " L" + l + "," + y4 +
                                 " L" + x2 + "," + y4 +
                                 " L" + x2 + "," + hR +
-                                shapeArc(x3, hR, wd32, hR, 180, 270, false).replace("M", "L") +
-                                " L" + x8 + "," + t +
-                                shapeArc(x8, hR, wd32, hR, 270, 360, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArcAlt(x3, hR, wd32, hR, 180, 270, false).replace("M", "L") +
+                            " L" + x8 + "," + t +
+                            PPTXShapeUtils.shapeArcAlt(x8, hR, wd32, hR, 270, 360, false).replace("M", "L") +
                                 " L" + x9 + "," + y4 +
                                 " L" + x9 + "," + y4 +
                                 " L" + r + "," + y4 +
@@ -4998,13 +5117,13 @@
                             y6 = y2 - hR;
                             d_val = "M" + l + "," + t +
                                 " L" + x4 + "," + t +
-                                shapeArc(x4, hR, wd32, hR, 270, 450, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArcAlt(x4, hR, wd32, hR, 270, 450, false).replace("M", "L") +
                                 " L" + x3 + "," + y1 +
-                                shapeArc(x3, y6, wd32, hR, 270, 90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArcAlt(x3, y6, wd32, hR, 270, 90, false).replace("M", "L") +
                                 " L" + x8 + "," + y2 +
-                                shapeArc(x8, y6, wd32, hR, 90, -90, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArcAlt(x8, y6, wd32, hR, 90, -90, false).replace("M", "L") +
                                 " L" + x7 + "," + y1 +
-                                shapeArc(x7, hR, wd32, hR, 90, 270, false).replace("M", "L") +
+                                PPTXShapeUtils.shapeArcAlt(x7, hR, wd32, hR, 90, 270, false).replace("M", "L") +
                                 " L" + r + "," + t +
                                 " L" + x10 + "," + y3 +
                                 " L" + r + "," + y4 +
@@ -8435,7 +8554,7 @@
                 " z-index: " + order + ";" +
                 "transform: rotate(" + rotate + "deg);'>";
             if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
-                rtrnData += "<img src='data:" + mimeType + ";base64," + base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
+                rtrnData += "<img src='data:" + mimeType + ";base64," + PPTXFileUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
             } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
                 if (vdoNode !== undefined && !isVdeoLink) {
                     rtrnData += "<video  src='" + vdoBlob + "' controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>";
@@ -9111,7 +9230,7 @@
                             var imgArrayBuffer = imgFile.asArrayBuffer();
                             var imgExt = imgPath.split(".").pop();
                             var imgMimeType = getMimeType(imgExt);
-                            buImg = "<img src='data:" + imgMimeType + ";base64," + base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
+                            buImg = "<img src='data:" + imgMimeType + ";base64," + PPTXFileUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
                             //console.log("imgPath: "+imgPath+"\nimgMimeType: "+imgMimeType)
                         }
                     }
@@ -12315,7 +12434,7 @@
                 }
                 var imgArrayBuffer = imgFile.asArrayBuffer();
                 var imgMimeType = getMimeType(imgExt);
-                img = "data:" + imgMimeType + ";base64," + base64ArrayBuffer(imgArrayBuffer);
+                img = "data:" + imgMimeType + ";base64," + PPTXFileUtils.base64ArrayBuffer(imgArrayBuffer);
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
                 setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
             }
@@ -13981,41 +14100,6 @@
                 aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toLowerCase();
             }
             return aNum;
-        }
-        function base64ArrayBuffer(arrayBuffer) {
-            var base64 = '';
-            var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-            var bytes = new Uint8Array(arrayBuffer);
-            var byteLength = bytes.byteLength;
-            var byteRemainder = byteLength % 3;
-            var mainLength = byteLength - byteRemainder;
-
-            var a, b, c, d;
-            var chunk;
-
-            for (var i = 0; i < mainLength; i = i + 3) {
-                chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
-                a = (chunk & 16515072) >> 18;
-                b = (chunk & 258048) >> 12;
-                c = (chunk & 4032) >> 6;
-                d = chunk & 63;
-                base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d];
-            }
-
-            if (byteRemainder == 1) {
-                chunk = bytes[mainLength];
-                a = (chunk & 252) >> 2;
-                b = (chunk & 3) << 4;
-                base64 += encodings[a] + encodings[b] + '==';
-            } else if (byteRemainder == 2) {
-                chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
-                a = (chunk & 64512) >> 10;
-                b = (chunk & 1008) >> 4;
-                c = (chunk & 15) << 2;
-                base64 += encodings[a] + encodings[b] + encodings[c] + '=';
-            }
-
-            return base64;
         }
 
         function IsVideoLink(vdoFile) {
