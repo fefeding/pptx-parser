@@ -829,7 +829,7 @@
                 }
                 var rotate = parseInt(xfrmNode["attrs"]["rot"])
                 var rotStr = ""//;" border: 3px solid black;";
-                // angleToDegrees(getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
+                // angleToDegrees (PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
                 // var rotX = 0;
                 // var rotY = 0;
                 var top = y - chy,
@@ -975,9 +975,9 @@
                 }
             }
             if (type === undefined) {
-                type = getTextByPathList(slideLayoutSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                type = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                 if (type === undefined) {
-                    //type = getTextByPathList(slideMasterSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                    //type = PPTXXmlUtils.getTextByPathList(slideMasterSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                     if (source == "diagramBg") {
                         type = "diagram";
                     } else {
@@ -1006,25 +1006,25 @@
             //var dltX = 0;
             //var dltY = 0;
             var xfrmList = ["p:spPr", "a:xfrm"];
-            var slideXfrmNode = getTextByPathList(node, xfrmList);
-            var slideLayoutXfrmNode = getTextByPathList(slideLayoutSpNode, xfrmList);
-            var slideMasterXfrmNode = getTextByPathList(slideMasterSpNode, xfrmList);
+            var slideXfrmNode = PPTXXmlUtils.getTextByPathList(node, xfrmList);
+            var slideLayoutXfrmNode = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, xfrmList);
+            var slideMasterXfrmNode = PPTXXmlUtils.getTextByPathList(slideMasterSpNode, xfrmList);
 
             var result = "";
-            var shpId = getTextByPathList(node, ["attrs", "order"]);
+            var shpId = PPTXXmlUtils.getTextByPathList(node, ["attrs", "order"]);
             //console.log("shpId: ",shpId)
-            var shapType = getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
+            var shapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
 
             //custGeom - Amir
-            var custShapType = getTextByPathList(node, ["p:spPr", "a:custGeom"]);
+            var custShapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:custGeom"]);
 
             var isFlipV = false;
             var isFlipH = false;
             var flip = "";
-            if (getTextByPathList(slideXfrmNode, ["attrs", "flipV"]) === "1") {
+            if  (PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipV"]) === "1") {
                 isFlipV = true;
             }
-            if (getTextByPathList(slideXfrmNode, ["attrs", "flipH"]) === "1") {
+            if  (PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipH"]) === "1") {
                 isFlipH = true;
             }
             if (isFlipH && !isFlipV) {
@@ -1036,13 +1036,13 @@
             }
             /////////////////////////Amir////////////////////////
             //rotate
-            var rotate = angleToDegrees(getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
+            var rotate = angleToDegrees (PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
 
             //console.log("genShape rotate: " + rotate);
             var txtRotate;
-            var txtXframeNode = getTextByPathList(node, ["p:txXfrm"]);
+            var txtXframeNode = PPTXXmlUtils.getTextByPathList(node, ["p:txXfrm"]);
             if (txtXframeNode !== undefined) {
-                var txtXframeRot = getTextByPathList(txtXframeNode, ["attrs", "rot"]);
+                var txtXframeRot = PPTXXmlUtils.getTextByPathList(txtXframeNode, ["attrs", "rot"]);
                 if (txtXframeRot !== undefined) {
                     txtRotate = angleToDegrees(txtXframeRot) + 90;
                 }
@@ -1051,11 +1051,11 @@
             }
             //////////////////////////////////////////////////
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
-                var off = getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
+                var off = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
                 var x = parseInt(off["x"]) * slideFactor;
                 var y = parseInt(off["y"]) * slideFactor;
 
-                var ext = getTextByPathList(slideXfrmNode, ["a:ext", "attrs"]);
+                var ext = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:ext", "attrs"]);
                 var w = parseInt(ext["cx"]) * slideFactor;
                 var h = parseInt(ext["cy"]) * slideFactor;
 
@@ -1075,12 +1075,12 @@
                 //console.log("genShape: fillColor: ", fillColor)
                 var grndFillFlg = false;
                 var imgFillFlg = false;
-                var clrFillType = getFillType(getTextByPathList(node, ["p:spPr"]));
+                var clrFillType = getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
                 if (clrFillType == "GROUP_FILL") {
-                    clrFillType = getFillType(getTextByPathList(pNode, ["p:grpSpPr"]));
+                    clrFillType = getFillType (PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr"]));
                 }
                 // if (clrFillType == "") {
-                //     var clrFillType = getFillType(getTextByPathList(node, ["p:style","a:fillRef"]));
+                //     var clrFillType = getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:style","a:fillRef"]));
                 // }
                 //console.log("genShape: fillColor: ", fillColor, ", clrFillType: ", clrFillType, ", node: ", node)
                 /////////////////////////////////////////                    
@@ -1125,8 +1125,8 @@
                 // Border Color
                 var border = getBorder(node, pNode, true, "shape", warpObj);
 
-                var headEndNodeAttrs = getTextByPathList(node, ["p:spPr", "a:ln", "a:headEnd", "attrs"]);
-                var tailEndNodeAttrs = getTextByPathList(node, ["p:spPr", "a:ln", "a:tailEnd", "attrs"]);
+                var headEndNodeAttrs = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:headEnd", "attrs"]);
+                var tailEndNodeAttrs = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:ln", "a:tailEnd", "attrs"]);
                 // type: none, triangle, stealth, diamond, oval, arrow
 
                 ////////////////////effects/////////////////////////////////////////////////////
@@ -1152,7 +1152,7 @@
                 //"a:extLst"?
                 //////////////////////////////outerShdw///////////////////////////////////////////
                 //not support sizing the shadow
-                var outerShdwNode = getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
+                var outerShdwNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
                 var oShadowSvgUrlStr = ""
                 if (outerShdwNode !== undefined) {
                     var chdwClrNode = getSolidFill(outerShdwNode, undefined, undefined, warpObj);
@@ -1954,23 +1954,23 @@
                     case "snip2SameRect":
                     case "flowChartAlternateProcess":
                     case "flowChartPunchedCard":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val;// = 0.33334;
                         var sAdj2, sAdj2_val;// = 0.33334;
                         var shpTyp, adjTyp;
                         if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor === Array) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) / 50000;
                                 }
                             }
                         } else if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor !== Array) {
-                            var sAdj = getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
+                            var sAdj = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
                             sAdj1_val = parseInt(sAdj.substr(4)) / 50000;
                             sAdj2_val = 0;
                         }
@@ -2030,17 +2030,17 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "snipRoundRect":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.33334;
                         var sAdj2, sAdj2_val = 0.33334;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) / 50000;
                                 }
                             }
@@ -2075,7 +2075,7 @@
                     case "triangle":
                     case "flowChartExtract":
                     case "flowChartMerge":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) * slideFactor;
@@ -2100,7 +2100,7 @@
                     case "trapezoid":
                     case "flowChartManualOperation":
                     case "flowChartManualInput":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adjst_val = 0.2;
                         var max_adj_const = 0.7407;
                         if (shapAdjst !== undefined) {
@@ -2122,7 +2122,7 @@
                         break;
                     case "parallelogram":
                     case "flowChartInputOutput":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adjst_val = 0.25;
                         var max_adj_const;
                         if (w > h) {
@@ -2146,7 +2146,7 @@
                         break;
                     case "hexagon":
                     case "flowChartPreparation":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var vf = 115470 * slideFactor;;
                         var cnstVal1 = 50000 * slideFactor;
@@ -2183,7 +2183,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "octagon":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
@@ -2211,7 +2211,7 @@
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 19098 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star4 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             var name = shapAdjst["attrs"]["name"];
@@ -2254,7 +2254,7 @@
                         var maxAdj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
                         //var radians = angle * (Math.PI / 180);
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star5 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             Object.keys(shapAdjst).forEach(function (key) {
@@ -2322,7 +2322,7 @@
                         var hf = 115470 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star5 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             Object.keys(shapAdjst).forEach(function (key) {
@@ -2382,7 +2382,7 @@
                         var maxAdj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
 
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star5 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             Object.keys(shapAdjst).forEach(function (key) {
@@ -2463,7 +2463,7 @@
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star4 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             var name = shapAdjst["attrs"]["name"];
@@ -2524,7 +2524,7 @@
                         var hf = 105146 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star5 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             Object.keys(shapAdjst).forEach(function (key) {
@@ -2599,7 +2599,7 @@
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4, wd4 = w / 4;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star4 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             var name = shapAdjst["attrs"]["name"];
@@ -2674,7 +2674,7 @@
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star4 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             var name = shapAdjst["attrs"]["name"];
@@ -2780,7 +2780,7 @@
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4, wd4 = w / 4;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star4 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             var name = shapAdjst["attrs"]["name"];
@@ -2925,7 +2925,7 @@
                         var hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2, hd4 = h / 4, wd4 = w / 4;
                         var adj = 37500 * slideFactor;
                         var maxAdj = 50000 * slideFactor;
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star4 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             var name = shapAdjst["attrs"]["name"];
@@ -3105,7 +3105,7 @@
                     case "pie":
                     case "pieWedge":
                     case "arc":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
                         if (shapType == "pie") {
                             adj1 = 0;
@@ -3124,7 +3124,7 @@
                             isClose = false;
                         }
                         if (shapAdjst !== undefined) {
-                            shapAdjst1 = getTextByPathList(shapAdjst, ["attrs", "fmla"]);
+                            shapAdjst1 = PPTXXmlUtils.getTextByPathList(shapAdjst, ["attrs", "fmla"]);
                             shapAdjst2 = shapAdjst1;
                             if (shapAdjst1 === undefined) {
                                 shapAdjst1 = shapAdjst[0]["attrs"]["fmla"];
@@ -3143,17 +3143,17 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "chord":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 45;
                         var sAdj2, sAdj2_val = 270;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) / 60000;
                                 }
                             }
@@ -3166,7 +3166,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "frame":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 12500 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -3194,7 +3194,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "donut":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -3224,7 +3224,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "noSmoking":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 18750 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -3283,18 +3283,18 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "halfFrame":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 3.5;
                         var sAdj2, sAdj2_val = 3.5;
                         var cnsVal = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -3329,7 +3329,7 @@
                         //console.log("w: ",w,", h: ",h,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val,",maxAdj1: ",maxAdj1,",maxAdj2: ",maxAdj2)
                         break;
                     case "blockArc":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 180;
                         var sAdj2, adj2 = 0;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -3337,15 +3337,15 @@
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) / 60000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) / 60000;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -3429,7 +3429,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bracePair":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 25000 * slideFactor;
                         var cnstVal2 = 50000 * slideFactor;
@@ -3469,18 +3469,18 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftBrace":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 8333 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -3515,18 +3515,18 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "rightBrace":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 8333 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -3561,7 +3561,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bracketPair":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 16667 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -3584,7 +3584,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftBracket":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -3608,7 +3608,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "rightBracket":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 8333 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 100000 * slideFactor;
@@ -3634,7 +3634,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "moon":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 0.5;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) / 100000;//*96/914400;;
@@ -3654,18 +3654,18 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "corner":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 50000 * slideFactor;
                         var sAdj2, sAdj2_val = 50000 * slideFactor;
                         var cnsVal = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj2_val = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -3696,7 +3696,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "diagStripe":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var sAdj1_val = 50000 * slideFactor;
                         var cnsVal = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
@@ -3729,7 +3729,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "bentConnector3":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
@@ -3750,7 +3750,7 @@
                         }
                         break;
                     case "plus":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
@@ -3763,7 +3763,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "teardrop":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 100000 * slideFactor;
                         var cnsVal1 = adj1;
                         var cnsVal2 = 200000 * slideFactor;
@@ -3798,7 +3798,7 @@
                         // console.log("shapAdjst: ",shapAdjst,", adj1: ",adj1);
                         break;
                     case "plaque":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj1 = 16667 * slideFactor;
                         var cnsVal1 = 50000 * slideFactor;
                         var cnsVal2 = 100000 * slideFactor;
@@ -3826,7 +3826,7 @@
 
                         break;
                     case "sun":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj1 = 25000 * refr;
                         var cnstVal1 = 12500 * refr;
@@ -3987,7 +3987,7 @@
 
                         break;
                     case "cube":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 25000 * refr;
                         if (shapAdjst !== undefined) {
@@ -4020,7 +4020,7 @@
 
                         break;
                     case "bevel":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 12500 * refr;
                         if (shapAdjst !== undefined) {
@@ -4059,7 +4059,7 @@
 
                         break;
                     case "foldedCorner":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 16667 * refr;
                         if (shapAdjst !== undefined) {
@@ -4192,18 +4192,18 @@
                             arc11 +
                             " z";
                         if (shapType == "cloudCallout") {
-                            var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                            var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                             var refr = slideFactor;
                             var sAdj1, adj1 = -20833 * refr;
                             var sAdj2, adj2 = 62500 * refr;
                             if (shapAdjst_ary !== undefined) {
                                 for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                    var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                    var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
-                                        sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj1 = parseInt(sAdj1.substr(4)) * refr;
                                     } else if (sAdj_name == "adj2") {
-                                        sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj2 = parseInt(sAdj2.substr(4)) * refr;
                                     }
                                 }
@@ -4273,7 +4273,7 @@
 
                         break;
                     case "smileyFace":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 4653 * refr;
                         if (shapAdjst !== undefined) {
@@ -4321,7 +4321,7 @@
                         break;
                     case "verticalScroll":
                     case "horizontalScroll":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var refr = slideFactor;
                         var adj = 12500 * refr;
                         if (shapAdjst !== undefined) {
@@ -4410,18 +4410,18 @@
 
                         break;
                     case "wedgeEllipseCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = -20833 * refr;
                         var sAdj2, adj2 = 62500 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 }
                             }
@@ -4490,18 +4490,18 @@
 
                         break;
                     case "wedgeRectCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = -20833 * refr;
                         var sAdj2, adj2 = 62500 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 }
                             }
@@ -4569,22 +4569,22 @@
 
                         break;
                     case "wedgeRoundRectCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = -20833 * refr;
                         var sAdj2, adj2 = 62500 * refr;
                         var sAdj3, adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * refr;
                                 }
                             }
@@ -4667,7 +4667,7 @@
                     case "callout1":
                     case "callout2":
                     case "callout3":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 18750 * refr;
                         var sAdj2, adj2 = -8333 * refr;
@@ -4679,30 +4679,30 @@
                         var sAdj8, adj8 = -8333 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * refr;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * refr;
                                 } else if (sAdj_name == "adj5") {
-                                    sAdj5 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj5 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj5 = parseInt(sAdj5.substr(4)) * refr;
                                 } else if (sAdj_name == "adj6") {
-                                    sAdj6 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj6 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj6 = parseInt(sAdj6.substr(4)) * refr;
                                 } else if (sAdj_name == "adj7") {
-                                    sAdj7 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj7 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj7 = parseInt(sAdj7.substr(4)) * refr;
                                 } else if (sAdj_name == "adj8") {
-                                    sAdj8 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj8 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj8 = parseInt(sAdj8.substr(4)) * refr;
                                 }
                             }
@@ -4948,22 +4948,22 @@
                         //}
                         break;
                     case "leftRightRibbon":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 50000 * refr;
                         var sAdj2, adj2 = 50000 * refr;
                         var sAdj3, adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * refr;
                                 }
                             }
@@ -5029,17 +5029,17 @@
                         break;
                     case "ribbon":
                     case "ribbon2":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 16667 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -5151,17 +5151,17 @@
                         break;
                     case "doubleWave":
                     case "wave":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = (shapType == "doubleWave") ? 6250 * slideFactor : 12500 * slideFactor;
                         var sAdj2, adj2 = 0;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -5247,21 +5247,21 @@
                         break;
                     case "ellipseRibbon":
                     case "ellipseRibbon2":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -5425,18 +5425,18 @@
                         result += "/>";
                         break;
                     case "rightArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
                         var sAdj2, sAdj2_val = 0.5;
                         var max_sAdj2_const = w / h;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                                     sAdj2_val = 1 - ((sAdj2_val2) / max_sAdj2_const);
                                 }
@@ -5449,18 +5449,18 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
                         var sAdj2, sAdj2_val = 0.5;
                         var max_sAdj2_const = w / h;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                                 }
@@ -5474,18 +5474,18 @@
                         break;
                     case "downArrow":
                     case "flowChartOffpageConnector":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
                         var sAdj2, sAdj2_val = 0.5;
                         var max_sAdj2_const = h / w;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                                 }
@@ -5501,18 +5501,18 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "upArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
                         var sAdj2, sAdj2_val = 0.5;
                         var max_sAdj2_const = h / w;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                                 }
@@ -5523,18 +5523,18 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "leftRightArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;
                         var sAdj2, sAdj2_val = 0.25;
                         var max_sAdj2_const = w / h;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                                 }
@@ -5548,18 +5548,18 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "upDownArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;
                         var sAdj2, sAdj2_val = 0.25;
                         var max_sAdj2_const = h / w;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
                                     sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
                                 }
@@ -5573,7 +5573,7 @@
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     case "quadArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 22500 * slideFactor;
                         var sAdj2, adj2 = 22500 * slideFactor;
                         var sAdj3, adj3 = 22500 * slideFactor;
@@ -5582,15 +5582,15 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -5652,7 +5652,7 @@
 
                         break;
                     case "leftRightUpArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -5661,15 +5661,15 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -5724,7 +5724,7 @@
 
                         break;
                     case "leftUpArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -5733,15 +5733,15 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -5789,7 +5789,7 @@
 
                         break;
                     case "bentUpArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -5798,15 +5798,15 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -5847,7 +5847,7 @@
 
                         break;
                     case "bentArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -5856,18 +5856,18 @@
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -5924,7 +5924,7 @@
 
                         break;
                     case "uturnArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -5934,21 +5934,21 @@
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj5") {
-                                    sAdj5 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj5 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj5 = parseInt(sAdj5.substr(4)) * slideFactor;
                                 }
                             }
@@ -6021,7 +6021,7 @@
 
                         break;
                     case "stripedRightArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 50000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
@@ -6029,12 +6029,12 @@
                         var cnstVal3 = 84375 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -6080,19 +6080,19 @@
 
                         break;
                     case "notchedRightArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 50000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
                         var cnstVal2 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 }
                             }
@@ -6126,7 +6126,7 @@
 
                         break;
                     case "homePlate":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
@@ -6151,7 +6151,7 @@
 
                         break;
                     case "chevron":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
                         if (shapAdjst !== undefined) {
@@ -6178,7 +6178,7 @@
 
                         break;
                     case "rightArrowCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6188,18 +6188,18 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -6243,7 +6243,7 @@
 
                         break;
                     case "downArrowCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6253,18 +6253,18 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -6309,7 +6309,7 @@
 
                         break;
                     case "leftArrowCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6319,18 +6319,18 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -6375,7 +6375,7 @@
 
                         break;
                     case "upArrowCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6385,18 +6385,18 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -6441,7 +6441,7 @@
 
                         break;
                     case "leftRightArrowCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6451,18 +6451,18 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -6514,7 +6514,7 @@
 
                         break;
                     case "quadArrowCallout":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 18515 * slideFactor;
                         var sAdj2, adj2 = 18515 * slideFactor;
                         var sAdj3, adj3 = 18515 * slideFactor;
@@ -6524,18 +6524,18 @@
                         var cnstVal3 = 200000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = parseInt(sAdj4.substr(4)) * slideFactor;
                                 }
                             }
@@ -6609,7 +6609,7 @@
 
                         break;
                     case "curvedDownArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6617,15 +6617,15 @@
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -6698,7 +6698,7 @@
 
                         break;
                     case "curvedLeftArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6706,15 +6706,15 @@
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -6789,7 +6789,7 @@
 
                         break;
                     case "curvedRightArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6797,15 +6797,15 @@
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -6881,7 +6881,7 @@
 
                         break;
                     case "curvedUpArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
                         var sAdj3, adj3 = 25000 * slideFactor;
@@ -6889,15 +6889,15 @@
                         var cnstVal2 = 100000 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = parseInt(sAdj3.substr(4)) * slideFactor;
                                 }
                             }
@@ -6978,27 +6978,27 @@
                     case "mathMultiply":
                     case "mathNotEqual":
                     case "mathPlus":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1;
                         var sAdj2, adj2;
                         var sAdj3, adj3;
                         if (shapAdjst_ary !== undefined) {
                             if (shapAdjst_ary.constructor === Array) {
                                 for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                    var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                    var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
-                                        sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj1 = parseInt(sAdj1.substr(4));
                                     } else if (sAdj_name == "adj2") {
-                                        sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj2 = parseInt(sAdj2.substr(4));
                                     } else if (sAdj_name == "adj3") {
-                                        sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj3 = parseInt(sAdj3.substr(4));
                                     }
                                 }
                             } else {
-                                sAdj1 = getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
+                                sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
                                 adj1 = parseInt(sAdj1.substr(4));
                             }
                         }
@@ -7312,7 +7312,7 @@
                     case "can":
                     case "flowChartMagneticDisk":
                     case "flowChartMagneticDrum":
-                        var shapAdjst = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
                         var cnstVal2 = 200000 * slideFactor;
@@ -7346,18 +7346,18 @@
 
                         break;
                     case "swooshArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 25000 * refr;
                         var sAdj2, adj2 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = parseInt(sAdj2.substr(4)) * refr;
                                 }
                             }
@@ -7412,7 +7412,7 @@
 
                         break;
                     case "circularArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 12500 * slideFactor;
                         var sAdj2, adj2 = (1142319 / 60000) * Math.PI / 180;
                         var sAdj3, adj3 = (20457681 / 60000) * Math.PI / 180;
@@ -7420,21 +7420,21 @@
                         var sAdj5, adj5 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = (parseInt(sAdj2.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = (parseInt(sAdj3.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = (parseInt(sAdj4.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj5") {
-                                    sAdj5 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj5 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj5 = parseInt(sAdj5.substr(4)) * slideFactor;
                                 }
                             }
@@ -7673,7 +7673,7 @@
 
                         break;
                     case "leftCircularArrow":
-                        var shapAdjst_ary = getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 12500 * slideFactor;
                         var sAdj2, adj2 = (-1142319 / 60000) * Math.PI / 180;
                         var sAdj3, adj3 = (1142319 / 60000) * Math.PI / 180;
@@ -7681,21 +7681,21 @@
                         var sAdj5, adj5 = 12500 * slideFactor;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    sAdj1 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
                                 } else if (sAdj_name == "adj2") {
-                                    sAdj2 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj2 = (parseInt(sAdj2.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj3") {
-                                    sAdj3 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj3 = (parseInt(sAdj3.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj4") {
-                                    sAdj4 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj4 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj4 = (parseInt(sAdj4.substr(4)) / 60000) * Math.PI / 180;
                                 } else if (sAdj_name == "adj5") {
-                                    sAdj5 = getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                    sAdj5 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj5 = parseInt(sAdj5.substr(4)) * slideFactor;
                                 }
                             }
@@ -7969,9 +7969,9 @@
             } else if (custShapType !== undefined) {
                 //custGeom here - Amir ///////////////////////////////////////////////////////
                 //http://officeopenxml.com/drwSp-custGeom.php
-                var pathLstNode = getTextByPathList(custShapType, ["a:pathLst"]);
-                var pathNodes = getTextByPathList(pathLstNode, ["a:path"]);
-                //var pathNode = getTextByPathList(pathLstNode, ["a:path", "attrs"]);
+                var pathLstNode = PPTXXmlUtils.getTextByPathList(custShapType, ["a:pathLst"]);
+                var pathNodes = PPTXXmlUtils.getTextByPathList(pathLstNode, ["a:path"]);
+                //var pathNode = PPTXXmlUtils.getTextByPathList(pathLstNode, ["a:path", "attrs"]);
                 var maxX = parseInt(pathNodes["attrs"]["w"]);// * slideFactor;
                 var maxY = parseInt(pathNodes["attrs"]["h"]);// * slideFactor;
                 var cX = (1 / maxX) * w;
@@ -7981,13 +7981,13 @@
 
                 //console.log("custShapType : ", custShapType, ", pathLstNode: ", pathLstNode, ", node: ", node);//, ", y:", y, ", w:", w, ", h:", h);
 
-                var moveToNode = getTextByPathList(pathNodes, ["a:moveTo"]);
+                var moveToNode = PPTXXmlUtils.getTextByPathList(pathNodes, ["a:moveTo"]);
                 var total_shapes = moveToNode.length;
 
                 var lnToNodes = pathNodes["a:lnTo"]; //total a:pt : 1
                 var cubicBezToNodes = pathNodes["a:cubicBezTo"]; //total a:pt : 3
                 var arcToNodes = pathNodes["a:arcTo"]; //total a:pt : 0?1? ; attrs: ~4 ()
-                var closeNode = getTextByPathList(pathNodes, ["a:close"]); //total a:pt : 0
+                var closeNode = PPTXXmlUtils.getTextByPathList(pathNodes, ["a:close"]); //total a:pt : 0
                 //quadBezTo //total a:pt : 2 - TODO
                 //console.log("ia moveToNode array: ", Array.isArray(moveToNode))
                 if (!Array.isArray(moveToNode)) {
@@ -8079,7 +8079,7 @@
                         var swAng = arcToNodesAttrs["swAng"];
                         var shftX = 0;
                         var shftY = 0;
-                        var arcToPtNode = getTextByPathList(arcToNodes, ["a:pt", "attrs"]);
+                        var arcToPtNode = PPTXXmlUtils.getTextByPathList(arcToNodes, ["a:pt", "attrs"]);
                         if (arcToPtNode !== undefined) {
                             shftX = arcToPtNode["x"];
                             shftY = arcToPtNode["y"];
@@ -8456,20 +8456,20 @@
             var mimeType = "";
             var xfrmNode = node["p:spPr"]["a:xfrm"];
             if (xfrmNode === undefined) {
-                var idx = getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
-                var type = getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                var idx = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
+                var type = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "type"]);
                 if (idx !== undefined) {
-                    xfrmNode = getTextByPathList(warpObj["slideLayoutTables"], ["idxTable", idx, "p:spPr", "a:xfrm"]);
+                    xfrmNode = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"], ["idxTable", idx, "p:spPr", "a:xfrm"]);
                 }
             }
             ///////////////////////////////////////Amir//////////////////////////////
             var rotate = 0;
-            var rotateNode = getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
+            var rotateNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
             if (rotateNode !== undefined) {
                 rotate = angleToDegrees(rotateNode);
             }
             //video
-            var vdoNode = getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
+            var vdoNode = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
             var vdoRid, vdoFile, vdoFileExt, vdoMimeType, uInt8Array, blob, vdoBlob, mediaSupportFlag = false, isVdeoLink = false;
             var mediaProcess = settings.mediaProcess;
             if (vdoNode !== undefined & mediaProcess) {
@@ -8503,7 +8503,7 @@
                 }
             }
             //Audio
-            var audioNode = getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
+            var audioNode = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
             var audioRid, audioFile, audioFileExt, audioMimeType, uInt8ArrayAudio, blobAudio, audioBlob;
             var audioPlayerFlag = false;
             var audioObjc;
@@ -8581,7 +8581,7 @@
         function processGraphicFrameNode(node, warpObj, source, sType) {
 
             var result = "";
-            var graphicTypeUri = getTextByPathList(node, ["a:graphic", "a:graphicData", "attrs", "uri"]);
+            var graphicTypeUri = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "attrs", "uri"]);
 
             switch (graphicTypeUri) {
                 case "http://schemas.openxmlformats.org/drawingml/2006/table":
@@ -8595,10 +8595,10 @@
                     break;
                 case "http://schemas.openxmlformats.org/presentationml/2006/ole":
                     //result = genDiagram(node, warpObj, source, sType);
-                    var oleObjNode = getTextByPathList(node, ["a:graphic", "a:graphicData", "mc:AlternateContent", "mc:Fallback","p:oleObj"]);
+                    var oleObjNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "mc:AlternateContent", "mc:Fallback","p:oleObj"]);
                     
                     if (oleObjNode === undefined) {
-                        oleObjNode = getTextByPathList(node, ["a:graphic", "a:graphicData", "p:oleObj"]);
+                        oleObjNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "p:oleObj"]);
                     }
                     //console.log("node:", node, "oleObjNode:", oleObjNode)
                     if (oleObjNode !== undefined){
@@ -8643,8 +8643,8 @@
             //rtl : <p:txBody>
             //          <a:bodyPr wrap="square" rtlCol="1">
 
-            var pFontStyle = getTextByPathList(spNode, ["p:style", "a:fontRef"]);
-            //console.log("genTextBody spNode: ", getTextByPathList(spNode,["p:spPr","a:xfrm","a:ext"]));
+            var pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
+            //console.log("genTextBody spNode: ", PPTXXmlUtils.getTextByPathList(spNode,["p:spPr","a:xfrm","a:ext"]));
 
             //var lstStyle = textBodyNode["a:lstStyle"];
             
@@ -8705,8 +8705,8 @@
                     };
                 }
                 //console.log("textBodyNode: ", textBodyNode["a:lstStyle"])
-                var prg_width_node = getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
-                var prg_height_node;// = getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
+                var prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
+                var prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
                 var sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * slideFactor) + "px;") : "width:inherit;");
                 var sld_prg_height = ((prg_height_node !== undefined) ? ("height:" + (parseInt(prg_height_node) * slideFactor) + "px;") : "");
                 var prg_dir = getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
@@ -8779,11 +8779,11 @@
             var sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
             var lstStyle = textBodyNode["a:lstStyle"];
 
-            var rNode = getTextByPathList(node, ["a:r"]);
+            var rNode = PPTXXmlUtils.getTextByPathList(node, ["a:r"]);
             if (rNode !== undefined && rNode.constructor === Array) {
                 rNode = rNode[0]; //bullet only to first "a:r"
             }
-            var lvl = parseInt(getTextByPathList(node["a:pPr"], ["attrs", "lvl"])) + 1;
+            var lvl = parseInt (PPTXXmlUtils.getTextByPathList(node["a:pPr"], ["attrs", "lvl"])) + 1;
             if (isNaN(lvl)) {
                 lvl = 1;
             }
@@ -8804,7 +8804,7 @@
 
 
             var pPrNode = node["a:pPr"];
-            var BullNONE = getTextByPathList(pPrNode, ["a:buNone"]);
+            var BullNONE = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buNone"]);
             if (BullNONE !== undefined) {
                 return "";
             }
@@ -8815,9 +8815,9 @@
             var pPrNodeLaout = layoutMasterNode.nodeLaout;
             var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
-            var buChar = getTextByPathList(pPrNode, ["a:buChar", "attrs", "char"]);
-            var buNum = getTextByPathList(pPrNode, ["a:buAutoNum", "attrs", "type"]);
-            var buPic = getTextByPathList(pPrNode, ["a:buBlip"]);
+            var buChar = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buChar", "attrs", "char"]);
+            var buNum = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buAutoNum", "attrs", "type"]);
+            var buPic = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buBlip"]);
             if (buChar !== undefined) {
                 buType = "TYPE_BULLET";
             }
@@ -8828,9 +8828,9 @@
                 buType = "TYPE_BULPIC";
             }
 
-            var buFontSize = getTextByPathList(pPrNode, ["a:buSzPts", "attrs", "val"]);
+            var buFontSize = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buSzPts", "attrs", "val"]);
             if (buFontSize === undefined) {
-                buFontSize = getTextByPathList(pPrNode, ["a:buSzPct", "attrs", "val"]);
+                buFontSize = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buSzPct", "attrs", "val"]);
                 if (buFontSize !== undefined) {
                     var prcnt = parseInt(buFontSize) / 100000;
                     //dfltBultSize = XXpt
@@ -8843,20 +8843,20 @@
             }
 
             //get definde bullet COLOR
-            var buClrNode = getTextByPathList(pPrNode, ["a:buClr"]);
+            var buClrNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buClr"]);
 
 
             if (buChar === undefined && buNum === undefined && buPic === undefined) {
 
                 if (lstStyle !== undefined) {
-                    BullNONE = getTextByPathList(lstStyle, [lvlStr,"a:buNone"]);
+                    BullNONE = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr,"a:buNone"]);
                     if (BullNONE !== undefined) {
                         return "";
                     }
                     buType = "TYPE_NONE";
-                    buChar = getTextByPathList(lstStyle, [lvlStr,"a:buChar", "attrs", "char"]);
-                    buNum = getTextByPathList(lstStyle, [lvlStr,"a:buAutoNum", "attrs", "type"]);
-                    buPic = getTextByPathList(lstStyle, [lvlStr,"a:buBlip"]);
+                    buChar = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr,"a:buChar", "attrs", "char"]);
+                    buNum = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr,"a:buAutoNum", "attrs", "type"]);
+                    buPic = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr,"a:buBlip"]);
                     if (buChar !== undefined) {
                         buType = "TYPE_BULLET";
                     }
@@ -8874,14 +8874,14 @@
             if (buChar === undefined && buNum === undefined && buPic === undefined) {
                 //check in slidelayout and masterlayout - TODO
                 if (pPrNodeLaout !== undefined) {
-                    BullNONE = getTextByPathList(pPrNodeLaout, ["a:buNone"]);
+                    BullNONE = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buNone"]);
                     if (BullNONE !== undefined) {
                         return "";
                     }
                     buType = "TYPE_NONE";
-                    buChar = getTextByPathList(pPrNodeLaout, ["a:buChar", "attrs", "char"]);
-                    buNum = getTextByPathList(pPrNodeLaout, ["a:buAutoNum", "attrs", "type"]);
-                    buPic = getTextByPathList(pPrNodeLaout, ["a:buBlip"]);
+                    buChar = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buChar", "attrs", "char"]);
+                    buNum = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buAutoNum", "attrs", "type"]);
+                    buPic = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buBlip"]);
                     if (buChar !== undefined) {
                         buType = "TYPE_BULLET";
                     }
@@ -8896,14 +8896,14 @@
                     //masterlayout
 
                     if (pPrNodeMaster !== undefined) {
-                        BullNONE = getTextByPathList(pPrNodeMaster, ["a:buNone"]);
+                        BullNONE = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buNone"]);
                         if (BullNONE !== undefined) {
                             return "";
                         }
                         buType = "TYPE_NONE";
-                        buChar = getTextByPathList(pPrNodeMaster, ["a:buChar", "attrs", "char"]);
-                        buNum = getTextByPathList(pPrNodeMaster, ["a:buAutoNum", "attrs", "type"]);
-                        buPic = getTextByPathList(pPrNodeMaster, ["a:buBlip"]);
+                        buChar = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buChar", "attrs", "char"]);
+                        buNum = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buAutoNum", "attrs", "type"]);
+                        buPic = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buBlip"]);
                         if (buChar !== undefined) {
                             buType = "TYPE_BULLET";
                         }
@@ -8919,11 +8919,11 @@
 
             }
             //rtl
-            var getRtlVal = getTextByPathList(pPrNode, ["attrs", "rtl"]);
+            var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
-                getRtlVal = getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
+                getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (getRtlVal === undefined && type != "shape") {
-                    getRtlVal = getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
+                    getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
                 }
             }
             var isRTL = false;
@@ -8931,19 +8931,19 @@
                 isRTL = true;
             }
             //align
-            var alignNode = getTextByPathList(pPrNode, ["attrs", "algn"]); //"l" | "ctr" | "r" | "just" | "justLow" | "dist" | "thaiDist
+            var alignNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "algn"]); //"l" | "ctr" | "r" | "just" | "justLow" | "dist" | "thaiDist
             if (alignNode === undefined) {
-                alignNode = getTextByPathList(pPrNodeLaout, ["attrs", "algn"]);
+                alignNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "algn"]);
                 if (alignNode === undefined) {
-                    alignNode = getTextByPathList(pPrNodeMaster, ["attrs", "algn"]);
+                    alignNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "algn"]);
                 }
             }
             //indent?
-            var indentNode = getTextByPathList(pPrNode, ["attrs", "indent"]);
+            var indentNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "indent"]);
             if (indentNode === undefined) {
-                indentNode = getTextByPathList(pPrNodeLaout, ["attrs", "indent"]);
+                indentNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "indent"]);
                 if (indentNode === undefined) {
-                    indentNode = getTextByPathList(pPrNodeMaster, ["attrs", "indent"]);
+                    indentNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "indent"]);
                 }
             }
             var indent = 0;
@@ -8951,11 +8951,11 @@
                 indent = parseInt(indentNode) * slideFactor;
             }
             //marL
-            var marLNode = getTextByPathList(pPrNode, ["attrs", "marL"]);
+            var marLNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"]);
             if (marLNode === undefined) {
-                marLNode = getTextByPathList(pPrNodeLaout, ["attrs", "marL"]);
+                marLNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "marL"]);
                 if (marLNode === undefined) {
-                    marLNode = getTextByPathList(pPrNodeMaster, ["attrs", "marL"]);
+                    marLNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "marL"]);
                 }
             }
             //console.log("genBuChar() isRTL", isRTL, "alignNode:", alignNode)
@@ -8971,12 +8971,12 @@
             }
             
             //marR?
-            var marRNode = getTextByPathList(pPrNode, ["attrs", "marR"]);
+            var marRNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"]);
             if (marRNode === undefined && marLNode === undefined) {
                 //need to check if this posble - TODO
-                marRNode = getTextByPathList(pPrNodeLaout, ["attrs", "marR"]);
+                marRNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "marR"]);
                 if (marRNode === undefined) {
-                    marRNode = getTextByPathList(pPrNodeMaster, ["attrs", "marR"]);
+                    marRNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "marR"]);
                 }
             }
             if (marRNode !== undefined) {
@@ -8990,7 +8990,7 @@
             }
 
             if (buType != "TYPE_NONE") {
-                //var buFontAttrs = getTextByPathList(pPrNode, ["a:buFont", "attrs"]);
+                //var buFontAttrs = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs"]);
             }
             //console.log("Bullet Type: " + buType);
             //console.log("NumericTypr: " + buNum);
@@ -8998,12 +8998,12 @@
             //get definde bullet COLOR
             if (buClrNode === undefined){
                 //lstStyle
-                buClrNode = getTextByPathList(lstStyle, [lvlStr, "a:buClr"]);
+                buClrNode = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr, "a:buClr"]);
             }
             if (buClrNode === undefined) {
-                buClrNode = getTextByPathList(pPrNodeLaout, ["a:buClr"]);
+                buClrNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buClr"]);
                 if (buClrNode === undefined) {
-                    buClrNode = getTextByPathList(pPrNodeMaster, ["a:buClr"]);
+                    buClrNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buClr"]);
                 }
             }
             var defBultColor;
@@ -9026,9 +9026,9 @@
             //console.log("genBuChar: buClrNode: ", buClrNode, "bultColor", bultColor)
             //get definde bullet SIZE
             if (buFontSize === undefined) {
-                buFontSize = getTextByPathList(pPrNodeLaout, ["a:buSzPts", "attrs", "val"]);
+                buFontSize = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buSzPts", "attrs", "val"]);
                 if (buFontSize === undefined) {
-                    buFontSize = getTextByPathList(pPrNodeLaout, ["a:buSzPct", "attrs", "val"]);
+                    buFontSize = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buSzPct", "attrs", "val"]);
                     if (buFontSize !== undefined) {
                         var prcnt = parseInt(buFontSize) / 100000;
                         //var dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
@@ -9040,9 +9040,9 @@
                 }
             }
             if (buFontSize === undefined) {
-                buFontSize = getTextByPathList(pPrNodeMaster, ["a:buSzPts", "attrs", "val"]);
+                buFontSize = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buSzPts", "attrs", "val"]);
                 if (buFontSize === undefined) {
-                    buFontSize = getTextByPathList(pPrNodeMaster, ["a:buSzPct", "attrs", "val"]);
+                    buFontSize = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buSzPct", "attrs", "val"]);
                     if (buFontSize !== undefined) {
                         var prcnt = parseInt(buFontSize) / 100000;
                         //dfltBultSize = XXpt
@@ -9060,13 +9060,13 @@
             font_val = parseInt(bultSize, "px");
             ////////////////////////////////////////////////////////////////////////
             if (buType == "TYPE_BULLET") {
-                var typefaceNode = getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
+                var typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
                 var typeface = "";
                 if (typefaceNode !== undefined) {
                     typeface = "font-family: " + typefaceNode;
                 }
-                // var marginLeft = parseInt(getTextByPathList(marLNode)) * slideFactor;
-                // var marginRight = parseInt(getTextByPathList(marRNode)) * slideFactor;
+                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * slideFactor;
+                // var marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * slideFactor;
                 // if (isNaN(marginLeft)) {
                 //     marginLeft = 328600 * slideFactor;
                 // }
@@ -9161,7 +9161,7 @@
                 // }
             } else if (buType == "TYPE_NUMERIC") { ///////////Amir///////////////////////////////
                 //if (buFontAttrs !== undefined) {
-                // var marginLeft = parseInt(getTextByPathList(pPrNode, ["attrs", "marL"])) * slideFactor;
+                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * slideFactor;
                 // var marginRight = parseInt(buFontAttrs["pitchFamily"]);
 
                 // if (isNaN(marginLeft)) {
@@ -9194,8 +9194,8 @@
                 // }
 
             } else if (buType == "TYPE_BULPIC") { //PIC BULLET
-                // var marginLeft = parseInt(getTextByPathList(pPrNode, ["attrs", "marL"])) * slideFactor;
-                // var marginRight = parseInt(getTextByPathList(pPrNode, ["attrs", "marR"])) * slideFactor;
+                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * slideFactor;
+                // var marginRight = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"])) * slideFactor;
 
                 // if (isNaN(marginRight)) {
                 //     marginRight = 0;
@@ -9207,15 +9207,15 @@
                 // } else {
                 //     marginLeft = 0;
                 // }
-                //var buPicId = getTextByPathList(buPic, ["a:blip","a:extLst","a:ext","asvg:svgBlip" , "attrs", "r:embed"]);
-                var buPicId = getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
+                //var buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip","a:extLst","a:ext","asvg:svgBlip" , "attrs", "r:embed"]);
+                var buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
                 var svgPicPath = "";
                 var buImg;
                 if (buPicId !== undefined) {
                     //svgPicPath = warpObj["slideResObj"][buPicId]["target"];
                     //buImg = warpObj["zip"].file(svgPicPath).asText();
                     //}else{
-                    //buPicId = getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
+                    //buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
                     var imgPath = (warpObj["slideResObj"][buPicId] !== undefined) ? warpObj["slideResObj"][buPicId]["target"] : undefined;
                     //console.log("imgPath: ", imgPath);
                     if (imgPath === undefined) {
@@ -9308,17 +9308,17 @@
             var pPrNode = node["a:pPr"];
             //lvl
             var lvl = 1;
-            var lvlNode = getTextByPathList(pPrNode, ["attrs", "lvl"]);
+            var lvlNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
             if (lvlNode !== undefined) {
                 lvl = parseInt(lvlNode) + 1;
             }
             if (idx !== undefined) {
                 //slidelayout
-                pPrNodeLaout = getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", "a:lvl" + lvl + "pPr"]);
+                pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", "a:lvl" + lvl + "pPr"]);
                 if (pPrNodeLaout === undefined) {
-                    pPrNodeLaout = getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", "a:pPr"]);
+                    pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", "a:pPr"]);
                     if (pPrNodeLaout === undefined) {
-                        pPrNodeLaout = getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", (lvl - 1), "a:pPr"]);
+                        pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", (lvl - 1), "a:pPr"]);
                     }
                 }
             }
@@ -9326,19 +9326,19 @@
                 //slidelayout
                 var lvlStr = "a:lvl" + lvl + "pPr";
                 if (pPrNodeLaout === undefined) {
-                    pPrNodeLaout = getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
+                    pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
                 }
                 //masterlayout
                 if (type == "title" || type == "ctrTitle") {
-                    pPrNodeMaster = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:titleStyle", lvlStr]);
+                    pPrNodeMaster = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:titleStyle", lvlStr]);
                 } else if (type == "body" || type == "obj" || type == "subTitle") {
-                    pPrNodeMaster = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr]);
+                    pPrNodeMaster = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr]);
                 } else if (type == "shape" || type == "diagram") {
-                    pPrNodeMaster = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:otherStyle", lvlStr]);
+                    pPrNodeMaster = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:otherStyle", lvlStr]);
                 } else if (type == "textBox") {
-                    pPrNodeMaster = getTextByPathList(warpObj, ["defaultTextStyle", lvlStr]);
+                    pPrNodeMaster = PPTXXmlUtils.getTextByPathList(warpObj, ["defaultTextStyle", lvlStr]);
                 } else {
-                    pPrNodeMaster = getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
+                    pPrNodeMaster = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
                 }
             }
             return {
@@ -9379,7 +9379,7 @@
                 is_first_br = true;
             }
             if (typeof text !== 'string') {
-                text = getTextByPathList(node, ["a:fld", "a:t"]);
+                text = PPTXXmlUtils.getTextByPathList(node, ["a:fld", "a:t"]);
                 if (typeof text !== 'string') {
                     text = "&nbsp;";
                     //return "<span class='text-block '>&nbsp;</span>";
@@ -9392,7 +9392,7 @@
             var pPrNode = pNode["a:pPr"];
             //lvl
             var lvl = 1;
-            var lvlNode = getTextByPathList(pPrNode, ["attrs", "lvl"]);
+            var lvlNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
             if (lvlNode !== undefined) {
                 lvl = parseInt(lvlNode) + 1;
             }
@@ -9402,14 +9402,14 @@
             var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
             //Language
-            var lang = getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
+            var lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
             var isRtlLan = (lang !== undefined && rtl_langs_array.indexOf(lang) !== -1)?true:false;
             //rtl
-            var getRtlVal = getTextByPathList(pPrNode, ["attrs", "rtl"]);
+            var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
-                getRtlVal = getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
+                getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (getRtlVal === undefined && type != "shape") {
-                    getRtlVal = getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
+                    getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
                 }
             }
             var isRTL = false;
@@ -9419,17 +9419,17 @@
                 dirStr = "rtl";
             }
 
-            var linkID = getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "r:id"]);
+            var linkID = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "r:id"]);
             var linkTooltip = "";
             var defLinkClr;
             if (linkID !== undefined) {
-                linkTooltip = getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "tooltip"]);
+                linkTooltip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "tooltip"]);
                 if (linkTooltip !== undefined) {
                     linkTooltip = "title='" + linkTooltip + "'";
                 }
                 defLinkClr = getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
 
-                var linkClrNode = getTextByPathList(node, ["a:rPr", "a:solidFill"]);// getTextByPathList(node, ["a:rPr", "a:solidFill"]);
+                var linkClrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
                 var rPrlinkClr = getSolidFill(linkClrNode, undefined, undefined, warpObj);
 
 
@@ -9552,18 +9552,18 @@
             //if (rNodeLength == 1 || rIndex == 0 ){
             //styleText += "display: table-cell;white-space: nowrap;";
             //}
-            var highlight = getTextByPathList(node, ["a:rPr", "a:highlight"]);
+            var highlight = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:highlight"]);
             if (highlight !== undefined) {
                 styleText += "background-color:#" + getSolidFill(highlight, undefined, undefined, warpObj) + ";";
                 //styleText += "Opacity:" + getColorOpacity(highlight) + ";";
             }
 
             //letter-spacing:
-            var spcNode = getTextByPathList(node, ["a:rPr", "attrs", "spc"]);
+            var spcNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "spc"]);
             if (spcNode === undefined) {
-                spcNode = getTextByPathList(pPrNodeLaout, ["a:defRPr", "attrs", "spc"]);
+                spcNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "attrs", "spc"]);
                 if (spcNode === undefined) {
-                    spcNode = getTextByPathList(pPrNodeMaster, ["a:defRPr", "attrs", "spc"]);
+                    spcNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "attrs", "spc"]);
                 }
             }
             if (spcNode !== undefined) {
@@ -9572,11 +9572,11 @@
             }
 
             //Text Cap Types
-            var capNode = getTextByPathList(node, ["a:rPr", "attrs", "cap"]);
+            var capNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "cap"]);
             if (capNode === undefined) {
-                capNode = getTextByPathList(pPrNodeLaout, ["a:defRPr", "attrs", "cap"]);
+                capNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "attrs", "cap"]);
                 if (capNode === undefined) {
-                    capNode = getTextByPathList(pPrNodeMaster, ["a:defRPr", "attrs", "cap"]);
+                    capNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "attrs", "cap"]);
                 }
             }
             if (capNode == "small" || capNode == "all") {
@@ -9622,14 +9622,14 @@
             var pPrNodeLaout = layoutMasterNode.nodeLaout;
             var pPrNodeMaster = layoutMasterNode.nodeMaster;
             
-            // var lang = getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
+            // var lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
             // var isRtlLan = (lang !== undefined && rtl_langs_array.indexOf(lang) !== -1) ? true : false;
             //rtl
-            var getRtlVal = getTextByPathList(pPrNode, ["attrs", "rtl"]);
+            var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
-                getRtlVal = getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
+                getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (getRtlVal === undefined && type != "shape") {
-                    getRtlVal = getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
+                    getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
                 }
             }
             var isRTL = false;
@@ -9640,19 +9640,19 @@
             }
 
             //align
-            var alignNode = getTextByPathList(pPrNode, ["attrs", "algn"]); //"l" | "ctr" | "r" | "just" | "justLow" | "dist" | "thaiDist
+            var alignNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "algn"]); //"l" | "ctr" | "r" | "just" | "justLow" | "dist" | "thaiDist
             if (alignNode === undefined) {
-                alignNode = getTextByPathList(pPrNodeLaout, ["attrs", "algn"]);
+                alignNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "algn"]);
                 if (alignNode === undefined) {
-                    alignNode = getTextByPathList(pPrNodeMaster, ["attrs", "algn"]);
+                    alignNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "algn"]);
                 }
             }
             //indent?
-            var indentNode = getTextByPathList(pPrNode, ["attrs", "indent"]);
+            var indentNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "indent"]);
             if (indentNode === undefined) {
-                indentNode = getTextByPathList(pPrNodeLaout, ["attrs", "indent"]);
+                indentNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "indent"]);
                 if (indentNode === undefined) {
-                    indentNode = getTextByPathList(pPrNodeMaster, ["attrs", "indent"]);
+                    indentNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "indent"]);
                 }
             }
             var indent = 0;
@@ -9661,11 +9661,11 @@
             }
             //
             //marL
-            var marLNode = getTextByPathList(pPrNode, ["attrs", "marL"]);
+            var marLNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"]);
             if (marLNode === undefined) {
-                marLNode = getTextByPathList(pPrNodeLaout, ["attrs", "marL"]);
+                marLNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "marL"]);
                 if (marLNode === undefined) {
-                    marLNode = getTextByPathList(pPrNodeMaster, ["attrs", "marL"]);
+                    marLNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "marL"]);
                 }
             }
             var marginLeft = 0;
@@ -9692,12 +9692,12 @@
             }
 
             //marR?
-            var marRNode = getTextByPathList(pPrNode, ["attrs", "marR"]);
+            var marRNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"]);
             if (marRNode === undefined && marLNode === undefined) {
                 //need to check if this posble - TODO
-                marRNode = getTextByPathList(pPrNodeLaout, ["attrs", "marR"]);
+                marRNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "marR"]);
                 if (marRNode === undefined) {
-                    marRNode = getTextByPathList(pPrNodeMaster, ["attrs", "marR"]);
+                    marRNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "marR"]);
                 }
             }
             if (marRNode !== undefined && isBullate) {
@@ -9743,11 +9743,11 @@
 
         function genTable(node, warpObj) {
             var order = node["attrs"]["order"];
-            var tableNode = getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
-            var xfrmNode = getTextByPathList(node, ["p:xfrm"]);
+            var tableNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
+            var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
             /////////////////////////////////////////Amir////////////////////////////////////////////////
-            var getTblPr = getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblPr"]);
-            var getColsGrid = getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblGrid", "a:gridCol"]);
+            var getTblPr = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblPr"]);
+            var getColsGrid = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblGrid", "a:gridCol"]);
             var tblDir = "";
             if (getTblPr !== undefined) {
                 var isRTL = getTblPr["attrs"]["rtl"];
@@ -9791,21 +9791,21 @@
                 thisTblStyle["tblStylAttrObj"] = tblStylAttrObj;
                 warpObj["thisTbiStyle"] = thisTblStyle;
             }
-            var tblStyl = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle"]);
-            var tblBorderStyl = getTextByPathList(tblStyl, ["a:tcBdr"]);
+            var tblStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle"]);
+            var tblBorderStyl = PPTXXmlUtils.getTextByPathList(tblStyl, ["a:tcBdr"]);
             var tbl_borders = "";
             if (tblBorderStyl !== undefined) {
                 tbl_borders = getTableBorders(tblBorderStyl, warpObj);
             }
             var tbl_bgcolor = "";
             var tbl_opacity = 1;
-            var tbl_bgFillschemeClr = getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
+            var tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
             //console.log( "thisTblStyle:", thisTblStyle, "warpObj:", warpObj)
             if (tbl_bgFillschemeClr !== undefined) {
                 tbl_bgcolor = getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
             }
             if (tbl_bgFillschemeClr === undefined) {
-                tbl_bgFillschemeClr = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
+                tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
                 tbl_bgcolor = getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
             }
             if (tbl_bgcolor !== "") {
@@ -9844,21 +9844,21 @@
                     var band_2H_fillColor;
 
                     if (thisTblStyle !== undefined && thisTblStyle["a:wholeTbl"] !== undefined) {
-                        var bgFillschemeClr = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
                         if (bgFillschemeClr !== undefined) {
                             var local_fillColor = getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                             if (local_fillColor !== undefined) {
                                 fillColor = local_fillColor;
                             }
                         }
-                        var rowTxtStyl = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
+                        var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
                         if (rowTxtStyl !== undefined) {
                             var local_fontColor = getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                             if (local_fontColor !== undefined) {
                                 fontClrPr = local_fontColor;
                             }
 
-                            var local_fontWeight = ((getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                             if (local_fontWeight != "") {
                                 fontWeight = local_fontWeight
                             }
@@ -9867,27 +9867,27 @@
 
                     if (i == 0 && tblStylAttrObj["isFrstRowAttr"] == 1 && thisTblStyle !== undefined) {
 
-                        var bgFillschemeClr = getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:fill", "a:solidFill"]);
                         if (bgFillschemeClr !== undefined) {
                             var local_fillColor = getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                             if (local_fillColor !== undefined) {
                                 fillColor = local_fillColor;
                             }
                         }
-                        var borderStyl = getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:tcBdr"]);
+                        var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:tcBdr"]);
                         if (borderStyl !== undefined) {
                             var local_row_borders = getTableBorders(borderStyl, warpObj);
                             if (local_row_borders != "") {
                                 row_borders = local_row_borders;
                             }
                         }
-                        var rowTxtStyl = getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcTxStyle"]);
+                        var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcTxStyle"]);
                         if (rowTxtStyl !== undefined) {
                             var local_fontClrPr = getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                             if (local_fontClrPr !== undefined) {
                                 fontClrPr = local_fontClrPr;
                             }
-                            var local_fontWeight = ((getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                             if (local_fontWeight !== "") {
                                 fontWeight = local_fontWeight;
                             }
@@ -9899,7 +9899,7 @@
                         if ((i % 2) == 0 && thisTblStyle["a:band2H"] !== undefined) {
                             // console.log("i: ", i, 'thisTblStyle["a:band2H"]:', thisTblStyle["a:band2H"])
                             //check if there is a row bg
-                            var bgFillschemeClr = getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:fill", "a:solidFill"]);
+                            var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:fill", "a:solidFill"]);
                             if (bgFillschemeClr !== undefined) {
                                 var local_fillColor = getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                                 if (local_fillColor !== "") {
@@ -9909,14 +9909,14 @@
                             }
 
 
-                            var borderStyl = getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:tcBdr"]);
+                            var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:tcBdr"]);
                             if (borderStyl !== undefined) {
                                 var local_row_borders = getTableBorders(borderStyl, warpObj);
                                 if (local_row_borders != "") {
                                     row_borders = local_row_borders;
                                 }
                             }
-                            var rowTxtStyl = getTextByPathList(thisTblStyle, ["a:band2H", "a:tcTxStyle"]);
+                            var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcTxStyle"]);
                             if (rowTxtStyl !== undefined) {
                                 var local_fontClrPr = getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                                 if (local_fontClrPr !== undefined) {
@@ -9924,14 +9924,14 @@
                                 }
                             }
 
-                            var local_fontWeight = ((getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
 
                             if (local_fontWeight !== "") {
                                 fontWeight = local_fontWeight;
                             }
                         }
                         if ((i % 2) != 0 && thisTblStyle["a:band1H"] !== undefined) {
-                            var bgFillschemeClr = getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:fill", "a:solidFill"]);
+                            var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:fill", "a:solidFill"]);
                             if (bgFillschemeClr !== undefined) {
                                 var local_fillColor = getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                                 if (local_fillColor !== undefined) {
@@ -9939,20 +9939,20 @@
                                     band_1H_fillColor = local_fillColor;
                                 }
                             }
-                            var borderStyl = getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:tcBdr"]);
+                            var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:tcBdr"]);
                             if (borderStyl !== undefined) {
                                 var local_row_borders = getTableBorders(borderStyl, warpObj);
                                 if (local_row_borders != "") {
                                     row_borders = local_row_borders;
                                 }
                             }
-                            var rowTxtStyl = getTextByPathList(thisTblStyle, ["a:band1H", "a:tcTxStyle"]);
+                            var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcTxStyle"]);
                             if (rowTxtStyl !== undefined) {
                                 var local_fontClrPr = getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                                 if (local_fontClrPr !== undefined) {
                                     fontClrPr = local_fontClrPr;
                                 }
-                                var local_fontWeight = ((getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                                var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                                 if (local_fontWeight != "") {
                                     fontWeight = local_fontWeight;
                                 }
@@ -9962,7 +9962,7 @@
                     }
                     //last row
                     if (i == (trNodes.length - 1) && tblStylAttrObj["isLstRowAttr"] == 1 && thisTblStyle !== undefined) {
-                        var bgFillschemeClr = getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:fill", "a:solidFill"]);
                         if (bgFillschemeClr !== undefined) {
                             var local_fillColor = getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                             if (local_fillColor !== undefined) {
@@ -9973,21 +9973,21 @@
                             //     colorOpacity = local_colorOpacity;
                             // }
                         }
-                        var borderStyl = getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:tcBdr"]);
+                        var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:tcBdr"]);
                         if (borderStyl !== undefined) {
                             var local_row_borders = getTableBorders(borderStyl, warpObj);
                             if (local_row_borders != "") {
                                 row_borders = local_row_borders;
                             }
                         }
-                        var rowTxtStyl = getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcTxStyle"]);
+                        var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcTxStyle"]);
                         if (rowTxtStyl !== undefined) {
                             var local_fontClrPr = getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                             if (local_fontClrPr !== undefined) {
                                 fontClrPr = local_fontClrPr;
                             }
 
-                            var local_fontWeight = ((getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                             if (local_fontWeight !== "") {
                                 fontWeight = local_fontWeight;
                             }
@@ -10019,10 +10019,10 @@
                                     if (j == 0 && tblStylAttrObj["isFrstColAttr"] == 1) {
                                         a_sorce = "a:firstCol";
                                         if (tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1) &&
-                                            getTextByPathList(thisTblStyle, ["a:seCell"]) !== undefined) {
+                                            PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:seCell"]) !== undefined) {
                                             a_sorce = "a:seCell";
                                         } else if (tblStylAttrObj["isFrstRowAttr"] == 1 && i == 0 &&
-                                            getTextByPathList(thisTblStyle, ["a:neCell"]) !== undefined) {
+                                            PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:neCell"]) !== undefined) {
                                             a_sorce = "a:neCell";
                                         }
                                     } else if ((j > 0 && tblStylAttrObj["isBandColAttr"] == 1) &&
@@ -10032,9 +10032,9 @@
 
                                         if ((j % 2) != 0) {
 
-                                            var aBandNode = getTextByPathList(thisTblStyle, ["a:band2V"]);
+                                            var aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
                                             if (aBandNode === undefined) {
-                                                aBandNode = getTextByPathList(thisTblStyle, ["a:band1V"]);
+                                                aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1V"]);
                                                 if (aBandNode !== undefined) {
                                                     a_sorce = "a:band2V";
                                                 }
@@ -10047,9 +10047,9 @@
 
                                     if (j == (tcNodes.length - 1) && tblStylAttrObj["isLstColAttr"] == 1) {
                                         a_sorce = "a:lastCol";
-                                        if (tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1) && getTextByPathList(thisTblStyle, ["a:swCell"]) !== undefined) {
+                                        if (tblStylAttrObj["isLstRowAttr"] == 1 && i == (trNodes.length - 1) && PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:swCell"]) !== undefined) {
                                             a_sorce = "a:swCell";
-                                        } else if (tblStylAttrObj["isFrstRowAttr"] == 1 && i == 0 && getTextByPathList(thisTblStyle, ["a:nwCell"]) !== undefined) {
+                                        } else if (tblStylAttrObj["isFrstRowAttr"] == 1 && i == 0 && PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:nwCell"]) !== undefined) {
                                             a_sorce = "a:nwCell";
                                         }
                                     }
@@ -10095,9 +10095,9 @@
 
                             } else if ((tblStylAttrObj["isBandColAttr"] == 1) && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
 
-                                var aBandNode = getTextByPathList(thisTblStyle, ["a:band2V"]);
+                                var aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
                                 if (aBandNode === undefined) {
-                                    aBandNode = getTextByPathList(thisTblStyle, ["a:band1V"]);
+                                    aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1V"]);
                                     if (aBandNode !== undefined) {
                                         a_sorce = "a:band2V";
                                     }
@@ -10136,10 +10136,10 @@
             //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
             //text, cell-width, cell-borders, 
             //var text = genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
-            var rowSpan = getTextByPathList(tcNodes, ["attrs", "rowSpan"]);
-            var colSpan = getTextByPathList(tcNodes, ["attrs", "gridSpan"]);
-            var vMerge = getTextByPathList(tcNodes, ["attrs", "vMerge"]);
-            var hMerge = getTextByPathList(tcNodes, ["attrs", "hMerge"]);
+            var rowSpan = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "rowSpan"]);
+            var colSpan = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "gridSpan"]);
+            var vMerge = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "vMerge"]);
+            var hMerge = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "hMerge"]);
             var colStyl = "word-wrap: break-word;";
             var colWidth;
             var celFillColor = "";
@@ -10157,10 +10157,10 @@
             var total_col_width = 0;
             if (!isNaN(colSapnInt) && colSapnInt > 1){
                 for (var k = 0; k < colSapnInt ; k++) {
-                    total_col_width += parseInt(getTextByPathList(getColsGrid[col_idx + k], ["attrs", "w"]));
+                    total_col_width += parseInt (PPTXXmlUtils.getTextByPathList(getColsGrid[col_idx + k], ["attrs", "w"]));
                 }
             }else{
-                total_col_width = getTextByPathList((col_idx === undefined) ? getColsGrid : getColsGrid[col_idx], ["attrs", "w"]);
+                total_col_width = PPTXXmlUtils.getTextByPathList((col_idx === undefined) ? getColsGrid : getColsGrid[col_idx], ["attrs", "w"]);
             }
             
 
@@ -10172,40 +10172,40 @@
             }
 
             //cell bords
-            lin_bottm = getTextByPathList(tcNodes, ["a:tcPr", "a:lnB"]);
+            lin_bottm = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnB"]);
             if (lin_bottm === undefined && cellSource !== undefined) {
                 if (cellSource !== undefined)
-                    lin_bottm = getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
+                    lin_bottm = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
                 if (lin_bottm === undefined) {
-                    lin_bottm = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
+                    lin_bottm = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
                 }
             }
-            lin_top = getTextByPathList(tcNodes, ["a:tcPr", "a:lnT"]);
+            lin_top = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnT"]);
             if (lin_top === undefined) {
                 if (cellSource !== undefined)
-                    lin_top = getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
+                    lin_top = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
                 if (lin_top === undefined) {
-                    lin_top = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
+                    lin_top = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
                 }
             }
-            lin_left = getTextByPathList(tcNodes, ["a:tcPr", "a:lnL"]);
+            lin_left = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnL"]);
             if (lin_left === undefined) {
                 if (cellSource !== undefined)
-                    lin_left = getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
+                    lin_left = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
                 if (lin_left === undefined) {
-                    lin_left = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
+                    lin_left = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
                 }
             }
-            lin_right = getTextByPathList(tcNodes, ["a:tcPr", "a:lnR"]);
+            lin_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnR"]);
             if (lin_right === undefined) {
                 if (cellSource !== undefined)
-                    lin_right = getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
+                    lin_right = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
                 if (lin_right === undefined) {
-                    lin_right = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
+                    lin_right = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
                 }
             }
-            lin_bottom_left_to_top_right = getTextByPathList(tcNodes, ["a:tcPr", "a:lnBlToTr"]);
-            lin_top_left_to_bottom_right = getTextByPathList(tcNodes, ["a:tcPr", "a:InTlToBr"]);
+            lin_bottom_left_to_top_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnBlToTr"]);
+            lin_top_left_to_bottom_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:InTlToBr"]);
 
             if (lin_bottm !== undefined && lin_bottm != "") {
                 var bottom_line_border = getBorder(lin_bottm, undefined, false, "", warpObj)
@@ -10233,7 +10233,7 @@
             }
 
             //cell fill color custom
-            var getCelFill = getTextByPathList(tcNodes, ["a:tcPr"]);
+            var getCelFill = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr"]);
             if (getCelFill !== undefined && getCelFill != "") {
                 var cellObj = {
                     "p:spPr": getCelFill
@@ -10245,7 +10245,7 @@
             if (celFillColor == "" || celFillColor == "background-color: inherit;") {
                 var bgFillschemeClr;
                 if (cellSource !== undefined)
-                    bgFillschemeClr = getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:fill", "a:solidFill"]);
+                    bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:fill", "a:solidFill"]);
                 if (bgFillschemeClr !== undefined) {
                     var local_fillColor = getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                     if (local_fillColor !== undefined) {
@@ -10268,7 +10268,7 @@
             }
 
             //border
-            // var borderStyl = getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:tcBdr"]);
+            // var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:tcBdr"]);
             // if (borderStyl !== undefined) {
             //     var local_col_borders = getTableBorders(borderStyl, warpObj);
             //     if (local_col_borders != "") {
@@ -10282,17 +10282,17 @@
             //Text style
             var rowTxtStyl;
             if (cellSource !== undefined) {
-                rowTxtStyl = getTextByPathList(thisTblStyle, [cellSource, "a:tcTxStyle"]);
+                rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcTxStyle"]);
             }
             // if (rowTxtStyl === undefined) {
-            //     rowTxtStyl = getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
+            //     rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
             // }
             if (rowTxtStyl !== undefined) {
                 var local_fontClrPr = getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                 if (local_fontClrPr !== undefined) {
                     colFontClrPr = local_fontClrPr;
                 }
-                var local_fontWeight = ((getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                 if (local_fontWeight !== "") {
                     colFontWeight = local_fontWeight;
                 }
@@ -10306,7 +10306,7 @@
         function genChart(node, warpObj) {
 
             var order = node["attrs"]["order"];
-            var xfrmNode = getTextByPathList(node, ["p:xfrm"]);
+            var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
             var result = "<div id='chart" + chartID + "' class='block content' style='" +
                 getPosition(xfrmNode, node, undefined, undefined) + getSize(xfrmNode, undefined, undefined) +
                 " z-index: " + order + ";'></div>";
@@ -10314,7 +10314,7 @@
             var rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
             var refName = warpObj["slideResObj"][rid]["target"];
             var content = PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
-            var plotArea = getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
+            var plotArea = PPTXXmlUtils.getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
 
             var chartData = null;
             for (var key in plotArea) {
@@ -10408,8 +10408,8 @@
             ///get colors#.xml, data#.xml , layout#.xml , quickStyle#.xml
             var order = node["attrs"]["order"];
             var zip = warpObj["zip"];
-            var xfrmNode = getTextByPathList(node, ["p:xfrm"]);
-            var dgmRelIds = getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
+            var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
+            var dgmRelIds = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
             //console.log(dgmRelIds)
             var dgmClrFileId = dgmRelIds["r:cs"];
             var dgmDataFileId = dgmRelIds["r:dm"];
@@ -10427,7 +10427,7 @@
             //console.log(dgmClr,dgmData,dgmLayout,dgmQuickStyle)
             ///get drawing#.xml
             // var dgmDrwFileName = "";
-            // var dataModelExt = getTextByPathList(dgmData, ["dgm:dataModel", "dgm:extLst", "a:ext", "dsp:dataModelExt", "attrs"]);
+            // var dataModelExt = PPTXXmlUtils.getTextByPathList(dgmData, ["dgm:dataModel", "dgm:extLst", "a:ext", "dsp:dataModelExt", "attrs"]);
             // if (dataModelExt !== undefined) {
             //     var dgmDrwFileId = dataModelExt["relId"];
             //     dgmDrwFileName = warpObj["slideResObj"][dgmDrwFileId]["target"];
@@ -10436,9 +10436,9 @@
             // if (dgmDrwFileName != "") {
             //     dgmDrwFile = PPTXXmlUtils.readXmlFile(zip, dgmDrwFileName);
             // }
-            // var dgmDrwSpArray = getTextByPathList(dgmDrwFile, ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
-            //var dgmDrwSpArray = getTextByPathList(warpObj["digramFileContent"], ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
-            var dgmDrwSpArray = getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
+            // var dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(dgmDrwFile, ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
+            //var dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(warpObj["digramFileContent"], ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
+            var dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
             var rslt = "";
             if (dgmDrwSpArray !== undefined) {
                 var dgmDrwSpArrayLen = dgmDrwSpArray.length;
@@ -10477,7 +10477,7 @@
             var grpX = 0, grpY = 0;
             if (sType == "group") {
 
-                var grpXfrmNode = getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
+                var grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
                 if (xfrmNode !== undefined) {
                     grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
                     grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
@@ -10543,22 +10543,22 @@
             //console.log("getVerticalMargins ", pNode, type,idx, warpObj)
             //var lstStyle = textBodyNode["a:lstStyle"];
             var lvl = 1
-            var spcBefNode = getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
-            var spcAftNode = getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
-            var lnSpcNode = getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPct", "attrs", "val"]);
+            var spcBefNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
+            var spcAftNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
+            var lnSpcNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPct", "attrs", "val"]);
             var lnSpcNodeType = "Pct";
             if (lnSpcNode === undefined) {
-                lnSpcNode = getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPts", "attrs", "val"]);
+                lnSpcNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPts", "attrs", "val"]);
                 if (lnSpcNode !== undefined) {
                     lnSpcNodeType = "Pts";
                 }
             }
-            var lvlNode = getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
+            var lvlNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
             if (lvlNode !== undefined) {
                 lvl = parseInt(lvlNode) + 1;
             }
             var fontSize;
-            if (getTextByPathList(pNode, ["a:r"]) !== undefined) {
+            if  (PPTXXmlUtils.getTextByPathList(pNode, ["a:r"]) !== undefined) {
                 var fontSizeStr = getFontSize(pNode["a:r"], textBodyNode,undefined, lvl, type, warpObj);
                 if (fontSizeStr != "inherit") {
                     fontSize = parseInt(fontSizeStr, "px"); //pt
@@ -10571,7 +10571,7 @@
             // }
             // else{
             //    //i did not found case with percentage 
-            //     spcBefNode = getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPct","attrs","val"]);
+            //     spcBefNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPct","attrs","val"]);
             //     if(spcBefNode !== undefined){
             //         spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "%;"
             //     }
@@ -10582,7 +10582,7 @@
             // }
             // else{
             //    //i did not found case with percentage 
-            //     spcAftNode = getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPct","attrs","val"]);
+            //     spcAftNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPct","attrs","val"]);
             //     if(spcAftNode !== undefined){
             //         spcBef = "margin-bottom:" + parseInt(spcAftNode)/100 + "%;"
             //     }
@@ -10597,16 +10597,16 @@
             if (isInLayoutOrMaster && (spcBefNode === undefined || spcAftNode === undefined || lnSpcNode === undefined)) {
                 //check in layout
                 if (idx !== undefined) {
-                    var laypPrNode = getTextByPathList(warpObj, ["slideLayoutTables", "idxTable", idx, "p:txBody", "a:p", (lvl - 1), "a:pPr"]);
+                    var laypPrNode = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "idxTable", idx, "p:txBody", "a:p", (lvl - 1), "a:pPr"]);
 
                     if (spcBefNode === undefined) {
-                        spcBefNode = getTextByPathList(laypPrNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
+                        spcBefNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
                         // if(spcBefNode !== undefined){
                         //     spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "pt;"
                         // } 
                         // else{
                         //    //i did not found case with percentage 
-                        //     spcBefNode = getTextByPathList(laypPrNode, ["a:spcBef", "a:spcPct","attrs","val"]);
+                        //     spcBefNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcBef", "a:spcPct","attrs","val"]);
                         //     if(spcBefNode !== undefined){
                         //         spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "%;"
                         //     }
@@ -10614,13 +10614,13 @@
                     }
 
                     if (spcAftNode === undefined) {
-                        spcAftNode = getTextByPathList(laypPrNode, ["a:spcAft", "a:spcPts", "attrs", "val"]);
+                        spcAftNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcAft", "a:spcPts", "attrs", "val"]);
                         // if(spcAftNode !== undefined){
                         //     spcAft = "margin-bottom:" + parseInt(spcAftNode)/100 + "pt;"
                         // }
                         // else{
                         //    //i did not found case with percentage 
-                        //     spcAftNode = getTextByPathList(laypPrNode, ["a:spcAft", "a:spcPct","attrs","val"]);
+                        //     spcAftNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcAft", "a:spcPct","attrs","val"]);
                         //     if(spcAftNode !== undefined){
                         //         spcBef = "margin-bottom:" + parseInt(spcAftNode)/100 + "%;"
                         //     }
@@ -10628,9 +10628,9 @@
                     }
 
                     if (lnSpcNode === undefined) {
-                        lnSpcNode = getTextByPathList(laypPrNode, ["a:lnSpc", "a:spcPct", "attrs", "val"]);
+                        lnSpcNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:lnSpc", "a:spcPct", "attrs", "val"]);
                         if (lnSpcNode === undefined) {
-                            lnSpcNode = getTextByPathList(laypPrNode, ["a:pPr", "a:lnSpc", "a:spcPts", "attrs", "val"]);
+                            lnSpcNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:pPr", "a:lnSpc", "a:spcPts", "attrs", "val"]);
                             if (lnSpcNode !== undefined) {
                                 lnSpcNodeType = "Pts";
                             }
@@ -10667,16 +10667,16 @@
                 // if (type == "shape" || type == "textBox") {
                 //     lvl = "a:lvl1pPr";
                 // }
-                var inLvlNode = getTextByPathList(slideMasterTextStyles, [dirLoc, lvl]);
+                var inLvlNode = PPTXXmlUtils.getTextByPathList(slideMasterTextStyles, [dirLoc, lvl]);
                 if (inLvlNode !== undefined) {
                     if (spcBefNode === undefined) {
-                        spcBefNode = getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
+                        spcBefNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
                         // if(spcBefNode !== undefined){
                         //     spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "pt;"
                         // } 
                         // else{
                         //    //i did not found case with percentage 
-                        //     spcBefNode = getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPct","attrs","val"]);
+                        //     spcBefNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPct","attrs","val"]);
                         //     if(spcBefNode !== undefined){
                         //         spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "%;"
                         //     }
@@ -10684,13 +10684,13 @@
                     }
 
                     if (spcAftNode === undefined) {
-                        spcAftNode = getTextByPathList(inLvlNode, ["a:spcAft", "a:spcPts", "attrs", "val"]);
+                        spcAftNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcAft", "a:spcPts", "attrs", "val"]);
                         // if(spcAftNode !== undefined){
                         //     spcAft = "margin-bottom:" + parseInt(spcAftNode)/100 + "pt;"
                         // }
                         // else{
                         //    //i did not found case with percentage 
-                        //     spcAftNode = getTextByPathList(inLvlNode, ["a:spcAft", "a:spcPct","attrs","val"]);
+                        //     spcAftNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcAft", "a:spcPct","attrs","val"]);
                         //     if(spcAftNode !== undefined){
                         //         spcBef = "margin-bottom:" + parseInt(spcAftNode)/100 + "%;"
                         //     }
@@ -10698,9 +10698,9 @@
                     }
 
                     if (lnSpcNode === undefined) {
-                        lnSpcNode = getTextByPathList(inLvlNode, ["a:lnSpc", "a:spcPct", "attrs", "val"]);
+                        lnSpcNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:lnSpc", "a:spcPct", "attrs", "val"]);
                         if (lnSpcNode === undefined) {
-                            lnSpcNode = getTextByPathList(inLvlNode, ["a:pPr", "a:lnSpc", "a:spcPts", "attrs", "val"]);
+                            lnSpcNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:pPr", "a:lnSpc", "a:spcPts", "attrs", "val"]);
                             if (lnSpcNode !== undefined) {
                                 lnSpcNodeType = "Pts";
                             }
@@ -10748,52 +10748,52 @@
             return marginTopBottomStr;
         }
         function getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj) {
-            var algn = getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
+            var algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
                 //var layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
                 // var pPrNodeLaout = layoutMasterNode.nodeLaout;
                 // var pPrNodeMaster = layoutMasterNode.nodeMaster;
                 var lvlIdx = 1;
-                var lvlNode = getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
+                var lvlNode = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
                 if (lvlNode !== undefined) {
                     lvlIdx = parseInt(lvlNode) + 1;
                 }
                 var lvlStr = "a:lvl" + lvlIdx + "pPr";
 
                 var lstStyle = textBodyNode["a:lstStyle"];
-                algn = getTextByPathList(lstStyle, [lvlStr, "attrs", "algn"]);
+                algn = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr, "attrs", "algn"]);
 
                 if (algn === undefined && idx !== undefined ) {
                     //slidelayout
-                    algn = getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
+                    algn = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
                     if (algn === undefined) {
-                        algn = getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", "a:pPr", "attrs", "algn"]);
+                        algn = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", "a:pPr", "attrs", "algn"]);
                         if (algn === undefined) {
-                            algn = getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", (lvlIdx - 1), "a:pPr", "attrs", "algn"]);
+                            algn = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", (lvlIdx - 1), "a:pPr", "attrs", "algn"]);
                         }
                     }
                 }
                 if (algn === undefined) {
                     if (type !== undefined) {
                         //slidelayout
-                        algn = getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
+                        algn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
 
                         if (algn === undefined) {
                             //masterlayout
                             if (type == "title" || type == "ctrTitle") {
-                                algn = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:titleStyle", lvlStr, "attrs", "algn"]);
+                                algn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:titleStyle", lvlStr, "attrs", "algn"]);
                             } else if (type == "body" || type == "obj" || type == "subTitle") {
-                                algn = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr, "attrs", "algn"]);
+                                algn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr, "attrs", "algn"]);
                             } else if (type == "shape" || type == "diagram") {
-                                algn = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:otherStyle", lvlStr, "attrs", "algn"]);
+                                algn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:otherStyle", lvlStr, "attrs", "algn"]);
                             } else if (type == "textBox") {
-                                algn = getTextByPathList(warpObj, ["defaultTextStyle", lvlStr, "attrs", "algn"]);
+                                algn = PPTXXmlUtils.getTextByPathList(warpObj, ["defaultTextStyle", lvlStr, "attrs", "algn"]);
                             } else {
-                                algn = getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
+                                algn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
                             }
                         }
                     } else {
-                        algn = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr, "attrs", "algn"]);
+                        algn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr, "attrs", "algn"]);
                     }
                 }
             }
@@ -10835,7 +10835,7 @@
             //return algn === "ctr" ? "h-mid" : algn === "r" ? "h-right" : "h-left";
         }
         function getPregraphDir(node, textBodyNode, idx, type, warpObj) {
-            var rtl = getTextByPathList(node, ["a:pPr", "attrs", "rtl"]);
+            var rtl = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "rtl"]);
             //console.log("getPregraphDir node:", node, "textBodyNode", textBodyNode, "rtl:", rtl, "idx", idx, "type", type, "warpObj", warpObj)
           
 
@@ -10843,9 +10843,9 @@
                 var layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
                 var pPrNodeLaout = layoutMasterNode.nodeLaout;
                 var pPrNodeMaster = layoutMasterNode.nodeMaster;
-                rtl = getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
+                rtl = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (rtl === undefined && type != "shape") {
-                    rtl = getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
+                    rtl = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
                 }
             }
 
@@ -10869,13 +10869,13 @@
         function getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) {
 
             //X, <a:bodyPr anchor="ctr">, <a:bodyPr anchor="b">
-            var anchor = getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
+            var anchor = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
             //console.log("getVerticalAlign anchor:", anchor, "slideLayoutSpNode: ", slideLayoutSpNode)
             if (anchor === undefined) {
                 //console.log("getVerticalAlign type:", type," node:", node, "slideLayoutSpNode:", slideLayoutSpNode, "slideMasterSpNode:", slideMasterSpNode)
-                anchor = getTextByPathList(slideLayoutSpNode, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
+                anchor = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
                 if (anchor === undefined) {
-                    anchor = getTextByPathList(slideMasterSpNode, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
+                    anchor = PPTXXmlUtils.getTextByPathList(slideMasterSpNode, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
                     if (anchor === undefined) {
                         //"If this attribute is omitted, then a value of t, or top is implied."
                         anchor = "t";//getTextByPathList(slideMasterSpNode, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
@@ -10888,7 +10888,7 @@
 
         function getContentDir(node, type, warpObj) {
             return "content";
-            var defRtl = getTextByPathList(node, ["p:txBody", "a:lstStyle", "a:defPPr", "attrs", "rtl"]);
+            var defRtl = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "a:defPPr", "attrs", "rtl"]);
             if (defRtl !== undefined) {
                 if (defRtl == "1"){
                     return "content-rtl";
@@ -10896,7 +10896,7 @@
                     return "content";
                 }
             }
-            //var lvl1Rtl = getTextByPathList(node, ["p:txBody", "a:lstStyle", "lvl1pPr", "attrs", "rtl"]);
+            //var lvl1Rtl = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "lvl1pPr", "attrs", "rtl"]);
             // if (lvl1Rtl !== undefined) {
             //     if (lvl1Rtl == "1") {
             //         return "content-rtl";
@@ -10904,7 +10904,7 @@
             //         return "content";
             //     }
             // }
-            var rtlCol = getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "rtlCol"]);
+            var rtlCol = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "rtlCol"]);
             if (rtlCol !== undefined) {
                 if (rtlCol == "1") {
                     return "content-rtl";
@@ -10936,14 +10936,14 @@
                     dirLoc = "p:otherStyle";
             }
             if (slideMasterTextStyles !== undefined && dirLoc !== "") {
-                var dirVal = getTextByPathList(slideMasterTextStyles[dirLoc], ["a:lvl1pPr", "attrs", "rtl"]);
+                var dirVal = PPTXXmlUtils.getTextByPathList(slideMasterTextStyles[dirLoc], ["a:lvl1pPr", "attrs", "rtl"]);
                 if (dirVal == "1") {
                     return "content-rtl";
                 }
             } 
             // else {
             //     if (type == "textBox") {
-            //         var dirVal = getTextByPathList(warpObj, ["defaultTextStyle", "a:lvl1pPr", "attrs", "rtl"]);
+            //         var dirVal = PPTXXmlUtils.getTextByPathList(warpObj, ["defaultTextStyle", "a:lvl1pPr", "attrs", "rtl"]);
             //         if (dirVal == "1") {
             //             return "content-rtl";
             //         }
@@ -10954,15 +10954,15 @@
         }
 
         function getFontType(node, type, warpObj, pFontStyle) {
-            var typeface = getTextByPathList(node, ["a:rPr", "a:latin", "attrs", "typeface"]);
+            var typeface = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:latin", "attrs", "typeface"]);
 
             if (typeface === undefined) {
                 var fontIdx = "";
                 var fontGrup = "";
                 if (pFontStyle !== undefined) {
-                    fontIdx = getTextByPathList(pFontStyle, ["attrs", "idx"]);
+                    fontIdx = PPTXXmlUtils.getTextByPathList(pFontStyle, ["attrs", "idx"]);
                 }
-                var fontSchemeNode = getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:fontScheme"]);
+                var fontSchemeNode = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:fontScheme"]);
                 if (fontIdx == "") {
                     if (type == "title" || type == "subTitle" || type == "ctrTitle") {
                         fontIdx = "major";
@@ -10971,7 +10971,7 @@
                     }
                 }
                 fontGrup = "a:" + fontIdx + "Font";
-                typeface = getTextByPathList(fontSchemeNode, [fontGrup, "a:latin", "attrs", "typeface"]);
+                typeface = PPTXXmlUtils.getTextByPathList(fontSchemeNode, [fontGrup, "a:latin", "attrs", "typeface"]);
             }
 
             return (typeface === undefined) ? "inherit" : typeface;
@@ -10984,13 +10984,13 @@
             //https://www.w3schools.com/cssref/css3_pr_text-shadow.asp
             //themeContent
             //console.log("getFontColorPr>> type:", type, ", node: ", node)
-            var rPrNode = getTextByPathList(node, ["a:rPr"]);
+            var rPrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr"]);
             var filTyp, color, textBordr, colorType = "", highlightColor = "";
             //console.log("getFontColorPr type:", type, ", node: ", node, "pNode:", pNode, "pFontStyle:", pFontStyle)
             if (rPrNode !== undefined) {
                 filTyp = getFillType(rPrNode);
                 if (filTyp == "SOLID_FILL") {
-                    var solidFillNode = rPrNode["a:solidFill"];// getTextByPathList(node, ["a:rPr", "a:solidFill"]);
+                    var solidFillNode = rPrNode["a:solidFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
                     color = getSolidFill(solidFillNode, undefined, undefined, warpObj);
                     var highlightNode = rPrNode["a:highlight"];
                     if (highlightNode !== undefined) {
@@ -10998,7 +10998,7 @@
                     }
                     colorType = "solid";
                 } else if (filTyp == "PATTERN_FILL") {
-                    var pattFill = rPrNode["a:pattFill"];// getTextByPathList(node, ["a:rPr", "a:pattFill"]);
+                    var pattFill = rPrNode["a:pattFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
                     color = getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
@@ -11011,12 +11011,12 @@
                     colorType = "gradient";
                 } 
             }
-            if (color === undefined && getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]) !== undefined) {
+            if (color === undefined && PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]) !== undefined) {
                 //lstStyle
-                var lstStyledefRPr = getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]);
+                var lstStyledefRPr = PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]);
                 filTyp = getFillType(lstStyledefRPr);
                 if (filTyp == "SOLID_FILL") {
-                    var solidFillNode = lstStyledefRPr["a:solidFill"];// getTextByPathList(node, ["a:rPr", "a:solidFill"]);
+                    var solidFillNode = lstStyledefRPr["a:solidFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
                     color = getSolidFill(solidFillNode, undefined, undefined, warpObj);
                     var highlightNode = lstStyledefRPr["a:highlight"];
                     if (highlightNode !== undefined) {
@@ -11024,7 +11024,7 @@
                     }
                     colorType = "solid";
                 } else if (filTyp == "PATTERN_FILL") {
-                    var pattFill = lstStyledefRPr["a:pattFill"];// getTextByPathList(node, ["a:rPr", "a:pattFill"]);
+                    var pattFill = lstStyledefRPr["a:pattFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
                     color = getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
@@ -11039,7 +11039,7 @@
 
             }
             if (color === undefined) {
-                var sPstyle = getTextByPathList(pNode, ["p:style", "a:fontRef"]);
+                var sPstyle = PPTXXmlUtils.getTextByPathList(pNode, ["p:style", "a:fontRef"]);
                 if (sPstyle !== undefined) {
                     color = getSolidFill(sPstyle, undefined, undefined, warpObj);
                     if (color !== undefined) {
@@ -11068,10 +11068,10 @@
                 var pPrNodeMaster = layoutMasterNode.nodeMaster;
 
                 if (pPrNodeLaout !== undefined) {
-                    var defRpRLaout = getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:solidFill"]);
+                    var defRpRLaout = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:solidFill"]);
                     if (defRpRLaout !== undefined) {
                         color = getSolidFill(defRpRLaout, undefined, undefined, warpObj);
-                        var highlightNode = getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:highlight"]);
+                        var highlightNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:highlight"]);
                         if (highlightNode !== undefined) {
                             highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
                         }
@@ -11081,10 +11081,10 @@
                 if (color === undefined) {
 
                     if (pPrNodeMaster !== undefined) {
-                        var defRprMaster = getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:solidFill"]);
+                        var defRprMaster = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:solidFill"]);
                         if (defRprMaster !== undefined) {
                             color = getSolidFill(defRprMaster, undefined, undefined, warpObj);
-                            var highlightNode = getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:highlight"]);
+                            var highlightNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:highlight"]);
                             if (highlightNode !== undefined) {
                                 highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
                             }
@@ -11096,7 +11096,7 @@
             var txtEffects = [];
             var txtEffObj = {}
             //textBordr
-            var txtBrdrNode = getTextByPathList(node, ["a:rPr", "a:ln"]);
+            var txtBrdrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:ln"]);
             var textBordr = "";
             if (txtBrdrNode !== undefined && txtBrdrNode["a:noFill"] === undefined) {
                 var txBrd = getBorder(node, pNode, false, "text", warpObj);
@@ -11127,7 +11127,7 @@
             //         //TODO
             //     }
             // }
-            var txtGlowNode = getTextByPathList(node, ["a:rPr", "a:effectLst", "a:glow"]);
+            var txtGlowNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:glow"]);
             var oGlowStr = "";
             if (txtGlowNode !== undefined) {
                 var glowClr = getSolidFill(txtGlowNode, undefined, undefined, warpObj);
@@ -11153,7 +11153,7 @@
                     );
                 }
             }
-            var txtShadow = getTextByPathList(node, ["a:rPr", "a:effectLst", "a:outerShdw"]);
+            var txtShadow = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:outerShdw"]);
             var oShadowStr = "";
             if (txtShadow !== undefined) {
                 //https://developer.mozilla.org/en-US/docs/Web/CSS/filter-function/drop-shadow()
@@ -11239,24 +11239,24 @@
                 fontSize = parseInt(node["a:rPr"]["attrs"]["sz"]) / 100;
             }
             if (isNaN(fontSize) || fontSize === undefined && node["a:fld"] !== undefined) {
-                sz = getTextByPathList(node["a:fld"], ["a:rPr", "attrs", "sz"]);
+                sz = PPTXXmlUtils.getTextByPathList(node["a:fld"], ["a:rPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
             if ((isNaN(fontSize) || fontSize === undefined) && node["a:t"] === undefined) {
-                sz = getTextByPathList(node["a:endParaRPr"], [ "attrs", "sz"]);
+                sz = PPTXXmlUtils.getTextByPathList(node["a:endParaRPr"], [ "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
             if ((isNaN(fontSize) || fontSize === undefined) && lstStyle !== undefined) {
-                sz = getTextByPathList(lstStyle, [lvlpPr, "a:defRPr", "attrs", "sz"]);
+                sz = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlpPr, "a:defRPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
             //a:spAutoFit
             var isAutoFit = false;
             var isKerning = false;
             if (textBodyNode !== undefined){
-                var spAutoFitNode = getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
+                var spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
                 // if (spAutoFitNode === undefined) {
-                //     spAutoFitNode = getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit"]);
+                //     spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit"]);
                 // }
                 if (spAutoFitNode !== undefined){
                     isAutoFit = true;
@@ -11268,9 +11268,9 @@
                 //     type = "body";
                 //     lvlpPr = "a:lvl1pPr";
                 // }
-                sz = getTextByPathList(warpObj["slideLayoutTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
+                sz = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
-                kern = getTextByPathList(warpObj["slideLayoutTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
+                kern = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
                 if (isKerning && kern !== undefined && !isNaN(fontSize) && (fontSize - parseInt(kern) / 100) > 0){
                     fontSize = fontSize - parseInt(kern) / 100;
                 }
@@ -11281,35 +11281,35 @@
                 //     type = "body";
                 //     lvlpPr = "a:lvl1pPr";
                 // }
-                sz = getTextByPathList(warpObj["slideMasterTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
-                kern = getTextByPathList(warpObj["slideMasterTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
+                sz = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
+                kern = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
                 if (sz === undefined) {
                     if (type == "title" || type == "subTitle" || type == "ctrTitle") {
-                        sz = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:titleStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
-                        kern = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:titleStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
+                        sz = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:titleStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
+                        kern = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:titleStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
                     } else if (type == "body" || type == "obj" || type == "dt" || type == "sldNum" || type === "textBox") {
-                        sz = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:bodyStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
-                        kern = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:bodyStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
+                        sz = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:bodyStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
+                        kern = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:bodyStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
                     }
                     else if (type == "shape") {
                         //textBox and shape text does not indent
-                        sz = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
-                        kern = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
+                        sz = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
+                        kern = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
                         isKerning = false;
                     }
 
                     if (sz === undefined) {
-                        sz = getTextByPathList(warpObj["defaultTextStyle"], [lvlpPr, "a:defRPr", "attrs", "sz"]);
-                        kern = (kern === undefined)? getTextByPathList(warpObj["defaultTextStyle"], [lvlpPr, "a:defRPr", "attrs", "kern"]) : undefined;
+                        sz = PPTXXmlUtils.getTextByPathList(warpObj["defaultTextStyle"], [lvlpPr, "a:defRPr", "attrs", "sz"]);
+                        kern = (kern === undefined)? PPTXXmlUtils.getTextByPathList(warpObj["defaultTextStyle"], [lvlpPr, "a:defRPr", "attrs", "kern"]) : undefined;
                         isKerning = false;
                     }
                     //  else if (type === undefined || type == "shape") {
-                    //     sz = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
-                    //     kern = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
+                    //     sz = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
+                    //     kern = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
                     // } 
                     // else if (type == "textBox") {
-                    //     sz = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
-                    //     kern = getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
+                    //     sz = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
+                    //     kern = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterTextStyles"], ["p:otherStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
                     // }
                 } 
                 fontSize = parseInt(sz) / 100;
@@ -11319,7 +11319,7 @@
                 }
             }
 
-            var baseline = getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
+            var baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
             if (baseline !== undefined && !isNaN(fontSize)) {
                 var baselineVl = parseInt(baseline) / 100000;
                 //fontSize -= 10; 
@@ -11328,7 +11328,7 @@
             }
 
             if (!isNaN(fontSize)){
-                var normAutofit = getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit", "attrs", "fontScale"]);
+                var normAutofit = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit", "attrs", "fontScale"]);
                 if (normAutofit !== undefined && normAutofit != 0){
                     //console.log("fontSize", fontSize, "normAutofit: ", normAutofit, normAutofit/100000)
                     fontSize = Math.round(fontSize * (normAutofit / 100000))
@@ -11371,32 +11371,32 @@
         ////////////////////////////////////Amir/////////////////////////////////////
         function getTextHorizontalAlign(node, pNode, type, warpObj) {
             //console.log("getTextHorizontalAlign: type: ", type, ", node: ", node)
-            var getAlgn = getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
+            var getAlgn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (getAlgn === undefined) {
-                getAlgn = getTextByPathList(pNode, ["a:pPr", "attrs", "algn"]);
+                getAlgn = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "algn"]);
             }
             if (getAlgn === undefined) {
                 if (type == "title" || type == "ctrTitle" || type == "subTitle") {
                     var lvlIdx = 1;
-                    var lvlNode = getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
+                    var lvlNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
                     if (lvlNode !== undefined) {
                         lvlIdx = parseInt(lvlNode) + 1;
                     }
                     var lvlStr = "a:lvl" + lvlIdx + "pPr";
-                    getAlgn = getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
+                    getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
                     if (getAlgn === undefined) {
-                        getAlgn = getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
+                        getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
                         if (getAlgn === undefined) {
-                            getAlgn = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:titleStyle", lvlStr, "attrs", "algn"]);
+                            getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:titleStyle", lvlStr, "attrs", "algn"]);
                             if (getAlgn === undefined && type === "subTitle") {
-                                getAlgn = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr, "attrs", "algn"]);
+                                getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr, "attrs", "algn"]);
                             }
                         }
                     }
                 } else if (type == "body") {
-                    getAlgn = getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", "a:lvl1pPr", "attrs", "algn"]);
+                    getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", "a:lvl1pPr", "attrs", "algn"]);
                 } else {
-                    getAlgn = getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", "a:lvl1pPr", "attrs", "algn"]);
+                    getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", "a:lvl1pPr", "attrs", "algn"]);
                 }
 
             }
@@ -11427,7 +11427,7 @@
         }
         /////////////////////////////////////////////////////////////////////
         function getTextVerticalAlign(node, type, slideMasterTextStyles) {
-            var baseline = getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
+            var baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
             return baseline === undefined ? "baseline" : (parseInt(baseline) / 1000) + "%";
         }
 
@@ -11488,17 +11488,17 @@
                 //subNodeTxt = "a:rPr";
             }
 
-            //var is_noFill = getTextByPathList(node, ["p:spPr", "a:noFill"]);
-            var is_noFill = getTextByPathList(lineNode, ["a:noFill"]);
+            //var is_noFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
+            var is_noFill = PPTXXmlUtils.getTextByPathList(lineNode, ["a:noFill"]);
             if (is_noFill !== undefined) {
                 return "hidden";
             }
 
             //console.log("lineNode: ", lineNode)
             if (lineNode == undefined) {
-                var lnRefNode = getTextByPathList(node, ["p:style", "a:lnRef"])
+                var lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
                 if (lnRefNode !== undefined){
-                    var lnIdx = getTextByPathList(lnRefNode, ["attrs", "idx"]);
+                    var lnIdx = PPTXXmlUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
                     //console.log("lnIdx:", lnIdx, "lnStyleLst:", warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) -1])
                     lineNode = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) - 1];
                 }
@@ -11512,16 +11512,16 @@
             var borderColor;
             if (lineNode !== undefined) {
                 // Border width: 1pt = 12700, default = 0.75pt
-                var borderWidth = parseInt(getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
+                var borderWidth = parseInt (PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
                 if (isNaN(borderWidth) || borderWidth < 1) {
                     cssText += (4/3) + "px ";//"1pt ";
                 } else {
                     cssText += borderWidth + "px ";// + "pt ";
                 }
                 // Border type
-                var borderType = getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
+                var borderType = PPTXXmlUtils.getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
                 if (borderType === undefined) {
-                    borderType = getTextByPathList(lineNode, ["attrs", "cmpd"]);
+                    borderType = PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "cmpd"]);
                 }
                 var strokeDasharray = "0";
                 switch (borderType) {
@@ -11594,19 +11594,19 @@
             //console.log("getBorder:node : borderColor", borderColor)
             // 2. drawingML namespace
             if (borderColor === undefined) {
-                //var schemeClrNode = getTextByPathList(node, ["p:style", "a:lnRef", "a:schemeClr"]);
+                //var schemeClrNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef", "a:schemeClr"]);
                 // if (schemeClrNode !== undefined) {
-                //     var schemeClr = "a:" + getTextByPathList(schemeClrNode, ["attrs", "val"]);
+                //     var schemeClr = "a:" + PPTXXmlUtils.getTextByPathList(schemeClrNode, ["attrs", "val"]);
                 //     var borderColor = getSchemeColorFromTheme(schemeClr, undefined, undefined);
                 // }
-                var lnRefNode = getTextByPathList(node, ["p:style", "a:lnRef"]);
+                var lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
                 //console.log("getBorder: lnRef : ", lnRefNode)
                 if (lnRefNode !== undefined) {
                     borderColor = getSolidFill(lnRefNode, undefined, undefined, warpObj);
                 }
 
                 // if (borderColor !== undefined) {
-                //     var shade = getTextByPathList(schemeClrNode, ["a:shade", "attrs", "val"]);
+                //     var shade = PPTXXmlUtils.getTextByPathList(schemeClrNode, ["a:shade", "attrs", "val"]);
                 //     if (shade !== undefined) {
                 //         shade = parseInt(shade) / 10000;
                 //         var color = tinycolor("#" + borderColor);
@@ -11648,13 +11648,13 @@
             var slideLayoutContent = warpObj["slideLayoutContent"];
             var slideMasterContent = warpObj["slideMasterContent"];
 
-            var nodesSldLayout = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:spTree"]);
-            var nodesSldMaster = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:spTree"]);
+            var nodesSldLayout = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:spTree"]);
+            var nodesSldMaster = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:spTree"]);
             // console.log("slideContent : ", slideContent)
             // console.log("slideLayoutContent : ", slideLayoutContent)
             // console.log("slideMasterContent : ", slideMasterContent)
             //console.log("warpObj : ", warpObj)
-            var showMasterSp = getTextByPathList(slideLayoutContent, ["p:sldLayout", "attrs", "showMasterSp"]);
+            var showMasterSp = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "attrs", "showMasterSp"]);
             //console.log("slideLayoutContent : ", slideLayoutContent, ", showMasterSp: ", showMasterSp)
             var bgColor = getSlideBackgroundFill(warpObj, index);
             var result = "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
@@ -11663,7 +11663,7 @@
                 for (var nodeKey in nodesSldLayout) {
                     if (nodesSldLayout[nodeKey].constructor === Array) {
                         for (var i = 0; i < nodesSldLayout[nodeKey].length; i++) {
-                            var ph_type = getTextByPathList(nodesSldLayout[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                            var ph_type = PPTXXmlUtils.getTextByPathList(nodesSldLayout[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                             // if (ph_type !== undefined && ph_type != "pic") {
                             //     node_ph_type_ary.push(ph_type);
                             // }
@@ -11672,7 +11672,7 @@
                             }
                         }
                     } else {
-                        var ph_type = getTextByPathList(nodesSldLayout[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                        var ph_type = PPTXXmlUtils.getTextByPathList(nodesSldLayout[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                         // if (ph_type !== undefined && ph_type != "pic") {
                         //     node_ph_type_ary.push(ph_type);
                         // }
@@ -11686,13 +11686,13 @@
                 for (var nodeKey in nodesSldMaster) {
                     if (nodesSldMaster[nodeKey].constructor === Array) {
                         for (var i = 0; i < nodesSldMaster[nodeKey].length; i++) {
-                            var ph_type = getTextByPathList(nodesSldMaster[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                            var ph_type = PPTXXmlUtils.getTextByPathList(nodesSldMaster[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                             //if (node_ph_type_ary.indexOf(ph_type) > -1) {
                             result += processNodesInSlide(nodeKey, nodesSldMaster[nodeKey][i], nodesSldMaster, warpObj, "slideMasterBg"); //slideLayoutBg , slideMasterBg
                             //}
                         }
                     } else {
-                        var ph_type = getTextByPathList(nodesSldMaster[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                        var ph_type = PPTXXmlUtils.getTextByPathList(nodesSldMaster[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
                         //if (node_ph_type_ary.indexOf(ph_type) > -1) {
                         result += processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, warpObj, "slideMasterBg"); //slideLayoutBg, slideMasterBg
                         //}
@@ -11711,8 +11711,8 @@
             //console.log("slideLayoutContent: ", slideLayoutContent)
             //console.log("slideMasterContent: ", slideMasterContent)
             //getFillType(node)
-            var bgPr = getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgPr"]);
-            var bgRef = getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgRef"]);
+            var bgPr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgPr"]);
+            var bgRef = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgRef"]);
             //console.log("slideContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
             var bgcolor;
             if (bgPr !== undefined) {
@@ -11722,15 +11722,15 @@
                 if (bgFillTyp == "SOLID_FILL") {
                     var sldFill = bgPr["a:solidFill"];
                     var clrMapOvr;
-                    var sldClrMapOvr = getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                    var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                     if (sldClrMapOvr !== undefined) {
                         clrMapOvr = sldClrMapOvr;
                     } else {
-                        var sldClrMapOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                        var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                         if (sldClrMapOvr !== undefined) {
                             clrMapOvr = sldClrMapOvr;
                         } else {
-                            clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
+                            clrMapOvr = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                         }
 
                     }
@@ -11751,24 +11751,24 @@
             } else if (bgRef !== undefined) {
                 //console.log("slideContent",bgRef)
                 var clrMapOvr;
-                var sldClrMapOvr = getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                 if (sldClrMapOvr !== undefined) {
                     clrMapOvr = sldClrMapOvr;
                 } else {
-                    var sldClrMapOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                    var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                     if (sldClrMapOvr !== undefined) {
                         clrMapOvr = sldClrMapOvr;
                     } else {
-                        clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
+                        clrMapOvr = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                     }
 
                 }
                 var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
 
                 // if (bgRef["a:srgbClr"] !== undefined) {
-                //     phClr = getTextByPathList(bgRef, ["a:srgbClr", "attrs", "val"]); //#...
+                //     phClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:srgbClr", "attrs", "val"]); //#...
                 // } else if (bgRef["a:schemeClr"] !== undefined) { //a:schemeClr
-                //     var schemeClr = getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
+                //     var schemeClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
                 //     phClr = getSchemeColorFromTheme("a:" + schemeClr, slideMasterContent, undefined); //#...
                 // }
                 var idx = Number(bgRef["attrs"]["idx"]);
@@ -11833,15 +11833,15 @@
 
             }
             else {
-                bgPr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgPr"]);
-                bgRef = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgRef"]);
+                bgPr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgPr"]);
+                bgRef = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgRef"]);
                 //console.log("slideLayoutContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
                 var clrMapOvr;
-                var sldClrMapOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                 if (sldClrMapOvr !== undefined) {
                     clrMapOvr = sldClrMapOvr;
                 } else {
-                    clrMapOvr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
+                    clrMapOvr = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                 }
                 if (bgPr !== undefined) {
                     var bgFillTyp = getFillType(bgPr);
@@ -11929,10 +11929,10 @@
                         }
                     }
                 } else {
-                    bgPr = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:bg", "p:bgPr"]);
-                    bgRef = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:bg", "p:bgRef"]);
+                    bgPr = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:bg", "p:bgPr"]);
+                    bgRef = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:bg", "p:bgRef"]);
 
-                    var clrMap = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
+                    var clrMap = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                     //console.log("slideMasterContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
                     if (bgPr !== undefined) {
                         var bgFillTyp = getFillType(bgPr);
@@ -11954,9 +11954,9 @@
                         var phClr = getSolidFill(bgRef, clrMap, undefined, warpObj);
                         // var phClr;
                         // if (bgRef["a:srgbClr"] !== undefined) {
-                        //     phClr = getTextByPathList(bgRef, ["a:srgbClr", "attrs", "val"]); //#...
+                        //     phClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:srgbClr", "attrs", "val"]); //#...
                         // } else if (bgRef["a:schemeClr"] !== undefined) { //a:schemeClr
-                        //     var schemeClr = getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
+                        //     var schemeClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
 
                         //     phClr = getSchemeColorFromTheme("a:" + schemeClr, slideMasterContent, undefined); //#...
                         // }
@@ -12046,7 +12046,7 @@
                     var lo_tint;
                     var lo_color = "";
                     var lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
-                    var pos = getTextByPathList(gsLst[i], ["attrs", "pos"])
+                    var pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"])
                     //console.log("pos: ", pos)
                     if (pos !== undefined) {
                         pos_ary[i] = pos / 1000 + "%";
@@ -12101,7 +12101,7 @@
             var ordr = bgPr["attrs"]["order"];
             var aBlipNode = bgPr["a:blipFill"]["a:blip"];
             //a:duotone
-            var duotone = getTextByPathList(aBlipNode, ["a:duotone"]);
+            var duotone = PPTXXmlUtils.getTextByPathList(aBlipNode, ["a:duotone"]);
             if (duotone !== undefined) {
                 //console.log("pic duotone: ", duotone)
                 var clr_ary = [];
@@ -12168,7 +12168,7 @@
 
             }
             //a:alphaModFix
-            var aphaModFixNode = getTextByPathList(aBlipNode, ["a:alphaModFix", "attrs"])
+            var aphaModFixNode = PPTXXmlUtils.getTextByPathList(aBlipNode, ["a:alphaModFix", "attrs"])
             var imgOpacity = "";
             if (aphaModFixNode !== undefined && aphaModFixNode["amt"] !== undefined && aphaModFixNode["amt"] != "") {
                 var amt = parseInt(aphaModFixNode["amt"]) / 100000;
@@ -12178,7 +12178,7 @@
             }
             //a:tile
 
-            var tileNode = getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"])
+            var tileNode = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"])
             var prop_style = "";
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
                 var sx = (parseInt(tileNode["sx"]) / 100000);
@@ -12194,9 +12194,9 @@
             }
             //a:srcRect
             //a:stretch => a:fillRect =>attrs (l:-17000, r:-17000)
-            var stretch = getTextByPathList(bgPr, ["a:blipFill", "a:stretch"]);
+            var stretch = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:stretch"]);
             if (stretch !== undefined) {
-                var fillRect = getTextByPathList(stretch, ["a:fillRect", "attrs"]);
+                var fillRect = PPTXXmlUtils.getTextByPathList(stretch, ["a:fillRect", "attrs"]);
                 //console.log("getBgPicFill=>bgPr: ", bgPr)
                 // var top = fillRect["t"], right = fillRect["r"], bottom = fillRect["b"], left = fillRect["l"];
                 prop_style += "background-repeat: no-repeat;";
@@ -12224,8 +12224,8 @@
             // From slide
             //Fill Type:
             //console.log("getShapeFill ShapeFill: ", node, ", isSvgMode; ", isSvgMode)
-            var fillType = getFillType(getTextByPathList(node, ["p:spPr"]));
-            //var noFill = getTextByPathList(node, ["p:spPr", "a:noFill"]);
+            var fillType = getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
+            //var noFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
             var fillColor;
             if (fillType == "NO_FILL") {
                 return isSvgMode ? "none" : "";//"background-color: initial;";
@@ -12248,8 +12248,8 @@
 
             // 2. drawingML namespace
             if (fillColor === undefined) {
-                var clrName = getTextByPathList(node, ["p:style", "a:fillRef"]);
-                var idx = parseInt(getTextByPathList(node, ["p:style", "a:fillRef", "attrs", "idx"]));
+                var clrName = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:fillRef"]);
+                var idx = parseInt (PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:fillRef", "attrs", "idx"]));
                 if (idx == 0 || idx == 1000) {
                     //no fill
                     return isSvgMode ? "none" : "";
@@ -12262,7 +12262,7 @@
             }
             // 3. is group fill
             if (fillColor === undefined) {
-                var grpFill = getTextByPathList(node, ["p:spPr", "a:grpFill"]);
+                var grpFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:grpFill"]);
                 if (grpFill !== undefined) {
                     //fillColor = getSolidFill(clrName, undefined, undefined, undefined, warpObj);
                     //get parent fill style - TODO
@@ -12406,20 +12406,20 @@
             var imgPath;
             //console.log("getPicFill(...) rId: ", rId, ", warpObj: ", warpObj, ", type: ", type)
             if (type == "slideBg" || type == "slide") {
-                imgPath = getTextByPathList(warpObj, ["slideResObj", rId, "target"]);
+                imgPath = PPTXXmlUtils.getTextByPathList(warpObj, ["slideResObj", rId, "target"]);
             } else if (type == "slideLayoutBg") {
-                imgPath = getTextByPathList(warpObj, ["layoutResObj", rId, "target"]);
+                imgPath = PPTXXmlUtils.getTextByPathList(warpObj, ["layoutResObj", rId, "target"]);
             } else if (type == "slideMasterBg") {
-                imgPath = getTextByPathList(warpObj, ["masterResObj", rId, "target"]);
+                imgPath = PPTXXmlUtils.getTextByPathList(warpObj, ["masterResObj", rId, "target"]);
             } else if (type == "themeBg") {
-                imgPath = getTextByPathList(warpObj, ["themeResObj", rId, "target"]);
+                imgPath = PPTXXmlUtils.getTextByPathList(warpObj, ["themeResObj", rId, "target"]);
             } else if (type == "diagramBg") {
-                imgPath = getTextByPathList(warpObj, ["diagramResObj", rId, "target"]);
+                imgPath = PPTXXmlUtils.getTextByPathList(warpObj, ["diagramResObj", rId, "target"]);
             }
             if (imgPath === undefined) {
                 return undefined;
             }
-            img = getTextByPathList(warpObj, ["loaded-images", imgPath]); //, type, rId
+            img = PPTXXmlUtils.getTextByPathList(warpObj, ["loaded-images", imgPath]); //, type, rId
             if (img === undefined) {
                 imgPath = escapeHtml(imgPath);
 
@@ -12778,10 +12778,10 @@
             var clrNode;
             if (node["a:srgbClr"] !== undefined) {
                 clrNode = node["a:srgbClr"];
-                color = getTextByPathList(clrNode, ["attrs", "val"]); //#...
+                color = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //#...
             } else if (node["a:schemeClr"] !== undefined) { //a:schemeClr
                 clrNode = node["a:schemeClr"];
-                var schemeClr = getTextByPathList(clrNode, ["attrs", "val"]);
+                var schemeClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]);
                 color = getSchemeColorFromTheme("a:" + schemeClr, clrMap, phClr, warpObj);
                 //console.log("schemeClr: ", schemeClr, "color: ", color)
             } else if (node["a:scrgbClr"] !== undefined) {
@@ -12798,7 +12798,7 @@
             } else if (node["a:prstClr"] !== undefined) {
                 clrNode = node["a:prstClr"];
                 //<a:prstClr val="black"/>  //Need to test/////////////////////////////////////////////
-                var prstClr = getTextByPathList(clrNode, ["attrs", "val"]); //node["a:prstClr"]["attrs"]["val"];
+                var prstClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //node["a:prstClr"]["attrs"]["val"];
                 color = getColorName2Hex(prstClr);
                 //console.log("blip prstClr: ", prstClr, " => hexClr: ", color);
             } else if (node["a:hslClr"] !== undefined) {
@@ -12816,7 +12816,7 @@
             } else if (node["a:sysClr"] !== undefined) {
                 clrNode = node["a:sysClr"];
                 //<a:sysClr val="windowText" lastClr="000000"/>  //Need to test/////////////////////////////////////////////
-                var sysClr = getTextByPathList(clrNode, ["attrs", "lastClr"]);
+                var sysClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "lastClr"]);
                 if (sysClr !== undefined) {
                     color = sysClr;
                 }
@@ -12834,7 +12834,7 @@
             //     </a:srgbClr>
             // </a: solidFill >
             var isAlpha = false;
-            var alpha = parseInt(getTextByPathList(clrNode, ["a:alpha", "attrs", "val"])) / 100000;
+            var alpha = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:alpha", "attrs", "val"])) / 100000;
             //console.log("alpha: ", alpha)
             if (!isNaN(alpha)) {
                 // var al_color = new colz.Color(color);
@@ -12962,7 +12962,7 @@
             //             </a:srgbClr>
             //         </a: solidFill >
 
-            var hueMod = parseInt(getTextByPathList(clrNode, ["a:hueMod", "attrs", "val"])) / 100000;
+            var hueMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:hueMod", "attrs", "val"])) / 100000;
             //console.log("hueMod: ", hueMod)
             if (!isNaN(hueMod)) {
                 color = applyHueMod(color, hueMod, isAlpha);
@@ -12977,7 +12977,7 @@
             //         <a:hslClr hue="0" sat="100%" lum="50%"/>
             //             <a:hueOff val="600000"/>
             //     </a: solidFill >
-            //var hueOff = parseInt(getTextByPathList(clrNode, ["a:hueOff", "attrs", "val"])) / 100000;
+            //var hueOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:hueOff", "attrs", "val"])) / 100000;
             // if (!isNaN(hueOff)) {
             //     //console.log("hueOff: ", hueOff, " (TODO)")
             //     //color = applyHueOff(color, hueOff, isAlpha);
@@ -13028,7 +13028,7 @@
             //         </a:srgbClr>
             //     </a: solidFill >
             // end example]
-            var lumMod = parseInt(getTextByPathList(clrNode, ["a:lumMod", "attrs", "val"])) / 100000;
+            var lumMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:lumMod", "attrs", "val"])) / 100000;
             //console.log("lumMod: ", lumMod)
             if (!isNaN(lumMod)) {
                 color = applyLumMod(color, lumMod, isAlpha);
@@ -13046,7 +13046,7 @@
             //             <a:lumOff val="-20%" />
             //         </a:srgbClr>
             //     </a: solidFill >
-            var lumOff = parseInt(getTextByPathList(clrNode, ["a:lumOff", "attrs", "val"])) / 100000;
+            var lumOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:lumOff", "attrs", "val"])) / 100000;
             //console.log("lumOff: ", lumOff)
             if (!isNaN(lumOff)) {
                 color = applyLumOff(color, lumOff, isAlpha);
@@ -13119,7 +13119,7 @@
             //             <a:satMod val="20%" />
             //         </a:srgbClr>
             //     </a: solidFill >
-            var satMod = parseInt(getTextByPathList(clrNode, ["a:satMod", "attrs", "val"])) / 100000;
+            var satMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:satMod", "attrs", "val"])) / 100000;
             if (!isNaN(satMod)) {
                 color = applySatMod(color, satMod, isAlpha);
             }
@@ -13134,7 +13134,7 @@
             //             <a:satOff val="-20%" />
             //         </a:srgbClr>
             //     </a: solidFill >
-            // var satOff = parseInt(getTextByPathList(clrNode, ["a:satOff", "attrs", "val"])) / 100000;
+            // var satOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:satOff", "attrs", "val"])) / 100000;
             // if (!isNaN(satOff)) {
             //     console.log("satOff: ", satOff, " (TODO)")
             // }
@@ -13149,7 +13149,7 @@
             //         </a:srgbClr>
             //     </a: solidFill >
             // end example]
-            var shade = parseInt(getTextByPathList(clrNode, ["a:shade", "attrs", "val"])) / 100000;
+            var shade = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:shade", "attrs", "val"])) / 100000;
             if (!isNaN(shade)) {
                 color = applyShade(color, shade, isAlpha);
             }
@@ -13163,7 +13163,7 @@
             //             <a:tint val="50%" />
             //         </a:srgbClr>
             //     </a: solidFill >
-            var tint = parseInt(getTextByPathList(clrNode, ["a:tint", "attrs", "val"])) / 100000;
+            var tint = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:tint", "attrs", "val"])) / 100000;
             if (!isNaN(tint)) {
                 color = applyTint(color, tint, isAlpha);
             }
@@ -13216,15 +13216,15 @@
             if (clrMap !== undefined) {
                 slideLayoutClrOvride = clrMap;//getTextByPathList(clrMap, ["p:sldMaster", "p:clrMap", "attrs"])
             } else {
-                var sldClrMapOvr = getTextByPathList(warpObj["slideContent"], ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(warpObj["slideContent"], ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                 if (sldClrMapOvr !== undefined) {
                     slideLayoutClrOvride = sldClrMapOvr;
                 } else {
-                    var sldClrMapOvr = getTextByPathList(warpObj["slideLayoutContent"], ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                    var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutContent"], ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                     if (sldClrMapOvr !== undefined) {
                         slideLayoutClrOvride = sldClrMapOvr;
                     } else {
-                        slideLayoutClrOvride = getTextByPathList(warpObj["slideMasterContent"], ["p:sldMaster", "p:clrMap", "attrs"]);
+                        slideLayoutClrOvride = PPTXXmlUtils.getTextByPathList(warpObj["slideMasterContent"], ["p:sldMaster", "p:clrMap", "attrs"]);
                     }
 
                 }
@@ -13260,11 +13260,11 @@
                     }
                 }
                 //console.log("getSchemeColorFromTheme:  schemeClr: ", schemeClr);
-                var refNode = getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:clrScheme", schemeClr]);
-                var color = getTextByPathList(refNode, ["a:srgbClr", "attrs", "val"]);
+                var refNode = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:clrScheme", schemeClr]);
+                var color = PPTXXmlUtils.getTextByPathList(refNode, ["a:srgbClr", "attrs", "val"]);
                 //console.log("themeContent: color", color);
                 if (color === undefined && refNode !== undefined) {
-                    color = getTextByPathList(refNode, ["a:sysClr", "attrs", "lastClr"]);
+                    color = PPTXXmlUtils.getTextByPathList(refNode, ["a:sysClr", "attrs", "lastClr"]);
                 }
             }
             //console.log(color)
@@ -13295,16 +13295,16 @@
             } else {
                 eachElement(serNode, function (innerNode, index) {
                     var dataRow = new Array();
-                    var colName = getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
+                    var colName = PPTXXmlUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
 
                     // Category (string or number)
                     var rowNames = {};
-                    if (getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
+                    if  (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
                         eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
                             rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
                             return "";
                         });
-                    } else if (getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
+                    } else if  (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
                         eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
                             rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
                             return "";
@@ -13312,7 +13312,7 @@
                     }
 
                     // Value
-                    if (getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
+                    if  (PPTXXmlUtils.getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
                         eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
                             dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
                             return "";
@@ -13325,42 +13325,6 @@
             }
 
             return dataMat;
-        }
-
-        // ===== Node functions =====
-        /**
-         * getTextByPathStr
-         * @param {Object} node
-         * @param {string} pathStr
-         */
-        function getTextByPathStr(node, pathStr) {
-            return getTextByPathList(node, pathStr.trim().split(/\s+/));
-        }
-
-        /**
-         * getTextByPathList
-         * @param {Object} node
-         * @param {string Array} path
-         */
-        function getTextByPathList(node, path) {
-
-            if (path.constructor !== Array) {
-                throw Error("Error of path type! path is not array.");
-            }
-
-            if (node === undefined) {
-                return undefined;
-            }
-
-            var l = path.length;
-            for (var i = 0; i < l; i++) {
-                node = node[path[i]];
-                if (node === undefined) {
-                    return undefined;
-                }
-            }
-
-            return node;
         }
         /**
          * setTextByPathList
@@ -13766,14 +13730,14 @@
             var height = pic_dim[1];
             //console.log("getSvgImagePattern node:", node);
             var blipFillNode = node["p:spPr"]["a:blipFill"];
-            var tileNode = getTextByPathList(blipFillNode, ["a:tile", "attrs"])
+            var tileNode = PPTXXmlUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"])
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
                 var sx = (parseInt(tileNode["sx"]) / 100000) * width;
                 var sy = (parseInt(tileNode["sy"]) / 100000) * height;
             }
 
             var blipNode = node["p:spPr"]["a:blipFill"]["a:blip"];
-            var tialphaModFixNode = getTextByPathList(blipNode, ["a:alphaModFix", "attrs"])
+            var tialphaModFixNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"])
             var imgOpacity = "";
             if (tialphaModFixNode !== undefined && tialphaModFixNode["amt"] !== undefined && tialphaModFixNode["amt"] != "") {
                 var amt = parseInt(tialphaModFixNode["amt"]) / 100000;
@@ -13786,7 +13750,7 @@
             } else {
                 var ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
             }
-            var duotoneNode = getTextByPathList(blipNode, ["a:duotone"])
+            var duotoneNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:duotone"])
             var fillterNode = "";
             var filterUrl = "";
             if (duotoneNode !== undefined) {
