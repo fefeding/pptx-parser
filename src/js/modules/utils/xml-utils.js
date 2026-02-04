@@ -425,6 +425,156 @@ var PPTXXmlUtils = (function() {
         return base64;
     }
 
+    function extractFileExtension(filename) {
+            return filename.substr((~-filename.lastIndexOf(".") >>> 0) + 2);
+        }
+    function getMimeType(imgFileExt) {
+            var mimeType = "";
+            //console.log(imgFileExt)
+            switch (imgFileExt.toLowerCase()) {
+                case "jpg":
+                case "jpeg":
+                    mimeType = "image/jpeg";
+                    break;
+                case "png":
+                    mimeType = "image/png";
+                    break;
+                case "gif":
+                    mimeType = "image/gif";
+                    break;
+                case "emf": // Not native support
+                    mimeType = "image/x-emf";
+                    break;
+                case "wmf": // Not native support
+                    mimeType = "image/x-wmf";
+                    break;
+                case "svg":
+                    mimeType = "image/svg+xml";
+                    break;
+                case "mp4":
+                    mimeType = "video/mp4";
+                    break;
+                case "webm":
+                    mimeType = "video/webm";
+                    break;
+                case "ogg":
+                    mimeType = "video/ogg";
+                    break;
+                case "avi":
+                    mimeType = "video/avi";
+                    break;
+                case "mpg":
+                    mimeType = "video/mpg";
+                    break;
+                case "wmv":
+                    mimeType = "video/wmv";
+                    break;
+                case "mp3":
+                    mimeType = "audio/mpeg";
+                    break;
+                case "wav":
+                    mimeType = "audio/wav";
+                    break;
+                case "emf":
+                    mimeType = "image/emf";
+                    break;
+                case "wmf":
+                    mimeType = "image/wmf";
+                case "tif":
+                case "tiff":
+                    mimeType = "image/tiff";
+                    break;
+            }
+            return mimeType;
+        }
+
+    
+        function getPosition(slideSpNode, pNode, slideLayoutSpNode, slideMasterSpNode, sType) {
+            var off;
+            var x = -1, y = -1;
+
+            if (slideSpNode !== undefined) {
+                off = slideSpNode["a:off"]["attrs"];
+            }
+
+            if (off === undefined && slideLayoutSpNode !== undefined) {
+                off = slideLayoutSpNode["a:off"]["attrs"];
+            } else if (off === undefined && slideMasterSpNode !== undefined) {
+                off = slideMasterSpNode["a:off"]["attrs"];
+            }
+            var offX = 0, offY = 0;
+            var grpX = 0, grpY = 0;
+            if (sType == "group") {
+
+                var grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
+                if (xfrmNode !== undefined) {
+                    grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+                    grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+                    // var chx = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
+                    // var chy = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+                    // var cx = parseInt(grpXfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
+                    // var cy = parseInt(grpXfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
+                    // var chcx = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
+                    // var chcy = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+                    // var rotate = parseInt(grpXfrmNode["attrs"]["rot"])
+                }
+            }
+            if (sType == "group-rotate" && pNode["p:grpSpPr"] !== undefined) {
+                var xfrmNode = pNode["p:grpSpPr"]["a:xfrm"];
+                // var ox = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
+                // var oy = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
+                var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
+                var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+
+                offX = chx;
+                offY = chy;
+            }
+            if (off === undefined) {
+                return "";
+            } else {
+                x = parseInt(off["x"]) * slideFactor;
+                y = parseInt(off["y"]) * slideFactor;
+                // if (type = "body")
+                //     console.log("getPosition: slideSpNode: ", slideSpNode, ", type: ", type, "x: ", x, "offX:", offX, "y:", y, "offY:", offY)
+                return (isNaN(x) || isNaN(y)) ? "" : "top:" + (y - offY + grpY) + "px; left:" + (x - offX + grpX) + "px;";
+            }
+
+        }
+
+        function getSize(slideSpNode, slideLayoutSpNode, slideMasterSpNode) {
+            var ext = undefined;
+            var w = -1, h = -1;
+
+            if (slideSpNode !== undefined) {
+                ext = slideSpNode["a:ext"]["attrs"];
+            } else if (slideLayoutSpNode !== undefined) {
+                ext = slideLayoutSpNode["a:ext"]["attrs"];
+            } else if (slideMasterSpNode !== undefined) {
+                ext = slideMasterSpNode["a:ext"]["attrs"];
+            }
+
+            if (ext === undefined) {
+                return "";
+            } else {
+                w = parseInt(ext["cx"]) * slideFactor;
+                h = parseInt(ext["cy"]) * slideFactor;
+                return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
+            }
+
+        }
+
+    function IsVideoLink(vdoFile) {
+            /*
+            var ext = PPTXXmlUtils.extractFileExtension(vdoFile);
+            if (ext.length == 3){
+                return false;
+            }else{
+                return true;
+            }
+            */
+            var urlregex = /^(https?|ftp):\/\/([a-zA-Z0-9.-]+(:[a-zA-Z0-9.&%$-]+)*@)*((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(:[0-9]+)*(\/($|[a-zA-Z0-9.,?'\\+&%$#=~_-]+))*$/;
+            return urlregex.test(vdoFile);
+        }   
     return {
         getTextByPathStr: getTextByPathStr,
         getTextByPathList: getTextByPathList,
@@ -438,7 +588,12 @@ var PPTXXmlUtils = (function() {
         getSlideSizeAndSetDefaultTextStyle: getSlideSizeAndSetDefaultTextStyle,
         resolveMediaPath: resolveMediaPath,
         findMediaFile: findMediaFile,
-        base64ArrayBuffer: base64ArrayBuffer
+        base64ArrayBuffer: base64ArrayBuffer,
+        extractFileExtension,
+        getMimeType,
+        getPosition,
+        getSize,
+        IsVideoLink,
     };
 })();
 

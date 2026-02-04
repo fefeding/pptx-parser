@@ -69,7 +69,7 @@ var PPTXNodeUtils = (function() {
      * @param {string} source - 源
      * @returns {string} 生成的HTML
      */
-    function processGroupSpNode(node, warpObj, source) {
+    function processGroupSpNode(node, warpObj, source, settings) {
         var slideFactor = 96 / 914400;
         var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
         if (xfrmNode !== undefined) {
@@ -146,10 +146,10 @@ var PPTXNodeUtils = (function() {
         for (var nodeKey in node) {
             if (node[nodeKey].constructor === Array) {
                 for (var i = 0; i < node[nodeKey].length; i++) {
-                    result += processNodesInSlide(nodeKey, node[nodeKey][i], node, warpObj, source, sType);
+                    result += processNodesInSlide(nodeKey, node[nodeKey][i], node, warpObj, source, sType, settings);
                 }
             } else {
-                result += processNodesInSlide(nodeKey, node[nodeKey], node, warpObj, source, sType);
+                result += processNodesInSlide(nodeKey, node[nodeKey], node, warpObj, source, sType, settings);
             }
         }
 
@@ -168,28 +168,28 @@ var PPTXNodeUtils = (function() {
      * @param {string} sType - 形状类型
      * @returns {string} 生成的HTML
      */
-    function processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType) {
+    function processNodesInSlide(nodeKey, nodeValue, nodes, warpObj, source, sType, settings) {
         var result = "";
 
         switch (nodeKey) {
             case "p:sp":    // Shape, Text
-                result = processSpNode(nodeValue, nodes, warpObj, source, sType);
+                result = processSpNode(nodeValue, nodes, warpObj, source, sType, settings);
                 break;
             case "p:cxnSp":    // Shape, Text (with connection)
-                result = processCxnSpNode(nodeValue, nodes, warpObj, source, sType);
+                result = processCxnSpNode(nodeValue, nodes, warpObj, source, sType, settings);
                 break;
             case "p:pic":    // Picture
-                result = processPicNode(nodeValue, warpObj, source, sType);
+                result = processPicNode(nodeValue, warpObj, source, sType, settings);
                 break;
             case "p:graphicFrame":    // Chart, Diagram, Table
-                result = processGraphicFrameNode(nodeValue, warpObj, source, sType);
+                result = processGraphicFrameNode(nodeValue, warpObj, source, sType, settings);
                 break;
             case "p:grpSp":
-                result = processGroupSpNode(nodeValue, warpObj, source);
+                result = processGroupSpNode(nodeValue, warpObj, source, settings);
                 break;
             case "mc:AlternateContent": //Equations and formulas as Image
                 var mcFallbackNode = PPTXXmlUtils.getTextByPathList(nodeValue, ["mc:Fallback"]);
-                result = processGroupSpNode(mcFallbackNode, warpObj, source);
+                result = processGroupSpNode(mcFallbackNode, warpObj, source, settings);
                 break;
             default:
                 //console.log("nodeKey: ", nodeKey)
@@ -197,11 +197,315 @@ var PPTXNodeUtils = (function() {
 
         return result;
     }
+   
 
+        function processSpNode(node, pNode, warpObj, source, sType, settings) {
+
+            /*
+            *  958    <xsd:complexType name="CT_GvmlShape">
+            *  959   <xsd:sequence>
+            *  960     <xsd:element name="nvSpPr" type="CT_GvmlShapeNonVisual"     minOccurs="1" maxOccurs="1"/>
+            *  961     <xsd:element name="spPr"   type="CT_ShapeProperties"        minOccurs="1" maxOccurs="1"/>
+            *  962     <xsd:element name="txSp"   type="CT_GvmlTextShape"          minOccurs="0" maxOccurs="1"/>
+            *  963     <xsd:element name="style"  type="CT_ShapeStyle"             minOccurs="0" maxOccurs="1"/>
+            *  964     <xsd:element name="extLst" type="CT_OfficeArtExtensionList" minOccurs="0" maxOccurs="1"/>
+            *  965   </xsd:sequence>
+            *  966 </xsd:complexType>
+            */
+
+            var id = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "id"]);
+            var name = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
+            var idx = (PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]) === undefined) ? undefined : PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "idx"]);
+            var type = (PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]) === undefined) ? undefined : PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+            var order = PPTXXmlUtils.getTextByPathList(node, ["attrs", "order"]);
+            var isUserDrawnBg;
+            if (source == "slideLayoutBg" || source == "slideMasterBg") {
+                var userDrawn = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:nvPr", "attrs", "userDrawn"]);
+                if (userDrawn == "1") {
+                    isUserDrawnBg = true;
+                } else {
+                    isUserDrawnBg = false;
+                }
+            }
+            var slideLayoutSpNode = undefined;
+            var slideMasterSpNode = undefined;
+
+            if (idx !== undefined) {
+                slideLayoutSpNode = warpObj["slideLayoutTables"]["idxTable"][idx];
+                if (type !== undefined) {
+                    slideMasterSpNode = warpObj["slideMasterTables"]["typeTable"][type];
+                } else {
+                    slideMasterSpNode = warpObj["slideMasterTables"]["idxTable"][idx];
+                }
+            } else {
+                if (type !== undefined) {
+                    slideLayoutSpNode = warpObj["slideLayoutTables"]["typeTable"][type];
+                    slideMasterSpNode = warpObj["slideMasterTables"]["typeTable"][type];
+                }
+            }
+
+            if (type === undefined) {
+                txBoxVal = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvSpPr", "attrs", "txBox"]);
+                if (txBoxVal == "1") {
+                    type = "textBox";
+                }
+            }
+            if (type === undefined) {
+                type = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                if (type === undefined) {
+                    //type = PPTXXmlUtils.getTextByPathList(slideMasterSpNode, ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                    if (source == "diagramBg") {
+                        type = "diagram";
+                    } else {
+
+                        type = "obj"; //default type
+                    }
+                }
+            }
+            //console.log("processSpNode type:", type, "idx:", idx);
+            return PPTXShapeUtils.genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, settings);
+        }
+
+        function processCxnSpNode(node, pNode, warpObj, source, sType, settings) {
+
+            var id = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["id"];
+            var name = node["p:nvCxnSpPr"]["p:cNvPr"]["attrs"]["name"];
+            var idx = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["idx"];
+            var type = (node["p:nvCxnSpPr"]["p:nvPr"]["p:ph"] === undefined) ? undefined : node["p:nvSpPr"]["p:nvPr"]["p:ph"]["attrs"]["type"];
+            //<p:cNvCxnSpPr>(<p:cNvCxnSpPr>, <a:endCxn>)
+            var order = node["attrs"]["order"];
+
+            return PPTXShapeUtils.genShape(node, pNode, undefined, undefined, id, name, idx, type, order, warpObj, undefined, sType, source, settings);
+        }
+    function processPicNode(node, warpObj, source, sType, settings) {
+            //console.log("processPicNode node:", node, "source:", source, "sType:", sType, "warpObj;", warpObj);
+            var rtrnData = "";
+            var mediaPicFlag = false;
+            var order = node["attrs"]["order"];
+
+            var rid = node["p:blipFill"]["a:blip"]["attrs"]["r:embed"];
+            var resObj;
+            if (source == "slideMasterBg") {
+                resObj = warpObj["masterResObj"];
+            } else if (source == "slideLayoutBg") {
+                resObj = warpObj["layoutResObj"];
+            } else {
+                //imgName = warpObj["slideResObj"][rid]["target"];
+                resObj = warpObj["slideResObj"];
+            }
+            var imgName = (resObj[rid] !== undefined) ? resObj[rid]["target"] : undefined;
+
+            if (imgName === undefined) {
+                console.warn("Image reference not found in resObj for rid:", rid);
+                return "";
+            }
+
+            //console.log("processPicNode imgName:", imgName);
+            var imgFileExt = PPTXXmlUtils.extractFileExtension(imgName).toLowerCase();
+            var zip = warpObj["zip"];
+            
+            // 确定上下文类型用于路径解析
+            var context = 'slide';
+            if (source == "slideMasterBg") {
+                context = 'master';
+            } else if (source == "slideLayoutBg") {
+                context = 'layout';
+            }
+            
+            // 使用改进的媒体文件查找方法
+            var imgFile = PPTXXmlUtils.findMediaFile(zip, imgName, context, '');
+            if (imgFile === null) {
+                console.warn("Image file not found in processPicNode:", imgName);
+                return "";
+            }
+            var imgArrayBuffer = imgFile.asArrayBuffer();
+            var mimeType = "";
+            var xfrmNode = node["p:spPr"]["a:xfrm"];
+            if (xfrmNode === undefined) {
+                var idx = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "idx"]);
+                var type = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                if (idx !== undefined) {
+                    xfrmNode = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"], ["idxTable", idx, "p:spPr", "a:xfrm"]);
+                }
+            }
+            ///////////////////////////////////////Amir//////////////////////////////
+            var rotate = 0;
+            var rotateNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:xfrm", "attrs", "rot"]);
+            if (rotateNode !== undefined) {
+                rotate = PPTXXmlUtils.angleToDegrees(rotateNode);
+            }
+            //video
+            var vdoNode = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:videoFile"]);
+            var vdoRid, vdoFile, vdoFileExt, vdoMimeType, uInt8Array, blob, vdoBlob, mediaSupportFlag = false, isVdeoLink = false;
+            var mediaProcess = settings.mediaProcess;
+            if (vdoNode !== undefined & mediaProcess) {
+                vdoRid = vdoNode["attrs"]["r:link"];
+                vdoFile = resObj[vdoRid]["target"];
+                var checkIfLink = PPTXXmlUtils.IsVideoLink(vdoFile);
+                if (checkIfLink) {
+                    vdoFile = PPTXXmlUtils.escapeHtml(vdoFile);
+                    //vdoBlob = vdoFile;
+                    isVdeoLink = true;
+                    mediaSupportFlag = true;
+                    mediaPicFlag = true;
+                } else {
+                    vdoFileExt = PPTXXmlUtils.extractFileExtension(vdoFile).toLowerCase();
+                    if (vdoFileExt == "mp4" || vdoFileExt == "webm" || vdoFileExt == "ogg") {
+                        // 使用改进的媒体文件查找方法
+                        var vdoFileObj = PPTXXmlUtils.findMediaFile(zip, vdoFile, context, '');
+                        if (vdoFileObj === null) {
+                            console.warn("Video file not found:", vdoFile);
+                        } else {
+                            uInt8Array = vdoFileObj.asArrayBuffer();
+                            vdoMimeType = PPTXXmlUtils.getMimeType(vdoFileExt);
+                            blob = new Blob([uInt8Array], {
+                                type: vdoMimeType
+                            });
+                            vdoBlob = URL.createObjectURL(blob);
+                            mediaSupportFlag = true;
+                            mediaPicFlag = true;
+                        }
+                    }
+                }
+            }
+            //Audio
+            var audioNode = PPTXXmlUtils.getTextByPathList(node, ["p:nvPicPr", "p:nvPr", "a:audioFile"]);
+            var audioRid, audioFile, audioFileExt, audioMimeType, uInt8ArrayAudio, blobAudio, audioBlob;
+            var audioPlayerFlag = false;
+            var audioObjc;
+            if (audioNode !== undefined & mediaProcess) {
+                audioRid = audioNode["attrs"]["r:link"];
+                audioFile = resObj[audioRid]["target"];
+                audioFileExt = PPTXXmlUtils.extractFileExtension(audioFile).toLowerCase();
+                if (audioFileExt == "mp3" || audioFileExt == "wav" || audioFileExt == "ogg") {
+                    // 使用改进的媒体文件查找方法
+                    var audioFileObj = PPTXXmlUtils.findMediaFile(zip, audioFile, context, '');
+                    if (audioFileObj === null) {
+                        console.warn("Audio file not found:", audioFile);
+                    } else {
+                        uInt8ArrayAudio = audioFileObj.asArrayBuffer();
+                        blobAudio = new Blob([uInt8ArrayAudio]);
+                    audioBlob = URL.createObjectURL(blobAudio);
+                    var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * 20;
+                    var cy = xfrmNode["a:ext"]["attrs"]["cy"];
+                    var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) / 2.5;
+                    var y = xfrmNode["a:off"]["attrs"]["y"];
+                    audioObjc = {
+                        "a:ext": {
+                            "attrs": {
+                                "cx": cx,
+                                "cy": cy
+                            }
+                        },
+                        "a:off": {
+                            "attrs": {
+                                "x": x,
+                                "y": y
+
+                            }
+                        }
+                    }
+                        audioPlayerFlag = true;
+                        mediaSupportFlag = true;
+                        mediaPicFlag = true;
+                    }
+                }
+            }
+            //console.log(node)
+            //////////////////////////////////////////////////////////////////////////
+            mimeType = PPTXXmlUtils.getMimeType(imgFileExt);
+            rtrnData = "<div class='block content' style='" +
+                ((mediaProcess && audioPlayerFlag) ? PPTXXmlUtils.getPosition(audioObjc, node, undefined, undefined) : PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined)) +
+                ((mediaProcess && audioPlayerFlag) ? PPTXXmlUtils.getSize(audioObjc, undefined, undefined) : PPTXXmlUtils.getSize(xfrmNode, undefined, undefined)) +
+                " z-index: " + order + ";" +
+                "transform: rotate(" + rotate + "deg);'>";
+            if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
+                rtrnData += "<img src='data:" + mimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%; height: 100%'/>";
+            } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
+                if (vdoNode !== undefined && !isVdeoLink) {
+                    rtrnData += "<video  src='" + vdoBlob + "' controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>";
+                } else if (vdoNode !== undefined && isVdeoLink) {
+                    rtrnData += "<iframe   src='" + vdoFile + "' controls style='width: 100%; height: 100%'></iframe >";
+                }
+                if (audioNode !== undefined) {
+                    rtrnData += '<audio id="audio_player" controls ><source src="' + audioBlob + '"></audio>';
+                    //'<button onclick="audio_player.play()">Play</button>'+
+                    //'<button onclick="audio_player.pause()">Pause</button>';
+                }
+            }
+            if (!mediaSupportFlag && mediaPicFlag) {
+                rtrnData += "<span style='color:red;font-size:40px;position: absolute;'>This media file Not supported by HTML5</span>";
+            }
+            if ((vdoNode !== undefined || audioNode !== undefined) && !mediaProcess && mediaSupportFlag) {
+                console.log("Founded supported media file but media process disabled (mediaProcess=false)");
+            }
+            rtrnData += "</div>";
+            //console.log(rtrnData)
+            return rtrnData;
+        }
+
+        function processGraphicFrameNode(node, warpObj, source, sType, settings) {
+
+            var result = "";
+            var graphicTypeUri = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "attrs", "uri"]);
+
+            switch (graphicTypeUri) {
+                case "http://schemas.openxmlformats.org/drawingml/2006/table":
+                    result = PPTXTextUtils.genTable(node, warpObj);
+                    break;
+                case "http://schemas.openxmlformats.org/drawingml/2006/chart":
+                    result = PPTXTextUtils.genChart(node, warpObj);
+                    break;
+                case "http://schemas.openxmlformats.org/drawingml/2006/diagram":
+                    result = PPTXTextUtils.genDiagram(node, warpObj, source, sType);
+                    break;
+                case "http://schemas.openxmlformats.org/presentationml/2006/ole":
+                    //result = genDiagram(node, warpObj, source, sType);
+                    var oleObjNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "mc:AlternateContent", "mc:Fallback","p:oleObj"]);
+                    
+                    if (oleObjNode === undefined) {
+                        oleObjNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "p:oleObj"]);
+                    }
+                    //console.log("node:", node, "oleObjNode:", oleObjNode)
+                    if (oleObjNode !== undefined){
+                        result = PPTXNodeUtils.processGroupSpNode(oleObjNode, warpObj, source, sType, settings);
+                    }
+                    break;
+                default:
+            }
+
+            return result;
+        }
+
+        function processSpPrNode(node, warpObj) {
+
+            /*
+            * 2241 <xsd:complexType name="CT_ShapeProperties">
+            * 2242   <xsd:sequence>
+            * 2243     <xsd:element name="xfrm" type="CT_Transform2D"  minOccurs="0" maxOccurs="1"/>
+            * 2244     <xsd:group   ref="EG_Geometry"                  minOccurs="0" maxOccurs="1"/>
+            * 2245     <xsd:group   ref="EG_FillProperties"            minOccurs="0" maxOccurs="1"/>
+            * 2246     <xsd:element name="ln" type="CT_LineProperties" minOccurs="0" maxOccurs="1"/>
+            * 2247     <xsd:group   ref="EG_EffectProperties"          minOccurs="0" maxOccurs="1"/>
+            * 2248     <xsd:element name="scene3d" type="CT_Scene3D"   minOccurs="0" maxOccurs="1"/>
+            * 2249     <xsd:element name="sp3d" type="CT_Shape3D"      minOccurs="0" maxOccurs="1"/>
+            * 2250     <xsd:element name="extLst" type="CT_OfficeArtExtensionList" minOccurs="0" maxOccurs="1"/>
+            * 2251   </xsd:sequence>
+            * 2252   <xsd:attribute name="bwMode" type="ST_BlackWhiteMode" use="optional"/>
+            * 2253 </xsd:complexType>
+            */
+
+            // TODO:
+        }
     return {
         indexNodes: indexNodes,
         processGroupSpNode: processGroupSpNode,
-        processNodesInSlide: processNodesInSlide
+        processNodesInSlide: processNodesInSlide,
+        processSpNode,
+        processCxnSpNode,
+        processPicNode,
+        processGraphicFrameNode,
+        processSpPrNode
     };
 })();
 
