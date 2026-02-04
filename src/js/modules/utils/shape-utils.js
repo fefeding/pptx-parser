@@ -4388,7 +4388,7 @@ var PPTXShapeUtils = (function() {
                         break;
                     }
                     case "ribbon":
-                    case "ribbon2":
+                    case "ribbon2": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 16667 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -4509,6 +4509,7 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "doubleWave":
                     case "wave": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -4812,7 +4813,7 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     }
-                    case "leftArrow":
+                    case "leftArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
                         var sAdj2, sAdj2_val = 0.5;
@@ -4836,8 +4837,9 @@ var PPTXShapeUtils = (function() {
                             "," + w + " " + sAdj1_val * h + "," + sAdj2_val * w + " " + sAdj1_val * h + ", " + sAdj2_val * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
+                    }
                     case "downArrow":
-                    case "flowChartOffpageConnector":
+                    case "flowChartOffpageConnector": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
                         var sAdj2, sAdj2_val = 0.5;
@@ -4864,7 +4866,8 @@ var PPTXShapeUtils = (function() {
                             "," + w + " " + (1 - sAdj2_val) * h + "," + (0.5 + sAdj1_val) * w + " " + (1 - sAdj2_val) * h + ", " + (0.5 + sAdj1_val) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "upArrow":
+                    }
+                    case "upArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;//0.5;
                         var sAdj2, sAdj2_val = 0.5;
@@ -4886,7 +4889,8 @@ var PPTXShapeUtils = (function() {
                             "," + (0.5 + sAdj1_val) * w + " " + h + "," + (0.5 + sAdj1_val) * w + " " + sAdj2_val * h + ", " + w + " " + sAdj2_val * h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "leftRightArrow":
+                    }
+                    case "leftRightArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;
                         var sAdj2, sAdj2_val = 0.25;
@@ -4911,7 +4915,8 @@ var PPTXShapeUtils = (function() {
                             sAdj2_val * w + " " + sAdj1_val * h + "," + sAdj2_val * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "upDownArrow":
+                    }
+                    case "upDownArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, sAdj1_val = 0.25;
                         var sAdj2, sAdj2_val = 0.25;
@@ -4936,7 +4941,8 @@ var PPTXShapeUtils = (function() {
                             (1 - sAdj1_val) * w + " " + sAdj2_val * h + "," + w + " " + sAdj2_val * h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
-                    case "quadArrow":
+                    }
+                    case "quadArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 22500 * slideFactor;
                         var sAdj2, adj2 = 22500 * slideFactor;
@@ -5015,7 +5021,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "leftRightUpArrow":
+                    }
+                    case "leftRightUpArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5087,7 +5094,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "leftUpArrow":
+                    }
+                    case "leftUpArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5152,7 +5160,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "bentUpArrow":
+                    }
+                    case "bentUpArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5210,7 +5219,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "bentArrow":
+                    }
+                    case "bentArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5287,7 +5297,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "uturnArrow":
+                    }
+                    case "uturnArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5384,7 +5395,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "stripedRightArrow":
+                    }
+                    case "stripedRightArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 50000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -5443,7 +5455,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "notchedRightArrow":
+                    }
+                    case "notchedRightArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 50000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -5489,7 +5502,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "homePlate":
+                    }
+                    case "homePlate": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
@@ -5514,7 +5528,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "chevron":
+                    }
+                    case "chevron": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 50000 * slideFactor;
                         var cnstVal1 = 100000 * slideFactor;
@@ -5541,7 +5556,8 @@ var PPTXShapeUtils = (function() {
 
 
                         break;
-                    case "rightArrowCallout":
+                    }
+                    case "rightArrowCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5606,7 +5622,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "downArrowCallout":
+                    }
+                    case "downArrowCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5672,7 +5689,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "leftArrowCallout":
+                    }
+                    case "leftArrowCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5738,7 +5756,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "upArrowCallout":
+                    }
+                    case "upArrowCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5804,7 +5823,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "leftRightArrowCallout":
+                    }
+                    case "leftRightArrowCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 25000 * slideFactor;
@@ -5877,7 +5897,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "quadArrowCallout":
+                    }
+                    case "quadArrowCallout": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 18515 * slideFactor;
                         var sAdj2, adj2 = 18515 * slideFactor;
@@ -5972,7 +5993,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "curvedDownArrow":
+                    }
+                    case "curvedDownArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -6061,7 +6083,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "curvedLeftArrow":
+                    }
+                    case "curvedLeftArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -6152,7 +6175,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "curvedRightArrow":
+                    }
+                    case "curvedRightArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -6244,7 +6268,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "curvedUpArrow":
+                    }
+                    case "curvedUpArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * slideFactor;
                         var sAdj2, adj2 = 50000 * slideFactor;
@@ -6336,12 +6361,13 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "mathDivide":
                     case "mathEqual":
                     case "mathMinus":
                     case "mathMultiply":
                     case "mathNotEqual":
-                    case "mathPlus":
+                    case "mathPlus": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1;
                         var sAdj2, adj2;
@@ -6673,9 +6699,10 @@ var PPTXShapeUtils = (function() {
 
                         //console.log(shapType);
                         break;
+                    }
                     case "can":
                     case "flowChartMagneticDisk":
-                    case "flowChartMagneticDrum":
+                    case "flowChartMagneticDrum": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 25000 * slideFactor;
                         var cnstVal1 = 50000 * slideFactor;
@@ -6709,7 +6736,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "swooshArrow":
+                    }
+                    case "swooshArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var refr = slideFactor;
                         var sAdj1, adj1 = 25000 * refr;
@@ -6775,7 +6803,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "circularArrow":
+                    }
+                    case "circularArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 12500 * slideFactor;
                         var sAdj2, adj2 = (1142319 / 60000) * Math.PI / 180;
@@ -7036,7 +7065,8 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
-                    case "leftCircularArrow":
+                    }
+                    case "leftCircularArrow": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 12500 * slideFactor;
                         var sAdj2, adj2 = (-1142319 / 60000) * Math.PI / 180;
@@ -7290,6 +7320,7 @@ var PPTXShapeUtils = (function() {
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
+                    }
                     case "leftRightCircularArrow":
                     case "chartPlus":
                     case "chartStar":
@@ -7302,9 +7333,10 @@ var PPTXShapeUtils = (function() {
                     case "nonIsoscelesTrapezoid":
                     case "plaqueTabs":
                     case "squareTabs":
-                    case "upDownArrowCallout":
+                    case "upDownArrowCallout": {
                         console.log(shapType, " -unsupported shape type.");
                         break;
+                    }
                     case undefined:
                     default:
                         console.warn("Undefine shape type.(" + shapType + ")");
