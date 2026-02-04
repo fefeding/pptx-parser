@@ -179,7 +179,7 @@
             //if (typeof file === 'string') { // Load
             zip = zip.load(file);  //zip.load(file, { base64: true });
             var rslt_ary = processPPTX(zip);
-            //s = readXmlFile(zip, 'ppt/tableStyles.xml');
+            //s = PPTXXmlUtils.readXmlFile(zip, 'ppt/tableStyles.xml');
             //var slidesHeight = $("#" + divId + " .slide").height();
             for (var i = 0; i < rslt_ary.length; i++) {
                 switch (rslt_ary[i]["type"]) {
@@ -331,9 +331,9 @@
                 });
             }
 
-            var filesInfo = getContentTypes(zip);
-            var slideSize = getSlideSizeAndSetDefaultTextStyle(zip);
-            tableStyles = readXmlFile(zip, "ppt/tableStyles.xml");
+            var filesInfo = PPTXFileUtils.getContentTypes(zip);
+            var slideSize = PPTXFileUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
+            tableStyles = PPTXXmlUtils.readXmlFile(zip, "ppt/tableStyles.xml");
             //console.log("slideSize: ", slideSize)
             post_ary.push({
                 "type": "slideSize",
@@ -393,109 +393,6 @@
             return post_ary;
         }
 
-        function readXmlFile(zip, filename, isSlideContent) {
-            try {
-                var fileContent = zip.file(filename).asText();
-                if (isSlideContent && app_verssion <= 12) {
-                    //< office2007
-                    //remove "<![CDATA[ ... ]]>" tag
-                    fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
-                }
-                var xmlData = tXml(fileContent, { simplify: 1 });
-                if (xmlData["?xml"] !== undefined) {
-                    return xmlData["?xml"];
-                } else {
-                    return xmlData;
-                }
-            } catch (e) {
-                //console.log("error readXmlFile: the file '", filename, "' not exit")
-                return null;
-            }
-
-        }
-        function getContentTypes(zip) {
-            var ContentTypesJson = readXmlFile(zip, "[Content_Types].xml");
-
-            var subObj = ContentTypesJson["Types"]["Override"];
-            var slidesLocArray = [];
-            var slideLayoutsLocArray = [];
-            for (var i = 0; i < subObj.length; i++) {
-                switch (subObj[i]["attrs"]["ContentType"]) {
-                    case "application/vnd.openxmlformats-officedocument.presentationml.slide+xml":
-                        slidesLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
-                        break;
-                    case "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml":
-                        slideLayoutsLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
-                        break;
-                    default:
-                }
-            }
-            return {
-                "slides": slidesLocArray,
-                "slideLayouts": slideLayoutsLocArray
-            };
-        }
-
-        function getSlideSizeAndSetDefaultTextStyle(zip) {
-            //get app version
-            var app = readXmlFile(zip, "docProps/app.xml");
-            var app_verssion_str = app["Properties"]["AppVersion"]
-            app_verssion = parseInt(app_verssion_str);
-            console.log("create by Office PowerPoint app verssion: ", app_verssion_str)
-
-            //get slide dimensions
-            var rtenObj = {};
-            var content = readXmlFile(zip, "ppt/presentation.xml");
-            var sldSzAttrs = content["p:presentation"]["p:sldSz"]["attrs"];
-            var sldSzWidth = parseInt(sldSzAttrs["cx"]);
-            var sldSzHeight = parseInt(sldSzAttrs["cy"]);
-            var sldSzType = sldSzAttrs["type"];
-            console.log("Presentation size type: ", sldSzType)
-
-            //1 inches  = 96px = 2.54cm
-            // 1 EMU = 1 / 914400 inch
-            // Pixel = EMUs * Resolution / 914400;  (Resolution = 96)
-            //var standardHeight = 6858000;
-            //console.log("slideFactor: ", slideFactor, "standardHeight:", standardHeight, (standardHeight - sldSzHeight) / standardHeight)
-            
-            //slideFactor = (96 * (1 + ((standardHeight - sldSzHeight) / standardHeight))) / 914400 ;
-
-            //slideFactor = slideFactor + sldSzHeight*((standardHeight - sldSzHeight) / standardHeight) ;
-
-            //var ration = sldSzWidth / sldSzHeight;
-            
-            //Scale
-            // var viewProps = readXmlFile(zip, "ppt/viewProps.xml");
-            // var scaleLoc = getTextByPathList(viewProps, ["p:viewPr", "p:slideViewPr", "p:cSldViewPr", "p:cViewPr","p:scale"]);
-            // var scaleXnodes, scaleX = 1, scaleYnode, scaleY = 1;
-            // if (scaleLoc !== undefined){
-            //     scaleXnodes = scaleLoc["a:sx"]["attrs"];
-            //     var scaleXnodesN = scaleXnodes["n"];
-            //     var scaleXnodesD = scaleXnodes["d"];
-            //     if (scaleXnodesN !== undefined && scaleXnodesD !== undefined && scaleXnodesN != 0){
-            //         scaleX = parseInt(scaleXnodesD)/parseInt(scaleXnodesN);
-            //     }
-            //     scaleYnode = scaleLoc["a:sy"]["attrs"];
-            //     var scaleYnodeN = scaleYnode["n"];
-            //     var scaleYnodeD = scaleYnode["d"];
-            //     if (scaleYnodeN !== undefined && scaleYnodeD !== undefined && scaleYnodeN != 0) {
-            //         scaleY = parseInt(scaleYnodeD) / parseInt(scaleYnodeN) ;
-            //     }
-
-            // }
-            //console.log("scaleX: ", scaleX, "scaleY:", scaleY)
-            //slideFactor = slideFactor * scaleX;
-
-            defaultTextStyle = content["p:presentation"]["p:defaultTextStyle"];
-
-            slideWidth = sldSzWidth * slideFactor + settings.incSlide.width|0;// * scaleX;//parseInt(sldSzAttrs["cx"]) * 96 / 914400;
-            slideHeight = sldSzHeight * slideFactor + settings.incSlide.height|0;// * scaleY;//parseInt(sldSzAttrs["cy"]) * 96 / 914400;
-            rtenObj = {
-                "width": slideWidth,
-                "height": slideHeight
-            };
-            return rtenObj;
-        }
         function processSingleSlide(zip, sldFileName, index, slideSize) {
             /*
             self.postMessage({
@@ -508,7 +405,7 @@
             // @sldFileName: ppt/slides/slide1.xml
             // @resName: ppt/slides/_rels/slide1.xml.rels
             var resName = sldFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
-            var resContent = readXmlFile(zip, resName);
+            var resContent = PPTXXmlUtils.readXmlFile(zip, resName);
             var RelationshipArray = resContent["Relationships"]["Relationship"];
             //console.log("RelationshipArray: " , RelationshipArray)
             var layoutFilename = "";
@@ -543,7 +440,7 @@
             }
             //console.log(slideResObj);
             // Open slideLayoutXX.xml
-            var slideLayoutContent = readXmlFile(zip, layoutFilename);
+            var slideLayoutContent = PPTXXmlUtils.readXmlFile(zip, layoutFilename);
             var slideLayoutTables = indexNodes(slideLayoutContent);
             var sldLayoutClrOvr = getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
 
@@ -556,7 +453,7 @@
             // @resName: ppt/slideLayouts/slideLayout1.xml
             // @masterName: ppt/slideLayouts/_rels/slideLayout1.xml.rels
             var slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
-            var slideLayoutResContent = readXmlFile(zip, slideLayoutResFilename);
+            var slideLayoutResContent = PPTXXmlUtils.readXmlFile(zip, slideLayoutResFilename);
             RelationshipArray = slideLayoutResContent["Relationships"]["Relationship"];
             var masterFilename = "";
             var layoutResObj = {};
@@ -577,14 +474,14 @@
                 masterFilename = RelationshipArray["attrs"]["Target"].replace("../", "ppt/");
             }
             // Open slideMasterXX.xml
-            var slideMasterContent = readXmlFile(zip, masterFilename);
+            var slideMasterContent = PPTXXmlUtils.readXmlFile(zip, masterFilename);
             var slideMasterTextStyles = getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
             var slideMasterTables = indexNodes(slideMasterContent);
 
             /////////////////Amir/////////////
             //Open slideMasterXX.xml.rels
             var slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
-            var slideMasterResContent = readXmlFile(zip, slideMasterResFilename);
+            var slideMasterResContent = PPTXXmlUtils.readXmlFile(zip, slideMasterResFilename);
             RelationshipArray = slideMasterResContent["Relationships"]["Relationship"];
             var themeFilename = "";
             var masterResObj = {};
@@ -611,8 +508,8 @@
                 var themeName = themeFilename.split("/").pop();
                 var themeResFileName = themeFilename.replace(themeName, "_rels/" + themeName) + ".rels";
                 //console.log("themeFilename: ", themeFilename, ", themeName: ", themeName, ", themeResFileName: ", themeResFileName)
-                var themeContent = readXmlFile(zip, themeFilename);
-                var themeResContent = readXmlFile(zip, themeResFileName);
+                var themeContent = PPTXXmlUtils.readXmlFile(zip, themeFilename);
+                var themeResContent = PPTXXmlUtils.readXmlFile(zip, themeResFileName);
                 if (themeResContent !== null) {
                     var relationshipArray = themeResContent["Relationships"]["Relationship"];
                     if (relationshipArray !== undefined){
@@ -641,14 +538,14 @@
                 var diagName = diagramFilename.split("/").pop();
                 var diagramResFileName = diagramFilename.replace(diagName, "_rels/" + diagName) + ".rels";
                 //console.log("diagramFilename: ", diagramFilename, ", themeName: ", themeName, ", diagramResFileName: ", diagramResFileName)
-                digramFileContent = readXmlFile(zip, diagramFilename);
+                digramFileContent = PPTXXmlUtils.readXmlFile(zip, diagramFilename);
                 if (digramFileContent !== null && digramFileContent !== undefined && digramFileContent != "") {
                     var digramFileContentObjToStr = JSON.stringify(digramFileContent);
                     digramFileContentObjToStr = digramFileContentObjToStr.replace(/dsp:/g, "p:");
                     digramFileContent = JSON.parse(digramFileContentObjToStr);
                 }
 
-                var digramResContent = readXmlFile(zip, diagramResFileName);
+                var digramResContent = PPTXXmlUtils.readXmlFile(zip, diagramResFileName);
                 if (digramResContent !== null) {
                     var relationshipArray = digramResContent["Relationships"]["Relationship"];
                     var themeFilename = "";
@@ -670,7 +567,7 @@
             }
             //console.log("diagramResObj: " , diagramResObj)
             // =====< Step 3 >=====
-            var slideContent = readXmlFile(zip, sldFileName , true);
+            var slideContent = PPTXXmlUtils.readXmlFile(zip, sldFileName , true);
             var nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
             var warpObj = {
                 "zip": zip,
@@ -687,7 +584,7 @@
                 "themeResObj": themeResObj,
                 "digramFileContent": digramFileContent,
                 "diagramResObj": diagramResObj,
-                "defaultTextStyle": defaultTextStyle
+                "defaultTextStyle": slideSize.defaultTextStyle || defaultTextStyle
             };
             var bgResult = "";
             if (processFullTheme === true) {
@@ -10297,7 +10194,7 @@
 
             var rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
             var refName = warpObj["slideResObj"][rid]["target"];
-            var content = readXmlFile(warpObj["zip"], refName);
+            var content = PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
             var plotArea = getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
 
             var chartData = null;
@@ -10381,7 +10278,7 @@
 
         function genDiagram(node, warpObj, source, sType) {
             //console.log(warpObj)
-            //readXmlFile(zip, sldFileName)
+            //PPTXXmlUtils.readXmlFile(zip, sldFileName)
             /**files define the diagram:
              * 1-colors#.xml,
              * 2-data#.xml, 
@@ -10404,10 +10301,10 @@
                 dgmLayoutFileName = warpObj["slideResObj"][dgmLayoutFileId].target;
             dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
             //console.log("dgmClrFileName: " , dgmClrFileName,", dgmDataFileName: ",dgmDataFileName,", dgmLayoutFileName: ",dgmLayoutFileName,", dgmQuickStyleFileName: ",dgmQuickStyleFileName);
-            var dgmClr = readXmlFile(zip, dgmClrFileName);
-            var dgmData = readXmlFile(zip, dgmDataFileName);
-            var dgmLayout = readXmlFile(zip, dgmLayoutFileName);
-            var dgmQuickStyle = readXmlFile(zip, dgmQuickStyleFileName);
+            var dgmClr = PPTXXmlUtils.readXmlFile(zip, dgmClrFileName);
+            var dgmData = PPTXXmlUtils.readXmlFile(zip, dgmDataFileName);
+            var dgmLayout = PPTXXmlUtils.readXmlFile(zip, dgmLayoutFileName);
+            var dgmQuickStyle = PPTXXmlUtils.readXmlFile(zip, dgmQuickStyleFileName);
             //console.log(dgmClr,dgmData,dgmLayout,dgmQuickStyle)
             ///get drawing#.xml
             // var dgmDrwFileName = "";
@@ -10418,7 +10315,7 @@
             // }
             // var dgmDrwFile = "";
             // if (dgmDrwFileName != "") {
-            //     dgmDrwFile = readXmlFile(zip, dgmDrwFileName);
+            //     dgmDrwFile = PPTXXmlUtils.readXmlFile(zip, dgmDrwFileName);
             // }
             // var dgmDrwSpArray = getTextByPathList(dgmDrwFile, ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
             //var dgmDrwSpArray = getTextByPathList(warpObj["digramFileContent"], ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
