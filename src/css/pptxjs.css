@@ -97,16 +97,8 @@
 	font-size: 18px;
 }
 
-/* div.footer {
-	text-align: center;
-} */
-
 .slide table {
 	position: absolute;
-}
-
-.slide table, .slide th, .slide td {
-	border: 1px solid black;
 }
 
 .slide svg.drawing {
