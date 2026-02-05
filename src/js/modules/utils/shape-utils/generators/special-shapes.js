@@ -609,7 +609,11 @@ var PPTXSpecialShapes = (function() {
         var cnstVal2 = 100000 * slideFactor;
         var maxAdj = cnstVal1 * h / Math.min(w, h);
         if (shapAdjst !== undefined) {
-            adj = parseInt(shapAdjst.substr(4)) * slideFactor;
+            if (typeof shapAdjst === "string") {
+                adj = parseInt(shapAdjst.substr(4)) * slideFactor;
+            } else if (shapAdjst["attrs"] !== undefined && shapAdjst["attrs"]["fmla"] !== undefined) {
+                adj = parseInt(shapAdjst["attrs"]["fmla"].substr(4)) * slideFactor;
+            }
         }
         var a, y1, y2, y3;
         if (adj < 0) a = 0
@@ -634,7 +638,11 @@ var PPTXSpecialShapes = (function() {
         border = ensureBorder(border);
         var adj = 0.5;
         if (shapAdjst !== undefined) {
-            adj = parseInt(shapAdjst.substr(4)) / 100000;
+            if (typeof shapAdjst === "string") {
+                adj = parseInt(shapAdjst.substr(4)) / 100000;
+            } else if (shapAdjst["attrs"] !== undefined && shapAdjst["attrs"]["fmla"] !== undefined) {
+                adj = parseInt(shapAdjst["attrs"]["fmla"].substr(4)) / 100000;
+            }
         }
         var hd2 = h / 2;
         var adj2 = (1 - adj) * w;
@@ -961,22 +969,34 @@ var PPTXSpecialShapes = (function() {
         var sAdj5, adj5 = 12500 * slideFactor;
         if (shapAdjst_ary !== undefined) {
             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = shapAdjst_ary[i]["attrs"]["name"];
-                if (sAdj_name == "adj1") {
-                    sAdj1 = shapAdjst_ary[i]["attrs"]["fmla"];
-                    adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
-                } else if (sAdj_name == "adj2") {
-                    sAdj2 = shapAdjst_ary[i]["attrs"]["fmla"];
-                    adj2 = (parseInt(sAdj2.substr(4)) / 60000) * Math.PI / 180;
-                } else if (sAdj_name == "adj3") {
-                    sAdj3 = shapAdjst_ary[i]["attrs"]["fmla"];
-                    adj3 = (parseInt(sAdj3.substr(4)) / 60000) * Math.PI / 180;
-                } else if (sAdj_name == "adj4") {
-                    sAdj4 = shapAdjst_ary[i]["attrs"]["fmla"];
-                    adj4 = (parseInt(sAdj4.substr(4)) / 60000) * Math.PI / 180;
-                } else if (sAdj_name == "adj5") {
-                    sAdj5 = shapAdjst_ary[i]["attrs"]["fmla"];
-                    adj5 = parseInt(sAdj5.substr(4)) * slideFactor;
+                if (shapAdjst_ary[i]["attrs"] !== undefined) {
+                    var sAdj_name = shapAdjst_ary[i]["attrs"]["name"];
+                    if (sAdj_name == "adj1") {
+                        sAdj1 = shapAdjst_ary[i]["attrs"]["fmla"];
+                        if (sAdj1 !== undefined) {
+                            adj1 = parseInt(sAdj1.substr(4)) * slideFactor;
+                        }
+                    } else if (sAdj_name == "adj2") {
+                        sAdj2 = shapAdjst_ary[i]["attrs"]["fmla"];
+                        if (sAdj2 !== undefined) {
+                            adj2 = (parseInt(sAdj2.substr(4)) / 60000) * Math.PI / 180;
+                        }
+                    } else if (sAdj_name == "adj3") {
+                        sAdj3 = shapAdjst_ary[i]["attrs"]["fmla"];
+                        if (sAdj3 !== undefined) {
+                            adj3 = (parseInt(sAdj3.substr(4)) / 60000) * Math.PI / 180;
+                        }
+                    } else if (sAdj_name == "adj4") {
+                        sAdj4 = shapAdjst_ary[i]["attrs"]["fmla"];
+                        if (sAdj4 !== undefined) {
+                            adj4 = (parseInt(sAdj4.substr(4)) / 60000) * Math.PI / 180;
+                        }
+                    } else if (sAdj_name == "adj5") {
+                        sAdj5 = shapAdjst_ary[i]["attrs"]["fmla"];
+                        if (sAdj5 !== undefined) {
+                            adj5 = parseInt(sAdj5.substr(4)) * slideFactor;
+                        }
+                    }
                 }
             }
         }
