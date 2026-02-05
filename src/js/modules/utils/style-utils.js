@@ -2456,13 +2456,10 @@ var PPTXStyleUtils = (function() {
         function applyShade(rgbStr, shadeValue, isAlpha) {
             var color = tinycolor(rgbStr).toHsl();
             //console.log("applyShade  color: ", color, ", shadeValue: ", shadeValue)
-            if (shadeValue >= 1) {
-                shadeValue = 1;
-            }
-            var cacl_l = Math.min(color.l * shadeValue, 1);//;color.l * shadeValue + (1 - shadeValue);
-            // if (isAlpha)
-            //     return color.lighten(tintValue).toHex8();
-            // return color.lighten(tintValue).toHex();
+            // 确保shadeValue在0-1之间
+            shadeValue = Math.max(0, Math.min(1, shadeValue));
+            // PPTX标准：Shade = L * shadeValue
+            var cacl_l = Math.max(0, Math.min(1, color.l * shadeValue));
             if (isAlpha)
                 return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
             return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
@@ -2476,13 +2473,10 @@ var PPTXStyleUtils = (function() {
         function applyTint(rgbStr, tintValue, isAlpha) {
             var color = tinycolor(rgbStr).toHsl();
             //console.log("applyTint  color: ", color, ", tintValue: ", tintValue)
-            if (tintValue >= 1) {
-                tintValue = 1;
-            }
-            var cacl_l = color.l * tintValue + (1 - tintValue);
-            // if (isAlpha)
-            //     return color.lighten(tintValue).toHex8();
-            // return color.lighten(tintValue).toHex();
+            // 确保tintValue在0-1之间
+            tintValue = Math.max(0, Math.min(1, tintValue));
+            // PPTX标准：Tint = L * tintValue + (1 - tintValue)
+            var cacl_l = Math.max(0, Math.min(1, color.l * tintValue + (1 - tintValue)));
             if (isAlpha)
                 return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
             return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
@@ -2539,7 +2533,7 @@ var PPTXStyleUtils = (function() {
                 cacl_h = cacl_h - 360;
             }
             if (isAlpha)
-                return tinycolor({ h: cocacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
+                return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
             return tinycolor({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
         }
 
