@@ -206,8 +206,15 @@ var PPTXShapeUtils = (function() {
             }
         }
 
-        result += "<div class='drawing' style='position:absolute; left:" + x + "px; top:" + y + "px; width:" + w + "px; height:" + h + "px; z-index:" + order + ";'>";
-        result += "<svg width='" + w + "' height='" + h + "' style='overflow:visible;'>";
+        var svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
+        var effectsClassName = svgCssName + "_effects";
+        result += "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
+            "' style='" +
+            PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
+            PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
+            " z-index: " + order + ";" +
+            "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";" +
+            "'>";
 
         result += '<defs>';
 
@@ -227,7 +234,7 @@ var PPTXShapeUtils = (function() {
         result += '</defs>';
 
         if (shapType !== undefined) {
-            result += generateShapeByType(shapType, w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, sAdj1_val, sAdj2_val, sAdj3_val, sAdj4_val, sAdj5_val, sAdj6_val, sAdj7_val, sAdj8_val, headEndNodeAttrs, tailEndNodeAttrs);
+            result += generateShapeByType(shapType, w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, sAdj1_val, sAdj2_val, sAdj3_val, sAdj4_val, sAdj5_val, sAdj6_val, sAdj7_val, sAdj8_val, headEndNodeAttrs, tailEndNodeAttrs, node);
         } else if (custShapType !== undefined) {
             var pathLstNode = PPTXXmlUtils.getTextByPathList(custShapType, ["a:pathLst"]);
             var pathNodes = PPTXXmlUtils.getTextByPathList(pathLstNode, ["a:path"]);
@@ -417,7 +424,6 @@ var PPTXShapeUtils = (function() {
             result += PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj);
         }
         result += "</div>";
-        result += "</div>";
 
         return result;
     }
@@ -425,7 +431,7 @@ var PPTXShapeUtils = (function() {
     /**
      * 根据形状类型生成形状
      */
-    function generateShapeByType(shapType, w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, sAdj1_val, sAdj2_val, sAdj3_val, sAdj4_val, sAdj5_val, sAdj6_val, sAdj7_val, sAdj8_val, headEndNodeAttrs, tailEndNodeAttrs) {
+    function generateShapeByType(shapType, w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr, sAdj1_val, sAdj2_val, sAdj3_val, sAdj4_val, sAdj5_val, sAdj6_val, sAdj7_val, sAdj8_val, headEndNodeAttrs, tailEndNodeAttrs, node) {
         var result = "";
 
         switch (shapType) {
@@ -436,6 +442,509 @@ var PPTXShapeUtils = (function() {
             case "actionButtonBlank":
                 result += PPTXRectShapes.generateRect(w, h, shapType, imgFillFlg, grndFillFlg, shpId, fillColor, border, oShadowSvgUrlStr);
                 break;
+            case "actionButtonBackPrevious": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, g11, g12;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                g11 = hc - dx2;
+                g12 = hc + dx2;
+                var d = "M" + 0 + "," + 0 +
+                    " L" + w + "," + 0 +
+                    " L" + w + "," + h +
+                    " L" + 0 + "," + h +
+                    " z" +
+                    "M" + g11 + "," + vc +
+                    " L" + g12 + "," + g9 +
+                    " L" + g12 + "," + g10 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonBeginning": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                g11 = hc - dx2;
+                g12 = hc + dx2;
+                g13 = ss * 3 / 4;
+                g14 = g13 / 8;
+                g15 = g13 / 4;
+                g16 = g11 + g14;
+                g17 = g11 + g15;
+                var d = "M" + 0 + "," + 0 +
+                    " L" + w + "," + 0 +
+                    " L" + w + "," + h +
+                    " L" + 0 + "," + h +
+                    " z" +
+                    "M" + g17 + "," + vc +
+                    " L" + g12 + "," + g9 +
+                    " L" + g12 + "," + g10 +
+                    " z" +
+                    "M" + g16 + "," + g9 +
+                    " L" + g11 + "," + g9 +
+                    " L" + g11 + "," + g10 +
+                    " L" + g16 + "," + g10 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonDocument": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, dx1, g11, g12, g13, g14, g15;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                dx1 = ss * 9 / 32;
+                g11 = hc - dx1;
+                g12 = hc + dx1;
+                g13 = ss * 3 / 16;
+                g14 = g12 - g13;
+                g15 = g9 + g13;
+                var d = "M" + 0 + "," + 0 +
+                    " L" + w + "," + 0 +
+                    " L" + w + "," + h +
+                    " L" + 0 + "," + h +
+                    " z" +
+                    "M" + g11 + "," + g9 +
+                    " L" + g14 + "," + g9 +
+                    " L" + g12 + "," + g15 +
+                    " L" + g12 + "," + g10 +
+                    " L" + g11 + "," + g10 +
+                    " z" +
+                    "M" + g14 + "," + g9 +
+                    " L" + g14 + "," + g15 +
+                    " L" + g12 + "," + g15 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonEnd": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                g11 = hc - dx2;
+                g12 = hc + dx2;
+                g13 = ss * 3 / 4;
+                g14 = g13 * 3 / 4;
+                g15 = g13 * 7 / 8;
+                g16 = g11 + g14;
+                g17 = g11 + g15;
+                var d = "M" + 0 + "," + h +
+                    " L" + w + "," + h +
+                    " L" + w + "," + 0 +
+                    " L" + 0 + "," + 0 +
+                    " z" +
+                    " M" + g17 + "," + g9 +
+                    " L" + g12 + "," + g9 +
+                    " L" + g12 + "," + g10 +
+                    " L" + g17 + "," + g10 +
+                    " z" +
+                    " M" + g16 + "," + vc +
+                    " L" + g11 + "," + g9 +
+                    " L" + g11 + "," + g10 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonForwardNext": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, g11, g12;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                g11 = hc - dx2;
+                g12 = hc + dx2;
+
+                var d = "M" + 0 + "," + h +
+                    " L" + w + "," + h +
+                    " L" + w + "," + 0 +
+                    " L" + 0 + "," + 0 +
+                    " z" +
+                    " M" + g12 + "," + vc +
+                    " L" + g11 + "," + g9 +
+                    " L" + g11 + "," + g10 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonHelp": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g11, g13, g14, g15, g16, g19, g20, g21, g23, g24, g27, g29, g30, g31, g33, g36, g37, g41, g42;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g11 = hc - dx2;
+                g13 = ss * 3 / 4;
+                g14 = g13 / 7;
+                g15 = g13 * 3 / 14;
+                g16 = g13 * 2 / 7;
+                g19 = g13 * 3 / 7;
+                g20 = g13 * 4 / 7;
+                g21 = g13 * 17 / 28;
+                g23 = g13 * 21 / 28;
+                g24 = g13 * 11 / 14;
+                g27 = g9 + g16;
+                g29 = g9 + g21;
+                g30 = g9 + g23;
+                g31 = g9 + g24;
+                g33 = g11 + g15;
+                g36 = g11 + g19;
+                g37 = g11 + g20;
+                g41 = g13 / 14;
+                g42 = g13 * 3 / 28;
+                var cX1 = g33 + g16;
+                var cX2 = g36 + g14;
+                var cY3 = g31 + g42;
+                var cX4 = (g37 + g36 + g16) / 2;
+
+                var d = "M" + 0 + "," + 0 +
+                    " L" + w + "," + 0 +
+                    " L" + w + "," + h +
+                    " L" + 0 + "," + h +
+                    " z" +
+                    "M" + g33 + "," + g27 +
+                    PPTXShapeUtils.shapeArcAlt(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
+                    PPTXShapeUtils.shapeArcAlt(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
+                    PPTXShapeUtils.shapeArcAlt(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
+                    " L" + g37 + "," + g30 +
+                    " L" + g36 + "," + g30 +
+                    " L" + g36 + "," + g29 +
+                    PPTXShapeUtils.shapeArcAlt(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
+                    PPTXShapeUtils.shapeArcAlt(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
+                    PPTXShapeUtils.shapeArcAlt(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
+                    " z" +
+                    "M" + hc + "," + g31 +
+                    PPTXShapeUtils.shapeArcAlt(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonHome": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27, g28, g29, g30, g31, g32, g33;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                g11 = hc - dx2;
+                g12 = hc + dx2;
+                g13 = ss * 3 / 4;
+                g14 = g13 / 16;
+                g15 = g13 / 8;
+                g16 = g13 * 3 / 16;
+                g17 = g13 * 5 / 16;
+                g18 = g13 * 7 / 16;
+                g19 = g13 * 9 / 16;
+                g20 = g13 * 11 / 16;
+                g21 = g13 * 3 / 4;
+                g22 = g13 * 13 / 16;
+                g23 = g13 * 7 / 8;
+                g24 = g9 + g14;
+                g25 = g9 + g16;
+                g26 = g9 + g17;
+                g27 = g9 + g21;
+                g28 = g11 + g15;
+                g29 = g11 + g18;
+                g30 = g11 + g19;
+                g31 = g11 + g20;
+                g32 = g11 + g22;
+                g33 = g11 + g23;
+
+                var d = "M" + 0 + "," + 0 +
+                    " L" + w + "," + 0 +
+                    " L" + w + "," + h +
+                    " L" + 0 + "," + h +
+                    " z" +
+                    " M" + hc + "," + g9 +
+                    " L" + g11 + "," + vc +
+                    " L" + g28 + "," + vc +
+                    " L" + g28 + "," + g10 +
+                    " L" + g33 + "," + g10 +
+                    " L" + g33 + "," + vc +
+                    " L" + g12 + "," + vc +
+                    " L" + g32 + "," + g26 +
+                    " L" + g32 + "," + g24 +
+                    " L" + g31 + "," + g24 +
+                    " L" + g31 + "," + g25 +
+                    " z" +
+                    " M" + g29 + "," + g27 +
+                    " L" + g30 + "," + g27 +
+                    " L" + g30 + "," + g10 +
+                    " L" + g29 + "," + g10 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonInformation": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g11, g13, g14, g17, g18, g19, g20, g22, g23, g24, g25, g28, g29, g30, g31, g32, g34, g35, g37, g38;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g11 = hc - dx2;
+                g13 = ss * 3 / 4;
+                g14 = g13 / 32;
+                g17 = g13 * 5 / 16;
+                g18 = g13 * 3 / 8;
+                g19 = g13 * 13 / 32;
+                g20 = g13 * 19 / 32;
+                g22 = g13 * 11 / 16;
+                g23 = g13 * 13 / 16;
+                g24 = g13 * 7 / 8;
+                g25 = g9 + g14;
+                g28 = g9 + g17;
+                g29 = g9 + g18;
+                g30 = g9 + g23;
+                g31 = g9 + g24;
+                g32 = g11 + g17;
+                g34 = g11 + g19;
+                g35 = g11 + g20;
+                g37 = g11 + g22;
+                g38 = g13 * 3 / 32;
+                var cY1 = g9 + dx2;
+                var cY2 = g25 + g38;
+
+                var d = "M" + 0 + "," + 0 +
+                    " L" + w + "," + 0 +
+                    " L" + w + "," + h +
+                    " L" + 0 + "," + h +
+                    " z" +
+                    "M" + hc + "," + g9 +
+                    PPTXShapeUtils.shapeArcAlt(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
+                    " z" +
+                    "M" + hc + "," + g25 +
+                    PPTXShapeUtils.shapeArcAlt(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
+                    "M" + g32 + "," + g28 +
+                    " L" + g35 + "," + g28 +
+                    " L" + g35 + "," + g30 +
+                    " L" + g37 + "," + g30 +
+                    " L" + g37 + "," + g31 +
+                    " L" + g32 + "," + g31 +
+                    " L" + g32 + "," + g30 +
+                    " L" + g34 + "," + g30 +
+                    " L" + g34 + "," + g29 +
+                    " L" + g32 + "," + g29 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonMovie": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27,
+                    g28, g29, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g40, g41, g42, g43, g44, g45, g46, g47, g48;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                g11 = hc - dx2;
+                g12 = hc + dx2;
+                g13 = ss * 3 / 4;
+                g14 = g13 * 1455 / 21600;
+                g15 = g13 * 1905 / 21600;
+                g16 = g13 * 2325 / 21600;
+                g17 = g13 * 16155 / 21600;
+                g18 = g13 * 17010 / 21600;
+                g19 = g13 * 19335 / 21600;
+                g20 = g13 * 19725 / 21600;
+                g21 = g13 * 20595 / 21600;
+                g22 = g13 * 5280 / 21600;
+                g23 = g13 * 5730 / 21600;
+                g24 = g13 * 6630 / 21600;
+                g25 = g13 * 7492 / 21600;
+                g26 = g13 * 9067 / 21600;
+                g27 = g13 * 9555 / 21600;
+                g28 = g13 * 13342 / 21600;
+                g29 = g13 * 14580 / 21600;
+                g30 = g13 * 15592 / 21600;
+                g31 = g11 + g14;
+                g32 = g11 + g15;
+                g33 = g11 + g16;
+                g34 = g11 + g17;
+                g35 = g11 + g18;
+                g36 = g11 + g19;
+                g37 = g11 + g20;
+                g38 = g11 + g21;
+                g39 = g9 + g22;
+                g40 = g9 + g23;
+                g41 = g9 + g24;
+                g42 = g9 + g25;
+                g43 = g9 + g26;
+                g44 = g9 + g27;
+                g45 = g9 + g28;
+                g46 = g9 + g29;
+                g47 = g9 + g30;
+                g48 = g9 + g31;
+
+                var d = "M" + 0 + "," + h +
+                    " L" + w + "," + h +
+                    " L" + w + "," + 0 +
+                    " L" + 0 + "," + 0 +
+                    " z" +
+                    "M" + g11 + "," + g39 +
+                    " L" + g11 + "," + g44 +
+                    " L" + g31 + "," + g44 +
+                    " L" + g32 + "," + g43 +
+                    " L" + g33 + "," + g43 +
+                    " L" + g33 + "," + g47 +
+                    " L" + g35 + "," + g47 +
+                    " L" + g35 + "," + g45 +
+                    " L" + g36 + "," + g45 +
+                    " L" + g38 + "," + g46 +
+                    " L" + g12 + "," + g46 +
+                    " L" + g12 + "," + g41 +
+                    " L" + g38 + "," + g41 +
+                    " L" + g37 + "," + g42 +
+                    " L" + g35 + "," + g42 +
+                    " L" + g35 + "," + g41 +
+                    " L" + g34 + "," + g40 +
+                    " L" + g32 + "," + g40 +
+                    " L" + g31 + "," + g39 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonReturn": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                g11 = hc - dx2;
+                g12 = hc + dx2;
+                g13 = ss * 3 / 4;
+                g14 = g13 * 7 / 8;
+                g15 = g13 * 3 / 4;
+                g16 = g13 * 5 / 8;
+                g17 = g13 * 3 / 8;
+                g18 = g13 / 4;
+                g19 = g9 + g15;
+                g20 = g9 + g16;
+                g21 = g9 + g18;
+                g22 = g11 + g14;
+                g23 = g11 + g15;
+                g24 = g11 + g16;
+                g25 = g11 + g17;
+                g26 = g11 + g18;
+                g27 = g13 / 8;
+                var cX1 = g24 - g27;
+                var cY2 = g19 - g27;
+                var cX3 = g11 + g17;
+                var cY4 = g10 - g17;
+
+                var d = "M" + 0 + "," + h +
+                    " L" + w + "," + h +
+                    " L" + w + "," + 0 +
+                    " L" + 0 + "," + 0 +
+                    " z" +
+                    " M" + g12 + "," + g21 +
+                    " L" + g23 + "," + g9 +
+                    " L" + hc + "," + g21 +
+                    " L" + g24 + "," + g21 +
+                    " L" + g24 + "," + g20 +
+                    PPTXShapeUtils.shapeArcAlt(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
+                    " L" + g25 + "," + g19 +
+                    PPTXShapeUtils.shapeArcAlt(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
+                    " L" + g26 + "," + g21 +
+                    " L" + g11 + "," + g21 +
+                    " L" + g11 + "," + g20 +
+                    PPTXShapeUtils.shapeArcAlt(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
+                    " L" + hc + "," + g10 +
+                    PPTXShapeUtils.shapeArcAlt(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
+                    " L" + g22 + "," + g21 +
+                    " z";
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
+            case "actionButtonSound": {
+                var hc = w / 2, vc = h / 2, ss = Math.min(w, h);
+                var dx2, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26;
+
+                dx2 = ss * 3 / 8;
+                g9 = vc - dx2;
+                g10 = vc + dx2;
+                g11 = hc - dx2;
+                g12 = hc + dx2;
+                g13 = ss * 3 / 4;
+                g14 = g13 / 8;
+                g15 = g13 * 5 / 16;
+                g16 = g13 * 5 / 8;
+                g17 = g13 * 11 / 16;
+                g18 = g13 * 3 / 4;
+                g19 = g13 * 7 / 8;
+                g20 = g9 + g14;
+                g21 = g9 + g15;
+                g22 = g9 + g17;
+                g23 = g9 + g19;
+                g24 = g11 + g15;
+                g25 = g11 + g16;
+                g26 = g11 + g18;
+
+                var d = "M" + 0 + "," + 0 +
+                    " L" + w + "," + 0 +
+                    " L" + w + "," + h +
+                    " L" + 0 + "," + h +
+                    " z" +
+                    " M" + g11 + "," + g21 +
+                    " L" + g24 + "," + g21 +
+                    " L" + g25 + "," + g9 +
+                    " L" + g25 + "," + g10 +
+                    " L" + g24 + "," + g22 +
+                    " L" + g11 + "," + g22 +
+                    " z" +
+                    " M" + g26 + "," + g21 +
+                    " L" + g12 + "," + g20 +
+                    " M" + g26 + "," + vc +
+                    " L" + g12 + "," + vc +
+                    " M" + g26 + "," + g22 +
+                    " L" + g12 + "," + g23;
+
+                result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                    "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+
+                break;
+            }
             case "flowChartCollate":
                 result += PPTXRectShapes.generateFlowChartCollate(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                 break;
@@ -449,10 +958,25 @@ var PPTXShapeUtils = (function() {
             case "flowChartConnector":
             case "flowChartSummingJunction":
             case "flowChartOr":
-                result += PPTXEllipseShapes.generateEllipse(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                result += PPTXEllipseShapes.generateEllipse(w, h, shapType, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                 break;
             case "flowChartTerminator":
                 result += PPTXEllipseShapes.generateFlowChartTerminator(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                break;
+            case "flowChartPunchedTape":
+                result += PPTXEllipseShapes.generateFlowChartPunchedTape(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                break;
+            case "flowChartOnlineStorage":
+                result += PPTXEllipseShapes.generateFlowChartOnlineStorage(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                break;
+            case "flowChartDisplay":
+                result += PPTXEllipseShapes.generateFlowChartDisplay(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                break;
+            case "flowChartDelay":
+                result += PPTXEllipseShapes.generateFlowChartDelay(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                break;
+            case "flowChartMagneticTape":
+                result += PPTXEllipseShapes.generateFlowChartMagneticTape(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                 break;
             case "rtTriangle":
                 result += PPTXPolygonShapes.generateRtTriangle(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
@@ -460,28 +984,32 @@ var PPTXShapeUtils = (function() {
             case "triangle":
             case "flowChartExtract":
             case "flowChartMerge":
-                result += PPTXPolygonShapes.generateTriangle(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                var triangleAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXPolygonShapes.generateTriangle(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, shapType, triangleAdjst);
                 break;
             case "diamond":
             case "flowChartDecision":
             case "flowChartSort":
-                result += PPTXPolygonShapes.generateDiamond(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                result += PPTXPolygonShapes.generateDiamond(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, shapType);
                 break;
             case "trapezoid":
             case "flowChartManualOperation":
             case "flowChartManualInput":
-                result += PPTXPolygonShapes.generateTrapezoid(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                var trapezoidAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXPolygonShapes.generateTrapezoid(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, shapType, trapezoidAdjst);
                 break;
             case "parallelogram":
             case "flowChartInputOutput":
-                result += PPTXPolygonShapes.generateParallelogram(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                var parallelogramAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXPolygonShapes.generateParallelogram(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, parallelogramAdjst);
                 break;
             case "pentagon":
                 result += PPTXPolygonShapes.generatePentagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                 break;
             case "hexagon":
             case "flowChartPreparation":
-                result += PPTXPolygonShapes.generateHexagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                var hexagonAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXPolygonShapes.generateHexagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, shapType, hexagonAdjst);
                 break;
             case "heptagon":
                 result += PPTXPolygonShapes.generateHeptagon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
@@ -525,6 +1053,78 @@ var PPTXShapeUtils = (function() {
             case "star32":
                 result += PPTXStarShapes.generateStar32(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border);
                 break;
+            case "pie":
+            case "pieWedge":
+            case "arc": {
+                var pieAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generatePie(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, shapType, pieAdjst);
+                break;
+            }
+            case "chord": {
+                var chordAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generateChord(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, chordAdjst);
+                break;
+            }
+            case "frame": {
+                var frameAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateFrame(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, frameAdjst);
+                break;
+            }
+            case "donut": {
+                var donutAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateDonut(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, donutAdjst);
+                break;
+            }
+            case "noSmoking": {
+                var noSmokingAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateNoSmoking(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, noSmokingAdjst);
+                break;
+            }
+            case "halfFrame": {
+                var halfFrameAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generateHalfFrame(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, halfFrameAdjst);
+                break;
+            }
+            case "blockArc": {
+                var blockArcAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generateBlockArc(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, blockArcAdjst);
+                break;
+            }
+            case "bracePair": {
+                var bracePairAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateBracePair(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, bracePairAdjst);
+                break;
+            }
+            case "leftBrace": {
+                var leftBraceAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generateLeftBrace(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, leftBraceAdjst);
+                break;
+            }
+            case "rightBrace": {
+                var rightBraceAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generateRightBrace(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, rightBraceAdjst);
+                break;
+            }
+            case "bracketPair": {
+                var bracketPairAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateBracketPair(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, bracketPairAdjst);
+                break;
+            }
+            case "leftBracket": {
+                var leftBracketAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateLeftBracket(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, leftBracketAdjst);
+                break;
+            }
+            case "rightBracket": {
+                var rightBracketAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateRightBracket(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, rightBracketAdjst);
+                break;
+            }
+            case "moon": {
+                var moonAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateMoon(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, moonAdjst);
+                break;
+            }
             case "roundRect":
             case "flowChartAlternateProcess":
                 result += PPTXRoundRectShapes.generateRoundRect(w, h, shapType, sAdj1_val, sAdj2_val, imgFillFlg, grndFillFlg, shpId, fillColor, border);
@@ -550,6 +1150,36 @@ var PPTXShapeUtils = (function() {
                 break;
             case "snipRoundRect":
                 result += PPTXRoundRectShapes.generateSnipRoundRect(w, h, sAdj1_val, sAdj2_val, imgFillFlg, grndFillFlg, shpId, fillColor, border);
+                break;
+            case "irregularSeal1":
+            case "irregularSeal2":
+                result += PPTXSpecialShapes.generateIrregularSeal(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, shapType);
+                break;
+            case "corner":
+                var cornerAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generateCorner(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, cornerAdjst_ary);
+                break;
+            case "diagStripe":
+                var diagStripeAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateDiagStripe(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, diagStripeAdjst);
+                break;
+            case "gear6":
+            case "gear9":
+                result += PPTXSpecialShapes.generateGear(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, shapType);
+                break;
+            case "can":
+            case "flowChartMagneticDisk":
+            case "flowChartMagneticDrum":
+                var canAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                result += PPTXSpecialShapes.generateCan(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, shapType, canAdjst);
+                break;
+            case "swooshArrow":
+                var swooshArrowAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generateSwooshArrow(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, swooshArrowAdjst_ary);
+                break;
+            case "circularArrow":
+                var circularArrowAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                result += PPTXSpecialShapes.generateCircularArrow(w, h, imgFillFlg, grndFillFlg, shpId, fillColor, border, circularArrowAdjst_ary);
                 break;
             case "line":
             case "straightConnector1":

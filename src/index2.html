@@ -14,69 +14,27 @@
 <script type="text/javascript" src="./js/d3.min.js"></script>
 <script type="text/javascript" src="./js/nv.d3.min.js"></script>
 
+
 <!-- Core Dependencies -->
 <script type="text/javascript" src="./js/modules/utils/tXml.js"></script>
 <script type="text/javascript" src="./js/modules/utils/tinycolor.js"></script>
 <script type="text/javascript" src="./js/modules/utils/JSZipUtils.js"></script>
-
-<!-- Core Utilities -->
-<script type="text/javascript" src="./js/modules/utils/file-utils.js"></script>
-<script type="text/javascript" src="./js/modules/utils/color-utils.js"></script>
-<script type="text/javascript" src="./js/modules/utils/image-utils.js"></script>
-<script type="text/javascript" src="./js/modules/utils/text-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/xml-utils.js"></script>
-<script type="text/javascript" src="./js/modules/utils/chart-utils.js"></script>
+<script type="text/javascript" src="./js/modules/utils/style-utils.js"></script>
+<script type="text/javascript" src="./js/modules/utils/text-utils.js"></script>
+<script type="text/javascript" src="./js/modules/utils/shape-utils.js"></script>
+<script type="text/javascript" src="./js/modules/utils/node-utils.js"></script>
 
-<!-- Core Constants -->
-<script type="text/javascript" src="./js/modules/core/constants.js"></script>
 
-<!-- Shape Generator -->
-<script type="text/javascript" src="./js/modules/shapes/shape-generator.js"></script>
-
-<script type="text/javascript" src="./js/modules/core/pptx-processor.js"></script>
-<script type="text/javascript" src="./js/modules/core/node-processors.js"></script>
-<script type="text/javascript" src="./js/modules/core/slide-processor.js"></script>
-
-<!-- Main PPTX Processor (modularized version with all functionality) -->
-<script type="text/javascript" src="./js/modules/core/pptx-main.js"></script>
+<script type="text/javascript" src="./js/pptxjs.js"></script>
 <script type="text/javascript" src="./js/divs2slides.js"></script>
-
-<!-- Note: The original pptxjs.js is still available for comparison/debugging
-     Individual modules in modules/ directory are for future development -->
 
 <script type="text/javascript" src="./js/jquery.fullscreen-min.js"></script>
 
 <script type="text/javascript">
     $(function() {
-        // 调试信息：检查模块是否正确加载
-        console.log('=== 模块加载状态检查 ===');
-        
-        const requiredModules = [
-            'PPTXXmlUtils',
-            'PPTXColorUtils',
-            'PPTXImageUtils', 
-            'PPTXTextUtils',
-            'PPTXXmlUtils',
-            'PPTXChartUtils',
-            'PPTXConstants'
-        ];
-        
-        requiredModules.forEach(module => {
-            if (window[module]) {
-                console.log(`✓ ${module} 已加载`);
-                // 检查关键函数
-                if (module === 'PPTXXmlUtils' && window[module].findMediaFile) {
-                    console.log(`  ✓ ${module}.findMediaFile 可用`);
-                }
-            } else {
-                console.error(`✗ ${module} 未加载`);
-            }
-        });
-        
-        console.log('=== 模块检查完成 ===');
-        
-        var oldWidth, oldMargin ,isFullscreenMode=false;
-        $("#fullscreen-btn").on("click", function(){
+		var oldWidth, oldMargin ,isFullscreenMode=false;
+		$("#fullscreen-btn").on("click", function(){
 			 			
 			if(!isFullscreenMode){
 				oldWidth = $("#result .slide").css("width");
@@ -108,7 +66,7 @@
 </script>
 <style>
 	html, body { margin: 0; padding: 0; }
-	#warper { margin-right: auto; margin-left: auto; }
+	#warper { margin-right: auto; margin-left: 20px; }
 </style>
 </head>
 <body>
