@@ -320,7 +320,19 @@ var PPTXShapeUtils = (function() {
                     txtRotate = PPTXXmlUtils.angleToDegrees(txtXframeRot) + 90;
                 }
             } else {
-                txtRotate = rotate;
+                txtRotate = 0;
+            }
+            
+            // Adjust text rotation to compensate for shape flip
+            var txtFlip = "";
+            if (isFlipV) {
+                txtFlip = " scale(1,-1)";
+            }
+            if (isFlipH) {
+                txtFlip = " scale(-1,1)";
+            }
+            if (isFlipH && isFlipV) {
+                txtFlip = " scale(-1,-1)";
             }
             //////////////////////////////////////////////////
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
@@ -7351,7 +7363,6 @@ var PPTXShapeUtils = (function() {
                     PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
                     " z-index: " + order + ";" +
-                    "transform: rotate(" + ((txtRotate !== undefined) ? txtRotate : 0) + "deg);" +
                     "'>";
 
                 // TextBody
@@ -7611,7 +7622,6 @@ var PPTXShapeUtils = (function() {
                     PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
                     " z-index: " + order + ";" +
-                    "transform: rotate(" + ((txtRotate !== undefined) ? txtRotate : 0) + "deg);" +
                     "'>";
 
                 // TextBody
