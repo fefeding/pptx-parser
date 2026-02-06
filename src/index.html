@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>PPTXjs - Meshesha</title>
+<title>pptx 解析</title>
 
 <link rel="stylesheet" href="./css/pptxjs.css">
 <link rel="stylesheet" href="./css/nv.d3.min.css">
@@ -22,16 +22,7 @@
 <script type="text/javascript" src="./js/modules/utils/xml-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/style-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/text-utils.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/base-shapes.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/generators/rect-shapes.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/generators/ellipse-shapes.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/generators/polygon-shapes.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/generators/star-shapes.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/generators/roundrect-shapes.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/generators/special-shapes.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/custom-shapes.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/shape-factory.js"></script>
-<script type="text/javascript" src="./js/modules/utils/shape-utils/index.js"></script>
+<script type="text/javascript" src="./js/modules/utils/shape-utils.js"></script>
 <script type="text/javascript" src="./js/modules/utils/node-utils.js"></script>
 
 
@@ -90,7 +81,7 @@
 	</div>
 <script>
 $("#result").pptxToHtml({
-	pptxFileUrl: "/examples/3guo.pptx",
+	pptxFileUrl: "",
 	fileInputId: "uploadFileInput",
 	slideMode: false,
 	keyBoardShortCut: false,
