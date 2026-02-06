@@ -7635,7 +7635,6 @@ var PPTXShapeUtils = (function() {
                     PPTXStyleUtils.getBorder(node, pNode, false, "shape", warpObj) +
                     PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source) +
                     " z-index: " + order + ";" +
-                    "transform: rotate(" + ((txtRotate !== undefined) ? txtRotate : 0) + "deg);" +
                     "'>";
 
                 // TextBody
