@@ -728,20 +728,23 @@ var PPTXStyleUtils = (function() {
             }
 
             var borderColor;
+            var borderWidth = 0;
+            var borderType = "solid";
+            var strokeDasharray = "0";
             if (lineNode !== undefined) {
                 // Border width: 1pt = 12700, default = 0.75pt
-                var borderWidth = parseInt (PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
+                borderWidth = parseInt (PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
                 if (isNaN(borderWidth) || borderWidth < 1) {
                     cssText += (4/3) + "px ";//"1pt ";
                 } else {
                     cssText += borderWidth + "px ";// + "pt ";
                 }
                 // Border type
-                var borderType = PPTXXmlUtils.getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
+                borderType = PPTXXmlUtils.getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
                 if (borderType === undefined) {
                     borderType = PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "cmpd"]);
                 }
-                var strokeDasharray = "0";
+                strokeDasharray = "0";
                 switch (borderType) {
                     case "solid":
                         cssText += "solid";

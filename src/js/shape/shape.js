@@ -18,13 +18,6 @@ var PPTXShapeUtils = (function() {
      * @returns {string} SVG路径字符串
      */
     function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
-        cx = cx || 0;
-        cy = cy || 0;
-        w = w || 0;
-        h = h || 0;
-        startAngle = startAngle || 0;
-        endAngle = endAngle || 0;
-
         var start = polarToCartesian(cx, cy, w, h, endAngle);
         var end = polarToCartesian(cx, cy, w, h, startAngle);
 
@@ -48,11 +41,6 @@ var PPTXShapeUtils = (function() {
      * @returns {Object} 笛卡尔坐标对象
      */
     function polarToCartesian(cx, cy, w, h, angleInDegrees) {
-        cx = cx || 0;
-        cy = cy || 0;
-        w = w || 0;
-        h = h || 0;
-        angleInDegrees = angleInDegrees || 0;
         var angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
 
         return {
@@ -115,12 +103,11 @@ var PPTXShapeUtils = (function() {
      * @returns {Array} [路径字符串, 旋转字符串]
      */
     function shapePie(H, w, adj1, adj2, isClose) {
-        var pieVal = parseInt(adj2) || 0;
-        var piAngle = parseInt(adj1) || 0;
-        var size = parseInt(H) || 0;
-        var radius = (size / 2) || 0;
-        var value = pieVal - piAngle;
-
+        var pieVal = parseInt(adj2);
+        var piAngle = parseInt(adj1);
+        var size = parseInt(H),
+            radius = (size / 2),
+            value = pieVal - piAngle;
         if (value < 0) {
             value = 360 + value;
         }
@@ -155,15 +142,15 @@ var PPTXShapeUtils = (function() {
      * @returns {string} SVG路径字符串
      */
     function shapeGear(w, h, points) {
-        var innerRadius = h || 0;
+        var innerRadius = h;//gear.innerRadius;
         var outerRadius = 1.5 * innerRadius;
-        var cx = outerRadius;
-        var cy = outerRadius;
-        var notches = points || 6;
-        var radiusO = outerRadius;
-        var radiusI = innerRadius;
-        var taperO = 50;
-        var taperI = 35;
+        var cx = outerRadius;//Math.max(innerRadius, outerRadius),                   // center x
+        cy = outerRadius;//Math.max(innerRadius, outerRadius),                    // center y
+        notches = points,//gear.points,                      // num. of notches
+            radiusO = outerRadius,                    // outer radius
+            radiusI = innerRadius,                    // inner radius
+            taperO = 50,                     // outer taper %
+            taperI = 35,                     // inner taper %
 
             // pre-calculate values for loop
 
@@ -207,13 +194,6 @@ var PPTXShapeUtils = (function() {
      * @returns {string} SVG路径字符串
      */
     function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
-        cX = cX || 0;
-        cY = cY || 0;
-        rX = rX || 0;
-        rY = rY || 0;
-        stAng = stAng || 0;
-        endAng = endAng || 0;
-
         var dData;
         var angle = stAng;
         if (endAng >= stAng) {
@@ -357,12 +337,12 @@ var PPTXShapeUtils = (function() {
             //////////////////////////////////////////////////
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
                 var off = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
-                var x = parseInt(off["x"] || 0) * slideFactor;
-                var y = parseInt(off["y"] || 0) * slideFactor;
+                var x = parseInt(off["x"]) * slideFactor;
+                var y = parseInt(off["y"]) * slideFactor;
 
                 var ext = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:ext", "attrs"]);
-                var w = parseInt(ext["cx"] || 0) * slideFactor;
-                var h = parseInt(ext["cy"] || 0) * slideFactor;
+                var w = parseInt(ext["cx"]) * slideFactor;
+                var h = parseInt(ext["cy"]) * slideFactor;
 
                 var svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
                 //console.log("name:", name, "svgCssName: ", svgCssName)
@@ -465,7 +445,7 @@ var PPTXShapeUtils = (function() {
 
                     //var algn = outerShdwAttrs["algn"];
                     var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
-                    var dist = parseInt(outerShdwAttrs["dist"] || 0) * slideFactor;//(px) //* (3 / 4); //(pt)
+                    var dist = parseInt(outerShdwAttrs["dist"]) * slideFactor;//(px) //* (3 / 4); //(pt)
                     //var rotWithShape = outerShdwAttrs["rotWithShape"];
                     var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * slideFactor) : ""; //+ "px"
                     //var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
@@ -1283,29 +1263,23 @@ var PPTXShapeUtils = (function() {
                     case "flowChartAlternateProcess":
                     case "flowChartPunchedCard": {
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.33334;
-                        var sAdj2, sAdj2_val = 0.33334;
+                        var sAdj1, sAdj1_val;// = 0.33334;
+                        var sAdj2, sAdj2_val;// = 0.33334;
                         var shpTyp, adjTyp;
                         if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor === Array) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
                                 var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    if (sAdj1 !== undefined) {
-                                        sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
-                                    }
+                                    sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
                                 } else if (sAdj_name == "adj2") {
                                     sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    if (sAdj2 !== undefined) {
-                                        sAdj2_val = parseInt(sAdj2.substr(4)) / 50000;
-                                    }
+                                    sAdj2_val = parseInt(sAdj2.substr(4)) / 50000;
                                 }
                             }
                         } else if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor !== Array) {
                             var sAdj = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
-                            if (sAdj !== undefined) {
-                                sAdj1_val = parseInt(sAdj.substr(4)) / 50000;
-                            }
+                            sAdj1_val = parseInt(sAdj.substr(4)) / 50000;
                             sAdj2_val = 0;
                         }
                         //console.log("shapType: ",shapType,",node: ",node )
@@ -1380,14 +1354,10 @@ var PPTXShapeUtils = (function() {
                                 var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    if (sAdj1 !== undefined) {
-                                        sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
-                                    }
+                                    sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
                                 } else if (sAdj_name == "adj2") {
                                     sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    if (sAdj2 !== undefined) {
-                                        sAdj2_val = parseInt(sAdj2.substr(4)) / 50000;
-                                    }
+                                    sAdj2_val = parseInt(sAdj2.substr(4)) / 50000;
                                 }
                             }
                         }
@@ -1570,9 +1540,9 @@ var PPTXShapeUtils = (function() {
                         var cnstVal1 = 50000 * slideFactor;
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);//[0]["attrs"]["fmla"];
                         //console.log("star4 node: ", node, "shapAdjst:", shapAdjst)
-                        if (shapAdjst !== undefined && shapAdjst["attrs"] !== undefined) {
+                        if (shapAdjst !== undefined) {
                             var name = shapAdjst["attrs"]["name"];
-                            if (name == "adj" && shapAdjst["attrs"]["fmla"] !== undefined) {
+                            if (name == "adj") {
                                 adj = parseInt(shapAdjst["attrs"]["fmla"].substr(4)) * slideFactor;
                                 //min = 0
                                 //max = 50000
@@ -1616,18 +1586,15 @@ var PPTXShapeUtils = (function() {
                         //console.log("star5 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             Object.keys(shapAdjst).forEach(function (key) {
-                                var attrs = shapAdjst[key]["attrs"];
-                                if (attrs !== undefined) {
-                                    var name = attrs["name"];
-                                    if (name == "adj" && attrs["fmla"] !== undefined) {
-                                        adj = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                        //min = 0
-                                        //max = 50000
-                                    } else if (name == "hf" && attrs["fmla"] !== undefined) {
-                                        hf = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                    } else if (name == "vf" && attrs["fmla"] !== undefined) {
-                                        vf = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                    }
+                                var name = shapAdjst[key]["attrs"]["name"];
+                                if (name == "adj") {
+                                    adj = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
+                                    //min = 0
+                                    //max = 50000
+                                } else if (name == "hf") {
+                                    hf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
+                                } else if (name == "vf") {
+                                    vf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
                                 }
                             })
                         }
@@ -1688,16 +1655,13 @@ var PPTXShapeUtils = (function() {
                         //console.log("star5 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             Object.keys(shapAdjst).forEach(function (key) {
-                                var attrs = shapAdjst[key]["attrs"];
-                                if (attrs !== undefined) {
-                                    var name = attrs["name"];
-                                    if (name == "adj" && attrs["fmla"] !== undefined) {
-                                        adj = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                        //min = 0
-                                        //max = 50000
-                                    } else if (name == "hf" && attrs["fmla"] !== undefined) {
-                                        hf = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                    }
+                                var name = shapAdjst[key]["attrs"]["name"];
+                                if (name == "adj") {
+                                    adj = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
+                                    //min = 0
+                                    //max = 50000
+                                } else if (name == "hf") {
+                                    hf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
                                 }
                             })
                         }
@@ -1752,18 +1716,15 @@ var PPTXShapeUtils = (function() {
                         //console.log("star5 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             Object.keys(shapAdjst).forEach(function (key) {
-                                var attrs = shapAdjst[key]["attrs"];
-                                if (attrs !== undefined) {
-                                    var name = attrs["name"];
-                                    if (name == "adj" && attrs["fmla"] !== undefined) {
-                                        adj = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                        //min = 0
-                                        //max = 50000
-                                    } else if (name == "hf" && attrs["fmla"] !== undefined) {
-                                        hf = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                    } else if (name == "vf" && attrs["fmla"] !== undefined) {
-                                        vf = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                    }
+                                var name = shapAdjst[key]["attrs"]["name"];
+                                if (name == "adj") {
+                                    adj = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
+                                    //min = 0
+                                    //max = 50000
+                                } else if (name == "hf") {
+                                    hf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
+                                } else if (name == "vf") {
+                                    vf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
                                 }
                             })
                         }
@@ -1899,16 +1860,13 @@ var PPTXShapeUtils = (function() {
                         //console.log("star5 node: ", node, "shapAdjst:", shapAdjst)
                         if (shapAdjst !== undefined) {
                             Object.keys(shapAdjst).forEach(function (key) {
-                                var attrs = shapAdjst[key]["attrs"];
-                                if (attrs !== undefined) {
-                                    var name = attrs["name"];
-                                    if (name == "adj" && attrs["fmla"] !== undefined) {
-                                        adj = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                        //min = 0
-                                        //max = 50000
-                                    } else if (name == "hf" && attrs["fmla"] !== undefined) {
-                                        hf = parseInt(attrs["fmla"].substr(4)) * slideFactor;
-                                    }
+                                var name = shapAdjst[key]["attrs"]["name"];
+                                if (name == "adj") {
+                                    adj = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
+                                    //min = 0
+                                    //max = 50000
+                                } else if (name == "hf") {
+                                    hf = parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * slideFactor;
                                 }
                             })
                         }
@@ -2486,12 +2444,6 @@ var PPTXShapeUtils = (function() {
                     case "arc": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
-                        // Set default values to prevent NaN
-                        adj1 = adj1 || 0;
-                        adj2 = adj2 || 0;
-                        H = h || 0;
-                        isClose = true;
-
                         if (shapType == "pie") {
                             adj1 = 0;
                             adj2 = 270;
@@ -2537,14 +2489,10 @@ var PPTXShapeUtils = (function() {
                                 var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    if (sAdj1 !== undefined) {
-                                        sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
-                                    }
+                                    sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
                                 } else if (sAdj_name == "adj2") {
                                     sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    if (sAdj2 !== undefined) {
-                                        sAdj2_val = parseInt(sAdj2.substr(4)) / 60000;
-                                    }
+                                    sAdj2_val = parseInt(sAdj2.substr(4)) / 60000;
                                 }
                             }
                         }
@@ -7431,8 +7379,16 @@ var PPTXShapeUtils = (function() {
                 var pathLstNode = PPTXXmlUtils.getTextByPathList(custShapType, ["a:pathLst"]);
                 var pathNodes = PPTXXmlUtils.getTextByPathList(pathLstNode, ["a:path"]);
                 //var pathNode = PPTXXmlUtils.getTextByPathList(pathLstNode, ["a:path", "attrs"]);
-                var maxX = parseInt(pathNodes["attrs"]["w"]);// * slideFactor;
-                var maxY = parseInt(pathNodes["attrs"]["h"]);// * slideFactor;
+                // Validate maxX and maxY to prevent NaN
+                var maxX = 0;
+                var maxY = 0;
+                if (pathNodes && pathNodes["attrs"]) {
+                    maxX = parseInt(pathNodes["attrs"]["w"]) || 0;
+                    maxY = parseInt(pathNodes["attrs"]["h"]) || 0;
+                }
+                // Ensure maxX and maxY are positive to avoid division by zero
+                if (maxX <= 0) maxX = 1;
+                if (maxY <= 0) maxY = 1;
                 var cX = (1 / maxX) * w;
                 var cY = (1 / maxY) * h;
                 //console.log("w = "+w+"\nh = "+h+"\nmaxX = "+maxX +"\nmaxY = " + maxY);
@@ -7592,13 +7548,20 @@ var PPTXShapeUtils = (function() {
                     //console.log(multiSapeAry);
                     var k = 0;
                     var isClose = false;
+                    // Ensure cX and cY are valid numbers before using them
+                    if (isNaN(cX)) cX = 0;
+                    if (isNaN(cY)) cY = 0;
                     var d = "";
                     while (k < multiSapeAry.length) {
 
                         if (multiSapeAry[k].type == "movto") {
-                            //start point
-                            var spX = parseInt(multiSapeAry[k].x || 0) * cX;//slideFactor;
-                            var spY = parseInt(multiSapeAry[k].y || 0) * cY;//slideFactor;
+                            //start point with NaN protection
+                            var xVal = parseInt(multiSapeAry[k].x) || 0;
+                            var yVal = parseInt(multiSapeAry[k].y) || 0;
+                            if (isNaN(cX)) cX = 0;
+                            if (isNaN(cY)) cY = 0;
+                            var spX = xVal * cX;//slideFactor;
+                            var spY = yVal * cY;//slideFactor;
                             // if (d == "") {
                             //     d = "M" + spX + "," + spY;
                             // } else {
@@ -7622,28 +7585,48 @@ var PPTXShapeUtils = (function() {
                             d += " M" + spX + "," + spY;
 
                         } else if (multiSapeAry[k].type == "lnto") {
-                            var Lx = parseInt(multiSapeAry[k].x || 0) * cX;//slideFactor;
-                            var Ly = parseInt(multiSapeAry[k].y || 0) * cY;//slideFactor;
+                            // NaN protection for line-to coordinates
+                            var xVal = parseInt(multiSapeAry[k].x) || 0;
+                            var yVal = parseInt(multiSapeAry[k].y) || 0;
+                            if (isNaN(cX)) cX = 0;
+                            if (isNaN(cY)) cY = 0;
+                            var Lx = xVal * cX;//slideFactor;
+                            var Ly = yVal * cY;//slideFactor;
                             d += " L" + Lx + "," + Ly;
 
                         } else if (multiSapeAry[k].type == "cubicBezTo") {
-                            var Cx1 = parseInt(multiSapeAry[k].cubBzPt[0].x || 0) * cX;//slideFactor;
-                            var Cy1 = parseInt(multiSapeAry[k].cubBzPt[0].y || 0) * cY;//slideFactor;
-                            var Cx2 = parseInt(multiSapeAry[k].cubBzPt[1].x || 0) * cX;//slideFactor;
-                            var Cy2 = parseInt(multiSapeAry[k].cubBzPt[1].y || 0) * cY;//slideFactor;
-                            var Cx3 = parseInt(multiSapeAry[k].cubBzPt[2].x || 0) * cX;//slideFactor;
-                            var Cy3 = parseInt(multiSapeAry[k].cubBzPt[2].y || 0) * cY;//slideFactor;
+                            // NaN protection for cubic bezier coordinates
+                            if (isNaN(cX)) cX = 0;
+                            if (isNaN(cY)) cY = 0;
+                            var Cx1 = (parseInt(multiSapeAry[k].cubBzPt[0].x) || 0) * cX;
+                            var Cy1 = (parseInt(multiSapeAry[k].cubBzPt[0].y) || 0) * cY;
+                            var Cx2 = (parseInt(multiSapeAry[k].cubBzPt[1].x) || 0) * cX;
+                            var Cy2 = (parseInt(multiSapeAry[k].cubBzPt[1].y) || 0) * cY;
+                            var Cx3 = (parseInt(multiSapeAry[k].cubBzPt[2].x) || 0) * cX;
+                            var Cy3 = (parseInt(multiSapeAry[k].cubBzPt[2].y) || 0) * cY;
                             d += " C" + Cx1 + "," + Cy1 + " " + Cx2 + "," + Cy2 + " " + Cx3 + "," + Cy3;
                         } else if (multiSapeAry[k].type == "arcTo") {
-                            var hR = parseInt(multiSapeAry[k].hR || 0) * cX;//slideFactor;
-                            var wR = parseInt(multiSapeAry[k].wR || 0) * cY;//slideFactor;
-                            var stAng = parseInt(multiSapeAry[k].stAng || 0) / 60000;
-                            var swAng = parseInt(multiSapeAry[k].swAng || 0) / 60000;
+                            // NaN protection for arc parameters
+                            if (isNaN(cX)) cX = 0;
+                            if (isNaN(cY)) cY = 0;
+                            var hR = (parseInt(multiSapeAry[k].hR) || 0) * cX;//slideFactor;
+                            var wR = (parseInt(multiSapeAry[k].wR) || 0) * cY;//slideFactor;
+                            var stAng = (parseInt(multiSapeAry[k].stAng) || 0) / 60000;
+                            var swAng = (parseInt(multiSapeAry[k].swAng) || 0) / 60000;
+                            // Ensure angles are valid numbers
+                            if (isNaN(stAng)) stAng = 0;
+                            if (isNaN(swAng)) swAng = 0;
                             //var shftX = parseInt(multiSapeAry[k].shftX) * slideFactor;
                             //var shftY = parseInt(multiSapeAry[k].shftY) * slideFactor;
                             var endAng = stAng + swAng;
 
-                            d += PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
+                            // Additional validation for arc parameters
+                            if (isNaN(hR) || isNaN(wR) || isNaN(stAng) || isNaN(swAng)) {
+                                // Skip invalid arc
+                                console.warn("Invalid arc parameters detected");
+                            } else {
+                                d += PPTXShapeUtils.shapeArc(wR, hR, wR, hR, stAng, endAng, false);
+                            }
                         } else if (multiSapeAry[k].type == "quadBezTo") {
                             console.log("custShapType: quadBezTo - TODO")
 
