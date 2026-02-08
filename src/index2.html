@@ -27,41 +27,59 @@
 
 
 <script type="text/javascript" src="./js/pptxjs.js"></script>
-<script type="text/javascript" src="./js/divs2slides.js"></script>
-
-<script type="text/javascript" src="./js/jquery.fullscreen-min.js"></script>
 
 <script type="text/javascript">
-    $(function() {
-		var oldWidth, oldMargin ,isFullscreenMode=false;
-		$("#fullscreen-btn").on("click", function(){
-			 			
-			if(!isFullscreenMode){
-				oldWidth = $("#result .slide").css("width");
-				oldMargin = $("#result .slide").css("margin");
-				$("#result .slide").css({
-					"width": "99%",
-					"margin": "0 auto"
-				})
-				$("#result").toggleFullScreen();
-				isFullscreenMode = true;
-			}else{
-				$("#result .slide").css({
-					"width": oldWidth,
-					"margin": oldMargin
-				})
-				$("#result").toggleFullScreen();
-				isFullscreenMode = false;
-			}		
-		});
-		$(document).bind("fullscreenchange", function() {
-			if(!$(document).fullScreen()){
-				$("#result .slide").css({
-					"width": oldWidth,
-  					"margin": oldMargin
-				})
-			}
-		});
+    var oldWidth, oldMargin, isFullscreenMode = false;
+    document.getElementById("fullscreen-btn").addEventListener("click", function() {
+        if (!isFullscreenMode) {
+            var slides = document.querySelectorAll("#result .slide");
+            if (slides.length > 0) {
+                oldWidth = slides[0].style.width;
+                oldMargin = slides[0].style.margin;
+                for (var i = 0; i < slides.length; i++) {
+                    slides[i].style.width = "99%";
+                    slides[i].style.margin = "0 auto";
+                }
+            }
+            
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen();
+            } else if (document.documentElement.mozRequestFullScreen) {
+                document.documentElement.mozRequestFullScreen();
+            }
+            isFullscreenMode = true;
+        } else {
+            var slides = document.querySelectorAll("#result .slide");
+            for (var i = 0; i < slides.length; i++) {
+                slides[i].style.width = oldWidth;
+                slides[i].style.margin = oldMargin;
+            }
+            
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            }
+            isFullscreenMode = false;
+        }
+    });
+
+    document.addEventListener("fullscreenchange", function() {
+        if (!document.fullscreenElement) {
+            var slides = document.querySelectorAll("#result .slide");
+            for (var i = 0; i < slides.length; i++) {
+                slides[i].style.width = oldWidth;
+                slides[i].style.margin = oldMargin;
+            }
+        }
     });
 </script>
 <style>
@@ -80,7 +98,7 @@
 		</div>
 	</div>
 <script>
-$("#result").pptxToHtml({
+pptxToHtml(document.getElementById("result"), {
 	pptxFileUrl: "",
 	fileInputId: "uploadFileInput",
 	slideMode: false,

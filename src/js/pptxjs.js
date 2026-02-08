@@ -1,4 +1,5 @@
-/**
+/* 
+*
  * pptxjs.js
  * Ver. : 1.21.1
  * last update: 16/11/2021
@@ -9,146 +10,150 @@
  * [#16](https://github.com/meshesha/PPTXjs/issues/16)
  */
 
-(function ($) {
-    $.fn.pptxToHtml = function (options) {
-        //var worker;
-        var $result = $(this);
-        var divId = $result.attr("id");
+function pptxToHtml(element, options) {
+    var result = element;
+    var divId = result.id;
 
-        var isDone = false;
+    var isDone = false;
 
-        //var slideLayoutClrOvride = "";
+    var defaultTextStyle = null;
 
-        var defaultTextStyle = null;
+    var chartID = 0;
 
-        var chartID = 0;
+    var _order = 1;
 
-        var _order = 1;
+    var app_verssion ;
 
-        var app_verssion ;
+    var slideFactor = 96 / 914400;
+    var fontSizeFactor = 4 / 3.2;
+    var slideWidth = 0;
+    var slideHeight = 0;
+    var isSlideMode = false;
+    var processFullTheme = true;
+    var styleTable = {};
+    var settings = Object.assign({}, {
+        pptxFileUrl: "",
+        fileInputId: "",
+        slidesScale: "",
+        slideMode: false,
+        slideType: "divs2slidesjs",
+        revealjsPath: "",
+        keyBoardShortCut: false,
+        mediaProcess: true,
+        jsZipV2: false,
+        themeProcess: true,
+        incSlide:{
+            width: 0,
+            height: 0
+        },
+        slideModeConfig: {
+            first:1,
+            nav: true,
+            navTxtColor: "black",
+            keyBoardShortCut: true,
+            showSlideNum: true,
+            showTotalSlideNum: true,
+            autoSlide: true,
+            randomAutoSlide: false,
+            loop: false,
+            background: false,
+            transition: "default",
+            transitionTime: 1
+        },
+        revealjsConfig: {},
+        styleTable,
+    }, options);
 
-        
+    processFullTheme = settings.themeProcess;
 
-        var slideFactor = 96 / 914400;
-        var fontSizeFactor = 4 / 3.2;
-        ////////////////////// 
-        var slideWidth = 0;
-        var slideHeight = 0;
-        var isSlideMode = false;
-        var processFullTheme = true;
-        var styleTable = {};
-        var settings = $.extend(true, {
-            // These are the defaults.
-            pptxFileUrl: "",
-            fileInputId: "",
-            slidesScale: "", //Change Slides scale by percent
-            slideMode: false, /** true,false*/
-            slideType: "divs2slidesjs",  /*'divs2slidesjs' (default) , 'revealjs'(https://revealjs.com)  -TODO*/
-            revealjsPath: "", /*path to js file of revealjs - TODO*/
-            keyBoardShortCut: false,  /** true,false ,condition: slideMode: true XXXXX - need to remove - this is doublcated*/
-            mediaProcess: true, /** true,false: if true then process video and audio files */
-            jsZipV2: false,
-            themeProcess: true, /*true (default) , false, "colorsAndImageOnly"*/
-            incSlide:{
-                width: 0,
-                height: 0
-            },
-            slideModeConfig: {
-                first: 1,
-                nav: true, /** true,false : show or not nav buttons*/
-                navTxtColor: "black", /** color */
-                keyBoardShortCut: true, /** true,false ,condition: */
-                showSlideNum: true, /** true,false */
-                showTotalSlideNum: true, /** true,false */
-                autoSlide: true, /** false or seconds , F8 to active ,keyBoardShortCut: true */
-                randomAutoSlide: false, /** true,false ,autoSlide:true */
-                loop: false,  /** true,false */
-                background: false, /** false or color*/
-                transition: "default", /** transition type: "slid","fade","default","random" , to show transition efects :transitionTime > 0.5 */
-                transitionTime: 1 /** transition time between slides in seconds */
-            },
-            revealjsConfig: {},
-            styleTable,
-        }, options);
+    var loadingMsgDiv = document.createElement("div");
+    loadingMsgDiv.className = "slides-loadnig-msg";
+    loadingMsgDiv.style.cssText = "display:block; width:100%; color:white; background-color: #ddd;";
+    
+    var progressBarDiv = document.createElement("div");
+    progressBarDiv.className = "slides-loading-progress-bar";
+    progressBarDiv.style.cssText = "width: 1%; background-color: #4775d1;";
+    progressBarDiv.innerHTML = "<span style='text-align: center;'>Loading... (1%)</span>";
+    
+    loadingMsgDiv.appendChild(progressBarDiv);
+    
+    var targetDiv = document.getElementById(divId);
+    if (targetDiv) {
+        targetDiv.insertBefore(loadingMsgDiv, targetDiv.firstChild);
+    }
 
-        processFullTheme = settings.themeProcess;
+    if (settings.slideMode) {
+        if (typeof divs2slides === 'undefined') {
+            var script = document.createElement('script');
+            script.src = './js/divs2slides.js';
+            document.head.appendChild(script);
+        }
+    }
+    if (settings.jsZipV2 !== false) {
+        var script = document.createElement('script');
+        script.src = settings.jsZipV2;
+        document.head.appendChild(script);
+        if (localStorage.getItem('isPPTXjsReLoaded') !== 'yes') {
+            localStorage.setItem('isPPTXjsReLoaded', 'yes');
+            location.reload();
+        }
+    }
 
-        $("#" + divId).prepend(
-            $("<div></div>").attr({
-                "class": "slides-loadnig-msg",
-                "style": "display:block; width:100%; color:white; background-color: #ddd;"
-            })/*.html("Loading...")*/
-                .html($("<div></div>").attr({
-                    "class": "slides-loading-progress-bar",
-                    "style": "width: 1%; background-color: #4775d1;"
-                }).html("<span style='text-align: center;'>Loading... (1%)</span>"))
-        );
-        if (settings.slideMode) {
-            if (!jQuery().divs2slides) {
-                jQuery.getScript('./js/divs2slides.js');
+    if (settings.keyBoardShortCut) {
+        document.addEventListener("keydown", function (event) {
+            event.preventDefault();
+            var key = event.keyCode;
+            console.log(key, isDone)
+            if (key == 116 && !isSlideMode) {
+                isSlideMode = true;
+                initSlideMode(divId, settings);
+            } else if (key == 116 && isSlideMode) {
             }
-        }
-        if (settings.jsZipV2 !== false) {
-            jQuery.getScript(settings.jsZipV2);
-            if (localStorage.getItem('isPPTXjsReLoaded') !== 'yes') {
-                localStorage.setItem('isPPTXjsReLoaded', 'yes');
-                location.reload();
-            }
-        }
-
-        if (settings.keyBoardShortCut) {
-            $(document).bind("keydown", function (event) {
-                event.preventDefault();
-                var key = event.keyCode;
-                console.log(key, isDone)
-                if (key == 116 && !isSlideMode) { //F5
-                    isSlideMode = true;
-                    initSlideMode(divId, settings);
-                } else if (key == 116 && isSlideMode) {
-                    //exit slide mode - TODO
-
-                }
-            });
-        }
-        FileReaderJS.setSync(false);
-        if (settings.pptxFileUrl != "") {
-            try{
-                JSZipUtils.getBinaryContent(settings.pptxFileUrl, function (err, content) {
-                    var blob = new Blob([content]);
-                    var file_name = settings.pptxFileUrl;
-                    var fArry = file_name.split(".");
-                    fArry.pop();
-                    blob.name = fArry[0];
-                    FileReaderJS.setupBlob(blob, {
-                        readAsDefault: "ArrayBuffer",
-                        on: {
-                            load: function (e, file) {
-                                //console.log(e.target.result);
-                                convertToHtml(e.target.result);
-                            }
+        });
+    }
+    FileReaderJS.setSync(false);
+    if (settings.pptxFileUrl != "") {
+        try{
+            JSZipUtils.getBinaryContent(settings.pptxFileUrl, function (err, content) {
+                var blob = new Blob([content]);
+                var file_name = settings.pptxFileUrl;
+                var fArry = file_name.split(".");
+                fArry.pop();
+                blob.name = fArry[0];
+                FileReaderJS.setupBlob(blob, {
+                    readAsDefault: "ArrayBuffer",
+                    on: {
+                        load: function (e, file) {
+                            convertToHtml(e.target.result);
                         }
-                    });
+                    }
                 });
-            }catch(e){ 
-                console.error("file url error (" + settings.pptxFileUrl+ "0)")
-                $(".slides-loadnig-msg").remove();
+            });
+        }catch(e){ 
+            console.error("file url error (" + settings.pptxFileUrl+ "0)")
+            var loadingMsg = document.querySelector(".slides-loadnig-msg");
+            if (loadingMsg) {
+                loadingMsg.remove();
             }
-        } else {
-            $(".slides-loadnig-msg").remove()
         }
-        if (settings.fileInputId != "") {
-            $("#" + settings.fileInputId).on("change", function (evt) {
-                $result.html("");
+    } else {
+        var loadingMsg = document.querySelector(".slides-loadnig-msg");
+        if (loadingMsg) {
+            loadingMsg.remove();
+        }
+    }
+    if (settings.fileInputId != "") {
+        var fileInput = document.getElementById(settings.fileInputId);
+        if (fileInput) {
+            fileInput.addEventListener("change", function (evt) {
+                result.innerHTML = "";
                 var file = evt.target.files[0];
-                // var fileName = file[0].name;
-                //var fileSize = file[0].size;
                 var fileType = file.type;
                 if (fileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
                     FileReaderJS.setupBlob(file, {
                         readAsDefault: "ArrayBuffer",
                         on: {
                             load: function (e, file) {
-                                //console.log(e.target.result);
                                 convertToHtml(e.target.result);
                             }
                         }
@@ -158,116 +163,127 @@
                 }
             });
         }
+    }
 
-        function updateProgressBar(percent) {
-            //console.log("percent: ", percent)
-            var progressBarElemtnt = $(".slides-loading-progress-bar")
-            progressBarElemtnt.width(percent + "%")
-            progressBarElemtnt.html("<span style='text-align: center;'>Loading...(" + percent + "%)</span>");
+    function updateProgressBar(percent) {
+        var progressBarElemtnt = document.querySelector(".slides-loading-progress-bar");
+        if (progressBarElemtnt) {
+            progressBarElemtnt.style.width = percent + "%";
+            progressBarElemtnt.innerHTML = "<span style='text-align: center;'>Loading...(" + percent + "%)</span>";
         }
+    }
 
-        function convertToHtml(file) {
-            //'use strict';
-            //console.log("file", file, "size:", file.byteLength);
-            if (file.byteLength < 10){
-                console.error("file url error (" + settings.pptxFileUrl + "0)")
-                $(".slides-loadnig-msg").remove();
-                return;
+    function convertToHtml(file) {
+        if (file.byteLength < 10){
+            console.error("file url error (" + settings.pptxFileUrl + "0)")
+            var loadingMsg = document.querySelector(".slides-loadnig-msg");
+            if (loadingMsg) {
+                loadingMsg.remove();
             }
-            var MsgQueue = new Array();
-            var zip = new JSZip(), s;
-            //if (typeof file === 'string') { // Load
-            zip = zip.load(file);  //zip.load(file, { base64: true });
-            var rslt_ary = processPPTX(zip, MsgQueue);
+            return;
+        }
+        var MsgQueue = new Array();
+        var zip = new JSZip(), s;
+        zip = zip.load(file);
+        var rslt_ary = processPPTX(zip, MsgQueue);
 
-            //s = PPTXXmlUtils.readXmlFile(zip, 'ppt/tableStyles.xml');
-            //var slidesHeight = $("#" + divId + " .slide").height();
-            for (var i = 0; i < rslt_ary.length; i++) {
-                switch (rslt_ary[i]["type"]) {
-                    case "slide":
-                        $result.append(rslt_ary[i]["data"]);
-                        break;
-                    case "pptx-thumb":
-                        //$("#pptx-thumb").attr("src", "data:image/jpeg;base64," +rslt_ary[i]["data"]);
-                        break;
-                    case "slideSize":
-                        slideWidth = rslt_ary[i]["data"].width;
-                        slideHeight = rslt_ary[i]["data"].height;
-                        /*
-                        $("#"+divId).css({
-                            'width': slideWidth + 80,
-                            'height': slideHeight + 60
-                        });
-                        */
-                        break;
-                    case "globalCSS":
-                        //console.log(rslt_ary[i]["data"])
-                        $result.append("<style>" + rslt_ary[i]["data"] + "</style>");
-                        break;
-                    case "ExecutionTime":
-                        processMsgQueue(MsgQueue);
-                        setNumericBullets($(".block"));
-                        setNumericBullets($("table td"));
+        for (var i = 0; i < rslt_ary.length; i++) {
+            switch (rslt_ary[i]["type"]) {
+                case "slide":
+                    result.innerHTML += rslt_ary[i]["data"];
+                    break;
+                case "pptx-thumb":
+                    break;
+                case "slideSize":
+                    slideWidth = rslt_ary[i]["data"].width;
+                    slideHeight = rslt_ary[i]["data"].height;
+                    break;
+                case "globalCSS":
+                    var style = document.createElement("style");
+                    style.innerHTML = rslt_ary[i]["data"];
+                    result.appendChild(style);
+                    break;
+                case "ExecutionTime":
+                    processMsgQueue(MsgQueue);
+                    setNumericBullets(document.querySelectorAll(".block"));
+                    setNumericBullets(document.querySelectorAll("table td"));
 
-                        isDone = true;
+                    isDone = true;
 
-                        if (settings.slideMode && !isSlideMode) {
-                            isSlideMode = true;
-                            initSlideMode(divId, settings);
-                        } else if (!settings.slideMode) {
-                            $(".slides-loadnig-msg").remove();
+                    if (settings.slideMode && !isSlideMode) {
+                        isSlideMode = true;
+                        initSlideMode(divId, settings);
+                    } else if (!settings.slideMode) {
+                        var loadingMsg = document.querySelector(".slides-loadnig-msg");
+                        if (loadingMsg) {
+                            loadingMsg.remove();
                         }
-                        break;
-                    case "progress-update":
-                        //console.log(rslt_ary[i]["data"]); //update progress bar - TODO
-                        updateProgressBar(rslt_ary[i]["data"])
-                        break;
-                    default:
-                }
+                    }
+                    break;
+                case "progress-update":
+                    updateProgressBar(rslt_ary[i]["data"])
+                    break;
+                default:
             }
-            if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
-
-                if (document.getElementById("all_slides_warpper") === null) {
-                    $("#" + divId + " .slide").wrapAll("<div id='all_slides_warpper' class='slides'></div>");
-                    //$("#" + divId + " .slides").wrap("<div class='reveal'></div>");
-                }
-
-                if (settings.slideMode && settings.slideType == "revealjs") {
-                    $("#" + divId).addClass("reveal")
-                }
-            }
-
-            var sScale = settings.slidesScale;
-            var trnsfrmScl = "";
-            if (sScale != "") {
-                var numsScale = parseInt(sScale);
-                var scaleVal = numsScale / 100;
-                if (settings.slideMode && settings.slideType != "revealjs") {
-                    trnsfrmScl = 'transform:scale(' + scaleVal + '); transform-origin:top';
-                }
-            }
-
-            var slidesHeight = $("#" + divId + " .slide").height();
-            var numOfSlides = $("#" + divId + " .slide").length;
-            var sScaleVal = (sScale != "") ? scaleVal : 1;
-            //console.log("slidesHeight: " + slidesHeight + "\nnumOfSlides: " + numOfSlides + "\nScale: " + sScaleVal)
-
-            $("#all_slides_warpper").attr({
-                style: trnsfrmScl + ";height: " + (numOfSlides * slidesHeight * sScaleVal) + "px"
-            })
-
-            //}
         }
+        if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
+
+            if (document.getElementById("all_slides_warpper") === null) {
+                var slides = document.querySelectorAll("#" + divId + " .slide");
+                var wrapper = document.createElement("div");
+                wrapper.id = "all_slides_warpper";
+                wrapper.className = "slides";
+                var firstSlide = slides[0];
+                if (firstSlide && firstSlide.parentNode) {
+                    firstSlide.parentNode.insertBefore(wrapper, firstSlide);
+                    for (var i = 0; i < slides.length; i++) {
+                        wrapper.appendChild(slides[i]);
+                    }
+                }
+            }
+
+            if (settings.slideMode && settings.slideType == "revealjs") {
+                document.getElementById(divId).classList.add("reveal");
+            }
+        }
+
+        var sScale = settings.slidesScale;
+        var trnsfrmScl = "";
+        if (sScale != "") {
+            var numsScale = parseInt(sScale);
+            var scaleVal = numsScale / 100;
+            if (settings.slideMode && settings.slideType != "revealjs") {
+                trnsfrmScl = 'transform:scale(' + scaleVal + '); transform-origin:top';
+            }
+        }
+
+        var slides = document.querySelectorAll("#" + divId + " .slide");
+        var slidesHeight = slides.length > 0 ? slides[0].offsetHeight : 0;
+        var numOfSlides = slides.length;
+        var sScaleVal = (sScale != "") ? scaleVal : 1;
+
+        var allSlidesWrapper = document.getElementById("all_slides_warpper");
+        if (allSlidesWrapper) {
+            allSlidesWrapper.style.cssText = trnsfrmScl + ";height: " + (numOfSlides * slidesHeight * sScaleVal) + "px";
+        }
+    }
 
         function initSlideMode(divId, settings) {
-            //console.log(settings.slideType)
-            if (settings.slideType == "" || settings.slideType == "divs2slidesjs") {
-                var slidesHeight = $("#" + divId + " .slide").height();
-                $("#" + divId + " .slide").hide();
-                setTimeout(function () {
-                    var slideConf = settings.slideModeConfig;
-                    $(".slides-loadnig-msg").remove();
-                    $("#" + divId).divs2slides({
+        if (settings.slideType == "" || settings.slideType == "divs2slidesjs") {
+            var slides = document.querySelectorAll("#" + divId + " .slide");
+            var slidesHeight = slides.length > 0 ? slides[0].offsetHeight : 0;
+            for (var i = 0; i < slides.length; i++) {
+                slides[i].style.display = "none";
+            }
+            setTimeout(function () {
+                var slideConf = settings.slideModeConfig;
+                var loadingMsg = document.querySelector(".slides-loadnig-msg");
+                if (loadingMsg) {
+                    loadingMsg.remove();
+                }
+                var resultDiv = document.getElementById(divId);
+                if (resultDiv && typeof resultDiv.divs2slides === 'function') {
+                    resultDiv.divs2slides({
                         first: slideConf.first,
                         nav: slideConf.nav,
                         showPlayPauseBtn: settings.showPlayPauseBtn,
@@ -293,31 +309,38 @@
 
                     var numOfSlides = 1;
                     var sScaleVal = (sScale != "") ? scaleVal : 1;
-                    //console.log(slidesHeight);
-                    $("#all_slides_warpper").attr({
-                        style: trnsfrmScl + ";height: " + (numOfSlides * slidesHeight * sScaleVal) + "px"
-                    })
 
-                }, 1500);
-            } else if (settings.slideType == "revealjs") {
-                $(".slides-loadnig-msg").remove();
-                var revealjsPath = "";
-                if (settings.revealjsPath != "") {
-                    revealjsPath = settings.revealjsPath;
-                } else {
-                    revealjsPath = "./revealjs/reveal.js";
-                }
-                $.getScript(revealjsPath, function (response, status) {
-                    if (status == "success") {
-                        // $("section").removeClass("slide");
-                        Reveal.initialize(settings.revealjsConfig); //revealjsConfig - TODO
+                    var allSlidesWrapper = document.getElementById("all_slides_warpper");
+                    if (allSlidesWrapper) {
+                        allSlidesWrapper.style.cssText = trnsfrmScl + ";height: " + (numOfSlides * slidesHeight * sScaleVal) + "px";
                     }
-                });
+                }
+            }, 1500);
+        } else if (settings.slideType == "revealjs") {
+            var loadingMsg = document.querySelector(".slides-loadnig-msg");
+            if (loadingMsg) {
+                loadingMsg.remove();
             }
-
-
-
+            var revealjsPath = "";
+            if (settings.revealjsPath != "") {
+                revealjsPath = settings.revealjsPath;
+            } else {
+                revealjsPath = "./revealjs/reveal.js";
+            }
+            var script = document.createElement('script');
+            script.src = revealjsPath;
+            script.onload = function() {
+                var sections = document.querySelectorAll("section");
+                for (var i = 0; i < sections.length; i++) {
+                    sections[i].classList.remove("slide");
+                }
+                if (typeof Reveal !== 'undefined' && typeof Reveal.initialize === 'function') {
+                    Reveal.initialize(settings.revealjsConfig);
+                }
+            };
+            document.head.appendChild(script);
         }
+    }
 
         function processPPTX(zip, MsgQueue) {
             var post_ary = [];
@@ -870,9 +893,8 @@
         function setNumericBullets(elem) {
             var prgrphs_arry = elem;
             for (var i = 0; i < prgrphs_arry.length; i++) {
-                var buSpan = $(prgrphs_arry[i]).find('.numeric-bullet-style');
+                var buSpan = prgrphs_arry[i].querySelectorAll('.numeric-bullet-style');
                 if (buSpan.length > 0) {
-                    //console.log("DIV-"+i+":");
                     var prevBultTyp = "";
                     var prevBultLvl = "";
                     var buletIndex = 0;
@@ -880,9 +902,8 @@
                     var tmpArryIndx = 0;
                     var buletTypSrry = new Array();
                     for (var j = 0; j < buSpan.length; j++) {
-                        var bult_typ = $(buSpan[j]).data("bulltname");
-                        var bult_lvl = $(buSpan[j]).data("bulltlvl");
-                        //console.log(j+" - "+bult_typ+" lvl: "+bult_lvl );
+                        var bult_typ = buSpan[j].getAttribute("data-bulltname");
+                        var bult_lvl = buSpan[j].getAttribute("data-bulltlvl");
                         if (buletIndex == 0) {
                             prevBultTyp = bult_typ;
                             prevBultLvl = bult_lvl;
@@ -917,12 +938,14 @@
                                 buletIndex = tmpArry[tmpArryIndx] + 1;
                             }
                         }
-                        //console.log(buletTypSrry[tmpArryIndx]+" - "+buletIndex);
                         var numIdx = PPTXTextUtils.getNumTypeNum(buletTypSrry[tmpArryIndx], buletIndex);
-                        $(buSpan[j]).html(numIdx);
+                        buSpan[j].innerHTML = numIdx;
                     }
                 }
             }
         }
-    }
-}(jQuery));
+}
+
+if (typeof window !== 'undefined') {
+    window.pptxToHtml = pptxToHtml;
+}

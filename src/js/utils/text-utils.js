@@ -8,6 +8,19 @@ var PPTXTextUtils = (function() {
     
     var is_first_br = false;
 
+    function getTextWidth(html) {
+        var div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.float = 'left';
+        div.style.whiteSpace = 'nowrap';
+        div.style.visibility = 'hidden';
+        div.innerHTML = html;
+        document.body.appendChild(div);
+        var width = div.offsetWidth;
+        document.body.removeChild(div);
+        return width;
+    }
+
     function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width) {
             var text = "";
             var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
@@ -107,11 +120,7 @@ var PPTXTextUtils = (function() {
                     // without r
                     var prgr_text = genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
                     if (isBullate) {
-                        var txt_obj = $(prgr_text)
-                            .css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden' })
-                            .appendTo($('body'));
-                        total_text_len += txt_obj.outerWidth();
-                        txt_obj.remove();
+                        total_text_len += getTextWidth(prgr_text);
                     }
                     prgrph_text += prgr_text;
                 } else if (rNode !== undefined) {
@@ -119,11 +128,7 @@ var PPTXTextUtils = (function() {
                     for (var j = 0; j < rNode.length; j++) {
                         var prgr_text = genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
                         if (isBullate) {
-                            var txt_obj = $(prgr_text)
-                                .css({ 'position': 'absolute', 'float': 'left', 'white-space': 'nowrap', 'visibility': 'hidden'})
-                                .appendTo($('body'));
-                            total_text_len += txt_obj.outerWidth();
-                            txt_obj.remove();
+                            total_text_len += getTextWidth(prgr_text);
                         }
                         prgrph_text += prgr_text;
                     }
@@ -705,14 +710,14 @@ var PPTXTextUtils = (function() {
         return {
             format: function (n) {
                 var ret = '';
-                jQuery.each(arr, function () {
-                    var num = this[0];
+                for (var i = 0; i < arr.length; i++) {
+                    var num = arr[i][0];
                     if (parseInt(num) > 0) {
-                        for (; n >= num; n -= num) ret += this[1];
+                        for (; n >= num; n -= num) ret += arr[i][1];
                     } else {
-                        ret = ret.replace(num, this[1]);
+                        ret = ret.replace(num, arr[i][1]);
                     }
-                });
+                }
                 return ret;
             }
         }
