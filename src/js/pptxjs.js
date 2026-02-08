@@ -13,32 +13,12 @@
 
 function pptxToHtml(fileData, options) {
     var settings = Object.assign({}, {
-        slidesScale: "",
-        slideMode: false,
-        slideType: "divs2slidesjs",
-        revealjsPath: "",
-        keyBoardShortCut: false,
         mediaProcess: true,
         themeProcess: true,
         incSlide:{
             width: 0,
             height: 0
         },
-        slideModeConfig: {
-            first:1,
-            nav: true,
-            navTxtColor: "black",
-            keyBoardShortCut: true,
-            showSlideNum: true,
-            showTotalSlideNum: true,
-            autoSlide: true,
-            randomAutoSlide: false,
-            loop: false,
-            background: false,
-            transition: "default",
-            transitionTime: 1
-        },
-        revealjsConfig: {},
         styleTable: {},
     }, options);
 
@@ -408,11 +388,8 @@ function pptxToHtml(fileData, options) {
                 bgColor = PPTXStyleUtils.getSlideBackgroundFill(warpObj, index);
             }
 
-            if (settings.slideMode && settings.slideType == "revealjs") {
-                var result = "<section class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
-            } else {
-                var result = "<div class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
-            }
+            var result = "<section class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
+            
             result += bgResult;
             for (var nodeKey in nodes) {
                 if (nodes[nodeKey].constructor === Array) {
@@ -423,12 +400,8 @@ function pptxToHtml(fileData, options) {
                     result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide", 'group', settings);
                 }
             }
-            if (settings.slideMode && settings.slideType == "revealjs") {
-                return result + "</div></section>";
-            } else {
-                return result + "</div></div>";
-            }
-
+           
+            return result + "</div></section>";
         }
 
         
@@ -579,10 +552,6 @@ function pptxToHtml(fileData, options) {
             cssText += tagname + " ." + styleTable[key]["name"] +
                 ((styleTable[key]["suffix"]) ? styleTable[key]["suffix"] : "") +
                 "{" + styleTable[key]["text"] + "}\n";
-        }
-
-        if (settings.slideMode && settings.slideType == "divs2slidesjs") {
-            cssText += "#all_slides_warpper{margin-right: auto;margin-left: auto;padding-top:10px;width: " + slideWidth + "px;}\n";
         }
         return cssText;
     }
