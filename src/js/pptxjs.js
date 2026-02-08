@@ -1,15 +1,3 @@
-/* 
-*
- * pptxjs.js
- * Ver. : 1.21.1
- * last update: 16/11/2021
- * Author: meshesha , https://github.com/meshesha
- * LICENSE: MIT
- * url:https://pptx.js.org/
- * fix issues:
- * [#16](https://github.com/meshesha/PPTXjs/issues/16)
- * Refactored: Removed DOM operations, using callbacks instead
- */
 
 function pptxToHtml(fileData, options) {
     var settings = Object.assign({}, {
