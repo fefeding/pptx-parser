@@ -53,7 +53,6 @@ function pptxToHtml(fileData, options) {
     var fontSizeFactor = 4 / 3.2;
     var slideWidth = 0;
     var slideHeight = 0;
-    var isSlideMode = false;
     var processFullTheme = settings.themeProcess;
     var styleTable = settings.styleTable;
     var isDone = false;
@@ -62,17 +61,7 @@ function pptxToHtml(fileData, options) {
         callbacks.onFileStart();
     }
 
-    if (settings.keyBoardShortCut && callbacks.onKeyPress) {
-        document.addEventListener("keydown", function (event) {
-            var key = event.keyCode;
-            if (key == 116 && !isSlideMode) {
-                isSlideMode = true;
-                if (callbacks.onSlideModeToggle) {
-                    callbacks.onSlideModeToggle(true);
-                }
-            }
-        });
-    }
+
 
     function convertToHtml(file) {
         if (file.byteLength < 10){
