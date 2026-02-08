@@ -1269,7 +1269,7 @@ var PPTXTextUtils = (function() {
             var thisTblStyle;
             var tbleStyleId = getTblPr["a:tableStyleId"];
             if (tbleStyleId !== undefined) {
-                var tbleStylList = tableStyles["a:tblStyleLst"]["a:tblStyle"];
+                var tbleStylList = warpObj.tableStyles["a:tblStyleLst"]["a:tblStyle"];
                 if (tbleStylList !== undefined) {
                     if (tbleStylList.constructor === Array) {
                         for (var k = 0; k < tbleStylList.length; k++) {

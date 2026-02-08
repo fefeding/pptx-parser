@@ -25,7 +25,7 @@
 <script type="text/javascript" src="./js/utils/node.js"></script>
 
 
-<script type="text/javascript" src="./js/pptxjs.js"></script>
+
 
 
 <style>
@@ -45,7 +45,9 @@
 			<div id="result"></div>
 		</div>
 	</div>
-<script>
+<script type="module">
+import pptxToHtml from './js/pptxjs.js';
+
 var resultDiv = document.getElementById("result");
 var loadingMsgDiv = null;
 var progressBarDiv = null;

@@ -110,7 +110,7 @@ function pptxToHtml(fileData, options) {
 
             var filesInfo = PPTXXmlUtils.getContentTypes(zip);
             var slideSize = PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
-            tableStyles = PPTXXmlUtils.readXmlFile(zip, "ppt/tableStyles.xml");
+            
             //console.log("slideSize: ", slideSize)
             post_ary.push({
                 "type": "slideSize",
@@ -344,6 +344,8 @@ function pptxToHtml(fileData, options) {
             }
             //console.log("diagramResObj: " , diagramResObj)
             // =====< Step 3 >=====
+            const tableStyles = PPTXXmlUtils.readXmlFile(zip, "ppt/tableStyles.xml");
+
             var slideContent = PPTXXmlUtils.readXmlFile(zip, sldFileName , true);
             var nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
             var warpObj = {
@@ -362,6 +364,7 @@ function pptxToHtml(fileData, options) {
                 "digramFileContent": digramFileContent,
                 "diagramResObj": diagramResObj,
                 "defaultTextStyle": slideSize.defaultTextStyle || defaultTextStyle,
+                tableStyles,
                 styleTable,
                 chartID,
                 MsgQueue,
@@ -632,6 +635,6 @@ function pptxToHtml(fileData, options) {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.pptxToHtml = pptxToHtml;
-}
+export default pptxToHtml;
+
+
