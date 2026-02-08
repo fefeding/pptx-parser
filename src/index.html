@@ -206,8 +206,16 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 					resultDiv.appendChild(style);
 				},
 				onChartReady: function(chartInfo) {
-					d3.select("#" + chartInfo.chartID)
-						.append("svg")
+					var chartElement = d3.select("#" + chartInfo.chartID);
+					if (chartElement.empty()) {
+						console.warn("Chart element not found: #" + chartInfo.chartID);
+						return;
+					}
+					if (!chartInfo.data || !Array.isArray(chartInfo.data) || chartInfo.data.length === 0) {
+						console.warn("Invalid or empty chart data for chart: " + chartInfo.chartID);
+						return;
+					}
+					chartElement.append("svg")
 						.datum(chartInfo.data)
 						.transition().duration(500)
 						.call(chartInfo.chart);

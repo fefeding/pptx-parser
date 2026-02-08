@@ -611,17 +611,27 @@ function pptxToHtml(fileData, options) {
         var data = [];
         var chart = null;
 
+        // Validate chart data
+        if (!chartData || !Array.isArray(chartData) || chartData.length === 0) {
+            console.warn("Invalid chart data for chart ID: " + chartID);
+            return;
+        }
+
         switch (chartType) {
             case "lineChart":
                 data = chartData;
                 chart = nv.models.lineChart()
                     .useInteractiveGuideline(true);
-                chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                if (chartData[0] && chartData[0].xlabels) {
+                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                }
                 break;
             case "barChart":
                 data = chartData;
                 chart = nv.models.multiBarChart();
-                chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                if (chartData[0] && chartData[0].xlabels) {
+                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                }
                 break;
             case "pieChart":
             case "pie3DChart":
@@ -635,13 +645,17 @@ function pptxToHtml(fileData, options) {
                 chart = nv.models.stackedAreaChart()
                     .clipEdge(true)
                     .useInteractiveGuideline(true);
-                chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                if (chartData[0] && chartData[0].xlabels) {
+                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                }
                 break;
             case "scatterChart":
                 for (var i = 0; i < chartData.length; i++) {
                     var arr = [];
-                    for (var j = 0; j < chartData[i].length; j++) {
-                        arr.push({ x: j, y: chartData[i][j] });
+                    if (Array.isArray(chartData[i])) {
+                        for (var j = 0; j < chartData[i].length; j++) {
+                            arr.push({ x: j, y: chartData[i][j] });
+                        }
                     }
                     data.push({ key: 'data' + (i + 1), values: arr });
                 }
@@ -653,6 +667,7 @@ function pptxToHtml(fileData, options) {
                 chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
                 break;
             default:
+                console.warn("Unknown chart type: " + chartType);
                 break;
         }
 

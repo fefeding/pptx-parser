@@ -2407,6 +2407,7 @@ var PPTXStyleUtils = (function() {
             }
 
             Object.prototype.set = function (parts, value) {
+                if(!parts) return this;
                 //var parts = prop.split('.');
                 var obj = this;
                 var lent = parts.length;
