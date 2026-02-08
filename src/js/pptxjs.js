@@ -8,39 +8,17 @@
  * url:https://pptx.js.org/
  * fix issues:
  * [#16](https://github.com/meshesha/PPTXjs/issues/16)
+ * Refactored: Removed DOM operations, using callbacks instead
  */
 
-function pptxToHtml(element, options) {
-    var result = element;
-    var divId = result.id;
-
-    var isDone = false;
-
-    var defaultTextStyle = null;
-
-    var chartID = 0;
-
-    var _order = 1;
-
-    var app_verssion ;
-
-    var slideFactor = 96 / 914400;
-    var fontSizeFactor = 4 / 3.2;
-    var slideWidth = 0;
-    var slideHeight = 0;
-    var isSlideMode = false;
-    var processFullTheme = true;
-    var styleTable = {};
+function pptxToHtml(arrayBuffer, options) {
     var settings = Object.assign({}, {
-        pptxFileUrl: "",
-        fileInputId: "",
         slidesScale: "",
         slideMode: false,
         slideType: "divs2slidesjs",
         revealjsPath: "",
         keyBoardShortCut: false,
         mediaProcess: true,
-        jsZipV2: false,
         themeProcess: true,
         incSlide:{
             width: 0,
@@ -61,284 +39,102 @@ function pptxToHtml(element, options) {
             transitionTime: 1
         },
         revealjsConfig: {},
-        styleTable,
+        styleTable: {},
     }, options);
 
-    processFullTheme = settings.themeProcess;
+    // Callback functions
+    var callbacks = settings.callbacks || {};
 
-    var loadingMsgDiv = document.createElement("div");
-    loadingMsgDiv.className = "slides-loadnig-msg";
-    loadingMsgDiv.style.cssText = "display:block; width:100%; color:white; background-color: #ddd;";
-    
-    var progressBarDiv = document.createElement("div");
-    progressBarDiv.className = "slides-loading-progress-bar";
-    progressBarDiv.style.cssText = "width: 1%; background-color: #4775d1;";
-    progressBarDiv.innerHTML = "<span style='text-align: center;'>Loading... (1%)</span>";
-    
-    loadingMsgDiv.appendChild(progressBarDiv);
-    
-    var targetDiv = document.getElementById(divId);
-    if (targetDiv) {
-        targetDiv.insertBefore(loadingMsgDiv, targetDiv.firstChild);
+    var defaultTextStyle = null;
+    var chartID = 0;
+    var _order = 1;
+    var app_version;
+    var slideFactor = 96 / 914400;
+    var fontSizeFactor = 4 / 3.2;
+    var slideWidth = 0;
+    var slideHeight = 0;
+    var isSlideMode = false;
+    var processFullTheme = settings.themeProcess;
+    var styleTable = settings.styleTable;
+    var isDone = false;
+
+    if (callbacks.onFileStart) {
+        callbacks.onFileStart();
     }
 
-    if (settings.slideMode) {
-        if (typeof divs2slides === 'undefined') {
-            var script = document.createElement('script');
-            script.src = './js/divs2slides.js';
-            document.head.appendChild(script);
-        }
-    }
-    if (settings.jsZipV2 !== false) {
-        var script = document.createElement('script');
-        script.src = settings.jsZipV2;
-        document.head.appendChild(script);
-        if (localStorage.getItem('isPPTXjsReLoaded') !== 'yes') {
-            localStorage.setItem('isPPTXjsReLoaded', 'yes');
-            location.reload();
-        }
-    }
-
-    if (settings.keyBoardShortCut) {
+    if (settings.keyBoardShortCut && callbacks.onKeyPress) {
         document.addEventListener("keydown", function (event) {
-            event.preventDefault();
             var key = event.keyCode;
-            console.log(key, isDone)
             if (key == 116 && !isSlideMode) {
                 isSlideMode = true;
-                initSlideMode(divId, settings);
-            } else if (key == 116 && isSlideMode) {
+                if (callbacks.onSlideModeToggle) {
+                    callbacks.onSlideModeToggle(true);
+                }
             }
         });
-    }
-    FileReaderJS.setSync(false);
-    if (settings.pptxFileUrl != "") {
-        try{
-            JSZipUtils.getBinaryContent(settings.pptxFileUrl, function (err, content) {
-                var blob = new Blob([content]);
-                var file_name = settings.pptxFileUrl;
-                var fArry = file_name.split(".");
-                fArry.pop();
-                blob.name = fArry[0];
-                FileReaderJS.setupBlob(blob, {
-                    readAsDefault: "ArrayBuffer",
-                    on: {
-                        load: function (e, file) {
-                            convertToHtml(e.target.result);
-                        }
-                    }
-                });
-            });
-        }catch(e){ 
-            console.error("file url error (" + settings.pptxFileUrl+ "0)")
-            var loadingMsg = document.querySelector(".slides-loadnig-msg");
-            if (loadingMsg) {
-                loadingMsg.remove();
-            }
-        }
-    } else {
-        var loadingMsg = document.querySelector(".slides-loadnig-msg");
-        if (loadingMsg) {
-            loadingMsg.remove();
-        }
-    }
-    if (settings.fileInputId != "") {
-        var fileInput = document.getElementById(settings.fileInputId);
-        if (fileInput) {
-            fileInput.addEventListener("change", function (evt) {
-                result.innerHTML = "";
-                var file = evt.target.files[0];
-                var fileType = file.type;
-                if (fileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
-                    FileReaderJS.setupBlob(file, {
-                        readAsDefault: "ArrayBuffer",
-                        on: {
-                            load: function (e, file) {
-                                convertToHtml(e.target.result);
-                            }
-                        }
-                    });
-                } else {
-                    alert("This is not pptx file");
-                }
-            });
-        }
-    }
-
-    function updateProgressBar(percent) {
-        var progressBarElemtnt = document.querySelector(".slides-loading-progress-bar");
-        if (progressBarElemtnt) {
-            progressBarElemtnt.style.width = percent + "%";
-            progressBarElemtnt.innerHTML = "<span style='text-align: center;'>Loading...(" + percent + "%)</span>";
-        }
     }
 
     function convertToHtml(file) {
         if (file.byteLength < 10){
-            console.error("file url error (" + settings.pptxFileUrl + "0)")
-            var loadingMsg = document.querySelector(".slides-loadnig-msg");
-            if (loadingMsg) {
-                loadingMsg.remove();
+            console.error("Invalid file: file too small");
+            if (callbacks.onError) {
+                callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
             }
             return;
         }
         var MsgQueue = new Array();
-        var zip = new JSZip(), s;
+        var zip = new JSZip();
         zip = zip.load(file);
         var rslt_ary = processPPTX(zip, MsgQueue);
 
         for (var i = 0; i < rslt_ary.length; i++) {
             switch (rslt_ary[i]["type"]) {
                 case "slide":
-                    result.innerHTML += rslt_ary[i]["data"];
+                    if (callbacks.onSlide) {
+                        callbacks.onSlide(rslt_ary[i]["data"], {
+                            slide_num: rslt_ary[i]["slide_num"],
+                            file_name: rslt_ary[i]["file_name"]
+                        });
+                    }
                     break;
                 case "pptx-thumb":
+                    if (callbacks.onThumbnail) {
+                        callbacks.onThumbnail(rslt_ary[i]["data"]);
+                    }
                     break;
                 case "slideSize":
                     slideWidth = rslt_ary[i]["data"].width;
                     slideHeight = rslt_ary[i]["data"].height;
+                    if (callbacks.onSlideSize) {
+                        callbacks.onSlideSize(rslt_ary[i]["data"]);
+                    }
                     break;
                 case "globalCSS":
-                    var style = document.createElement("style");
-                    style.innerHTML = rslt_ary[i]["data"];
-                    result.appendChild(style);
+                    if (callbacks.onGlobalCSS) {
+                        callbacks.onGlobalCSS(rslt_ary[i]["data"]);
+                    }
                     break;
                 case "ExecutionTime":
                     processMsgQueue(MsgQueue);
-                    setNumericBullets(document.querySelectorAll(".block"));
-                    setNumericBullets(document.querySelectorAll("table td"));
-
                     isDone = true;
 
-                    if (settings.slideMode && !isSlideMode) {
-                        isSlideMode = true;
-                        initSlideMode(divId, settings);
-                    } else if (!settings.slideMode) {
-                        var loadingMsg = document.querySelector(".slides-loadnig-msg");
-                        if (loadingMsg) {
-                            loadingMsg.remove();
-                        }
+                    if (callbacks.onComplete) {
+                        callbacks.onComplete({
+                            executionTime: rslt_ary[i]["data"],
+                            slideWidth: slideWidth,
+                            slideHeight: slideHeight,
+                            styleTable: styleTable,
+                            settings: settings
+                        });
                     }
                     break;
                 case "progress-update":
-                    updateProgressBar(rslt_ary[i]["data"])
+                    if (callbacks.onProgress) {
+                        callbacks.onProgress(rslt_ary[i]["data"]);
+                    }
                     break;
                 default:
             }
-        }
-        if (!settings.slideMode || (settings.slideMode && settings.slideType == "revealjs")) {
-
-            if (document.getElementById("all_slides_warpper") === null) {
-                var slides = document.querySelectorAll("#" + divId + " .slide");
-                var wrapper = document.createElement("div");
-                wrapper.id = "all_slides_warpper";
-                wrapper.className = "slides";
-                var firstSlide = slides[0];
-                if (firstSlide && firstSlide.parentNode) {
-                    firstSlide.parentNode.insertBefore(wrapper, firstSlide);
-                    for (var i = 0; i < slides.length; i++) {
-                        wrapper.appendChild(slides[i]);
-                    }
-                }
-            }
-
-            if (settings.slideMode && settings.slideType == "revealjs") {
-                document.getElementById(divId).classList.add("reveal");
-            }
-        }
-
-        var sScale = settings.slidesScale;
-        var trnsfrmScl = "";
-        if (sScale != "") {
-            var numsScale = parseInt(sScale);
-            var scaleVal = numsScale / 100;
-            if (settings.slideMode && settings.slideType != "revealjs") {
-                trnsfrmScl = 'transform:scale(' + scaleVal + '); transform-origin:top';
-            }
-        }
-
-        var slides = document.querySelectorAll("#" + divId + " .slide");
-        var slidesHeight = slides.length > 0 ? slides[0].offsetHeight : 0;
-        var numOfSlides = slides.length;
-        var sScaleVal = (sScale != "") ? scaleVal : 1;
-
-        var allSlidesWrapper = document.getElementById("all_slides_warpper");
-        if (allSlidesWrapper) {
-            allSlidesWrapper.style.cssText = trnsfrmScl + ";height: " + (numOfSlides * slidesHeight * sScaleVal) + "px";
-        }
-    }
-
-        function initSlideMode(divId, settings) {
-        if (settings.slideType == "" || settings.slideType == "divs2slidesjs") {
-            var slides = document.querySelectorAll("#" + divId + " .slide");
-            var slidesHeight = slides.length > 0 ? slides[0].offsetHeight : 0;
-            for (var i = 0; i < slides.length; i++) {
-                slides[i].style.display = "none";
-            }
-            setTimeout(function () {
-                var slideConf = settings.slideModeConfig;
-                var loadingMsg = document.querySelector(".slides-loadnig-msg");
-                if (loadingMsg) {
-                    loadingMsg.remove();
-                }
-                var resultDiv = document.getElementById(divId);
-                if (resultDiv && typeof resultDiv.divs2slides === 'function') {
-                    resultDiv.divs2slides({
-                        first: slideConf.first,
-                        nav: slideConf.nav,
-                        showPlayPauseBtn: settings.showPlayPauseBtn,
-                        navTxtColor: slideConf.navTxtColor,
-                        keyBoardShortCut: slideConf.keyBoardShortCut,
-                        showSlideNum: slideConf.showSlideNum,
-                        showTotalSlideNum: slideConf.showTotalSlideNum,
-                        autoSlide: slideConf.autoSlide,
-                        randomAutoSlide: slideConf.randomAutoSlide,
-                        loop: slideConf.loop,
-                        background: slideConf.background,
-                        transition: slideConf.transition,
-                        transitionTime: slideConf.transitionTime
-                    });
-
-                    var sScale = settings.slidesScale;
-                    var trnsfrmScl = "";
-                    if (sScale != "") {
-                        var numsScale = parseInt(sScale);
-                        var scaleVal = numsScale / 100;
-                        trnsfrmScl = 'transform:scale(' + scaleVal + '); transform-origin:top';
-                    }
-
-                    var numOfSlides = 1;
-                    var sScaleVal = (sScale != "") ? scaleVal : 1;
-
-                    var allSlidesWrapper = document.getElementById("all_slides_warpper");
-                    if (allSlidesWrapper) {
-                        allSlidesWrapper.style.cssText = trnsfrmScl + ";height: " + (numOfSlides * slidesHeight * sScaleVal) + "px";
-                    }
-                }
-            }, 1500);
-        } else if (settings.slideType == "revealjs") {
-            var loadingMsg = document.querySelector(".slides-loadnig-msg");
-            if (loadingMsg) {
-                loadingMsg.remove();
-            }
-            var revealjsPath = "";
-            if (settings.revealjsPath != "") {
-                revealjsPath = settings.revealjsPath;
-            } else {
-                revealjsPath = "./revealjs/reveal.js";
-            }
-            var script = document.createElement('script');
-            script.src = revealjsPath;
-            script.onload = function() {
-                var sections = document.querySelectorAll("section");
-                for (var i = 0; i < sections.length; i++) {
-                    sections[i].classList.remove("slide");
-                }
-                if (typeof Reveal !== 'undefined' && typeof Reveal.initialize === 'function') {
-                    Reveal.initialize(settings.revealjsConfig);
-                }
-            };
-            document.head.appendChild(script);
         }
     }
 
@@ -787,163 +583,92 @@ function pptxToHtml(element, options) {
 
         
 
-        function genGlobalCSS() {
-            var cssText = "";
-            //console.log("styleTable: ", styleTable)
-            for (var key in styleTable) {
-                var tagname = "";
-                // if (settings.slideMode && settings.slideType == "revealjs") {
-                //     tagname = "section";
-                // } else {
-                //     tagname = "div";
-                // }
-                //ADD suffix
-                cssText += tagname + " ." + styleTable[key]["name"] +
-                    ((styleTable[key]["suffix"]) ? styleTable[key]["suffix"] : "") +
-                    "{" + styleTable[key]["text"] + "}\n"; //section > div
-            }
-            //cssText += " .slide{margin-bottom: 5px;}\n"; // TODO
-
-            if (settings.slideMode && settings.slideType == "divs2slidesjs") {
-                //divId
-                //console.log("slideWidth: ", slideWidth)
-                cssText += "#all_slides_warpper{margin-right: auto;margin-left: auto;padding-top:10px;width: " + slideWidth + "px;}\n"; // TODO
-            }
-            return cssText;
+    function genGlobalCSS() {
+        var cssText = "";
+        for (var key in styleTable) {
+            var tagname = "";
+            cssText += tagname + " ." + styleTable[key]["name"] +
+                ((styleTable[key]["suffix"]) ? styleTable[key]["suffix"] : "") +
+                "{" + styleTable[key]["text"] + "}\n";
         }
 
-
-
-        function processMsgQueue(queue) {
-            for (var i = 0; i < queue.length; i++) {
-                processSingleMsg(queue[i].data);
-            }
+        if (settings.slideMode && settings.slideType == "divs2slidesjs") {
+            cssText += "#all_slides_warpper{margin-right: auto;margin-left: auto;padding-top:10px;width: " + slideWidth + "px;}\n";
         }
+        return cssText;
+    }
 
-        function processSingleMsg(d) {
-
-            var chartID = d.chartID;
-            var chartType = d.chartType;
-            var chartData = d.chartData;
-
-            var data = [];
-
-            var chart = null;
-            switch (chartType) {
-                case "lineChart":
-                    data = chartData;
-                    chart = nv.models.lineChart()
-                        .useInteractiveGuideline(true);
-                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
-                    break;
-                case "barChart":
-                    data = chartData;
-                    chart = nv.models.multiBarChart();
-                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
-                    break;
-                case "pieChart":
-                case "pie3DChart":
-                    if (chartData.length > 0) {
-                        data = chartData[0].values;
-                    }
-                    chart = nv.models.pieChart();
-                    break;
-                case "areaChart":
-                    data = chartData;
-                    chart = nv.models.stackedAreaChart()
-                        .clipEdge(true)
-                        .useInteractiveGuideline(true);
-                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
-                    break;
-                case "scatterChart":
-
-                    for (var i = 0; i < chartData.length; i++) {
-                        var arr = [];
-                        for (var j = 0; j < chartData[i].length; j++) {
-                            arr.push({ x: j, y: chartData[i][j] });
-                        }
-                        data.push({ key: 'data' + (i + 1), values: arr });
-                    }
-
-                    //data = chartData;
-                    chart = nv.models.scatterChart()
-                        .showDistX(true)
-                        .showDistY(true)
-                        .color(d3.scale.category10().range());
-                    chart.xAxis.axisLabel('X').tickFormat(d3.format('.02f'));
-                    chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
-                    break;
-                default:
-            }
-
-            if (chart !== null) {
-
-                d3.select("#" + chartID)
-                    .append("svg")
-                    .datum(data)
-                    .transition().duration(500)
-                    .call(chart);
-
-                nv.utils.windowResize(chart.update);
-                isDone = true;
-            }
-
+    function processMsgQueue(queue) {
+        for (var i = 0; i < queue.length; i++) {
+            processSingleMsg(queue[i].data);
         }
+    }
 
-        function setNumericBullets(elem) {
-            var prgrphs_arry = elem;
-            for (var i = 0; i < prgrphs_arry.length; i++) {
-                var buSpan = prgrphs_arry[i].querySelectorAll('.numeric-bullet-style');
-                if (buSpan.length > 0) {
-                    var prevBultTyp = "";
-                    var prevBultLvl = "";
-                    var buletIndex = 0;
-                    var tmpArry = new Array();
-                    var tmpArryIndx = 0;
-                    var buletTypSrry = new Array();
-                    for (var j = 0; j < buSpan.length; j++) {
-                        var bult_typ = buSpan[j].getAttribute("data-bulltname");
-                        var bult_lvl = buSpan[j].getAttribute("data-bulltlvl");
-                        if (buletIndex == 0) {
-                            prevBultTyp = bult_typ;
-                            prevBultLvl = bult_lvl;
-                            tmpArry[tmpArryIndx] = buletIndex;
-                            buletTypSrry[tmpArryIndx] = bult_typ;
-                            buletIndex++;
-                        } else {
-                            if (bult_typ == prevBultTyp && bult_lvl == prevBultLvl) {
-                                prevBultTyp = bult_typ;
-                                prevBultLvl = bult_lvl;
-                                buletIndex++;
-                                tmpArry[tmpArryIndx] = buletIndex;
-                                buletTypSrry[tmpArryIndx] = bult_typ;
-                            } else if (bult_typ != prevBultTyp && bult_lvl == prevBultLvl) {
-                                prevBultTyp = bult_typ;
-                                prevBultLvl = bult_lvl;
-                                tmpArryIndx++;
-                                tmpArry[tmpArryIndx] = buletIndex;
-                                buletTypSrry[tmpArryIndx] = bult_typ;
-                                buletIndex = 1;
-                            } else if (bult_typ != prevBultTyp && Number(bult_lvl) > Number(prevBultLvl)) {
-                                prevBultTyp = bult_typ;
-                                prevBultLvl = bult_lvl;
-                                tmpArryIndx++;
-                                tmpArry[tmpArryIndx] = buletIndex;
-                                buletTypSrry[tmpArryIndx] = bult_typ;
-                                buletIndex = 1;
-                            } else if (bult_typ != prevBultTyp && Number(bult_lvl) < Number(prevBultLvl)) {
-                                prevBultTyp = bult_typ;
-                                prevBultLvl = bult_lvl;
-                                tmpArryIndx--;
-                                buletIndex = tmpArry[tmpArryIndx] + 1;
-                            }
-                        }
-                        var numIdx = PPTXTextUtils.getNumTypeNum(buletTypSrry[tmpArryIndx], buletIndex);
-                        buSpan[j].innerHTML = numIdx;
-                    }
+    function processSingleMsg(d) {
+        var chartID = d.chartID;
+        var chartType = d.chartType;
+        var chartData = d.chartData;
+        var data = [];
+        var chart = null;
+
+        switch (chartType) {
+            case "lineChart":
+                data = chartData;
+                chart = nv.models.lineChart()
+                    .useInteractiveGuideline(true);
+                chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                break;
+            case "barChart":
+                data = chartData;
+                chart = nv.models.multiBarChart();
+                chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                break;
+            case "pieChart":
+            case "pie3DChart":
+                if (chartData.length > 0) {
+                    data = chartData[0].values;
                 }
-            }
+                chart = nv.models.pieChart();
+                break;
+            case "areaChart":
+                data = chartData;
+                chart = nv.models.stackedAreaChart()
+                    .clipEdge(true)
+                    .useInteractiveGuideline(true);
+                chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                break;
+            case "scatterChart":
+                for (var i = 0; i < chartData.length; i++) {
+                    var arr = [];
+                    for (var j = 0; j < chartData[i].length; j++) {
+                        arr.push({ x: j, y: chartData[i][j] });
+                    }
+                    data.push({ key: 'data' + (i + 1), values: arr });
+                }
+                chart = nv.models.scatterChart()
+                    .showDistX(true)
+                    .showDistY(true)
+                    .color(d3.scale.category10().range());
+                chart.xAxis.axisLabel('X').tickFormat(d3.format('.02f'));
+                chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
+                break;
+            default:
+                break;
         }
+
+        if (chart !== null && callbacks.onChartReady) {
+            callbacks.onChartReady({
+                chartID: chartID,
+                chart: chart,
+                data: data
+            });
+        }
+    }
+
+    // Process the arrayBuffer
+    if (arrayBuffer) {
+        convertToHtml(arrayBuffer);
+    }
 }
 
 if (typeof window !== 'undefined') {
