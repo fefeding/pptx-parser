@@ -161,8 +161,8 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 
 	var reader = new FileReader();
 	reader.onload = function(e) {
-		var arrayBuffer = e.target.result;
-		pptxToHtml(arrayBuffer, {
+		var fileData = e.target.result;
+		pptxToHtml(fileData, {
 			slideMode: false,
 			keyBoardShortCut: false,
 			slideModeConfig: {

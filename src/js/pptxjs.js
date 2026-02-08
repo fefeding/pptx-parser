@@ -11,7 +11,7 @@
  * Refactored: Removed DOM operations, using callbacks instead
  */
 
-function pptxToHtml(arrayBuffer, options) {
+function pptxToHtml(fileData, options) {
     var settings = Object.assign({}, {
         slidesScale: "",
         slideMode: false,
@@ -665,9 +665,9 @@ function pptxToHtml(arrayBuffer, options) {
         }
     }
 
-    // Process the arrayBuffer
-    if (arrayBuffer) {
-        convertToHtml(arrayBuffer);
+    // Process the file data
+    if (fileData) {
+        convertToHtml(fileData);
     }
 }
 
