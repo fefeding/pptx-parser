@@ -1257,14 +1257,14 @@ function getFillType(node) {
         function getBgPicFill(bgPr, sorce, warpObj, phClr, index) {
             //console.log("getBgPicFill bgPr", bgPr)
             let bgcolor;
-            var picFillBase64 = getPicFill(sorce, bgPr["a:blipFill"], warpObj);
-            var ordr = bgPr["attrs"]["order"];
-            var aBlipNode = bgPr["a:blipFill"]["a:blip"];
+            let picFillBase64 = getPicFill(sorce, bgPr["a:blipFill"], warpObj);
+            let ordr = bgPr["attrs"]["order"];
+            let aBlipNode = bgPr["a:blipFill"]["a:blip"];
             //a:duotone
-            var duotone = PPTXXmlUtils.getTextByPathList(aBlipNode, ["a:duotone"]);
+            let duotone = PPTXXmlUtils.getTextByPathList(aBlipNode, ["a:duotone"]);
             if (duotone !== undefined) {
                 //console.log("pic duotone: ", duotone)
-                var clr_ary = [];
+                let clr_ary = [];
                 // duotone.forEach(clr => {
                 //     console.log("pic duotone clr: ", clr)
                 // }) 
@@ -1328,7 +1328,7 @@ function getFillType(node) {
 
             }
             //a:alphaModFix
-            var aphaModFixNode = PPTXXmlUtils.getTextByPathList(aBlipNode, ["a:alphaModFix", "attrs"])
+            let aphaModFixNode = PPTXXmlUtils.getTextByPathList(aBlipNode, ["a:alphaModFix", "attrs"])
             let imgOpacity = "";
             if (aphaModFixNode !== undefined && aphaModFixNode["amt"] !== undefined && aphaModFixNode["amt"] != "") {
                 var amt = parseInt(aphaModFixNode["amt"]) / 100000;
@@ -1338,8 +1338,8 @@ function getFillType(node) {
             }
             //a:tile
 
-            var tileNode = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"])
-            var prop_style = "";
+            let tileNode = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"])
+            let prop_style = "";
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
                 let sx = (parseInt(tileNode["sx"]) / 100000);
                 let sy = (parseInt(tileNode["sy"]) / 100000);
@@ -1454,9 +1454,9 @@ function getFillType(node) {
             //https://stackoverflow.com/questions/14072142/striped-text-in-css
             //https://css-tricks.com/stripes-css/
             //https://yuanchuan.dev/gradient-shapes/
-            var fgColor = "", bgColor = "", prst = "";
+            let fgColor = "", bgColor = "", prst = "";
             let bgClr = node["a:bgClr"];
-            var fgClr = node["a:fgClr"];
+            let fgClr = node["a:fgClr"];
             prst = node["attrs"]["prst"];
             fgColor = getSolidFill(fgClr, undefined, undefined, warpObj);
             bgColor = getSolidFill(bgClr, undefined, undefined, warpObj);
@@ -1781,7 +1781,7 @@ function getFillType(node) {
 
             //console.log("getSolidFill node: ", node)
             let color = "";
-            var clrNode;
+            let clrNode;
             if (node["a:srgbClr"] !== undefined) {
                 clrNode = node["a:srgbClr"];
                 color = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //#...
@@ -1793,7 +1793,7 @@ function getFillType(node) {
             } else if (node["a:scrgbClr"] !== undefined) {
                 clrNode = node["a:scrgbClr"];
                 //<a:scrgbClr r="50%" g="50%" b="50%"/>  //Need to test/////////////////////////////////////////////
-                var defBultColorVals = clrNode["attrs"];
+                let defBultColorVals = clrNode["attrs"];
                 let red = (defBultColorVals["r"].indexOf("%") != -1) ? defBultColorVals["r"].split("%").shift() : defBultColorVals["r"];
                 let green = (defBultColorVals["g"].indexOf("%") != -1) ? defBultColorVals["g"].split("%").shift() : defBultColorVals["g"];
                 let blue = (defBultColorVals["b"].indexOf("%") != -1) ? defBultColorVals["b"].split("%").shift() : defBultColorVals["b"];
@@ -1810,7 +1810,7 @@ function getFillType(node) {
             } else if (node["a:hslClr"] !== undefined) {
                 clrNode = node["a:hslClr"];
                 //<a:hslClr hue="14400000" sat="100%" lum="50%"/>  //Need to test/////////////////////////////////////////////
-                var defBultColorVals = clrNode["attrs"];
+                let defBultColorVals = clrNode["attrs"];
                 let hue = Number(defBultColorVals["hue"]) / 100000;
                 let sat = Number((defBultColorVals["sat"].indexOf("%") != -1) ? defBultColorVals["sat"].split("%").shift() : defBultColorVals["sat"]) / 100;
                 let lum = Number((defBultColorVals["lum"].indexOf("%") != -1) ? defBultColorVals["lum"].split("%").shift() : defBultColorVals["lum"]) / 100;
@@ -1847,7 +1847,7 @@ function getFillType(node) {
                 // al_color.setAlpha(alpha);
                 // let ne_color = al_color.rgba.toString();
                 // color = (rgba2hex(ne_color))
-                var al_color = tinycolor(color);
+                let al_color = tinycolor(color);
                 al_color.setAlpha(alpha);
                 color = al_color.toHex8()
                 isAlpha = true;
@@ -2208,7 +2208,7 @@ function getFillType(node) {
             let hex;
             let colorName = ['white', 'AliceBlue', 'AntiqueWhite', 'Aqua', 'Aquamarine', 'Azure', 'Beige', 'Bisque', 'black', 'BlanchedAlmond', 'Blue', 'BlueViolet', 'Brown', 'BurlyWood', 'CadetBlue', 'Chartreuse', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan', 'DarkBlue', 'DarkCyan', 'DarkGoldenRod', 'DarkGray', 'DarkGrey', 'DarkGreen', 'DarkKhaki', 'DarkMagenta', 'DarkOliveGreen', 'DarkOrange', 'DarkOrchid', 'DarkRed', 'DarkSalmon', 'DarkSeaGreen', 'DarkSlateBlue', 'DarkSlateGray', 'DarkSlateGrey', 'DarkTurquoise', 'DarkViolet', 'DeepPink', 'DeepSkyBlue', 'DimGray', 'DimGrey', 'DodgerBlue', 'FireBrick', 'FloralWhite', 'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'Gold', 'GoldenRod', 'Gray', 'Grey', 'Green', 'GreenYellow', 'HoneyDew', 'HotPink', 'IndianRed', 'Indigo', 'Ivory', 'Khaki', 'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue', 'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey', 'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue', 'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime', 'LimeGreen', 'Linen', 'Magenta', 'Maroon', 'MediumAquaMarine', 'MediumBlue', 'MediumOrchid', 'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen', 'MediumTurquoise', 'MediumVioletRed', 'MidnightBlue', 'MintCream', 'MistyRose', 'Moccasin', 'NavajoWhite', 'Navy', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed', 'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed', 'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple', 'RebeccaPurple', 'Red', 'RosyBrown', 'RoyalBlue', 'SaddleBrown', 'Salmon', 'SandyBrown', 'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue', 'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'Tan', 'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White', 'WhiteSmoke', 'Yellow', 'YellowGreen'];
             let colorHex = ['ffffff', 'f0f8ff', 'faebd7', '00ffff', '7fffd4', 'f0ffff', 'f5f5dc', 'ffe4c4', '000000', 'ffebcd', '0000ff', '8a2be2', 'a52a2a', 'deb887', '5f9ea0', '7fff00', 'd2691e', 'ff7f50', '6495ed', 'fff8dc', 'dc143c', '00ffff', '00008b', '008b8b', 'b8860b', 'a9a9a9', 'a9a9a9', '006400', 'bdb76b', '8b008b', '556b2f', 'ff8c00', '9932cc', '8b0000', 'e9967a', '8fbc8f', '483d8b', '2f4f4f', '2f4f4f', '00ced1', '9400d3', 'ff1493', '00bfff', '696969', '696969', '1e90ff', 'b22222', 'fffaf0', '228b22', 'ff00ff', 'dcdcdc', 'f8f8ff', 'ffd700', 'daa520', '808080', '808080', '008000', 'adff2f', 'f0fff0', 'ff69b4', 'cd5c5c', '4b0082', 'fffff0', 'f0e68c', 'e6e6fa', 'fff0f5', '7cfc00', 'fffacd', 'add8e6', 'f08080', 'e0ffff', 'fafad2', 'd3d3d3', 'd3d3d3', '90ee90', 'ffb6c1', 'ffa07a', '20b2aa', '87cefa', '778899', '778899', 'b0c4de', 'ffffe0', '00ff00', '32cd32', 'faf0e6', 'ff00ff', '800000', '66cdaa', '0000cd', 'ba55d3', '9370db', '3cb371', '7b68ee', '00fa9a', '48d1cc', 'c71585', '191970', 'f5fffa', 'ffe4e1', 'ffe4b5', 'ffdead', '000080', 'fdf5e6', '808000', '6b8e23', 'ffa500', 'ff4500', 'da70d6', 'eee8aa', '98fb98', 'afeeee', 'db7093', 'ffefd5', 'ffdab9', 'cd853f', 'ffc0cb', 'dda0dd', 'b0e0e6', '800080', '663399', 'ff0000', 'bc8f8f', '4169e1', '8b4513', 'fa8072', 'f4a460', '2e8b57', 'fff5ee', 'a0522d', 'c0c0c0', '87ceeb', '6a5acd', '708090', '708090', 'fffafa', '00ff7f', '4682b4', 'd2b48c', '008080', 'd8bfd8', 'ff6347', '40e0d0', 'ee82ee', 'f5deb3', 'ffffff', 'f5f5f5', 'ffff00', '9acd32'];
-            var findIndx = colorName.indexOf(name);
+            let findIndx = colorName.indexOf(name);
             if (findIndx != -1) {
                 hex = colorHex[findIndx];
             }
@@ -2237,7 +2237,7 @@ function getFillType(node) {
                 }
             }
             //console.log("getSchemeColorFromTheme slideLayoutClrOvride: ", slideLayoutClrOvride);
-            var schmClrName = schemeClr.substr(2);
+            let schmClrName = schemeClr.substr(2);
             if (schmClrName == "phClr" && phClr !== undefined) {
                 color = phClr;
             } else {
@@ -2280,7 +2280,7 @@ function getFillType(node) {
 
         function extractChartData(serNode) {
 
-            var dataMat = new Array();
+            let dataMat = new Array();
 
             if (serNode === undefined) {
                 return dataMat;
@@ -2404,7 +2404,7 @@ function getFillType(node) {
             // 确保shadeValue在0-1之间
             shadeValue = Math.max(0, Math.min(1, shadeValue));
             // PPTX标准：Shade = L * shadeValue
-            var cacl_l = Math.max(0, Math.min(1, color.l * shadeValue));
+            let cacl_l = Math.max(0, Math.min(1, color.l * shadeValue));
             if (isAlpha)
                 return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
             return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
@@ -2421,7 +2421,7 @@ function getFillType(node) {
             // 确保tintValue在0-1之间
             tintValue = Math.max(0, Math.min(1, tintValue));
             // PPTX标准：Tint = L * tintValue + (1 - tintValue)
-            var cacl_l = Math.max(0, Math.min(1, color.l * tintValue + (1 - tintValue)));
+            let cacl_l = Math.max(0, Math.min(1, color.l * tintValue + (1 - tintValue)));
             if (isAlpha)
                 return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
             return tinycolor({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
@@ -2454,7 +2454,7 @@ function getFillType(node) {
         function applyLumMod(rgbStr, multiplier, isAlpha) {
             let color = tinycolor(rgbStr).toHsl();
             //console.log("applyLumMod  color.l: ", color.l, ", multiplier: ", multiplier, ", color.l * multiplier : ", color.l * multiplier)
-            var cacl_l = color.l * multiplier;
+            let cacl_l = color.l * multiplier;
             if (cacl_l >= 1) {
                 cacl_l = 1;
             }
@@ -2508,7 +2508,7 @@ function getFillType(node) {
         function applySatMod(rgbStr, multiplier, isAlpha) {
             let color = tinycolor(rgbStr).toHsl();
             //console.log("applySatMod  color.s: ", color.s, ", multiplier: ", multiplier, ", color.s * multiplier : ", color.s * multiplier)
-            var cacl_s = color.s * multiplier;
+            let cacl_s = color.s * multiplier;
             if (cacl_s >= 1) {
                 cacl_s = 1;
             }
@@ -2556,7 +2556,7 @@ function getFillType(node) {
         function getSvgGradient(w, h, angl, color_arry, shpId) {
             var stopsArray = getMiddleStops(color_arry - 2);
 
-            var svgAngle = '',
+            let svgAngle = '',
                 svgHeight = h,
                 svgWidth = w,
                 svg = '',
@@ -2566,7 +2566,7 @@ function getFillType(node) {
                 x2 = xy_ary[2],
                 y2 = xy_ary[3];
 
-            var sal = stopsArray.length,
+            let sal = stopsArray.length,
                 sr = sal < 20 ? 100 : 1000;
             svgAngle = ' gradientUnits="userSpaceOnUse" x1="' + x1 + '%" y1="' + y1 + '%" x2="' + x2 + '%" y2="' + y2 + '%"';
             svgAngle = '<linearGradient id="linGrd_' + shpId + '"' + svgAngle + '>\n';
@@ -2585,7 +2585,7 @@ function getFillType(node) {
             return svg
         }
         function getMiddleStops(s) {
-            var sArry = ['0%', '100%'];
+            let sArry = ['0%', '100%'];
             if (s == 0) {
                 return sArry;
             } else {
@@ -2661,20 +2661,20 @@ function getFillType(node) {
             return [x1, y1, x2, y2];
         }
         function getSvgImagePattern(node, fill, shpId, warpObj) {
-            var pic_dim = getBase64ImageDimensions(fill);
+            let pic_dim = getBase64ImageDimensions(fill);
             let width = pic_dim[0];
             let height = pic_dim[1];
             //console.log("getSvgImagePattern node:", node);
             let blipFillNode = node["p:spPr"]["a:blipFill"];
             let sx = 0, sy = 0;
-            var tileNode = PPTXXmlUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"])
+            let tileNode = PPTXXmlUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"])
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
                 sx = (parseInt(tileNode["sx"]) / 100000) * width;
                 sy = (parseInt(tileNode["sy"]) / 100000) * height;
             }
 
             let blipNode = node["p:spPr"]["a:blipFill"]["a:blip"];
-            var tialphaModFixNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"])
+            let tialphaModFixNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"])
             let imgOpacity = "";
             if (tialphaModFixNode !== undefined && tialphaModFixNode["amt"] !== undefined && tialphaModFixNode["amt"] != "") {
                 var amt = parseInt(tialphaModFixNode["amt"]) / 100000;
@@ -2688,9 +2688,9 @@ function getFillType(node) {
             } else {
                 ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
             }
-            var duotoneNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:duotone"])
-            var fillterNode = "";
-            var filterUrl = "";
+            let duotoneNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:duotone"])
+            let fillterNode = "";
+            let filterUrl = "";
             if (duotoneNode !== undefined) {
                 //console.log("pic duotoneNode: ", duotoneNode)
                 var clr_ary = [];
@@ -2786,7 +2786,7 @@ function getFillType(node) {
 
     function getContentDir(node, type, warpObj) {
             return "content";
-            var defRtl = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "a:defPPr", "attrs", "rtl"]);
+            let defRtl = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "a:defPPr", "attrs", "rtl"]);
             if (defRtl !== undefined) {
                 if (defRtl == "1"){
                     return "content-rtl";
@@ -2815,7 +2815,7 @@ function getFillType(node) {
             if (type === undefined) {
                 return "content";
             }
-            var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
+            let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
             let dirLoc = "";
 
             switch (type) {
@@ -3026,7 +3026,7 @@ function getFillType(node) {
                     }
                 }
             }
-            var spcBefor = 0, spcAfter = 0, spcLines = 0;
+            let spcBefor = 0, spcAfter = 0, spcLines = 0;
             let marginTopBottomStr = "";
             if (spcBefNode !== undefined) {
                 spcBefor = parseInt(spcBefNode) / 100;
@@ -3233,7 +3233,7 @@ function getFillType(node) {
                 return ["",0];
             }
             let marLStr = "", marRStr = "" , maginVal = 0;
-            var pPrNode = pNode["a:pPr"];
+            let pPrNode = pNode["a:pPr"];
             let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
             let pPrNodeLaout = layoutMasterNode.nodeLaout;
             let pPrNodeMaster = layoutMasterNode.nodeMaster;
