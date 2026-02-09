@@ -2,6 +2,7 @@
 
 import { PPTXXmlUtils } from './xml.js';
 import { slideFactor, fontSizeFactor, rtlLangsArray } from '../core/constants.js';
+import tinycolor from '../core/tinycolor.js';
 
 export const PPTXStyleUtils = (function() {
 

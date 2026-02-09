@@ -3,7 +3,7 @@
  * This is my custom tXml.js file
  */
 
-(function() {
+export default (function() {
     function tXml(t, r) {
         "use strict";
 
@@ -105,9 +105,13 @@
             if ("object" == typeof t) {
                 r[t.tagName] || (r[t.tagName] = []);
                 var e = tXml.simplify(t.children || []);
-                r[t.tagName].push(e), t.attributes && (e.attrs = t.attributes), void 0 === e.attrs ? e.attrs = {
-                    order: _order
-                } : e.attrs.order = _order, _order++
+                r[t.tagName].push(e);
+                // Only set attrs if e is an object (not a string)
+                if ("object" == typeof e && null !== e) {
+                    t.attributes && (e.attrs = t.attributes);
+                    void 0 === e.attrs ? e.attrs = { order: _order } : e.attrs.order = _order;
+                    _order++;
+                }
             }
         });
         for (var e in r) 1 == r[e].length && (r[e] = r[e][0]);
@@ -176,12 +180,6 @@
         }), t.on("end", function () {
             console.log("end")
         }), t
-    }, "object" == typeof module && (module.exports = tXml);
-
-    // Export to global scope
-    if (typeof window !== 'undefined') {
-        window.tXml = tXml;
-    } else if (typeof module !== 'undefined') {
-        module.exports = tXml;
     }
+    return tXml;
 })();

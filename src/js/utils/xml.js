@@ -4,6 +4,7 @@
  */
 
 import { slideFactor, fontSizeFactor } from '../core/constants.js';
+import tXml from '../core/tXml.js';
 
 export const PPTXXmlUtils = (function() {
 

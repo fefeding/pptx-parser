@@ -1,31 +1,43 @@
 /**
- * TinyColor v1.4.2
- * https://github.com/bgrins/TinyColor
- * Brian Grinstead, MIT License
+ * TinyColor
  */
 
-(function(Math) {
 
-    var trimLeft = /^\s+/,
-        trimRight = /\s+$/,
-        tinyCounter = 0,
-        mathRound = Math.round,
-        mathMin = Math.min,
-        mathMax = Math.max,
-        mathRandom = Math.random;
+const trimLeft = /^\s+/,
+    trimRight = /\s+$/,
+    mathRound = Math.round,
+    mathMin = Math.min,
+    mathMax = Math.max,
+    mathRandom = Math.random;
 
-    function tinycolor(color, opts) {
-        color = (color) ? color : '';
-        opts = opts || {};
+let tinyCounter = 0;
 
-        // If input is already a tinycolor, return itself
-        if (color instanceof tinycolor) {
-            return color;
-        }
-        // If we are called as a function, call using new instead
-        if (!(this instanceof tinycolor)) {
-            return new tinycolor(color, opts);
-        }
+/**
+ * TinyColor constructor function
+ * @param {string|object} color - Color input
+ * @param {object} opts - Options
+ */
+function tinycolor(color, opts) {
+    return new TinyColorClass(color, opts);
+}
+
+/**
+ * TinyColor class constructor
+ * @param {string|object} color - Color input
+ * @param {object} opts - Options
+ */
+function TinyColorClass(color, opts) {
+    color = (color) ? color : '';
+    opts = opts || {};
+
+    // If input is already a tinycolor, return itself
+    if (color instanceof TinyColorClass) {
+        return color;
+    }
+    // If we are called as a function, call using new instead
+    if (!(this instanceof TinyColorClass)) {
+        return new TinyColorClass(color, opts);
+    }
 
         var rgb = inputToRGB(color);
         this._originalInput = color;
@@ -46,7 +58,7 @@
         this._tc_id = tinyCounter++;
     }
 
-    tinycolor.prototype = {
+    TinyColorClass.prototype = {
         isDark: function() {
             return this.getBrightness() < 128;
         },
@@ -176,7 +188,7 @@
             var hsl = this.toHsl();
             hsl.l -= amount / 100;
             hsl.l = clamp01(hsl.l);
-            return tinycolor(hsl);
+            return new TinyColorClass(hsl);
         },
 
         lighten: function(amount) {
@@ -184,7 +196,7 @@
             var hsl = this.toHsl();
             hsl.l += amount / 100;
             hsl.l = clamp01(hsl.l);
-            return tinycolor(hsl);
+            return new TinyColorClass(hsl);
         },
 
         saturate: function(amount) {
@@ -192,7 +204,7 @@
             var hsl = this.toHsl();
             hsl.s += amount / 100;
             hsl.s = clamp01(hsl.s);
-            return tinycolor(hsl);
+            return new TinyColorClass(hsl);
         },
 
         desaturate: function(amount) {
@@ -200,7 +212,7 @@
             var hsl = this.toHsl();
             hsl.s -= amount / 100;
             hsl.s = clamp01(hsl.s);
-            return tinycolor(hsl);
+            return new TinyColorClass(hsl);
         }
     };
 
@@ -715,18 +727,4 @@
         hexNames[names[key]] = key;
     }
 
-    // Expose tinycolor to window
-    if (typeof window !== 'undefined') {
-        window.tinycolor = tinycolor;
-    }
-
-    // AMD/RequireJS support
-    if (typeof define === 'function' && define.amd) {
-        define(function () { return tinycolor; });
-    }
-    // Node/CommonJS support
-    else if (typeof module !== 'undefined' && module.exports) {
-        module.exports = tinycolor;
-    }
-
-})(Math);
+export default tinycolor;
