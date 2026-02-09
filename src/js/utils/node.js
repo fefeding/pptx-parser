@@ -5,10 +5,55 @@
 
 import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
-import { PPTXShapeUtils } from '../shape/shape.js';
 import { PPTXTextUtils } from './text.js';
+import { PPTXShapeUtils } from '../shape/shape.js';
 
 export const PPTXNodeUtils = (function() {
+
+    /**
+     * genDiagram - 生成 Diagram HTML
+     * @param {Object} node - 节点
+     * @param {Object} warpObj - 包装对象
+     * @param {string} source - 源类型
+     * @param {string} sType - 形状类型
+     * @param {Object} settings - 设置对象
+     * @returns {string} 生成的HTML
+     */
+    function genDiagram(node, warpObj, source, sType, settings) {
+        var order = node["attrs"]["order"];
+        var zip = warpObj["zip"];
+        var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
+        var dgmRelIds = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
+        var dgmClrFileId = dgmRelIds["r:cs"];
+        var dgmDataFileId = dgmRelIds["r:dm"];
+        var dgmLayoutFileId = dgmRelIds["r:lo"];
+        var dgmQuickStyleFileId = dgmRelIds["r:qs"];
+        var dgmClrFileName = warpObj["slideResObj"][dgmClrFileId].target,
+            dgmDataFileName = warpObj["slideResObj"][dgmDataFileId].target,
+            dgmLayoutFileName = warpObj["slideResObj"][dgmLayoutFileId].target;
+        const dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
+        
+        var dgmClr = PPTXXmlUtils.readXmlFile(zip, dgmClrFileName);
+        var dgmData = PPTXXmlUtils.readXmlFile(zip, dgmDataFileName);
+        var dgmLayout = PPTXXmlUtils.readXmlFile(zip, dgmLayoutFileName);
+        var dgmQuickStyle = PPTXXmlUtils.readXmlFile(zip, dgmQuickStyleFileName);
+        
+        var dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
+        var rslt = "";
+        if (dgmDrwSpArray !== undefined) {
+            var dgmDrwSpArrayLen = dgmDrwSpArray.length;
+            for (var i = 0; i < dgmDrwSpArrayLen; i++) {
+                var dspSp = dgmDrwSpArray[i];
+                rslt += processSpNode(dspSp, node, warpObj, "diagramBg", sType);
+            }
+        }
+        
+        return "<div class='block diagram-content' style='" +
+            PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined, sType) +
+            PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
+            "'>" + rslt + "</div>";
+    }
+
     /**
      * indexNodes - 索引幻灯片节点
      * @param {Object} content - 幻灯片内容
@@ -462,7 +507,7 @@ export const PPTXNodeUtils = (function() {
                     result = PPTXTextUtils.genChart(node, warpObj);
                     break;
                 case "http://schemas.openxmlformats.org/drawingml/2006/diagram":
-                    result = PPTXTextUtils.genDiagram(node, warpObj, source, sType);
+                    result = genDiagram(node, warpObj, source, sType, settings);
                     break;
                 case "http://schemas.openxmlformats.org/presentationml/2006/ole":
                     //result = genDiagram(node, warpObj, source, sType);
@@ -573,6 +618,7 @@ export const PPTXNodeUtils = (function() {
         processPicNode,
         processGraphicFrameNode,
         processSpPrNode,
-        getBackground
+        getBackground,
+        genDiagram
     };
 })();

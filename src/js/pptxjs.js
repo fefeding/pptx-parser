@@ -4,9 +4,6 @@ import { PPTXStyleUtils } from './utils/style.js';
 import { PPTXTextUtils } from './utils/text.js';
 import { PPTXShapeUtils } from './shape/shape.js';
 
-// 设置模块间的相互引用，避免循环依赖
-PPTXTextUtils.setPPTXNodeUtils(PPTXNodeUtils);
-
 function pptxToHtml(fileData, options) {
     var settings = Object.assign({}, {
         mediaProcess: true,

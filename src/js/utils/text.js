@@ -4,11 +4,6 @@ import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
 
 export const PPTXTextUtils = (function() {
-    var PPTXNodeUtilsRef = null;
-
-    function setPPTXNodeUtils(ref) {
-        PPTXNodeUtilsRef = ref;
-    }
     var slideFactor = 96 / 914400;
     var fontSizeFactor = 4 / 3.2;
     
@@ -1181,75 +1176,6 @@ export const PPTXTextUtils = (function() {
             return result;
         }
 
-        function genDiagram(node, warpObj, source, sType) {
-            if (!PPTXNodeUtilsRef) {
-                console.warn("PPTXNodeUtils reference not set. Call setPPTXNodeUtils() first.");
-                return "";
-            }
-            //console.log(warpObj)
-            //PPTXXmlUtils.readXmlFile(zip, sldFileName)
-            /**files define the diagram:
-             * 1-colors#.xml,
-             * 2-data#.xml, 
-             * 3-layout#.xml,
-             * 4-quickStyle#.xml.
-             * 5-drawing#.xml, which Microsoft added as an extension for persisting diagram layout information.
-             */
-            ///get colors#.xml, data#.xml , layout#.xml , quickStyle#.xml
-            var order = node["attrs"]["order"];
-            var zip = warpObj["zip"];
-            var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
-            var dgmRelIds = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "dgm:relIds", "attrs"]);
-            //console.log(dgmRelIds)
-            var dgmClrFileId = dgmRelIds["r:cs"];
-            var dgmDataFileId = dgmRelIds["r:dm"];
-            var dgmLayoutFileId = dgmRelIds["r:lo"];
-            var dgmQuickStyleFileId = dgmRelIds["r:qs"];
-            var dgmClrFileName = warpObj["slideResObj"][dgmClrFileId].target,
-                dgmDataFileName = warpObj["slideResObj"][dgmDataFileId].target,
-                dgmLayoutFileName = warpObj["slideResObj"][dgmLayoutFileId].target;
-            const dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
-            //console.log("dgmClrFileName: " , dgmClrFileName,", dgmDataFileName: ",dgmDataFileName,", dgmLayoutFileName: ",dgmLayoutFileName,", dgmQuickStyleFileName: ",dgmQuickStyleFileName);
-            var dgmClr = PPTXXmlUtils.readXmlFile(zip, dgmClrFileName);
-            var dgmData = PPTXXmlUtils.readXmlFile(zip, dgmDataFileName);
-            var dgmLayout = PPTXXmlUtils.readXmlFile(zip, dgmLayoutFileName);
-            var dgmQuickStyle = PPTXXmlUtils.readXmlFile(zip, dgmQuickStyleFileName);
-            //console.log(dgmClr,dgmData,dgmLayout,dgmQuickStyle)
-            ///get drawing#.xml
-            // var dgmDrwFileName = "";
-            // var dataModelExt = PPTXXmlUtils.getTextByPathList(dgmData, ["dgm:dataModel", "dgm:extLst", "a:ext", "dsp:dataModelExt", "attrs"]);
-            // if (dataModelExt !== undefined) {
-            //     var dgmDrwFileId = dataModelExt["relId"];
-            //     dgmDrwFileName = warpObj["slideResObj"][dgmDrwFileId]["target"];
-            // }
-            // var dgmDrwFile = "";
-            // if (dgmDrwFileName != "") {
-            //     dgmDrwFile = PPTXXmlUtils.readXmlFile(zip, dgmDrwFileName);
-            // }
-            // var dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(dgmDrwFile, ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
-            //var dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(warpObj["digramFileContent"], ["dsp:drawing", "dsp:spTree", "dsp:sp"]);
-            var dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(warpObj["digramFileContent"], ["p:drawing", "p:spTree", "p:sp"]);
-            var rslt = "";
-            if (dgmDrwSpArray !== undefined) {
-                var dgmDrwSpArrayLen = dgmDrwSpArray.length;
-                for (var i = 0; i < dgmDrwSpArrayLen; i++) {
-                    var dspSp = dgmDrwSpArray[i];
-                    // var dspSpObjToStr = JSON.stringify(dspSp);
-                    // var pSpStr = dspSpObjToStr.replace(/dsp:/g, "p:");
-                    // var pSpStrToObj = JSON.parse(pSpStr);
-                    //console.log("pSpStrToObj[" + i + "]: ", pSpStrToObj);
-                    //rslt += PPTXNodeUtilsRef.processSpNode(pSpStrToObj, node, warpObj, "diagramBg", sType)
-                    rslt += PPTXNodeUtilsRef.processSpNode(dspSp, node, warpObj, "diagramBg", sType)
-                }
-                // dgmDrwFile: "dsp:"-> "p:"
-            }
-
-            return "<div class='block diagram-content' style='" +
-                PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined, sType) +
-                PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
-                "'>" + rslt + "</div>";
-        }
-        
         function genTable(node, warpObj) {
             var order = node["attrs"]["order"];
             var tableNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
@@ -1818,13 +1744,11 @@ export const PPTXTextUtils = (function() {
         getDingbatToUnicode,
         genSpanElement,
         genChart,
-        genDiagram,
         genTable,
         getTableCellParams,
         alphaNumeric,
         archaicNumbers,
         romanize,
         getNumTypeNum,
-        setPPTXNodeUtils,
     };
 })();
