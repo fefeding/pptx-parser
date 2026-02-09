@@ -7,7 +7,7 @@ import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
 import { PPTXTextUtils } from './text.js';
 import { PPTXShapeUtils } from '../shape/shape.js';
-import { slideFactor } from '../core/constants.js';
+import { SLIDE_FACTOR } from '../core/constants.js';
 
 export const PPTXNodeUtils = (function() {
 
@@ -121,31 +121,30 @@ export const PPTXNodeUtils = (function() {
      * @returns {string} 生成的HTML
      */
     function processGroupSpNode(node, warpObj, source, settings) {
-        var slideFactor = 96 / 914400;
         var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:grpSpPr", "a:xfrm"]);
         if (xfrmNode !== undefined) {
-            var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-            var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-            
+            var x = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * SLIDE_FACTOR;
+            var y = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * SLIDE_FACTOR;
+
             // 根据ECMA-376标准，a:chOff和a:chExt是可选元素
             // 当不存在时，应该使用父元素的对应值作为默认值
             var chx, chy, chcx, chcy;
-            
+
             if (xfrmNode["a:chOff"] !== undefined && xfrmNode["a:chOff"]["attrs"] !== undefined) {
-                chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-                chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+                chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
+                chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
             } else {
                 // 当a:chOff不存在时，使用a:off的值作为默认值
                 chx = x;
                 chy = y;
             }
-            
-            var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
-            var cy = parseInt(xfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
-            
+
+            var cx = parseInt(xfrmNode["a:ext"]["attrs"]["cx"]) * SLIDE_FACTOR;
+            var cy = parseInt(xfrmNode["a:ext"]["attrs"]["cy"]) * SLIDE_FACTOR;
+
             if (xfrmNode["a:chExt"] !== undefined && xfrmNode["a:chExt"]["attrs"] !== undefined) {
-                chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
-                chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+                chcx = parseInt(xfrmNode["a:chExt"]["attrs"]["cx"]) * SLIDE_FACTOR;
+                chcy = parseInt(xfrmNode["a:chExt"]["attrs"]["cy"]) * SLIDE_FACTOR;
             } else {
                 // 当a:chExt不存在时，使用a:ext的值作为默认值
                 chcx = cx;

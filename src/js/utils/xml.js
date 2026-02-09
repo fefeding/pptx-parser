@@ -3,7 +3,7 @@
  * 提供XML节点遍历和查询功能
  */
 
-import { slideFactor, fontSizeFactor } from '../core/constants.js';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from '../core/constants.js';
 import tXml from '../core/tXml.js';
 
 export const PPTXXmlUtils = (function() {
@@ -202,7 +202,7 @@ export const PPTXXmlUtils = (function() {
      * 获取幻灯片尺寸并设置默认文本样式
      * @param {Object} zip - JSZip实例
      * @param {Object} settings - 设置对象
-     * @param {number} slideFactor - 尺寸转换因子
+     * @param {number} SLIDE_FACTOR - 尺寸转换因子
      * @returns {Object} 包含width和height的对象
      */
     function getSlideSizeAndSetDefaultTextStyle(zip, settings) {
@@ -225,11 +225,11 @@ export const PPTXXmlUtils = (function() {
         // 1 EMU = 1 / 914400 inch
         // Pixel = EMUs * Resolution / 914400;  (Resolution = 96)
         //var standardHeight = 6858000;
-        //console.log("slideFactor: ", slideFactor, "standardHeight:", standardHeight, (standardHeight - sldSzHeight) / standardHeight)
+        //console.log("SLIDE_FACTOR: ", SLIDE_FACTOR, "standardHeight:", standardHeight, (standardHeight - sldSzHeight) / standardHeight)
         
-        //slideFactor = (96 * (1 + ((standardHeight - sldSzHeight) / standardHeight))) / 914400 ;
+        //SLIDE_FACTOR = (96 * (1 + ((standardHeight - sldSzHeight) / standardHeight))) / 914400 ;
 
-        //slideFactor = slideFactor + sldSzHeight*((standardHeight - sldSzHeight) / standardHeight) ;
+        //SLIDE_FACTOR = SLIDE_FACTOR + sldSzHeight*((standardHeight - sldSzHeight) / standardHeight) ;
 
         //var ration = sldSzWidth / sldSzHeight;
         
@@ -253,12 +253,12 @@ export const PPTXXmlUtils = (function() {
 
         // }
         //console.log("scaleX: ", scaleX, "scaleY:", scaleY)
-        //slideFactor = slideFactor * scaleX;
+        //SLIDE_FACTOR = SLIDE_FACTOR * scaleX;
 
         const defaultTextStyle = content["p:presentation"]["p:defaultTextStyle"];
 
-        const slideWidth = sldSzWidth * slideFactor + settings.incSlide.width|0;// * scaleX;//parseInt(sldSzAttrs["cx"]) * 96 / 914400;
-        const slideHeight = sldSzHeight * slideFactor + settings.incSlide.height|0;// * scaleY;//parseInt(sldSzAttrs["cy"]) * 96 / 914400;
+        const slideWidth = sldSzWidth * SLIDE_FACTOR + settings.incSlide.width|0;// * scaleX;//parseInt(sldSzAttrs["cx"]) * 96 / 914400;
+        const slideHeight = sldSzHeight * SLIDE_FACTOR + settings.incSlide.height|0;// * scaleY;//parseInt(sldSzAttrs["cy"]) * 96 / 914400;
         rtenObj = {
             "width": slideWidth,
             "height": slideHeight,
@@ -509,23 +509,23 @@ export const PPTXXmlUtils = (function() {
 
                 var grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
                 if (xfrmNode !== undefined) {
-                    grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-                    grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-                    // var chx = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-                    // var chy = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
-                    // var cx = parseInt(grpXfrmNode["a:ext"]["attrs"]["cx"]) * slideFactor;
-                    // var cy = parseInt(grpXfrmNode["a:ext"]["attrs"]["cy"]) * slideFactor;
-                    // var chcx = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cx"]) * slideFactor;
-                    // var chcy = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cy"]) * slideFactor;
+                    grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * SLIDE_FACTOR;
+                    grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * SLIDE_FACTOR;
+                    // var chx = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
+                    // var chy = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
+                    // var cx = parseInt(grpXfrmNode["a:ext"]["attrs"]["cx"]) * SLIDE_FACTOR;
+                    // var cy = parseInt(grpXfrmNode["a:ext"]["attrs"]["cy"]) * SLIDE_FACTOR;
+                    // var chcx = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cx"]) * SLIDE_FACTOR;
+                    // var chcy = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cy"]) * SLIDE_FACTOR;
                     // var rotate = parseInt(grpXfrmNode["attrs"]["rot"])
                 }
             }
             if (sType == "group-rotate" && pNode["p:grpSpPr"] !== undefined) {
                 var xfrmNode = pNode["p:grpSpPr"]["a:xfrm"];
-                // var ox = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * slideFactor;
-                // var oy = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * slideFactor;
-                var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * slideFactor;
-                var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * slideFactor;
+                // var ox = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * SLIDE_FACTOR;
+                // var oy = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * SLIDE_FACTOR;
+                var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
+                var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
 
                 offX = chx;
                 offY = chy;
@@ -533,8 +533,8 @@ export const PPTXXmlUtils = (function() {
             if (off === undefined) {
                 return "";
             } else {
-                x = parseInt(off["x"]) * slideFactor;
-                y = parseInt(off["y"]) * slideFactor;
+                x = parseInt(off["x"]) * SLIDE_FACTOR;
+                y = parseInt(off["y"]) * SLIDE_FACTOR;
                 // if (type = "body")
                 //     console.log("getPosition: slideSpNode: ", slideSpNode, ", type: ", type, "x: ", x, "offX:", offX, "y:", y, "offY:", offY)
                 return (isNaN(x) || isNaN(y)) ? "" : "top:" + (y - offY + grpY) + "px; left:" + (x - offX + grpX) + "px;";
@@ -557,8 +557,8 @@ export const PPTXXmlUtils = (function() {
             if (ext === undefined) {
                 return "";
             } else {
-                w = parseInt(ext["cx"]) * slideFactor;
-                h = parseInt(ext["cy"]) * slideFactor;
+                w = parseInt(ext["cx"]) * SLIDE_FACTOR;
+                h = parseInt(ext["cy"]) * SLIDE_FACTOR;
                 return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
             }
 

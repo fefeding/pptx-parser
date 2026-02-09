@@ -2,7 +2,7 @@
 
 import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
-import { slideFactor, fontSizeFactor, rtlLangsArray, dingbatUnicode } from '../core/constants.js';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY, DINGBAT_UNICODE } from '../core/constants.js';
 
 export const PPTXTextUtils = (function() {
     
@@ -97,8 +97,8 @@ export const PPTXTextUtils = (function() {
                 //console.log("textBodyNode: ", textBodyNode["a:lstStyle"])
                 var prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
                 var prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
-                var sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * slideFactor) + "px;") : "width:inherit;");
-                var sld_prg_height = ((prg_height_node !== undefined) ? ("height:" + (parseInt(prg_height_node) * slideFactor) + "px;") : "");
+                var sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * SLIDE_FACTOR) + "px;") : "width:inherit;");
+                var sld_prg_height = ((prg_height_node !== undefined) ? ("height:" + (parseInt(prg_height_node) * SLIDE_FACTOR) + "px;") : "");
                 var prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + " " +
                     prg_dir + " " + cssName + "' >";
@@ -136,7 +136,7 @@ export const PPTXTextUtils = (function() {
                     }
                 }
 
-                prg_width_node = parseInt(prg_width_node) * slideFactor - bu_width - mrgin_val;
+                prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR - bu_width - mrgin_val;
                 if (isBullate) {
                     //get prg_width_node if there is a bulltes
                     //console.log("total_text_len: ", total_text_len, "prg_width_node:", prg_width_node)
@@ -221,7 +221,7 @@ export const PPTXTextUtils = (function() {
                     bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
                 }
             } else {
-                bultSize = (parseInt(buFontSize) / 100) * fontSizeFactor + "px";
+                bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
             }
 
             //get definde bullet COLOR
@@ -330,7 +330,7 @@ export const PPTXTextUtils = (function() {
             }
             var indent = 0;
             if (indentNode !== undefined) {
-                indent = parseInt(indentNode) * slideFactor;
+                indent = parseInt(indentNode) * SLIDE_FACTOR;
             }
             //marL
             var marLNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"]);
@@ -342,7 +342,7 @@ export const PPTXTextUtils = (function() {
             }
             //console.log("genBuChar() isRTL", isRTL, "alignNode:", alignNode)
             if (marLNode !== undefined) {
-                var marginLeft = parseInt(marLNode) * slideFactor;
+                var marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
                 if (isRTL) {// && alignNode == "r") {
                     marLStr = "padding-right:";// "margin-right: ";
                 } else {
@@ -362,7 +362,7 @@ export const PPTXTextUtils = (function() {
                 }
             }
             if (marRNode !== undefined) {
-                var marginRight = parseInt(marRNode) * slideFactor;
+                var marginRight = parseInt(marRNode) * SLIDE_FACTOR;
                 if (isRTL) {// && alignNode == "r") {
                     marLStr = "padding-right:";// "margin-right: ";
                 } else {
@@ -418,7 +418,7 @@ export const PPTXTextUtils = (function() {
                         bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
                     }
                 }else{
-                    bultSize = (parseInt(buFontSize) / 100) * fontSizeFactor + "px";
+                    bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
                 }
             }
             if (buFontSize === undefined) {
@@ -433,7 +433,7 @@ export const PPTXTextUtils = (function() {
                         bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
                     }
                 } else {
-                    bultSize = (parseInt(buFontSize) / 100) * fontSizeFactor + "px";
+                    bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
                 }
             }
             if (buFontSize === undefined) {
@@ -447,10 +447,10 @@ export const PPTXTextUtils = (function() {
                 if (typefaceNode !== undefined) {
                     typeface = "font-family: " + typefaceNode;
                 }
-                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * slideFactor;
-                // var marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * slideFactor;
+                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * SLIDE_FACTOR;
+                // var marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * SLIDE_FACTOR;
                 // if (isNaN(marginLeft)) {
-                //     marginLeft = 328600 * slideFactor;
+                //     marginLeft = 328600 * SLIDE_FACTOR;
                 // }
                 // if (isNaN(marginRight)) {
                 //     marginRight = 0;
@@ -537,17 +537,17 @@ export const PPTXTextUtils = (function() {
                 bullet += "'><div style='line-height: " + (font_val/2) + "px;'>" + htmlBu + "</div></div>"; //font_val
                 //} 
                 // else {
-                //     marginLeft = 328600 * slideFactor * lvl;
+                //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
 
                 //     bullet = "<div style='" + marLStr + "'>" + buChar + "</div>";
                 // }
             } else if (buType == "TYPE_NUMERIC") { ///////////Amir///////////////////////////////
                 //if (buFontAttrs !== undefined) {
-                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * slideFactor;
+                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
                 // var marginRight = parseInt(buFontAttrs["pitchFamily"]);
 
                 // if (isNaN(marginLeft)) {
-                //     marginLeft = 328600 * slideFactor;
+                //     marginLeft = 328600 * SLIDE_FACTOR;
                 // }
                 // if (isNaN(marginRight)) {
                 //     marginRight = 0;
@@ -565,7 +565,7 @@ export const PPTXTextUtils = (function() {
                 }
                 bullet += "' data-bulltname = '" + buNum + "' data-bulltlvl = '" + lvl + "' class='numeric-bullet-style'></div>";
                 // } else {
-                //     marginLeft = 328600 * slideFactor * lvl;
+                //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
                 //     bullet = "<div style='margin-left: " + marginLeft + "px;";
                 //     if (isRTL) {
                 //         bullet += " float: right; direction:rtl;";
@@ -576,8 +576,8 @@ export const PPTXTextUtils = (function() {
                 // }
 
             } else if (buType == "TYPE_BULPIC") { //PIC BULLET
-                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * slideFactor;
-                // var marginRight = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"])) * slideFactor;
+                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
+                // var marginRight = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"])) * SLIDE_FACTOR;
 
                 // if (isNaN(marginRight)) {
                 //     marginRight = 0;
@@ -585,7 +585,7 @@ export const PPTXTextUtils = (function() {
                 // //console.log("marginRight: "+marginRight)
                 // //buPic
                 // if (isNaN(marginLeft)) {
-                //     marginLeft = 328600 * slideFactor;
+                //     marginLeft = 328600 * SLIDE_FACTOR;
                 // } else {
                 //     marginLeft = 0;
                 // }
@@ -630,7 +630,7 @@ export const PPTXTextUtils = (function() {
                 //////////////////////////////////////////////////////////////////////////////////////
             }
             // else {
-            //     bullet = "<div style='margin-left: " + 328600 * slideFactor * lvl + "px" +
+            //     bullet = "<div style='margin-left: " + 328600 * SLIDE_FACTOR * lvl + "px" +
             //         "; margin-right: " + 0 + "px;'></div>";
             // }
             //console.log("genBuChar: width: ", $(bullet).outerWidth())
@@ -873,7 +873,7 @@ export const PPTXTextUtils = (function() {
 
             //Language
             var lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
-            var isRtlLan = (lang !== undefined && rtlLangsArray.indexOf(lang) !== -1)?true:false;
+            var isRtlLan = (lang !== undefined && RTL_LANGS_ARRAY.indexOf(lang) !== -1)?true:false;
             //rtl
             var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
@@ -1267,7 +1267,7 @@ export const PPTXTextUtils = (function() {
                     var rowHeight = 0;
                     var rowsStyl = "";
                     if (rowHeightParam !== undefined) {
-                        rowHeight = parseInt(rowHeightParam) * slideFactor;
+                        rowHeight = parseInt(rowHeightParam) * SLIDE_FACTOR;
                         rowsStyl += "height:" + rowHeight + "px;";
                     }
                     var fillColor = "";
@@ -1601,7 +1601,7 @@ export const PPTXTextUtils = (function() {
             var text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width);//tableStyles
 
             if (total_col_width != 0 /*&& row_idx == 0*/) {
-                colWidth = parseInt(total_col_width) * slideFactor;
+                colWidth = parseInt(total_col_width) * SLIDE_FACTOR;
                 colStyl += "width:" + colWidth + "px;";
             }
 

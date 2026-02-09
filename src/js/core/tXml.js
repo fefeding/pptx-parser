@@ -1,185 +1,484 @@
 /**
  * tXml - Tiny XML Parser
- * This is my custom tXml.js file
+ * 轻量级 XML 解析器，支持简化、过滤和流式解析
+ * @module tXml
  */
 
-export default (function() {
-    function tXml(t, r) {
-        "use strict";
+let order = 1;
 
-        function e() {
-            for (var r = []; t[l];)
-                if (t.charCodeAt(l) == s) {
-                    if (t.charCodeAt(l + 1) === h) return l = t.indexOf(u, l), l + 1 && (l += 1), r;
-                    if (t.charCodeAt(l + 1) === v) {
-                        if (t.charCodeAt(l + 2) == m) {
-                            for (; -1 !== l && (t.charCodeAt(l) !== d || t.charCodeAt(l - 1) != m || t.charCodeAt(l - 2) != m || -1 == l);)l = t.indexOf(u, l + 1);
-                            -1 === l && (l = t.length)
-                        } else for (l += 2; t.charCodeAt(l) !== d && t[l];)l++;
-                        l++;
-                        continue
+/**
+ * 解析 XML 字符串
+ * @param {string} xml - XML 字符串
+ * @param {Object} options - 解析选项
+ * @param {number} [options.pos=0] - 起始位置
+ * @param {boolean} [options.parseNode=false] - 只解析单个节点
+ * @param {string} [options.attrName] - 属性名过滤
+ * @param {string} [options.attrValue] - 属性值过滤
+ * @param {boolean} [options.simplify=false] - 简化输出
+ * @param {Function} [options.filter] - 过滤函数
+ * @returns {Array|Object} 解析结果
+ */
+function tXml(xml, options) {
+    'use strict';
+
+    options = options || {};
+
+    const POS = options.pos || 0;
+
+    // 字符常量
+    const CHAR_LT = '<';
+    const CHAR_GT = '>';
+    const CHAR_SLASH = '/';
+    const CHAR_DASH = '-';
+    const CHAR_EXCLAMATION = '!';
+    const CHAR_SINGLE_QUOTE = "'";
+    const CHAR_DOUBLE_QUOTE = '"';
+    const STOP_CHARS = "\n\t>/= ";
+    const VOID_ELEMENTS = ['img', 'br', 'input', 'meta', 'link'];
+
+    // 字符码
+    const CODE_LT = CHAR_LT.charCodeAt(0);
+    const CODE_GT = CHAR_GT.charCodeAt(0);
+    const CODE_DASH = CHAR_DASH.charCodeAt(0);
+    const CODE_SLASH = CHAR_SLASH.charCodeAt(0);
+    const CODE_EXCLAMATION = CHAR_EXCLAMATION.charCodeAt(0);
+    const CODE_SINGLE_QUOTE = CHAR_SINGLE_QUOTE.charCodeAt(0);
+    const CODE_DOUBLE_QUOTE = CHAR_DOUBLE_QUOTE.charCodeAt(0);
+
+    let pos = POS;
+
+    /**
+     * 解析所有子节点
+     * @returns {Array} 子节点数组
+     */
+    function parseChildren() {
+        const children = [];
+
+        while (xml[pos]) {
+            const charCode = xml.charCodeAt(pos);
+
+            if (charCode === CODE_LT) {
+                const nextCharCode = xml.charCodeAt(pos + 1);
+
+                // 结束标签 </tag>
+                if (nextCharCode === CODE_SLASH) {
+                    pos = xml.indexOf(CHAR_GT, pos);
+                    if (pos + 1) pos += 1;
+                    return children;
+                }
+
+                // 注释或 DOCTYPE
+                if (nextCharCode === CODE_EXCLAMATION) {
+                    // CDATA 或 注释
+                    if (xml.charCodeAt(pos + 2) === CODE_DASH) {
+                        // 跳过注释 <!-- -->
+                        while (pos !== -1 && 
+                               !(xml.charCodeAt(pos) === CODE_GT && 
+                                 xml.charCodeAt(pos - 1) === CODE_DASH && 
+                                 xml.charCodeAt(pos - 2) === CODE_DASH)) {
+                            pos = xml.indexOf(CHAR_GT, pos + 1);
+                        }
+                        if (pos === -1) pos = xml.length;
+                    } else {
+                        // DOCTYPE
+                        pos += 2;
+                        while (xml.charCodeAt(pos) !== CODE_GT && xml[pos]) {
+                            pos++;
+                        }
                     }
-                    var e = a();
-                    r.push(e)
+                    pos++;
+                    continue;
+                }
+
+                const node = parseNode();
+                children.push(node);
+            } else {
+                const text = parseText();
+                if (text.trim().length > 0) {
+                    children.push(text);
+                }
+                pos++;
+            }
+        }
+
+        return children;
+    }
+
+    /**
+     * 解析文本节点
+     * @returns {string} 文本内容
+     */
+    function parseText() {
+        const start = pos;
+        pos = xml.indexOf(CHAR_LT, pos) - 1;
+        if (pos === -2) {
+            pos = xml.length;
+        }
+        return xml.slice(start, pos + 1);
+    }
+
+    /**
+     * 解析标签名
+     * @returns {string} 标签名
+     */
+    function parseTagName() {
+        const start = pos;
+        while (STOP_CHARS.indexOf(xml[pos]) === -1 && xml[pos]) {
+            pos++;
+        }
+        return xml.slice(start, pos);
+    }
+
+    /**
+     * 解析属性值
+     * @returns {string|null} 属性值
+     */
+    function parseAttributeValue() {
+        const quoteChar = xml[pos];
+        const start = ++pos;
+        pos = xml.indexOf(quoteChar, start);
+        return xml.slice(start, pos);
+    }
+
+    /**
+     * 查找属性位置
+     * @returns {number} 属性位置索引
+     */
+    function findAttributePosition() {
+        const pattern = new RegExp('\\s' + options.attrName + '\\s*=[\'"]' + options.attrValue + '[\'"]');
+        const match = pattern.exec(xml);
+        return match ? match.index : -1;
+    }
+
+    /**
+     * 解析单个 XML 节点
+     * @returns {Object} 节点对象
+     */
+    function parseNode() {
+        const node = {};
+        pos++;
+        node.tagName = parseTagName();
+
+        let hasAttributes = false;
+
+        while (xml.charCodeAt(pos) !== CODE_GT && xml[pos]) {
+            const charCode = xml.charCodeAt(pos);
+
+            // 检查是否是属性名开始
+            if ((charCode > 64 && charCode < 91) || (charCode > 96 && charCode < 123)) {
+                const attrName = parseTagName();
+                let attrValue = null;
+
+                // 跳过空白和等号
+                let currentCharCode = xml.charCodeAt(pos);
+                while (currentCharCode && 
+                       currentCharCode !== CODE_SINGLE_QUOTE && 
+                       currentCharCode !== CODE_DOUBLE_QUOTE &&
+                       !((currentCharCode > 64 && currentCharCode < 91) || 
+                         (currentCharCode > 96 && currentCharCode < 123)) && 
+                       currentCharCode !== CODE_GT) {
+                    pos++;
+                    currentCharCode = xml.charCodeAt(pos);
+                }
+
+                // 解析属性值
+                if (currentCharCode === CODE_SINGLE_QUOTE || 
+                    currentCharCode === CODE_DOUBLE_QUOTE) {
+                    attrValue = parseAttributeValue();
+                    if (pos === -1) return node;
                 } else {
-                    var i = n();
-                    i.trim().length > 0 && r.push(i), l++
+                    attrValue = null;
+                    pos--;
                 }
-            return r
-        }
 
-        function n() {
-            var r = l;
-            return l = t.indexOf(c, l) - 1, -2 === l && (l = t.length), t.slice(r, l + 1)
-        }
-
-        function i() {
-            for (var r = l; -1 === A.indexOf(t[l]) && t[l];)l++;
-            return t.slice(r, l)
-        }
-
-        function a() {
-            var r = {};
-            l++, r.tagName = i();
-            for (var n = !1; t.charCodeAt(l) !== d && t[l];) {
-                var a = t.charCodeAt(l);
-                if (a > 64 && 91 > a || a > 96 && 123 > a) {
-                    for (var f = i(), c = t.charCodeAt(l); c && c !== p && c !== g && !(c > 64 && 91 > c || c > 96 && 123 > c) && c !== d;)l++, c = t.charCodeAt(l);
-                    if (n || (r.attributes = {}, n = !0), c === p || c === g) {
-                        var s = o();
-                        if (-1 === l) return r
-                    } else s = null, l--;
-                    r.attributes[f] = s
+                if (!hasAttributes) {
+                    node.attributes = {};
+                    hasAttributes = true;
                 }
-                l++
+                node.attributes[attrName] = attrValue;
             }
-            if (t.charCodeAt(l - 1) !== h) if ("script" == r.tagName) {
-                var u = l + 1;
-                l = t.indexOf("</script>", l), r.children = [t.slice(u, l - 1)], l += 8
-            } else if ("style" == r.tagName) {
-                var u = l + 1;
-                l = t.indexOf("</style>", l), r.children = [t.slice(u, l - 1)], l += 7
-            } else -1 == C.indexOf(r.tagName) && (l++, r.children = e(f));
-            else l++;
-            return r
+            pos++;
         }
 
-        function o() {
-            var r = t[l], e = ++l;
-            return l = t.indexOf(r, e), t.slice(e, l)
+        // 处理自闭合标签或解析子元素
+        if (xml.charCodeAt(pos - 1) !== CODE_SLASH) {
+            if (node.tagName === 'script') {
+                const contentStart = pos + 1;
+                pos = xml.indexOf('</script>', pos);
+                node.children = [xml.slice(contentStart, pos - 1)];
+                pos += 8;
+            } else if (node.tagName === 'style') {
+                const contentStart = pos + 1;
+                pos = xml.indexOf('</style>', pos);
+                node.children = [xml.slice(contentStart, pos - 1)];
+                pos += 7;
+            } else if (VOID_ELEMENTS.indexOf(node.tagName) === -1) {
+                pos++;
+                node.children = parseChildren();
+            } else {
+                pos++;
+            }
+        } else {
+            pos++;
         }
 
-        function f() {
-            var e = new RegExp("\\s" + r.attrName + "\\s*=['\"]" + r.attrValue + "['\"]").exec(t);
-            return e ? e.index : -1
-        }
-
-        r = r || {};
-        var l = r.pos || 0,
-            c = "<",
-            s = "<".charCodeAt(0),
-            u = ">",
-            d = ">".charCodeAt(0),
-            m = "-".charCodeAt(0),
-            h = "/".charCodeAt(0),
-            v = "!".charCodeAt(0),
-            p = "'".charCodeAt(0),
-            g = '"'.charCodeAt(0),
-            A = "\n\t>/= ",
-            C = ["img", "br", "input", "meta", "link"],
-            y = null;
-        if (void 0 !== r.attrValue) {
-            r.attrName = r.attrName || "id";
-            for (var y = []; -1 !== (l = f());)l = t.lastIndexOf("<", l), -1 !== l && y.push(a()), t = t.substr(l), l = 0
-        } else y = r.parseNode ? a() : e();
-        return r.filter && (y = tXml.filter(y, r.filter)), r.simplify && (y = tXml.simplify(y)), y.pos = l, y
+        return node;
     }
 
-    var _order = 1;
+    let result;
 
-    tXml.simplify = function (t) {
-        var r = {};
-        if (void 0 === t) return {};
-        if (1 === t.length && "string" == typeof t[0]) return t[0];
-        t.forEach(function (t) {
-            if ("object" == typeof t) {
-                r[t.tagName] || (r[t.tagName] = []);
-                var e = tXml.simplify(t.children || []);
-                r[t.tagName].push(e);
-                // Only set attrs if e is an object (not a string)
-                if ("object" == typeof e && null !== e) {
-                    t.attributes && (e.attrs = t.attributes);
-                    void 0 === e.attrs ? e.attrs = { order: _order } : e.attrs.order = _order;
-                    _order++;
-                }
+    if (options.attrValue !== undefined) {
+        options.attrName = options.attrName || 'id';
+        result = [];
+        let attrPos;
+        while ((attrPos = findAttributePosition()) !== -1) {
+            pos = xml.lastIndexOf(CHAR_LT, attrPos);
+            if (pos !== -1) {
+                result.push(parseNode());
             }
-        });
-        for (var e in r) 1 == r[e].length && (r[e] = r[e][0]);
-        return r
-    }, tXml.filter = function (t, r) {
-        var e = [];
-        return t.forEach(function (t) {
-            if ("object" == typeof t && r(t) && e.push(t), t.children) {
-                var n = tXml.filter(t.children, r);
-                e = e.concat(n)
-            }
-        }), e
-    }, tXml.stringify = function (t) {
-        function r(t) {
-            if (t) for (var r = 0; r < t.length; r++)"string" == typeof t[r] ? n += t[r].trim() : e(t[r])
+            xml = xml.substr(pos);
+            pos = 0;
         }
-
-        function e(t) {
-            n += "<" + t.tagName;
-            for (var e in t.attributes) n += null === t.attributes[e] ? " " + e : -1 === t.attributes[e].indexOf('"') ? " " + e + '="' + t.attributes[e].trim() + '"' : " " + e + "='" + t.attributes[e].trim() + "'";
-            n += ">", r(t.children), n += "</" + t.tagName + ">"
-        }
-
-        var n = "";
-        return r(t), n
-    }, tXml.toContentString = function (t) {
-        if (Array.isArray(t)) {
-            var r = "";
-            return t.forEach(function (t) {
-                r += " " + tXml.toContentString(t), r = r.trim()
-            }), r
-        }
-        return "object" == typeof t ? tXml.toContentString(t.children) : " " + t
-    }, tXml.getElementById = function (t, r, e) {
-        var n = tXml(t, {
-            attrValue: r,
-            simplify: e
-        });
-        return e ? n : n[0]
-    }, tXml.getElementsByClassName = function (t, r, e) {
-        return tXml(t, {
-            attrName: "class",
-            attrValue: "[a-zA-Z0-9-s ]*" + r + "[a-zA-Z0-9-s ]*",
-            simplify: e
-        })
-    }, tXml.parseStream = function (t, r) {
-        if ("function" == typeof r && (cb = r, r = 0), "string" == typeof r && (r = r.length + 2), "string" == typeof t) {
-            var e = require("fs");
-            t = e.createReadStream(t, {
-                start: r
-            }), r = 0
-        }
-        var n = r, i = "", a = 0;
-        return t.on("data", function (r) {
-            a++, i += r;
-            for (var e = 0;;) {
-                n = i.indexOf("<", n) + 1;
-                var o = tXml(i, {
-                    pos: n,
-                    parseNode: !0
-                });
-                if (n = o.pos, n > i.length - 1 || e > n) return void(e && (i = i.slice(e), n = 0, e = 0));
-                t.emit("xml", o), e = n
-            }
-            i = i.slice(n), n = 0
-        }), t.on("end", function () {
-            console.log("end")
-        }), t
+    } else {
+        result = options.parseNode ? parseNode() : parseChildren();
     }
-    return tXml;
-})();
+
+    if (options.filter) {
+        result = tXml.filter(result, options.filter);
+    }
+    if (options.simplify) {
+        result = tXml.simplify(result);
+    }
+
+    result.pos = pos;
+    return result;
+}
+
+/**
+ * 简化解析结果
+ * @param {Array} nodes - 节点数组
+ * @returns {Object|string} 简化后的对象
+ */
+tXml.simplify = function(nodes) {
+    const result = {};
+
+    if (nodes === undefined) {
+        return {};
+    }
+
+    if (nodes.length === 1 && typeof nodes[0] === 'string') {
+        return nodes[0];
+    }
+
+    nodes.forEach(function(node) {
+        if (typeof node !== 'object') {
+            return;
+        }
+
+        if (!result[node.tagName]) {
+            result[node.tagName] = [];
+        }
+
+        const simplified = tXml.simplify(node.children || []);
+        result[node.tagName].push(simplified);
+
+        // 只在对象是对象类型时设置属性
+        if (typeof simplified === 'object' && simplified !== null) {
+            if (node.attributes) {
+                simplified.attrs = node.attributes;
+            }
+            if (simplified.attrs === undefined) {
+                simplified.attrs = { order: order };
+            } else {
+                simplified.attrs.order = order;
+            }
+            order++;
+        }
+    });
+
+    // 如果数组只有一个元素，直接返回该元素
+    for (const key in result) {
+        if (result[key].length === 1) {
+            result[key] = result[key][0];
+        }
+    }
+
+    return result;
+};
+
+/**
+ * 过滤节点
+ * @param {Array} nodes - 节点数组
+ * @param {Function} filterFn - 过滤函数
+ * @returns {Array} 过滤后的节点
+ */
+tXml.filter = function(nodes, filterFn) {
+    const result = [];
+
+    nodes.forEach(function(node) {
+        if (typeof node === 'object' && filterFn(node)) {
+            result.push(node);
+        }
+        if (node.children) {
+            const filtered = tXml.filter(node.children, filterFn);
+            result.push(...filtered);
+        }
+    });
+
+    return result;
+};
+
+/**
+ * 将节点数组转换为 XML 字符串
+ * @param {Array} nodes - 节点数组
+ * @returns {string} XML 字符串
+ */
+tXml.stringify = function(nodes) {
+    let xmlString = '';
+
+    function processNodes(nodes) {
+        if (!nodes) return;
+        for (let i = 0; i < nodes.length; i++) {
+            if (typeof nodes[i] === 'string') {
+                xmlString += nodes[i].trim();
+            } else {
+                processNode(nodes[i]);
+            }
+        }
+    }
+
+    function processNode(node) {
+        xmlString += '<' + node.tagName;
+        for (const attr in node.attributes) {
+            const value = node.attributes[attr];
+            if (value === null) {
+                xmlString += ' ' + attr;
+            } else if (value.indexOf('"') === -1) {
+                xmlString += ' ' + attr + '="' + value.trim() + '"';
+            } else {
+                xmlString += ' ' + attr + "='" + value.trim() + "'";
+            }
+        }
+        xmlString += '>';
+        processNodes(node.children);
+        xmlString += '</' + node.tagName + '>';
+    }
+
+    processNodes(nodes);
+    return xmlString;
+};
+
+/**
+ * 获取节点的文本内容
+ * @param {Array|Object|string} node - 节点
+ * @returns {string} 文本内容
+ */
+tXml.toContentString = function(node) {
+    if (Array.isArray(node)) {
+        let text = '';
+        node.forEach(function(child) {
+            text += ' ' + tXml.toContentString(child);
+            text = text.trim();
+        });
+        return text;
+    }
+
+    if (typeof node === 'object') {
+        return tXml.toContentString(node.children);
+    }
+
+    return ' ' + node;
+};
+
+/**
+ * 通过 ID 获取元素
+ * @param {string} xml - XML 字符串
+ * @param {string} id - 元素 ID
+ * @param {boolean} simplify - 是否简化结果
+ * @returns {Object} 元素对象
+ */
+tXml.getElementById = function(xml, id, simplify) {
+    const result = tXml(xml, {
+        attrValue: id,
+        simplify: simplify
+    });
+    return simplify ? result : result[0];
+};
+
+/**
+ * 通过 class 名获取元素
+ * @param {string} xml - XML 字符串
+ * @param {string} className - 类名
+ * @param {boolean} simplify - 是否简化结果
+ * @returns {Array} 元素数组
+ */
+tXml.getElementsByClassName = function(xml, className, simplify) {
+    return tXml(xml, {
+        attrName: 'class',
+        attrValue: '[a-zA-Z0-9-s ]*' + className + '[a-zA-Z0-9-s ]*',
+        simplify: simplify
+    });
+};
+
+/**
+ * 流式解析 XML
+ * @param {string|Stream} source - XML 源
+ * @param {number|Function} chunkSize - 块大小或回调函数
+ * @returns {EventEmitter} 事件发射器
+ */
+tXml.parseStream = function(source, chunkSize) {
+    let callback;
+
+    if (typeof chunkSize === 'function') {
+        callback = chunkSize;
+        chunkSize = 0;
+    }
+
+    if (typeof chunkSize === 'string') {
+        chunkSize = chunkSize.length + 2;
+    }
+
+    // Node.js 流处理
+    if (typeof source === 'string') {
+        const fs = require('fs');
+        source = fs.createReadStream(source, { start: chunkSize });
+        chunkSize = 0;
+    }
+
+    let pos = chunkSize;
+    let buffer = '';
+    let chunkIndex = 0;
+
+    source.on('data', function(chunk) {
+        chunkIndex++;
+        buffer += chunk;
+
+        let lastPos = 0;
+
+        while (true) {
+            pos = buffer.indexOf('<', pos) + 1;
+            const node = tXml(buffer, { pos: pos, parseNode: true });
+            pos = node.pos;
+
+            if (pos > buffer.length - 1 || lastPos > pos) {
+                if (lastPos) {
+                    buffer = buffer.slice(lastPos);
+                    pos = 0;
+                    lastPos = 0;
+                }
+                return;
+            }
+
+            source.emit('xml', node);
+            lastPos = pos;
+        }
+    });
+
+    source.on('end', function() {
+        console.log('end');
+    });
+
+    return source;
+};
+
+export default tXml;

@@ -3,7 +3,7 @@ import { PPTXXmlUtils } from './utils/xml.js';
 import { PPTXStyleUtils } from './utils/style.js';
 import { PPTXTextUtils } from './utils/text.js';
 import { PPTXShapeUtils } from './shape/shape.js';
-import { slideFactor, fontSizeFactor } from './core/constants.js';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants.js';
 
 function pptxToHtml(fileData, options) {
     var settings = Object.assign({}, {

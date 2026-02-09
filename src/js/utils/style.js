@@ -1,7 +1,7 @@
 
 
 import { PPTXXmlUtils } from './xml.js';
-import { slideFactor, fontSizeFactor, rtlLangsArray } from '../core/constants.js';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constants.js';
 import tinycolor from '../core/tinycolor.js';
 
 export const PPTXStyleUtils = (function() {
@@ -348,7 +348,7 @@ export const PPTXStyleUtils = (function() {
             var oGlowStr = "";
             if (txtGlowNode !== undefined) {
                 var glowClr = getSolidFill(txtGlowNode, undefined, undefined, warpObj);
-                var rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * slideFactor) : 0;
+                var rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * SLIDE_FACTOR) : 0;
                 oGlowStr = "0 0 " + rad + "px #" + glowClr +
                     ", 0 0 " + rad + "px #" + glowClr +
                     ", 0 0 " + rad + "px #" + glowClr +
@@ -387,13 +387,13 @@ export const PPTXStyleUtils = (function() {
                 //blurRad (Blur Radius) - Specifies the blur radius of the shadow.
                 //kx (Horizontal Skew) - Specifies the horizontal skew angle.
                 //ky (Vertical Skew) - Specifies the vertical skew angle.
-                //sx (Horizontal Scaling Factor) - Specifies the horizontal scaling slideFactor; negative scaling causes a flip.
-                //sy (Vertical Scaling Factor) - Specifies the vertical scaling slideFactor; negative scaling causes a flip.
+                //sx (Horizontal Scaling Factor) - Specifies the horizontal scaling SLIDE_FACTOR; negative scaling causes a flip.
+                //sy (Vertical Scaling Factor) - Specifies the vertical scaling SLIDE_FACTOR; negative scaling causes a flip.
                 var algn = outerShdwAttrs["algn"];
                 var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
-                var dist = parseInt(outerShdwAttrs["dist"]) * slideFactor;//(px) //* (3 / 4); //(pt)
+                var dist = parseInt(outerShdwAttrs["dist"]) * SLIDE_FACTOR;//(px) //* (3 / 4); //(pt)
                 var rotWithShape = outerShdwAttrs["rotWithShape"];
-                var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * slideFactor + "px") : "";
+                var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR + "px") : "";
                 var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
                 var sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
                 var vx = dist * Math.sin(dir * Math.PI / 180);
@@ -553,7 +553,7 @@ export const PPTXStyleUtils = (function() {
                 }
             }
 
-            return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (fontSize * fontSizeFactor + "px");// + "pt");
+            return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (fontSize * FONT_SIZE_FACTOR + "px");// + "pt");
         }
 
         function getFontBold(node, type, slideMasterTextStyles) {
@@ -3237,7 +3237,7 @@ export const PPTXStyleUtils = (function() {
             var pPrNodeMaster = layoutMasterNode.nodeMaster;
             
             // var lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
-            // var isRtlLan = (lang !== undefined && rtlLangsArray.indexOf(lang) !== -1) ? true : false;
+            // var isRtlLan = (lang !== undefined && RTL_LANGS_ARRAY.indexOf(lang) !== -1) ? true : false;
             //rtl
             var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
@@ -3271,7 +3271,7 @@ export const PPTXStyleUtils = (function() {
             }
             var indent = 0;
             if (indentNode !== undefined) {
-                indent = parseInt(indentNode) * slideFactor;
+                indent = parseInt(indentNode) * SLIDE_FACTOR;
             }
             //
             //marL
@@ -3284,7 +3284,7 @@ export const PPTXStyleUtils = (function() {
             }
             var marginLeft = 0;
             if (marLNode !== undefined) {
-                marginLeft = parseInt(marLNode) * slideFactor;
+                marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
             }
             if ((indentNode !== undefined || marLNode !== undefined)) {
                 //var lvlIndent = defTabSz * lvl;
@@ -3315,7 +3315,7 @@ export const PPTXStyleUtils = (function() {
                 }
             }
             if (marRNode !== undefined && isBullate) {
-                var marginRight = parseInt(marRNode) * slideFactor;
+                var marginRight = parseInt(marRNode) * SLIDE_FACTOR;
                 if (isRTL) {// && alignNode == "r") {
                     //marRStr = "margin-right: ";
                     marRStr = "padding-right: ";
