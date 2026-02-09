@@ -1,12 +1,9 @@
 
 
 import { PPTXXmlUtils } from './xml.js';
+import { slideFactor, fontSizeFactor, rtlLangsArray } from '../core/constants.js';
 
 export const PPTXStyleUtils = (function() {
-    var slideFactor = 96 / 914400;
-    var fontSizeFactor = 4 / 3.2;
-    
-    var rtl_langs_array = ["he-IL", "ar-AE", "ar-SA", "dv-MV", "fa-IR","ur-PK"]
 
     function getFillType(node) {
             //Need to test/////////////////////////////////////////////
@@ -3239,7 +3236,7 @@ export const PPTXStyleUtils = (function() {
             var pPrNodeMaster = layoutMasterNode.nodeMaster;
             
             // var lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
-            // var isRtlLan = (lang !== undefined && rtl_langs_array.indexOf(lang) !== -1) ? true : false;
+            // var isRtlLan = (lang !== undefined && rtlLangsArray.indexOf(lang) !== -1) ? true : false;
             //rtl
             var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {

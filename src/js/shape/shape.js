@@ -6,10 +6,9 @@
 import { PPTXXmlUtils } from '../utils/xml.js';
 import { PPTXStyleUtils } from '../utils/style.js';
 import { PPTXTextUtils } from '../utils/text.js';
+import { slideFactor, fontSizeFactor } from '../core/constants.js';
 
 export const PPTXShapeUtils = (function() {
-    var slideFactor = 96 / 914400;
-    var fontSizeFactor = 4 / 3.2;
     /**
      * shapeArc - 生成圆弧路径
      * @param {number} cx - 圆心X坐标

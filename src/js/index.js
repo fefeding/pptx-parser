@@ -3,6 +3,7 @@ import { PPTXXmlUtils } from './utils/xml.js';
 import { PPTXStyleUtils } from './utils/style.js';
 import { PPTXTextUtils } from './utils/text.js';
 import { PPTXShapeUtils } from './shape/shape.js';
+import { slideFactor, fontSizeFactor } from './core/constants.js';
 
 function pptxToHtml(fileData, options) {
     var settings = Object.assign({}, {
@@ -22,8 +23,6 @@ function pptxToHtml(fileData, options) {
     var chartID = 0;
     var _order = 1;
     var app_version;
-    var slideFactor = 96 / 914400;
-    var fontSizeFactor = 4 / 3.2;
     var slideWidth = 0;
     var slideHeight = 0;
     var processFullTheme = settings.themeProcess;

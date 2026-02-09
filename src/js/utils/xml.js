@@ -3,9 +3,9 @@
  * 提供XML节点遍历和查询功能
  */
 
+import { slideFactor, fontSizeFactor } from '../core/constants.js';
+
 export const PPTXXmlUtils = (function() {
-    var slideFactor = 96 / 914400;
-    var fontSizeFactor = 4 / 3.2;
 
     /**
      * getTextByPathStr - 通过路径字符串获取XML文本

@@ -7,6 +7,7 @@ import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
 import { PPTXTextUtils } from './text.js';
 import { PPTXShapeUtils } from '../shape/shape.js';
+import { slideFactor } from '../core/constants.js';
 
 export const PPTXNodeUtils = (function() {
 
