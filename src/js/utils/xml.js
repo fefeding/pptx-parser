@@ -33,8 +33,8 @@ export const PPTXXmlUtils = (function() {
             return undefined;
         }
 
-        var l = path.length;
-        for (var i = 0; i < l; i++) {
+        let l = path.length;
+        for (let i = 0; i < l; i++) {
             node = node[path[i]];
             if (node === undefined) {
                 return undefined;
@@ -61,8 +61,8 @@ export const PPTXXmlUtils = (function() {
 
         Object.prototype.set = function (parts, value) {
             var obj = this;
-            var lent = parts.length;
-            for (var i = 0; i < lent; i++) {
+            let lent = parts.length;
+            for (let i = 0; i < lent; i++) {
                 var p = parts[i];
                 if (obj[p] === undefined) {
                     if (i == lent - 1) {
@@ -91,8 +91,8 @@ export const PPTXXmlUtils = (function() {
         }
         let result = "";
         if (node.constructor === Array) {
-            var l = node.length;
-            for (var i = 0; i < l; i++) {
+            let l = node.length;
+            for (let i = 0; i < l; i++) {
                 result += doFunction(node[i], i);
             }
         } else {
@@ -138,7 +138,7 @@ export const PPTXXmlUtils = (function() {
             '"': '&quot;',
             "'": '&#039;'
         };
-        return text.replace(/[&<>"']/g, function (m) { return map[m]; });
+        return text.replace(/[&<>"']/g, (m) => map[m]);
     }
 
     /**
@@ -157,7 +157,7 @@ export const PPTXXmlUtils = (function() {
                 //remove "<!CDATA[ ... ]]>" tag
                 fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
             }
-            var xmlData = tXml(fileContent, { simplify: 1 });
+            let xmlData = tXml(fileContent, { simplify: 1 });
             if (xmlData["?xml"] !== undefined) {
                 return xmlData["?xml"];
             } else {
@@ -178,10 +178,10 @@ export const PPTXXmlUtils = (function() {
     function getContentTypes(zip, appVersion) {
         let ContentTypesJson = PPTXXmlUtils.readXmlFile(zip, "[Content_Types].xml", false, appVersion);
         
-        var subObj = ContentTypesJson["Types"]["Override"];
-        var slidesLocArray = [];
-        var slideLayoutsLocArray = [];
-        for (var i = 0; i < subObj.length; i++) {
+        let subObj = ContentTypesJson["Types"]["Override"];
+        let slidesLocArray = [];
+        let slideLayoutsLocArray = [];
+        for (let i = 0; i < subObj.length; i++) {
             switch (subObj[i]["attrs"]["ContentType"]) {
                 case "application/vnd.openxmlformats-officedocument.presentationml.slide+xml":
                     slidesLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
@@ -401,7 +401,7 @@ export const PPTXXmlUtils = (function() {
         let a, b, c, d;
         let chunk;
 
-        for (var i = 0; i < mainLength; i = i + 3) {
+        for (let i = 0; i < mainLength; i = i + 3) {
             chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
             a = (chunk & 16515072) >> 18;
             b = (chunk & 258048) >> 12;
