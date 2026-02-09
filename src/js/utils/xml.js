@@ -89,7 +89,7 @@ export const PPTXXmlUtils = (function() {
         if (node === undefined) {
             return;
         }
-        var result = "";
+        let result = "";
         if (node.constructor === Array) {
             var l = node.length;
             for (var i = 0; i < l; i++) {
@@ -131,7 +131,7 @@ export const PPTXXmlUtils = (function() {
      * @returns {string} 转义后的文本
      */
     function escapeHtml(text) {
-        var map = {
+        let map = {
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
@@ -151,7 +151,7 @@ export const PPTXXmlUtils = (function() {
      */
     function readXmlFile(zip, filename, isSlideContent, appVersion) {
         try {
-            var fileContent = zip.file(filename).asText();
+            let fileContent = zip.file(filename).asText();
             if (isSlideContent && appVersion <= 12) {
                 //< office2007
                 //remove "<!CDATA[ ... ]]>" tag
@@ -176,7 +176,7 @@ export const PPTXXmlUtils = (function() {
      * @returns {Object} 包含slides和slideLayouts的对象
      */
     function getContentTypes(zip, appVersion) {
-        var ContentTypesJson = PPTXXmlUtils.readXmlFile(zip, "[Content_Types].xml", false, appVersion);
+        let ContentTypesJson = PPTXXmlUtils.readXmlFile(zip, "[Content_Types].xml", false, appVersion);
         
         var subObj = ContentTypesJson["Types"]["Override"];
         var slidesLocArray = [];
@@ -207,18 +207,18 @@ export const PPTXXmlUtils = (function() {
      */
     function getSlideSizeAndSetDefaultTextStyle(zip, settings) {
         //get app version
-        var app = PPTXXmlUtils.readXmlFile(zip, "docProps/app.xml");
-        var app_verssion_str = app["Properties"]["AppVersion"]
+        let app = PPTXXmlUtils.readXmlFile(zip, "docProps/app.xml");
+        let app_verssion_str = app["Properties"]["AppVersion"]
         const app_verssion = Number(app_verssion_str);
         console.log("create by Office PowerPoint app verssion: ", app_verssion_str)
 
         //get slide dimensions
-        var rtenObj = {};
-        var content = PPTXXmlUtils.readXmlFile(zip, "ppt/presentation.xml");
-        var sldSzAttrs = content["p:presentation"]["p:sldSz"]["attrs"];
-        var sldSzWidth = parseInt(sldSzAttrs["cx"]);
-        var sldSzHeight = parseInt(sldSzAttrs["cy"]);
-        var sldSzType = sldSzAttrs["type"];
+        let rtenObj = {};
+        let content = PPTXXmlUtils.readXmlFile(zip, "ppt/presentation.xml");
+        let sldSzAttrs = content["p:presentation"]["p:sldSz"]["attrs"];
+        let sldSzWidth = parseInt(sldSzAttrs["cx"]);
+        let sldSzHeight = parseInt(sldSzAttrs["cy"]);
+        let sldSzType = sldSzAttrs["type"];
         console.log("Presentation size type: ", sldSzType)
 
         //1 inches  = 96px = 2.54cm
@@ -391,15 +391,15 @@ export const PPTXXmlUtils = (function() {
      * @returns {string} Base64字符串
      */
     function base64ArrayBuffer(arrayBuffer) {
-        var base64 = '';
-        var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        var bytes = new Uint8Array(arrayBuffer);
-        var byteLength = bytes.byteLength;
-        var byteRemainder = byteLength % 3;
-        var mainLength = byteLength - byteRemainder;
+        let base64 = '';
+        let encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        let bytes = new Uint8Array(arrayBuffer);
+        let byteLength = bytes.byteLength;
+        let byteRemainder = byteLength % 3;
+        let mainLength = byteLength - byteRemainder;
 
-        var a, b, c, d;
-        var chunk;
+        let a, b, c, d;
+        let chunk;
 
         for (var i = 0; i < mainLength; i = i + 3) {
             chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
@@ -430,7 +430,7 @@ export const PPTXXmlUtils = (function() {
             return filename.substr((~-filename.lastIndexOf(".") >>> 0) + 2);
         }
     function getMimeType(imgFileExt) {
-            var mimeType = "";
+            let mimeType = "";
             //console.log(imgFileExt)
             switch (imgFileExt.toLowerCase()) {
                 case "jpg":
@@ -491,8 +491,8 @@ export const PPTXXmlUtils = (function() {
 
     
         function getPosition(slideSpNode, pNode, slideLayoutSpNode, slideMasterSpNode, sType) {
-            var off;
-            var x = -1, y = -1;
+            let off;
+            let x = -1, y = -1;
 
             if (slideSpNode !== undefined) {
                 off = slideSpNode["a:off"]["attrs"];
@@ -503,8 +503,8 @@ export const PPTXXmlUtils = (function() {
             } else if (off === undefined && slideMasterSpNode !== undefined) {
                 off = slideMasterSpNode["a:off"]["attrs"];
             }
-            var offX = 0, offY = 0;
-            var grpX = 0, grpY = 0;
+            let offX = 0, offY = 0;
+            let grpX = 0, grpY = 0;
             if (sType == "group") {
 
                 var grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
@@ -543,8 +543,8 @@ export const PPTXXmlUtils = (function() {
         }
 
         function getSize(slideSpNode, slideLayoutSpNode, slideMasterSpNode) {
-            var ext = undefined;
-            var w = -1, h = -1;
+            let ext = undefined;
+            let w = -1, h = -1;
 
             if (slideSpNode !== undefined) {
                 ext = slideSpNode["a:ext"]["attrs"];
@@ -573,7 +573,7 @@ export const PPTXXmlUtils = (function() {
                 return true;
             }
             */
-            var urlregex = /^(https?|ftp):\/\/([a-zA-Z0-9.-]+(:[a-zA-Z0-9.&%$-]+)*@)*((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(:[0-9]+)*(\/($|[a-zA-Z0-9.,?'\\+&%$#=~_-]+))*$/;
+            let urlregex = /^(https?|ftp):\/\/([a-zA-Z0-9.-]+(:[a-zA-Z0-9.&%$-]+)*@)*((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(:[0-9]+)*(\/($|[a-zA-Z0-9.,?'\\+&%$#=~_-]+))*$/;
             return urlregex.test(vdoFile);
         }   
     return {
