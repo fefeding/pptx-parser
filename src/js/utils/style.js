@@ -4,9 +4,9 @@ import { PPTXXmlUtils } from './xml.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constants.js';
 import tinycolor from '../core/tinycolor.js';
 
-export const PPTXStyleUtils = (function() {
 
-    function getFillType(node) {
+
+function getFillType(node) {
             //Need to test/////////////////////////////////////////////
             //SOLID_FILL
             //PIC_FILL
@@ -3329,7 +3329,7 @@ export const PPTXStyleUtils = (function() {
 
             return [marLStr, maginVal];
         }
-    return {
+const PPTXStyleUtils = {
         getFillType,
         getShapeFill,
         getFontType,
@@ -3378,4 +3378,6 @@ export const PPTXStyleUtils = (function() {
         getPregraphDir,
         getPregraphMargn,
     };
-})();
+
+export { PPTXStyleUtils };
+export default PPTXStyleUtils;

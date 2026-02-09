@@ -3,14 +3,11 @@
 import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY, DINGBAT_UNICODE } from '../core/constants.js';
-
-export const PPTXTextUtils = (function() {
-    
-    var is_first_br = false;
+let is_first_br = false;
 
 
 
-    function getTextWidth(html) {
+function getTextWidth(html) {
         var div = document.createElement('div');
         div.style.position = 'absolute';
         div.style.float = 'left';
@@ -1736,7 +1733,7 @@ export const PPTXTextUtils = (function() {
 
             return [text, colStyl, cssName, rowSpan, colSpan];
         }
-    return {
+const PPTXTextUtils = {
         genTextBody,
         genBuChar,
         getHtmlBullet,
@@ -1750,4 +1747,6 @@ export const PPTXTextUtils = (function() {
         romanize,
         getNumTypeNum,
     };
-})();
+
+export { PPTXTextUtils };
+export default PPTXTextUtils;
