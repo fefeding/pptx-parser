@@ -3,7 +3,12 @@
  * 提供PPTX节点处理和索引功能
  */
 
-var PPTXNodeUtils = (function() {
+import { PPTXXmlUtils } from './xml.js';
+import { PPTXStyleUtils } from './style.js';
+import { PPTXShapeUtils } from '../shape/shape.js';
+import { PPTXTextUtils } from './text.js';
+
+export const PPTXNodeUtils = (function() {
     /**
      * indexNodes - 索引幻灯片节点
      * @param {Object} content - 幻灯片内容
@@ -245,7 +250,7 @@ var PPTXNodeUtils = (function() {
             }
 
             if (type === undefined) {
-                txBoxVal = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvSpPr", "attrs", "txBox"]);
+                const txBoxVal = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvSpPr", "attrs", "txBox"]);
                 if (txBoxVal == "1") {
                     type = "textBox";
                 }
@@ -497,6 +502,68 @@ var PPTXNodeUtils = (function() {
 
             // TODO:
         }
+
+    function getBackground(warpObj, slideSize, index, settings) {
+            //var rslt = "";
+            var slideContent = warpObj["slideContent"];
+            var slideLayoutContent = warpObj["slideLayoutContent"];
+            var slideMasterContent = warpObj["slideMasterContent"];
+
+            var nodesSldLayout = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:spTree"]);
+            var nodesSldMaster = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:cSld", "p:spTree"]);
+            // console.log("slideContent : ", slideContent)
+            // console.log("slideLayoutContent : ", slideLayoutContent)
+            // console.log("slideMasterContent : ", slideMasterContent)
+            //console.log("warpObj : ", warpObj)
+            var showMasterSp = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "attrs", "showMasterSp"]);
+            //console.log("slideLayoutContent : ", slideLayoutContent, ", showMasterSp: ", showMasterSp)
+            var bgColor = PPTXStyleUtils.getSlideBackgroundFill(warpObj, index);
+            var result = "<div class='slide-background-" + index + "' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
+            var node_ph_type_ary = [];
+            if (nodesSldLayout !== undefined) {
+                for (var nodeKey in nodesSldLayout) {
+                    if (nodesSldLayout[nodeKey].constructor === Array) {
+                        for (var i = 0; i < nodesSldLayout[nodeKey].length; i++) {
+                            var ph_type = PPTXXmlUtils.getTextByPathList(nodesSldLayout[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                            // if (ph_type !== undefined && ph_type != "pic") {
+                            //     node_ph_type_ary.push(ph_type);
+                            // }
+                            if (ph_type != "pic") {
+                                result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodesSldLayout[nodeKey][i], nodesSldLayout, warpObj, "slideLayoutBg", 'group', settings); //slideLayoutBg , slideMasterBg
+                            }
+                        }
+                    } else {
+                        var ph_type = PPTXXmlUtils.getTextByPathList(nodesSldLayout[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                        // if (ph_type !== undefined && ph_type != "pic") {
+                        //     node_ph_type_ary.push(ph_type);
+                        // }
+                        if (ph_type != "pic") {
+                            result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodesSldLayout[nodeKey], nodesSldLayout, warpObj, "slideLayoutBg", 'group', settings); //slideLayoutBg, slideMasterBg
+                        }
+                    }
+                }
+            }
+            if (nodesSldMaster !== undefined && (showMasterSp == "1" || showMasterSp === undefined)) {
+                for (var nodeKey in nodesSldMaster) {
+                    if (nodesSldMaster[nodeKey].constructor === Array) {
+                        for (var i = 0; i < nodesSldMaster[nodeKey].length; i++) {
+                            var ph_type = PPTXXmlUtils.getTextByPathList(nodesSldMaster[nodeKey][i], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                            //if (node_ph_type_ary.indexOf(ph_type) > -1) {
+                            result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodesSldMaster[nodeKey][i], nodesSldMaster, warpObj, "slideMasterBg", 'group', settings); //slideLayoutBg , slideMasterBg
+                            //}
+                        }
+                    } else {
+                        var ph_type = PPTXXmlUtils.getTextByPathList(nodesSldMaster[nodeKey], ["p:nvSpPr", "p:nvPr", "p:ph", "attrs", "type"]);
+                        //if (node_ph_type_ary.indexOf(ph_type) > -1) {
+                        result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, warpObj, "slideMasterBg", 'group', settings); //slideLayoutBg, slideMasterBg
+                        //}
+                    }
+                }
+            }
+            return result;
+
+        }
+
     return {
         indexNodes: indexNodes,
         processGroupSpNode: processGroupSpNode,
@@ -505,8 +572,7 @@ var PPTXNodeUtils = (function() {
         processCxnSpNode,
         processPicNode,
         processGraphicFrameNode,
-        processSpPrNode
+        processSpPrNode,
+        getBackground
     };
 })();
-
-window.PPTXNodeUtils = PPTXNodeUtils;

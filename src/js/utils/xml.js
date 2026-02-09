@@ -3,7 +3,7 @@
  * 提供XML节点遍历和查询功能
  */
 
-var PPTXXmlUtils = (function() {
+export const PPTXXmlUtils = (function() {
     var slideFactor = 96 / 914400;
     var fontSizeFactor = 4 / 3.2;
 
@@ -208,7 +208,7 @@ var PPTXXmlUtils = (function() {
         //get app version
         var app = PPTXXmlUtils.readXmlFile(zip, "docProps/app.xml");
         var app_verssion_str = app["Properties"]["AppVersion"]
-        app_verssion = parseInt(app_verssion_str);
+        const app_verssion = Number(app_verssion_str);
         console.log("create by Office PowerPoint app verssion: ", app_verssion_str)
 
         //get slide dimensions
@@ -254,10 +254,10 @@ var PPTXXmlUtils = (function() {
         //console.log("scaleX: ", scaleX, "scaleY:", scaleY)
         //slideFactor = slideFactor * scaleX;
 
-        defaultTextStyle = content["p:presentation"]["p:defaultTextStyle"];
+        const defaultTextStyle = content["p:presentation"]["p:defaultTextStyle"];
 
-        slideWidth = sldSzWidth * slideFactor + settings.incSlide.width|0;// * scaleX;//parseInt(sldSzAttrs["cx"]) * 96 / 914400;
-        slideHeight = sldSzHeight * slideFactor + settings.incSlide.height|0;// * scaleY;//parseInt(sldSzAttrs["cy"]) * 96 / 914400;
+        const slideWidth = sldSzWidth * slideFactor + settings.incSlide.width|0;// * scaleX;//parseInt(sldSzAttrs["cx"]) * 96 / 914400;
+        const slideHeight = sldSzHeight * slideFactor + settings.incSlide.height|0;// * scaleY;//parseInt(sldSzAttrs["cy"]) * 96 / 914400;
         rtenObj = {
             "width": slideWidth,
             "height": slideHeight,
@@ -596,5 +596,3 @@ var PPTXXmlUtils = (function() {
         IsVideoLink,
     };
 })();
-
-window.PPTXXmlUtils = PPTXXmlUtils;

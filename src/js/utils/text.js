@@ -1,6 +1,14 @@
 
 
-var PPTXTextUtils = (function() {
+import { PPTXXmlUtils } from './xml.js';
+import { PPTXStyleUtils } from './style.js';
+
+export const PPTXTextUtils = (function() {
+    var PPTXNodeUtilsRef = null;
+
+    function setPPTXNodeUtils(ref) {
+        PPTXNodeUtilsRef = ref;
+    }
     var slideFactor = 96 / 914400;
     var fontSizeFactor = 4 / 3.2;
     
@@ -1174,6 +1182,10 @@ var PPTXTextUtils = (function() {
         }
 
         function genDiagram(node, warpObj, source, sType) {
+            if (!PPTXNodeUtilsRef) {
+                console.warn("PPTXNodeUtils reference not set. Call setPPTXNodeUtils() first.");
+                return "";
+            }
             //console.log(warpObj)
             //PPTXXmlUtils.readXmlFile(zip, sldFileName)
             /**files define the diagram:
@@ -1196,7 +1208,7 @@ var PPTXTextUtils = (function() {
             var dgmClrFileName = warpObj["slideResObj"][dgmClrFileId].target,
                 dgmDataFileName = warpObj["slideResObj"][dgmDataFileId].target,
                 dgmLayoutFileName = warpObj["slideResObj"][dgmLayoutFileId].target;
-            dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
+            const dgmQuickStyleFileName = warpObj["slideResObj"][dgmQuickStyleFileId].target;
             //console.log("dgmClrFileName: " , dgmClrFileName,", dgmDataFileName: ",dgmDataFileName,", dgmLayoutFileName: ",dgmLayoutFileName,", dgmQuickStyleFileName: ",dgmQuickStyleFileName);
             var dgmClr = PPTXXmlUtils.readXmlFile(zip, dgmClrFileName);
             var dgmData = PPTXXmlUtils.readXmlFile(zip, dgmDataFileName);
@@ -1226,8 +1238,8 @@ var PPTXTextUtils = (function() {
                     // var pSpStr = dspSpObjToStr.replace(/dsp:/g, "p:");
                     // var pSpStrToObj = JSON.parse(pSpStr);
                     //console.log("pSpStrToObj[" + i + "]: ", pSpStrToObj);
-                    //rslt += PPTXNodeUtils.processSpNode(pSpStrToObj, node, warpObj, "diagramBg", sType)
-                    rslt += PPTXNodeUtils.processSpNode(dspSp, node, warpObj, "diagramBg", sType)
+                    //rslt += PPTXNodeUtilsRef.processSpNode(pSpStrToObj, node, warpObj, "diagramBg", sType)
+                    rslt += PPTXNodeUtilsRef.processSpNode(dspSp, node, warpObj, "diagramBg", sType)
                 }
                 // dgmDrwFile: "dsp:"-> "p:"
             }
@@ -1813,7 +1825,6 @@ var PPTXTextUtils = (function() {
         archaicNumbers,
         romanize,
         getNumTypeNum,
+        setPPTXNodeUtils,
     };
 })();
-
-window.PPTXTextUtils = PPTXTextUtils;

@@ -17,12 +17,7 @@
 <!-- Core Dependencies -->
 <script type="text/javascript" src="./js/core/tXml.js"></script>
 <script type="text/javascript" src="./js/core/tinycolor.js"></script>
-<script type="text/javascript" src="./js/core/JSZipUtils.js"></script>
-<script type="text/javascript" src="./js/utils/xml.js"></script>
-<script type="text/javascript" src="./js/utils/style.js"></script>
-<script type="text/javascript" src="./js/utils/text.js"></script>
-<script type="text/javascript" src="./js/shape/shape.js"></script>
-<script type="text/javascript" src="./js/utils/node.js"></script>
+
 
 
 
@@ -47,6 +42,8 @@
 	</div>
 <script type="module">
 import pptxToHtml from './js/pptxjs.js';
+import { PPTXNodeUtils } from './js/utils/node.js';
+import { PPTXTextUtils } from './js/utils/text.js';
 
 var resultDiv = document.getElementById("result");
 var loadingMsgDiv = null;

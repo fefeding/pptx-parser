@@ -19,16 +19,22 @@
 <script type="text/javascript" src="./js/core/tXml.js"></script>
 <script type="text/javascript" src="./js/core/tinycolor.js"></script>
 <script type="text/javascript" src="./js/core/JSZipUtils.js"></script>
-<script type="text/javascript" src="./js/utils/xml.js"></script>
-<script type="text/javascript" src="./js/utils/style.js"></script>
-<script type="text/javascript" src="./js/utils/text.js"></script>
-<script type="text/javascript" src="./js/shape/shape.js"></script>
-<script type="text/javascript" src="./js/utils/node.js"></script>
+
 
 
 <script type="module">
   import pptxToHtml from './js/pptxjs.js';
+  import { PPTXNodeUtils } from './js/utils/node.js';
+  import { PPTXXmlUtils } from './js/utils/xml.js';
+  import { PPTXStyleUtils } from './js/utils/style.js';
+  import { PPTXTextUtils } from './js/utils/text.js';
+  import { PPTXShapeUtils } from './js/shape/shape.js';
   window.pptxToHtml = pptxToHtml;
+  window.PPTXNodeUtils = PPTXNodeUtils;
+  window.PPTXXmlUtils = PPTXXmlUtils;
+  window.PPTXStyleUtils = PPTXStyleUtils;
+  window.PPTXTextUtils = PPTXTextUtils;
+  window.PPTXShapeUtils = PPTXShapeUtils;
 </script>
 
 <script type="text/javascript">

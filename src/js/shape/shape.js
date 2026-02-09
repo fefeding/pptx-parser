@@ -3,7 +3,11 @@
  * 提供形状生成和计算相关功能
  */
 
-var PPTXShapeUtils = (function() {
+import { PPTXXmlUtils } from '../utils/xml.js';
+import { PPTXStyleUtils } from '../utils/style.js';
+import { PPTXTextUtils } from '../utils/text.js';
+
+export const PPTXShapeUtils = (function() {
     var slideFactor = 96 / 914400;
     var fontSizeFactor = 4 / 3.2;
     /**
@@ -7704,5 +7708,3 @@ var PPTXShapeUtils = (function() {
         genShape,
     };
 })();
-
-window.PPTXShapeUtils = PPTXShapeUtils;
