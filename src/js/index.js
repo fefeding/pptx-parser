@@ -5,612 +5,655 @@ import { PPTXTextUtils } from './utils/text.js';
 import { PPTXShapeUtils } from './shape/shape.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants.js';
 
+/**
+ * PPTX to HTML converter
+ * @param {ArrayBuffer} fileData - The PPTX file data
+ * @param {Object} options - Conversion options
+ * @returns {void}
+ */
 function pptxToHtml(fileData, options) {
-    var settings = Object.assign({}, {
+    // Merge default settings with user options
+    const settings = {
         mediaProcess: true,
         themeProcess: true,
-        incSlide:{
+        incSlide: {
             width: 0,
             height: 0
         },
         styleTable: {},
-    }, options);
+        ...options
+    };
 
     // Callback functions
-    var callbacks = settings.callbacks || {};
+    const callbacks = settings.callbacks || {};
 
-    var defaultTextStyle = null;
-    var chartID = 0;
-    var _order = 1;
-    var app_version;
-    var slideWidth = 0;
-    var slideHeight = 0;
-    var processFullTheme = settings.themeProcess;
-    var styleTable = settings.styleTable;
-    var isDone = false;
+    // State variables
+    let defaultTextStyle = null;
+    let chartId = 0;
+    let order = 1;
+    let appVersion;
+    let slideWidth = 0;
+    let slideHeight = 0;
+    const processFullTheme = settings.themeProcess;
+    const styleTable = settings.styleTable;
+    let isDone = false;
 
+    // Trigger file start callback
     if (callbacks.onFileStart) {
         callbacks.onFileStart();
     }
 
-
-
+    /**
+     * Convert PPTX file to HTML
+     * @param {ArrayBuffer} file - The PPTX file data
+     */
     function convertToHtml(file) {
-        if (file.byteLength < 10){
+        if (file.byteLength < 10) {
             console.error("Invalid file: file too small");
             if (callbacks.onError) {
                 callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
             }
             return;
         }
-        var MsgQueue = new Array();
-        var zip = new JSZip();
-        zip = zip.load(file);
-        var rslt_ary = processPPTX(zip, MsgQueue);
 
-        for (var i = 0; i < rslt_ary.length; i++) {
-            switch (rslt_ary[i]["type"]) {
+        const msgQueue = [];
+        const zip = new JSZip().load(file);
+        const resultArray = processPPTX(zip, msgQueue);
+
+        for (const result of resultArray) {
+            switch (result.type) {
                 case "slide":
                     if (callbacks.onSlide) {
-                        callbacks.onSlide(rslt_ary[i]["data"], {
-                            slide_num: rslt_ary[i]["slide_num"],
-                            file_name: rslt_ary[i]["file_name"]
+                        callbacks.onSlide(result.data, {
+                            slideNum: result.slideNum,
+                            fileName: result.fileName
                         });
                     }
                     break;
                 case "pptx-thumb":
                     if (callbacks.onThumbnail) {
-                        callbacks.onThumbnail(rslt_ary[i]["data"]);
+                        callbacks.onThumbnail(result.data);
                     }
                     break;
                 case "slideSize":
-                    slideWidth = rslt_ary[i]["data"].width;
-                    slideHeight = rslt_ary[i]["data"].height;
+                    slideWidth = result.data.width;
+                    slideHeight = result.data.height;
                     if (callbacks.onSlideSize) {
-                        callbacks.onSlideSize(rslt_ary[i]["data"]);
+                        callbacks.onSlideSize(result.data);
                     }
                     break;
                 case "globalCSS":
                     if (callbacks.onGlobalCSS) {
-                        callbacks.onGlobalCSS(rslt_ary[i]["data"]);
+                        callbacks.onGlobalCSS(result.data);
                     }
                     break;
                 case "ExecutionTime":
-                    processMsgQueue(MsgQueue);
+                    processMsgQueue(msgQueue);
                     isDone = true;
 
                     if (callbacks.onComplete) {
                         callbacks.onComplete({
-                            executionTime: rslt_ary[i]["data"],
-                            slideWidth: slideWidth,
-                            slideHeight: slideHeight,
-                            styleTable: styleTable,
-                            settings: settings
+                            executionTime: result.data,
+                            slideWidth,
+                            slideHeight,
+                            styleTable,
+                            settings
                         });
                     }
                     break;
                 case "progress-update":
                     if (callbacks.onProgress) {
-                        callbacks.onProgress(rslt_ary[i]["data"]);
+                        callbacks.onProgress(result.data);
                     }
                     break;
                 default:
+                    // Unknown type, ignore
             }
         }
     }
 
-        function processPPTX(zip, MsgQueue) {
-            var post_ary = [];
-            var dateBefore = new Date();
+    /**
+     * Process PPTX zip file
+     * @param {JSZip} zip - The JSZip instance
+     * @param {Array} msgQueue - Message queue for charts
+     * @returns {Array} Result array
+     */
+    function processPPTX(zip, msgQueue) {
+        const postArray = [];
+        const dateBefore = new Date();
 
-            if (zip.file("docProps/thumbnail.jpeg") !== null) {
-                var pptxThumbImg = PPTXXmlUtils.base64ArrayBuffer(zip.file("docProps/thumbnail.jpeg").asArrayBuffer());
-                post_ary.push({
-                    "type": "pptx-thumb",
-                    "data": pptxThumbImg,
-                    "slide_num": -1
-                });
-            }
-
-            var filesInfo = PPTXXmlUtils.getContentTypes(zip);
-            var slideSize = PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
-            
-            //console.log("slideSize: ", slideSize)
-            post_ary.push({
-                "type": "slideSize",
-                "data": slideSize,
-                "slide_num": 0
+        // Extract thumbnail if exists
+        const thumbFile = zip.file("docProps/thumbnail.jpeg");
+        if (thumbFile !== null) {
+            const pptxThumbImg = PPTXXmlUtils.base64ArrayBuffer(thumbFile.asArrayBuffer());
+            postArray.push({
+                type: "pptx-thumb",
+                data: pptxThumbImg,
+                slideNum: -1
             });
-
-            var numOfSlides = filesInfo["slides"].length;
-            for (var i = 0; i < numOfSlides; i++) {
-                var filename = filesInfo["slides"][i];
-                var filename_no_path = "";
-                var filename_no_path_ary = [];
-                if (filename.indexOf("/") != -1) {
-                    filename_no_path_ary = filename.split("/");
-                    filename_no_path = filename_no_path_ary.pop();
-                } else {
-                    filename_no_path = filename;
-                }
-                var filename_no_path_no_ext = "";
-                if (filename_no_path.indexOf(".") != -1) {
-                    var filename_no_path_no_ext_ary = filename_no_path.split(".");
-                    var slide_ext = filename_no_path_no_ext_ary.pop();
-                    filename_no_path_no_ext = filename_no_path_no_ext_ary.join(".");
-                }
-                var slide_number = 1;
-                if (filename_no_path_no_ext != "" && filename_no_path.indexOf("slide") != -1) {
-                    slide_number = Number(filename_no_path_no_ext.substr(5));
-                }
-                var slideHtml = processSingleSlide(zip, filename, i, slideSize, MsgQueue);
-                post_ary.push({
-                    "type": "slide",
-                    "data": slideHtml,
-                    "slide_num": slide_number,
-                    "file_name": filename_no_path_no_ext
-                });
-                post_ary.push({
-                    "type": "progress-update",
-                    "slide_num": (numOfSlides + i + 1),
-                    "data": (i + 1) * 100 / numOfSlides
-                });
-            }
-
-            post_ary.sort(function (a, b) {
-                return a.slide_num - b.slide_num;
-            });
-
-            post_ary.push({
-                "type": "globalCSS",
-                "data": genGlobalCSS()
-            });
-
-            var dateAfter = new Date();
-            post_ary.push({
-                "type": "ExecutionTime",
-                "data": dateAfter - dateBefore
-            });
-            return post_ary;
         }
 
-        function processSingleSlide(zip, sldFileName, index, slideSize, MsgQueue) {
-            /*
-            self.postMessage({
-                "type": "INFO",
-                "data": "Processing slide" + (index + 1)
+        const filesInfo = PPTXXmlUtils.getContentTypes(zip);
+        const slideSize = PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
+
+        postArray.push({
+            type: "slideSize",
+            data: slideSize,
+            slideNum: 0
+        });
+
+        const numOfSlides = filesInfo.slides.length;
+        for (let i = 0; i < numOfSlides; i++) {
+            const filename = filesInfo.slides[i];
+            let fileNameNoPath = "";
+
+            if (filename.includes("/")) {
+                const pathParts = filename.split("/");
+                fileNameNoPath = pathParts.pop();
+            } else {
+                fileNameNoPath = filename;
+            }
+
+            let fileNameNoExt = "";
+            if (fileNameNoPath.includes(".")) {
+                const nameParts = fileNameNoPath.split(".");
+                nameParts.pop(); // Remove extension
+                fileNameNoExt = nameParts.join(".");
+            }
+
+            let slideNumber = 1;
+            if (fileNameNoExt !== "" && fileNameNoPath.includes("slide")) {
+                slideNumber = Number(fileNameNoExt.substring(5));
+            }
+
+            const slideHtml = processSingleSlide(zip, filename, i, slideSize, msgQueue);
+            postArray.push({
+                type: "slide",
+                data: slideHtml,
+                slideNum: slideNumber,
+                fileName: fileNameNoExt
             });
-            */
-            // =====< Step 1 >=====
-            // Read relationship filename of the slide (Get slideLayoutXX.xml)
-            // @sldFileName: ppt/slides/slide1.xml
-            // @resName: ppt/slides/_rels/slide1.xml.rels
-            var resName = sldFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
-            var resContent = PPTXXmlUtils.readXmlFile(zip, resName);
-            var RelationshipArray = resContent["Relationships"]["Relationship"];
-            //console.log("RelationshipArray: " , RelationshipArray)
-            var layoutFilename = "";
-            var diagramFilename = "";
-            var slideResObj = {};
-            if (RelationshipArray.constructor === Array) {
-                for (var i = 0; i < RelationshipArray.length; i++) {
-                    switch (RelationshipArray[i]["attrs"]["Type"]) {
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout":
-                            layoutFilename = RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/");
-                            break;
-                        case "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing":
-                            diagramFilename = RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/");
-                            slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                                "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
-                            };
-                            break;
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide":
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image":
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart":
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink":
-                        default:
-                            slideResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                                "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
-                            };
-                    }
-                }
-            } else {
-                layoutFilename = RelationshipArray["attrs"]["Target"].replace("../", "ppt/");
-            }
-            //console.log(slideResObj);
-            // Open slideLayoutXX.xml
-            var slideLayoutContent = PPTXXmlUtils.readXmlFile(zip, layoutFilename);
-            var slideLayoutTables = PPTXNodeUtils.indexNodes(slideLayoutContent);
-            var sldLayoutClrOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
 
-            //console.log(slideLayoutClrOvride);
-            if (sldLayoutClrOvr !== undefined) {
-                slideLayoutClrOvride = sldLayoutClrOvr["attrs"];
-            }
-            // =====< Step 2 >=====
-            // Read slide master filename of the slidelayout (Get slideMasterXX.xml)
-            // @resName: ppt/slideLayouts/slideLayout1.xml
-            // @masterName: ppt/slideLayouts/_rels/slideLayout1.xml.rels
-            var slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
-            var slideLayoutResContent = PPTXXmlUtils.readXmlFile(zip, slideLayoutResFilename);
-            RelationshipArray = slideLayoutResContent["Relationships"]["Relationship"];
-            var masterFilename = "";
-            var layoutResObj = {};
-            if (RelationshipArray.constructor === Array) {
-                for (var i = 0; i < RelationshipArray.length; i++) {
-                    switch (RelationshipArray[i]["attrs"]["Type"]) {
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster":
-                            masterFilename = RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/");
-                            break;
-                        default:
-                            layoutResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                                "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
-                            };
-                    }
-                }
-            } else {
-                masterFilename = RelationshipArray["attrs"]["Target"].replace("../", "ppt/");
-            }
-            // Open slideMasterXX.xml
-            var slideMasterContent = PPTXXmlUtils.readXmlFile(zip, masterFilename);
-            var slideMasterTextStyles = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
-            var slideMasterTables = PPTXNodeUtils.indexNodes(slideMasterContent);
+            postArray.push({
+                type: "progress-update",
+                slideNum: numOfSlides + i + 1,
+                data: (i + 1) * 100 / numOfSlides
+            });
+        }
 
-            /////////////////Amir/////////////
-            //Open slideMasterXX.xml.rels
-            var slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
-            var slideMasterResContent = PPTXXmlUtils.readXmlFile(zip, slideMasterResFilename);
-            RelationshipArray = slideMasterResContent["Relationships"]["Relationship"];
-            var themeFilename = "";
-            var masterResObj = {};
-            if (RelationshipArray.constructor === Array) {
-                for (var i = 0; i < RelationshipArray.length; i++) {
-                    switch (RelationshipArray[i]["attrs"]["Type"]) {
-                        case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme":
-                            themeFilename = RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/");
-                            break;
-                        default:
-                            masterResObj[RelationshipArray[i]["attrs"]["Id"]] = {
-                                "type": RelationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": RelationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
-                            };
-                    }
-                }
-            } else {
-                themeFilename = RelationshipArray["attrs"]["Target"].replace("../", "ppt/");
-            }
-            //console.log(themeFilename)
-            //Load Theme file
-            var themeResObj = {};
-            if (themeFilename !== undefined) {
-                var themeName = themeFilename.split("/").pop();
-                var themeResFileName = themeFilename.replace(themeName, "_rels/" + themeName) + ".rels";
-                //console.log("themeFilename: ", themeFilename, ", themeName: ", themeName, ", themeResFileName: ", themeResFileName)
-                var themeContent = PPTXXmlUtils.readXmlFile(zip, themeFilename);
-                var themeResContent = PPTXXmlUtils.readXmlFile(zip, themeResFileName);
-                if (themeResContent !== null) {
-                    var relationshipArray = themeResContent["Relationships"]["Relationship"];
-                    if (relationshipArray !== undefined){
-                        var themeFilename = "";
-                        if (relationshipArray.constructor === Array) {
-                            for (var i = 0; i < relationshipArray.length; i++) {
-                                themeResObj[relationshipArray[i]["attrs"]["Id"]] = {
-                                    "type": relationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                    "target": relationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
-                                };
-                            }
-                        } else {
-                            //console.log("theme relationshipArray : ", relationshipArray)
-                            themeResObj[relationshipArray["attrs"]["Id"]] = {
-                                "type": relationshipArray["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": relationshipArray["attrs"]["Target"].replace("../", "ppt/")
-                            };
-                        }
-                    }
-                }
-            }
-            //Load diagram file
-            var diagramResObj = {};
-            var digramFileContent = {};
-            if (diagramFilename !== undefined) {
-                var diagName = diagramFilename.split("/").pop();
-                var diagramResFileName = diagramFilename.replace(diagName, "_rels/" + diagName) + ".rels";
-                //console.log("diagramFilename: ", diagramFilename, ", themeName: ", themeName, ", diagramResFileName: ", diagramResFileName)
-                digramFileContent = PPTXXmlUtils.readXmlFile(zip, diagramFilename);
-                if (digramFileContent !== null && digramFileContent !== undefined && digramFileContent != "") {
-                    var digramFileContentObjToStr = JSON.stringify(digramFileContent);
-                    digramFileContentObjToStr = digramFileContentObjToStr.replace(/dsp:/g, "p:");
-                    digramFileContent = JSON.parse(digramFileContentObjToStr);
-                }
+        postArray.sort((a, b) => a.slideNum - b.slideNum);
 
-                var digramResContent = PPTXXmlUtils.readXmlFile(zip, diagramResFileName);
-                if (digramResContent !== null) {
-                    var relationshipArray = digramResContent["Relationships"]["Relationship"];
-                    var themeFilename = "";
-                    if (relationshipArray.constructor === Array) {
-                        for (var i = 0; i < relationshipArray.length; i++) {
-                            diagramResObj[relationshipArray[i]["attrs"]["Id"]] = {
-                                "type": relationshipArray[i]["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                                "target": relationshipArray[i]["attrs"]["Target"].replace("../", "ppt/")
+        postArray.push({
+            type: "globalCSS",
+            data: genGlobalCSS()
+        });
+
+        const dateAfter = new Date();
+        postArray.push({
+            type: "ExecutionTime",
+            data: dateAfter - dateBefore
+        });
+
+        return postArray;
+    }
+
+    /**
+     * Process a single slide
+     * @param {JSZip} zip - The JSZip instance
+     * @param {string} slideFileName - Slide filename
+     * @param {number} index - Slide index
+     * @param {Object} slideSize - Slide size info
+     * @param {Array} msgQueue - Message queue
+     * @returns {string} Slide HTML
+     */
+    function processSingleSlide(zip, slideFileName, index, slideSize, msgQueue) {
+        // Read relationship file of the slide
+        const resName = slideFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
+        const resContent = PPTXXmlUtils.readXmlFile(zip, resName);
+        const relationshipArray = resContent.Relationships.Relationship;
+
+        let layoutFilename = "";
+        let diagramFilename = "";
+        const slideResObj = {};
+
+        if (Array.isArray(relationshipArray)) {
+            for (const rel of relationshipArray) {
+                const relType = rel.attrs.Type;
+                const target = rel.attrs.Target.replace("../", "ppt/");
+
+                switch (relType) {
+                    case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout":
+                        layoutFilename = target;
+                        break;
+                    case "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing":
+                        diagramFilename = target;
+                        slideResObj[rel.attrs.Id] = {
+                            type: relType.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            target
+                        };
+                        break;
+                    default:
+                        slideResObj[rel.attrs.Id] = {
+                            type: relType.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            target
+                        };
+                }
+            }
+        } else {
+            layoutFilename = relationshipArray.attrs.Target.replace("../", "ppt/");
+        }
+
+        // Open slide layout
+        const slideLayoutContent = PPTXXmlUtils.readXmlFile(zip, layoutFilename);
+        const slideLayoutTables = PPTXNodeUtils.indexNodes(slideLayoutContent);
+        const layoutColorOverride = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
+
+        if (layoutColorOverride !== undefined) {
+            slideLayoutClrOvride = layoutColorOverride.attrs;
+        }
+
+        // Read slide master
+        const slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
+        const slideLayoutResContent = PPTXXmlUtils.readXmlFile(zip, slideLayoutResFilename);
+        const layoutRelArray = slideLayoutResContent.Relationships.Relationship;
+
+        let masterFilename = "";
+        const layoutResObj = {};
+
+        if (Array.isArray(layoutRelArray)) {
+            for (const rel of layoutRelArray) {
+                const relType = rel.attrs.Type;
+                const target = rel.attrs.Target.replace("../", "ppt/");
+
+                if (relType === "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster") {
+                    masterFilename = target;
+                } else {
+                    layoutResObj[rel.attrs.Id] = {
+                        type: relType.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                        target
+                    };
+                }
+            }
+        } else {
+            masterFilename = layoutRelArray.attrs.Target.replace("../", "ppt/");
+        }
+
+        // Open slide master
+        const slideMasterContent = PPTXXmlUtils.readXmlFile(zip, masterFilename);
+        const slideMasterTextStyles = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
+        const slideMasterTables = PPTXNodeUtils.indexNodes(slideMasterContent);
+
+        // Read slide master relationships
+        const slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
+        const slideMasterResContent = PPTXXmlUtils.readXmlFile(zip, slideMasterResFilename);
+        const masterRelArray = slideMasterResContent.Relationships.Relationship;
+
+        let themeFilename = "";
+        const masterResObj = {};
+
+        if (Array.isArray(masterRelArray)) {
+            for (const rel of masterRelArray) {
+                const relType = rel.attrs.Type;
+                const target = rel.attrs.Target.replace("../", "ppt/");
+
+                if (relType === "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme") {
+                    themeFilename = target;
+                } else {
+                    masterResObj[rel.attrs.Id] = {
+                        type: relType.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                        target
+                    };
+                }
+            }
+        } else {
+            themeFilename = masterRelArray.attrs.Target.replace("../", "ppt/");
+        }
+
+        // Load theme file
+        let themeContent;
+        const themeResObj = {};
+
+        if (themeFilename !== undefined) {
+            const themeName = themeFilename.split("/").pop();
+            const themeResFileName = themeFilename.replace(themeName, `_rels/${themeName}`) + ".rels";
+
+            themeContent = PPTXXmlUtils.readXmlFile(zip, themeFilename);
+            const themeResContent = PPTXXmlUtils.readXmlFile(zip, themeResFileName);
+
+            if (themeResContent !== null) {
+                const themeRelArray = themeResContent.Relationships.Relationship;
+                if (themeRelArray !== undefined) {
+                    if (Array.isArray(themeRelArray)) {
+                        for (const rel of themeRelArray) {
+                            themeResObj[rel.attrs.Id] = {
+                                type: rel.attrs.Type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                                target: rel.attrs.Target.replace("../", "ppt/")
                             };
                         }
                     } else {
-                        //console.log("theme relationshipArray : ", relationshipArray)
-                        diagramResObj[relationshipArray["attrs"]["Id"]] = {
-                            "type": relationshipArray["attrs"]["Type"].replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                            "target": relationshipArray["attrs"]["Target"].replace("../", "ppt/")
+                        themeResObj[themeRelArray.attrs.Id] = {
+                            type: themeRelArray.attrs.Type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            target: themeRelArray.attrs.Target.replace("../", "ppt/")
                         };
                     }
                 }
             }
-            //console.log("diagramResObj: " , diagramResObj)
-            // =====< Step 3 >=====
-            const tableStyles = PPTXXmlUtils.readXmlFile(zip, "ppt/tableStyles.xml");
+        }
 
-            var slideContent = PPTXXmlUtils.readXmlFile(zip, sldFileName , true);
-            var nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
-            var warpObj = {
-                "zip": zip,
-                "slideLayoutContent": slideLayoutContent,
-                "slideLayoutTables": slideLayoutTables,
-                "slideMasterContent": slideMasterContent,
-                "slideMasterTables": slideMasterTables,
-                "slideContent": slideContent,
-                "slideResObj": slideResObj,
-                "slideMasterTextStyles": slideMasterTextStyles,
-                "layoutResObj": layoutResObj,
-                "masterResObj": masterResObj,
-                "themeContent": themeContent,
-                "themeResObj": themeResObj,
-                "digramFileContent": digramFileContent,
-                "diagramResObj": diagramResObj,
-                "defaultTextStyle": slideSize.defaultTextStyle || defaultTextStyle,
-                tableStyles,
-                styleTable,
-                chartID,
-                MsgQueue,
-            };
-            var bgResult = "";
-            if (processFullTheme === true) {
-                bgResult = PPTXNodeUtils.getBackground(warpObj, slideSize, index, settings, PPTXStyleUtils);
+        // Load diagram file
+        let diagramContent = {};
+        const diagramResObj = {};
+
+        if (diagramFilename !== undefined) {
+            const diagramName = diagramFilename.split("/").pop();
+            const diagramResFileName = diagramFilename.replace(diagramName, `_rels/${diagramName}`) + ".rels";
+
+            diagramContent = PPTXXmlUtils.readXmlFile(zip, diagramFilename);
+            if (diagramContent !== null && diagramContent !== undefined && diagramContent !== "") {
+                const diagramJson = JSON.stringify(diagramContent);
+                const cleanedJson = diagramJson.replace(/dsp:/g, "p:");
+                diagramContent = JSON.parse(cleanedJson);
             }
 
-            var bgColor = "";
-            if (processFullTheme == "colorsAndImageOnly") {
-                bgColor = PPTXStyleUtils.getSlideBackgroundFill(warpObj, index);
-            }
-
-            var result = "<section class='slide' style='width:" + slideSize.width + "px; height:" + slideSize.height + "px;" + bgColor + "'>"
-            
-            result += bgResult;
-            for (var nodeKey in nodes) {
-                if (nodes[nodeKey].constructor === Array) {
-                    for (var i = 0; i < nodes[nodeKey].length; i++) {
-                        result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodes[nodeKey][i], nodes, warpObj, "slide", 'group', settings);
+            const diagramResContent = PPTXXmlUtils.readXmlFile(zip, diagramResFileName);
+            if (diagramResContent !== null) {
+                const diagramRelArray = diagramResContent.Relationships.Relationship;
+                if (Array.isArray(diagramRelArray)) {
+                    for (const rel of diagramRelArray) {
+                        diagramResObj[rel.attrs.Id] = {
+                            type: rel.attrs.Type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                            target: rel.attrs.Target.replace("../", "ppt/")
+                        };
                     }
                 } else {
-                    result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide", 'group', settings);
+                    diagramResObj[diagramRelArray.attrs.Id] = {
+                        type: diagramRelArray.attrs.Type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                        target: diagramRelArray.attrs.Target.replace("../", "ppt/")
+                    };
                 }
             }
-           
-            return result + "</div></section>";
         }
 
-        
+        // Load table styles
+        const tableStyles = PPTXXmlUtils.readXmlFile(zip, "ppt/tableStyles.xml");
 
+        // Read slide content
+        const slideContent = PPTXXmlUtils.readXmlFile(zip, slideFileName, true);
+        const nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
 
-        function shapePie(H, w, adj1, adj2, isClose) {
-            var pieVal = parseInt(adj2);
-            var piAngle = parseInt(adj1);
-            var size = parseInt(H),
-                radius = (size / 2),
-                value = pieVal - piAngle;
-            if (value < 0) {
-                value = 360 + value;
-            }
-            //console.log("value: ",value)      
-            value = Math.min(Math.max(value, 0), 360);
+        const warpObj = {
+            zip,
+            slideLayoutContent,
+            slideLayoutTables,
+            slideMasterContent,
+            slideMasterTables,
+            slideContent,
+            slideResObj,
+            slideMasterTextStyles,
+            layoutResObj,
+            masterResObj,
+            themeContent,
+            themeResObj,
+            diagramContent,
+            diagramResObj,
+            defaultTextStyle: slideSize.defaultTextStyle || defaultTextStyle,
+            tableStyles,
+            styleTable,
+            chartId,
+            msgQueue
+        };
 
-            //calculate x,y coordinates of the point on the circle to draw the arc to. 
-            var x = Math.cos((2 * Math.PI) / (360 / value));
-            var y = Math.sin((2 * Math.PI) / (360 / value));
+        let bgResult = "";
+        if (processFullTheme === true) {
+            bgResult = PPTXNodeUtils.getBackground(warpObj, slideSize, index, settings, PPTXStyleUtils);
+        }
 
+        let bgColor = "";
+        if (processFullTheme === "colorsAndImageOnly") {
+            bgColor = PPTXStyleUtils.getSlideBackgroundFill(warpObj, index);
+        }
 
-            //d is a string that describes the path of the slice.
-            var longArc, d, rot;
-            if (isClose) {
-                longArc = (value <= 180) ? 0 : 1;
-                d = "M" + radius + "," + radius + " L" + radius + "," + 0 + " A" + radius + "," + radius + " 0 " + longArc + ",1 " + (radius + y * radius) + "," + (radius - x * radius) + " z";
-                rot = "rotate(" + (piAngle - 270) + ", " + radius + ", " + radius + ")";
+        let result = `<section class='slide' style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
+        result += bgResult;
+
+        for (const nodeKey in nodes) {
+            if (Array.isArray(nodes[nodeKey])) {
+                for (const node of nodes[nodeKey]) {
+                    result += PPTXNodeUtils.processNodesInSlide(nodeKey, node, nodes, warpObj, "slide", "group", settings);
+                }
             } else {
-                longArc = (value <= 180) ? 0 : 1;
-                var radius1 = radius;
-                var radius2 = w / 2;
-                d = "M" + radius1 + "," + 0 + " A" + radius2 + "," + radius1 + " 0 " + longArc + ",1 " + (radius2 + y * radius2) + "," + (radius1 - x * radius1);
-                rot = "rotate(" + (piAngle + 90) + ", " + radius + ", " + radius + ")";
+                result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide", "group", settings);
             }
-
-            return [d, rot];
         }
-        function shapeGear(w, h, points) {
-            var innerRadius = h;//gear.innerRadius;
-            var outerRadius = 1.5 * innerRadius;
-            var cx = outerRadius;//Math.max(innerRadius, outerRadius),                   // center x
-            cy = outerRadius;//Math.max(innerRadius, outerRadius),                    // center y
-            notches = points,//gear.points,                      // num. of notches
-                radiusO = outerRadius,                    // outer radius
-                radiusI = innerRadius,                    // inner radius
-                taperO = 50,                     // outer taper %
-                taperI = 35,                     // inner taper %
 
-                // pre-calculate values for loop
+        return `${result}</div></section>`;
+    }
 
-                pi2 = 2 * Math.PI,            // cache 2xPI (360deg)
-                angle = pi2 / (notches * 2),    // angle between notches
-                taperAI = angle * taperI * 0.005, // inner taper offset (100% = half notch)
-                taperAO = angle * taperO * 0.005, // outer taper offset
-                a = angle,                  // iterator (angle)
-                toggle = false;
-            // move to starting point
-            var d = " M" + (cx + radiusO * Math.cos(taperAO)) + " " + (cy + radiusO * Math.sin(taperAO));
+    /**
+     * Generate pie shape path
+     * @param {number} height - Shape height
+     * @param {number} width - Shape width
+     * @param {number} startAngle - Start angle
+     * @param {number} endAngle - End angle
+     * @param {boolean} isClosed - Whether shape is closed
+     * @returns {Array} Path and rotation
+     */
+    function shapePie(height, width, startAngle, endAngle, isClosed) {
+        const pieValue = parseInt(endAngle);
+        const piAngle = parseInt(startAngle);
+        const size = parseInt(height);
+        const radius = size / 2;
+        let value = pieValue - piAngle;
 
-            // loop
-            for (; a <= pi2 + angle; a += angle) {
-                // draw inner to outer line
-                if (toggle) {
-                    d += " L" + (cx + radiusI * Math.cos(a - taperAI)) + "," + (cy + radiusI * Math.sin(a - taperAI));
-                    d += " L" + (cx + radiusO * Math.cos(a + taperAO)) + "," + (cy + radiusO * Math.sin(a + taperAO));
-                } else { // draw outer to inner line
-                    d += " L" + (cx + radiusO * Math.cos(a - taperAO)) + "," + (cy + radiusO * Math.sin(a - taperAO)); // outer line
-                    d += " L" + (cx + radiusI * Math.cos(a + taperAI)) + "," + (cy + radiusI * Math.sin(a + taperAI));// inner line
+        if (value < 0) {
+            value = 360 + value;
+        }
 
-                }
-                // switch level
-                toggle = !toggle;
+        value = Math.min(Math.max(value, 0), 360);
+
+        // Calculate x, y coordinates of the point on the circle
+        const x = Math.cos((2 * Math.PI) / (360 / value));
+        const y = Math.sin((2 * Math.PI) / (360 / value));
+
+        const longArc = value <= 180 ? 0 : 1;
+        let path, rotation;
+
+        if (isClosed) {
+            path = `M${radius},${radius} L${radius},0 A${radius},${radius} 0 ${longArc},1 ${radius + y * radius},${radius - x * radius} z`;
+            rotation = `rotate(${piAngle - 270}, ${radius}, ${radius})`;
+        } else {
+            const radiusX = width / 2;
+            path = `M${radius},0 A${radiusX},${radius} 0 ${longArc},1 ${radiusX + y * radiusX},${radius - x * radius}`;
+            rotation = `rotate(${piAngle + 90}, ${radius}, ${radius})`;
+        }
+
+        return [path, rotation];
+    }
+
+    /**
+     * Generate gear shape path
+     * @param {number} width - Shape width
+     * @param {number} height - Shape height
+     * @param {number} points - Number of points
+     * @returns {string} Path string
+     */
+    function shapeGear(width, height, points) {
+        const innerRadius = height;
+        const outerRadius = 1.5 * innerRadius;
+        const centerX = outerRadius;
+        const centerY = outerRadius;
+        const notches = points;
+        const radiusOuter = outerRadius;
+        const radiusInner = innerRadius;
+        const taperOuter = 50;
+        const taperInner = 35;
+
+        // Pre-calculate values for loop
+        const pi2 = 2 * Math.PI;
+        const angle = pi2 / (notches * 2);
+        const taperAngleInner = angle * taperInner * 0.005;
+        const taperAngleOuter = angle * taperOuter * 0.005;
+
+        let currentAngle = angle;
+        let toggle = false;
+
+        // Move to starting point
+        let path = ` M${centerX + radiusOuter * Math.cos(taperAngleOuter)} ${centerY + radiusOuter * Math.sin(taperAngleOuter)}`;
+
+        // Loop
+        for (; currentAngle <= pi2 + angle; currentAngle += angle) {
+            if (toggle) {
+                // Inner to outer line
+                path += ` L${centerX + radiusInner * Math.cos(currentAngle - taperAngleInner)},${centerY + radiusInner * Math.sin(currentAngle - taperAngleInner)}`;
+                path += ` L${centerX + radiusOuter * Math.cos(currentAngle + taperAngleOuter)},${centerY + radiusOuter * Math.sin(currentAngle + taperAngleOuter)}`;
+            } else {
+                // Outer to inner line
+                path += ` L${centerX + radiusOuter * Math.cos(currentAngle - taperAngleOuter)},${centerY + radiusOuter * Math.sin(currentAngle - taperAngleOuter)}`;
+                path += ` L${centerX + radiusInner * Math.cos(currentAngle + taperAngleInner)},${centerY + radiusInner * Math.sin(currentAngle + taperAngleInner)}`;
             }
-            // close the final line
-            d += " ";
-            return d;
+            toggle = !toggle;
         }
-        function shapeSnipRoundRect(w, h, adj1, adj2, shapeType, adjType) {
-            /* 
-            shapeType: snip,round
-            adjType: cornr1,cornr2,cornrAll,diag
-            */
-            var adjA, adjB, adjC, adjD;
-            if (adjType == "cornr1") {
+
+        return `${path} `;
+    }
+
+    /**
+     * Generate snip/round rectangle shape path
+     * @param {number} width - Shape width
+     * @param {number} height - Shape height
+     * @param {number} adj1 - Adjustment 1
+     * @param {number} adj2 - Adjustment 2
+     * @param {string} shapeType - Shape type (snip/round)
+     * @param {string} adjType - Adjustment type
+     * @returns {string} Path string
+     */
+    function shapeSnipRoundRect(width, height, adj1, adj2, shapeType, adjType) {
+        let adjA, adjB, adjC, adjD;
+
+        switch (adjType) {
+            case "cornr1":
                 adjA = 0;
                 adjB = 0;
                 adjC = 0;
                 adjD = adj1;
-            } else if (adjType == "cornr2") {
+                break;
+            case "cornr2":
                 adjA = adj1;
                 adjB = adj2;
                 adjC = adj2;
                 adjD = adj1;
-            } else if (adjType == "cornrAll") {
-                adjA = adj1;
-                adjB = adj1;
-                adjC = adj1;
-                adjD = adj1;
-            } else if (adjType == "diag") {
+                break;
+            case "cornrAll":
+                adjA = adjB = adjC = adjD = adj1;
+                break;
+            case "diag":
                 adjA = adj1;
                 adjB = adj2;
                 adjC = adj1;
                 adjD = adj2;
-            }
-            //d is a string that describes the path of the slice.
-            var d;
-            if (shapeType == "round") {
-                d = "M0" + "," + (h / 2 + (1 - adjB) * (h / 2)) + " Q" + 0 + "," + h + " " + adjB * (w / 2) + "," + h + " L" + (w / 2 + (1 - adjC) * (w / 2)) + "," + h +
-                    " Q" + w + "," + h + " " + w + "," + (h / 2 + (h / 2) * (1 - adjC)) + "L" + w + "," + (h / 2) * adjD +
-                    " Q" + w + "," + 0 + " " + (w / 2 + (w / 2) * (1 - adjD)) + ",0 L" + (w / 2) * adjA + ",0" +
-                    " Q" + 0 + "," + 0 + " 0," + (h / 2) * (adjA) + " z";
-            } else if (shapeType == "snip") {
-                d = "M0" + "," + adjA * (h / 2) + " L0" + "," + (h / 2 + (h / 2) * (1 - adjB)) + "L" + adjB * (w / 2) + "," + h +
-                    " L" + (w / 2 + (w / 2) * (1 - adjC)) + "," + h + "L" + w + "," + (h / 2 + (h / 2) * (1 - adjC)) +
-                    " L" + w + "," + adjD * (h / 2) + "L" + (w / 2 + (w / 2) * (1 - adjD)) + ",0 L" + ((w / 2) * adjA) + ",0 z";
-            }
-            return d;
+                break;
         }
-        /*
-        function shapePolygon(sidesNum) {
-            var sides  = sidesNum;
-            var radius = 100;
-            var angle  = 2 * Math.PI / sides;
-            var points = []; 
-            
-            for (var i = 0; i < sides; i++) {
-                points.push(radius + radius * Math.sin(i * angle));
-                points.push(radius - radius * Math.cos(i * angle));
-            }
-            
-            return points;
+
+        let path;
+
+        if (shapeType === "round") {
+            const halfH = height / 2;
+            const halfW = width / 2;
+            path = `M0,${halfH + (1 - adjB) * halfH} Q0,${height} ${adjB * halfW},${height}`;
+            path += ` L${halfW + (1 - adjC) * halfW},${height} Q${width},${height} ${width},${halfH + halfH * (1 - adjC)}`;
+            path += `L${width},${halfH * adjD} Q${width},0 ${halfW + halfW * (1 - adjD)},0 L${halfW * adjA},0`;
+            path += ` Q0,0 0,${halfH * adjA} z`;
+        } else if (shapeType === "snip") {
+            const halfH = height / 2;
+            const halfW = width / 2;
+            path = `M0,${adjA * halfH} L0,${halfH + halfH * (1 - adjB)}L${adjB * halfW},${height}`;
+            path += ` L${halfW + halfW * (1 - adjC)},${height} L${width},${halfH + halfH * (1 - adjC)}`;
+            path += ` L${width},${adjD * halfH} L${halfW + halfW * (1 - adjD)},0 L${halfW * adjA},0 z`;
         }
-        */
-        
 
+        return path;
+    }
 
-
-        
-        
-
-        
-
+    /**
+     * Generate global CSS
+     * @returns {string} CSS text
+     */
     function genGlobalCSS() {
-        var cssText = "";
-        for (var key in styleTable) {
-            var tagname = "";
-            cssText += tagname + " ." + styleTable[key]["name"] +
-                ((styleTable[key]["suffix"]) ? styleTable[key]["suffix"] : "") +
-                "{" + styleTable[key]["text"] + "}\n";
+        let cssText = "";
+        for (const key in styleTable) {
+            const suffix = styleTable[key].suffix || "";
+            cssText += ` .${styleTable[key].name}${suffix}{${styleTable[key].text}}\n`;
         }
         return cssText;
     }
 
+    /**
+     * Process message queue for charts
+     * @param {Array} queue - Message queue
+     */
     function processMsgQueue(queue) {
-        for (var i = 0; i < queue.length; i++) {
-            processSingleMsg(queue[i].data);
+        for (const msg of queue) {
+            processSingleMsg(msg.data);
         }
     }
 
-    function processSingleMsg(d) {
-        var chartID = d.chartID;
-        var chartType = d.chartType;
-        var chartData = d.chartData;
-        var data = [];
-        var chart = null;
+    /**
+     * Process single chart message
+     * @param {Object} data - Chart data
+     */
+    function processSingleMsg(data) {
+        const { chartId, chartType, chartData } = data;
+        let chartDataArray = [];
+        let chart = null;
 
         // Validate chart data
         if (!chartData || !Array.isArray(chartData) || chartData.length === 0) {
-            console.warn("Invalid chart data for chart ID: " + chartID);
+            console.warn(`Invalid chart data for chart ID: ${chartId}`);
             return;
         }
 
         switch (chartType) {
             case "lineChart":
-                data = chartData;
-                chart = nv.models.lineChart()
-                    .useInteractiveGuideline(true);
-                if (chartData[0] && chartData[0].xlabels) {
-                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                chartDataArray = chartData;
+                chart = nv.models.lineChart().useInteractiveGuideline(true);
+                if (chartData[0]?.xlabels) {
+                    chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
                 }
                 break;
+
             case "barChart":
-                data = chartData;
+                chartDataArray = chartData;
                 chart = nv.models.multiBarChart();
-                if (chartData[0] && chartData[0].xlabels) {
-                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                if (chartData[0]?.xlabels) {
+                    chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
                 }
                 break;
+
             case "pieChart":
             case "pie3DChart":
-                if (chartData.length > 0) {
-                    data = chartData[0].values;
-                }
+                chartDataArray = chartData[0]?.values || [];
                 chart = nv.models.pieChart();
                 break;
+
             case "areaChart":
-                data = chartData;
+                chartDataArray = chartData;
                 chart = nv.models.stackedAreaChart()
                     .clipEdge(true)
                     .useInteractiveGuideline(true);
-                if (chartData[0] && chartData[0].xlabels) {
-                    chart.xAxis.tickFormat(function (d) { return chartData[0].xlabels[d] || d; });
+                if (chartData[0]?.xlabels) {
+                    chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
                 }
                 break;
+
             case "scatterChart":
-                for (var i = 0; i < chartData.length; i++) {
-                    var arr = [];
+                for (let i = 0; i < chartData.length; i++) {
+                    const arr = [];
                     if (Array.isArray(chartData[i])) {
-                        for (var j = 0; j < chartData[i].length; j++) {
+                        for (let j = 0; j < chartData[i].length; j++) {
                             arr.push({ x: j, y: chartData[i][j] });
                         }
                     }
-                    data.push({ key: 'data' + (i + 1), values: arr });
+                    chartDataArray.push({ key: `data${i + 1}`, values: arr });
                 }
                 chart = nv.models.scatterChart()
                     .showDistX(true)
@@ -619,16 +662,16 @@ function pptxToHtml(fileData, options) {
                 chart.xAxis.axisLabel('X').tickFormat(d3.format('.02f'));
                 chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
                 break;
+
             default:
-                console.warn("Unknown chart type: " + chartType);
-                break;
+                console.warn(`Unknown chart type: ${chartType}`);
         }
 
         if (chart !== null && callbacks.onChartReady) {
             callbacks.onChartReady({
-                chartID: chartID,
-                chart: chart,
-                data: data
+                chartId,
+                chart,
+                data: chartDataArray
             });
         }
     }
@@ -640,5 +683,3 @@ function pptxToHtml(fileData, options) {
 }
 
 export default pptxToHtml;
-
-

@@ -202,13 +202,13 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 					resultDiv.appendChild(style);
 				},
 				onChartReady: function(chartInfo) {
-					var chartElement = d3.select("#" + chartInfo.chartID);
+					var chartElement = d3.select("#" + chartInfo.chartId);
 					if (chartElement.empty()) {
-						console.warn("Chart element not found: #" + chartInfo.chartID);
+						console.warn("Chart element not found: #" + chartInfo.chartId);
 						return;
 					}
 					if (!chartInfo.data || !Array.isArray(chartInfo.data) || chartInfo.data.length === 0) {
-						console.warn("Invalid or empty chart data for chart: " + chartInfo.chartID);
+						console.warn("Invalid or empty chart data for chart: " + chartInfo.chartId);
 						return;
 					}
 					chartElement.append("svg")

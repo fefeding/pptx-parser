@@ -1087,7 +1087,7 @@ export const PPTXTextUtils = (function() {
 
             var order = node["attrs"]["order"];
             var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
-            var result = "<div id='chart" + warpObj.chartID + "' class='block content' style='" +
+            var result = "<div id='chart" + warpObj.chartId + "' class='block content' style='" +
                 PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined) + PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
                 " z-index: " + order + ";'></div>";
 
@@ -1103,7 +1103,7 @@ export const PPTXTextUtils = (function() {
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartID": "chart" + warpObj.chartID,
+                                "chartId": "chart" + warpObj.chartId,
                                 "chartType": "lineChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
@@ -1113,7 +1113,7 @@ export const PPTXTextUtils = (function() {
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartID": "chart" + warpObj.chartID,
+                                "chartId": "chart" + warpObj.chartId,
                                 "chartType": "barChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
@@ -1123,7 +1123,7 @@ export const PPTXTextUtils = (function() {
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartID": "chart" + warpObj.chartID,
+                                "chartId": "chart" + warpObj.chartId,
                                 "chartType": "pieChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
@@ -1133,7 +1133,7 @@ export const PPTXTextUtils = (function() {
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartID": "chart" + warpObj.chartID,
+                                "chartId": "chart" + warpObj.chartId,
                                 "chartType": "pie3DChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
@@ -1143,7 +1143,7 @@ export const PPTXTextUtils = (function() {
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartID": "chart" + warpObj.chartID,
+                                "chartId": "chart" + warpObj.chartId,
                                 "chartType": "areaChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
@@ -1153,7 +1153,7 @@ export const PPTXTextUtils = (function() {
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartID": "chart" + warpObj.chartID,
+                                "chartId": "chart" + warpObj.chartId,
                                 "chartType": "scatterChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
@@ -1168,10 +1168,10 @@ export const PPTXTextUtils = (function() {
             }
 
             if (chartData !== null) {
-                warpObj.MsgQueue.push(chartData);
+                warpObj.msgQueue.push(chartData);
             }
 
-            warpObj.chartID++;
+            warpObj.chartId++;
             return result;
         }
 
