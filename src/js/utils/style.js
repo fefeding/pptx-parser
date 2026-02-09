@@ -13,7 +13,7 @@ function getFillType(node) {
             //GRADIENT_FILL
             //PATTERN_FILL
             //NO_FILL
-            var fillType = "";
+            let fillType = "";
             if (node["a:noFill"] !== undefined) {
                 fillType = "NO_FILL";
             }
@@ -37,10 +37,10 @@ function getFillType(node) {
             return fillType;
         }
     // function hexToRgbNew(hex) {
-        //     var arrBuff = new ArrayBuffer(4);
-        //     var vw = new DataView(arrBuff);
+        //     let arrBuff = new ArrayBuffer(4);
+        //     let vw = new DataView(arrBuff);
         //     vw.setUint32(0, parseInt(hex, 16), false);
-        //     var arrByte = new Uint8Array(arrBuff);
+        //     let arrByte = new Uint8Array(arrBuff);
         //     return arrByte[1] + "," + arrByte[2] + "," + arrByte[3];
         // }
         function getShapeFill(node, pNode, isSvgMode, warpObj, source) {
@@ -50,23 +50,23 @@ function getFillType(node) {
             // From slide
             //Fill Type:
             //console.log("getShapeFill ShapeFill: ", node, ", isSvgMode; ", isSvgMode)
-            var fillType = getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
-            //var noFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
-            var fillColor;
+            let fillType = getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
+            //let noFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
+            let fillColor;
             if (fillType == "NO_FILL") {
                 return isSvgMode ? "none" : "";//"background-color: initial;";
             } else if (fillType == "SOLID_FILL") {
-                var shpFill = node["p:spPr"]["a:solidFill"];
+                let shpFill = node["p:spPr"]["a:solidFill"];
                 fillColor = getSolidFill(shpFill, undefined, undefined, warpObj);
             } else if (fillType == "GRADIENT_FILL") {
-                var shpFill = node["p:spPr"]["a:gradFill"];
+                let shpFill = node["p:spPr"]["a:gradFill"];
                 fillColor = getGradientFill(shpFill, warpObj);
                 //console.log("shpFill",shpFill,grndColor.color)
             } else if (fillType == "PATTERN_FILL") {
-                var shpFill = node["p:spPr"]["a:pattFill"];
+                let shpFill = node["p:spPr"]["a:pattFill"];
                 fillColor = getPatternFill(shpFill, warpObj);
             } else if (fillType == "PIC_FILL") {
-                var shpFill = node["p:spPr"]["a:blipFill"];
+                let shpFill = node["p:spPr"]["a:blipFill"];
                 fillColor = getPicFill(source, shpFill, warpObj);
             }
             //console.log("getShapeFill ShapeFill: ", node, ", isSvgMode; ", isSvgMode, ", fillType: ", fillType, ", fillColor: ", fillColor, ", source: ", source)
@@ -74,8 +74,8 @@ function getFillType(node) {
 
             // 2. drawingML namespace
             if (fillColor === undefined) {
-                var clrName = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:fillRef"]);
-                var idx = parseInt (PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:fillRef", "attrs", "idx"]));
+                let clrName = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:fillRef"]);
+                let idx = parseInt (PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:fillRef", "attrs", "idx"]));
                 if (idx == 0 || idx == 1000) {
                     //no fill
                     return isSvgMode ? "none" : "";
@@ -88,13 +88,13 @@ function getFillType(node) {
             }
             // 3. is group fill
             if (fillColor === undefined) {
-                var grpFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:grpFill"]);
+                let grpFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:grpFill"]);
                 if (grpFill !== undefined) {
                     //fillColor = getSolidFill(clrName, undefined, undefined, undefined, warpObj);
                     //get parent fill style - TODO
                     //console.log("ShapeFill: grpFill: ", grpFill, ", pNode: ", pNode)
-                    var grpShpFill = pNode["p:grpSpPr"];
-                    var spShpNode = { "p:spPr": grpShpFill }
+                    let grpShpFill = pNode["p:grpSpPr"];
+                    let spShpNode = { "p:spPr": grpShpFill }
                     return getShapeFill(spShpNode, node, isSvgMode, warpObj, source);
                 } else if (fillType == "NO_FILL") {
                     return isSvgMode ? "none" : "";
@@ -108,11 +108,11 @@ function getFillType(node) {
                         // console.log("GRADIENT_FILL color", fillColor.color[0])
                         return fillColor;
                     } else {
-                        var colorAry = fillColor.color;
-                        var rot = fillColor.rot;
+                        let colorAry = fillColor.color;
+                        let rot = fillColor.rot;
 
-                        var bgcolor = "background: linear-gradient(" + rot + "deg,";
-                        for (var i = 0; i < colorAry.length; i++) {
+                        let bgcolor = `background: linear-gradient(${rot}deg,`;
+                        for (let i = 0; i < colorAry.length; i++) {
                             if (i == colorAry.length - 1) {
                                 bgcolor += "#" + colorAry[i] + ");";
                             } else {
@@ -127,17 +127,17 @@ function getFillType(node) {
                         return fillColor;
                     } else {
 
-                        return "background-image:url(" + fillColor + ");";
+                        return `background-image:url(${fillColor});`;
                     }
                 } else if (fillType == "PATTERN_FILL") {
                     /////////////////////////////////////////////////////////////Need to check -----------TODO
                     // if (isSvgMode) {
-                    //     var color = tinycolor(fillColor);
+                    //     let color = tinycolor(fillColor);
                     //     fillColor = color.toRgbString();
 
                     //     return fillColor;
                     // } else {
-                    var bgPtrn = "", bgSize = "", bgPos = "";
+                    let bgPtrn = "", bgSize = "", bgPos = "";
                     bgPtrn = fillColor[0];
                     if (fillColor[1] !== null && fillColor[1] !== undefined && fillColor[1] != "") {
                         bgSize = " background-size:" + fillColor[1] + ";";
@@ -149,13 +149,13 @@ function getFillType(node) {
                     //}
                 } else {
                     if (isSvgMode) {
-                        var color = tinycolor(fillColor);
+                        let color = tinycolor(fillColor);
                         fillColor = color.toRgbString();
 
                         return fillColor;
                     } else {
                         //console.log(node,"fillColor: ",fillColor,"fillType: ",fillType,"isSvgMode: ",isSvgMode)
-                        return "background-color: #" + fillColor + ";";
+                        return `background-color: #${fillColor};`;
                     }
                 }
             } else {
@@ -171,15 +171,15 @@ function getFillType(node) {
 
         
         function getFontType(node, type, warpObj, pFontStyle) {
-            var typeface = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:latin", "attrs", "typeface"]);
+            let typeface = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:latin", "attrs", "typeface"]);
 
             if (typeface === undefined) {
-                var fontIdx = "";
-                var fontGrup = "";
+                let fontIdx = "";
+                let fontGrup = "";
                 if (pFontStyle !== undefined) {
                     fontIdx = PPTXXmlUtils.getTextByPathList(pFontStyle, ["attrs", "idx"]);
                 }
-                var fontSchemeNode = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:fontScheme"]);
+                let fontSchemeNode = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:fontScheme"]);
                 if (fontIdx == "") {
                     if (type == "title" || type == "subTitle" || type == "ctrTitle") {
                         fontIdx = "major";
@@ -201,21 +201,21 @@ function getFillType(node) {
             //https://www.w3schools.com/cssref/css3_pr_text-shadow.asp
             //themeContent
             //console.log("getFontColorPr>> type:", type, ", node: ", node)
-            var rPrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr"]);
-            var filTyp, color, textBordr, colorType = "", highlightColor = "";
+            let rPrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr"]);
+            let filTyp, color, textBordr, colorType = "", highlightColor = "";
             //console.log("getFontColorPr type:", type, ", node: ", node, "pNode:", pNode, "pFontStyle:", pFontStyle)
             if (rPrNode !== undefined) {
                 filTyp = getFillType(rPrNode);
                 if (filTyp == "SOLID_FILL") {
-                    var solidFillNode = rPrNode["a:solidFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
+                    let solidFillNode = rPrNode["a:solidFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
                     color = getSolidFill(solidFillNode, undefined, undefined, warpObj);
-                    var highlightNode = rPrNode["a:highlight"];
+                    let highlightNode = rPrNode["a:highlight"];
                     if (highlightNode !== undefined) {
                         highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
                     }
                     colorType = "solid";
                 } else if (filTyp == "PATTERN_FILL") {
-                    var pattFill = rPrNode["a:pattFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
+                    let pattFill = rPrNode["a:pattFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
                     color = getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
@@ -223,25 +223,25 @@ function getFillType(node) {
                     //color = getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
                     colorType = "pic";
                 } else if (filTyp == "GRADIENT_FILL") {
-                    var shpFill = rPrNode["a:gradFill"];
+                    let shpFill = rPrNode["a:gradFill"];
                     color = getGradientFill(shpFill, warpObj);
                     colorType = "gradient";
                 } 
             }
             if (color === undefined && PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]) !== undefined) {
                 //lstStyle
-                var lstStyledefRPr = PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]);
+                let lstStyledefRPr = PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]);
                 filTyp = getFillType(lstStyledefRPr);
                 if (filTyp == "SOLID_FILL") {
-                    var solidFillNode = lstStyledefRPr["a:solidFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
+                    let solidFillNode = lstStyledefRPr["a:solidFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
                     color = getSolidFill(solidFillNode, undefined, undefined, warpObj);
-                    var highlightNode = lstStyledefRPr["a:highlight"];
+                    let highlightNode = lstStyledefRPr["a:highlight"];
                     if (highlightNode !== undefined) {
                         highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
                     }
                     colorType = "solid";
                 } else if (filTyp == "PATTERN_FILL") {
-                    var pattFill = lstStyledefRPr["a:pattFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
+                    let pattFill = lstStyledefRPr["a:pattFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:pattFill"]);
                     color = getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
@@ -249,20 +249,20 @@ function getFillType(node) {
                     //color = getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
                     colorType = "pic";
                 } else if (filTyp == "GRADIENT_FILL") {
-                    var shpFill = lstStyledefRPr["a:gradFill"];
+                    let shpFill = lstStyledefRPr["a:gradFill"];
                     color = getGradientFill(shpFill, warpObj);
                     colorType = "gradient";
                 }
 
             }
             if (color === undefined) {
-                var sPstyle = PPTXXmlUtils.getTextByPathList(pNode, ["p:style", "a:fontRef"]);
+                let sPstyle = PPTXXmlUtils.getTextByPathList(pNode, ["p:style", "a:fontRef"]);
                 if (sPstyle !== undefined) {
                     color = getSolidFill(sPstyle, undefined, undefined, warpObj);
                     if (color !== undefined) {
                         colorType = "solid";
                     }
-                    var highlightNode = sPstyle["a:highlight"]; //is "a:highlight" node in 'a:fontRef' ?
+                    let highlightNode = sPstyle["a:highlight"]; //is "a:highlight" node in 'a:fontRef' ?
                     if (highlightNode !== undefined) {
                         highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
                     }
@@ -280,15 +280,15 @@ function getFillType(node) {
 
             if (color === undefined) {
 
-                var layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
-                var pPrNodeLaout = layoutMasterNode.nodeLaout;
-                var pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
+                let pPrNodeLaout = layoutMasterNode.nodeLaout;
+                let pPrNodeMaster = layoutMasterNode.nodeMaster;
 
                 if (pPrNodeLaout !== undefined) {
-                    var defRpRLaout = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:solidFill"]);
+                    let defRpRLaout = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:solidFill"]);
                     if (defRpRLaout !== undefined) {
                         color = getSolidFill(defRpRLaout, undefined, undefined, warpObj);
-                        var highlightNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:highlight"]);
+                        let highlightNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:highlight"]);
                         if (highlightNode !== undefined) {
                             highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
                         }
@@ -298,10 +298,10 @@ function getFillType(node) {
                 if (color === undefined) {
 
                     if (pPrNodeMaster !== undefined) {
-                        var defRprMaster = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:solidFill"]);
+                        let defRprMaster = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:solidFill"]);
                         if (defRprMaster !== undefined) {
                             color = getSolidFill(defRprMaster, undefined, undefined, warpObj);
-                            var highlightNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:highlight"]);
+                            let highlightNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:highlight"]);
                             if (highlightNode !== undefined) {
                                 highlightColor = getSolidFill(highlightNode, undefined, undefined, warpObj);
                             }
@@ -310,21 +310,21 @@ function getFillType(node) {
                     }
                 }
             }
-            var txtEffects = [];
-            var txtEffObj = {}
+            let txtEffects = [];
+            let txtEffObj = {}
             //textBordr
-            var txtBrdrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:ln"]);
-            var textBordr = "";
+            let txtBrdrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:ln"]);
+            textBordr = "";
             if (txtBrdrNode !== undefined && txtBrdrNode["a:noFill"] === undefined) {
-                var txBrd = getBorder(node, pNode, false, "text", warpObj);
-                var txBrdAry = txBrd.split(" ");
-                //var brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("pt")))) + "px";
-                var brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("px")))) + "px";
-                var brdClr = txBrdAry[2];
-                //var brdTyp = txBrdAry[1]; //not in use
+                let txBrd = getBorder(node, pNode, false, "text", warpObj);
+                let txBrdAry = txBrd.split(" ");
+                //let brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("pt")))) + "px";
+                let brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("px")))) + "px";
+                let brdClr = txBrdAry[2];
+                //let brdTyp = txBrdAry[1]; //not in use
                 //console.log("getFontColorPr txBrdAry:", txBrdAry)
                 if (colorType == "solid") {
-                    textBordr = "-" + brdSize + " 0 " + brdClr + ", 0 " + brdSize + " " + brdClr + ", " + brdSize + " 0 " + brdClr + ", 0 -" + brdSize + " " + brdClr;
+                    textBordr = `-${brdSize} 0 ${brdClr}, 0 ${brdSize} ${brdClr}, ${brdSize} 0 ${brdClr}, 0 -${brdSize} ${brdClr}`;
                     // if (oShadowStr != "") {
                     //     textBordr += "," + oShadowStr;
                     // } else {
@@ -344,11 +344,11 @@ function getFillType(node) {
             //         //TODO
             //     }
             // }
-            var txtGlowNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:glow"]);
-            var oGlowStr = "";
+            let txtGlowNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:glow"]);
+            let oGlowStr = "";
             if (txtGlowNode !== undefined) {
-                var glowClr = getSolidFill(txtGlowNode, undefined, undefined, warpObj);
-                var rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * SLIDE_FACTOR) : 0;
+                let glowClr = getSolidFill(txtGlowNode, undefined, undefined, warpObj);
+                let rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * SLIDE_FACTOR) : 0;
                 oGlowStr = "0 0 " + rad + "px #" + glowClr +
                     ", 0 0 " + rad + "px #" + glowClr +
                     ", 0 0 " + rad + "px #" + glowClr +
@@ -370,16 +370,16 @@ function getFillType(node) {
                     );
                 }
             }
-            var txtShadow = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:outerShdw"]);
-            var oShadowStr = "";
+            let txtShadow = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:outerShdw"]);
+            let oShadowStr = "";
             if (txtShadow !== undefined) {
                 //https://developer.mozilla.org/en-US/docs/Web/CSS/filter-function/drop-shadow()
                 //https://stackoverflow.com/questions/60468487/css-text-with-linear-gradient-shadow-and-text-outline
                 //https://css-tricks.com/creating-playful-effects-with-css-text-shadows/
                 //https://designshack.net/articles/css/12-fun-css-text-shadows-you-can-copy-and-paste/
 
-                var shadowClr = getSolidFill(txtShadow, undefined, undefined, warpObj);
-                var outerShdwAttrs = txtShadow["attrs"];
+                let shadowClr = getSolidFill(txtShadow, undefined, undefined, warpObj);
+                let outerShdwAttrs = txtShadow["attrs"];
                 // algn: "bl"
                 // dir: "2640000"
                 // dist: "38100"
@@ -389,15 +389,15 @@ function getFillType(node) {
                 //ky (Vertical Skew) - Specifies the vertical skew angle.
                 //sx (Horizontal Scaling Factor) - Specifies the horizontal scaling SLIDE_FACTOR; negative scaling causes a flip.
                 //sy (Vertical Scaling Factor) - Specifies the vertical scaling SLIDE_FACTOR; negative scaling causes a flip.
-                var algn = outerShdwAttrs["algn"];
-                var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
-                var dist = parseInt(outerShdwAttrs["dist"]) * SLIDE_FACTOR;//(px) //* (3 / 4); //(pt)
-                var rotWithShape = outerShdwAttrs["rotWithShape"];
-                var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR + "px") : "";
-                var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
-                var sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
-                var vx = dist * Math.sin(dir * Math.PI / 180);
-                var hx = dist * Math.cos(dir * Math.PI / 180);
+                let algn = outerShdwAttrs["algn"];
+                let dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
+                let dist = parseInt(outerShdwAttrs["dist"]) * SLIDE_FACTOR;//(px) //* (3 / 4); //(pt)
+                let rotWithShape = outerShdwAttrs["rotWithShape"];
+                let blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR + "px") : "";
+                let sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
+                let sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
+                let vx = dist * Math.sin(dir * Math.PI / 180);
+                let hx = dist * Math.cos(dir * Math.PI / 180);
 
                 //console.log("getFontColorPr outerShdwAttrs:", outerShdwAttrs, ", shadowClr:", shadowClr, ", algn: ", algn, ",dir: ", dir, ", dist: ", dist, ",rotWithShape: ", rotWithShape, ", color: ", color)
 
@@ -427,7 +427,7 @@ function getFillType(node) {
             // } else {
             //     color = "" + color;
             // }
-            var text_effcts = "", txt_effects;
+            let text_effcts = "", txt_effects;
             if (colorType == "solid") {
                 if (txtEffects.length > 0) {
                     text_effcts = txtEffects.join(",");
@@ -448,10 +448,10 @@ function getFillType(node) {
         function getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
             // if(type == "sldNum")
             //console.log("getFontSize node:", node, "lstStyle", lstStyle, "lvl:", lvl, 'type:', type, "warpObj:", warpObj)
-            var lstStyle = (textBodyNode !== undefined)? textBodyNode["a:lstStyle"] : undefined;
-            var lvlpPr = "a:lvl" + lvl + "pPr";
-            var fontSize = undefined;
-            var sz, kern;
+            let lstStyle = (textBodyNode !== undefined)? textBodyNode["a:lstStyle"] : undefined;
+            let lvlpPr = "a:lvl" + lvl + "pPr";
+            let fontSize = undefined;
+            let sz, kern;
             if (node["a:rPr"] !== undefined) {
                 fontSize = parseInt(node["a:rPr"]["attrs"]["sz"]) / 100;
             }
@@ -468,10 +468,10 @@ function getFillType(node) {
                 fontSize = parseInt(sz) / 100;
             }
             //a:spAutoFit
-            var isAutoFit = false;
-            var isKerning = false;
+            let isAutoFit = false;
+            let isKerning = false;
             if (textBodyNode !== undefined){
-                var spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
+                let spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
                 // if (spAutoFitNode === undefined) {
                 //     spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit"]);
                 // }
@@ -537,16 +537,16 @@ function getFillType(node) {
                 }
             }
 
-            var baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
+            let baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
             if (baseline !== undefined && !isNaN(fontSize)) {
-                var baselineVl = parseInt(baseline) / 100000;
+                let baselineVl = parseInt(baseline) / 100000;
                 //fontSize -= 10; 
                 // fontSize = fontSize * baselineVl;
                 fontSize -= baselineVl;
             }
 
             if (!isNaN(fontSize)){
-                var normAutofit = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit", "attrs", "fontScale"]);
+                let normAutofit = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:normAutofit", "attrs", "fontScale"]);
                 if (normAutofit !== undefined && normAutofit != 0){
                     //console.log("fontSize", fontSize, "normAutofit: ", normAutofit, normAutofit/100000)
                     fontSize = Math.round(fontSize * (normAutofit / 100000))
@@ -567,8 +567,8 @@ function getFillType(node) {
         function getFontDecoration(node, type, slideMasterTextStyles) {
             ///////////////////////////////Amir///////////////////////////////
             if (node["a:rPr"] !== undefined) {
-                var underLine = node["a:rPr"]["attrs"]["u"] !== undefined ? node["a:rPr"]["attrs"]["u"] : "none";
-                var strikethrough = node["a:rPr"]["attrs"]["strike"] !== undefined ? node["a:rPr"]["attrs"]["strike"] : 'noStrike';
+                let underLine = node["a:rPr"]["attrs"]["u"] !== undefined ? node["a:rPr"]["attrs"]["u"] : "none";
+                let strikethrough = node["a:rPr"]["attrs"]["strike"] !== undefined ? node["a:rPr"]["attrs"]["strike"] : 'noStrike';
                 //console.log("strikethrough: "+strikethrough);
 
                 if (underLine != "none" && strikethrough == "noStrike") {
@@ -589,18 +589,18 @@ function getFillType(node) {
         ////////////////////////////////////Amir/////////////////////////////////////
         function getTextHorizontalAlign(node, pNode, type, warpObj) {
             //console.log("getTextHorizontalAlign: type: ", type, ", node: ", node)
-            var getAlgn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
+            let getAlgn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (getAlgn === undefined) {
                 getAlgn = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "algn"]);
             }
             if (getAlgn === undefined) {
                 if (type == "title" || type == "ctrTitle" || type == "subTitle") {
-                    var lvlIdx = 1;
-                    var lvlNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
+                    let lvlIdx = 1;
+                    let lvlNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
                     if (lvlNode !== undefined) {
                         lvlIdx = parseInt(lvlNode) + 1;
                     }
-                    var lvlStr = "a:lvl" + lvlIdx + "pPr";
+                    let lvlStr = "a:lvl" + lvlIdx + "pPr";
                     getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
                     if (getAlgn === undefined) {
                         getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
@@ -619,7 +619,7 @@ function getFillType(node) {
 
             }
 
-            var align = "inherit";
+            let align = "inherit";
             if (getAlgn !== undefined) {
                 switch (getAlgn) {
                     case "l":
@@ -645,46 +645,46 @@ function getFillType(node) {
         }
         /////////////////////////////////////////////////////////////////////
         function getTextVerticalAlign(node, type, slideMasterTextStyles) {
-            var baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
+            let baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
             return baseline === undefined ? "baseline" : (parseInt(baseline) / 1000) + "%";
         }
 
         function getTableBorders(node, warpObj) {
-            var borderStyle = "";
+            let borderStyle = "";
             if (node["a:bottom"] !== undefined) {
-                var obj = {
+                let obj = {
                     "p:spPr": {
                         "a:ln": node["a:bottom"]["a:ln"]
                     }
                 }
-                var borders = getBorder(obj, undefined, false, "shape", warpObj);
+                let borders = getBorder(obj, undefined, false, "shape", warpObj);
                 borderStyle += borders.replace("border", "border-bottom");
             }
             if (node["a:top"] !== undefined) {
-                var obj = {
+                let obj = {
                     "p:spPr": {
                         "a:ln": node["a:top"]["a:ln"]
                     }
                 }
-                var borders = getBorder(obj, undefined, false, "shape", warpObj);
+                let borders = getBorder(obj, undefined, false, "shape", warpObj);
                 borderStyle += borders.replace("border", "border-top");
             }
             if (node["a:right"] !== undefined) {
-                var obj = {
+                let obj = {
                     "p:spPr": {
                         "a:ln": node["a:right"]["a:ln"]
                     }
                 }
-                var borders = getBorder(obj, undefined, false, "shape", warpObj);
+                let borders = getBorder(obj, undefined, false, "shape", warpObj);
                 borderStyle += borders.replace("border", "border-right");
             }
             if (node["a:left"] !== undefined) {
-                var obj = {
+                let obj = {
                     "p:spPr": {
                         "a:ln": node["a:left"]["a:ln"]
                     }
                 }
-                var borders = getBorder(obj, undefined, false, "shape", warpObj);
+                let borders = getBorder(obj, undefined, false, "shape", warpObj);
                 borderStyle += borders.replace("border", "border-left");
             }
 
@@ -693,7 +693,7 @@ function getFillType(node) {
         //////////////////////////////////////////////////////////////////
         function getBorder(node, pNode, isSvgMode, bType, warpObj) {
             //console.log("getBorder", node, pNode, isSvgMode, bType)
-            var cssText, lineNode, subNodeTxt;
+            let cssText, lineNode, subNodeTxt;
 
             if (bType == "shape") {
                 cssText = "border: ";
@@ -706,17 +706,17 @@ function getFillType(node) {
                 //subNodeTxt = "a:rPr";
             }
 
-            //var is_noFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
-            var is_noFill = PPTXXmlUtils.getTextByPathList(lineNode, ["a:noFill"]);
+            //let is_noFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
+            let is_noFill = PPTXXmlUtils.getTextByPathList(lineNode, ["a:noFill"]);
             if (is_noFill !== undefined) {
                 return "hidden";
             }
 
             //console.log("lineNode: ", lineNode)
             if (lineNode == undefined) {
-                var lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
+                let lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
                 if (lnRefNode !== undefined){
-                    var lnIdx = PPTXXmlUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
+                    let lnIdx = PPTXXmlUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
                     //console.log("lnIdx:", lnIdx, "lnStyleLst:", warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) -1])
                     lineNode = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) - 1];
                 }
@@ -727,10 +727,10 @@ function getFillType(node) {
                 lineNode = node
             }
 
-            var borderColor;
-            var borderWidth = 0;
-            var borderType = "solid";
-            var strokeDasharray = "0";
+            let borderColor;
+            let borderWidth = 0;
+            let borderType = "solid";
+            let strokeDasharray = "0";
             if (lineNode !== undefined) {
                 // Border width: 1pt = 12700, default = 0.75pt
                 borderWidth = parseInt (PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
@@ -797,7 +797,7 @@ function getFillType(node) {
                         strokeDasharray = "0";
                 }
                 // Border color
-                var fillTyp = getFillType(lineNode);
+                let fillTyp = getFillType(lineNode);
                 //console.log("getBorder:node : fillTyp", fillTyp)
                 if (fillTyp == "NO_FILL") {
                     borderColor = isSvgMode ? "none" : "";//"background-color: initial;";
@@ -815,22 +815,22 @@ function getFillType(node) {
             //console.log("getBorder:node : borderColor", borderColor)
             // 2. drawingML namespace
             if (borderColor === undefined) {
-                //var schemeClrNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef", "a:schemeClr"]);
+                //let schemeClrNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef", "a:schemeClr"]);
                 // if (schemeClrNode !== undefined) {
-                //     var schemeClr = "a:" + PPTXXmlUtils.getTextByPathList(schemeClrNode, ["attrs", "val"]);
-                //     var borderColor = getSchemeColorFromTheme(schemeClr, undefined, undefined);
+                //     let schemeClr = "a:" + PPTXXmlUtils.getTextByPathList(schemeClrNode, ["attrs", "val"]);
+                //     let borderColor = getSchemeColorFromTheme(schemeClr, undefined, undefined);
                 // }
-                var lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
+                let lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
                 //console.log("getBorder: lnRef : ", lnRefNode)
                 if (lnRefNode !== undefined) {
                     borderColor = getSolidFill(lnRefNode, undefined, undefined, warpObj);
                 }
 
                 // if (borderColor !== undefined) {
-                //     var shade = PPTXXmlUtils.getTextByPathList(schemeClrNode, ["a:shade", "attrs", "val"]);
+                //     let shade = PPTXXmlUtils.getTextByPathList(schemeClrNode, ["a:shade", "attrs", "val"]);
                 //     if (shade !== undefined) {
                 //         shade = parseInt(shade) / 10000;
-                //         var color = tinycolor("#" + borderColor);
+                //         let color = tinycolor("#" + borderColor);
                 //         borderColor = color.darken(shade).toHex8();//.replace("#", "");
                 //     }
                 // }
@@ -864,30 +864,30 @@ function getFillType(node) {
             // }
         }
         function getSlideBackgroundFill(warpObj, index) {
-            var slideContent = warpObj["slideContent"];
-            var slideLayoutContent = warpObj["slideLayoutContent"];
-            var slideMasterContent = warpObj["slideMasterContent"];
+            let slideContent = warpObj["slideContent"];
+            let slideLayoutContent = warpObj["slideLayoutContent"];
+            let slideMasterContent = warpObj["slideMasterContent"];
 
             //console.log("slideContent: ", slideContent)
             //console.log("slideLayoutContent: ", slideLayoutContent)
             //console.log("slideMasterContent: ", slideMasterContent)
             //PPTXShapeUtils.getFillType(node)
-            var bgPr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgPr"]);
-            var bgRef = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgRef"]);
+            let bgPr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgPr"]);
+            let bgRef = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:cSld", "p:bg", "p:bgRef"]);
             //console.log("slideContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
-            var bgcolor;
+            let bgcolor;
             if (bgPr !== undefined) {
                 //bgcolor = "background-color: blue;";
-                var bgFillTyp = getFillType(bgPr);
+                let bgFillTyp = getFillType(bgPr);
 
                 if (bgFillTyp == "SOLID_FILL") {
-                    var sldFill = bgPr["a:solidFill"];
-                    var clrMapOvr;
-                    var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                    let sldFill = bgPr["a:solidFill"];
+                    let clrMapOvr;
+                    let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                     if (sldClrMapOvr !== undefined) {
                         clrMapOvr = sldClrMapOvr;
                     } else {
-                        var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                        let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                         if (sldClrMapOvr !== undefined) {
                             clrMapOvr = sldClrMapOvr;
                         } else {
@@ -895,11 +895,11 @@ function getFillType(node) {
                         }
 
                     }
-                    var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                    let sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                     //var sldTint = getColorOpacity(sldFill);
                     //console.log("bgColor: ", bgColor)
                     //bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
-                    bgcolor = "background: #" + sldBgClr + ";";
+                    bgcolor = `background: #${sldBgClr};`;
 
                 } else if (bgFillTyp == "GRADIENT_FILL") {
                     bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
@@ -911,12 +911,12 @@ function getFillType(node) {
                 //console.log(slideContent,slideMasterContent,color_ary,tint_ary,rot,bgcolor)
             } else if (bgRef !== undefined) {
                 //console.log("slideContent",bgRef)
-                var clrMapOvr;
-                var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                let clrMapOvr;
+                let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                 if (sldClrMapOvr !== undefined) {
                     clrMapOvr = sldClrMapOvr;
                 } else {
-                    var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                    let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                     if (sldClrMapOvr !== undefined) {
                         clrMapOvr = sldClrMapOvr;
                     } else {
@@ -924,15 +924,15 @@ function getFillType(node) {
                     }
 
                 }
-                var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
+                let phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
 
                 // if (bgRef["a:srgbClr"] !== undefined) {
                 //     phClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:srgbClr", "attrs", "val"]); //#...
                 // } else if (bgRef["a:schemeClr"] !== undefined) { //a:schemeClr
-                //     var schemeClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
+                //     let schemeClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
                 //     phClr = getSchemeColorFromTheme("a:" + schemeClr, slideMasterContent, undefined); //#...
                 // }
-                var idx = Number(bgRef["attrs"]["idx"]);
+                let idx = Number(bgRef["attrs"]["idx"]);
 
 
                 if (idx == 0 || idx == 1000) {
@@ -944,16 +944,16 @@ function getFillType(node) {
                 } else if (idx > 1000) {
                     //bgFillStyleLst  in themeContent
                     //themeContent["a:fmtScheme"]["a:bgFillStyleLst"]
-                    var trueIdx = idx - 1000;
+                    let trueIdx = idx - 1000;
                     // themeContent["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
-                    var bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
-                    var sortblAry = [];
-                    Object.keys(bgFillLst).forEach(function (key) {
-                        var bgFillLstTyp = bgFillLst[key];
+                    let bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
+                    let sortblAry = [];
+                    Object.keys(bgFillLst).forEach(key => {
+                        let bgFillLstTyp = bgFillLst[key];
                         if (key != "attrs") {
                             if (bgFillLstTyp.constructor === Array) {
-                                for (var i = 0; i < bgFillLstTyp.length; i++) {
-                                    var obj = {};
+                                for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                    let obj = {};
                                     obj[key] = bgFillLstTyp[i];
                                     obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
                                     obj["attrs"] = {
@@ -962,7 +962,7 @@ function getFillType(node) {
                                     sortblAry.push(obj)
                                 }
                             } else {
-                                var obj = {};
+                                let obj = {};
                                 obj[key] = bgFillLstTyp;
                                 obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                 obj["attrs"] = {
@@ -972,18 +972,18 @@ function getFillType(node) {
                             }
                         }
                     });
-                    var sortByOrder = sortblAry.slice(0);
-                    sortByOrder.sort(function (a, b) {
+                    let sortByOrder = sortblAry.slice(0);
+                    sortByOrder.sort((a, b) => {
                         return a.idex - b.idex;
                     });
-                    var bgFillLstIdx = sortByOrder[trueIdx - 1];
-                    var bgFillTyp = getFillType(bgFillLstIdx);
+                    let bgFillLstIdx = sortByOrder[trueIdx - 1];
+                    let bgFillTyp = getFillType(bgFillLstIdx);
                     if (bgFillTyp == "SOLID_FILL") {
-                        var sldFill = bgFillLstIdx["a:solidFill"];
-                        var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                        let sldFill = bgFillLstIdx["a:solidFill"];
+                        let sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                         //var sldTint = getColorOpacity(sldFill);
                         //bgcolor = "background: rgba(" + hexToRgbNew(phClr) + "," + sldTint + ");";
-                        bgcolor = "background: #" + sldBgClr + ";";
+                        bgcolor = `background: #${sldBgClr};`;
                         //console.log("slideMasterContent - sldFill",sldFill)
                     } else if (bgFillTyp == "GRADIENT_FILL") {
                         bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
@@ -997,22 +997,22 @@ function getFillType(node) {
                 bgPr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgPr"]);
                 bgRef = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:cSld", "p:bg", "p:bgRef"]);
                 //console.log("slideLayoutContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
-                var clrMapOvr;
-                var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                let clrMapOvr;
+                let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                 if (sldClrMapOvr !== undefined) {
                     clrMapOvr = sldClrMapOvr;
                 } else {
                     clrMapOvr = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                 }
                 if (bgPr !== undefined) {
-                    var bgFillTyp = getFillType(bgPr);
+                    let bgFillTyp = getFillType(bgPr);
                     if (bgFillTyp == "SOLID_FILL") {
-                        var sldFill = bgPr["a:solidFill"];
+                        let sldFill = bgPr["a:solidFill"];
 
-                        var sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
+                        let sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                         //var sldTint = getColorOpacity(sldFill);
                         // bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
-                        bgcolor = "background: #" + sldBgClr + ";";
+                        bgcolor = `background: #${sldBgClr};`;
                     } else if (bgFillTyp == "GRADIENT_FILL") {
                         bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
                     } else if (bgFillTyp == "PIC_FILL") {
@@ -1023,8 +1023,8 @@ function getFillType(node) {
                 } else if (bgRef !== undefined) {
                     console.log("slideLayoutContent: bgRef", bgRef)
                     //bgcolor = "background: white;";
-                    var phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
-                    var idx = Number(bgRef["attrs"]["idx"]);
+                    let phClr = getSolidFill(bgRef, clrMapOvr, undefined, warpObj);
+                    let idx = Number(bgRef["attrs"]["idx"]);
                     //console.log("phClr=", phClr, "idx=", idx)
 
                     if (idx == 0 || idx == 1000) {
@@ -1036,16 +1036,16 @@ function getFillType(node) {
                     } else if (idx > 1000) {
                         //bgFillStyleLst  in themeContent
                         //themeContent["a:fmtScheme"]["a:bgFillStyleLst"]
-                        var trueIdx = idx - 1000;
-                        var bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
-                        var sortblAry = [];
-                        Object.keys(bgFillLst).forEach(function (key) {
+                        let trueIdx = idx - 1000;
+                        let bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
+                        let sortblAry = [];
+                        Object.keys(bgFillLst).forEach(key => {
                             //console.log("cubicBezTo[" + key + "]:");
-                            var bgFillLstTyp = bgFillLst[key];
+                            let bgFillLstTyp = bgFillLst[key];
                             if (key != "attrs") {
                                 if (bgFillLstTyp.constructor === Array) {
-                                    for (var i = 0; i < bgFillLstTyp.length; i++) {
-                                        var obj = {};
+                                    for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                        let obj = {};
                                         obj[key] = bgFillLstTyp[i];
                                         obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
                                         obj["attrs"] = {
@@ -1054,7 +1054,7 @@ function getFillType(node) {
                                         sortblAry.push(obj)
                                     }
                                 } else {
-                                    var obj = {};
+                                    let obj = {};
                                     obj[key] = bgFillLstTyp;
                                     obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                     obj["attrs"] = {
@@ -1064,20 +1064,20 @@ function getFillType(node) {
                                 }
                             }
                         });
-                        var sortByOrder = sortblAry.slice(0);
-                        sortByOrder.sort(function (a, b) {
+                        let sortByOrder = sortblAry.slice(0);
+                        sortByOrder.sort((a, b) => {
                             return a.idex - b.idex;
                         });
-                        var bgFillLstIdx = sortByOrder[trueIdx - 1];
-                        var bgFillTyp = getFillType(bgFillLstIdx);
+                        let bgFillLstIdx = sortByOrder[trueIdx - 1];
+                        let bgFillTyp = getFillType(bgFillLstIdx);
                         if (bgFillTyp == "SOLID_FILL") {
-                            var sldFill = bgFillLstIdx["a:solidFill"];
+                            let sldFill = bgFillLstIdx["a:solidFill"];
                             //console.log("sldFill: ", sldFill)
                             //var sldTint = getColorOpacity(sldFill);
                             //bgcolor = "background: rgba(" + hexToRgbNew(phClr) + "," + sldTint + ");";
-                            var sldBgClr = getSolidFill(sldFill, clrMapOvr, phClr, warpObj);
+                            let sldBgClr = getSolidFill(sldFill, clrMapOvr, phClr, warpObj);
                             //console.log("bgcolor: ", bgcolor)
-                            bgcolor = "background: #" + sldBgClr + ";";
+                            bgcolor = `background: #${sldBgClr};`;
                         } else if (bgFillTyp == "GRADIENT_FILL") {
                             //console.log("GRADIENT_FILL: ", bgFillLstIdx, phClr)
                             bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
@@ -1096,32 +1096,32 @@ function getFillType(node) {
                     var clrMap = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:clrMap", "attrs"]);
                     //console.log("slideMasterContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
                     if (bgPr !== undefined) {
-                        var bgFillTyp = getFillType(bgPr);
+                        let bgFillTyp = getFillType(bgPr);
                         if (bgFillTyp == "SOLID_FILL") {
-                            var sldFill = bgPr["a:solidFill"];
-                            var sldBgClr = getSolidFill(sldFill, clrMap, undefined, warpObj);
+                            let sldFill = bgPr["a:solidFill"];
+                            let sldBgClr = getSolidFill(sldFill, clrMap, undefined, warpObj);
                             // var sldTint = getColorOpacity(sldFill);
                             // bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
-                            bgcolor = "background: #" + sldBgClr + ";";
+                            bgcolor = `background: #${sldBgClr};`;
                         } else if (bgFillTyp == "GRADIENT_FILL") {
                             bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
                         } else if (bgFillTyp == "PIC_FILL") {
                             bgcolor = getBgPicFill(bgPr, "slideMasterBg", warpObj, undefined, index);
                         }
                     } else if (bgRef !== undefined) {
-                        //var obj={
+                        //let obj={
                         //    "a:solidFill": bgRef
                         //}
-                        var phClr = getSolidFill(bgRef, clrMap, undefined, warpObj);
-                        // var phClr;
+                        let phClr = getSolidFill(bgRef, clrMap, undefined, warpObj);
+                        // let phClr;
                         // if (bgRef["a:srgbClr"] !== undefined) {
                         //     phClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:srgbClr", "attrs", "val"]); //#...
                         // } else if (bgRef["a:schemeClr"] !== undefined) { //a:schemeClr
-                        //     var schemeClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
+                        //     let schemeClr = PPTXXmlUtils.getTextByPathList(bgRef, ["a:schemeClr", "attrs", "val"]);
 
                         //     phClr = getSchemeColorFromTheme("a:" + schemeClr, slideMasterContent, undefined); //#...
                         // }
-                        var idx = Number(bgRef["attrs"]["idx"]);
+                        let idx = Number(bgRef["attrs"]["idx"]);
                         //console.log("phClr=", phClr, "idx=", idx)
 
                         if (idx == 0 || idx == 1000) {
@@ -1133,16 +1133,16 @@ function getFillType(node) {
                         } else if (idx > 1000) {
                             //bgFillStyleLst  in themeContent
                             //themeContent["a:fmtScheme"]["a:bgFillStyleLst"]
-                            var trueIdx = idx - 1000;
-                            var bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
-                            var sortblAry = [];
-                            Object.keys(bgFillLst).forEach(function (key) {
+                            let trueIdx = idx - 1000;
+                            let bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
+                            let sortblAry = [];
+                            Object.keys(bgFillLst).forEach(key => {
                                 //console.log("cubicBezTo[" + key + "]:");
-                                var bgFillLstTyp = bgFillLst[key];
+                                let bgFillLstTyp = bgFillLst[key];
                                 if (key != "attrs") {
                                     if (bgFillLstTyp.constructor === Array) {
-                                        for (var i = 0; i < bgFillLstTyp.length; i++) {
-                                            var obj = {};
+                                        for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                            let obj = {};
                                             obj[key] = bgFillLstTyp[i];
                                             obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
                                             obj["attrs"] = {
@@ -1151,7 +1151,7 @@ function getFillType(node) {
                                             sortblAry.push(obj)
                                         }
                                     } else {
-                                        var obj = {};
+                                        let obj = {};
                                         obj[key] = bgFillLstTyp;
                                         obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                         obj["attrs"] = {
@@ -1161,21 +1161,21 @@ function getFillType(node) {
                                     }
                                 }
                             });
-                            var sortByOrder = sortblAry.slice(0);
-                            sortByOrder.sort(function (a, b) {
+                            let sortByOrder = sortblAry.slice(0);
+                            sortByOrder.sort((a, b) => {
                                 return a.idex - b.idex;
                             });
-                            var bgFillLstIdx = sortByOrder[trueIdx - 1];
-                            var bgFillTyp = getFillType(bgFillLstIdx);
+                            let bgFillLstIdx = sortByOrder[trueIdx - 1];
+                            let bgFillTyp = getFillType(bgFillLstIdx);
                             //console.log("bgFillLstIdx: ", bgFillLstIdx, ", bgFillTyp: ", bgFillTyp, ", phClr: ", phClr);
                             if (bgFillTyp == "SOLID_FILL") {
-                                var sldFill = bgFillLstIdx["a:solidFill"];
+                                let sldFill = bgFillLstIdx["a:solidFill"];
                                 //console.log("sldFill: ", sldFill)
                                 //var sldTint = getColorOpacity(sldFill);
                                 //bgcolor = "background: rgba(" + hexToRgbNew(phClr) + "," + sldTint + ");";
-                                var sldBgClr = getSolidFill(sldFill, clrMap, phClr, warpObj);
+                                let sldBgClr = getSolidFill(sldFill, clrMap, phClr, warpObj);
                                 //console.log("bgcolor: ", bgcolor)
-                                bgcolor = "background: #" + sldBgClr + ";";
+                                bgcolor = `background: #${sldBgClr};`;
                             } else if (bgFillTyp == "GRADIENT_FILL") {
                                 //console.log("GRADIENT_FILL: ", bgFillLstIdx, phClr)
                                 bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
@@ -1195,18 +1195,17 @@ function getFillType(node) {
             return bgcolor;
         }
         function getBgGradientFill(bgPr, phClr, slideMasterContent, warpObj) {
-            var bgcolor = "";
+            let bgcolor = "";
             if (bgPr !== undefined) {
-                var grdFill = bgPr["a:gradFill"];
-                var gsLst = grdFill["a:gsLst"]["a:gs"];
+                let grdFill = bgPr["a:gradFill"];
+                let gsLst = grdFill["a:gsLst"]["a:gs"];
                 //var startColorNode, endColorNode;
-                var color_ary = [];
+                let color_ary = [];
                 var pos_ary = [];
-                //var tint_ary = [];
-                for (var i = 0; i < gsLst.length; i++) {
-                    var lo_tint;
-                    var lo_color = "";
-                    var lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
+                //let tint_ary = [];
+                for (let i = 0; i < gsLst.length; i++) {
+                    let lo_tint;
+                    let lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
                     var pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"])
                     //console.log("pos: ", pos)
                     if (pos !== undefined) {
@@ -1219,15 +1218,15 @@ function getFillType(node) {
                     //tint_ary[i] = (lo_tint !== undefined) ? parseInt(lo_tint) / 100000 : 1;
                 }
                 //get rot
-                var lin = grdFill["a:lin"];
-                var rot = 90;
+                let lin = grdFill["a:lin"];
+                let rot = 90;
                 if (lin !== undefined) {
                     rot = PPTXXmlUtils.angleToDegrees(lin["attrs"]["ang"]);// + 270;
                     //console.log("rot: ", rot)
                     rot = rot + 90;
                 }
-                bgcolor = "background: linear-gradient(" + rot + "deg,";
-                for (var i = 0; i < gsLst.length; i++) {
+                bgcolor = `background: linear-gradient(${rot}deg,`;
+                for (let i = 0; i < gsLst.length; i++) {
                     if (i == gsLst.length - 1) {
                         //if (phClr === undefined) {
                         //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ");";
@@ -1257,7 +1256,7 @@ function getFillType(node) {
         }
         function getBgPicFill(bgPr, sorce, warpObj, phClr, index) {
             //console.log("getBgPicFill bgPr", bgPr)
-            var bgcolor;
+            let bgcolor;
             var picFillBase64 = getPicFill(sorce, bgPr["a:blipFill"], warpObj);
             var ordr = bgPr["attrs"]["order"];
             var aBlipNode = bgPr["a:blipFill"]["a:blip"];
@@ -1266,19 +1265,19 @@ function getFillType(node) {
             if (duotone !== undefined) {
                 //console.log("pic duotone: ", duotone)
                 var clr_ary = [];
-                // duotone.forEach(function (clr) {
+                // duotone.forEach(clr => {
                 //     console.log("pic duotone clr: ", clr)
                 // }) 
-                Object.keys(duotone).forEach(function (clr_type) {
+                Object.keys(duotone).forEach(clr_type => {
                     //console.log("pic duotone clr: clr_type: ", clr_type, duotone[clr_type])
                     if (clr_type != "attrs") {
-                        var obj = {};
+                        let obj = {};
                         obj[clr_type] = duotone[clr_type];
                         clr_ary.push(getSolidFill(obj, undefined, phClr, warpObj));
                     }
-                    // Object.keys(duotone[clr_type]).forEach(function (clr) {
+                    // Object.keys(duotone[clr_type]).forEach(clr => {
                     //     if (clr != "order") {
-                    //         var obj = {};
+                    //         let obj = {};
                     //         obj[clr_type] = duotone[clr_type][clr];
                     //         clr_ary.push(getSolidFill(obj, undefined, phClr, warpObj));
                     //     }
@@ -1289,11 +1288,11 @@ function getFillType(node) {
                 //https://codepen.io/bhenbe/pen/QEZOvd
                 //https://www.w3schools.com/cssref/css3_pr_filter.asp
 
-                // var color1 = clr_ary[0];
-                // var color2 = clr_ary[1];
-                // var cssName = "";
+                // let color1 = clr_ary[0];
+                // let color2 = clr_ary[1];
+                // let cssName = "";
 
-                // var styleText_before_after = "content: '';" +
+                // let styleText_before_after = "content: '';" +
                 //     "display: block;" +
                 //     "width: 100%;" +
                 //     "height: 100%;" +
@@ -1302,14 +1301,14 @@ function getFillType(node) {
                 //     "top: 0;" +
                 //     "left: 0;";
 
-                // var cssName = "slide-background-" + index + "::before," + " .slide-background-" + index + "::after";
+                // let cssName = "slide-background-" + index + "::before," + " .slide-background-" + index + "::after";
                 // styleTable[styleText_before_after] = {
                 //     "name": cssName,
                 //     "text": styleText_before_after
                 // };
 
 
-                // var styleText_after = "background-color: #" + clr_ary[1] + ";" +
+                // let styleText_after = "background-color: #" + clr_ary[1] + ";" +
                 //     "mix-blend-mode: darken;";
 
                 // cssName = "slide-background-" + index + "::after";
@@ -1318,7 +1317,7 @@ function getFillType(node) {
                 //     "text": styleText_after
                 // };
 
-                // var styleText_before = "background-color: #" + clr_ary[0] + ";" +
+                // let styleText_before = "background-color: #" + clr_ary[0] + ";" +
                 //     "mix-blend-mode: lighten;";
 
                 // cssName = "slide-background-" + index + "::before";
@@ -1330,10 +1329,10 @@ function getFillType(node) {
             }
             //a:alphaModFix
             var aphaModFixNode = PPTXXmlUtils.getTextByPathList(aBlipNode, ["a:alphaModFix", "attrs"])
-            var imgOpacity = "";
+            let imgOpacity = "";
             if (aphaModFixNode !== undefined && aphaModFixNode["amt"] !== undefined && aphaModFixNode["amt"] != "") {
                 var amt = parseInt(aphaModFixNode["amt"]) / 100000;
-                //var opacity = amt;
+                //let opacity = amt;
                 imgOpacity = "opacity:" + amt + ";";
 
             }
@@ -1342,11 +1341,11 @@ function getFillType(node) {
             var tileNode = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"])
             var prop_style = "";
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
-                var sx = (parseInt(tileNode["sx"]) / 100000);
-                var sy = (parseInt(tileNode["sy"]) / 100000);
+                let sx = (parseInt(tileNode["sx"]) / 100000);
+                let sy = (parseInt(tileNode["sy"]) / 100000);
                 var tx = (parseInt(tileNode["tx"]) / 100000);
                 var ty = (parseInt(tileNode["ty"]) / 100000);
-                var algn = tileNode["algn"]; //tl(top left),t(top), tr(top right), l(left), ctr(center), r(right), bl(bottom left), b(bottm) , br(bottom right)
+                let algn = tileNode["algn"]; //tl(top left),t(top), tr(top right), l(left), ctr(center), r(right), bl(bottom left), b(bottm) , br(bottom right)
                 var flip = tileNode["flip"]; //none,x,y ,xy
 
                 prop_style += "background-repeat: round;"; //repeat|repeat-x|repeat-y|no-repeat|space|round|initial|inherit;
@@ -1355,9 +1354,9 @@ function getFillType(node) {
             }
             //a:srcRect
             //a:stretch => a:fillRect =>attrs (l:-17000, r:-17000)
-            var stretch = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:stretch"]);
+            let stretch = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:stretch"]);
             if (stretch !== undefined) {
-                var fillRect = PPTXXmlUtils.getTextByPathList(stretch, ["a:fillRect", "attrs"]);
+                let fillRect = PPTXXmlUtils.getTextByPathList(stretch, ["a:fillRect", "attrs"]);
                 //console.log("getBgPicFill=>bgPr: ", bgPr)
                 // var top = fillRect["t"], right = fillRect["r"], bottom = fillRect["b"], left = fillRect["l"];
                 prop_style += "background-repeat: no-repeat;";
@@ -1375,19 +1374,19 @@ function getFillType(node) {
         
         function getGradientFill(node, warpObj) {
             //console.log("getGradientFill: node", node)
-            var gsLst = node["a:gsLst"]["a:gs"];
+            let gsLst = node["a:gsLst"]["a:gs"];
             //get start color
-            var color_ary = [];
-            var tint_ary = [];
-            for (var i = 0; i < gsLst.length; i++) {
-                var lo_tint;
-                var lo_color = getSolidFill(gsLst[i], undefined, undefined, warpObj);
+            let color_ary = [];
+            let tint_ary = [];
+            for (let i = 0; i < gsLst.length; i++) {
+                let lo_tint;
+                let lo_color = getSolidFill(gsLst[i], undefined, undefined, warpObj);
                 //console.log("lo_color",lo_color)
                 color_ary[i] = lo_color;
             }
             //get rot
-            var lin = node["a:lin"];
-            var rot = 0;
+            let lin = node["a:lin"];
+            let rot = 0;
             if (lin !== undefined) {
                 rot = PPTXXmlUtils.angleToDegrees(lin["attrs"]["ang"]) + 90;
             }
@@ -1401,9 +1400,9 @@ function getFillType(node) {
             //rId
             //TODO - Image Properties - Tile, Stretch, or Display Portion of Image
             //(http://officeopenxml.com/drwPic-tile.php)
-            var img;
-            var rId = node["a:blip"]["attrs"]["r:embed"];
-            var imgPath;
+            let img;
+            let rId = node["a:blip"]["attrs"]["r:embed"];
+            let imgPath;
             //console.log("getPicFill(...) rId: ", rId, ", warpObj: ", warpObj, ", type: ", type)
             if (type == "slideBg" || type == "slide") {
                 imgPath = PPTXXmlUtils.getTextByPathList(warpObj, ["slideResObj", rId, "target"]);
@@ -1430,17 +1429,17 @@ function getFillType(node) {
                 }
                 imgPath = PPTXXmlUtils.resolveMediaPath(imgPath, context, '');
 
-                var imgExt = imgPath.split(".").pop();
+                let imgExt = imgPath.split(".").pop();
                 if (imgExt == "xml") {
                     return undefined;
                 }
-                var imgFile = warpObj["zip"].file(imgPath);
+                let imgFile = warpObj["zip"].file(imgPath);
                 if (imgFile === null || imgFile === undefined) {
                     console.warn("Image file not found:", imgPath);
                     return undefined;
                 }
-                var imgArrayBuffer = imgFile.asArrayBuffer();
-                var imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
+                let imgArrayBuffer = imgFile.asArrayBuffer();
+                let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
                 img = "data:" + imgMimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer);
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
                 setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
@@ -1456,16 +1455,16 @@ function getFillType(node) {
             //https://css-tricks.com/stripes-css/
             //https://yuanchuan.dev/gradient-shapes/
             var fgColor = "", bgColor = "", prst = "";
-            var bgClr = node["a:bgClr"];
+            let bgClr = node["a:bgClr"];
             var fgClr = node["a:fgClr"];
             prst = node["attrs"]["prst"];
             fgColor = getSolidFill(fgClr, undefined, undefined, warpObj);
             bgColor = getSolidFill(bgClr, undefined, undefined, warpObj);
             //var angl_ary = getAnglefromParst(prst);
-            //var ptrClr = "repeating-linear-gradient(" + angl + "deg,  #" + bgColor + ",#" + fgColor + " 2px);"
+            //let ptrClr = "repeating-linear-gradient(" + angl + "deg,  #" + bgColor + ",#" + fgColor + " 2px);"
             //linear-gradient(0deg, black 10 %, transparent 10 %, transparent 90 %, black 90 %, black), 
             //linear-gradient(90deg, black 10 %, transparent 10 %, transparent 90 %, black 90 %, black);
-            var linear_gradient = getLinerGrandient(prst, bgColor, fgColor);
+            let linear_gradient = getLinerGrandient(prst, bgColor, fgColor);
             //console.log("getPatternFill: node:", node, ", prst: ", prst, ", fgColor: ", fgColor, ", bgColor:", bgColor, ', linear_gradient: ', linear_gradient)
             return linear_gradient;
         }
@@ -1781,49 +1780,49 @@ function getFillType(node) {
             }
 
             //console.log("getSolidFill node: ", node)
-            var color = "";
+            let color = "";
             var clrNode;
             if (node["a:srgbClr"] !== undefined) {
                 clrNode = node["a:srgbClr"];
                 color = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //#...
             } else if (node["a:schemeClr"] !== undefined) { //a:schemeClr
                 clrNode = node["a:schemeClr"];
-                var schemeClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]);
+                let schemeClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]);
                 color = getSchemeColorFromTheme("a:" + schemeClr, clrMap, phClr, warpObj);
                 //console.log("schemeClr: ", schemeClr, "color: ", color)
             } else if (node["a:scrgbClr"] !== undefined) {
                 clrNode = node["a:scrgbClr"];
                 //<a:scrgbClr r="50%" g="50%" b="50%"/>  //Need to test/////////////////////////////////////////////
                 var defBultColorVals = clrNode["attrs"];
-                var red = (defBultColorVals["r"].indexOf("%") != -1) ? defBultColorVals["r"].split("%").shift() : defBultColorVals["r"];
-                var green = (defBultColorVals["g"].indexOf("%") != -1) ? defBultColorVals["g"].split("%").shift() : defBultColorVals["g"];
-                var blue = (defBultColorVals["b"].indexOf("%") != -1) ? defBultColorVals["b"].split("%").shift() : defBultColorVals["b"];
-                //var scrgbClr = red + "," + green + "," + blue;
+                let red = (defBultColorVals["r"].indexOf("%") != -1) ? defBultColorVals["r"].split("%").shift() : defBultColorVals["r"];
+                let green = (defBultColorVals["g"].indexOf("%") != -1) ? defBultColorVals["g"].split("%").shift() : defBultColorVals["g"];
+                let blue = (defBultColorVals["b"].indexOf("%") != -1) ? defBultColorVals["b"].split("%").shift() : defBultColorVals["b"];
+                //let scrgbClr = red + "," + green + "," + blue;
                 color = toHex(255 * (Number(red) / 100)) + toHex(255 * (Number(green) / 100)) + toHex(255 * (Number(blue) / 100));
                 //console.log("scrgbClr: " + scrgbClr);
 
             } else if (node["a:prstClr"] !== undefined) {
                 clrNode = node["a:prstClr"];
                 //<a:prstClr val="black"/>  //Need to test/////////////////////////////////////////////
-                var prstClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //node["a:prstClr"]["attrs"]["val"];
+                let prstClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //node["a:prstClr"]["attrs"]["val"];
                 color = getColorName2Hex(prstClr);
                 //console.log("blip prstClr: ", prstClr, " => hexClr: ", color);
             } else if (node["a:hslClr"] !== undefined) {
                 clrNode = node["a:hslClr"];
                 //<a:hslClr hue="14400000" sat="100%" lum="50%"/>  //Need to test/////////////////////////////////////////////
                 var defBultColorVals = clrNode["attrs"];
-                var hue = Number(defBultColorVals["hue"]) / 100000;
-                var sat = Number((defBultColorVals["sat"].indexOf("%") != -1) ? defBultColorVals["sat"].split("%").shift() : defBultColorVals["sat"]) / 100;
-                var lum = Number((defBultColorVals["lum"].indexOf("%") != -1) ? defBultColorVals["lum"].split("%").shift() : defBultColorVals["lum"]) / 100;
-                //var hslClr = defBultColorVals["hue"] + "," + defBultColorVals["sat"] + "," + defBultColorVals["lum"];
-                var hsl2rgb = hslToRgb(hue, sat, lum);
+                let hue = Number(defBultColorVals["hue"]) / 100000;
+                let sat = Number((defBultColorVals["sat"].indexOf("%") != -1) ? defBultColorVals["sat"].split("%").shift() : defBultColorVals["sat"]) / 100;
+                let lum = Number((defBultColorVals["lum"].indexOf("%") != -1) ? defBultColorVals["lum"].split("%").shift() : defBultColorVals["lum"]) / 100;
+                //let hslClr = defBultColorVals["hue"] + "," + defBultColorVals["sat"] + "," + defBultColorVals["lum"];
+                let hsl2rgb = hslToRgb(hue, sat, lum);
                 color = toHex(hsl2rgb.r) + toHex(hsl2rgb.g) + toHex(hsl2rgb.b);
                 //defBultColor = cnvrtHslColor2Hex(hslClr); //TODO
                 // console.log("hslClr: " + hslClr);
             } else if (node["a:sysClr"] !== undefined) {
                 clrNode = node["a:sysClr"];
                 //<a:sysClr val="windowText" lastClr="000000"/>  //Need to test/////////////////////////////////////////////
-                var sysClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "lastClr"]);
+                let sysClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "lastClr"]);
                 if (sysClr !== undefined) {
                     color = sysClr;
                 }
@@ -1840,13 +1839,13 @@ function getFillType(node) {
             //         <a:alpha val="50%" />
             //     </a:srgbClr>
             // </a: solidFill >
-            var isAlpha = false;
-            var alpha = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:alpha", "attrs", "val"])) / 100000;
+            let isAlpha = false;
+            let alpha = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:alpha", "attrs", "val"])) / 100000;
             //console.log("alpha: ", alpha)
             if (!isNaN(alpha)) {
                 // var al_color = new colz.Color(color);
                 // al_color.setAlpha(alpha);
-                // var ne_color = al_color.rgba.toString();
+                // let ne_color = al_color.rgba.toString();
                 // color = (rgba2hex(ne_color))
                 var al_color = tinycolor(color);
                 al_color.setAlpha(alpha);
@@ -1969,7 +1968,7 @@ function getFillType(node) {
             //             </a:srgbClr>
             //         </a: solidFill >
 
-            var hueMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:hueMod", "attrs", "val"])) / 100000;
+            let hueMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:hueMod", "attrs", "val"])) / 100000;
             //console.log("hueMod: ", hueMod)
             if (!isNaN(hueMod)) {
                 color = applyHueMod(color, hueMod, isAlpha);
@@ -1984,7 +1983,7 @@ function getFillType(node) {
             //         <a:hslClr hue="0" sat="100%" lum="50%"/>
             //             <a:hueOff val="600000"/>
             //     </a: solidFill >
-            //var hueOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:hueOff", "attrs", "val"])) / 100000;
+            //let hueOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:hueOff", "attrs", "val"])) / 100000;
             // if (!isNaN(hueOff)) {
             //     //console.log("hueOff: ", hueOff, " (TODO)")
             //     //color = applyHueOff(color, hueOff, isAlpha);
@@ -2035,12 +2034,12 @@ function getFillType(node) {
             //         </a:srgbClr>
             //     </a: solidFill >
             // end example]
-            var lumMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:lumMod", "attrs", "val"])) / 100000;
+            let lumMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:lumMod", "attrs", "val"])) / 100000;
             //console.log("lumMod: ", lumMod)
             if (!isNaN(lumMod)) {
                 color = applyLumMod(color, lumMod, isAlpha);
             }
-            //var lumMod_color = applyLumMod(color, 0.5);
+            //let lumMod_color = applyLumMod(color, 0.5);
             //console.log("lumMod_color: ", lumMod_color)
             //20. "lumOff"
             // Specifies the luminance as expressed by a percentage offset increase or decrease to the
@@ -2053,7 +2052,7 @@ function getFillType(node) {
             //             <a:lumOff val="-20%" />
             //         </a:srgbClr>
             //     </a: solidFill >
-            var lumOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:lumOff", "attrs", "val"])) / 100000;
+            let lumOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:lumOff", "attrs", "val"])) / 100000;
             //console.log("lumOff: ", lumOff)
             if (!isNaN(lumOff)) {
                 color = applyLumOff(color, lumOff, isAlpha);
@@ -2126,7 +2125,7 @@ function getFillType(node) {
             //             <a:satMod val="20%" />
             //         </a:srgbClr>
             //     </a: solidFill >
-            var satMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:satMod", "attrs", "val"])) / 100000;
+            let satMod = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:satMod", "attrs", "val"])) / 100000;
             if (!isNaN(satMod)) {
                 color = applySatMod(color, satMod, isAlpha);
             }
@@ -2141,7 +2140,7 @@ function getFillType(node) {
             //             <a:satOff val="-20%" />
             //         </a:srgbClr>
             //     </a: solidFill >
-            // var satOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:satOff", "attrs", "val"])) / 100000;
+            // let satOff = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:satOff", "attrs", "val"])) / 100000;
             // if (!isNaN(satOff)) {
             //     console.log("satOff: ", satOff, " (TODO)")
             // }
@@ -2156,7 +2155,7 @@ function getFillType(node) {
             //         </a:srgbClr>
             //     </a: solidFill >
             // end example]
-            var shade = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:shade", "attrs", "val"])) / 100000;
+            let shade = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:shade", "attrs", "val"])) / 100000;
             if (!isNaN(shade)) {
                 color = applyShade(color, shade, isAlpha);
             }
@@ -2170,7 +2169,7 @@ function getFillType(node) {
             //             <a:tint val="50%" />
             //         </a:srgbClr>
             //     </a: solidFill >
-            var tint = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:tint", "attrs", "val"])) / 100000;
+            let tint = parseInt (PPTXXmlUtils.getTextByPathList(clrNode, ["a:tint", "attrs", "val"])) / 100000;
             if (!isNaN(tint)) {
                 color = applyTint(color, tint, isAlpha);
             }
@@ -2179,12 +2178,12 @@ function getFillType(node) {
             return color;
         }
         function toHex(n) {
-            var hex = n.toString(16);
+            let hex = n.toString(16);
             while (hex.length < 2) { hex = "0" + hex; }
             return hex;
         }
         function hslToRgb(hue, sat, light) {
-            var t1, t2, r, g, b;
+            let t1, t2, r, g, b;
             hue = hue / 60;
             if (light <= 0.5) {
                 t2 = light * (sat + 1);
@@ -2206,9 +2205,9 @@ function getFillType(node) {
             else return t1;
         }
         function getColorName2Hex(name) {
-            var hex;
-            var colorName = ['white', 'AliceBlue', 'AntiqueWhite', 'Aqua', 'Aquamarine', 'Azure', 'Beige', 'Bisque', 'black', 'BlanchedAlmond', 'Blue', 'BlueViolet', 'Brown', 'BurlyWood', 'CadetBlue', 'Chartreuse', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan', 'DarkBlue', 'DarkCyan', 'DarkGoldenRod', 'DarkGray', 'DarkGrey', 'DarkGreen', 'DarkKhaki', 'DarkMagenta', 'DarkOliveGreen', 'DarkOrange', 'DarkOrchid', 'DarkRed', 'DarkSalmon', 'DarkSeaGreen', 'DarkSlateBlue', 'DarkSlateGray', 'DarkSlateGrey', 'DarkTurquoise', 'DarkViolet', 'DeepPink', 'DeepSkyBlue', 'DimGray', 'DimGrey', 'DodgerBlue', 'FireBrick', 'FloralWhite', 'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'Gold', 'GoldenRod', 'Gray', 'Grey', 'Green', 'GreenYellow', 'HoneyDew', 'HotPink', 'IndianRed', 'Indigo', 'Ivory', 'Khaki', 'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue', 'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey', 'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue', 'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime', 'LimeGreen', 'Linen', 'Magenta', 'Maroon', 'MediumAquaMarine', 'MediumBlue', 'MediumOrchid', 'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen', 'MediumTurquoise', 'MediumVioletRed', 'MidnightBlue', 'MintCream', 'MistyRose', 'Moccasin', 'NavajoWhite', 'Navy', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed', 'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed', 'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple', 'RebeccaPurple', 'Red', 'RosyBrown', 'RoyalBlue', 'SaddleBrown', 'Salmon', 'SandyBrown', 'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue', 'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'Tan', 'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White', 'WhiteSmoke', 'Yellow', 'YellowGreen'];
-            var colorHex = ['ffffff', 'f0f8ff', 'faebd7', '00ffff', '7fffd4', 'f0ffff', 'f5f5dc', 'ffe4c4', '000000', 'ffebcd', '0000ff', '8a2be2', 'a52a2a', 'deb887', '5f9ea0', '7fff00', 'd2691e', 'ff7f50', '6495ed', 'fff8dc', 'dc143c', '00ffff', '00008b', '008b8b', 'b8860b', 'a9a9a9', 'a9a9a9', '006400', 'bdb76b', '8b008b', '556b2f', 'ff8c00', '9932cc', '8b0000', 'e9967a', '8fbc8f', '483d8b', '2f4f4f', '2f4f4f', '00ced1', '9400d3', 'ff1493', '00bfff', '696969', '696969', '1e90ff', 'b22222', 'fffaf0', '228b22', 'ff00ff', 'dcdcdc', 'f8f8ff', 'ffd700', 'daa520', '808080', '808080', '008000', 'adff2f', 'f0fff0', 'ff69b4', 'cd5c5c', '4b0082', 'fffff0', 'f0e68c', 'e6e6fa', 'fff0f5', '7cfc00', 'fffacd', 'add8e6', 'f08080', 'e0ffff', 'fafad2', 'd3d3d3', 'd3d3d3', '90ee90', 'ffb6c1', 'ffa07a', '20b2aa', '87cefa', '778899', '778899', 'b0c4de', 'ffffe0', '00ff00', '32cd32', 'faf0e6', 'ff00ff', '800000', '66cdaa', '0000cd', 'ba55d3', '9370db', '3cb371', '7b68ee', '00fa9a', '48d1cc', 'c71585', '191970', 'f5fffa', 'ffe4e1', 'ffe4b5', 'ffdead', '000080', 'fdf5e6', '808000', '6b8e23', 'ffa500', 'ff4500', 'da70d6', 'eee8aa', '98fb98', 'afeeee', 'db7093', 'ffefd5', 'ffdab9', 'cd853f', 'ffc0cb', 'dda0dd', 'b0e0e6', '800080', '663399', 'ff0000', 'bc8f8f', '4169e1', '8b4513', 'fa8072', 'f4a460', '2e8b57', 'fff5ee', 'a0522d', 'c0c0c0', '87ceeb', '6a5acd', '708090', '708090', 'fffafa', '00ff7f', '4682b4', 'd2b48c', '008080', 'd8bfd8', 'ff6347', '40e0d0', 'ee82ee', 'f5deb3', 'ffffff', 'f5f5f5', 'ffff00', '9acd32'];
+            let hex;
+            let colorName = ['white', 'AliceBlue', 'AntiqueWhite', 'Aqua', 'Aquamarine', 'Azure', 'Beige', 'Bisque', 'black', 'BlanchedAlmond', 'Blue', 'BlueViolet', 'Brown', 'BurlyWood', 'CadetBlue', 'Chartreuse', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan', 'DarkBlue', 'DarkCyan', 'DarkGoldenRod', 'DarkGray', 'DarkGrey', 'DarkGreen', 'DarkKhaki', 'DarkMagenta', 'DarkOliveGreen', 'DarkOrange', 'DarkOrchid', 'DarkRed', 'DarkSalmon', 'DarkSeaGreen', 'DarkSlateBlue', 'DarkSlateGray', 'DarkSlateGrey', 'DarkTurquoise', 'DarkViolet', 'DeepPink', 'DeepSkyBlue', 'DimGray', 'DimGrey', 'DodgerBlue', 'FireBrick', 'FloralWhite', 'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'Gold', 'GoldenRod', 'Gray', 'Grey', 'Green', 'GreenYellow', 'HoneyDew', 'HotPink', 'IndianRed', 'Indigo', 'Ivory', 'Khaki', 'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue', 'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey', 'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue', 'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime', 'LimeGreen', 'Linen', 'Magenta', 'Maroon', 'MediumAquaMarine', 'MediumBlue', 'MediumOrchid', 'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen', 'MediumTurquoise', 'MediumVioletRed', 'MidnightBlue', 'MintCream', 'MistyRose', 'Moccasin', 'NavajoWhite', 'Navy', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed', 'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed', 'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple', 'RebeccaPurple', 'Red', 'RosyBrown', 'RoyalBlue', 'SaddleBrown', 'Salmon', 'SandyBrown', 'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue', 'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'Tan', 'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White', 'WhiteSmoke', 'Yellow', 'YellowGreen'];
+            let colorHex = ['ffffff', 'f0f8ff', 'faebd7', '00ffff', '7fffd4', 'f0ffff', 'f5f5dc', 'ffe4c4', '000000', 'ffebcd', '0000ff', '8a2be2', 'a52a2a', 'deb887', '5f9ea0', '7fff00', 'd2691e', 'ff7f50', '6495ed', 'fff8dc', 'dc143c', '00ffff', '00008b', '008b8b', 'b8860b', 'a9a9a9', 'a9a9a9', '006400', 'bdb76b', '8b008b', '556b2f', 'ff8c00', '9932cc', '8b0000', 'e9967a', '8fbc8f', '483d8b', '2f4f4f', '2f4f4f', '00ced1', '9400d3', 'ff1493', '00bfff', '696969', '696969', '1e90ff', 'b22222', 'fffaf0', '228b22', 'ff00ff', 'dcdcdc', 'f8f8ff', 'ffd700', 'daa520', '808080', '808080', '008000', 'adff2f', 'f0fff0', 'ff69b4', 'cd5c5c', '4b0082', 'fffff0', 'f0e68c', 'e6e6fa', 'fff0f5', '7cfc00', 'fffacd', 'add8e6', 'f08080', 'e0ffff', 'fafad2', 'd3d3d3', 'd3d3d3', '90ee90', 'ffb6c1', 'ffa07a', '20b2aa', '87cefa', '778899', '778899', 'b0c4de', 'ffffe0', '00ff00', '32cd32', 'faf0e6', 'ff00ff', '800000', '66cdaa', '0000cd', 'ba55d3', '9370db', '3cb371', '7b68ee', '00fa9a', '48d1cc', 'c71585', '191970', 'f5fffa', 'ffe4e1', 'ffe4b5', 'ffdead', '000080', 'fdf5e6', '808000', '6b8e23', 'ffa500', 'ff4500', 'da70d6', 'eee8aa', '98fb98', 'afeeee', 'db7093', 'ffefd5', 'ffdab9', 'cd853f', 'ffc0cb', 'dda0dd', 'b0e0e6', '800080', '663399', 'ff0000', 'bc8f8f', '4169e1', '8b4513', 'fa8072', 'f4a460', '2e8b57', 'fff5ee', 'a0522d', 'c0c0c0', '87ceeb', '6a5acd', '708090', '708090', 'fffafa', '00ff7f', '4682b4', 'd2b48c', '008080', 'd8bfd8', 'ff6347', '40e0d0', 'ee82ee', 'f5deb3', 'ffffff', 'f5f5f5', 'ffff00', '9acd32'];
             var findIndx = colorName.indexOf(name);
             if (findIndx != -1) {
                 hex = colorHex[findIndx];
@@ -2219,15 +2218,16 @@ function getFillType(node) {
             //<p:clrMap ...> in slide master
             // e.g. tx2="dk2" bg2="lt2" tx1="dk1" bg1="lt1" slideLayoutClrOvride
             //console.log("getSchemeColorFromTheme: schemeClr: ", schemeClr, ",clrMap: ", clrMap)
+            let color = '';
             var slideLayoutClrOvride;
             if (clrMap !== undefined) {
                 slideLayoutClrOvride = clrMap;//getTextByPathList(clrMap, ["p:sldMaster", "p:clrMap", "attrs"])
             } else {
-                var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(warpObj["slideContent"], ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(warpObj["slideContent"], ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                 if (sldClrMapOvr !== undefined) {
                     slideLayoutClrOvride = sldClrMapOvr;
                 } else {
-                    var sldClrMapOvr = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutContent"], ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
+                    let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutContent"], ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                     if (sldClrMapOvr !== undefined) {
                         slideLayoutClrOvride = sldClrMapOvr;
                     } else {
@@ -2267,8 +2267,8 @@ function getFillType(node) {
                     }
                 }
                 //console.log("getSchemeColorFromTheme:  schemeClr: ", schemeClr);
-                var refNode = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:clrScheme", schemeClr]);
-                var color = PPTXXmlUtils.getTextByPathList(refNode, ["a:srgbClr", "attrs", "val"]);
+                let refNode = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:clrScheme", schemeClr]);
+                color = PPTXXmlUtils.getTextByPathList(refNode, ["a:srgbClr", "attrs", "val"]);
                 //console.log("themeContent: color", color);
                 if (color === undefined && refNode !== undefined) {
                     color = PPTXXmlUtils.getTextByPathList(refNode, ["a:sysClr", "attrs", "lastClr"]);
@@ -2302,10 +2302,10 @@ function getFillType(node) {
             } else {
                 eachElement(serNode, function (innerNode, index) {
                     var dataRow = new Array();
-                    var colName = PPTXXmlUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
+                    let colName = PPTXXmlUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
 
                     // Category (string or number)
-                    var rowNames = {};
+                    let rowNames = {};
                     if  (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
                         eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
                             rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
@@ -2352,9 +2352,9 @@ function getFillType(node) {
             Object.prototype.set = function (parts, value) {
                 if(!parts) return this;
                 //var parts = prop.split('.');
-                var obj = this;
-                var lent = parts.length;
-                for (var i = 0; i < lent; i++) {
+                let obj = this;
+                let lent = parts.length;
+                for (let i = 0; i < lent; i++) {
                     var p = parts[i];
                     if (obj[p] === undefined) {
                         if (i == lent - 1) {
@@ -2380,10 +2380,10 @@ function getFillType(node) {
             if (node === undefined) {
                 return;
             }
-            var result = "";
+            let result = "";
             if (node.constructor === Array) {
-                var l = node.length;
-                for (var i = 0; i < l; i++) {
+                let l = node.length;
+                for (let i = 0; i < l; i++) {
                     result += doFunction(node[i], i);
                 }
             } else {
@@ -2399,7 +2399,7 @@ function getFillType(node) {
          * @param {number} shadeValue
          */
         function applyShade(rgbStr, shadeValue, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
+            let color = tinycolor(rgbStr).toHsl();
             //console.log("applyShade  color: ", color, ", shadeValue: ", shadeValue)
             // 确保shadeValue在0-1之间
             shadeValue = Math.max(0, Math.min(1, shadeValue));
@@ -2416,7 +2416,7 @@ function getFillType(node) {
          * @param {number} tintValue
          */
         function applyTint(rgbStr, tintValue, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
+            let color = tinycolor(rgbStr).toHsl();
             //console.log("applyTint  color: ", color, ", tintValue: ", tintValue)
             // 确保tintValue在0-1之间
             tintValue = Math.max(0, Math.min(1, tintValue));
@@ -2433,9 +2433,9 @@ function getFillType(node) {
          * @param {number} offset
          */
         function applyLumOff(rgbStr, offset, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
+            let color = tinycolor(rgbStr).toHsl();
             //console.log("applyLumOff  color.l: ", color.l, ", offset: ", offset, ", color.l + offset : ", color.l + offset)
-            var lum = offset + color.l;
+            let lum = offset + color.l;
             if (lum >= 1) {
                 if (isAlpha)
                     return tinycolor({ h: color.h, s: color.s, l: 1, a: color.a }).toHex8();
@@ -2452,7 +2452,7 @@ function getFillType(node) {
          * @param {number} multiplier
          */
         function applyLumMod(rgbStr, multiplier, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
+            let color = tinycolor(rgbStr).toHsl();
             //console.log("applyLumMod  color.l: ", color.l, ", multiplier: ", multiplier, ", color.l * multiplier : ", color.l * multiplier)
             var cacl_l = color.l * multiplier;
             if (cacl_l >= 1) {
@@ -2470,7 +2470,7 @@ function getFillType(node) {
         //  * @param {number} multiplier
         //  */
         function applyHueMod(rgbStr, multiplier, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
+            let color = tinycolor(rgbStr).toHsl();
             //console.log("applyLumMod  color.h: ", color.h, ", multiplier: ", multiplier, ", color.h * multiplier : ", color.h * multiplier)
 
             var cacl_h = color.h * multiplier;
@@ -2489,7 +2489,7 @@ function getFillType(node) {
         //  * @param {number} offset
         //  */
         // function applyHueOff(rgbStr, offset, isAlpha) {
-        //     var color = tinycolor(rgbStr).toHsl();
+        //     let color = tinycolor(rgbStr).toHsl();
         //     //console.log("applyLumMod  color.h: ", color.h, ", offset: ", offset, ", color.h * offset : ", color.h * offset)
 
         //     var cacl_h = color.h * offset;
@@ -2506,7 +2506,7 @@ function getFillType(node) {
         //  * @param {number} multiplier
         //  */
         function applySatMod(rgbStr, multiplier, isAlpha) {
-            var color = tinycolor(rgbStr).toHsl();
+            let color = tinycolor(rgbStr).toHsl();
             //console.log("applySatMod  color.s: ", color.s, ", multiplier: ", multiplier, ", color.s * multiplier : ", color.s * multiplier)
             var cacl_s = color.s * multiplier;
             if (cacl_s >= 1) {
@@ -2572,9 +2572,9 @@ function getFillType(node) {
             svgAngle = '<linearGradient id="linGrd_' + shpId + '"' + svgAngle + '>\n';
             svg += svgAngle;
 
-            for (var i = 0; i < sal; i++) {
+            for (let i = 0; i < sal; i++) {
                 var tinClr = tinycolor("#" + color_arry[i]);
-                var alpha = tinClr.getAlpha();
+                let alpha = tinClr.getAlpha();
                 //console.log("color: ", color_arry[i], ", rgba: ", tinClr.toHexString(), ", alpha: ", alpha)
                 svg += '<stop offset="' + Math.round(parseFloat(stopsArray[i]) / 100 * sr) / sr + '" style="stop-color:' + tinClr.toHexString() + '; stop-opacity:' + (alpha) + ';"';
                 svg += '/>\n'
@@ -2589,9 +2589,9 @@ function getFillType(node) {
             if (s == 0) {
                 return sArry;
             } else {
-                var i = s;
+                let i = s;
                 while (i--) {
-                    var middleStop = 100 - ((100 / (s + 1)) * (i + 1)), // AM: Ex - For 3 middle stops, progression will be 25%, 50%, and 75%, plus 0% and 100% at the ends.
+                    let middleStop = 100 - ((100 / (s + 1)) * (i + 1)), // AM: Ex - For 3 middle stops, progression will be 25%, 50%, and 75%, plus 0% and 100% at the ends.
                         middleStopString = middleStop + "%";
                     sArry.splice(-1, 0, middleStopString);
                 } // AM: add into stopsArray before 100%
@@ -2599,7 +2599,7 @@ function getFillType(node) {
             return sArry
         }
         function SVGangle(deg, svgHeight, svgWidth) {
-            var w = parseFloat(svgWidth),
+            let w = parseFloat(svgWidth),
                 h = parseFloat(svgHeight),
                 ang = parseFloat(deg),
                 o = 2,
@@ -2649,12 +2649,12 @@ function getFillType(node) {
                     o = h;
             }
             // AM: I could not quite figure out what m, n, and o are supposed to represent from the original code on visualcsstools.com.
-            var m = o + (n / i),
+            let m = o + (n / i);
                 tx1 = tx1 == 2 ? i * (m - l) / (Math.pow(i, 2) + 1) : tx1,
                 ty1 = ty1 == 2 ? i * tx1 + l : ty1,
                 tx2 = tx2 == 2 ? w - tx1 : tx2,
-                ty2 = ty2 == 2 ? h - ty1 : ty2,
-                x1 = Math.round(tx2 / w * 100 * 100) / 100,
+                ty2 = ty2 == 2 ? h - ty1 : ty2;
+            let x1 = Math.round(tx2 / w * 100 * 100) / 100,
                 y1 = Math.round(ty2 / h * 100 * 100) / 100,
                 x2 = Math.round(tx1 / w * 100 * 100) / 100,
                 y2 = Math.round(ty1 / h * 100 * 100) / 100;
@@ -2662,29 +2662,31 @@ function getFillType(node) {
         }
         function getSvgImagePattern(node, fill, shpId, warpObj) {
             var pic_dim = getBase64ImageDimensions(fill);
-            var width = pic_dim[0];
-            var height = pic_dim[1];
+            let width = pic_dim[0];
+            let height = pic_dim[1];
             //console.log("getSvgImagePattern node:", node);
-            var blipFillNode = node["p:spPr"]["a:blipFill"];
+            let blipFillNode = node["p:spPr"]["a:blipFill"];
+            let sx = 0, sy = 0;
             var tileNode = PPTXXmlUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"])
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
-                var sx = (parseInt(tileNode["sx"]) / 100000) * width;
-                var sy = (parseInt(tileNode["sy"]) / 100000) * height;
+                sx = (parseInt(tileNode["sx"]) / 100000) * width;
+                sy = (parseInt(tileNode["sy"]) / 100000) * height;
             }
 
-            var blipNode = node["p:spPr"]["a:blipFill"]["a:blip"];
+            let blipNode = node["p:spPr"]["a:blipFill"]["a:blip"];
             var tialphaModFixNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"])
-            var imgOpacity = "";
+            let imgOpacity = "";
             if (tialphaModFixNode !== undefined && tialphaModFixNode["amt"] !== undefined && tialphaModFixNode["amt"] != "") {
                 var amt = parseInt(tialphaModFixNode["amt"]) / 100000;
-                var opacity = amt;
-                var imgOpacity = "opacity='" + opacity + "'";
+                let opacity = amt;
+                let imgOpacity = "opacity='" + opacity + "'";
 
             }
+            let ptrn = '';
             if (sx !== undefined && sx != 0) {
-                var ptrn = '<pattern id="imgPtrn_' + shpId + '" x="0" y="0"  width="' + sx + '" height="' + sy + '" patternUnits="userSpaceOnUse">';
+                ptrn = '<pattern id="imgPtrn_' + shpId + '" x="0" y="0"  width="' + sx + '" height="' + sy + '" patternUnits="userSpaceOnUse">';
             } else {
-                var ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
+                ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
             }
             var duotoneNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:duotone"])
             var fillterNode = "";
@@ -2692,17 +2694,17 @@ function getFillType(node) {
             if (duotoneNode !== undefined) {
                 //console.log("pic duotoneNode: ", duotoneNode)
                 var clr_ary = [];
-                Object.keys(duotoneNode).forEach(function (clr_type) {
-                    //Object.keys(duotoneNode[clr_type]).forEach(function (clr) {
+                Object.keys(duotoneNode).forEach(clr_type => {
+                    //Object.keys(duotoneNode[clr_type]).forEach(clr => {
                     //console.log("blip pic duotone clr: ", duotoneNode[clr_type][clr], clr)
                     if (clr_type != "attrs") {
-                        var obj = {};
+                        let obj = {};
                         obj[clr_type] = duotoneNode[clr_type];
                         //console.log("blip pic duotone obj: ", obj)
-                        var hexClr = getSolidFill(obj, undefined, undefined, warpObj)
+                        let hexClr = getSolidFill(obj, undefined, undefined, warpObj)
                         //clr_ary.push();
 
-                        var color = tinycolor("#" + hexClr);
+                        let color = tinycolor("#" + hexClr);
                         clr_ary.push(color.toRgb()); // { r: 255, g: 0, b: 0, a: 1 }
                     }
                     // })
@@ -2745,8 +2747,8 @@ function getFillType(node) {
         }
 
         function getBase64ImageDimensions(imgSrc) {
-            var image = new Image();
-            var w, h;
+            let image = new Image();
+            let w, h;
             image.onload = function () {
                 w = image.width;
                 h = image.height;
@@ -2792,7 +2794,7 @@ function getFillType(node) {
                     return "content";
                 }
             }
-            //var lvl1Rtl = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "lvl1pPr", "attrs", "rtl"]);
+            //let lvl1Rtl = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "lvl1pPr", "attrs", "rtl"]);
             // if (lvl1Rtl !== undefined) {
             //     if (lvl1Rtl == "1") {
             //         return "content-rtl";
@@ -2800,7 +2802,7 @@ function getFillType(node) {
             //         return "content";
             //     }
             // }
-            var rtlCol = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "rtlCol"]);
+            let rtlCol = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "rtlCol"]);
             if (rtlCol !== undefined) {
                 if (rtlCol == "1") {
                     return "content-rtl";
@@ -2814,7 +2816,7 @@ function getFillType(node) {
                 return "content";
             }
             var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
-            var dirLoc = "";
+            let dirLoc = "";
 
             switch (type) {
                 case "title":
@@ -2832,14 +2834,14 @@ function getFillType(node) {
                     dirLoc = "p:otherStyle";
             }
             if (slideMasterTextStyles !== undefined && dirLoc !== "") {
-                var dirVal = PPTXXmlUtils.getTextByPathList(slideMasterTextStyles[dirLoc], ["a:lvl1pPr", "attrs", "rtl"]);
+                let dirVal = PPTXXmlUtils.getTextByPathList(slideMasterTextStyles[dirLoc], ["a:lvl1pPr", "attrs", "rtl"]);
                 if (dirVal == "1") {
                     return "content-rtl";
                 }
             } 
             // else {
             //     if (type == "textBox") {
-            //         var dirVal = PPTXXmlUtils.getTextByPathList(warpObj, ["defaultTextStyle", "a:lvl1pPr", "attrs", "rtl"]);
+            //         let dirVal = PPTXXmlUtils.getTextByPathList(warpObj, ["defaultTextStyle", "a:lvl1pPr", "attrs", "rtl"]);
             //         if (dirVal == "1") {
             //             return "content-rtl";
             //         }
@@ -2857,25 +2859,25 @@ function getFillType(node) {
             //+
             //a:pPr =>a:lnSpc => a:spcPts (/?) | a:spcPct (/?)
             //console.log("getVerticalMargins ", pNode, type,idx, warpObj)
-            //var lstStyle = textBodyNode["a:lstStyle"];
-            var lvl = 1
+            //let lstStyle = textBodyNode["a:lstStyle"];
+            let lvl = 1
             var spcBefNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
             var spcAftNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
-            var lnSpcNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPct", "attrs", "val"]);
-            var lnSpcNodeType = "Pct";
+            let lnSpcNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPct", "attrs", "val"]);
+            let lnSpcNodeType = "Pct";
             if (lnSpcNode === undefined) {
                 lnSpcNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPts", "attrs", "val"]);
                 if (lnSpcNode !== undefined) {
                     lnSpcNodeType = "Pts";
                 }
             }
-            var lvlNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
+            let lvlNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "attrs", "lvl"]);
             if (lvlNode !== undefined) {
                 lvl = parseInt(lvlNode) + 1;
             }
-            var fontSize;
+            let fontSize;
             if  (PPTXXmlUtils.getTextByPathList(pNode, ["a:r"]) !== undefined) {
-                var fontSizeStr = getFontSize(pNode["a:r"], textBodyNode,undefined, lvl, type, warpObj);
+                let fontSizeStr = getFontSize(pNode["a:r"], textBodyNode,undefined, lvl, type, warpObj);
                 if (fontSizeStr != "inherit") {
                     fontSize = parseInt(fontSizeStr, "px"); //pt
                 }
@@ -2906,14 +2908,14 @@ function getFillType(node) {
             // if(spcAftNode !== undefined){
             //     //check in layout and then in master
             // }
-            var isInLayoutOrMaster = true;
+            let isInLayoutOrMaster = true;
             if(type == "shape" || type == "textBox"){
                 isInLayoutOrMaster = false;
             }
             if (isInLayoutOrMaster && (spcBefNode === undefined || spcAftNode === undefined || lnSpcNode === undefined)) {
                 //check in layout
                 if (idx !== undefined) {
-                    var laypPrNode = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "idxTable", idx, "p:txBody", "a:p", (lvl - 1), "a:pPr"]);
+                    let laypPrNode = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "idxTable", idx, "p:txBody", "a:p", (lvl - 1), "a:pPr"]);
 
                     if (spcBefNode === undefined) {
                         spcBefNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
@@ -2959,8 +2961,8 @@ function getFillType(node) {
                 //check in master
                 //slideMasterTextStyles
                 var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
-                var dirLoc = "";
-                var lvl = "a:lvl" + lvl + "pPr";
+                let dirLoc = "";
+                lvl = "a:lvl" + lvl + "pPr";
                 switch (type) {
                     case "title":
                     case "ctrTitle":
@@ -2983,7 +2985,7 @@ function getFillType(node) {
                 // if (type == "shape" || type == "textBox") {
                 //     lvl = "a:lvl1pPr";
                 // }
-                var inLvlNode = PPTXXmlUtils.getTextByPathList(slideMasterTextStyles, [dirLoc, lvl]);
+                let inLvlNode = PPTXXmlUtils.getTextByPathList(slideMasterTextStyles, [dirLoc, lvl]);
                 if (inLvlNode !== undefined) {
                     if (spcBefNode === undefined) {
                         spcBefNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
@@ -3025,7 +3027,7 @@ function getFillType(node) {
                 }
             }
             var spcBefor = 0, spcAfter = 0, spcLines = 0;
-            var marginTopBottomStr = "";
+            let marginTopBottomStr = "";
             if (spcBefNode !== undefined) {
                 spcBefor = parseInt(spcBefNode) / 100;
             }
@@ -3064,19 +3066,19 @@ function getFillType(node) {
             return marginTopBottomStr;
         }
         function getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj) {
-            var algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
+            let algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
-                //var layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
-                // var pPrNodeLaout = layoutMasterNode.nodeLaout;
-                // var pPrNodeMaster = layoutMasterNode.nodeMaster;
-                var lvlIdx = 1;
-                var lvlNode = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
+                //let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
+                // let pPrNodeLaout = layoutMasterNode.nodeLaout;
+                // let pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let lvlIdx = 1;
+                let lvlNode = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
                 if (lvlNode !== undefined) {
                     lvlIdx = parseInt(lvlNode) + 1;
                 }
-                var lvlStr = "a:lvl" + lvlIdx + "pPr";
+                let lvlStr = "a:lvl" + lvlIdx + "pPr";
 
-                var lstStyle = textBodyNode["a:lstStyle"];
+                let lstStyle = textBodyNode["a:lstStyle"];
                 algn = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr, "attrs", "algn"]);
 
                 if (algn === undefined && idx !== undefined ) {
@@ -3152,11 +3154,11 @@ function getFillType(node) {
         }
 
         function getLayoutAndMasterNode(node, idx, type, warpObj) {
-            var pPrNodeLaout, pPrNodeMaster;
+            let pPrNodeLaout, pPrNodeMaster;
             var pPrNode = node["a:pPr"];
             //lvl
-            var lvl = 1;
-            var lvlNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
+            let lvl = 1;
+            let lvlNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
             if (lvlNode !== undefined) {
                 lvl = parseInt(lvlNode) + 1;
             }
@@ -3172,7 +3174,7 @@ function getFillType(node) {
             }
             if (type !== undefined) {
                 //slidelayout
-                var lvlStr = "a:lvl" + lvl + "pPr";
+                let lvlStr = "a:lvl" + lvl + "pPr";
                 if (pPrNodeLaout === undefined) {
                     pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
                 }
@@ -3195,14 +3197,14 @@ function getFillType(node) {
             };
         }
     function getPregraphDir(node, textBodyNode, idx, type, warpObj) {
-            var rtl = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "rtl"]);
+            let rtl = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "rtl"]);
             //console.log("getPregraphDir node:", node, "textBodyNode", textBodyNode, "rtl:", rtl, "idx", idx, "type", type, "warpObj", warpObj)
           
 
             if (rtl === undefined) {
-                var layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
-                var pPrNodeLaout = layoutMasterNode.nodeLaout;
-                var pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
+                let pPrNodeLaout = layoutMasterNode.nodeLaout;
+                let pPrNodeMaster = layoutMasterNode.nodeMaster;
                 rtl = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (rtl === undefined && type != "shape") {
                     rtl = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
@@ -3230,31 +3232,31 @@ function getFillType(node) {
             if (!isBullate){
                 return ["",0];
             }
-            var marLStr = "", marRStr = "" , maginVal = 0;
+            let marLStr = "", marRStr = "" , maginVal = 0;
             var pPrNode = pNode["a:pPr"];
-            var layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
-            var pPrNodeLaout = layoutMasterNode.nodeLaout;
-            var pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
+            let pPrNodeLaout = layoutMasterNode.nodeLaout;
+            let pPrNodeMaster = layoutMasterNode.nodeMaster;
             
-            // var lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
-            // var isRtlLan = (lang !== undefined && RTL_LANGS_ARRAY.indexOf(lang) !== -1) ? true : false;
+            // let lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
+            // let isRtlLan = (lang !== undefined && RTL_LANGS_ARRAY.indexOf(lang) !== -1) ? true : false;
             //rtl
-            var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
+            let getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
                 getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (getRtlVal === undefined && type != "shape") {
                     getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
                 }
             }
-            var isRTL = false;
-            var dirStr = "ltr";
+            let isRTL = false;
+            let dirStr = "ltr";
             if (getRtlVal !== undefined && getRtlVal == "1") {
                 isRTL = true;
                 dirStr = "rtl";
             }
 
             //align
-            var alignNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "algn"]); //"l" | "ctr" | "r" | "just" | "justLow" | "dist" | "thaiDist
+            let alignNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "algn"]); //"l" | "ctr" | "r" | "just" | "justLow" | "dist" | "thaiDist
             if (alignNode === undefined) {
                 alignNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "algn"]);
                 if (alignNode === undefined) {
@@ -3262,32 +3264,32 @@ function getFillType(node) {
                 }
             }
             //indent?
-            var indentNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "indent"]);
+            let indentNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "indent"]);
             if (indentNode === undefined) {
                 indentNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "indent"]);
                 if (indentNode === undefined) {
                     indentNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "indent"]);
                 }
             }
-            var indent = 0;
+            let indent = 0;
             if (indentNode !== undefined) {
                 indent = parseInt(indentNode) * SLIDE_FACTOR;
             }
             //
             //marL
-            var marLNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"]);
+            let marLNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"]);
             if (marLNode === undefined) {
                 marLNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "marL"]);
                 if (marLNode === undefined) {
                     marLNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "marL"]);
                 }
             }
-            var marginLeft = 0;
+            let marginLeft = 0;
             if (marLNode !== undefined) {
                 marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
             }
             if ((indentNode !== undefined || marLNode !== undefined)) {
-                //var lvlIndent = defTabSz * lvl;
+                //let lvlIndent = defTabSz * lvl;
 
                 if (isRTL) {// && alignNode == "r") {
                     //marLStr = "margin-right: ";
@@ -3306,7 +3308,7 @@ function getFillType(node) {
             }
 
             //marR?
-            var marRNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"]);
+            let marRNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"]);
             if (marRNode === undefined && marLNode === undefined) {
                 //need to check if this posble - TODO
                 marRNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "marR"]);
@@ -3315,7 +3317,7 @@ function getFillType(node) {
                 }
             }
             if (marRNode !== undefined && isBullate) {
-                var marginRight = parseInt(marRNode) * SLIDE_FACTOR;
+                let marginRight = parseInt(marRNode) * SLIDE_FACTOR;
                 if (isRTL) {// && alignNode == "r") {
                     //marRStr = "margin-right: ";
                     marRStr = "padding-right: ";
