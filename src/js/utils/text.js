@@ -8,21 +8,21 @@ let is_first_br = false;
 
 
 function getTextWidth(html) {
-        var div = document.createElement('div');
+        let div = document.createElement('div');
         div.style.position = 'absolute';
         div.style.float = 'left';
         div.style.whiteSpace = 'nowrap';
         div.style.visibility = 'hidden';
         div.innerHTML = html;
         document.body.appendChild(div);
-        var width = div.offsetWidth;
+        let width = div.offsetWidth;
         document.body.removeChild(div);
         return width;
     }
 
     function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width) {
-            var text = "";
-            var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
+            let text = "";
+            let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
             if (textBodyNode === undefined) {
                 return text;
@@ -30,21 +30,21 @@ function getTextWidth(html) {
             //rtl : <p:txBody>
             //          <a:bodyPr wrap="square" rtlCol="1">
 
-            var pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
+            let pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
             //console.log("genTextBody spNode: ", PPTXXmlUtils.getTextByPathList(spNode,["p:spPr","a:xfrm","a:ext"]));
 
-            //var lstStyle = textBodyNode["a:lstStyle"];
+            //let lstStyle = textBodyNode["a:lstStyle"];
             
-            var apNode = textBodyNode["a:p"];
+            let apNode = textBodyNode["a:p"];
             if (apNode.constructor !== Array) {
                 apNode = [apNode];
             }
 
-            for (var i = 0; i < apNode.length; i++) {
-                var pNode = apNode[i];
-                var rNode = pNode["a:r"];
-                var fldNode = pNode["a:fld"];
-                var brNode = pNode["a:br"];
+            for (let i = 0; i < apNode.length; i++) {
+                let pNode = apNode[i];
+                let rNode = pNode["a:r"];
+                let fldNode = pNode["a:fld"];
+                let brNode = pNode["a:br"];
                 if (rNode !== undefined) {
                     rNode = (rNode.constructor === Array) ? rNode : [rNode];
                 }
@@ -55,7 +55,7 @@ function getTextWidth(html) {
                 if (rNode !== undefined && brNode !== undefined) {
                     is_first_br = true;
                     brNode = (brNode.constructor === Array) ? brNode : [brNode];
-                    brNode.forEach(function (item, indx) {
+                    brNode.forEach((item, indx) => {
                         item.type = "br";
                     });
                     if (brNode.length > 1) {
@@ -63,14 +63,14 @@ function getTextWidth(html) {
                     }
                     rNode = rNode.concat(brNode)
                     //console.log("single a:p  rNode:", rNode, "brNode:", brNode )
-                    rNode.sort(function (a, b) {
+                    rNode.sort((a, b) => {
                         return a.attrs.order - b.attrs.order;
                     });
                     //console.log("sorted rNode:",rNode)
                 }
-                //rtlStr = "";//"dir='"+isRTL+"'";
-                var styleText = "";
-                var marginsVer = PPTXStyleUtils.getVerticalMargins(pNode, textBodyNode, type, idx, warpObj);
+                //rtlStr = "";//`dir='${isRTL}'`;
+                let styleText = "";
+                let marginsVer = PPTXStyleUtils.getVerticalMargins(pNode, textBodyNode, type, idx, warpObj);
                 if (marginsVer != "") {
                     styleText = marginsVer;
                 }
@@ -80,7 +80,7 @@ function getTextWidth(html) {
                     styleText += "font-weight: 100;";
                     styleText += "font-style: normal;";
                 }
-                var cssName = "";
+                let cssName = "";
 
                 if (styleText in warpObj.styleTable) {
                     cssName = warpObj.styleTable[styleText]["name"];
@@ -92,40 +92,39 @@ function getTextWidth(html) {
                     };
                 }
                 //console.log("textBodyNode: ", textBodyNode["a:lstStyle"])
-                var prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
-                var prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
-                var sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * SLIDE_FACTOR) + "px;") : "width:inherit;");
-                var sld_prg_height = ((prg_height_node !== undefined) ? ("height:" + (parseInt(prg_height_node) * SLIDE_FACTOR) + "px;") : "");
-                var prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
-                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + " " +
-                    prg_dir + " " + cssName + "' >";
-                var buText_ary = genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
-                var isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
-                var bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
+                let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
+                let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
+                let sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * SLIDE_FACTOR) + "px;") : "width:inherit;");
+                let sld_prg_height = ((prg_height_node !== undefined) ? ("height:" + (parseInt(prg_height_node) * SLIDE_FACTOR) + "px;") : "");
+                let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
+                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + ` ${prg_dir} ` + cssName + "' >";
+                let buText_ary = genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
+                let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
+                let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
                 text += (buText_ary[0] !== undefined) ? buText_ary[0]:"";
                 //get text margin 
-                var margin_ary = PPTXStyleUtils.getPregraphMargn(pNode, idx, type, isBullate, warpObj);
-                var margin = margin_ary[0];
-                var mrgin_val = margin_ary[1];
+                let margin_ary = PPTXStyleUtils.getPregraphMargn(pNode, idx, type, isBullate, warpObj);
+                let margin = margin_ary[0];
+                let mrgin_val = margin_ary[1];
                 if (prg_width_node === undefined && tbl_col_width !== undefined && prg_width_node != 0){
                     //sorce : table text
                     prg_width_node = tbl_col_width;
                 }
 
-                var prgrph_text = "";
-                //var prgr_txt_art = [];
-                var total_text_len = 0;
+                let prgrph_text = "";
+                //let prgr_txt_art = [];
+                let total_text_len = 0;
                 if (rNode === undefined && pNode !== undefined) {
                     // without r
-                    var prgr_text = genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
+                    let prgr_text = genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
                     if (isBullate) {
                         total_text_len += getTextWidth(prgr_text);
                     }
                     prgrph_text += prgr_text;
                 } else if (rNode !== undefined) {
                     // with multi r
-                    for (var j = 0; j < rNode.length; j++) {
-                        var prgr_text = genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
+                    for (let j = 0; j < rNode.length; j++) {
+                        let prgr_text = genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
                         if (isBullate) {
                             total_text_len += getTextWidth(prgr_text);
                         }
@@ -142,7 +141,7 @@ function getTextWidth(html) {
                         prg_width_node = total_text_len + bu_width;
                     }
                 }
-                var prg_width = ((prg_width_node !== undefined) ? ("width:" + (prg_width_node )) + "px;" : "width:inherit;");
+                let prg_width = ((prg_width_node !== undefined) ? ("width:" + (prg_width_node )) + "px;" : "width:inherit;");
                 text += "<div style='height: 100%;direction: initial;overflow-wrap:break-word;word-wrap: break-word;" + prg_width + margin + "' >";
                 text += prgrph_text;
                 text += "</div>";
@@ -155,19 +154,19 @@ function getTextWidth(html) {
         function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
             //console.log("genBuChar node: ", node, ", spNode: ", spNode, ", pFontStyle: ", pFontStyle, "type", type)
             ///////////////////////////////////////Amir///////////////////////////////
-            var sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
-            var lstStyle = textBodyNode["a:lstStyle"];
+            let sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
+            let lstStyle = textBodyNode["a:lstStyle"];
 
-            var rNode = PPTXXmlUtils.getTextByPathList(node, ["a:r"]);
+            let rNode = PPTXXmlUtils.getTextByPathList(node, ["a:r"]);
             if (rNode !== undefined && rNode.constructor === Array) {
                 rNode = rNode[0]; //bullet only to first "a:r"
             }
-            var lvl = parseInt (PPTXXmlUtils.getTextByPathList(node["a:pPr"], ["attrs", "lvl"])) + 1;
+            let lvl = parseInt (PPTXXmlUtils.getTextByPathList(node["a:pPr"], ["attrs", "lvl"])) + 1;
             if (isNaN(lvl)) {
                 lvl = 1;
             }
-            var lvlStr = "a:lvl" + lvl + "pPr";
-            var dfltBultColor, dfltBultSize, bultColor, bultSize, color_tye;
+            let lvlStr = `a:lvl${lvl}pPr`;
+            let dfltBultColor, dfltBultSize, bultColor, bultSize, color_tye;
 
             if (rNode !== undefined) {
                 dfltBultColor = PPTXStyleUtils.getFontColorPr(rNode, spNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
@@ -178,25 +177,25 @@ function getTextWidth(html) {
             }
             //console.log("Bullet Size: " + bultSize);
 
-            var bullet = "", marRStr = "", marLStr = "", margin_val=0, font_val=0;
+            let bullet = "", marRStr = "", marLStr = "", margin_val=0, font_val=0;
             /////////////////////////////////////////////////////////////////
 
 
-            var pPrNode = node["a:pPr"];
-            var BullNONE = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buNone"]);
+            let pPrNode = node["a:pPr"];
+            let BullNONE = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buNone"]);
             if (BullNONE !== undefined) {
                 return "";
             }
 
-            var buType = "TYPE_NONE";
+            let buType = "TYPE_NONE";
 
-            var layoutMasterNode = PPTXStyleUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
-            var pPrNodeLaout = layoutMasterNode.nodeLaout;
-            var pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let layoutMasterNode = PPTXStyleUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
+            let pPrNodeLaout = layoutMasterNode.nodeLaout;
+            let pPrNodeMaster = layoutMasterNode.nodeMaster;
 
-            var buChar = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buChar", "attrs", "char"]);
-            var buNum = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buAutoNum", "attrs", "type"]);
-            var buPic = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buBlip"]);
+            let buChar = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buChar", "attrs", "char"]);
+            let buNum = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buAutoNum", "attrs", "type"]);
+            let buPic = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buBlip"]);
             if (buChar !== undefined) {
                 buType = "TYPE_BULLET";
             }
@@ -207,14 +206,14 @@ function getTextWidth(html) {
                 buType = "TYPE_BULPIC";
             }
 
-            var buFontSize = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buSzPts", "attrs", "val"]);
+            let buFontSize = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buSzPts", "attrs", "val"]);
             if (buFontSize === undefined) {
                 buFontSize = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buSzPct", "attrs", "val"]);
                 if (buFontSize !== undefined) {
-                    var prcnt = parseInt(buFontSize) / 100000;
+                    let prcnt = parseInt(buFontSize) / 100000;
                     //dfltBultSize = XXpt
-                    //var dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
-                    var dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
+                    //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
+                    let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
                     bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
                 }
             } else {
@@ -222,7 +221,7 @@ function getTextWidth(html) {
             }
 
             //get definde bullet COLOR
-            var buClrNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buClr"]);
+            let buClrNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buClr"]);
 
 
             if (buChar === undefined && buNum === undefined && buPic === undefined) {
@@ -298,19 +297,19 @@ function getTextWidth(html) {
 
             }
             //rtl
-            var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
+            let getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
                 getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (getRtlVal === undefined && type != "shape") {
                     getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
                 }
             }
-            var isRTL = false;
+            let isRTL = false;
             if (getRtlVal !== undefined && getRtlVal == "1") {
                 isRTL = true;
             }
             //align
-            var alignNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "algn"]); //"l" | "ctr" | "r" | "just" | "justLow" | "dist" | "thaiDist
+            let alignNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "algn"]); //"l" | "ctr" | "r" | "just" | "justLow" | "dist" | "thaiDist
             if (alignNode === undefined) {
                 alignNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "algn"]);
                 if (alignNode === undefined) {
@@ -318,19 +317,19 @@ function getTextWidth(html) {
                 }
             }
             //indent?
-            var indentNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "indent"]);
+            let indentNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "indent"]);
             if (indentNode === undefined) {
                 indentNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "indent"]);
                 if (indentNode === undefined) {
                     indentNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "indent"]);
                 }
             }
-            var indent = 0;
+            let indent = 0;
             if (indentNode !== undefined) {
                 indent = parseInt(indentNode) * SLIDE_FACTOR;
             }
             //marL
-            var marLNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"]);
+            let marLNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"]);
             if (marLNode === undefined) {
                 marLNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "marL"]);
                 if (marLNode === undefined) {
@@ -339,7 +338,7 @@ function getTextWidth(html) {
             }
             //console.log("genBuChar() isRTL", isRTL, "alignNode:", alignNode)
             if (marLNode !== undefined) {
-                var marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
+                let marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
                 if (isRTL) {// && alignNode == "r") {
                     marLStr = "padding-right:";// "margin-right: ";
                 } else {
@@ -350,7 +349,7 @@ function getTextWidth(html) {
             }
             
             //marR?
-            var marRNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"]);
+            let marRNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"]);
             if (marRNode === undefined && marLNode === undefined) {
                 //need to check if this posble - TODO
                 marRNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "marR"]);
@@ -359,7 +358,7 @@ function getTextWidth(html) {
                 }
             }
             if (marRNode !== undefined) {
-                var marginRight = parseInt(marRNode) * SLIDE_FACTOR;
+                let marginRight = parseInt(marRNode) * SLIDE_FACTOR;
                 if (isRTL) {// && alignNode == "r") {
                     marLStr = "padding-right:";// "margin-right: ";
                 } else {
@@ -369,7 +368,7 @@ function getTextWidth(html) {
             }
 
             if (buType != "TYPE_NONE") {
-                //var buFontAttrs = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs"]);
+                //let buFontAttrs = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs"]);
             }
             //console.log("Bullet Type: " + buType);
             //console.log("NumericTypr: " + buNum);
@@ -385,7 +384,7 @@ function getTextWidth(html) {
                     buClrNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buClr"]);
                 }
             }
-            var defBultColor;
+            let defBultColor;
             if (buClrNode !== undefined) {
                 defBultColor = PPTXStyleUtils.getSolidFill(buClrNode, undefined, undefined, warpObj);
             } else {
@@ -409,9 +408,9 @@ function getTextWidth(html) {
                 if (buFontSize === undefined) {
                     buFontSize = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buSzPct", "attrs", "val"]);
                     if (buFontSize !== undefined) {
-                        var prcnt = parseInt(buFontSize) / 100000;
-                        //var dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
-                        var dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
+                        let prcnt = parseInt(buFontSize) / 100000;
+                        //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
+                        let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
                         bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
                     }
                 }else{
@@ -423,10 +422,10 @@ function getTextWidth(html) {
                 if (buFontSize === undefined) {
                     buFontSize = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:buSzPct", "attrs", "val"]);
                     if (buFontSize !== undefined) {
-                        var prcnt = parseInt(buFontSize) / 100000;
+                        let prcnt = parseInt(buFontSize) / 100000;
                         //dfltBultSize = XXpt
-                        //var dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
-                        var dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
+                        //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
+                        let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
                         bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
                     }
                 } else {
@@ -439,13 +438,13 @@ function getTextWidth(html) {
             font_val = parseInt(bultSize, "px");
             ////////////////////////////////////////////////////////////////////////
             if (buType == "TYPE_BULLET") {
-                var typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
-                var typeface = "";
+                let typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
+                let typeface = "";
                 if (typefaceNode !== undefined) {
                     typeface = "font-family: " + typefaceNode;
                 }
-                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * SLIDE_FACTOR;
-                // var marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * SLIDE_FACTOR;
+                // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * SLIDE_FACTOR;
+                // let marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * SLIDE_FACTOR;
                 // if (isNaN(marginLeft)) {
                 //     marginLeft = 328600 * SLIDE_FACTOR;
                 // }
@@ -453,9 +452,9 @@ function getTextWidth(html) {
                 //     marginRight = 0;
                 // }
 
-                bullet = "<div style='height: 100%;" + typeface + ";" +
+                bullet = `<div style='height: 100%;${typeface};` +
                     marLStr + marRStr +
-                    "font-size:" + bultSize + ";" ;
+                    `font-size:${bultSize};` ;
                 
                 //bullet += "display: table-cell;";
                 //"line-height: 0px;";
@@ -493,11 +492,11 @@ function getTextWidth(html) {
 
                     } else if (color_tye == "gradient") {
 
-                        var colorAry = bultColor[0].color;
-                        var rot = bultColor[0].rot;
+                        let colorAry = bultColor[0].color;
+                        let rot = bultColor[0].rot;
 
-                        bullet += "background: linear-gradient(" + rot + "deg,";
-                        for (var i = 0; i < colorAry.length; i++) {
+                        bullet += `background: linear-gradient(${rot}deg,`;
+                        for (let i = 0; i < colorAry.length; i++) {
                             if (i == colorAry.length - 1) {
                                 bullet += "#" + colorAry[i] + ");";
                             } else {
@@ -524,24 +523,24 @@ function getTextWidth(html) {
                     //bullet += "display: inline-block;white-space: nowrap ;direction:rtl"; // float: right;  
                     bullet += "white-space: nowrap ;direction:rtl"; // display: table-cell;;
                 }
-                var isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
-                var htmlBu = buChar;
+                let isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
+                let htmlBu = buChar;
 
                 if (!isIE11) {
                     //ie11 does not support unicode ?
                     htmlBu = getHtmlBullet(typefaceNode, buChar);
                 }
-                bullet += "'><div style='line-height: " + (font_val/2) + "px;'>" + htmlBu + "</div></div>"; //font_val
+                bullet += "'><div style='line-height: " + (font_val/2) + `px;'>${htmlBu}</div></div>`; //font_val
                 //} 
                 // else {
                 //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
 
-                //     bullet = "<div style='" + marLStr + "'>" + buChar + "</div>";
+                //     bullet = `<div style='${marLStr}'>` + buChar + "</div>";
                 // }
             } else if (buType == "TYPE_NUMERIC") { ///////////Amir///////////////////////////////
                 //if (buFontAttrs !== undefined) {
-                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
-                // var marginRight = parseInt(buFontAttrs["pitchFamily"]);
+                // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
+                // let marginRight = parseInt(buFontAttrs["pitchFamily"]);
 
                 // if (isNaN(marginLeft)) {
                 //     marginLeft = 328600 * SLIDE_FACTOR;
@@ -549,32 +548,32 @@ function getTextWidth(html) {
                 // if (isNaN(marginRight)) {
                 //     marginRight = 0;
                 // }
-                //var typeface = buFontAttrs["typeface"];
+                //let typeface = buFontAttrs["typeface"];
 
                 bullet = "<div style='height: 100%;" + marLStr + marRStr +
                     "color:#" + bultColor[0] + ";" +
-                    "font-size:" + bultSize + ";";// +
+                    `font-size:${bultSize};`;// +
                 //"line-height: 0px;";
                 if (isRTL) {
                     bullet += "display: inline-block;white-space: nowrap ;direction:rtl;"; // float: right;
                 } else {
                     bullet += "display: inline-block;white-space: nowrap ;direction:ltr;"; //float: left;
                 }
-                bullet += "' data-bulltname = '" + buNum + "' data-bulltlvl = '" + lvl + "' class='numeric-bullet-style'></div>";
+                bullet += `' data-bulltname = '${buNum}' data-bulltlvl = '` + lvl + "' class='numeric-bullet-style'></div>";
                 // } else {
                 //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
-                //     bullet = "<div style='margin-left: " + marginLeft + "px;";
+                //     bullet = `<div style='margin-left: ${marginLeft}px;`;
                 //     if (isRTL) {
                 //         bullet += " float: right; direction:rtl;";
                 //     } else {
                 //         bullet += " float: left; direction:ltr;";
                 //     }
-                //     bullet += "' data-bulltname = '" + buNum + "' data-bulltlvl = '" + lvl + "' class='numeric-bullet-style'></div>";
+                //     bullet += `' data-bulltname = '${buNum}' data-bulltlvl = '` + lvl + "' class='numeric-bullet-style'></div>";
                 // }
 
             } else if (buType == "TYPE_BULPIC") { //PIC BULLET
-                // var marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
-                // var marginRight = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"])) * SLIDE_FACTOR;
+                // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
+                // let marginRight = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marR"])) * SLIDE_FACTOR;
 
                 // if (isNaN(marginRight)) {
                 //     marginRight = 0;
@@ -586,31 +585,31 @@ function getTextWidth(html) {
                 // } else {
                 //     marginLeft = 0;
                 // }
-                //var buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip","a:extLst","a:ext","asvg:svgBlip" , "attrs", "r:embed"]);
-                var buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
-                var svgPicPath = "";
-                var buImg;
+                //let buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip","a:extLst","a:ext","asvg:svgBlip" , "attrs", "r:embed"]);
+                let buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
+                let svgPicPath = "";
+                let buImg;
                 if (buPicId !== undefined) {
                     //svgPicPath = warpObj["slideResObj"][buPicId]["target"];
                     //buImg = warpObj["zip"].file(svgPicPath).asText();
                     //}else{
                     //buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
-                    var imgPath = (warpObj["slideResObj"][buPicId] !== undefined) ? warpObj["slideResObj"][buPicId]["target"] : undefined;
+                    let imgPath = (warpObj["slideResObj"][buPicId] !== undefined) ? warpObj["slideResObj"][buPicId]["target"] : undefined;
                     //console.log("imgPath: ", imgPath);
                     if (imgPath === undefined) {
                         console.warn("Bullet image reference not found for buPicId:", buPicId);
                         buImg = "";
                     } else {
-                        var imgFile = warpObj["zip"].file(imgPath);
+                        let imgFile = warpObj["zip"].file(imgPath);
                         if (imgFile === null) {
                             console.warn("Bullet image file not found:", imgPath);
                             buImg = "";
                         } else {
-                            var imgArrayBuffer = imgFile.asArrayBuffer();
-                            var imgExt = imgPath.split(".").pop();
-                            var imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
-                            buImg = "<img src='data:" + imgMimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
-                            //console.log("imgPath: "+imgPath+"\nimgMimeType: "+imgMimeType)
+                            let imgArrayBuffer = imgFile.asArrayBuffer();
+                            let imgExt = imgPath.split(".").pop();
+                            let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
+                            buImg = `<img src='data:${imgMimeType};base64,` + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
+                            //console.log(`imgPath: ${imgPath}\nimgMimeType: `+imgMimeType)
                         }
                     }
                 }
@@ -618,17 +617,17 @@ function getTextWidth(html) {
                     buImg = "&#8227;";
                 }
                 bullet = "<div style='height: 100%;" + marLStr + marRStr +
-                    "width:" + bultSize + ";display: inline-block; ";// +
+                    `width:${bultSize};display: inline-block; `;// +
                 //"line-height: 0px;";
                 if (isRTL) {
                     bullet += "display: inline-block;white-space: nowrap ;direction:rtl;"; //direction:rtl; float: right;
                 }
-                bullet += "'>" + buImg + "  </div>";
+                bullet += `'>${buImg}  </div>`;
                 //////////////////////////////////////////////////////////////////////////////////////
             }
             // else {
             //     bullet = "<div style='margin-left: " + 328600 * SLIDE_FACTOR * lvl + "px" +
-            //         "; margin-right: " + 0 + "px;'></div>";
+            //         `; margin-right: ${0}px;'></div>`;
             // }
             //console.log("genBuChar: width: ", $(bullet).outerWidth())
             return [bullet, margin_val, font_val];//$(bullet).outerWidth()];
@@ -655,9 +654,9 @@ function getTextWidth(html) {
                     break;
                 default:
                     if (/*typefaceNode == "Wingdings" ||*/ typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3"){
-                        var wingCharCode =  getDingbatToUnicode(typefaceNode, buChar);
+                        let wingCharCode =  getDingbatToUnicode(typefaceNode, buChar);
                         if (wingCharCode !== null){
-                            return "&#" + wingCharCode + ";";
+                            return `&#${wingCharCode};`;
                         }
                     }
                     return "&#" + (buChar.charCodeAt(0)) + ";";
@@ -665,13 +664,13 @@ function getTextWidth(html) {
         }
         function getDingbatToUnicode(typefaceNode, buChar){
             if (dingbatUnicode){
-                var dingbat_code = buChar.codePointAt(0) & 0xFFF;
-                var char_unicode = null;
-                var len = dingbatUnicode.length;
-                var i = 0;
+                let dingbat_code = buChar.codePointAt(0) & 0xFFF;
+                let char_unicode = null;
+                let len = dingbatUnicode.length;
+                let i = 0;
                 while (len--) {
                     // blah blah
-                    var item = dingbatUnicode[i];
+                    let item = dingbatUnicode[i];
                     if (item.f == typefaceNode && item.code == dingbat_code) {
                         char_unicode = item.unicode;
                         break;
@@ -690,7 +689,7 @@ function getTextWidth(html) {
      */
     function alphaNumeric(num, upperLower) {
         num = Number(num) - 1;
-        var aNum = "";
+        let aNum = "";
         if (upperLower == "upperCase") {
             aNum = (((num / 26 >= 1) ? String.fromCharCode(num / 26 + 64) : '') + String.fromCharCode(num % 26 + 65)).toUpperCase();
         } else if (upperLower == "lowerCase") {
@@ -705,12 +704,12 @@ function getTextWidth(html) {
      * @returns {Object} 包含format方法的对象
      */
     function archaicNumbers(arr) {
-        var arrParse = arr.slice().sort(function (a, b) { return b[1].length - a[1].length });
+        let arrParse = arr.slice().sort((a, b) => { return b[1].length - a[1].length });
         return {
-            format: function (n) {
-                var ret = '';
-                for (var i = 0; i < arr.length; i++) {
-                    var num = arr[i][0];
+            format: (n) => {
+                let ret = '';
+                for (let i = 0; i < arr.length; i++) {
+                    let num = arr[i][0];
                     if (parseInt(num) > 0) {
                         for (; n >= num; n -= num) ret += arr[i][1];
                     } else {
@@ -730,7 +729,7 @@ function getTextWidth(html) {
     function romanize(num) {
         if (!+num)
             return false;
-        var digits = String(+num).split(""),
+        let digits = String(+num).split(""),
             key = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM",
                 "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC",
                 "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"],
@@ -740,7 +739,7 @@ function getTextWidth(html) {
             roman = (key[+digits.pop() + (i * 10)] || "") + roman;
         return Array(+digits.join("") + 1).join("M") + roman;
     }
-    var hebrew2Minus = archaicNumbers([
+    let hebrew2Minus = archaicNumbers([
             [1000, ''],
             [400, 'ת'],
             [300, 'ש'],
@@ -776,7 +775,7 @@ function getTextWidth(html) {
      * @returns {string} 格式化的数字字符串
      */
     function getNumTypeNum(numTyp, num) {
-        var rtrnNum = "";
+        let rtrnNum = "";
         switch (numTyp) {
             case "arabicPeriod":
                 rtrnNum = num + ". ";
@@ -815,16 +814,16 @@ function getTextWidth(html) {
 
     function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
             //https://codepen.io/imdunn/pen/GRgwaye ?
-            var text_style = "";
-            var lstStyle = textBodyNode["a:lstStyle"];
-            var slideMasterTextStyles = warpObj["slideMasterTextStyles"];
+            let text_style = "";
+            let lstStyle = textBodyNode["a:lstStyle"];
+            let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
-            var text = node["a:t"];
-            //var text_count = text.length;
+            let text = node["a:t"];
+            //let text_count = text.length;
 
-            var openElemnt = "<span";//"<bdi";
-            var closeElemnt = "</span>";// "</bdi>";
-            var styleText = "";
+            let openElemnt = "<span";//"<bdi";
+            let closeElemnt = "</span>";// "</bdi>";
+            let styleText = "";
             if (text === undefined && node["type"] !== undefined) {
                 if (is_first_br) {
                     //openElemnt = "<br";
@@ -856,48 +855,48 @@ function getTextWidth(html) {
                 // }
             }
 
-            var pPrNode = pNode["a:pPr"];
+            let pPrNode = pNode["a:pPr"];
             //lvl
-            var lvl = 1;
-            var lvlNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
+            let lvl = 1;
+            let lvlNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
             if (lvlNode !== undefined) {
                 lvl = parseInt(lvlNode) + 1;
             }
             //console.log("genSpanElement node: ", node, "rIndex: ", rIndex, ", pNode: ", pNode, ",pPrNode: ", pPrNode, "pFontStyle:", pFontStyle, ", idx: ", idx, "type:", type, warpObj);
-            var layoutMasterNode = PPTXStyleUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
-            var pPrNodeLaout = layoutMasterNode.nodeLaout;
-            var pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let layoutMasterNode = PPTXStyleUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
+            let pPrNodeLaout = layoutMasterNode.nodeLaout;
+            let pPrNodeMaster = layoutMasterNode.nodeMaster;
 
             //Language
-            var lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
-            var isRtlLan = (lang !== undefined && RTL_LANGS_ARRAY.indexOf(lang) !== -1)?true:false;
+            let lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
+            let isRtlLan = (lang !== undefined && RTL_LANGS_ARRAY.indexOf(lang) !== -1)?true:false;
             //rtl
-            var getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
+            let getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
                 getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (getRtlVal === undefined && type != "shape") {
                     getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
                 }
             }
-            var isRTL = false;
-            var dirStr = "ltr";
+            let isRTL = false;
+            let dirStr = "ltr";
             if (getRtlVal !== undefined && getRtlVal == "1") {
                 isRTL = true;
                 dirStr = "rtl";
             }
 
-            var linkID = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "r:id"]);
-            var linkTooltip = "";
-            var defLinkClr;
+            let linkID = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "r:id"]);
+            let linkTooltip = "";
+            let defLinkClr;
             if (linkID !== undefined) {
                 linkTooltip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "tooltip"]);
                 if (linkTooltip !== undefined) {
-                    linkTooltip = "title='" + linkTooltip + "'";
+                    linkTooltip = `title='${linkTooltip}'`;
                 }
                 defLinkClr = PPTXStyleUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
 
-                var linkClrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
-                var rPrlinkClr = PPTXStyleUtils.getSolidFill(linkClrNode, undefined, undefined, warpObj);
+                let linkClrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
+                let rPrlinkClr = PPTXStyleUtils.getSolidFill(linkClrNode, undefined, undefined, warpObj);
 
 
                 //console.log("genSpanElement defLinkClr: ", defLinkClr, "rPrlinkClr:", rPrlinkClr)
@@ -908,15 +907,15 @@ function getTextWidth(html) {
             }
             /////////////////////////////////////////////////////////////////////////////////////
             //getFontColor
-            var fontClrPr = PPTXStyleUtils.getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
-            var fontClrType = fontClrPr[2];
+            let fontClrPr = PPTXStyleUtils.getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
+            let fontClrType = fontClrPr[2];
             //console.log("genSpanElement fontClrPr: ", fontClrPr, "linkID", linkID);
             if (fontClrType == "solid") {
                 if (linkID === undefined && fontClrPr[0] !== undefined && fontClrPr[0] != "") {
                     styleText += "color: #" + fontClrPr[0] + ";";
                 }
                 else if (linkID !== undefined && defLinkClr !== undefined) {
-                    styleText += "color: #" + defLinkClr + ";";
+                    styleText += `color: #${defLinkClr};`;
                 }
 
                 if (fontClrPr[1] !== undefined && fontClrPr[1] != "" && fontClrPr[1] != ";") {
@@ -947,11 +946,11 @@ function getTextWidth(html) {
                     //     "-webkit-text-stroke: " + fontClrPr[1].border + ";";
                 } else if (fontClrType == "gradient") {
 
-                    var colorAry = fontClrPr[0].color;
-                    var rot = fontClrPr[0].rot;
+                    let colorAry = fontClrPr[0].color;
+                    let rot = fontClrPr[0].rot;
 
-                    styleText += "background: linear-gradient(" + rot + "deg,";
-                    for (var i = 0; i < colorAry.length; i++) {
+                    styleText += `background: linear-gradient(${rot}deg,`;
+                    for (let i = 0; i < colorAry.length; i++) {
                         if (i == colorAry.length - 1) {
                             styleText += "#" + colorAry[i] + ");";
                         } else {
@@ -974,10 +973,10 @@ function getTextWidth(html) {
                     styleText += "filter: " + fontClrPr[1].effcts + ";";
                 }
             }
-            var font_size = PPTXStyleUtils.getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj);
-            //text_style += "font-size:" + font_size + ";"
+            let font_size = PPTXStyleUtils.getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj);
+            //text_style += `font-size:${font_size};`
             
-            text_style += "font-size:" + font_size + ";" +
+            text_style += `font-size:${font_size};` +
                 // marLStr +
                 "font-family:" + PPTXStyleUtils.getFontType(node, type, warpObj, pFontStyle) + ";" +
                 "font-weight:" + PPTXStyleUtils.getFontBold(node, type, slideMasterTextStyles) + ";" +
@@ -1015,18 +1014,18 @@ function getTextWidth(html) {
             //     styleText += "direction:inherit;";
             // }
 
-            //     //"direction:" + dirStr + ";";
+            //     //`direction:${dirStr};`;
             //if (rNodeLength == 1 || rIndex == 0 ){
             //styleText += "display: table-cell;white-space: nowrap;";
             //}
-            var highlight = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:highlight"]);
+            let highlight = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:highlight"]);
             if (highlight !== undefined) {
                 styleText += "background-color:#" + PPTXStyleUtils.getSolidFill(highlight, undefined, undefined, warpObj) + ";";
                 //styleText += "Opacity:" + getColorOpacity(highlight) + ";";
             }
 
             //letter-spacing:
-            var spcNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "spc"]);
+            let spcNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "spc"]);
             if (spcNode === undefined) {
                 spcNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "attrs", "spc"]);
                 if (spcNode === undefined) {
@@ -1034,12 +1033,12 @@ function getTextWidth(html) {
                 }
             }
             if (spcNode !== undefined) {
-                var ltrSpc = parseInt(spcNode) / 100; //pt
-                styleText += "letter-spacing: " + ltrSpc + "px;";// + "pt;";
+                let ltrSpc = parseInt(spcNode) / 100; //pt
+                styleText += `letter-spacing: ${ltrSpc}px;`;// + "pt;";
             }
 
             //Text Cap Types
-            var capNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "cap"]);
+            let capNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "cap"]);
             if (capNode === undefined) {
                 capNode = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "attrs", "cap"]);
                 if (capNode === undefined) {
@@ -1052,7 +1051,7 @@ function getTextWidth(html) {
             //styleText += "word-break: break-word;";
             //console.log("genSpanElement node: ", node, ", capNode: ", capNode, ",pPrNodeLaout: ", pPrNodeLaout, ", pPrNodeMaster: ", pPrNodeMaster, "warpObj:", warpObj);
 
-            var cssName = "";
+            let cssName = "";
 
             if (styleText in warpObj.styleTable) {
                 cssName = warpObj.styleTable[styleText]["name"];
@@ -1063,18 +1062,18 @@ function getTextWidth(html) {
                     "text": styleText
                 };
             }
-            var linkColorSyle = "";
+            let linkColorSyle = "";
             if (fontClrType == "solid" && linkID !== undefined) {
                 linkColorSyle = "style='color: inherit;'";
             }
 
             if (linkID !== undefined && linkID != "") {
-                var linkURL = warpObj["slideResObj"][linkID]["target"];
+                let linkURL = warpObj["slideResObj"][linkID]["target"];
                 linkURL = PPTXXmlUtils.escapeHtml(linkURL);
-                return openElemnt + " class='text-block " + cssName + "' style='" + text_style + "'><a href='" + linkURL + "' " + linkColorSyle + "  " + linkTooltip + " target='_blank'>" +
+                return openElemnt + ` class='text-block ${cssName}' style='` + text_style + `'><a href='${linkURL}' ` + linkColorSyle + `  ${linkTooltip} target='_blank'>` +
                         text.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\s/g, "&nbsp;") + "</a>" + closeElemnt;
             } else {
-                return openElemnt + " class='text-block " + cssName + "' style='" + text_style + "'>" + text.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\s/g, "&nbsp;") + closeElemnt;//"</bdi>";
+                return openElemnt + ` class='text-block ${cssName}' style='` + text_style + "'>" + text.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\s/g, "&nbsp;") + closeElemnt;//"</bdi>";
             }
 
         }
@@ -1082,19 +1081,19 @@ function getTextWidth(html) {
     
         function genChart(node, warpObj) {
 
-            var order = node["attrs"]["order"];
-            var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
-            var result = "<div id='chart" + warpObj.chartId + "' class='block content' style='" +
+            let order = node["attrs"]["order"];
+            let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
+            let result = "<div id='chart" + warpObj.chartId + "' class='block content' style='" +
                 PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined) + PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
-                " z-index: " + order + ";'></div>";
+                ` z-index: ${order};'></div>`;
 
-            var rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
-            var refName = warpObj["slideResObj"][rid]["target"];
-            var content = PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
-            var plotArea = PPTXXmlUtils.getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
+            let rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
+            let refName = warpObj["slideResObj"][rid]["target"];
+            let content = PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
+            let plotArea = PPTXXmlUtils.getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
 
-            var chartData = null;
-            for (var key in plotArea) {
+            let chartData = null;
+            for (let key in plotArea) {
                 switch (key) {
                     case "c:lineChart":
                         chartData = {
@@ -1173,25 +1172,25 @@ function getTextWidth(html) {
         }
 
         function genTable(node, warpObj) {
-            var order = node["attrs"]["order"];
-            var tableNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
-            var xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
+            let order = node["attrs"]["order"];
+            let tableNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
+            let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
             /////////////////////////////////////////Amir////////////////////////////////////////////////
-            var getTblPr = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblPr"]);
-            var getColsGrid = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblGrid", "a:gridCol"]);
-            var tblDir = "";
+            let getTblPr = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblPr"]);
+            let getColsGrid = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblGrid", "a:gridCol"]);
+            let tblDir = "";
             if (getTblPr !== undefined) {
-                var isRTL = getTblPr["attrs"]["rtl"];
+                let isRTL = getTblPr["attrs"]["rtl"];
                 tblDir = (isRTL == 1 ? "dir=rtl" : "dir=ltr");
             }
-            var firstRowAttr = getTblPr["attrs"]["firstRow"]; //associated element <a:firstRow> in the table styles
-            var firstColAttr = getTblPr["attrs"]["firstCol"]; //associated element <a:firstCol> in the table styles
-            var lastRowAttr = getTblPr["attrs"]["lastRow"]; //associated element <a:lastRow> in the table styles
-            var lastColAttr = getTblPr["attrs"]["lastCol"]; //associated element <a:lastCol> in the table styles
-            var bandRowAttr = getTblPr["attrs"]["bandRow"]; //associated element <a:band1H>, <a:band2H> in the table styles
-            var bandColAttr = getTblPr["attrs"]["bandCol"]; //associated element <a:band1V>, <a:band2V> in the table styles
+            let firstRowAttr = getTblPr["attrs"]["firstRow"]; //associated element <a:firstRow> in the table styles
+            let firstColAttr = getTblPr["attrs"]["firstCol"]; //associated element <a:firstCol> in the table styles
+            let lastRowAttr = getTblPr["attrs"]["lastRow"]; //associated element <a:lastRow> in the table styles
+            let lastColAttr = getTblPr["attrs"]["lastCol"]; //associated element <a:lastCol> in the table styles
+            let bandRowAttr = getTblPr["attrs"]["bandRow"]; //associated element <a:band1H>, <a:band2H> in the table styles
+            let bandColAttr = getTblPr["attrs"]["bandCol"]; //associated element <a:band1V>, <a:band2V> in the table styles
             //console.log("getTblPr: ", getTblPr);
-            var tblStylAttrObj = {
+            let tblStylAttrObj = {
                 isFrstRowAttr: (firstRowAttr !== undefined && firstRowAttr == "1") ? 1 : 0,
                 isFrstColAttr: (firstColAttr !== undefined && firstColAttr == "1") ? 1 : 0,
                 isLstRowAttr: (lastRowAttr !== undefined && lastRowAttr == "1") ? 1 : 0,
@@ -1200,13 +1199,13 @@ function getTextWidth(html) {
                 isBandColAttr: (bandColAttr !== undefined && bandColAttr == "1") ? 1 : 0
             }
 
-            var thisTblStyle;
-            var tbleStyleId = getTblPr["a:tableStyleId"];
+            let thisTblStyle;
+            let tbleStyleId = getTblPr["a:tableStyleId"];
             if (tbleStyleId !== undefined) {
-                var tbleStylList = warpObj.tableStyles["a:tblStyleLst"]["a:tblStyle"];
+                let tbleStylList = warpObj.tableStyles["a:tblStyleLst"]["a:tblStyle"];
                 if (tbleStylList !== undefined) {
                     if (tbleStylList.constructor === Array) {
-                        for (var k = 0; k < tbleStylList.length; k++) {
+                        for (let k = 0; k < tbleStylList.length; k++) {
                             if (tbleStylList[k]["attrs"]["styleId"] == tbleStyleId) {
                                 thisTblStyle = tbleStylList[k];
                             }
@@ -1222,15 +1221,15 @@ function getTextWidth(html) {
                 thisTblStyle["tblStylAttrObj"] = tblStylAttrObj;
                 warpObj["thisTbiStyle"] = thisTblStyle;
             }
-            var tblStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle"]);
-            var tblBorderStyl = PPTXXmlUtils.getTextByPathList(tblStyl, ["a:tcBdr"]);
-            var tbl_borders = "";
+            let tblStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle"]);
+            let tblBorderStyl = PPTXXmlUtils.getTextByPathList(tblStyl, ["a:tcBdr"]);
+            let tbl_borders = "";
             if (tblBorderStyl !== undefined) {
                 tbl_borders = PPTXStyleUtils.getTableBorders(tblBorderStyl, warpObj);
             }
-            var tbl_bgcolor = "";
-            var tbl_opacity = 1;
-            var tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
+            let tbl_bgcolor = "";
+            let tbl_opacity = 1;
+            let tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
             //console.log( "thisTblStyle:", thisTblStyle, "warpObj:", warpObj)
             if (tbl_bgFillschemeClr !== undefined) {
                 tbl_bgcolor = PPTXStyleUtils.getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
@@ -1240,56 +1239,55 @@ function getTextWidth(html) {
                 tbl_bgcolor = PPTXStyleUtils.getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
             }
             if (tbl_bgcolor !== "") {
-                tbl_bgcolor = "background-color: #" + tbl_bgcolor + ";";
+                tbl_bgcolor = `background-color: #${tbl_bgcolor};`;
             }
             ////////////////////////////////////////////////////////////////////////////////////////////
-            var tableHtml = "<table " + tblDir + " style='border-collapse: collapse;" +
+            let tableHtml = `<table ${tblDir} style='border-collapse: collapse;` +
                 PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined) +
                 PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
-                " z-index: " + order + ";" +
-                tbl_borders + ";" +
-                tbl_bgcolor + "'>";
+                ` z-index: ${order};` +
+                tbl_borders + `;${tbl_bgcolor}'>`;
 
-            var trNodes = tableNode["a:tr"];
+            let trNodes = tableNode["a:tr"];
             if (trNodes.constructor !== Array) {
                 trNodes = [trNodes];
             }
             //if (trNodes.constructor === Array) {
                 //multi rows
-                var totalrowSpan = 0;
-                var rowSpanAry = [];
-                for (var i = 0; i < trNodes.length; i++) {
+                let totalrowSpan = 0;
+                let rowSpanAry = [];
+                for (let i = 0; i < trNodes.length; i++) {
                     //////////////rows Style ////////////Amir
-                    var rowHeightParam = trNodes[i]["attrs"]["h"];
-                    var rowHeight = 0;
-                    var rowsStyl = "";
+                    let rowHeightParam = trNodes[i]["attrs"]["h"];
+                    let rowHeight = 0;
+                    let rowsStyl = "";
                     if (rowHeightParam !== undefined) {
                         rowHeight = parseInt(rowHeightParam) * SLIDE_FACTOR;
-                        rowsStyl += "height:" + rowHeight + "px;";
+                        rowsStyl += `height:${rowHeight}px;`;
                     }
-                    var fillColor = "";
-                    var row_borders = "";
-                    var fontClrPr = "";
-                    var fontWeight = "";
-                    var band_1H_fillColor;
-                    var band_2H_fillColor;
+                    let fillColor = "";
+                    let row_borders = "";
+                    let fontClrPr = "";
+                    let fontWeight = "";
+                    let band_1H_fillColor;
+                    let band_2H_fillColor;
 
                     if (thisTblStyle !== undefined && thisTblStyle["a:wholeTbl"] !== undefined) {
-                        var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        let bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
                         if (bgFillschemeClr !== undefined) {
-                            var local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                            let local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                             if (local_fillColor !== undefined) {
                                 fillColor = local_fillColor;
                             }
                         }
-                        var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
+                        let rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
                         if (rowTxtStyl !== undefined) {
-                            var local_fontColor = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                            let local_fontColor = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                             if (local_fontColor !== undefined) {
                                 fontClrPr = local_fontColor;
                             }
 
-                            var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            let local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                             if (local_fontWeight != "") {
                                 fontWeight = local_fontWeight
                             }
@@ -1298,27 +1296,27 @@ function getTextWidth(html) {
 
                     if (i == 0 && tblStylAttrObj["isFrstRowAttr"] == 1 && thisTblStyle !== undefined) {
 
-                        var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        let bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:fill", "a:solidFill"]);
                         if (bgFillschemeClr !== undefined) {
-                            var local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                            let local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                             if (local_fillColor !== undefined) {
                                 fillColor = local_fillColor;
                             }
                         }
-                        var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:tcBdr"]);
+                        let borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcStyle", "a:tcBdr"]);
                         if (borderStyl !== undefined) {
-                            var local_row_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
+                            let local_row_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
                             if (local_row_borders != "") {
                                 row_borders = local_row_borders;
                             }
                         }
-                        var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcTxStyle"]);
+                        let rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:firstRow", "a:tcTxStyle"]);
                         if (rowTxtStyl !== undefined) {
-                            var local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                            let local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                             if (local_fontClrPr !== undefined) {
                                 fontClrPr = local_fontClrPr;
                             }
-                            var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            let local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                             if (local_fontWeight !== "") {
                                 fontWeight = local_fontWeight;
                             }
@@ -1330,9 +1328,9 @@ function getTextWidth(html) {
                         if ((i % 2) == 0 && thisTblStyle["a:band2H"] !== undefined) {
                             // console.log("i: ", i, 'thisTblStyle["a:band2H"]:', thisTblStyle["a:band2H"])
                             //check if there is a row bg
-                            var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:fill", "a:solidFill"]);
+                            let bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:fill", "a:solidFill"]);
                             if (bgFillschemeClr !== undefined) {
-                                var local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                                let local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                                 if (local_fillColor !== "") {
                                     fillColor = local_fillColor;
                                     band_2H_fillColor = local_fillColor;
@@ -1340,50 +1338,50 @@ function getTextWidth(html) {
                             }
 
 
-                            var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:tcBdr"]);
+                            let borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcStyle", "a:tcBdr"]);
                             if (borderStyl !== undefined) {
-                                var local_row_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
+                                let local_row_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
                                 if (local_row_borders != "") {
                                     row_borders = local_row_borders;
                                 }
                             }
-                            var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcTxStyle"]);
+                            let rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2H", "a:tcTxStyle"]);
                             if (rowTxtStyl !== undefined) {
-                                var local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                                let local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                                 if (local_fontClrPr !== undefined) {
                                     fontClrPr = local_fontClrPr;
                                 }
                             }
 
-                            var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            let local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
 
                             if (local_fontWeight !== "") {
                                 fontWeight = local_fontWeight;
                             }
                         }
                         if ((i % 2) != 0 && thisTblStyle["a:band1H"] !== undefined) {
-                            var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:fill", "a:solidFill"]);
+                            let bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:fill", "a:solidFill"]);
                             if (bgFillschemeClr !== undefined) {
-                                var local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                                let local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                                 if (local_fillColor !== undefined) {
                                     fillColor = local_fillColor;
                                     band_1H_fillColor = local_fillColor;
                                 }
                             }
-                            var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:tcBdr"]);
+                            let borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcStyle", "a:tcBdr"]);
                             if (borderStyl !== undefined) {
-                                var local_row_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
+                                let local_row_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
                                 if (local_row_borders != "") {
                                     row_borders = local_row_borders;
                                 }
                             }
-                            var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcTxStyle"]);
+                            let rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1H", "a:tcTxStyle"]);
                             if (rowTxtStyl !== undefined) {
-                                var local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                                let local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                                 if (local_fontClrPr !== undefined) {
                                     fontClrPr = local_fontClrPr;
                                 }
-                                var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                                let local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                                 if (local_fontWeight != "") {
                                     fontWeight = local_fontWeight;
                                 }
@@ -1393,59 +1391,59 @@ function getTextWidth(html) {
                     }
                     //last row
                     if (i == (trNodes.length - 1) && tblStylAttrObj["isLstRowAttr"] == 1 && thisTblStyle !== undefined) {
-                        var bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:fill", "a:solidFill"]);
+                        let bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:fill", "a:solidFill"]);
                         if (bgFillschemeClr !== undefined) {
-                            var local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                            let local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                             if (local_fillColor !== undefined) {
                                 fillColor = local_fillColor;
                             }
-                            // var local_colorOpacity = getColorOpacity(bgFillschemeClr);
+                            // let local_colorOpacity = getColorOpacity(bgFillschemeClr);
                             // if(local_colorOpacity !== undefined){
                             //     colorOpacity = local_colorOpacity;
                             // }
                         }
-                        var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:tcBdr"]);
+                        let borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcStyle", "a:tcBdr"]);
                         if (borderStyl !== undefined) {
-                            var local_row_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
+                            let local_row_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
                             if (local_row_borders != "") {
                                 row_borders = local_row_borders;
                             }
                         }
-                        var rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcTxStyle"]);
+                        let rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:lastRow", "a:tcTxStyle"]);
                         if (rowTxtStyl !== undefined) {
-                            var local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                            let local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                             if (local_fontClrPr !== undefined) {
                                 fontClrPr = local_fontClrPr;
                             }
 
-                            var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                            let local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                             if (local_fontWeight !== "") {
                                 fontWeight = local_fontWeight;
                             }
                         }
                     }
                     rowsStyl += ((row_borders !== undefined) ? row_borders : "");
-                    rowsStyl += ((fontClrPr !== undefined) ? " color: #" + fontClrPr + ";" : "");
-                    rowsStyl += ((fontWeight != "") ? " font-weight:" + fontWeight + ";" : "");
+                    rowsStyl += ((fontClrPr !== undefined) ? ` color: #${fontClrPr};` : "");
+                    rowsStyl += ((fontWeight != "") ? ` font-weight:${fontWeight};` : "");
                     if (fillColor !== undefined && fillColor != "") {
-                        //rowsStyl += "background-color: rgba(" + hexToRgbNew(fillColor) + "," + colorOpacity + ");";
-                        rowsStyl += "background-color: #" + fillColor + ";";
+                        //rowsStyl += "background-color: rgba(" + hexToRgbNew(fillColor) + `,${colorOpacity});`;
+                        rowsStyl += `background-color: #${fillColor};`;
                     }
-                    tableHtml += "<tr style='" + rowsStyl + "'>";
+                    tableHtml += `<tr style='${rowsStyl}'>`;
                     ////////////////////////////////////////////////
 
-                    var tcNodes = trNodes[i]["a:tc"];
+                    let tcNodes = trNodes[i]["a:tc"];
                     if (tcNodes !== undefined) {
                         if (tcNodes.constructor === Array) {
                             //multi columns
-                            var j = 0;
+                            let j = 0;
                             if (rowSpanAry.length == 0) {
-                                rowSpanAry = Array.apply(null, Array(tcNodes.length)).map(function () { return 0 });
+                                rowSpanAry = Array.apply(null, Array(tcNodes.length)).map(() => { return 0 });
                             }
-                            var totalColSpan = 0;
+                            let totalColSpan = 0;
                             while (j < tcNodes.length) {
                                 if (rowSpanAry[j] == 0 && totalColSpan == 0) {
-                                    var a_sorce;
+                                    let a_sorce;
                                     //j=0 : first col
                                     if (j == 0 && tblStylAttrObj["isFrstColAttr"] == 1) {
                                         a_sorce = "a:firstCol";
@@ -1463,7 +1461,7 @@ function getTextWidth(html) {
 
                                         if ((j % 2) != 0) {
 
-                                            var aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
+                                            let aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
                                             if (aBandNode === undefined) {
                                                 aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1V"]);
                                                 if (aBandNode !== undefined) {
@@ -1485,26 +1483,26 @@ function getTextWidth(html) {
                                         }
                                     }
 
-                                    var cellParmAry = getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj)
-                                    var text = cellParmAry[0];
-                                    var colStyl = cellParmAry[1];
-                                    var cssName = cellParmAry[2];
-                                    var rowSpan = cellParmAry[3];
-                                    var colSpan = cellParmAry[4];
+                                    let cellParmAry = getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj)
+                                    let text = cellParmAry[0];
+                                    let colStyl = cellParmAry[1];
+                                    let cssName = cellParmAry[2];
+                                    let rowSpan = cellParmAry[3];
+                                    let colSpan = cellParmAry[4];
 
 
 
                                     if (rowSpan !== undefined) {
                                         totalrowSpan++;
                                         rowSpanAry[j] = parseInt(rowSpan) - 1;
-                                        tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' rowspan ='" +
-                                            parseInt(rowSpan) + "' style='" + colStyl + "'>" + text + "</td>";
+                                        tableHtml += `<td class='${cssName}' data-row='` + i + `,${j}' rowspan ='` +
+                                            parseInt(rowSpan) + `' style='${colStyl}'>` + text + "</td>";
                                     } else if (colSpan !== undefined) {
-                                        tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' colspan = '" +
-                                            parseInt(colSpan) + "' style='" + colStyl + "'>" + text + "</td>";
+                                        tableHtml += `<td class='${cssName}' data-row='` + i + `,${j}' colspan = '` +
+                                            parseInt(colSpan) + `' style='${colStyl}'>` + text + "</td>";
                                         totalColSpan = parseInt(colSpan) - 1;
                                     } else {
-                                        tableHtml += "<td class='" + cssName + "' data-row='" + i + "," + j + "' style = '" + colStyl + "'>" + text + "</td>";
+                                        tableHtml += `<td class='${cssName}' data-row='` + i + `,${j}' style = '` + colStyl + `'>${text}</td>`;
                                     }
 
                                 } else {
@@ -1520,13 +1518,13 @@ function getTextWidth(html) {
                         } else {
                             //single column 
 
-                            var a_sorce;
+                            let a_sorce;
                             if (tblStylAttrObj["isFrstColAttr"] == 1 && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
                                 a_sorce = "a:firstCol";
 
                             } else if ((tblStylAttrObj["isBandColAttr"] == 1) && !(tblStylAttrObj["isLstRowAttr"] == 1)) {
 
-                                var aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
+                                let aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band2V"]);
                                 if (aBandNode === undefined) {
                                     aBandNode = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:band1V"]);
                                     if (aBandNode !== undefined) {
@@ -1542,16 +1540,16 @@ function getTextWidth(html) {
                             }
 
 
-                            var cellParmAry = getTableCellParams(tcNodes, getColsGrid , i , undefined , thisTblStyle, a_sorce, warpObj)
-                            var text = cellParmAry[0];
-                            var colStyl = cellParmAry[1];
-                            var cssName = cellParmAry[2];
-                            var rowSpan = cellParmAry[3];
+                            let cellParmAry = getTableCellParams(tcNodes, getColsGrid , i , undefined , thisTblStyle, a_sorce, warpObj)
+                            let text = cellParmAry[0];
+                            let colStyl = cellParmAry[1];
+                            let cssName = cellParmAry[2];
+                            let rowSpan = cellParmAry[3];
 
                             if (rowSpan !== undefined) {
-                                tableHtml += "<td  class='" + cssName + "' rowspan='" + parseInt(rowSpan) + "' style = '" + colStyl + "'>" + text + "</td>";
+                                tableHtml += `<td  class='${cssName}' rowspan='` + parseInt(rowSpan) + `' style = '${colStyl}'>` + text + "</td>";
                             } else {
-                                tableHtml += "<td class='" + cssName + "' style='" + colStyl + "'>" + text + "</td>";
+                                tableHtml += `<td class='${cssName}' style='` + colStyl + `'>${text}</td>`;
                             }
                         }
                     }
@@ -1566,28 +1564,28 @@ function getTextWidth(html) {
         function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
             //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
             //text, cell-width, cell-borders, 
-            //var text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
-            var rowSpan = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "rowSpan"]);
-            var colSpan = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "gridSpan"]);
-            var vMerge = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "vMerge"]);
-            var hMerge = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "hMerge"]);
-            var colStyl = "word-wrap: break-word;";
-            var colWidth;
-            var celFillColor = "";
-            var col_borders = "";
-            var colFontClrPr = "";
-            var colFontWeight = "";
-            var lin_bottm = "",
+            //let text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
+            let rowSpan = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "rowSpan"]);
+            let colSpan = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "gridSpan"]);
+            let vMerge = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "vMerge"]);
+            let hMerge = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "hMerge"]);
+            let colStyl = "word-wrap: break-word;";
+            let colWidth;
+            let celFillColor = "";
+            let col_borders = "";
+            let colFontClrPr = "";
+            let colFontWeight = "";
+            let lin_bottm = "",
                 lin_top = "",
                 lin_left = "",
                 lin_right = "",
                 lin_bottom_left_to_top_right = "",
                 lin_top_left_to_bottom_right = "";
             
-            var colSapnInt = parseInt(colSpan);
-            var total_col_width = 0;
+            let colSapnInt = parseInt(colSpan);
+            let total_col_width = 0;
             if (!isNaN(colSapnInt) && colSapnInt > 1){
-                for (var k = 0; k < colSapnInt ; k++) {
+                for (let k = 0; k < colSapnInt ; k++) {
                     total_col_width += parseInt (PPTXXmlUtils.getTextByPathList(getColsGrid[col_idx + k], ["attrs", "w"]));
                 }
             }else{
@@ -1595,11 +1593,11 @@ function getTextWidth(html) {
             }
             
 
-            var text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width);//tableStyles
+            let text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width);//tableStyles
 
             if (total_col_width != 0 /*&& row_idx == 0*/) {
                 colWidth = parseInt(total_col_width) * SLIDE_FACTOR;
-                colStyl += "width:" + colWidth + "px;";
+                colStyl += `width:${colWidth}px;`;
             }
 
             //cell bords
@@ -1639,34 +1637,34 @@ function getTextWidth(html) {
             lin_top_left_to_bottom_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:InTlToBr"]);
 
             if (lin_bottm !== undefined && lin_bottm != "") {
-                var bottom_line_border = PPTXStyleUtils.getBorder(lin_bottm, undefined, false, "", warpObj)
+                let bottom_line_border = PPTXStyleUtils.getBorder(lin_bottm, undefined, false, "", warpObj)
                 if (bottom_line_border != "") {
-                    colStyl += "border-bottom:" + bottom_line_border + ";";
+                    colStyl += `border-bottom:${bottom_line_border};`;
                 }
             }
             if (lin_top !== undefined && lin_top != "") {
-                var top_line_border = PPTXStyleUtils.getBorder(lin_top, undefined, false, "", warpObj);
+                let top_line_border = PPTXStyleUtils.getBorder(lin_top, undefined, false, "", warpObj);
                 if (top_line_border != "") {
-                    colStyl += "border-top: " + top_line_border + ";";
+                    colStyl += `border-top: ${top_line_border};`;
                 }
             }
             if (lin_left !== undefined && lin_left != "") {
-                var left_line_border = PPTXStyleUtils.getBorder(lin_left, undefined, false, "", warpObj)
+                let left_line_border = PPTXStyleUtils.getBorder(lin_left, undefined, false, "", warpObj)
                 if (left_line_border != "") {
-                    colStyl += "border-left: " + left_line_border + ";";
+                    colStyl += `border-left: ${left_line_border};`;
                 }
             }
             if (lin_right !== undefined && lin_right != "") {
-                var right_line_border = PPTXStyleUtils.getBorder(lin_right, undefined, false, "", warpObj)
+                let right_line_border = PPTXStyleUtils.getBorder(lin_right, undefined, false, "", warpObj)
                 if (right_line_border != "") {
-                    colStyl += "border-right:" + right_line_border + ";";
+                    colStyl += `border-right:${right_line_border};`;
                 }
             }
 
             //cell fill color custom
-            var getCelFill = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr"]);
+            let getCelFill = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr"]);
             if (getCelFill !== undefined && getCelFill != "") {
-                var cellObj = {
+                let cellObj = {
                     "p:spPr": getCelFill
                 };
                 celFillColor = PPTXStyleUtils.getShapeFill(cellObj, undefined, false, warpObj, "slide")
@@ -1674,17 +1672,17 @@ function getTextWidth(html) {
 
             //cell fill color theme
             if (celFillColor == "" || celFillColor == "background-color: inherit;") {
-                var bgFillschemeClr;
+                let bgFillschemeClr;
                 if (cellSource !== undefined)
                     bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:fill", "a:solidFill"]);
                 if (bgFillschemeClr !== undefined) {
-                    var local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
+                    let local_fillColor = PPTXStyleUtils.getSolidFill(bgFillschemeClr, undefined, undefined, warpObj);
                     if (local_fillColor !== undefined) {
-                        celFillColor = " background-color: #" + local_fillColor + ";";
+                        celFillColor = ` background-color: #${local_fillColor};`;
                     }
                 }
             }
-            var cssName = "";
+            let cssName = "";
             if (celFillColor !== undefined && celFillColor != "") {
                 if (celFillColor in warpObj.styleTable) {
                     cssName = warpObj.styleTable[celFillColor]["name"];
@@ -1699,9 +1697,9 @@ function getTextWidth(html) {
             }
 
             //border
-            // var borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:tcBdr"]);
+            // let borderStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcStyle", "a:tcBdr"]);
             // if (borderStyl !== undefined) {
-            //     var local_col_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
+            //     let local_col_borders = PPTXStyleUtils.getTableBorders(borderStyl, warpObj);
             //     if (local_col_borders != "") {
             //         col_borders = local_col_borders;
             //     }
@@ -1711,7 +1709,7 @@ function getTextWidth(html) {
             // }
 
             //Text style
-            var rowTxtStyl;
+            let rowTxtStyl;
             if (cellSource !== undefined) {
                 rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, [cellSource, "a:tcTxStyle"]);
             }
@@ -1719,17 +1717,17 @@ function getTextWidth(html) {
             //     rowTxtStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcTxStyle"]);
             // }
             if (rowTxtStyl !== undefined) {
-                var local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
+                let local_fontClrPr = PPTXStyleUtils.getSolidFill(rowTxtStyl, undefined, undefined, warpObj);
                 if (local_fontClrPr !== undefined) {
                     colFontClrPr = local_fontClrPr;
                 }
-                var local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
+                let local_fontWeight = ( (PPTXXmlUtils.getTextByPathList(rowTxtStyl, ["attrs", "b"]) == "on") ? "bold" : "");
                 if (local_fontWeight !== "") {
                     colFontWeight = local_fontWeight;
                 }
             }
-            colStyl += ((colFontClrPr !== "") ? "color: #" + colFontClrPr + ";" : "");
-            colStyl += ((colFontWeight != "") ? " font-weight:" + colFontWeight + ";" : "");
+            colStyl += ((colFontClrPr !== "") ? `color: #${colFontClrPr};` : "");
+            colStyl += ((colFontWeight != "") ? ` font-weight:${colFontWeight};` : "");
 
             return [text, colStyl, cssName, rowSpan, colSpan];
         }
