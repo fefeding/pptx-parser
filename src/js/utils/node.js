@@ -27,29 +27,41 @@ function genDiagram(node, wrapObj, source, shapeType, settings) {
     const dgmDataFileId = dgmRelIds['r:dm'];
     const dgmLayoutFileId = dgmRelIds['r:lo'];
     const dgmQuickStyleFileId = dgmRelIds['r:qs'];
-    
+
     const dgmClrFileName = wrapObj.slideResObj[dgmClrFileId].target;
     const dgmDataFileName = wrapObj.slideResObj[dgmDataFileId].target;
     const dgmLayoutFileName = wrapObj.slideResObj[dgmLayoutFileId].target;
     const dgmQuickStyleFileName = wrapObj.slideResObj[dgmQuickStyleFileId].target;
-    
+
     const dgmClr = PPTXXmlUtils.readXmlFile(zip, dgmClrFileName);
     const dgmData = PPTXXmlUtils.readXmlFile(zip, dgmDataFileName);
     const dgmLayout = PPTXXmlUtils.readXmlFile(zip, dgmLayoutFileName);
     const dgmQuickStyle = PPTXXmlUtils.readXmlFile(zip, dgmQuickStyleFileName);
-    
-    const dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(wrapObj.digramFileContent, ['p:drawing', 'p:spTree', 'p:sp']);
+
+    console.log("DEBUG genDiagram: diagram files loaded");
+    console.log("DEBUG genDiagram: dgmDataFileName:", dgmDataFileName);
+    console.log("DEBUG genDiagram: diagramContent keys:", Object.keys(wrapObj.diagramContent || {}));
+
+    const dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(wrapObj.diagramContent, ['p:drawing', 'p:spTree', 'p:sp']);
+    console.log("DEBUG genDiagram: dgmDrwSpArray found:", dgmDrwSpArray ? dgmDrwSpArray.length : 0, "shapes");
     let result = '';
-    
+
     if (dgmDrwSpArray !== undefined) {
         for (const dspSp of dgmDrwSpArray) {
+            console.log("DEBUG genDiagram: processing diagram shape, keys:", Object.keys(dspSp || {}));
+            const txBody = PPTXXmlUtils.getTextByPathList(dspSp, ['p:txBody', 'a:p', 'a:r', 'a:t']);
+            console.log("DEBUG genDiagram: shape text body:", txBody ? 'found' : 'NOT found');
+            if (txBody !== undefined) {
+                console.log("DEBUG genDiagram: shape text:", txBody);
+            }
             result += processSpNode(dspSp, node, wrapObj, 'diagramBg', shapeType);
         }
     }
-    
+
     const position = PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined, shapeType);
     const size = PPTXXmlUtils.getSize(xfrmNode, undefined, undefined);
-    
+
+    console.log("DEBUG genDiagram: final result length:", result.length);
     return `<div class='block diagram-content' style='${position}${size}'>${result}</div>`;
 }
 
@@ -236,7 +248,8 @@ function processSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
     let idx = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'idx']);
     let type = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'type']);
     const order = PPTXXmlUtils.getTextByPathList(node, ['attrs', 'order']);
-    
+    console.log("DEBUG processSpNode START - id:", id, "name:", name, "type:", type, "idx:", idx, "source:", source, "shapeType:", shapeType);
+
     let isUserDrawnBg;
     if (source === 'slideLayoutBg' || source === 'slideMasterBg') {
         const userDrawn = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:nvPr', 'attrs', 'userDrawn']);
@@ -264,7 +277,7 @@ function processSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
             type = 'textBox';
         }
     }
-    
+
     if (type === undefined) {
         type = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'type']);
         if (type === undefined) {
@@ -272,7 +285,10 @@ function processSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
         }
     }
 
-    return PPTXShapeUtils.genShape(node, parentNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, wrapObj, isUserDrawnBg, shapeType, source, settings);
+    console.log("DEBUG processSpNode: calling genShape with id=", id, "name=", name, "type=", type, "idx=", idx, "order=", order);
+    const result = PPTXShapeUtils.genShape(node, parentNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, wrapObj, isUserDrawnBg, shapeType, source, settings);
+    console.log("DEBUG processSpNode END - id:", id, "result length:", result?.length || 0);
+    return result;
 }
 
 /**
