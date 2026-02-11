@@ -5,9 +5,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>pptx 解析</title>
 
+<!-- 引入 PPTX 解析所需的样式表 -->
 <link rel="stylesheet" href="/src/css/pptxjs.css">
 <link rel="stylesheet" href="/src/css/nv.d3.min.css">
 
+<!-- 引入 PPTX 解析所需的第三方库 -->
 <script type="text/javascript" src="/src/lib/jszip.min.js"></script>
 <script type="text/javascript" src="/src/lib/d3.min.js"></script>
 <script type="text/javascript" src="/src/lib/nv.d3.min.js"></script>
@@ -28,26 +30,34 @@
 </style>
 </head>
 <body>
+	<!-- 主容器 -->
 	<div id="warper">
+		<!-- 文件上传输入框 -->
 		<input id="uploadFileInput" type="file" />
 		<br><br>
+		<!-- 结果显示容器 -->
 		<div id="container">
+			<!-- 全屏按钮 -->
 			<input id="fullscreen-btn" type="button" value="Fullscreen" />
 			<br>
+			<!-- PPTX 解析结果显示区域 -->
 			<div id="result"></div>
 		</div>
 	</div>
 <script type="module">
+// 引入 PPTX 解析核心模块
 import pptxToHtml from '/src/js/index.js';
 import { PPTXNodeUtils } from '/src/js/utils/node.js';
 import { PPTXTextUtils } from '/src/js/utils/text.js';
 
+// 获取 DOM 元素引用
 var resultDiv = document.getElementById("result");
 var loadingMsgDiv = null;
 var progressBarDiv = null;
 var slideWidth = 0;
 var slideHeight = 0;
 
+// 创建加载提示消息
 function createLoadingMsg() {
 	if (loadingMsgDiv) return;
 	loadingMsgDiv = document.createElement("div");
@@ -59,6 +69,7 @@ function createLoadingMsg() {
 	resultDiv.insertBefore(loadingMsgDiv, resultDiv.firstChild);
 }
 
+// 移除加载提示消息
 function removeLoadingMsg() {
 	if (loadingMsgDiv) {
 		loadingMsgDiv.remove();
@@ -66,6 +77,7 @@ function removeLoadingMsg() {
 	}
 }
 
+// 更新进度条
 function updateProgressBar(percent) {
 	if (progressBarDiv) {
 		progressBarDiv.style.width = percent + "%";
@@ -73,6 +85,7 @@ function updateProgressBar(percent) {
 	}
 }
 
+// 创建幻灯片包装容器
 function createSlidesWrapper() {
 	if (document.getElementById("all_slides_warpper") !== null) return;
 	var slides = document.querySelectorAll("#result .slide");
@@ -89,6 +102,7 @@ function createSlidesWrapper() {
 	}
 }
 
+// 设置数字项目符号
 function setNumericBullets(elem) {
 	var prgrphs_arry = elem;
 	for (var i = 0; i < prgrphs_arry.length; i++) {
@@ -144,20 +158,23 @@ function setNumericBullets(elem) {
 	}
 }
 
-// Handle file input change
+// 处理文件输入变化事件
 document.getElementById("uploadFileInput").addEventListener("change", function(evt) {
 	var file = evt.target.files[0];
 	if (!file) return;
 
+	// 验证文件类型
 	var fileType = file.type;
 	if (fileType !== "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
 		alert("This is not pptx file");
 		return;
 	}
 
+	// 使用 FileReader 读取文件
 	var reader = new FileReader();
 	reader.onload = function(e) {
 		var fileData = e.target.result;
+		// 调用 pptxToHtml 解析 PPTX 文件
 		pptxToHtml(fileData, {
 			slideMode: false,
 			keyBoardShortCut: false,
@@ -179,28 +196,35 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 				transitionTime: 1
 			},
 			callbacks: {
+				// 文件开始解析时的回调
 				onFileStart: function() {
 					resultDiv.innerHTML = "";
 					createLoadingMsg();
 				},
+				// 进度更新回调
 				onProgress: function(percent) {
 					updateProgressBar(percent);
 				},
+				// 幻灯片解析完成回调
 				onSlide: function(html, info) {
 					resultDiv.innerHTML += html;
 				},
+				// 缩略图回调
 				onThumbnail: function(base64) {
 					// Handle thumbnail if needed
 				},
+				// 幻灯片尺寸回调
 				onSlideSize: function(size) {
 					slideWidth = size.width;
 					slideHeight = size.height;
 				},
+				// 全局 CSS 回调
 				onGlobalCSS: function(css) {
 					var style = document.createElement("style");
 					style.innerHTML = css;
 					resultDiv.appendChild(style);
 				},
+				// 图表准备完成回调
 				onChartReady: function(chartInfo) {
 					var chartElement = d3.select("#" + chartInfo.chartId);
 					if (chartElement.empty()) {
@@ -217,12 +241,14 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 						.call(chartInfo.chart);
 					nv.utils.windowResize(chartInfo.chart.update);
 				},
+				// 解析完成回调
 				onComplete: function(data) {
 					setNumericBullets(document.querySelectorAll(".block"));
 					setNumericBullets(document.querySelectorAll("table td"));
 					createSlidesWrapper();
 					removeLoadingMsg();
 				},
+				// 错误回调
 				onError: function(error) {
 					console.error(error);
 					removeLoadingMsg();
@@ -235,9 +261,11 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 });
 </script>
 <script type="text/javascript">
+    // 全屏功能实现
     var oldWidth, oldMargin, isFullscreenMode = false;
     document.getElementById("fullscreen-btn").addEventListener("click", function() {
         if (!isFullscreenMode) {
+            // 进入全屏模式
             var slides = document.querySelectorAll("#result .slide");
             if (slides.length > 0) {
                 oldWidth = slides[0].style.width;
@@ -248,6 +276,7 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
                 }
             }
             
+            // 兼容不同浏览器的全屏 API
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen();
             } else if (document.documentElement.webkitRequestFullscreen) {
@@ -259,12 +288,14 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
             }
             isFullscreenMode = true;
         } else {
+            // 退出全屏模式
             var slides = document.querySelectorAll("#result .slide");
             for (var i = 0; i < slides.length; i++) {
                 slides[i].style.width = oldWidth;
                 slides[i].style.margin = oldMargin;
             }
             
+            // 兼容不同浏览器的退出全屏 API
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             } else if (document.webkitExitFullscreen) {
@@ -278,8 +309,10 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
         }
     });
 
+    // 监听全屏状态变化
     document.addEventListener("fullscreenchange", function() {
         if (!document.fullscreenElement) {
+            // 退出全屏时恢复原始样式
             var slides = document.querySelectorAll("#result .slide");
             for (var i = 0; i < slides.length; i++) {
                 slides[i].style.width = oldWidth;
