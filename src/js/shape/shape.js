@@ -22,6 +22,7 @@ import { renderMathSymbol, isMathSymbol } from './math-symbols.js';
 import { renderBracket, isBracket } from './bracket-shapes.js';
 import { renderMiscShape, isMiscShape } from './misc-shapes.js';
 import { renderPieShape, isPieShape } from './pie-shapes.js';
+import { renderArrow, isArrow } from './arrow-shapes.js';
 import {
     RECT_SHAPES,
     ROUND_RECT_SHAPES,
@@ -2710,158 +2711,13 @@ export const PPTXShapeUtils = (function() {
                         result += "/>";
                         break;
                     }
-                    case "rightArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.25;//0.5;
-                        var sAdj2, sAdj2_val = 0.5;
-                        var max_sAdj2_const = w / h;
-                        if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                                if (sAdj_name == "adj1") {
-                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
-                                } else if (sAdj_name == "adj2") {
-                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                                    sAdj2_val = 1 - ((sAdj2_val2) / max_sAdj2_const);
-                                }
-                            }
-                        }
-                        //console.log("w: "+w+"\nh: "+h+"\nsAdj1: "+sAdj1_val+"\nsAdj2: "+sAdj2_val);
-
-                        result += " <polygon points='" + w + " " + h / 2 + "," + sAdj2_val * w + " 0," + sAdj2_val * w + " " + sAdj1_val * h + ",0 " + sAdj1_val * h +
-                            ",0 " + (1 - sAdj1_val) * h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + ", " + sAdj2_val * w + " " + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                        break;
-                    }
-                    case "leftArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.25;//0.5;
-                        var sAdj2, sAdj2_val = 0.5;
-                        var max_sAdj2_const = w / h;
-                        if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                                if (sAdj_name == "adj1") {
-                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
-                                } else if (sAdj_name == "adj2") {
-                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                                }
-                            }
-                        }
-                        //console.log("w: "+w+"\nh: "+h+"\nsAdj1: "+sAdj1_val+"\nsAdj2: "+sAdj2_val);
-
-                        result += " <polygon points='0 " + h / 2 + "," + sAdj2_val * w + " " + h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + "," + w + " " + (1 - sAdj1_val) * h +
-                            "," + w + " " + sAdj1_val * h + "," + sAdj2_val * w + " " + sAdj1_val * h + ", " + sAdj2_val * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                        break;
-                    }
+                    case "rightArrow":
+                    case "leftArrow":
                     case "downArrow":
-                    case "flowChartOffpageConnector": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.25;//0.5;
-                        var sAdj2, sAdj2_val = 0.5;
-                        var max_sAdj2_const = h / w;
-                        if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                                if (sAdj_name == "adj1") {
-                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
-                                } else if (sAdj_name == "adj2") {
-                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                                }
-                            }
-                        }
-
-                        if (shapType == "flowChartOffpageConnector") {
-                            sAdj1_val = 0.5;
-                            sAdj2_val = 0.212;
-                        }
-                        result += " <polygon points='" + (0.5 - sAdj1_val) * w + " 0," + (0.5 - sAdj1_val) * w + " " + (1 - sAdj2_val) * h + ",0 " + (1 - sAdj2_val) * h + "," + (w / 2) + " " + h +
-                            "," + w + " " + (1 - sAdj2_val) * h + "," + (0.5 + sAdj1_val) * w + " " + (1 - sAdj2_val) * h + ", " + (0.5 + sAdj1_val) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                        break;
-                    }
-                    case "upArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.25;//0.5;
-                        var sAdj2, sAdj2_val = 0.5;
-                        var max_sAdj2_const = h / w;
-                        if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                                if (sAdj_name == "adj1") {
-                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
-                                } else if (sAdj_name == "adj2") {
-                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                                }
-                            }
-                        }
-                        result += " <polygon points='" + (w / 2) + " 0,0 " + sAdj2_val * h + "," + (0.5 - sAdj1_val) * w + " " + sAdj2_val * h + "," + (0.5 - sAdj1_val) * w + " " + h +
-                            "," + (0.5 + sAdj1_val) * w + " " + h + "," + (0.5 + sAdj1_val) * w + " " + sAdj2_val * h + ", " + w + " " + sAdj2_val * h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                        break;
-                    }
-                    case "leftRightArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.25;
-                        var sAdj2, sAdj2_val = 0.25;
-                        var max_sAdj2_const = w / h;
-                        if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                                if (sAdj_name == "adj1") {
-                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
-                                } else if (sAdj_name == "adj2") {
-                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                                }
-                            }
-                        }
-                        //console.log("w: "+w+"\nh: "+h+"\nsAdj1: "+sAdj1_val+"\nsAdj2: "+sAdj2_val);
-
-                        result += " <polygon points='0 " + h / 2 + "," + sAdj2_val * w + " " + h + "," + sAdj2_val * w + " " + (1 - sAdj1_val) * h + "," + (1 - sAdj2_val) * w + " " + (1 - sAdj1_val) * h +
-                            "," + (1 - sAdj2_val) * w + " " + h + "," + w + " " + h / 2 + ", " + (1 - sAdj2_val) * w + " 0," + (1 - sAdj2_val) * w + " " + sAdj1_val * h + "," +
-                            sAdj2_val * w + " " + sAdj1_val * h + "," + sAdj2_val * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                        break;
-                    }
+                    case "upArrow":
+                    case "leftRightArrow":
                     case "upDownArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.25;
-                        var sAdj2, sAdj2_val = 0.25;
-                        var max_sAdj2_const = h / w;
-                        if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                                if (sAdj_name == "adj1") {
-                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    sAdj1_val = 0.5 - (parseInt(sAdj1.substr(4)) / 200000);
-                                } else if (sAdj_name == "adj2") {
-                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    var sAdj2_val2 = parseInt(sAdj2.substr(4)) / 100000;
-                                    sAdj2_val = (sAdj2_val2) / max_sAdj2_const;
-                                }
-                            }
-                        }
-                        //console.log("w: "+w+"\nh: "+h+"\nsAdj1: "+sAdj1_val+"\nsAdj2: "+sAdj2_val);
-
-                        result += " <polygon points='" + w / 2 + " 0,0 " + sAdj2_val * h + "," + sAdj1_val * w + " " + sAdj2_val * h + "," + sAdj1_val * w + " " + (1 - sAdj2_val) * h +
-                            ",0 " + (1 - sAdj2_val) * h + "," + w / 2 + " " + h + ", " + w + " " + (1 - sAdj2_val) * h + "," + (1 - sAdj1_val) * w + " " + (1 - sAdj2_val) * h + "," +
-                            (1 - sAdj1_val) * w + " " + sAdj2_val * h + "," + w + " " + sAdj2_val * h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += renderArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
                         break;
                     }
                     case "quadArrow": {
