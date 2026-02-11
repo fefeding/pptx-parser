@@ -47,8 +47,6 @@
 <script type="module">
 // 引入 PPTX 解析核心模块
 import pptxToHtml from '/src/js/index.js';
-import { PPTXNodeUtils } from '/src/js/utils/node.js';
-import { PPTXTextUtils } from '/src/js/utils/text.js';
 
 // 获取 DOM 元素引用
 var resultDiv = document.getElementById("result");
@@ -98,62 +96,6 @@ function createSlidesWrapper() {
 		firstSlide.parentNode.insertBefore(wrapper, firstSlide);
 		for (var i = 0; i < slides.length; i++) {
 			wrapper.appendChild(slides[i]);
-		}
-	}
-}
-
-// 设置数字项目符号
-function setNumericBullets(elem) {
-	var prgrphs_arry = elem;
-	for (var i = 0; i < prgrphs_arry.length; i++) {
-		var buSpan = prgrphs_arry[i].querySelectorAll('.numeric-bullet-style');
-		if (buSpan.length > 0) {
-			var prevBultTyp = "";
-			var prevBultLvl = "";
-			var buletIndex = 0;
-			var tmpArry = new Array();
-			var tmpArryIndx = 0;
-			var buletTypSrry = new Array();
-			for (var j = 0; j < buSpan.length; j++) {
-				var bult_typ = buSpan[j].getAttribute("data-bulltname");
-				var bult_lvl = buSpan[j].getAttribute("data-bulltlvl");
-				if (buletIndex == 0) {
-					prevBultTyp = bult_typ;
-					prevBultLvl = bult_lvl;
-					tmpArry[tmpArryIndx] = buletIndex;
-					buletTypSrry[tmpArryIndx] = bult_typ;
-					buletIndex++;
-				} else {
-					if (bult_typ == prevBultTyp && bult_lvl == prevBultLvl) {
-						prevBultTyp = bult_typ;
-						prevBultLvl = bult_lvl;
-						buletIndex++;
-						tmpArry[tmpArryIndx] = buletIndex;
-						buletTypSrry[tmpArryIndx] = bult_typ;
-					} else if (bult_typ != prevBultTyp && bult_lvl == prevBultLvl) {
-						prevBultTyp = bult_typ;
-						prevBultLvl = bult_lvl;
-						tmpArryIndx++;
-						tmpArry[tmpArryIndx] = buletIndex;
-						buletTypSrry[tmpArryIndx] = bult_typ;
-						buletIndex = 1;
-					} else if (bult_typ != prevBultTyp && Number(bult_lvl) > Number(prevBultLvl)) {
-						prevBultTyp = bult_typ;
-						prevBultLvl = bult_lvl;
-						tmpArryIndx++;
-						tmpArry[tmpArryIndx] = buletIndex;
-						buletTypSrry[tmpArryIndx] = bult_typ;
-						buletIndex = 1;
-					} else if (bult_typ != prevBultTyp && Number(bult_lvl) < Number(prevBultLvl)) {
-						prevBultTyp = bult_typ;
-						prevBultLvl = bult_lvl;
-						tmpArryIndx--;
-						buletIndex = tmpArry[tmpArryIndx] + 1;
-					}
-				}
-				var numIdx = PPTXTextUtils.getNumTypeNum(buletTypSrry[tmpArryIndx], buletIndex);
-				buSpan[j].innerHTML = numIdx;
-			}
 		}
 	}
 }
@@ -243,8 +185,6 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 				},
 				// 解析完成回调
 				onComplete: function(data) {
-					setNumericBullets(document.querySelectorAll(".block"));
-					setNumericBullets(document.querySelectorAll("table td"));
 					createSlidesWrapper();
 					removeLoadingMsg();
 				},

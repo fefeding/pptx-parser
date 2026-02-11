@@ -407,7 +407,8 @@ function pptxToHtml(fileData, options) {
             tableStyles,
             styleTable,
             chartId,
-            msgQueue
+            msgQueue,
+            bulletCounter: {}
         };
 
         let bgResult = "";

@@ -549,39 +549,40 @@ function getTextWidth(html) {
 
                 //     bullet = `<div style='${marLStr}'>` + buChar + "</div>";
                 // }
-            } else if (buType == "TYPE_NUMERIC") { ///////////Amir///////////////////////////////
-                //if (buFontAttrs !== undefined) {
-                // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
-                // let marginRight = parseInt(buFontAttrs["pitchFamily"]);
-
-                // if (isNaN(marginLeft)) {
-                //     marginLeft = 328600 * SLIDE_FACTOR;
-                // }
-                // if (isNaN(marginRight)) {
-                //     marginRight = 0;
-                // }
-                //let typeface = buFontAttrs["typeface"];
+            } else if (buType == "TYPE_NUMERIC") {
+                // 初始化项目符号计数器
+                if (!warpObj.bulletCounter) {
+                    warpObj.bulletCounter = {};
+                }
+                
+                // 生成项目符号的唯一键
+                const bulletKey = `${buNum}_${lvl}`;
+                
+                // 初始化或获取当前计数器
+                if (!warpObj.bulletCounter[bulletKey]) {
+                    warpObj.bulletCounter[bulletKey] = {
+                        index: 0,
+                        type: buNum,
+                        level: lvl
+                    };
+                }
+                
+                // 增加计数器
+                warpObj.bulletCounter[bulletKey].index++;
+                
+                // 生成数字编号
+                const bulletIndex = warpObj.bulletCounter[bulletKey].index;
+                const bulletText = getNumTypeNum(buNum, bulletIndex);
 
                 bullet = "<div style='height: 100%;" + marLStr + marRStr +
                     "color:#" + bultColor[0] + ";" +
-                    `font-size:${bultSize};`;// +
-                //"line-height: 0px;";
+                    `font-size:${bultSize};`;
                 if (isRTL) {
-                    bullet += "display: inline-block;white-space: nowrap ;direction:rtl;"; // float: right;
+                    bullet += "display: inline-block;white-space: nowrap ;direction:rtl;";
                 } else {
-                    bullet += "display: inline-block;white-space: nowrap ;direction:ltr;"; //float: left;
+                    bullet += "display: inline-block;white-space: nowrap ;direction:ltr;";
                 }
-                bullet += `' data-bulltname = '${buNum}' data-bulltlvl = '` + lvl + "' class='numeric-bullet-style'></div>";
-                // } else {
-                //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
-                //     bullet = `<div style='margin-left: ${marginLeft}px;`;
-                //     if (isRTL) {
-                //         bullet += " float: right; direction:rtl;";
-                //     } else {
-                //         bullet += " float: left; direction:ltr;";
-                //     }
-                //     bullet += `' data-bulltname = '${buNum}' data-bulltlvl = '` + lvl + "' class='numeric-bullet-style'></div>";
-                // }
+                bullet += `'><div style='line-height: ${font_val / 2}px;'>${bulletText}</div></div>`;
 
             } else if (buType == "TYPE_BULPIC") { //PIC BULLET
                 // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
