@@ -1,6 +1,14 @@
 /**
  * XML 工具函数模块
- * 提供XML节点遍历和查询功能
+ * 
+ * 提供 XML 节点遍历和查询功能，是整个项目的核心工具模块。
+ * 
+ * 主要功能:
+ * - getTextByPathList: 通过路径数组访问嵌套的 XML 节点
+ * - getTextByPathStr: 通过路径字符串访问嵌套的 XML 节点
+ * - readXmlFile: 从 ZIP 文件中读取 XML 文件
+ * 
+ * @module utils/xml
  */
 
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from '../core/constants.js';

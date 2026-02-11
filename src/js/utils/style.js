@@ -1,4 +1,15 @@
-
+/**
+ * 样式处理模块
+ * 
+ * 处理 PPTX 文件中的各种样式属性，包括：
+ * - 填充类型（纯色、渐变、图片、图案等）
+ * - 边框样式
+ * - 阴影效果
+ * - 3D 效果
+ * - 反射效果
+ * 
+ * @module utils/style
+ */
 
 import { PPTXXmlUtils } from './xml.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constants.js';

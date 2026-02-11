@@ -1,6 +1,13 @@
 /**
  * 节点工具函数模块
- * 提供PPTX节点处理和索引功能
+ * 
+ * 处理 PPTX 节点的各种操作，包括：
+ * - 幻灯片节点处理
+ * - 图表生成
+ * - SmartArt 图表处理
+ * - 节点索引和查询
+ * 
+ * @module utils/node
  */
 
 import { PPTXXmlUtils } from './xml.js';

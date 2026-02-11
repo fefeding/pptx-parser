@@ -1,4 +1,16 @@
-
+/**
+ * 文本处理模块
+ * 
+ * 处理 PPTX 中的文本内容，包括：
+ * - 文本样式解析（字体、大小、颜色、对齐等）
+ * - 段落和文本运行处理
+ * - 项目符号和编号
+ * - 超链接处理
+ * - 文本宽度计算
+ * - RTL（从右到左）语言支持
+ * 
+ * @module utils/text
+ */
 
 import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';

@@ -1,6 +1,26 @@
 /**
- * 形状工具函数模块
- * 提供形状生成和计算相关功能
+ * 形状渲染主模块
+ * 
+ * 这是 PPTX 形状渲染的核心模块，负责处理所有 PowerPoint 预设形状的 SVG 生成。
+ * 
+ * 模块职责:
+ * - 坐标变换和尺寸计算
+ * - 形状类型识别和路由
+ * - 基础几何形状的 SVG 生成（矩形、圆形、三角形等）
+ * - 协调各子模块（箭头、星形、括号、饼图等）
+ * 
+ * 结构说明:
+ * - 该模块是一个 IIFE，导出 PPTXShapeUtils 对象
+ * - genShape() 是主入口函数，处理单个形状的完整渲染流程
+ * - 使用大量的 switch-case 语句处理不同形状类型
+ * - 复杂形状已拆分到独立子模块（arrow-shapes.js, star-shapes.js 等）
+ * 
+ * 注意事项:
+ * - 代码量较大（4875行），包含约 208 个形状类型
+ * - 使用 ES5 语法以保持兼容性
+ * - 变量命名使用匈牙利命名法（如 shpId, imgFillFlg, grndFillFlg）
+ * 
+ * @module shape/shape
  */
 
 import { PPTXXmlUtils } from '../utils/xml.js';
