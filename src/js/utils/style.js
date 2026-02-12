@@ -3053,19 +3053,32 @@ function getFillType(node) {
                     let lineSpacing = parseInt(lnSpcNode) / 100;
                     // 转换为像素（假设1pt = 1.33px）
                     let lineSpacingPx = lineSpacing * 1.33;
+                    
+                    // 确保行间距不会过大，特别是对于小字体
+                    // 最大行间距不超过字体大小的3倍
+                    let maxLineSpacing = fontSize * 3;
+                    lineSpacingPx = Math.min(lineSpacingPx, maxLineSpacing);
+                    
                     // 使用line-height属性
                     marginTopBottomStr += "line-height: " + lineSpacingPx + "px;";
                 } else {
                     // 百分比行间距：行间距 = 字体大小 × (百分比 / 100000)
                     var fct = parseInt(lnSpcNode) / 100000;
                     let lineSpacing = fontSize * fct;
+                    
+                    // 确保行间距不会过大，特别是对于小字体
+                    // 最大行间距不超过字体大小的3倍
+                    let maxLineSpacing = fontSize * 3;
+                    lineSpacing = Math.min(lineSpacing, maxLineSpacing);
+                    
                     // 使用line-height属性
                     marginTopBottomStr += "line-height: " + lineSpacing + "px;";
                 }
             } else {
-                // 如果没有指定行间距，使用默认值（1.2倍字体大小）
+                // 如果没有指定行间距，使用默认值
                 if (fontSize !== undefined) {
-                    let defaultLineSpacing = fontSize * 1.2;
+                    // 对于默认行间距，使用1.1倍字体大小，避免行距过大
+                    let defaultLineSpacing = fontSize * 1.1;
                     marginTopBottomStr += "line-height: " + defaultLineSpacing + "px;";
                 }
             }
@@ -3074,6 +3087,8 @@ function getFillType(node) {
             if (spcBefNode !== undefined) {
                 // 转换为像素（假设1pt = 1.33px）
                 let marginTop = spcBefor * 1.33;
+                // 减小段落前间距，避免行距过大
+                marginTop = Math.max(0, marginTop * 0.8);
                 marginTopBottomStr += "margin-top: " + marginTop + "px;";
             }
             
@@ -3081,6 +3096,8 @@ function getFillType(node) {
             if (spcAftNode !== undefined) {
                 // 转换为像素（假设1pt = 1.33px）
                 let marginBottom = spcAfter * 1.33;
+                // 减小段落后间距，避免行距过大
+                marginBottom = Math.max(0, marginBottom * 0.8);
                 marginTopBottomStr += "margin-bottom: " + marginBottom + "px;";
             }
 
