@@ -86,12 +86,13 @@ function getTextWidth(html) {
                 if (marginsVer != "") {
                     styleText = marginsVer;
                 }
-                if (type == "body" || type == "obj" || type == "shape") {
-                    styleText += "font-size: 0px;";
-                    //styleText += "line-height: 0;";
-                    styleText += "font-weight: 100;";
-                    styleText += "font-style: normal;";
-                }
+                // 移除 font-size: 0px 设置，避免影响文本显示
+                // if (type == "body" || type == "obj" || type == "shape") {
+                //     styleText += "font-size: 0px;";
+                //     //styleText += "line-height: 0;";
+                //     styleText += "font-weight: 100;";
+                //     styleText += "font-style: normal;";
+                // }
                 let cssName = "";
 
                 if (styleText in warpObj.styleTable) {
@@ -107,7 +108,7 @@ function getTextWidth(html) {
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
                 let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
                 let sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * SLIDE_FACTOR) + "px;") : "width:inherit;");
-                let sld_prg_height = ((prg_height_node !== undefined) ? ("height:" + (parseInt(prg_height_node) * SLIDE_FACTOR) + "px;") : "");
+                let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + ` ${prg_dir} ` + cssName + "' >";
                 let buText_ary = genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
@@ -154,7 +155,7 @@ function getTextWidth(html) {
                     }
                 }
                 let prg_width = ((prg_width_node !== undefined) ? ("width:" + (prg_width_node )) + "px;" : "width:inherit;");
-                text += "<div style='height: 100%;direction: initial;overflow-wrap:break-word;word-wrap: break-word;" + prg_width + margin + "' >";
+                text += "<div style='direction: initial;overflow-wrap:break-word;word-wrap: break-word;" + prg_width + margin + "' >";
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
@@ -467,7 +468,7 @@ function getTextWidth(html) {
                 //     marginRight = 0;
                 // }
 
-                bullet = `<div style='height: 100%;${typeface};` +
+                bullet = `<div style='${typeface};` +
                     marLStr + marRStr +
                     `font-size:${bultSize};` ;
                 
@@ -558,7 +559,7 @@ function getTextWidth(html) {
                     console.log("After replace:", bullet);
                 }
                 
-                bullet += "'><div style='line-height: " + (font_val/2) + `px;'>${htmlBu}</div></div>`; //font_val
+                bullet += "display: flex; align-items: center;'><div>" + htmlBu + "</div></div>";
                 //} 
                 // else {
                 //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
@@ -590,15 +591,15 @@ function getTextWidth(html) {
                 const bulletIndex = warpObj.bulletCounter[bulletKey].index;
                 const bulletText = getNumTypeNum(buNum, bulletIndex);
 
-                bullet = "<div style='height: 100%;" + marLStr + marRStr +
+                bullet = "<div style='" + marLStr + marRStr +
                     "color:#" + bultColor[0] + ";" +
                     `font-size:${bultSize};`;
                 if (isRTL) {
-                    bullet += "display: inline-block;white-space: nowrap ;direction:rtl;";
+                    bullet += "white-space: nowrap ;direction:rtl;";
                 } else {
-                    bullet += "display: inline-block;white-space: nowrap ;direction:ltr;";
+                    bullet += "white-space: nowrap ;direction:ltr;";
                 }
-                bullet += `'><div style='line-height: ${font_val / 2}px;'>${bulletText}</div></div>`;
+                bullet += `display: flex; align-items: center;'><div>${bulletText}</div></div>`;
 
             } else if (buType == "TYPE_BULPIC") { //PIC BULLET
                 // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
@@ -645,11 +646,11 @@ function getTextWidth(html) {
                 if (buPicId === undefined) {
                     buImg = "&#8227;";
                 }
-                bullet = "<div style='height: 100%;" + marLStr + marRStr +
-                    `width:${bultSize};display: inline-block; `;// +
+                bullet = "<div style='" + marLStr + marRStr +
+                    `width:${bultSize};display: flex; align-items: center;`;// +
                 //"line-height: 0px;";
                 if (isRTL) {
-                    bullet += "display: inline-block;white-space: nowrap ;direction:rtl;"; //direction:rtl; float: right;
+                    bullet += "white-space: nowrap ;direction:rtl;"; //direction:rtl; float: right;
                 }
                 bullet += `'>${buImg}  </div>`;
                 //////////////////////////////////////////////////////////////////////////////////////

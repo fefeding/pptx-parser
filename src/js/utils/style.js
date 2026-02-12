@@ -3046,28 +3046,42 @@ function getFillType(node) {
                 spcAfter = parseInt(spcAftNode) / 100;
             }
             
+            // 根据PPTX标准处理行间距
             if (lnSpcNode !== undefined && fontSize !== undefined) {
                 if (lnSpcNodeType == "Pts") {
-                    marginTopBottomStr += "padding-top: " + ((parseInt(lnSpcNode) / 100) - fontSize) + "px;";//+ "pt;";
+                    // 点行间距：直接使用点数
+                    let lineSpacing = parseInt(lnSpcNode) / 100;
+                    // 转换为像素（假设1pt = 1.33px）
+                    let lineSpacingPx = lineSpacing * 1.33;
+                    // 使用line-height属性
+                    marginTopBottomStr += "line-height: " + lineSpacingPx + "px;";
                 } else {
+                    // 百分比行间距：行间距 = 字体大小 × (百分比 / 100000)
                     var fct = parseInt(lnSpcNode) / 100000;
-                    spcLines = fontSize * (fct - 1) - fontSize;// fontSize *
-                    var pTop = (fct > 1) ? spcLines : 0;
-                    var pBottom = (fct > 1) ? fontSize : 0;
-                    // marginTopBottomStr += "padding-top: " + spcLines + "pt;";
-                    // marginTopBottomStr += "padding-bottom: " + pBottom + "pt;";
-                    marginTopBottomStr += "padding-top: " + pBottom + "px;";// + "pt;";
-                    marginTopBottomStr += "padding-bottom: " + spcLines + "px;";// + "pt;";
+                    let lineSpacing = fontSize * fct;
+                    // 使用line-height属性
+                    marginTopBottomStr += "line-height: " + lineSpacing + "px;";
+                }
+            } else {
+                // 如果没有指定行间距，使用默认值（1.2倍字体大小）
+                if (fontSize !== undefined) {
+                    let defaultLineSpacing = fontSize * 1.2;
+                    marginTopBottomStr += "line-height: " + defaultLineSpacing + "px;";
                 }
             }
 
-            //if (spcBefNode !== undefined || lnSpcNode !== undefined) {
-            marginTopBottomStr += "margin-top: " + (spcBefor - 1) + "px;";// + "pt;"; //margin-top: + spcLines // minus 1 - to fix space
-            //}
-            if (spcAftNode !== undefined || lnSpcNode !== undefined) {
-                //marginTopBottomStr += "margin-bottom: " + ((spcAfter - fontSize < 0) ? 0 : (spcAfter - fontSize)) + "pt;"; //margin-bottom: + spcLines
-                //marginTopBottomStr += "margin-bottom: " + spcAfter * (1 / 4) + "px;";// + "pt;";
-                marginTopBottomStr += "margin-bottom: " + spcAfter  + "px;";// + "pt;";
+            // 段落前间距
+            if (spcBefNode !== undefined) {
+                // 转换为像素（假设1pt = 1.33px）
+                let marginTop = spcBefor * 1.33;
+                marginTopBottomStr += "margin-top: " + marginTop + "px;";
+            }
+            
+            // 段落后间距
+            if (spcAftNode !== undefined) {
+                // 转换为像素（假设1pt = 1.33px）
+                let marginBottom = spcAfter * 1.33;
+                marginTopBottomStr += "margin-bottom: " + marginBottom + "px;";
             }
 
             //console.log("getVerticalMargins 2 fontSize:", fontSize, "lnSpcNode:", lnSpcNode, "spcLines:", spcLines, "spcBefor:", spcBefor, "spcAfter:", spcAfter)
