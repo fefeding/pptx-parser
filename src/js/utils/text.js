@@ -452,9 +452,12 @@ function getTextWidth(html) {
             if (buType == "TYPE_BULLET") {
                 let typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
                 let typeface = "";
+                let isWingdingsFont = false;
                 if (typefaceNode !== undefined) {
+                    isWingdingsFont = (typefaceNode == "Wingdings" || typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3" || typefaceNode == "Webdings");
                     typeface = "font-family: " + typefaceNode;
                 }
+                console.log("genBuChar - typefaceNode:", typefaceNode, "isWingdingsFont:", isWingdingsFont, "typeface:", typeface);
                 // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * SLIDE_FACTOR;
                 // let marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * SLIDE_FACTOR;
                 // if (isNaN(marginLeft)) {
@@ -537,11 +540,24 @@ function getTextWidth(html) {
                 }
                 let isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
                 let htmlBu = buChar;
+                let useUnicodeFont = false;
 
-                if (!isIE11) {
+                // 只有在非 Wingdings 字体时才进行 Unicode 转换
+                if (!isIE11 && !isWingdingsFont) {
                     //ie11 does not support unicode ?
                     htmlBu = getHtmlBullet(typefaceNode, buChar);
+                    useUnicodeFont = (htmlBu !== buChar);
                 }
+                
+                // 如果使用了 Unicode 转换且是 Wingdings 字体，则使用标准字体
+                if (useUnicodeFont && isWingdingsFont && typefaceNode !== undefined) {
+                    console.log("Replacing font - typefaceNode:", typefaceNode, "isWingdingsFont:", isWingdingsFont, "useUnicodeFont:", useUnicodeFont);
+                    console.log("Before replace:", bullet);
+                    // 使用正则表达式替换所有可能的 Wingdings 字体变体
+                    bullet = bullet.replace(/font-family:\s*(Wingdings|Wingdings\s*2|Wingdings\s*3|Webdings)\s*/gi, "font-family: Arial, sans-serif");
+                    console.log("After replace:", bullet);
+                }
+                
                 bullet += "'><div style='line-height: " + (font_val/2) + `px;'>${htmlBu}</div></div>`; //font_val
                 //} 
                 // else {
@@ -665,8 +681,152 @@ function getTextWidth(html) {
                 case "ü":
                     return "&#10004;";//"✔";  //10004 | U+2714 | Heavy check mark
                     break;
+                case "o":
+                    return "&#9679;";//"●"; //9679 | U+25CF | Black circle
+                    break;
+                case "O":
+                    return "&#9675;";//"○"; //9675 | U+25CB | White circle
+                    break;
+                case "a":
+                    return "&#9650;";//"▲"; //9650 | U+25B2 | Black up-pointing triangle
+                    break;
+                case "A":
+                    return "&#9651;";//"△"; //9651 | U+25B3 | White up-pointing triangle
+                    break;
+                case "b":
+                    return "&#9660;";//"▼"; //9660 | U+25BC | Black down-pointing triangle
+                    break;
+                case "B":
+                    return "&#9661;";//"▽"; //9661 | U+25BD | White down-pointing triangle
+                    break;
+                case "c":
+                    return "&#9654;";//"▶"; //9654 | U+25B6 | Black right-pointing triangle
+                    break;
+                case "C":
+                    return "&#9655;";//"▷"; //9655 | U+25B7 | White right-pointing triangle
+                    break;
+                case "d":
+                    return "&#9664;";//"◀"; //9664 | U+25C0 | Black left-pointing triangle
+                    break;
+                case "D":
+                    return "&#9665;";//"◁"; //9665 | U+25C1 | White left-pointing triangle
+                    break;
+                case "e":
+                    return "&#9670;";//"◆"; //9670 | U+25C6 | Black diamond
+                    break;
+                case "E":
+                    return "&#9671;";//"◇"; //9671 | U+25C7 | White diamond
+                    break;
+                case "f":
+                    return "&#10003;";//"✓"; //10003 | U+2713 | Check mark
+                    break;
+                case "F":
+                    return "&#10007;";//"✗"; //10007 | U+2717 | Ballot X
+                    break;
+                case "g":
+                    return "&#10002;";//"✔"; //10002 | U+2714 | Heavy check mark
+                    break;
+                case "G":
+                    return "&#10008;";//"✘"; //10008 | U+2718 | Heavy ballot X
+                    break;
+                case "h":
+                    return "&#9899;";//"★"; //9899 | U+2605 | Black star
+                    break;
+                case "H":
+                    return "&#9734;";//"☆"; //9734 | U+2606 | White star
+                    break;
+                case "i":
+                    return "&#10052;";//"✤"; //10052 | U+2724 | Heavy four-pointed star
+                    break;
+                case "I":
+                    return "&#10053;";//"✥"; //10053 | U+2725 | Four-pointed star
+                    break;
+                case "j":
+                    return "&#10022;";//"✶"; //10022 | U+2736 | Six-pointed star
+                    break;
+                case "J":
+                    return "&#10023;";//"✷"; //10023 | U+2737 | Eight-pointed star
+                    break;
+                case "k":
+                    return "&#10016;";//"✈"; //10016 | U+2708 | Airplane
+                    break;
+                case "K":
+                    return "&#10024;";//"✈"; //10024 | U+2708 | Airplane
+                    break;
+                case "l":
+                    return "&#10038;";//"✦"; //10038 | U+2726 | Black four-pointed star
+                    break;
+                case "L":
+                    return "&#10039;";//"✧"; //10039 | U+2727 | White four-pointed star
+                    break;
+                case "m":
+                    return "&#10017;";//"✉"; //10017 | U+2709 | Envelope
+                    break;
+                case "M":
+                    return "&#9993;";//"✉"; //9993 | U+2709 | Envelope
+                    break;
+                case "n":
+                    return "&#10084;";//"❤"; //10084 | U+2764 | Heavy black heart
+                    break;
+                case "N":
+                    return "&#9829;";//"♥"; //9829 | U+2665 | Black heart suit
+                    break;
+                case "p":
+                    return "&#9830;";//"♦"; //9830 | U+2666 | Black diamond suit
+                    break;
+                case "P":
+                    return "&#9826;";//"♢"; //9826 | U+2662 | White diamond suit
+                    break;
+                case "r":
+                    return "&#9827;";//"♣"; //9827 | U+2663 | Black club suit
+                    break;
+                case "R":
+                    return "&#9827;";//"♣"; //9827 | U+2663 | Black club suit
+                    break;
+                case "s":
+                    return "&#9824;";//"♠"; //9824 | U+2660 | Black spade suit
+                    break;
+                case "S":
+                    return "&#9824;";//"♠"; //9824 | U+2660 | Black spade suit
+                    break;
+                case "t":
+                    return "&#9828;";//"♣"; //9828 | U+2664 | White club suit
+                    break;
+                case "T":
+                    return "&#9825;";//"♥"; //9825 | U+2661 | White heart suit
+                    break;
+                case "u":
+                    return "&#9829;";//"♥"; //9829 | U+2665 | Black heart suit
+                    break;
+                case "U":
+                    return "&#9825;";//"♥"; //9825 | U+2661 | White heart suit
+                    break;
+                case "w":
+                    return "&#10071;";//"❗"; //10071 | U+2757 | Heavy exclamation mark symbol
+                    break;
+                case "W":
+                    return "&#10071;";//"❗"; //10071 | U+2757 | Heavy exclamation mark symbol
+                    break;
+                case "x":
+                    return "&#10062;";//"❞"; //10062 | U+275E | Heavy right-pointing angle quotation mark ornament
+                    break;
+                case "X":
+                    return "&#10063;";//"❟"; //10063 | U+275F | Heavy low single comma quotation mark ornament
+                    break;
+                case "y":
+                    return "&#10064;";//"❠"; //10064 | U+2760 | Heavy low double comma quotation mark ornament
+                    break;
+                case "Y":
+                    return "&#10064;";//"❠"; //10064 | U+2760 | Heavy low double comma quotation mark ornament
+                    break;
+                case "z":
+                    return "&#10061;";//"❝"; //10061 | U+275D | Heavy double turned comma quotation mark ornament
+                    break;
+                case "Z":
+                    return "&#10061;";//"❝"; //10061 | U+275D | Heavy double turned comma quotation mark ornament
+                    break;
                 default:
-                    if (/*typefaceNode == "Wingdings" ||*/ typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3"){
+                    if (typefaceNode == "Wingdings" || typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3" || typefaceNode == "Webdings"){
                         let wingCharCode =  getDingbatToUnicode(typefaceNode, buChar);
                         if (wingCharCode !== null){
                             return `&#${wingCharCode};`;
