@@ -116,7 +116,16 @@ function getTextWidth(html) {
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
                 text += (buText_ary[0] !== undefined) ? buText_ary[0]:"";
                 //get text margin 
-                let margin_ary = PPTXStyleUtils.getPregraphMargn(pNode, idx, type, isBullate, warpObj);
+                // 获取段落的字体大小，用于计算项目符号边距
+                let fontSize = undefined;
+                if (rNode !== undefined && rNode.length > 0) {
+                    // 使用第一个文本运行的字体大小作为参考
+                    fontSize = PPTXStyleUtils.getFontSize(rNode[0], textBodyNode, pFontStyle, 1, type, warpObj);
+                    if (fontSize && fontSize.endsWith('px')) {
+                        fontSize = parseFloat(fontSize);
+                    }
+                }
+                let margin_ary = PPTXStyleUtils.getPregraphMargn(pNode, idx, type, isBullate, warpObj, fontSize);
                 let margin = margin_ary[0];
                 let mrgin_val = margin_ary[1];
                 if (prg_width_node === undefined && tbl_col_width !== undefined && prg_width_node != 0){

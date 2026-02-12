@@ -135,10 +135,18 @@ function getFillType(node) {
                     }
                 } else if (fillType == "PIC_FILL") {
                     if (isSvgMode) {
-                        return fillColor;
+                        // 当 isSvgMode 为 true 时，返回图像 URL 而不是整个对象
+                        if (typeof fillColor === 'object' && fillColor.img) {
+                            return fillColor.img;
+                        } else {
+                            return fillColor;
+                        }
                     } else {
-
-                        return `background-image:url(${fillColor});`;
+                        if (typeof fillColor === 'object' && fillColor.img) {
+                            return `background-image:url(${fillColor.img}); background-size: ${fillColor.backgroundSize}; background-position: ${fillColor.backgroundPosition}; background-repeat: ${fillColor.backgroundRepeat};`;
+                        } else {
+                            return `background-image:url(${fillColor});`;
+                        }
                     }
                 } else if (fillType == "PATTERN_FILL") {
                     /////////////////////////////////////////////////////////////Need to check -----------TODO
@@ -856,10 +864,15 @@ function getFillType(node) {
                     borderColor = "hidden";
                 }
             } else {
-                borderColor = "#" + borderColor; //wrong if not solid fill - TODO
-
+                // 检查borderColor是否已经是有效的颜色值
+                if (borderColor && typeof borderColor === 'string') {
+                    // 如果不是以#开头的十六进制颜色，添加#前缀
+                    if (!borderColor.startsWith('#') && !borderColor.startsWith('rgb') && !borderColor.startsWith('hsl') && borderColor !== 'none' && borderColor !== 'hidden') {
+                        borderColor = "#" + borderColor;
+                    }
+                }
             }
-            cssText += " " + borderColor + " ";//wrong if not solid fill - TODO
+            cssText += " " + borderColor + " ";
 
             if (isSvgMode) {
                 return { "color": borderColor, "width": borderWidth, "type": borderType, "strokeDasharray": strokeDasharray };
@@ -1268,7 +1281,11 @@ function getFillType(node) {
         function getBgPicFill(bgPr, sorce, warpObj, phClr, index) {
             //console.log("getBgPicFill bgPr", bgPr)
             let bgcolor;
-            let picFillBase64 = getPicFill(sorce, bgPr["a:blipFill"], warpObj);
+            let picFillResult = getPicFill(sorce, bgPr["a:blipFill"], warpObj);
+            let picFillBase64 = picFillResult;
+            if (typeof picFillResult === 'object' && picFillResult.img) {
+                picFillBase64 = picFillResult.img;
+            }
             let ordr = bgPr["attrs"]["order"];
             let aBlipNode = bgPr["a:blipFill"]["a:blip"];
             //a:duotone
@@ -1347,34 +1364,17 @@ function getFillType(node) {
                 imgOpacity = "opacity:" + amt + ";";
 
             }
-            //a:tile
-
-            let tileNode = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:tile", "attrs"])
+            // 使用getPicFill函数返回的填充模式信息
             let prop_style = "";
-            if (tileNode !== undefined && tileNode["sx"] !== undefined) {
-                let sx = (parseInt(tileNode["sx"]) / 100000);
-                let sy = (parseInt(tileNode["sy"]) / 100000);
-                var tx = (parseInt(tileNode["tx"]) / 100000);
-                var ty = (parseInt(tileNode["ty"]) / 100000);
-                let algn = tileNode["algn"]; //tl(top left),t(top), tr(top right), l(left), ctr(center), r(right), bl(bottom left), b(bottm) , br(bottom right)
-                var flip = tileNode["flip"]; //none,x,y ,xy
-
-                prop_style += "background-repeat: round;"; //repeat|repeat-x|repeat-y|no-repeat|space|round|initial|inherit;
-                //prop_style += "background-size: 300px 100px;"; size (w,h,sx, sy) -TODO
-                //prop_style += "background-position: 50% 40%;"; //offset (tx, ty) -TODO
-            }
-            //a:srcRect
-            //a:stretch => a:fillRect =>attrs (l:-17000, r:-17000)
-            let stretch = PPTXXmlUtils.getTextByPathList(bgPr, ["a:blipFill", "a:stretch"]);
-            if (stretch !== undefined) {
-                let fillRect = PPTXXmlUtils.getTextByPathList(stretch, ["a:fillRect", "attrs"]);
-                //console.log("getBgPicFill=>bgPr: ", bgPr)
-                // var top = fillRect["t"], right = fillRect["r"], bottom = fillRect["b"], left = fillRect["l"];
-                prop_style += "background-repeat: no-repeat;";
-                prop_style += "background-position: center;";
-                if (fillRect !== undefined) {
-                    //prop_style += "background-size: contain, cover;";
-                    prop_style += "background-size:  100% 100%;;";
+            if (typeof picFillResult === 'object') {
+                if (picFillResult.backgroundSize) {
+                    prop_style += "background-size: " + picFillResult.backgroundSize + ";";
+                }
+                if (picFillResult.backgroundPosition) {
+                    prop_style += "background-position: " + picFillResult.backgroundPosition + ";";
+                }
+                if (picFillResult.backgroundRepeat) {
+                    prop_style += "background-repeat: " + picFillResult.backgroundRepeat + ";";
                 }
             }
             bgcolor = "background: url(" + picFillBase64 + ");  z-index: " + ordr + ";" + prop_style + imgOpacity;
@@ -1409,8 +1409,6 @@ function getFillType(node) {
         function getPicFill(type, node, warpObj) {
             //Need to test/////////////////////////////////////////////
             //rId
-            //TODO - Image Properties - Tile, Stretch, or Display Portion of Image
-            //(http://officeopenxml.com/drwPic-tile.php)
             let img;
             let rId = node["a:blip"]["attrs"]["r:embed"];
             let imgPath;
@@ -1455,7 +1453,54 @@ function getFillType(node) {
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
                 setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
             }
-            return img;
+            // 处理图像属性 - Tile, Stretch, or Display Portion of Image
+            let tileNode = node["a:tile"];
+            let stretchNode = node["a:stretch"];
+            let fillMode = "stretch";
+            let backgroundSize = "cover";
+            let backgroundPosition = "center";
+            let backgroundRepeat = "no-repeat";
+            
+            if (tileNode) {
+                // 平铺模式
+                fillMode = "tile";
+                backgroundRepeat = "repeat";
+                
+                // 处理平铺大小
+                let sx = tileNode["attrs"]["sx"];
+                let sy = tileNode["attrs"]["sy"];
+                if (sx && sy) {
+                    let widthPercent = parseInt(sx) / 100000 * 100;
+                    let heightPercent = parseInt(sy) / 100000 * 100;
+                    backgroundSize = widthPercent + "% " + heightPercent + "%";
+                }
+                
+                // 处理平铺偏移
+                let tx = tileNode["attrs"]["tx"];
+                let ty = tileNode["attrs"]["ty"];
+                if (tx && ty) {
+                    let xPercent = parseInt(tx) / 100000 * 100;
+                    let yPercent = parseInt(ty) / 100000 * 100;
+                    backgroundPosition = xPercent + "% " + yPercent + "%";
+                }
+            } else if (stretchNode) {
+                // 拉伸模式
+                fillMode = "stretch";
+                let fillRect = stretchNode["a:fillRect"];
+                if (fillRect) {
+                    // 处理填充矩形
+                    backgroundSize = "cover";
+                }
+            }
+            
+            // 返回包含图像和填充模式的对象
+            return {
+                "img": img,
+                "fillMode": fillMode,
+                "backgroundSize": backgroundSize,
+                "backgroundPosition": backgroundPosition,
+                "backgroundRepeat": backgroundRepeat
+            };
         }
         function getPatternFill(node, warpObj) {
             //https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Images/Using_CSS_gradients
@@ -2672,7 +2717,13 @@ function getFillType(node) {
             return [x1, y1, x2, y2];
         }
         function getSvgImagePattern(node, fill, shpId, warpObj) {
-            let pic_dim = getBase64ImageDimensions(fill);
+            // 处理 fill 参数是对象的情况
+            let fillUrl = fill;
+            if (typeof fill === 'object' && fill.img) {
+                fillUrl = fill.img;
+            }
+            
+            let pic_dim = getBase64ImageDimensions(fillUrl);
             let width = pic_dim[0];
             let height = pic_dim[1];
             //console.log("getSvgImagePattern node:", node);
@@ -2744,11 +2795,11 @@ function getFillType(node) {
                 ptrn += fillterNode;
             }
 
-            fill = PPTXXmlUtils.escapeHtml(fill);
+            fillUrl = PPTXXmlUtils.escapeHtml(fillUrl);
             if (sx !== undefined && sx != 0) {
-                ptrn += '<image  xlink:href="' + fill + '" x="0" y="0" width="' + sx + '" height="' + sy + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
+                ptrn += '<image  xlink:href="' + fillUrl + '" x="0" y="0" width="' + sx + '" height="' + sy + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
             } else {
-                ptrn += '<image  xlink:href="' + fill + '" preserveAspectRatio="none" width="1" height="1" ' + imgOpacity + ' ' + filterUrl + '></image>';
+                ptrn += '<image  xlink:href="' + fillUrl + '" preserveAspectRatio="none" width="1" height="1" ' + imgOpacity + ' ' + filterUrl + '></image>';
             }
             ptrn += '</pattern>';
 
@@ -3270,7 +3321,7 @@ function getFillType(node) {
             // }
             // return "";
         }
-    function getPregraphMargn(pNode, idx, type, isBullate, warpObj){
+    function getPregraphMargn(pNode, idx, type, isBullate, warpObj, fontSize){
             if (!isBullate){
                 return ["",0];
             }
@@ -3342,10 +3393,17 @@ function getFillType(node) {
                 }
                 if (isBullate) {
                     maginVal = Math.abs(0 - indent);
-                    marLStr += maginVal + "px;";  // (minus bullate numeric lenght/size - TODO
+                    // 减去项目符号数字的长度/大小，根据字体大小估算
+                    let bulletSizeAdjustment = 0;
+                    if (fontSize !== undefined) {
+                        // 对于数字项目符号，根据字体大小估算宽度
+                        bulletSizeAdjustment = fontSize * 0.8;
+                    }
+                    maginVal = Math.max(0, maginVal - bulletSizeAdjustment);
+                    marLStr += maginVal + "px;";
                 } else {
                     maginVal = Math.abs(marginLeft + indent);
-                    marLStr += maginVal + "px;";  // (minus bullate numeric lenght/size - TODO
+                    marLStr += maginVal + "px;";
                 }
             }
 
