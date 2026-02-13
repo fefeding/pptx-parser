@@ -15,6 +15,7 @@
 import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY, DINGBAT_UNICODE } from '../core/constants.js';
+import { genChart } from './chart.js';
 let is_first_br = false;
 
 
@@ -1261,99 +1262,6 @@ function getTextWidth(html) {
 
         }
 
-    
-        function genChart(node, warpObj) {
-
-            let order = node["attrs"]["order"];
-            let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
-            let result = "<div id='chart" + warpObj.chartId.value + "' class='block content' style='" +
-                PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined) + PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
-                ` z-index: ${order};'></div>`;
-
-            let rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
-            let refName = warpObj["slideResObj"][rid]["target"];
-            let content = PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
-            let plotArea = PPTXXmlUtils.getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
-
-            let chartData = null;
-            for (let key in plotArea) {
-                switch (key) {
-                    case "c:lineChart":
-                        chartData = {
-                            "type": "createChart",
-                            "data": {
-                                "chartId": "chart" + warpObj.chartId.value++,
-                                "chartType": "lineChart",
-                                "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
-                            }
-                        };
-                        warpObj.msgQueue.push(chartData);
-                        break;
-                    case "c:barChart":
-                        chartData = {
-                            "type": "createChart",
-                            "data": {
-                                "chartId": "chart" + warpObj.chartId.value++,
-                                "chartType": "barChart",
-                                "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
-                            }
-                        };
-                        warpObj.msgQueue.push(chartData);
-                        break;
-                    case "c:pieChart":
-                        chartData = {
-                            "type": "createChart",
-                            "data": {
-                                "chartId": "chart" + warpObj.chartId.value++,
-                                "chartType": "pieChart",
-                                "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
-                            }
-                        };
-                        warpObj.msgQueue.push(chartData);
-                        break;
-                    case "c:pie3DChart":
-                        chartData = {
-                            "type": "createChart",
-                            "data": {
-                                "chartId": "chart" + warpObj.chartId.value++,
-                                "chartType": "pie3DChart",
-                                "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
-                            }
-                        };
-                        warpObj.msgQueue.push(chartData);
-                        break;
-                    case "c:areaChart":
-                        chartData = {
-                            "type": "createChart",
-                            "data": {
-                                "chartId": "chart" + warpObj.chartId.value++,
-                                "chartType": "areaChart",
-                                "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
-                            }
-                        };
-                        warpObj.msgQueue.push(chartData);
-                        break;
-                    case "c:scatterChart":
-                        chartData = {
-                            "type": "createChart",
-                            "data": {
-                                "chartId": "chart" + warpObj.chartId.value++,
-                                "chartType": "scatterChart",
-                                "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
-                            }
-                        };
-                        warpObj.msgQueue.push(chartData);
-                        break;
-                    case "c:catAx":
-                        break;
-                    case "c:valAx":
-                        break;
-                    default:
-                }
-            }
-
-            return result;
-        }
 
         function genTable(node, warpObj) {
             let order = node["attrs"]["order"];
@@ -1921,7 +1829,6 @@ const PPTXTextUtils = {
         getHtmlBullet,
         getDingbatToUnicode,
         genSpanElement,
-        genChart,
         genTable,
         getTableCellParams,
         alphaNumeric,

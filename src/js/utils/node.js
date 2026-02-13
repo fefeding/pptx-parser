@@ -14,6 +14,7 @@ import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
 import { PPTXTextUtils } from './text.js';
 import { PPTXShapeUtils } from '../shape/shape.js';
+import { genChart } from './chart.js';
 import { SLIDE_FACTOR } from '../core/constants.js';
 
 /**
@@ -509,7 +510,7 @@ function processGraphicFrameNode(node, wrapObj, source, shapeType, settings) {
         case 'http://schemas.openxmlformats.org/drawingml/2006/table':
             return PPTXTextUtils.genTable(node, wrapObj);
         case 'http://schemas.openxmlformats.org/drawingml/2006/chart':
-            return PPTXTextUtils.genChart(node, wrapObj);
+            return genChart(node, wrapObj);
         case 'http://schemas.openxmlformats.org/drawingml/2006/diagram':
             return genDiagram(node, wrapObj, source, shapeType, settings);
         case 'http://schemas.openxmlformats.org/presentationml/2006/ole':

@@ -3,6 +3,7 @@ import { PPTXXmlUtils } from './utils/xml.js';
 import { PPTXStyleUtils } from './utils/style.js';
 import { PPTXTextUtils } from './utils/text.js';
 import { PPTXShapeUtils } from './shape/shape.js';
+import { processMsgQueue, processSingleMsg } from './utils/chart.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants.js';
 
 /**
@@ -615,103 +616,6 @@ function pptxToHtml(fileData, options) {
             cssText += ` .${styleTable[key].name}${suffix}{${styleTable[key].text}}\n`;
         }
         return cssText;
-    }
-
-    /**
-     * Process message queue for charts
-     * @param {Array} queue - Message queue
-     * @param {Object} result - Result object to store chart data
-     */
-    function processMsgQueue(queue, result) {
-        for (const msg of queue) {
-            if (msg.type === "chart" || msg.type === "createChart") {
-                const chartObj = msg.data;
-                result.charts.push({
-                    chartId: chartObj.chartId,
-                    type: chartObj.chartType,
-                    data: chartObj.chartData
-                });
-            }
-        }
-    }
-
-    /**
-     * Process single chart message
-     * @param {Object} data - Chart data
-     */
-    function processSingleMsg(data) {
-        const { chartId, chartType, chartData } = data;
-        let chartDataArray = [];
-        let chart = null;
-
-        // Validate chart data
-        if (!chartData || !Array.isArray(chartData) || chartData.length === 0) {
-            console.warn(`Invalid chart data for chart ID: ${chartId}`);
-            return;
-        }
-
-        switch (chartType) {
-            case "lineChart":
-                chartDataArray = chartData;
-                chart = nv.models.lineChart().useInteractiveGuideline(true);
-                if (chartData[0]?.xlabels) {
-                    chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
-                }
-                break;
-
-            case "barChart":
-                chartDataArray = chartData;
-                chart = nv.models.multiBarChart();
-                if (chartData[0]?.xlabels) {
-                    chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
-                }
-                break;
-
-            case "pieChart":
-            case "pie3DChart":
-                chartDataArray = chartData[0]?.values || [];
-                chart = nv.models.pieChart();
-                break;
-
-            case "areaChart":
-                chartDataArray = chartData;
-                chart = nv.models.stackedAreaChart()
-                    .clipEdge(true)
-                    .useInteractiveGuideline(true);
-                if (chartData[0]?.xlabels) {
-                    chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
-                }
-                break;
-
-            case "scatterChart":
-                for (let i = 0; i < chartData.length; i++) {
-                    const arr = [];
-                    if (Array.isArray(chartData[i])) {
-                        for (let j = 0; j < chartData[i].length; j++) {
-                            arr.push({ x: j, y: chartData[i][j] });
-                        }
-                    }
-                    chartDataArray.push({ key: `data${i + 1}`, values: arr });
-                }
-                chart = nv.models.scatterChart()
-                    .showDistX(true)
-                    .showDistY(true)
-                    .color(d3.scale.category10().range());
-                chart.xAxis.axisLabel('X').tickFormat(d3.format('.02f'));
-                chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
-                break;
-
-            default:
-                console.warn(`Unknown chart type: ${chartType}`);
-        }
-
-        if (chart !== null && callbacks.onChartReady) {
-            callbacks.onChartReady({
-                chartId,
-                chart,
-                data: chartDataArray
-            });
-        }
     }
 
     // Process the file data
