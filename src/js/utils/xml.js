@@ -218,7 +218,6 @@ export const PPTXXmlUtils = (function() {
         let app = PPTXXmlUtils.readXmlFile(zip, "docProps/app.xml");
         let app_verssion_str = app["Properties"]["AppVersion"]
         const app_verssion = Number(app_verssion_str);
-        console.log("create by Office PowerPoint app verssion: ", app_verssion_str)
 
         //get slide dimensions
         let rtenObj = {};
@@ -227,7 +226,6 @@ export const PPTXXmlUtils = (function() {
         let sldSzWidth = parseInt(sldSzAttrs["cx"]);
         let sldSzHeight = parseInt(sldSzAttrs["cy"]);
         let sldSzType = sldSzAttrs["type"];
-        console.log("Presentation size type: ", sldSzType)
 
         //1 inches  = 96px = 2.54cm
         // 1 EMU = 1 / 914400 inch
@@ -384,7 +382,6 @@ export const PPTXXmlUtils = (function() {
         for (const altPath of alternativePaths) {
             file = zip.file(altPath);
             if (file) {
-                console.log(`Media file found at alternative path: ${altPath} (originally: ${originalPath})`);
                 return file;
             }
         }

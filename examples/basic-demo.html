@@ -161,32 +161,18 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 			// 渲染所有图表
 			if (result.charts && result.charts.length > 0) {
 				result.charts.forEach(chartInfo => {
-					console.log("=== Rendering chart ===");
-					console.log("Chart info:", chartInfo);
-					console.log("Chart type:", chartInfo.type);
-					console.log("Chart data:", chartInfo.data);
-					console.log("Chart data type:", typeof chartInfo.data);
-					console.log("Chart data is array:", Array.isArray(chartInfo.data));
-					
 					var chartElement = d3.select("#" + chartInfo.chartId);
 					if (chartElement.empty()) {
 						console.warn("Chart element not found: #" + chartInfo.chartId);
 						return;
 					}
-					
-					console.log("Chart element:", chartElement);
-					console.log("Chart element node:", chartElement.node());
-					console.log("Chart element HTML:", chartElement.node().outerHTML);
-					
+
 					if (!chartInfo.data) {
 						console.warn("Chart data is null or undefined for chart: " + chartInfo.chartId);
 						return;
 					}
-					
+
 					var chartData = chartInfo.data;
-					
-					console.log("Before conversion - chartData:", chartData);
-					console.log("Before conversion - chartData[0]:", chartData[0]);
 					
 					// 饼图需要特殊的数据格式转换
 					if (chartInfo.type === "pieChart" || chartInfo.type === "pie3DChart") {
@@ -237,20 +223,17 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 							chart = nv.models.multiBarChart();
 							break;
 						case "pieChart":
-						case "pie3DChart":
-							console.log("Creating pie chart with data:", chartData);
-							// NVD3 pie chart expects data in format: [{key: "Series", values: [{x: label, y: value}, ...]}]
-							chart = nv.models.pieChart()
-								.x(function(d) { 
-									console.log("pieChart x accessor called with:", d, "returning:", d.x);
-									return d.x; 
-								})
-								.y(function(d) { 
-									console.log("pieChart y accessor called with:", d, "returning:", d.y);
-									return d.y; 
-								})
-								.showLabels(true);
-							break;
+					case "pie3DChart":
+						// NVD3 pie chart expects data in format: [{key: "Series", values: [{x: label, y: value}, ...]}]
+						chart = nv.models.pieChart()
+							.x(function(d) { 
+								return d.x; 
+							})
+							.y(function(d) { 
+								return d.y; 
+							})
+							.showLabels(true);
+						break;
 						case "areaChart":
 							chart = nv.models.stackedAreaChart();
 							break;
@@ -259,18 +242,8 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 							break;
 					}
 					
-					console.log("Chart model:", chart);
-					
 					if (chart) {
 						try {
-							console.log("Creating chart with data:", chartData);
-							console.log("Chart data length:", chartData.length);
-							console.log("Chart data[0]:", chartData[0]);
-							if (chartData[0] && chartData[0].values) {
-								console.log("Chart data[0].values:", chartData[0].values);
-								console.log("Chart data[0].values length:", chartData[0].values.length);
-							}
-							
 							// 验证数据格式
 							let isValid = true;
 							if (!Array.isArray(chartData)) {

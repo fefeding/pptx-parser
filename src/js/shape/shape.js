@@ -122,7 +122,6 @@ export const PPTXShapeUtils = (function() {
             }
             //////////////////////////////////////////////////
             if (shapType === undefined && custShapType === undefined) {
-                console.warn("DEBUG genShape: both shapType and custShapType are undefined, skipping SVG generation");
             }
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
                 var off = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
@@ -1733,7 +1732,6 @@ export const PPTXShapeUtils = (function() {
                         pang = Math.atan(sdy / sdx);
                         stAng = pang + angVal1;
                         enAng = pang - angVal1;
-                        console.log("dxPos: ", dxPos, "dyPos: ", dyPos)
                         dx1 = hc * Math.cos(stAng);
                         dy1 = vc * Math.sin(stAng);
                         dx2 = hc * Math.cos(enAng);
@@ -4796,7 +4794,6 @@ export const PPTXShapeUtils = (function() {
                     case "plaqueTabs":
                     case "squareTabs":
                     case "upDownArrowCallout": {
-                        console.log(shapType, " -unsupported shape type.");
                         break;
                     }
                     case undefined:

@@ -468,7 +468,6 @@ function getTextWidth(html) {
                     isWingdingsFont = (typefaceNode == "Wingdings" || typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3" || typefaceNode == "Webdings");
                     typeface = "font-family: " + typefaceNode;
                 }
-                console.log("genBuChar - typefaceNode:", typefaceNode, "isWingdingsFont:", isWingdingsFont, "typeface:", typeface);
                 // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * SLIDE_FACTOR;
                 // let marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * SLIDE_FACTOR;
                 // if (isNaN(marginLeft)) {
@@ -562,11 +561,8 @@ function getTextWidth(html) {
                 
                 // 如果使用了 Unicode 转换且是 Wingdings 字体，则使用标准字体
                 if (useUnicodeFont && isWingdingsFont && typefaceNode !== undefined) {
-                    console.log("Replacing font - typefaceNode:", typefaceNode, "isWingdingsFont:", isWingdingsFont, "useUnicodeFont:", useUnicodeFont);
-                    console.log("Before replace:", bullet);
                     // 使用正则表达式替换所有可能的 Wingdings 字体变体
                     bullet = bullet.replace(/font-family:\s*(Wingdings|Wingdings\s*2|Wingdings\s*3|Webdings)\s*/gi, "font-family: Arial, sans-serif");
-                    console.log("After replace:", bullet);
                 }
                 
                 bullet += "display: flex; align-items: center;'><div>" + htmlBu + "</div></div>";
