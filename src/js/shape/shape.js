@@ -71,13 +71,11 @@ export const PPTXShapeUtils = (function() {
 
             var result = "";
             var shpId = PPTXXmlUtils.getTextByPathList(node, ["attrs", "order"]);
-            console.log("DEBUG genShape START - id:", id, "name:", name, "type:", type, "node keys:", Object.keys(node || {}));
             //console.log("shpId: ",shpId)
             var shapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
 
             //custGeom - Amir
             var custShapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:custGeom"]);
-            console.log("DEBUG genShape: shapType=", shapType, "custShapType=", custShapType);
 
             var isFlipV = false;
             var isFlipH = false;
@@ -123,12 +121,10 @@ export const PPTXShapeUtils = (function() {
                 txtFlip = " scale(-1,-1)";
             }
             //////////////////////////////////////////////////
-            console.log("DEBUG genShape: shapType=", shapType, "custShapType=", custShapType, "slideXfrmNode=", slideXfrmNode);
             if (shapType === undefined && custShapType === undefined) {
                 console.warn("DEBUG genShape: both shapType and custShapType are undefined, skipping SVG generation");
             }
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
-                console.log("DEBUG genShape: entering SVG generation block");
                 var off = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
                 var x = (off !== undefined) ? parseInt(off["x"]) * SLIDE_FACTOR : 0;
                 var y = (off !== undefined) ? parseInt(off["y"]) * SLIDE_FACTOR : 0;
@@ -146,7 +142,6 @@ export const PPTXShapeUtils = (function() {
                 
                 var w = (ext !== undefined) ? parseInt(ext["cx"]) * SLIDE_FACTOR : 100;
                 var h = (ext !== undefined) ? parseInt(ext["cy"]) * SLIDE_FACTOR : 100;
-                console.log("DEBUG genShape: w=", w, "h=", h);
 
                 var svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
                 //console.log("name:", name, "svgCssName: ", svgCssName)
@@ -158,7 +153,6 @@ export const PPTXShapeUtils = (function() {
                     " z-index: " + order + ";" +
                     "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";" +
                     "'>";
-                console.log("DEBUG genShape: Adding SVG tag - length:", svgTag.length);
                 result += svgTag;
                 result += '<defs>'
                 // Fill Color
@@ -295,7 +289,6 @@ export const PPTXShapeUtils = (function() {
                 }
                 result += '</defs>'
             }
-            console.log("DEBUG genShape: entering shape type switch, shapType=", shapType, "custShapType=", custShapType);
             if (shapType !== undefined && custShapType === undefined) {
                 //console.log("shapType: ", shapType)
                 switch (shapType) {
@@ -4831,7 +4824,6 @@ export const PPTXShapeUtils = (function() {
                 }
                 result += "</div>";
             } else if (custShapType !== undefined) {
-                console.log("DEBUG genShape: entering custShapType branch");
                 // 使用自定义形状渲染函数
                 result += renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArc);
                 //console.log(result);
@@ -4877,7 +4869,6 @@ export const PPTXShapeUtils = (function() {
 
             }
             //console.log("div block result:\n", result)
-            console.log("DEBUG genShape END - result length:", result.length, "id:", id);
             return result;
         }
 

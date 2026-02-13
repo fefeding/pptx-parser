@@ -372,17 +372,10 @@ function pptxToHtml(fileData, options) {
             const diagramResFileName = diagramFilename.replace(diagramName, `_rels/${diagramName}`) + ".rels";
 
             diagramContent = PPTXXmlUtils.readXmlFile(zip, diagramFilename);
-            console.log("DEBUG processSingleSlide: diagramFilename:", diagramFilename, "diagramContent type:", typeof diagramContent, "is null:", diagramContent === null);
             if (diagramContent !== null && diagramContent !== undefined && diagramContent !== "") {
                 const diagramJson = JSON.stringify(diagramContent);
-                console.log("DEBUG processSingleSlide: diagram JSON before replace, length:", diagramJson.length);
                 const cleanedJson = diagramJson.replace(/dsp:/g, "p:");
-                console.log("DEBUG processSingleSlide: diagram JSON after replace, length:", cleanedJson.length, "diff:", diagramJson.length - cleanedJson.length);
-                console.log("DEBUG processSingleSlide: diagram JSON replace, original keys:", Object.keys(diagramContent || {}));
                 diagramContent = JSON.parse(cleanedJson);
-                console.log("DEBUG processSingleSlide: diagram JSON replace, new keys:", Object.keys(diagramContent || {}));
-            } else {
-                console.log("DEBUG processSingleSlide: diagramContent is null/undefined/empty, skipping replacement");
             }
 
             const diagramResContent = PPTXXmlUtils.readXmlFile(zip, diagramResFileName);
