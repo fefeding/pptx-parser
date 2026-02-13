@@ -64,19 +64,18 @@ function getFillType(node) {
             let fillType = getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
             //let noFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
             let fillColor;
-            if (fillType == "NO_FILL") {
-                return isSvgMode ? "none" : "";//"background-color: initial;";
-            } else if (fillType == "SOLID_FILL") {
+            if (fillType === "NO_FILL") {
+                return isSvgMode ? "none" : "";
+            } else if (fillType === "SOLID_FILL") {
                 let shpFill = node["p:spPr"]["a:solidFill"];
                 fillColor = getSolidFill(shpFill, undefined, undefined, warpObj);
-            } else if (fillType == "GRADIENT_FILL") {
+            } else if (fillType === "GRADIENT_FILL") {
                 let shpFill = node["p:spPr"]["a:gradFill"];
                 fillColor = getGradientFill(shpFill, warpObj);
-                //console.log("shpFill",shpFill,grndColor.color)
-            } else if (fillType == "PATTERN_FILL") {
+            } else if (fillType === "PATTERN_FILL") {
                 let shpFill = node["p:spPr"]["a:pattFill"];
                 fillColor = getPatternFill(shpFill, warpObj);
-            } else if (fillType == "PIC_FILL") {
+            } else if (fillType === "PIC_FILL") {
                 let shpFill = node["p:spPr"]["a:blipFill"];
                 fillColor = getPicFill(source, shpFill, warpObj);
             }
