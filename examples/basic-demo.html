@@ -15,13 +15,6 @@
 <script type="text/javascript" src="/src/lib/nv.d3.min.js"></script>
 
 
-
-
-
-
-
-
-
 <style>
 	html, body { margin: 0; padding: 0; }
 	#warper { margin-right: auto; margin-left: 20px; }
@@ -112,90 +105,239 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 		return;
 	}
 
+	// 清空结果区域
+	resultDiv.innerHTML = "";
+	createLoadingMsg();
+
 	// 使用 FileReader 读取文件
 	var reader = new FileReader();
 	reader.onload = function(e) {
 		var fileData = e.target.result;
-		// 调用 pptxToHtml 解析 PPTX 文件
-		pptxToHtml(fileData, {
-			slideMode: false,
-			keyBoardShortCut: false,
-			slideModeConfig: {
-				first: 1,
-				nav: false,
-				navTxtColor: "white",
-				navNextTxt: "&#8250;",
-				navPrevTxt: "&#8249;",
-				showPlayPauseBtn: false,
+		
+		try {
+			// 直接获取解析结果（同步函数）
+			const result = pptxToHtml(fileData, {
+				slideMode: false,
 				keyBoardShortCut: false,
-				showSlideNum: false,
-				showTotalSlideNum: false,
-				autoSlide: false,
-				randomAutoSlide: false,
-				loop: false,
-				background: "black",
-				transition: "default",
-				transitionTime: 1
-			},
-			callbacks: {
-				// 文件开始解析时的回调
-				onFileStart: function() {
-					resultDiv.innerHTML = "";
-					createLoadingMsg();
+				slideModeConfig: {
+					first: 1,
+					nav: false,
+					navTxtColor: "white",
+					navNextTxt: "&#8250;",
+					navPrevTxt: "&#8249;",
+					showPlayPauseBtn: false,
+					keyBoardShortCut: false,
+					showSlideNum: false,
+					showTotalSlideNum: false,
+					autoSlide: false,
+					randomAutoSlide: false,
+					loop: false,
+					background: "black",
+					transition: "default",
+					transitionTime: 1
 				},
-				// 进度更新回调
-				onProgress: function(percent) {
-					updateProgressBar(percent);
-				},
-				// 幻灯片解析完成回调
-				onSlide: function(html, info) {
-					resultDiv.innerHTML += html;
-				},
-				// 缩略图回调
-				onThumbnail: function(base64) {
-					// Handle thumbnail if needed
-				},
-				// 幻灯片尺寸回调
-				onSlideSize: function(size) {
-					slideWidth = size.width;
-					slideHeight = size.height;
-				},
-				// 全局 CSS 回调
-				onGlobalCSS: function(css) {
-					var style = document.createElement("style");
-					style.innerHTML = css;
-					resultDiv.appendChild(style);
-				},
-				// 图表准备完成回调
-				onChartReady: function(chartInfo) {
+				callbacks: {
+					onProgress: function(percent) {
+						updateProgressBar(percent);
+					}
+				}
+			});
+			
+			console.log("PPTX Result:", result);
+			console.log("PPTX Charts:", result.charts);
+			
+			// 渲染全局CSS
+			if (result.styles && result.styles.global) {
+				var style = document.createElement("style");
+				style.innerHTML = result.styles.global;
+				resultDiv.appendChild(style);
+			}
+			
+			// 渲染所有幻灯片
+			result.slides.forEach(slide => {
+				resultDiv.innerHTML += slide.html;
+			});
+			
+			// 渲染所有图表
+			if (result.charts && result.charts.length > 0) {
+				result.charts.forEach(chartInfo => {
+					console.log("=== Rendering chart ===");
+					console.log("Chart info:", chartInfo);
+					console.log("Chart type:", chartInfo.type);
+					console.log("Chart data:", chartInfo.data);
+					console.log("Chart data type:", typeof chartInfo.data);
+					console.log("Chart data is array:", Array.isArray(chartInfo.data));
+					
 					var chartElement = d3.select("#" + chartInfo.chartId);
 					if (chartElement.empty()) {
 						console.warn("Chart element not found: #" + chartInfo.chartId);
 						return;
 					}
-					if (!chartInfo.data || !Array.isArray(chartInfo.data) || chartInfo.data.length === 0) {
-						console.warn("Invalid or empty chart data for chart: " + chartInfo.chartId);
+					
+					console.log("Chart element:", chartElement);
+					console.log("Chart element node:", chartElement.node());
+					console.log("Chart element HTML:", chartElement.node().outerHTML);
+					
+					if (!chartInfo.data) {
+						console.warn("Chart data is null or undefined for chart: " + chartInfo.chartId);
 						return;
 					}
-					chartElement.append("svg")
-						.datum(chartInfo.data)
-						.transition().duration(500)
-						.call(chartInfo.chart);
-					nv.utils.windowResize(chartInfo.chart.update);
-				},
-				// 解析完成回调
-				onComplete: function(data) {
-					createSlidesWrapper();
-					removeLoadingMsg();
-				},
-				// 错误回调
-				onError: function(error) {
-					console.error(error);
-					removeLoadingMsg();
-					alert(error.message);
-				}
+					
+					var chartData = chartInfo.data;
+					
+					console.log("Before conversion - chartData:", chartData);
+					console.log("Before conversion - chartData[0]:", chartData[0]);
+					
+					// 饼图需要特殊的数据格式转换
+					if (chartInfo.type === "pieChart" || chartInfo.type === "pie3DChart") {
+						console.log("Converting pie chart data");
+						// 将 [{key: "Series", values: [{x: 0, y: 10}, ...]}] 
+						// 转换为 [{x: label, y: value}, ...]
+						// 注意：NVD3饼图使用x作为标签，y作为值
+						if (Array.isArray(chartData) && chartData.length > 0) {
+							const series = chartData[0];
+							console.log("Series:", series);
+							if (series.values && Array.isArray(series.values)) {
+								// NVD3饼图可以直接使用values数组
+								chartData = series.values.map((item, index) => {
+									let label = `Item ${index}`;
+									if (series.xlabels && series.xlabels[index] !== undefined) {
+										label = series.xlabels[index];
+									}
+									let value = 0;
+									if (item && item.y !== undefined) {
+										value = parseFloat(item.y);
+									}
+									const convertedItem = {
+										x: label,
+										y: value
+									};
+									console.log(`Converted item ${index}:`, convertedItem);
+									return convertedItem;
+								});
+								console.log("Converted pie chart data:", chartData);
+								console.log("Pie values array:", chartData);
+								chartData.forEach((item, index) => {
+									console.log(`Pie value ${index}:`, item, "has x:", item.x !== undefined, "has y:", item.y !== undefined);
+								});
+							}
+						}
+					} else {
+						console.log("Not a pie chart, using original data format");
+					}
+					
+					console.log("After conversion - chartData:", chartData);
+					
+					var chart = null;
+					switch (chartInfo.type) {
+						case "lineChart":
+							chart = nv.models.lineChart();
+							break;
+						case "barChart":
+							chart = nv.models.multiBarChart();
+							break;
+						case "pieChart":
+						case "pie3DChart":
+							console.log("Creating pie chart with data:", chartData);
+							// NVD3 pie chart expects data in format: [{key: "Series", values: [{x: label, y: value}, ...]}]
+							chart = nv.models.pieChart()
+								.x(function(d) { 
+									console.log("pieChart x accessor called with:", d, "returning:", d.x);
+									return d.x; 
+								})
+								.y(function(d) { 
+									console.log("pieChart y accessor called with:", d, "returning:", d.y);
+									return d.y; 
+								})
+								.showLabels(true);
+							break;
+						case "areaChart":
+							chart = nv.models.stackedAreaChart();
+							break;
+						case "scatterChart":
+							chart = nv.models.scatterChart();
+							break;
+					}
+					
+					console.log("Chart model:", chart);
+					
+					if (chart) {
+						try {
+							console.log("Creating chart with data:", chartData);
+							console.log("Chart data length:", chartData.length);
+							console.log("Chart data[0]:", chartData[0]);
+							if (chartData[0] && chartData[0].values) {
+								console.log("Chart data[0].values:", chartData[0].values);
+								console.log("Chart data[0].values length:", chartData[0].values.length);
+							}
+							
+							// 验证数据格式
+							let isValid = true;
+							if (!Array.isArray(chartData)) {
+								console.error("Chart data is not an array");
+								isValid = false;
+							} else {
+								// 饼图使用简单格式: [{x: label, y: value}, ...]
+								// 其他图表使用格式: {key: "Series", values: [...]}
+								const isPieChart = chartInfo.type === "pieChart" || chartInfo.type === "pie3DChart";
+								
+								chartData.forEach((item, index) => {
+									if (!item || typeof item !== 'object') {
+										console.error(`Chart data item ${index} is not an object:`, item);
+										isValid = false;
+									}
+									
+									if (isPieChart) {
+										// 饼图格式: {x: label, y: value}
+										if (item.x === undefined || item.y === undefined) {
+											console.error(`Pie chart data item ${index} missing required fields (x or y):`, item);
+											isValid = false;
+										}
+									} else {
+										// 其他图表格式: {key: "Series", values: [...]}
+										if (!item.key || !item.values || !Array.isArray(item.values)) {
+											console.error(`Chart data item ${index} missing required fields (key or values):`, item);
+											isValid = false;
+										}
+									}
+								});
+							}
+							
+							if (!isValid) {
+								console.error("Invalid chart data, skipping rendering");
+								return;
+							}
+							
+							// 检查图表元素是否已经包含SVG
+							var existingSvg = chartElement.select("svg");
+							if (!existingSvg.empty()) {
+								console.log("Removing existing SVG from chart element");
+								existingSvg.remove();
+							}
+							
+							chartElement.append("svg")
+								.datum(chartData)
+								.transition().duration(500)
+								.call(chart);
+							nv.utils.windowResize(chart.update);
+						} catch (err) {
+							console.error("Error rendering chart:", err);
+							console.error("Chart info:", chartInfo);
+							console.error("Chart data:", chartData);
+						}
+					}
+				});
 			}
-		});
+			
+			// 创建幻灯片包装器
+			createSlidesWrapper();
+			removeLoadingMsg();
+			
+		} catch (err) {
+			console.error(err);
+			removeLoadingMsg();
+			alert(err.message);
+		}
 	};
 	reader.readAsArrayBuffer(file);
 });

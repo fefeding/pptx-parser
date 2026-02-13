@@ -9,7 +9,7 @@ import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants.js';
  * PPTX to HTML converter
  * @param {ArrayBuffer} fileData - The PPTX file data
  * @param {Object} options - Conversion options
- * @returns {void}
+ * @returns {Object} Parsed result
  */
 function pptxToHtml(fileData, options) {
     // Merge default settings with user options
@@ -29,7 +29,7 @@ function pptxToHtml(fileData, options) {
 
     // State variables
     let defaultTextStyle = null;
-    let chartId = 0;
+    const chartId = { value: 0 };
     let order = 1;
     let appVersion;
     let slideWidth = 0;
@@ -46,6 +46,7 @@ function pptxToHtml(fileData, options) {
     /**
      * Convert PPTX file to HTML
      * @param {ArrayBuffer} file - The PPTX file data
+     * @returns {Object} Parsed result
      */
     function convertToHtml(file) {
         if (file.byteLength < 10) {
@@ -53,47 +54,66 @@ function pptxToHtml(fileData, options) {
             if (callbacks.onError) {
                 callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
             }
-            return;
+            throw new Error("Invalid file: file too small");
         }
 
         const msgQueue = [];
         const zip = new JSZip().load(file);
         const resultArray = processPPTX(zip, msgQueue);
 
-        for (const result of resultArray) {
-            switch (result.type) {
+        const result = {
+            slides: [],
+            slideSize: null,
+            thumbnail: null,
+            styles: {
+                global: ""
+            },
+            metadata: {},
+            charts: []
+        };
+
+        for (const item of resultArray) {
+            switch (item.type) {
                 case "slide":
+                    result.slides.push({
+                        html: item.data,
+                        slideNum: item.slideNum,
+                        fileName: item.fileName
+                    });
                     if (callbacks.onSlide) {
-                        callbacks.onSlide(result.data, {
-                            slideNum: result.slideNum,
-                            fileName: result.fileName
+                        callbacks.onSlide(item.data, {
+                            slideNum: item.slideNum,
+                            fileName: item.fileName
                         });
                     }
                     break;
                 case "pptx-thumb":
+                    result.thumbnail = item.data;
                     if (callbacks.onThumbnail) {
-                        callbacks.onThumbnail(result.data);
+                        callbacks.onThumbnail(item.data);
                     }
                     break;
                 case "slideSize":
-                    slideWidth = result.data.width;
-                    slideHeight = result.data.height;
+                    slideWidth = item.data.width;
+                    slideHeight = item.data.height;
+                    result.slideSize = item.data;
                     if (callbacks.onSlideSize) {
-                        callbacks.onSlideSize(result.data);
+                        callbacks.onSlideSize(item.data);
                     }
                     break;
                 case "globalCSS":
+                    result.styles.global = item.data;
                     if (callbacks.onGlobalCSS) {
-                        callbacks.onGlobalCSS(result.data);
+                        callbacks.onGlobalCSS(item.data);
                     }
                     break;
                 case "ExecutionTime":
-                    processMsgQueue(msgQueue);
+                    processMsgQueue(msgQueue, result);
                     isDone = true;
 
                     if (callbacks.onComplete) {
                         callbacks.onComplete({
-                            executionTime: result.data,
+                            executionTime: item.data,
                             slideWidth,
                             slideHeight,
                             styleTable,
@@ -103,13 +123,15 @@ function pptxToHtml(fileData, options) {
                     break;
                 case "progress-update":
                     if (callbacks.onProgress) {
-                        callbacks.onProgress(result.data);
+                        callbacks.onProgress(item.data);
                     }
                     break;
                 default:
                     // Unknown type, ignore
             }
         }
+
+        return result;
     }
 
     /**
@@ -598,10 +620,18 @@ function pptxToHtml(fileData, options) {
     /**
      * Process message queue for charts
      * @param {Array} queue - Message queue
+     * @param {Object} result - Result object to store chart data
      */
-    function processMsgQueue(queue) {
+    function processMsgQueue(queue, result) {
         for (const msg of queue) {
-            processSingleMsg(msg.data);
+            if (msg.type === "chart" || msg.type === "createChart") {
+                const chartObj = msg.data;
+                result.charts.push({
+                    chartId: chartObj.chartId,
+                    type: chartObj.chartType,
+                    data: chartObj.chartData
+                });
+            }
         }
     }
 
@@ -686,8 +716,9 @@ function pptxToHtml(fileData, options) {
 
     // Process the file data
     if (fileData) {
-        convertToHtml(fileData);
+        return convertToHtml(fileData);
     }
+    return null;
 }
 
 export default pptxToHtml;

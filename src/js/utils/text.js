@@ -1266,7 +1266,7 @@ function getTextWidth(html) {
 
             let order = node["attrs"]["order"];
             let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
-            let result = "<div id='chart" + warpObj.chartId + "' class='block content' style='" +
+            let result = "<div id='chart" + warpObj.chartId.value + "' class='block content' style='" +
                 PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined) + PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
                 ` z-index: ${order};'></div>`;
 
@@ -1282,61 +1282,67 @@ function getTextWidth(html) {
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartId": "chart" + warpObj.chartId,
+                                "chartId": "chart" + warpObj.chartId.value++,
                                 "chartType": "lineChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
                         };
+                        warpObj.msgQueue.push(chartData);
                         break;
                     case "c:barChart":
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartId": "chart" + warpObj.chartId,
+                                "chartId": "chart" + warpObj.chartId.value++,
                                 "chartType": "barChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
                         };
+                        warpObj.msgQueue.push(chartData);
                         break;
                     case "c:pieChart":
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartId": "chart" + warpObj.chartId,
+                                "chartId": "chart" + warpObj.chartId.value++,
                                 "chartType": "pieChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
                         };
+                        warpObj.msgQueue.push(chartData);
                         break;
                     case "c:pie3DChart":
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartId": "chart" + warpObj.chartId,
+                                "chartId": "chart" + warpObj.chartId.value++,
                                 "chartType": "pie3DChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
                         };
+                        warpObj.msgQueue.push(chartData);
                         break;
                     case "c:areaChart":
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartId": "chart" + warpObj.chartId,
+                                "chartId": "chart" + warpObj.chartId.value++,
                                 "chartType": "areaChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
                         };
+                        warpObj.msgQueue.push(chartData);
                         break;
                     case "c:scatterChart":
                         chartData = {
                             "type": "createChart",
                             "data": {
-                                "chartId": "chart" + warpObj.chartId,
+                                "chartId": "chart" + warpObj.chartId.value++,
                                 "chartType": "scatterChart",
                                 "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"])
                             }
                         };
+                        warpObj.msgQueue.push(chartData);
                         break;
                     case "c:catAx":
                         break;
@@ -1346,11 +1352,6 @@ function getTextWidth(html) {
                 }
             }
 
-            if (chartData !== null) {
-                warpObj.msgQueue.push(chartData);
-            }
-
-            warpObj.chartId++;
             return result;
         }
 
