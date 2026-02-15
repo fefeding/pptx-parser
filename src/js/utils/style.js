@@ -106,14 +106,14 @@ function getFillType(node) {
                     let grpShpFill = pNode["p:grpSpPr"];
                     let spShpNode = { "p:spPr": grpShpFill }
                     return getShapeFill(spShpNode, node, isSvgMode, warpObj, source);
-                } else if (fillType == "NO_FILL") {
+                } else if (fillType === "NO_FILL") {
                     return isSvgMode ? "none" : "";
                 }
             }
             //console.log("ShapeFill: fillColor: ", fillColor, ", fillType; ", fillType)
 
             if (fillColor !== undefined) {
-                if (fillType == "GRADIENT_FILL") {
+                if (fillType === "GRADIENT_FILL") {
                     if (isSvgMode) {
                         // console.log("GRADIENT_FILL color", fillColor.color[0])
                         return fillColor;
@@ -132,7 +132,7 @@ function getFillType(node) {
                         }
                         return bgcolor;
                     }
-                } else if (fillType == "PIC_FILL") {
+                } else if (fillType === "PIC_FILL") {
                     if (isSvgMode) {
                         // 当 isSvgMode 为 true 时，返回图像 URL 而不是整个对象
                         if (typeof fillColor === 'object' && fillColor.img) {
@@ -147,7 +147,7 @@ function getFillType(node) {
                             return `background-image:url(${fillColor});`;
                         }
                     }
-                } else if (fillType == "PATTERN_FILL") {
+                } else if (fillType === "PATTERN_FILL") {
                     /////////////////////////////////////////////////////////////Need to check -----------TODO
                     // if (isSvgMode) {
                     //     let color = tinycolor(fillColor);
@@ -297,7 +297,6 @@ function getFillType(node) {
             //console.log("getFontColorPr node", node, "colorType: ", colorType,"color: ",color)
 
             if (color === undefined) {
-
                 let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
                 let pPrNodeLaout = layoutMasterNode.nodeLaout;
                 let pPrNodeMaster = layoutMasterNode.nodeMaster;
@@ -314,7 +313,6 @@ function getFillType(node) {
                     }
                 }
                 if (color === undefined) {
-
                     if (pPrNodeMaster !== undefined) {
                         let defRprMaster = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["a:defRPr", "a:solidFill"]);
                         if (defRprMaster !== undefined) {
@@ -817,14 +815,14 @@ function getFillType(node) {
                 // Border color
                 let fillTyp = getFillType(lineNode);
                 //console.log("getBorder:node : fillTyp", fillTyp)
-                if (fillTyp == "NO_FILL") {
+                if (fillTyp === "NO_FILL") {
                     borderColor = isSvgMode ? "none" : "";//"background-color: initial;";
-                } else if (fillTyp == "SOLID_FILL") {
+                } else if (fillTyp === "SOLID_FILL") {
                     borderColor = getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
-                } else if (fillTyp == "GRADIENT_FILL") {
+                } else if (fillTyp === "GRADIENT_FILL") {
                     borderColor = getGradientFill(lineNode["a:gradFill"], warpObj);
                     //console.log("shpFill",shpFill,grndColor.color)
-                } else if (fillTyp == "PATTERN_FILL") {
+                } else if (fillTyp === "PATTERN_FILL") {
                     borderColor = getPatternFill(lineNode["a:pattFill"], warpObj);
                 }
 
@@ -903,7 +901,7 @@ function getFillType(node) {
                 //bgcolor = "background-color: blue;";
                 let bgFillTyp = getFillType(bgPr);
 
-                if (bgFillTyp == "SOLID_FILL") {
+                if (bgFillTyp === "SOLID_FILL") {
                     let sldFill = bgPr["a:solidFill"];
                     let clrMapOvr;
                     let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(slideContent, ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
@@ -924,9 +922,9 @@ function getFillType(node) {
                     //bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
                     bgcolor = `background: #${sldBgClr};`;
 
-                } else if (bgFillTyp == "GRADIENT_FILL") {
+                } else if (bgFillTyp === "GRADIENT_FILL") {
                     bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
-                } else if (bgFillTyp == "PIC_FILL") {
+                } else if (bgFillTyp === "PIC_FILL") {
                     //console.log("PIC_FILL - ", bgFillTyp, bgPr, warpObj);
                     bgcolor = getBgPicFill(bgPr, "slideBg", warpObj, undefined, index);
 
@@ -1001,14 +999,14 @@ function getFillType(node) {
                     });
                     let bgFillLstIdx = sortByOrder[trueIdx - 1];
                     let bgFillTyp = getFillType(bgFillLstIdx);
-                    if (bgFillTyp == "SOLID_FILL") {
+                    if (bgFillTyp === "SOLID_FILL") {
                         let sldFill = bgFillLstIdx["a:solidFill"];
                         let sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                         //var sldTint = getColorOpacity(sldFill);
                         //bgcolor = "background: rgba(" + hexToRgbNew(phClr) + "," + sldTint + ");";
                         bgcolor = `background: #${sldBgClr};`;
                         //console.log("slideMasterContent - sldFill",sldFill)
-                    } else if (bgFillTyp == "GRADIENT_FILL") {
+                    } else if (bgFillTyp === "GRADIENT_FILL") {
                         bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
                     } else {
                         console.log(bgFillTyp)
@@ -1029,16 +1027,16 @@ function getFillType(node) {
                 }
                 if (bgPr !== undefined) {
                     let bgFillTyp = getFillType(bgPr);
-                    if (bgFillTyp == "SOLID_FILL") {
+                    if (bgFillTyp === "SOLID_FILL") {
                         let sldFill = bgPr["a:solidFill"];
 
                         let sldBgClr = getSolidFill(sldFill, clrMapOvr, undefined, warpObj);
                         //var sldTint = getColorOpacity(sldFill);
                         // bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
                         bgcolor = `background: #${sldBgClr};`;
-                    } else if (bgFillTyp == "GRADIENT_FILL") {
+                    } else if (bgFillTyp === "GRADIENT_FILL") {
                         bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
-                    } else if (bgFillTyp == "PIC_FILL") {
+                    } else if (bgFillTyp === "PIC_FILL") {
                         bgcolor = getBgPicFill(bgPr, "slideLayoutBg", warpObj, undefined, index);
 
                     }
@@ -1093,7 +1091,7 @@ function getFillType(node) {
                         });
                         let bgFillLstIdx = sortByOrder[trueIdx - 1];
                         let bgFillTyp = getFillType(bgFillLstIdx);
-                        if (bgFillTyp == "SOLID_FILL") {
+                        if (bgFillTyp === "SOLID_FILL") {
                             let sldFill = bgFillLstIdx["a:solidFill"];
                             //console.log("sldFill: ", sldFill)
                             //var sldTint = getColorOpacity(sldFill);
@@ -1101,10 +1099,10 @@ function getFillType(node) {
                             let sldBgClr = getSolidFill(sldFill, clrMapOvr, phClr, warpObj);
                             //console.log("bgcolor: ", bgcolor)
                             bgcolor = `background: #${sldBgClr};`;
-                        } else if (bgFillTyp == "GRADIENT_FILL") {
+                        } else if (bgFillTyp === "GRADIENT_FILL") {
                             //console.log("GRADIENT_FILL: ", bgFillLstIdx, phClr)
                             bgcolor = getBgGradientFill(bgFillLstIdx, phClr, slideMasterContent, warpObj);
-                        } else if (bgFillTyp == "PIC_FILL") {
+                        } else if (bgFillTyp === "PIC_FILL") {
                             //theme rels
                             //console.log("PIC_FILL - ", bgFillTyp, bgFillLstIdx, bgFillLst, warpObj);
                             bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
@@ -1120,15 +1118,15 @@ function getFillType(node) {
                     //console.log("slideMasterContent >> bgPr: ", bgPr, ", bgRef: ", bgRef)
                     if (bgPr !== undefined) {
                         let bgFillTyp = getFillType(bgPr);
-                        if (bgFillTyp == "SOLID_FILL") {
+                        if (bgFillTyp === "SOLID_FILL") {
                             let sldFill = bgPr["a:solidFill"];
                             let sldBgClr = getSolidFill(sldFill, clrMap, undefined, warpObj);
                             // var sldTint = getColorOpacity(sldFill);
                             // bgcolor = "background: rgba(" + hexToRgbNew(bgColor) + "," + sldTint + ");";
                             bgcolor = `background: #${sldBgClr};`;
-                        } else if (bgFillTyp == "GRADIENT_FILL") {
+                        } else if (bgFillTyp === "GRADIENT_FILL") {
                             bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
-                        } else if (bgFillTyp == "PIC_FILL") {
+                        } else if (bgFillTyp === "PIC_FILL") {
                             bgcolor = getBgPicFill(bgPr, "slideMasterBg", warpObj, undefined, index);
                         }
                     } else if (bgRef !== undefined) {

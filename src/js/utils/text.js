@@ -16,6 +16,7 @@ import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY, DINGBAT_UNICODE } from '../core/constants.js';
 import { genChart } from './chart.js';
+import tinycolor from '../core/tinycolor.js';
 let is_first_br = false;
 
 
@@ -485,7 +486,14 @@ function getTextWidth(html) {
                 //"line-height: 0px;";
                 if (color_tye == "solid") {
                     if (bultColor[0] !== undefined && bultColor[0] != "") {
-                        bullet += "color:#" + bultColor[0] + "; ";
+                        let bulletColorValue = bultColor[0];
+                        if (bulletColorValue.length === 8) {
+                            let colorObj = tinycolor(bulletColorValue);
+                            bulletColorValue = colorObj.toRgbString();
+                        } else {
+                            bulletColorValue = "#" + bulletColorValue;
+                        }
+                        bullet += "color:" + bulletColorValue + "; ";
                     }
                     if (bultColor[1] !== undefined && bultColor[1] != "" && bultColor[1] != ";") {
                         bullet += "text-shadow:" + bultColor[1] + ";";
@@ -597,9 +605,18 @@ function getTextWidth(html) {
                 const bulletIndex = warpObj.bulletCounter[bulletKey].index;
                 const bulletText = getNumTypeNum(buNum, bulletIndex);
 
-                bullet = "<div style='" + marLStr + marRStr +
-                    "color:#" + bultColor[0] + ";" +
-                    `font-size:${bultSize};`;
+                bullet = "<div style='" + marLStr + marRStr;
+                if (bultColor[0] !== undefined && bultColor[0] != "") {
+                    let bulletNumColorValue = bultColor[0];
+                    if (bulletNumColorValue.length === 8) {
+                        let colorObj = tinycolor(bulletNumColorValue);
+                        bulletNumColorValue = colorObj.toRgbString();
+                    } else {
+                        bulletNumColorValue = "#" + bulletNumColorValue;
+                    }
+                    bullet += "color:" + bulletNumColorValue + ";";
+                }
+                bullet += `font-size:${bultSize};`;
                 if (isRTL) {
                     bullet += "white-space: nowrap ;direction:rtl;";
                 } else {
@@ -1092,7 +1109,14 @@ function getTextWidth(html) {
             //console.log("genSpanElement fontClrPr: ", fontClrPr, "linkID", linkID);
             if (fontClrType == "solid") {
                 if (linkID === undefined && fontClrPr[0] !== undefined && fontClrPr[0] != "") {
-                    styleText += "color: #" + fontClrPr[0] + ";";
+                    let colorValue = fontClrPr[0];
+                    if (colorValue.length === 8) {
+                        let colorObj = tinycolor(colorValue);
+                        colorValue = colorObj.toRgbString();
+                    } else {
+                        colorValue = "#" + colorValue;
+                    }
+                    styleText += "color: " + colorValue + ";";
                 }
                 else if (linkID !== undefined && defLinkClr !== undefined) {
                     styleText += `color: #${defLinkClr};`;
@@ -1102,7 +1126,14 @@ function getTextWidth(html) {
                     styleText += "text-shadow:" + fontClrPr[1] + ";";
                 }
                 if (fontClrPr[3] !== undefined && fontClrPr[3] != "") {
-                    styleText += "background-color: #" + fontClrPr[3] + ";";
+                    let highlightColorValue = fontClrPr[3];
+                    if (highlightColorValue.length === 8) {
+                        let colorObj = tinycolor(highlightColorValue);
+                        highlightColorValue = colorObj.toRgbString();
+                    } else {
+                        highlightColorValue = "#" + highlightColorValue;
+                    }
+                    styleText += "background-color: " + highlightColorValue + ";";
                 }
             } else if (fontClrType == "pattern" || fontClrType == "pic" || fontClrType == "gradient") {
                 if (fontClrType == "pattern") {
@@ -1164,6 +1195,9 @@ function getTextWidth(html) {
                 "text-decoration:" + PPTXStyleUtils.getFontDecoration(node, type, slideMasterTextStyles) + ";" +
                 "text-align:" + PPTXStyleUtils.getTextHorizontalAlign(node, pNode, type, warpObj) + ";" +
                 "vertical-align:" + PPTXStyleUtils.getTextVerticalAlign(node, type, slideMasterTextStyles) + ";";
+            
+            // Merge styleText into text_style
+            text_style += styleText;
             //rNodeLength
             //console.log("genSpanElement node:", node, "lang:", lang, "isRtlLan:", isRtlLan, "span parent dir:", dirStr)
             if (isRtlLan) { //|| rIndex === undefined
@@ -1200,7 +1234,16 @@ function getTextWidth(html) {
             //}
             let highlight = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:highlight"]);
             if (highlight !== undefined) {
-                styleText += "background-color:#" + PPTXStyleUtils.getSolidFill(highlight, undefined, undefined, warpObj) + ";";
+                let highlightColor = PPTXStyleUtils.getSolidFill(highlight, undefined, undefined, warpObj);
+                if (highlightColor !== undefined && highlightColor != "") {
+                    if (highlightColor.length === 8) {
+                        let colorObj = tinycolor(highlightColor);
+                        highlightColor = colorObj.toRgbString();
+                    } else {
+                        highlightColor = "#" + highlightColor;
+                    }
+                    styleText += "background-color:" + highlightColor + ";";
+                }
                 //styleText += "Opacity:" + getColorOpacity(highlight) + ";";
             }
 
@@ -1326,8 +1369,14 @@ function getTextWidth(html) {
                 tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
                 tbl_bgcolor = PPTXStyleUtils.getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
             }
-            if (tbl_bgcolor !== "") {
-                tbl_bgcolor = `background-color: #${tbl_bgcolor};`;
+            if (tbl_bgcolor !== "" && typeof tbl_bgcolor === 'string') {
+                if (tbl_bgcolor.length === 8) {
+                    let colorObj = tinycolor(tbl_bgcolor);
+                    tbl_bgcolor = colorObj.toRgbString();
+                } else {
+                    tbl_bgcolor = "#" + tbl_bgcolor;
+                }
+                tbl_bgcolor = `background-color: ${tbl_bgcolor};`;
             }
             ////////////////////////////////////////////////////////////////////////////////////////////
             let tableHtml = `<table ${tblDir} style='border-collapse: collapse;` +
@@ -1511,11 +1560,26 @@ function getTextWidth(html) {
                         }
                     }
                     rowsStyl += ((row_borders !== undefined) ? row_borders : "");
-                    rowsStyl += ((fontClrPr !== undefined) ? ` color: #${fontClrPr};` : "");
+                    if (fontClrPr !== undefined && typeof fontClrPr === 'string') {
+                        let tableColorValue = fontClrPr;
+                        if (tableColorValue.length === 8) {
+                            let colorObj = tinycolor(tableColorValue);
+                            tableColorValue = colorObj.toRgbString();
+                        } else {
+                            tableColorValue = "#" + tableColorValue;
+                        }
+                        rowsStyl += ` color: ${tableColorValue};`;
+                    }
                     rowsStyl += ((fontWeight != "") ? ` font-weight:${fontWeight};` : "");
-                    if (fillColor !== undefined && fillColor != "") {
+                    if (fillColor !== undefined && fillColor != "" && typeof fillColor === 'string') {
+                        if (fillColor.length === 8) {
+                            let colorObj = tinycolor(fillColor);
+                            fillColor = colorObj.toRgbString();
+                        } else {
+                            fillColor = "#" + fillColor;
+                        }
                         //rowsStyl += "background-color: rgba(" + hexToRgbNew(fillColor) + `,${colorOpacity});`;
-                        rowsStyl += `background-color: #${fillColor};`;
+                        rowsStyl += `background-color: ${fillColor};`;
                     }
                     tableHtml += `<tr style='${rowsStyl}'>`;
                     ////////////////////////////////////////////////
@@ -1814,7 +1878,13 @@ function getTextWidth(html) {
                     colFontWeight = local_fontWeight;
                 }
             }
-            colStyl += ((colFontClrPr !== "") ? `color: #${colFontClrPr};` : "");
+            colStyl += ((colFontClrPr !== "" && typeof colFontClrPr === 'string') ? 
+                ((colFontClrPr.length === 8) ? 
+                    (() => {
+                        let colorObj = tinycolor(colFontClrPr);
+                        return `color: ${colorObj.toRgbString()};`;
+                    })() : 
+                    `color: #${colFontClrPr};`) : "");
             colStyl += ((colFontWeight != "") ? ` font-weight:${colFontWeight};` : "");
 
             return [text, colStyl, cssName, rowSpan, colSpan];
