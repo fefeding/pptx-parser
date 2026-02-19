@@ -1,16 +1,17 @@
 # PPT-Parser
 
-一个轻量级的 PPTX 解析与序列化库，让处理 PowerPoint 文件变得简单。
+一个轻量级的 PPTX 解析库，让处理 PowerPoint 文件变得简单。
 
 ## 特性
 
 - 📦 **简单易用** - 几行代码即可完成 PPTX 文件的解析和生成
 - 🔧 **纯 TypeScript** - 完整的类型定义，优秀的开发体验
 - 🎯 **零框架依赖** - 可在任何 JavaScript/TypeScript 项目中使用
-- 📱 **双向支持** - 支持 PPTX 文件 → JSON、JSON → PPTX 双向转换
+- 📱 **双向支持** - 支持 PPTX 文件 → HTML/JSON、HTML/JSON → PPTX 双向转换
 - 🎨 **支持多种元素** - 文本、形状、表格、图片等常见元素
 - 🔄 **智能转换** - 自动处理 EMU ↔ PX 单位转换
 - 📦 **双格式输出** - 同时支持 ESM 和 CommonJS 模块
+- 🌐 **浏览器/Node.js 双支持** - 可在浏览器环境和 Node.js 中使用
 
 ## 安装
 
@@ -22,81 +23,56 @@ npm install @fefeding/ppt-parser
 
 ## 快速开始
 
-### 解析 PPTX 文件
+### 解析 PPTX 文件为 HTML（推荐）
 
-```typescript
-import PptParserCore from '@fefeding/ppt-parser';
+```javascript
+import pptxParser from '@fefeding/ppt-parser';
 
-// 上传并解析 PPTX 文件
-const fileInput = document.querySelector('#ppt-upload') as HTMLInputElement;
-
-fileInput.addEventListener('change', async (e) => {
-  const file = (e.target as HTMLInputElement).files?.[0];
-  if (!file) return;
-
-  const pptJson = await PptParserCore.parse(file);
-  console.log(pptJson);
-});
-```
-
-### 增强版解析（推荐使用）
-
-> 💡 **增强版**提供完整的PPTX解析能力，支持标准PPTX文件的所有元素类型，包括OLE对象、分组元素、图片Base64解析等
-
-```typescript
-import { parsePptx } from 'pptx-parser';
-
-// 上传并解析 PPTX 文件（增强版）
-const fileInput = document.querySelector('#ppt-upload') as HTMLInputElement;
+// 上传并解析 PPTX 文件为 HTML
+const fileInput = document.querySelector('#ppt-upload');
 
 fileInput.addEventListener('change', async (e) => {
-  const file = (e.target as HTMLInputElement).files?.[0];
+  const file = e.target.files?.[0];
   if (!file) return;
 
-  const result = await parsePptx(file, {
+  const result = await pptxParser.parseToHtml(file, {
     parseImages: true,    // 解析图片为Base64
-    verbose: true          // 详细日志
+    verbose: true         // 详细日志
   });
 
-  console.log('PPT标题:', result.title);
-  console.log('作者:', result.author);
-  console.log('幻灯片数量:', result.slides.length);
-
-  // 遍历所有元素
-  result.slides.forEach((slide, index) => {
-    console.log(`幻灯片 ${index + 1}: ${slide.title}`);
-    slide.elements.forEach(element => {
-      console.log(`  ${element.type}: ${element.text || ''}`);
-    });
-  });
+  console.log('HTML:', result.html);
+  console.log('样式:', result.styles);
+  
+  // 直接获取转换后的HTML内容
+  document.getElementById('preview').innerHTML = result.html;
 });
 ```
 
-📖 **查看增强版文档**：[ENHANCED_README.md](./docs/ENHANCED_README.md) | [ENHANCED_GUIDE.md](./docs/ENHANCED_GUIDE.md)
+### 解析 PPTX 文件为 JSON
+
+```javascript
+import { pptxToJson } from '@fefeding/ppt-parser';
+
+// 解析 PPTX 文件为 JSON 数据
+const fileInput = document.querySelector('#ppt-upload');
+
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const result = await pptxToJson(file);
+  console.log('JSON:', result);
+});
+```
 
 ### 导出 PPTX 文件
 
-```typescript
-import PptParserCore from '@fefeding/ppt-parser';
-
-async function exportPptx(pptJson) {
-  const pptBlob = await PptParserCore.serialize(pptJson);
-  
-  const url = URL.createObjectURL(pptBlob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${pptJson.title || 'presentation'}.pptx`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-```
+> 注意：当前版本导出功能正在完善中，主要支持解析功能
 
 ### 使用工具函数
 
-```typescript
-import PptParserCore from '@fefeding/ppt-parser';
-
-const { utils } = PptParserCore;
+```javascript
+import { utils } from '@fefeding/ppt-parser';
 
 // 像素转 EMU
 const emu = utils.px2emu(100);
@@ -108,51 +84,29 @@ const px = utils.emu2px(914400);
 const id = utils.generateId('slide');
 ```
 
-## 数据结构
+## 输出格式
 
-解析后的数据结构如下：
+`parseToHtml` 方法返回以下结构：
 
-```typescript
-// 完整文档
+```javascript
 {
-  id: string;
-  title: string;
-  slides: Array<{
-    id: string;
-    title: string;
-    bgColor: string;
-    elements: Array<{
-      id: string;
-      type: 'text' | 'image' | 'shape' | 'table' | 'chart' | 'container' | 'media';
-      rect: { x, y, width, height };
-      style: { fontSize, color, textAlign, ... };
-      content: any;
-      props: object;
-    }>;
-  }>;
-  props: { width, height, ratio };
+  html: '<div class="pptx-preview">...</div>',  // 转换后的HTML内容
+  styles: {                                     // 全局样式表
+    global: '._css_1 { ... }',
+    table: '._tbl_cell_css_1 { ... }'
+  },
+  slides: [                                     // 幻灯片数据
+    {
+      id: 'slide-1',
+      elements: [...]
+    }
+  ]
 }
 ```
 
-详细类型定义请查看 [docs/API.md](./docs/API.md)。
-
-## 增强版功能
-
-增强版 `parsePptx` 提供以下额外功能：
-
-- ✅ **完整元素解析** - 支持形状、图片、OLE对象、图表、分组等所有标准元素
-- ✅ **命名空间处理** - 遵循 ECMA-376 OpenXML 标准
-- ✅ **图片Base64** - 自动解析图片为Base64格式
-- ✅ **文本样式** - 解析字体大小、颜色、加粗、斜体等样式
-- ✅ **元数据提取** - 提取标题、作者、创建时间等信息
-- ✅ **关联关系** - 解析rels文件，正确引用资源
-- ✅ **完善容错** - 节点不存在时返回默认值，不抛异常
-
-详细文档请查看：
-- [增强版文档](./docs/ENHANCED_README.md) - 完整API和功能说明
-- [使用指南](./docs/ENHANCED_GUIDE.md) - 实战示例和最佳实践
-
 ## 功能特性
+
+本库提供完整的PPTX解析能力，支持标准PPTX文件的所有元素类型。
 
 ### 支持的元素类型
 
@@ -166,23 +120,41 @@ const id = utils.generateId('slide');
 
 ### 解析选项
 
-```typescript
-const pptDoc = await PptParserCore.parse(file, {
-  extractImages: true,   // 提取图片二进制数据
-  parseMedia: true,      // 解析媒体文件
-  parseTheme: false,     // 解析主题
-  onProgress: (p, msg) => console.log(`${p}%: ${msg}`)
+```javascript
+const result = await pptxParser.parseToHtml(file, {
+  parseImages: true,    // 解析图片为Base64
+  verbose: true,       // 详细日志
+  slideHeight: 540,    // 幻灯片高度
+  slideWidth: 960      // 幻灯片宽度
 });
 ```
 
-### 序列化选项
+### 浏览器中使用
 
-```typescript
-const blob = await PptParserCore.serialize(pptDoc, {
-  includeNotes: true,    // 包含演讲者备注
-  compress: true,         // 压缩输出
-  compressionLevel: 6     // 压缩级别 (0-9)
-});
+```html
+<script src="./dist/ppt-parser.browser.js"></script>
+<script>
+  const fileInput = document.querySelector('#ppt-upload');
+  
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const result = await pptxParser.parseToHtml(file);
+    document.getElementById('preview').innerHTML = result.html;
+  });
+</script>
+```
+
+### Node.js 中使用
+
+```javascript
+const fs = require('fs');
+const { pptxToHtml } = require('@fefeding/ppt-parser');
+
+const buffer = fs.readFileSync('presentation.pptx');
+const result = await pptxToHtml(buffer);
+console.log(result.html);
 ```
 
 ## 使用场景
@@ -208,11 +180,16 @@ const blob = await PptParserCore.serialize(pptDoc, {
 ## Node.js 支持
 
 ```javascript
-const PptParserCore = require('@fefeding/ppt-parser');
-
-// 解析本地文件
+const { pptxToHtml } = require('@fefeding/ppt-parser');
 const fs = require('fs');
-const pptJson = await PptParserCore.parse(fs.readFileSync('presentation.pptx'));
+
+async function parsePptx() {
+  const buffer = fs.readFileSync('presentation.pptx');
+  const result = await pptxToHtml(buffer);
+  console.log(result.html);
+}
+
+parsePptx();
 ```
 
 ## 开发
