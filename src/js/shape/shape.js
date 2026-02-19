@@ -139,8 +139,10 @@ export const PPTXShapeUtils = (function() {
                     ext = PPTXXmlUtils.getTextByPathList(slideMasterXfrmNode, ["a:ext", "attrs"]);
                 }
                 
-                var w = (ext !== undefined) ? parseInt(ext["cx"]) * SLIDE_FACTOR : 100;
-                var h = (ext !== undefined) ? parseInt(ext["cy"]) * SLIDE_FACTOR : 100;
+                var w = (ext !== undefined && ext["cx"] !== undefined) ? parseInt(ext["cx"]) * SLIDE_FACTOR : 100;
+                var h = (ext !== undefined && ext["cy"] !== undefined) ? parseInt(ext["cy"]) * SLIDE_FACTOR : 100;
+                w = isNaN(w) ? 100 : w;
+                h = isNaN(h) ? 100 : h;
 
                 var svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
                 //console.log("name:", name, "svgCssName: ", svgCssName)
