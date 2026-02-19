@@ -247,6 +247,10 @@ npm test
 
 [MIT License](LICENSE)
 
+## 致谢
+
+本库在开发过程中参考和借鉴了 [pptxjs](https://github.com/meshesha/pptxjs) 项目的部分实现思路，特此表示感谢。pptxjs 是一个优秀的客户端PPTX解析库，为本项目的架构设计提供了重要参考。
+
 ---
 
 **Made with ❤️ for developers**
