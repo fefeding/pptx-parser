@@ -3095,6 +3095,7 @@ function getFillType(node) {
             }
             
             // 根据PPTX标准处理行间距
+            // 只在明确设置了行间距时才应用line-height
             if (lnSpcNode !== undefined && fontSize !== undefined) {
                 if (lnSpcNodeType == "Pts") {
                     // 点行间距：直接使用点数
@@ -3102,32 +3103,28 @@ function getFillType(node) {
                     // 转换为像素（假设1pt = 1.33px）
                     let lineSpacingPx = lineSpacing * 1.33;
                     
-                    // 确保行间距不会过大，特别是对于小字体
-                    // 最大行间距不超过字体大小的3倍
-                    let maxLineSpacing = fontSize * 3;
-                    lineSpacingPx = Math.min(lineSpacingPx, maxLineSpacing);
-                    
-                    // 使用line-height属性
-                    marginTopBottomStr += "line-height: " + lineSpacingPx + "px;";
+                    // 使用line-height属性，实际行高 = 字体大小 + 行间距点数
+                    let actualLineHeight = fontSize + lineSpacingPx;
+                    marginTopBottomStr += "line-height: " + Math.round(actualLineHeight * 10) / 10 + "px;";
                 } else {
                     // 百分比行间距：行间距 = 字体大小 × (百分比 / 100000)
+                    // PPTX行间距百分比是相对于字体大小的倍数
                     var fct = parseInt(lnSpcNode) / 100000;
-                    let lineSpacing = fontSize * fct;
+                    // 实际line-height = 字体大小 × 行距倍数
+                    let actualLineHeight = fontSize * fct;
                     
-                    // 确保行间距不会过大，特别是对于小字体
-                    // 最大行间距不超过字体大小的3倍
-                    let maxLineSpacing = fontSize * 3;
-                    lineSpacing = Math.min(lineSpacing, maxLineSpacing);
+                    // 限制最大行高不超过字体大小的2.5倍，避免过大行距
+                    actualLineHeight = Math.min(actualLineHeight, fontSize * 2.5);
                     
                     // 使用line-height属性
-                    marginTopBottomStr += "line-height: " + lineSpacing + "px;";
+                    marginTopBottomStr += "line-height: " + Math.round(actualLineHeight * 10) / 10 + "px;";
                 }
             } else {
-                // 如果没有指定行间距，使用默认值
+                // 如果没有指定行间距，使用较小的默认值，避免行距过大
                 if (fontSize !== undefined) {
-                    // 对于默认行间距，使用1.1倍字体大小，避免行距过大
-                    let defaultLineSpacing = fontSize * 1.1;
-                    marginTopBottomStr += "line-height: " + defaultLineSpacing + "px;";
+                    // 使用1.15倍字体大小作为默认值
+                    let defaultLineSpacing = fontSize * 1.15;
+                    marginTopBottomStr += "line-height: " + Math.round(defaultLineSpacing * 10) / 10 + "px;";
                 }
             }
 

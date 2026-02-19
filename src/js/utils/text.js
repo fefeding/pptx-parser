@@ -173,13 +173,13 @@ function getTextWidth(html) {
                         prg_width_node = total_text_len + bu_width;
                     }
                 }
-                let prg_width = ((prg_width_node !== undefined && prg_width_node !== null) ? ("width:" + (Math.round(prg_width_node * 100) / 100)) + "px;" : "");
-                if (prg_width !== "" && isNoWrap) {
-                    prg_width = "";
-                } else if (prg_width === "" && !isNoWrap) {
-                    prg_width = "width:inherit;";
+                // 如果没有明确设置wrap="none"或spAutoFit，默认不设置内层div的宽度，让文本自然流动
+                let prg_width = "";
+                if (prg_width_node !== undefined && prg_width_node !== null && !isNoWrap) {
+                    // 只有明确不需要换行时才设置宽度
+                    prg_width = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
                 }
-                let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "overflow-wrap:break-word;word-wrap: break-word;";
+                let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "";
                 text += "<div style='direction: initial;" + whiteSpaceStyle + prg_width + margin + "' >";
                 text += prgrph_text;
                 text += "</div>";
