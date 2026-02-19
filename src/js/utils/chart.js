@@ -10,9 +10,9 @@ import { PPTXStyleUtils } from './style.js';
  * Generate chart HTML and data
  * @param {Object} node - Chart node
  * @param {Object} warpObj - Warp object containing context
- * @returns {string} Chart HTML
+ * @returns {Promise<string>} Chart HTML
  */
-function genChart(node, warpObj) {
+async function genChart(node, warpObj) {
     const order = node["attrs"]["order"];
     const xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
     const result = "<div id='chart" + warpObj.chartId.value + "' class='block content' style='" +
@@ -21,7 +21,7 @@ function genChart(node, warpObj) {
 
     const rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
     const refName = warpObj["slideResObj"][rid]["target"];
-    const content = PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
+    const content = await PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
     const plotArea = PPTXXmlUtils.getTextByPathList(content, ["c:chartSpace", "c:chart", "c:plotArea"]);
 
     let chartData = null;

@@ -155,9 +155,9 @@ export const PPTXXmlUtils = (function() {
      * @param {string} filename - 文件名
      * @param {boolean} isSlideContent - 是否为幻灯片内容
      * @param {number} appVersion - 应用版本
-     * @returns {Object} 解析后的XML对象
+     * @returns {Promise<Object>} 解析后的XML对象
      */
-    function readXmlFile(zip, filename, isSlideContent, appVersion) {
+    async function readXmlFile(zip, filename, isSlideContent, appVersion) {
         try {
             let fileContent = zip.file(filename).asText();
             if (isSlideContent && appVersion <= 12) {
@@ -181,10 +181,10 @@ export const PPTXXmlUtils = (function() {
      * 获取内容类型
      * @param {Object} zip - JSZip实例
      * @param {number} appVersion - Office版本
-     * @returns {Object} 包含slides和slideLayouts的对象
+     * @returns {Promise<Object>} 包含slides和slideLayouts的对象
      */
-    function getContentTypes(zip, appVersion) {
-        let ContentTypesJson = PPTXXmlUtils.readXmlFile(zip, "[Content_Types].xml", false, appVersion);
+    async function getContentTypes(zip, appVersion) {
+        let ContentTypesJson = await PPTXXmlUtils.readXmlFile(zip, "[Content_Types].xml", false, appVersion);
         
         let subObj = ContentTypesJson["Types"]["Override"];
         let slidesLocArray = [];
@@ -211,17 +211,17 @@ export const PPTXXmlUtils = (function() {
      * @param {Object} zip - JSZip实例
      * @param {Object} settings - 设置对象
      * @param {number} SLIDE_FACTOR - 尺寸转换因子
-     * @returns {Object} 包含width和height的对象
+     * @returns {Promise<Object>} 包含width和height的对象
      */
-    function getSlideSizeAndSetDefaultTextStyle(zip, settings) {
+    async function getSlideSizeAndSetDefaultTextStyle(zip, settings) {
         //get app version
-        let app = PPTXXmlUtils.readXmlFile(zip, "docProps/app.xml");
+        let app = await PPTXXmlUtils.readXmlFile(zip, "docProps/app.xml");
         let app_verssion_str = app["Properties"]["AppVersion"]
         const app_verssion = Number(app_verssion_str);
 
         //get slide dimensions
         let rtenObj = {};
-        let content = PPTXXmlUtils.readXmlFile(zip, "ppt/presentation.xml");
+        let content = await PPTXXmlUtils.readXmlFile(zip, "ppt/presentation.xml");
         let sldSzAttrs = content["p:presentation"]["p:sldSz"]["attrs"];
         let sldSzWidth = parseInt(sldSzAttrs["cx"]);
         let sldSzHeight = parseInt(sldSzAttrs["cy"]);

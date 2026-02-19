@@ -111,12 +111,12 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 
 	// 使用 FileReader 读取文件
 	var reader = new FileReader();
-	reader.onload = function(e) {
+	reader.onload = async function(e) {
 		var fileData = e.target.result;
 		
 		try {
-			// 直接获取解析结果（同步函数）
-			const result = pptxToHtml(fileData, {
+			// 直接获取解析结果（异步函数）
+			const result = await pptxToHtml(fileData, {
 				slideMode: false,
 				keyBoardShortCut: false,
 				slideModeConfig: {

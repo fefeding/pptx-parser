@@ -14,9 +14,9 @@ import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants.js';
  * @param {Object} chartId - Chart ID tracker
  * @param {Object} styleTable - Style table
  * @param {*} defaultTextStyle - Default text style
- * @returns {Object} Structured PPTX data
+ * @returns {Promise<Object>} Structured PPTX data
  */
-function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
+async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
     const postArray = [];
     const dateBefore = new Date();
 
@@ -28,8 +28,8 @@ function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, default
         thumbnail = pptxThumbImg;
     }
 
-    const filesInfo = PPTXXmlUtils.getContentTypes(zip);
-    const slideSize = PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
+    const filesInfo = await PPTXXmlUtils.getContentTypes(zip);
+    const slideSize = await PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
 
     const slides = [];
     const numOfSlides = filesInfo.slides.length;
@@ -58,7 +58,7 @@ function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, default
         }
 
         // Process slide and get structured data
-        const slideData = processSingleSlideStructured(zip, filename, i, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle);
+        const slideData = await processSingleSlideStructured(zip, filename, i, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle);
         
         slides.push({
             slideNum: slideNumber,
@@ -82,9 +82,9 @@ function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, default
 }
 
 /**
- * Process a single slide and return structured data
+ * Process a single slide and extract structured data
  * @param {JSZip} zip - The JSZip instance
- * @param {string} slideFileName - Slide filename
+ * @param {string} slideFileName - Slide file name
  * @param {number} index - Slide index
  * @param {Object} slideSize - Slide size info
  * @param {Array} msgQueue - Message queue
@@ -92,12 +92,12 @@ function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, default
  * @param {Object} chartId - Chart ID tracker
  * @param {Object} styleTable - Style table
  * @param {*} defaultTextStyle - Default text style
- * @returns {Object} Structured slide data
+ * @returns {Promise<Object>} Structured slide data
  */
-function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
+async function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
     // Read relationship file of the slide
     const resName = slideFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
-    const resContent = PPTXXmlUtils.readXmlFile(zip, resName);
+    const resContent = await PPTXXmlUtils.readXmlFile(zip, resName);
     const relationshipArray = resContent.Relationships.Relationship;
 
     let layoutFilename = "";
@@ -132,7 +132,7 @@ function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQ
     }
 
     // Open slide layout
-    const slideLayoutContent = PPTXXmlUtils.readXmlFile(zip, layoutFilename);
+    const slideLayoutContent = await PPTXXmlUtils.readXmlFile(zip, layoutFilename);
     const slideLayoutTables = PPTXNodeUtils.indexNodes(slideLayoutContent);
     const layoutColorOverride = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
 
@@ -143,7 +143,7 @@ function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQ
 
     // Read slide master
     const slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
-    const slideLayoutResContent = PPTXXmlUtils.readXmlFile(zip, slideLayoutResFilename);
+    const slideLayoutResContent = await PPTXXmlUtils.readXmlFile(zip, slideLayoutResFilename);
     const layoutRelArray = slideLayoutResContent.Relationships.Relationship;
 
     let masterFilename = "";
@@ -168,13 +168,13 @@ function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQ
     }
 
     // Open slide master
-    const slideMasterContent = PPTXXmlUtils.readXmlFile(zip, masterFilename);
+    const slideMasterContent = await PPTXXmlUtils.readXmlFile(zip, masterFilename);
     const slideMasterTextStyles = PPTXXmlUtils.getTextByPathList(slideMasterContent, ["p:sldMaster", "p:txStyles"]);
     const slideMasterTables = PPTXNodeUtils.indexNodes(slideMasterContent);
 
     // Read slide master relationships
     const slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
-    const slideMasterResContent = PPTXXmlUtils.readXmlFile(zip, slideMasterResFilename);
+    const slideMasterResContent = await PPTXXmlUtils.readXmlFile(zip, slideMasterResFilename);
     const masterRelArray = slideMasterResContent.Relationships.Relationship;
 
     let themeFilename = "";
@@ -206,8 +206,8 @@ function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQ
         const themeName = themeFilename.split("/").pop();
         const themeResFileName = themeFilename.replace(themeName, `_rels/${themeName}`) + ".rels";
 
-        themeContent = PPTXXmlUtils.readXmlFile(zip, themeFilename);
-        const themeResContent = PPTXXmlUtils.readXmlFile(zip, themeResFileName);
+        themeContent = await PPTXXmlUtils.readXmlFile(zip, themeFilename);
+        const themeResContent = await PPTXXmlUtils.readXmlFile(zip, themeResFileName);
 
         if (themeResContent !== null) {
             const themeRelArray = themeResContent.Relationships.Relationship;
@@ -237,14 +237,14 @@ function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQ
         const diagramName = diagramFilename.split("/").pop();
         const diagramResFileName = diagramFilename.replace(diagramName, `_rels/${diagramName}`) + ".rels";
 
-        diagramContent = PPTXXmlUtils.readXmlFile(zip, diagramFilename);
+        diagramContent = await PPTXXmlUtils.readXmlFile(zip, diagramFilename);
         if (diagramContent !== null && diagramContent !== undefined && diagramContent !== "") {
             const diagramJson = JSON.stringify(diagramContent);
             const cleanedJson = diagramJson.replace(/dsp:/g, "p:");
             diagramContent = JSON.parse(cleanedJson);
         }
 
-        const diagramResContent = PPTXXmlUtils.readXmlFile(zip, diagramResFileName);
+        const diagramResContent = await PPTXXmlUtils.readXmlFile(zip, diagramResFileName);
         if (diagramResContent !== null) {
             const diagramRelArray = diagramResContent.Relationships.Relationship;
             if (Array.isArray(diagramRelArray)) {
@@ -264,10 +264,10 @@ function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQ
     }
 
     // Load table styles
-    const tableStyles = PPTXXmlUtils.readXmlFile(zip, "ppt/tableStyles.xml");
+    const tableStyles = await PPTXXmlUtils.readXmlFile(zip, "ppt/tableStyles.xml");
 
     // Read slide content
-    const slideContent = PPTXXmlUtils.readXmlFile(zip, slideFileName, true);
+    const slideContent = await PPTXXmlUtils.readXmlFile(zip, slideFileName, true);
     const nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
 
     const processFullTheme = settings.themeProcess;
@@ -304,9 +304,9 @@ function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQ
  * @param {Object} slideSize - Slide size info
  * @param {Object} settings - Conversion settings
  * @param {JSZip} zip - The JSZip instance
- * @returns {string} Slide HTML
+ * @returns {Promise<string>} Slide HTML
  */
-function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
+async function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -333,7 +333,7 @@ function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
     const processFullTheme = settings.themeProcess;
     let bgResult = "";
     if (processFullTheme === true) {
-        bgResult = PPTXNodeUtils.getBackground(warpObj, slideSize, slideData.index, settings, PPTXStyleUtils);
+        bgResult = await PPTXNodeUtils.getBackground(warpObj, slideSize, slideData.index, settings, PPTXStyleUtils);
     }
 
     let bgColor = "";
@@ -348,10 +348,10 @@ function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
     for (const nodeKey in nodes) {
         if (Array.isArray(nodes[nodeKey])) {
             for (const node of nodes[nodeKey]) {
-                result += PPTXNodeUtils.processNodesInSlide(nodeKey, node, nodes, warpObj, "slide", "group", settings);
+                result += await PPTXNodeUtils.processNodesInSlide(nodeKey, node, nodes, warpObj, "slide", "group", settings);
             }
         } else {
-            result += PPTXNodeUtils.processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide", "group", settings);
+            result += await PPTXNodeUtils.processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide", "group", settings);
         }
     }
 
@@ -376,9 +376,9 @@ function genGlobalCSS(styleTable) {
  * PPTX to HTML converter
  * @param {ArrayBuffer} fileData - The PPTX file data
  * @param {Object} options - Conversion options
- * @returns {Object} Parsed result
+ * @returns {Promise<Object>} Parsed result
  */
-function pptxToHtml(fileData, options) {
+async function pptxToHtml(fileData, options) {
     // Merge default settings with user options
     const settings = {
         mediaProcess: true,
@@ -413,9 +413,9 @@ function pptxToHtml(fileData, options) {
     /**
      * Convert PPTX file to HTML
      * @param {ArrayBuffer} file - The PPTX file data
-     * @returns {Object} Parsed result
+     * @returns {Promise<Object>} Parsed result
      */
-    function convertToHtml(file) {
+    async function convertToHtml(file) {
         if (file.byteLength < 10) {
             console.error("Invalid file: file too small");
             if (callbacks.onError) {
@@ -428,7 +428,7 @@ function pptxToHtml(fileData, options) {
         const zip = new JSZip().load(file);
         
         // Parse PPTX to structured data
-        const parsedData = parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
+        const parsedData = await parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
 
         // Convert structured data to HTML result
         const result = {
@@ -436,7 +436,7 @@ function pptxToHtml(fileData, options) {
             slideSize: parsedData.slideSize,
             thumbnail: parsedData.thumbnail,
             styles: {
-                global: genGlobalCSS(styleTable)
+                global: ""
             },
             metadata: parsedData.metadata,
             charts: []
@@ -444,7 +444,7 @@ function pptxToHtml(fileData, options) {
 
         // Process slides and convert to HTML
         for (const slideData of parsedData.slides) {
-            const slideHtml = convertSlideDataToHtml(slideData.data, parsedData.slideSize, settings, zip);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, parsedData.slideSize, settings, zip);
             result.slides.push({
                 html: slideHtml,
                 slideNum: slideData.slideNum,
@@ -458,6 +458,9 @@ function pptxToHtml(fileData, options) {
                 });
             }
         }
+
+        // Generate global CSS after all slides are processed (styleTable is populated during slide conversion)
+        result.styles.global = genGlobalCSS(styleTable);
 
         // Trigger other callbacks
         if (parsedData.thumbnail && callbacks.onThumbnail) {
@@ -500,9 +503,9 @@ function pptxToHtml(fileData, options) {
  * PPTX to JSON converter
  * @param {ArrayBuffer} fileData - The PPTX file data
  * @param {Object} options - Conversion options
- * @returns {Object} Parsed result
+ * @returns {Promise<Object>} Parsed result
  */
-function pptxToJson(fileData, options) {
+async function pptxToJson(fileData, options) {
     // Merge default settings with user options
     const settings = {
         mediaProcess: true,
@@ -537,9 +540,9 @@ function pptxToJson(fileData, options) {
     /**
      * Convert PPTX file to JSON
      * @param {ArrayBuffer} file - The PPTX file data
-     * @returns {Object} Parsed result
+     * @returns {Promise<Object>} Parsed result
      */
-    function convertToJson(file) {
+    async function convertToJson(file) {
         if (file.byteLength < 10) {
             console.error("Invalid file: file too small");
             if (callbacks.onError) {
@@ -552,7 +555,7 @@ function pptxToJson(fileData, options) {
         const zip = new JSZip().load(file);
         
         // Parse PPTX to structured data
-        const parsedData = parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
+        const parsedData = await parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
 
         // Convert structured data to JSON result
         const result = {
