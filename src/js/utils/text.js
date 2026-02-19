@@ -49,8 +49,6 @@ function getTextWidth(html) {
             let spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
             let isNoWrap = (wrapAttr === "none" || spAutoFitNode !== undefined);
             //console.log("genTextBody spNode: ", PPTXXmlUtils.getTextByPathList(spNode,["p:spPr","a:xfrm","a:ext"]));
-
-            //let lstStyle = textBodyNode["a:lstStyle"];
             
             let apNode = textBodyNode["a:p"];
             if (apNode.constructor !== Array) {
@@ -112,7 +110,13 @@ function getTextWidth(html) {
                 //console.log("textBodyNode: ", textBodyNode["a:lstStyle"])
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
                 let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
-                let sld_prg_width = ((prg_width_node !== undefined && !isNoWrap) ? ("width:" + (Math.round(parseInt(prg_width_node) * SLIDE_FACTOR * 100) / 100) + "px;") : "width:inherit;");
+                let sld_prg_width_val = (prg_width_node !== undefined && prg_width_node !== null) ? Math.round(parseInt(prg_width_node) * SLIDE_FACTOR * 100) / 100 : null;
+                let sld_prg_width = "";
+                if (sld_prg_width_val !== null && !isNoWrap) {
+                    sld_prg_width = "width:" + sld_prg_width_val + "px;";
+                } else if (sld_prg_width_val === null) {
+                    sld_prg_width = "width:inherit;";
+                }
                 let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + ` ${prg_dir} ` + cssName + "' >";
@@ -169,7 +173,12 @@ function getTextWidth(html) {
                         prg_width_node = total_text_len + bu_width;
                     }
                 }
-                let prg_width = ((prg_width_node !== undefined && !isNoWrap) ? ("width:" + (prg_width_node )) + "px;" : "width:inherit;");
+                let prg_width = ((prg_width_node !== undefined && prg_width_node !== null) ? ("width:" + (Math.round(prg_width_node * 100) / 100)) + "px;" : "");
+                if (prg_width !== "" && isNoWrap) {
+                    prg_width = "";
+                } else if (prg_width === "" && !isNoWrap) {
+                    prg_width = "width:inherit;";
+                }
                 let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "overflow-wrap:break-word;word-wrap: break-word;";
                 text += "<div style='direction: initial;" + whiteSpaceStyle + prg_width + margin + "' >";
                 text += prgrph_text;
