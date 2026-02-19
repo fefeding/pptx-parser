@@ -45,6 +45,9 @@ function getTextWidth(html) {
             //          <a:bodyPr wrap="square" rtlCol="1">
 
             let pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
+            let wrapAttr = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "wrap"]);
+            let spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
+            let isNoWrap = (wrapAttr === "none" || spAutoFitNode !== undefined);
             //console.log("genTextBody spNode: ", PPTXXmlUtils.getTextByPathList(spNode,["p:spPr","a:xfrm","a:ext"]));
 
             //let lstStyle = textBodyNode["a:lstStyle"];
@@ -109,7 +112,7 @@ function getTextWidth(html) {
                 //console.log("textBodyNode: ", textBodyNode["a:lstStyle"])
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
                 let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
-                let sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (Math.round(parseInt(prg_width_node) * SLIDE_FACTOR * 100) / 100) + "px;") : "width:inherit;");
+                let sld_prg_width = ((prg_width_node !== undefined && !isNoWrap) ? ("width:" + (Math.round(parseInt(prg_width_node) * SLIDE_FACTOR * 100) / 100) + "px;") : "width:inherit;");
                 let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + ` ${prg_dir} ` + cssName + "' >";
@@ -166,8 +169,9 @@ function getTextWidth(html) {
                         prg_width_node = total_text_len + bu_width;
                     }
                 }
-                let prg_width = ((prg_width_node !== undefined) ? ("width:" + (prg_width_node )) + "px;" : "width:inherit;");
-                text += "<div style='direction: initial;overflow-wrap:break-word;word-wrap: break-word;" + prg_width + margin + "' >";
+                let prg_width = ((prg_width_node !== undefined && !isNoWrap) ? ("width:" + (prg_width_node )) + "px;" : "width:inherit;");
+                let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "overflow-wrap:break-word;word-wrap: break-word;";
+                text += "<div style='direction: initial;" + whiteSpaceStyle + prg_width + margin + "' >";
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
