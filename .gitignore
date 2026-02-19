@@ -19,3 +19,14 @@ examples/ppt
 examples/金腾研发架构&系统介绍
 examples/Sample_12
 examples/机构端版本计划V1.7 0105
+examples/*.zip
+examples/**/*.xml
+examples/**/*.rels
+examples/**/*.png
+examples/**/*.svg
+examples/**/*.jpg
+examples/**/*.jpeg
+examples/**/*.gif
+examples/**/*.bmp
+examples/**/*.mp4
+examples/**/*.mp3
