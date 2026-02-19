@@ -109,7 +109,7 @@ function getTextWidth(html) {
                 //console.log("textBodyNode: ", textBodyNode["a:lstStyle"])
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
                 let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
-                let sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (parseInt(prg_width_node) * SLIDE_FACTOR) + "px;") : "width:inherit;");
+                let sld_prg_width = ((prg_width_node !== undefined) ? ("width:" + (Math.round(parseInt(prg_width_node) * SLIDE_FACTOR * 100) / 100) + "px;") : "width:inherit;");
                 let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + ` ${prg_dir} ` + cssName + "' >";
@@ -157,6 +157,7 @@ function getTextWidth(html) {
                 }
 
                 prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR - bu_width - mrgin_val;
+                prg_width_node = Math.round(prg_width_node * 100) / 100;
                 if (isBullate) {
                     //get prg_width_node if there is a bulltes
                     //console.log("total_text_len: ", total_text_len, "prg_width_node:", prg_width_node)

@@ -124,28 +124,28 @@ async function processGroupSpNode(node, wrapObj, source, settings) {
     let top, left, width, height;
 
     if (xfrmNode !== undefined) {
-        const x = parseInt(xfrmNode['a:off'].attrs.x) * SLIDE_FACTOR;
-        const y = parseInt(xfrmNode['a:off'].attrs.y) * SLIDE_FACTOR;
+        const x = Math.round(parseInt(xfrmNode['a:off'].attrs.x) * SLIDE_FACTOR * 100) / 100;
+        const y = Math.round(parseInt(xfrmNode['a:off'].attrs.y) * SLIDE_FACTOR * 100) / 100;
 
         // 根据ECMA-376标准，a:chOff和a:chExt是可选元素
         // 当不存在时，应该使用父元素的对应值作为默认值
         let childX, childY, childCx, childCy;
 
         if (xfrmNode['a:chOff'] !== undefined && xfrmNode['a:chOff'].attrs !== undefined) {
-            childX = parseInt(xfrmNode['a:chOff'].attrs.x) * SLIDE_FACTOR;
-            childY = parseInt(xfrmNode['a:chOff'].attrs.y) * SLIDE_FACTOR;
+            childX = Math.round(parseInt(xfrmNode['a:chOff'].attrs.x) * SLIDE_FACTOR * 100) / 100;
+            childY = Math.round(parseInt(xfrmNode['a:chOff'].attrs.y) * SLIDE_FACTOR * 100) / 100;
         } else {
             // 当a:chOff不存在时，使用a:off的值作为默认值
             childX = x;
             childY = y;
         }
 
-        const cx = parseInt(xfrmNode['a:ext'].attrs.cx) * SLIDE_FACTOR;
-        const cy = parseInt(xfrmNode['a:ext'].attrs.cy) * SLIDE_FACTOR;
+        const cx = Math.round(parseInt(xfrmNode['a:ext'].attrs.cx) * SLIDE_FACTOR * 100) / 100;
+        const cy = Math.round(parseInt(xfrmNode['a:ext'].attrs.cy) * SLIDE_FACTOR * 100) / 100;
 
         if (xfrmNode['a:chExt'] !== undefined && xfrmNode['a:chExt'].attrs !== undefined) {
-            childCx = parseInt(xfrmNode['a:chExt'].attrs.cx) * SLIDE_FACTOR;
-            childCy = parseInt(xfrmNode['a:chExt'].attrs.cy) * SLIDE_FACTOR;
+            childCx = Math.round(parseInt(xfrmNode['a:chExt'].attrs.cx) * SLIDE_FACTOR * 100) / 100;
+            childCy = Math.round(parseInt(xfrmNode['a:chExt'].attrs.cy) * SLIDE_FACTOR * 100) / 100;
         } else {
             // 当a:chExt不存在时，使用a:ext的值作为默认值
             childCx = cx;

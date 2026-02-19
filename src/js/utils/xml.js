@@ -540,8 +540,8 @@ export const PPTXXmlUtils = (function() {
             } else {
                 x = parseInt(off["x"]) * SLIDE_FACTOR;
                 y = parseInt(off["y"]) * SLIDE_FACTOR;
-                // if (type = "body")
-                //     console.log("getPosition: slideSpNode: ", slideSpNode, ", type: ", type, "x: ", x, "offX:", offX, "y:", y, "offY:", offY)
+                x = Math.round(x * 100) / 100;
+                y = Math.round(y * 100) / 100;
                 return (isNaN(x) || isNaN(y)) ? "" : "top:" + (y - offY + grpY) + "px; left:" + (x - offX + grpX) + "px;";
             }
 
@@ -564,6 +564,8 @@ export const PPTXXmlUtils = (function() {
             } else {
                 w = parseInt(ext["cx"]) * SLIDE_FACTOR;
                 h = parseInt(ext["cy"]) * SLIDE_FACTOR;
+                w = Math.round(w * 100) / 100;
+                h = Math.round(h * 100) / 100;
                 return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
             }
 
