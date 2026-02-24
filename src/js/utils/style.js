@@ -25,6 +25,9 @@ function getFillType(node) {
             //PATTERN_FILL
             //NO_FILL
             let fillType = "";
+            if (node === undefined) {
+                return fillType;
+            }
             if (node["a:noFill"] !== undefined) {
                 fillType = "NO_FILL";
             }
@@ -504,8 +507,9 @@ function getFillType(node) {
                         sz = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
                 kern = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
-                if (isKerning && kern !== undefined && !isNaN(fontSize) && (fontSize - parseInt(kern) / 100) > 0){
-                    fontSize = fontSize - parseInt(kern) / 100;
+                if (isKerning && kern !== undefined && !isNaN(fontSize) && kern > 0) {
+                    // 字距调整不应该减小字体大小，而是调整字符间距
+                    // 移除字体大小的减少
                 }
             }
 
@@ -547,9 +551,9 @@ function getFillType(node) {
                     // }
                 } 
                 fontSize = parseInt(sz) / 100;
-                if (isKerning && kern !== undefined && !isNaN(fontSize) && ((fontSize - parseInt(kern) / 100) > parseInt(kern) / 100 )) {
-                    fontSize = fontSize - parseInt(kern) / 100;
-                    //fontSize =  parseInt(kern) / 100;
+                if (isKerning && kern !== undefined && !isNaN(fontSize) && kern > 0) {
+                    // 字距调整不应该减小字体大小，而是调整字符间距
+                    // 移除字体大小的减少
                 }
             }
 
@@ -2275,7 +2279,7 @@ function getFillType(node) {
             var slideLayoutClrOvride;
             if (clrMap !== undefined) {
                 slideLayoutClrOvride = clrMap;//getTextByPathList(clrMap, ["p:sldMaster", "p:clrMap", "attrs"])
-            } else {
+            } else if (warpObj !== undefined) {
                 let sldClrMapOvr = PPTXXmlUtils.getTextByPathList(warpObj["slideContent"], ["p:sld", "p:clrMapOvr", "a:overrideClrMapping", "attrs"]);
                 if (sldClrMapOvr !== undefined) {
                     slideLayoutClrOvride = sldClrMapOvr;
@@ -2331,7 +2335,7 @@ function getFillType(node) {
             return color;
         }
 
-        function extractChartData(serNode) {
+        function extractChartData(serNode, warpObj) {
 
             let dataMat = new Array();
 
@@ -2379,7 +2383,56 @@ function getFillType(node) {
                         });
                     }
 
-                    dataMat.push({ key: colName, values: dataRow, xlabels: rowNames });
+                    // Extract series style information
+                    let seriesStyle = {};
+                    
+                    // Extract fill color if available
+                    let fillType = getFillType(PPTXXmlUtils.getTextByPathList(innerNode, ["c:spPr"]));
+                    if (fillType === "SOLID_FILL" && warpObj !== undefined) {
+                        let fillNode = PPTXXmlUtils.getTextByPathList(innerNode, ["c:spPr", "a:solidFill"]);
+                        if (fillNode !== undefined) {
+                            let fillColor = getSolidFill(fillNode, undefined, undefined, warpObj);
+                            if (fillColor !== undefined) {
+                                if (fillColor && !fillColor.startsWith('#')) {
+                                    fillColor = '#' + fillColor;
+                                }
+                                seriesStyle.fillColor = fillColor;
+                            }
+                        }
+                    } else if (fillType === "GRADIENT_FILL" && warpObj !== undefined) {
+                        let gradFillNode = PPTXXmlUtils.getTextByPathList(innerNode, ["c:spPr", "a:gradFill"]);
+                        if (gradFillNode !== undefined) {
+                            let gradientFill = getGradientFill(gradFillNode, warpObj);
+                            if (gradientFill !== undefined) {
+                                seriesStyle.gradientFill = gradientFill;
+                            }
+                        }
+                    }
+                    
+                    // Extract line color if available
+                    let lineNode = PPTXXmlUtils.getTextByPathList(innerNode, ["c:spPr", "a:ln"]);
+                    if (lineNode !== undefined && warpObj !== undefined) {
+                        let lineFillType = getFillType(lineNode);
+                        if (lineFillType === "SOLID_FILL") {
+                            let lineColor = getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
+                            if (lineColor !== undefined) {
+                                if (lineColor && !lineColor.startsWith('#')) {
+                                    lineColor = '#' + lineColor;
+                                }
+                                seriesStyle.lineColor = lineColor;
+                            }
+                        } else if (lineFillType === "GRADIENT_FILL") {
+                            let lineGradFillNode = lineNode["a:gradFill"];
+                            if (lineGradFillNode !== undefined) {
+                                let lineGradientFill = getGradientFill(lineGradFillNode, warpObj);
+                                if (lineGradientFill !== undefined) {
+                                    seriesStyle.lineGradientFill = lineGradientFill;
+                                }
+                            }
+                        }
+                    }
+
+                    dataMat.push({ key: colName, values: dataRow, xlabels: rowNames, style: seriesStyle });
                     return "";
                 });
             }
@@ -3178,6 +3231,9 @@ function getFillType(node) {
                     return "h-mid";
                 } else if (type == "sldNum") {
                     return "h-right";
+                } else {
+                    // 默认返回左对齐
+                    return "h-left";
                 }
             }
             if (algn !== undefined) {
@@ -3395,6 +3451,226 @@ function getFillType(node) {
 
             return [marLStr, maginVal];
         }
+// 提取图表标题样式
+function extractChartTitleStyle(chartNode, warpObj) {
+    const titleNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:title"]);
+    if (!titleNode) return {};
+    
+    const style = {};
+    
+    // 提取标题文本属性
+    const txPr = PPTXXmlUtils.getTextByPathList(titleNode, ["c:txPr"]);
+    if (txPr) {
+        const p = PPTXXmlUtils.getTextByPathList(txPr, ["a:p"]);
+        if (p) {
+            const pPr = PPTXXmlUtils.getTextByPathList(p, ["a:pPr"]);
+            if (pPr) {
+                const defRPr = PPTXXmlUtils.getTextByPathList(pPr, ["a:defRPr"]);
+                if (defRPr) {
+                    // 提取字体大小
+                    if (defRPr["attrs"] && defRPr["attrs"]["sz"]) {
+                        style.fontSize = parseFloat(defRPr["attrs"]["sz"]) / 100;
+                    }
+                    
+                    // 提取字体粗细
+                    if (defRPr["attrs"] && defRPr["attrs"]["b"] === "1") {
+                        style.fontWeight = "bold";
+                    }
+                    
+                    // 提取字体颜色
+                    const solidFill = PPTXXmlUtils.getTextByPathList(defRPr, ["a:solidFill"]);
+                    if (solidFill) {
+                        let color = getColor(solidFill, undefined, undefined, warpObj);
+                        if (color && !color.startsWith('#')) {
+                            color = '#' + color;
+                        }
+                        style.color = color;
+                    }
+                }
+            }
+        }
+    }
+    
+    return style;
+}
+
+// 提取图表区域样式
+function extractChartAreaStyle(chartSpaceNode, warpObj) {
+    const style = {};
+    
+    // 提取图表区域填充
+    const spPr = PPTXXmlUtils.getTextByPathList(chartSpaceNode, ["c:spPr"]);
+    if (spPr) {
+        // 提取填充样式
+        const fillType = getFillType(spPr);
+        if (fillType === "SOLID_FILL") {
+            const solidFill = PPTXXmlUtils.getTextByPathList(spPr, ["a:solidFill"]);
+            if (solidFill) {
+                let fillColor = getSolidFill(solidFill, undefined, undefined, warpObj);
+                if (fillColor && !fillColor.startsWith('#')) {
+                    fillColor = '#' + fillColor;
+                }
+                style.fillColor = fillColor;
+            }
+        } else if (fillType === "GRADIENT_FILL") {
+            const gradFill = PPTXXmlUtils.getTextByPathList(spPr, ["a:gradFill"]);
+            if (gradFill) {
+                style.gradientFill = getGradientFill(gradFill, warpObj);
+            }
+        }
+        
+        // 提取边框样式
+        const ln = PPTXXmlUtils.getTextByPathList(spPr, ["a:ln"]);
+        if (ln) {
+            const solidFill = PPTXXmlUtils.getTextByPathList(ln, ["a:solidFill"]);
+            if (solidFill) {
+                let borderColor = getSolidFill(solidFill, undefined, undefined, warpObj);
+                if (borderColor && !borderColor.startsWith('#')) {
+                    borderColor = '#' + borderColor;
+                }
+                style.borderColor = borderColor;
+            }
+            if (ln["attrs"] && ln["attrs"]["w"]) {
+                style.borderWidth = parseFloat(ln["attrs"]["w"]) / 9525; // 转换为像素
+            }
+        }
+    }
+    
+    return style;
+}
+
+// 提取图表图例样式
+function extractChartLegendStyle(chartNode, warpObj) {
+    const legendNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:legend"]);
+    if (!legendNode) return {};
+    
+    const style = {};
+    
+    // 提取图例位置
+    if (legendNode["c:legendPos"]) {
+        style.position = legendNode["c:legendPos"]["attrs"]["val"];
+    }
+    
+    // 提取图例文本属性
+    const txPr = PPTXXmlUtils.getTextByPathList(legendNode, ["c:txPr"]);
+    if (txPr) {
+        const p = PPTXXmlUtils.getTextByPathList(txPr, ["a:p"]);
+        if (p) {
+            const pPr = PPTXXmlUtils.getTextByPathList(p, ["a:pPr"]);
+            if (pPr) {
+                const defRPr = PPTXXmlUtils.getTextByPathList(pPr, ["a:defRPr"]);
+                if (defRPr) {
+                    // 提取字体大小
+                    if (defRPr["attrs"] && defRPr["attrs"]["sz"]) {
+                        style.fontSize = parseFloat(defRPr["attrs"]["sz"]) / 100;
+                    }
+                    
+                    // 提取字体颜色
+                    const solidFill = PPTXXmlUtils.getTextByPathList(defRPr, ["a:solidFill"]);
+                    if (solidFill) {
+                        let color = getSolidFill(solidFill, undefined, undefined, warpObj);
+                        if (color && !color.startsWith('#')) {
+                            color = '#' + color;
+                        }
+                        style.color = color;
+                    }
+                }
+            }
+        }
+    }
+    
+    return style;
+}
+
+// 提取图表轴样式
+function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
+    const axisNode = PPTXXmlUtils.getTextByPathList(plotAreaNode, [axisType]);
+    if (!axisNode) return {};
+    
+    const style = {};
+    
+    // 提取轴文本属性
+    const txPr = PPTXXmlUtils.getTextByPathList(axisNode, ["c:txPr"]);
+    if (txPr) {
+        const p = PPTXXmlUtils.getTextByPathList(txPr, ["a:p"]);
+        if (p) {
+            const pPr = PPTXXmlUtils.getTextByPathList(p, ["a:pPr"]);
+            if (pPr) {
+                const defRPr = PPTXXmlUtils.getTextByPathList(pPr, ["a:defRPr"]);
+                if (defRPr) {
+                    // 提取字体大小
+                    if (defRPr["attrs"] && defRPr["attrs"]["sz"]) {
+                        style.fontSize = parseFloat(defRPr["attrs"]["sz"]) / 100;
+                    }
+                    
+                    // 提取字体颜色
+                    const solidFill = PPTXXmlUtils.getTextByPathList(defRPr, ["a:solidFill"]);
+                    if (solidFill) {
+                        let color = getSolidFill(solidFill, undefined, undefined, warpObj);
+                        if (color && !color.startsWith('#')) {
+                            color = '#' + color;
+                        }
+                        style.color = color;
+                    }
+                }
+            }
+        }
+    }
+    
+    // 提取轴线条样式
+    const spPr = PPTXXmlUtils.getTextByPathList(axisNode, ["c:spPr"]);
+    if (spPr) {
+        const ln = PPTXXmlUtils.getTextByPathList(spPr, ["a:ln"]);
+        if (ln) {
+            const solidFill = PPTXXmlUtils.getTextByPathList(ln, ["a:solidFill"]);
+            if (solidFill) {
+                let lineColor = getSolidFill(solidFill, undefined, undefined, warpObj);
+                if (lineColor && !lineColor.startsWith('#')) {
+                    lineColor = '#' + lineColor;
+                }
+                style.lineColor = lineColor;
+            }
+            if (ln["attrs"] && ln["attrs"]["w"]) {
+                style.lineWidth = parseFloat(ln["attrs"]["w"]) / 9525; // 转换为像素
+            }
+        }
+    }
+    
+    // 提取轴网格线样式
+    if (axisType === "c:valAx") {
+        const majorGridlines = PPTXXmlUtils.getTextByPathList(axisNode, ["c:majorGridlines"]);
+        if (majorGridlines) {
+            const spPr = PPTXXmlUtils.getTextByPathList(majorGridlines, ["c:spPr"]);
+            if (spPr) {
+                const ln = PPTXXmlUtils.getTextByPathList(spPr, ["a:ln"]);
+                if (ln) {
+                    const solidFill = PPTXXmlUtils.getTextByPathList(ln, ["a:solidFill"]);
+                    if (solidFill) {
+                        let gridlineColor = getSolidFill(solidFill, undefined, undefined, warpObj);
+                        if (gridlineColor && !gridlineColor.startsWith('#')) {
+                            gridlineColor = '#' + gridlineColor;
+                        }
+                        style.gridlineColor = gridlineColor;
+                    }
+                    if (ln["attrs"] && ln["attrs"]["w"]) {
+                        style.gridlineWidth = parseFloat(ln["attrs"]["w"]) / 9525; // 转换为像素
+                    }
+                }
+            }
+        }
+    }
+    
+    return style;
+}
+
+// 辅助函数：获取颜色
+function getColor(node, clrMap, phClr, warpObj) {
+    if (node["a:solidFill"]) {
+        return getSolidFill(node["a:solidFill"], clrMap, phClr, warpObj);
+    }
+    return "";
+}
+
 const PPTXStyleUtils = {
         getFillType,
         getShapeFill,
@@ -3422,6 +3698,10 @@ const PPTXStyleUtils = {
         getColorName2Hex,
         getSchemeColorFromTheme,
         extractChartData,
+        extractChartTitleStyle,
+        extractChartAreaStyle,
+        extractChartLegendStyle,
+        extractChartAxisStyle,
         setTextByPathList,
         eachElement,
         applyShade,
@@ -3443,6 +3723,7 @@ const PPTXStyleUtils = {
         getLayoutAndMasterNode,
         getPregraphDir,
         getPregraphMargn,
+        getColor
     };
 
 export { PPTXStyleUtils };

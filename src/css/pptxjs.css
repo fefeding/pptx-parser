@@ -44,6 +44,7 @@
 }
 .slide div.h-mid {
 	align-items: center;
+	justify-content: center;
 	text-align: center;
 }
 .slide div.h-right {

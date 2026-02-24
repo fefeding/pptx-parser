@@ -180,7 +180,16 @@ function getTextWidth(html) {
                     prg_width = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
                 }
                 let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "";
-                text += "<div style='direction: initial;" + whiteSpaceStyle + prg_width + margin + "' >";
+                let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj);
+                let textAlignStyle = "";
+                if (horizontalAlign === "h-mid") {
+                    textAlignStyle = "text-align: center;";
+                } else if (horizontalAlign === "h-right") {
+                    textAlignStyle = "text-align: right;";
+                } else {
+                    textAlignStyle = "text-align: left;";
+                }
+                text += "<div style='direction: initial;" + whiteSpaceStyle + prg_width + margin + textAlignStyle + "' >";
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
