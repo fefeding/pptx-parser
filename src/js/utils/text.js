@@ -45,9 +45,10 @@ function getTextWidth(html) {
             //          <a:bodyPr wrap="square" rtlCol="1">
 
             let pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
-            let wrapAttr = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "wrap"]);
-            let spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
-            let isNoWrap = (wrapAttr === "none" || spAutoFitNode !== undefined);
+            let wrapAttr = PPTXXmlUtils.getTextByPathList(textBodyNode["a:bodyPr"], ["attrs", "wrap"]);
+            let spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode["a:bodyPr"], ["a:spAutoFit"]);
+            let isNoWrap = (wrapAttr === "none");
+            let isAutoFit = (spAutoFitNode !== undefined);
             //console.log("genTextBody spNode: ", PPTXXmlUtils.getTextByPathList(spNode,["p:spPr","a:xfrm","a:ext"]));
             
             let apNode = textBodyNode["a:p"];
@@ -154,12 +155,25 @@ function getTextWidth(html) {
                     prgrph_text += prgr_text;
                 } else if (rNode !== undefined) {
                     // with multi r
+                    let previousStyle = {};
                     for (let j = 0; j < rNode.length; j++) {
+                        // 如果当前元素没有sz属性，使用前面元素的样式
+                        if (rNode[j]["a:rPr"] && !rNode[j]["a:rPr"]["attrs"] && previousStyle["sz"]) {
+                            rNode[j]["a:rPr"]["attrs"] = { "sz": previousStyle["sz"] };
+                        } else if (rNode[j]["a:rPr"] && rNode[j]["a:rPr"]["attrs"] && !rNode[j]["a:rPr"]["attrs"]["sz"] && previousStyle["sz"]) {
+                            rNode[j]["a:rPr"]["attrs"]["sz"] = previousStyle["sz"];
+                        }
+                        
                         let prgr_text = genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
                         if (isBullate) {
                             total_text_len += getTextWidth(prgr_text);
                         }
                         prgrph_text += prgr_text;
+                        
+                        // 保存当前元素的样式，供后面元素继承
+                        if (rNode[j]["a:rPr"] && rNode[j]["a:rPr"]["attrs"] && rNode[j]["a:rPr"]["attrs"]["sz"]) {
+                            previousStyle["sz"] = rNode[j]["a:rPr"]["attrs"]["sz"];
+                        }
                     }
                 }
 

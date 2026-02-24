@@ -471,7 +471,7 @@ function getFillType(node) {
             let lvlpPr = "a:lvl" + lvl + "pPr";
             let fontSize = undefined;
             let sz, kern;
-            if (node["a:rPr"] !== undefined) {
+            if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] && node["a:rPr"]["attrs"]["sz"] !== undefined) {
                 fontSize = parseInt(node["a:rPr"]["attrs"]["sz"]) / 100;
             }
             if (isNaN(fontSize) || fontSize === undefined && node["a:fld"] !== undefined) {
@@ -563,6 +563,22 @@ function getFillType(node) {
                 //fontSize -= 10; 
                 // fontSize = fontSize * baselineVl;
                 fontSize -= baselineVl;
+            }
+
+            // 如果仍然没有找到字体大小，尝试从段落的默认样式中获取
+            if (isNaN(fontSize) || fontSize === undefined) {
+                let pPrNode = node.parentNode && node.parentNode["a:pPr"];
+                if (pPrNode) {
+                    let defRPrNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:defRPr"]);
+                    if (defRPrNode && defRPrNode["attrs"] && defRPrNode["attrs"]["sz"]) {
+                        fontSize = parseInt(defRPrNode["attrs"]["sz"]) / 100;
+                    }
+                }
+            }
+
+            // 确保字体大小有效
+            if (isNaN(fontSize) || fontSize === undefined) {
+                fontSize = 18; // 默认字体大小为 18pt，与第一个片段保持一致
             }
 
             if (!isNaN(fontSize)){
