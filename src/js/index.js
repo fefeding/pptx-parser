@@ -28,6 +28,39 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
         thumbnail = pptxThumbImg;
     }
 
+    // Extract metadata from core.xml
+    let metadata = {};
+    try {
+        const coreFile = zip.file("docProps/core.xml");
+        if (coreFile !== null) {
+            const coreContent = await PPTXXmlUtils.readXmlFile(zip, "docProps/core.xml");
+            if (coreContent !== null) {
+                const coreProperties = coreContent["cp:coreProperties"];
+                if (coreProperties) {
+                    // Extract common metadata fields
+                    metadata = {
+                        title: coreProperties["dc:title"] || undefined,
+                        subject: coreProperties["dc:subject"] || undefined,
+                        author: coreProperties["dc:creator"] || undefined,
+                        keywords: coreProperties["cp:keywords"] || undefined,
+                        description: coreProperties["dc:description"] || undefined,
+                        lastModifiedBy: coreProperties["cp:lastModifiedBy"] || undefined,
+                        created: coreProperties["dcterms:created"] || undefined,
+                        modified: coreProperties["dcterms:modified"] || undefined,
+                        category: coreProperties["cp:category"] || undefined,
+                        status: coreProperties["cp:contentStatus"] || undefined,
+                        contentType: coreProperties["dc:type"] || undefined,
+                        language: coreProperties["dc:language"] || undefined
+                    };
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error parsing metadata:", error);
+        // If error, return empty metadata object
+        metadata = {};
+    }
+
     const filesInfo = await PPTXXmlUtils.getContentTypes(zip);
     const slideSize = await PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
 
@@ -76,7 +109,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
         slides,
         slideSize,
         thumbnail,
-        metadata: {},
+        metadata,
         executionTime: dateAfter - dateBefore
     };
 }

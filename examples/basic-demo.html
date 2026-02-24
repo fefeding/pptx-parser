@@ -158,6 +158,7 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 				resultDiv.innerHTML += slide.html;
 			});
 			
+			console.log('charts', result.charts);
 			// 渲染所有图表
 			if (result.charts && result.charts.length > 0) {
 				result.charts.forEach(chartInfo => {
