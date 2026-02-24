@@ -196,17 +196,6 @@ function getTextWidth(html) {
                 let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "";
                 let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj);
                 
-                // 检查元素位置，如果位于幻灯片右侧且没有明确指定对齐方式，默认使用右对齐
-                // 从spNode的xfrm属性中获取元素的位置信息
-                const offNode = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:off", "attrs"]);
-                if (offNode && offNode.x) {
-                    // 使用SLIDE_FACTOR将EMU单位转换为像素
-                    const elementLeft = parseInt(offNode.x) * SLIDE_FACTOR;
-                    // 如果元素的left值大于500px，并且当前是左对齐，切换为右对齐
-                    if (horizontalAlign === "h-left" && elementLeft > 500) {
-                        horizontalAlign = "h-right";
-                    }
-                }
                 
                 let textAlignStyle = "";
                 if (horizontalAlign === "h-mid") {
