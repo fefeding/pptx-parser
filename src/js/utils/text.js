@@ -195,16 +195,42 @@ function getTextWidth(html) {
                 }
                 let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "";
                 let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj);
+                
+                // 检查元素位置，如果位于幻灯片右侧且没有明确指定对齐方式，默认使用右对齐
+                // 从spNode的xfrm属性中获取元素的位置信息
+                const offNode = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:off", "attrs"]);
+                if (offNode && offNode.x) {
+                    // 使用SLIDE_FACTOR将EMU单位转换为像素
+                    const elementLeft = parseInt(offNode.x) * SLIDE_FACTOR;
+                    // 如果元素的left值大于500px，并且当前是左对齐，切换为右对齐
+                    if (horizontalAlign === "h-left" && elementLeft > 500) {
+                        horizontalAlign = "h-right";
+                    }
+                }
+                
                 let textAlignStyle = "";
                 if (horizontalAlign === "h-mid") {
                     textAlignStyle = "text-align: center;";
-                } else if (horizontalAlign === "h-right") {
+                } else if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
                     textAlignStyle = "text-align: right;";
+                } else if (horizontalAlign === "h-left-rtl") {
+                    textAlignStyle = "text-align: left;";
                 } else {
                     textAlignStyle = "text-align: left;";
                 }
-                text += "<div style='direction: initial;" + whiteSpaceStyle + prg_width + margin + textAlignStyle + "' >";
+                // 为了确保右对齐生效，添加flex布局的justify-content属性
+                let flexStyle = "";
+                if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
+                    flexStyle = "justify-content: flex-end;";
+                } else if (horizontalAlign === "h-mid") {
+                    flexStyle = "justify-content: center;";
+                } else {
+                    flexStyle = "justify-content: flex-start;";
+                }
+                text += "<div style='display: flex;" + flexStyle + "width: 100%;'>";
+                text += "<div style='direction: initial;" + whiteSpaceStyle + margin + textAlignStyle + "'>";
                 text += prgrph_text;
+                text += "</div>";
                 text += "</div>";
                 text += "</div>";
             }

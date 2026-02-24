@@ -3194,9 +3194,9 @@ function getFillType(node) {
         function getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj) {
             let algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
-                //let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
-                // let pPrNodeLaout = layoutMasterNode.nodeLaout;
-                // let pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
+                let pPrNodeLaout = layoutMasterNode.nodeLaout;
+                let pPrNodeMaster = layoutMasterNode.nodeMaster;
                 let lvlIdx = 1;
                 let lvlNode = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
                 if (lvlNode !== undefined) {
@@ -3240,9 +3240,18 @@ function getFillType(node) {
                         algn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTextStyles", "p:bodyStyle", lvlStr, "attrs", "algn"]);
                     }
                 }
+                // 尝试从布局和母版节点中直接获取对齐属性
+                if (algn === undefined && pPrNodeLaout) {
+                    algn = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "algn"]);
+                }
+                if (algn === undefined && pPrNodeMaster) {
+                    algn = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "algn"]);
+                }
             }
 
             if (algn === undefined) {
+                // 对于特定位置的文本元素，尝试根据位置推断对齐方式
+                // 例如，位于幻灯片右侧的文本元素可能是右对齐的
                 if (type == "title" || type == "subTitle" || type == "ctrTitle") {
                     return "h-mid";
                 } else if (type == "sldNum") {
@@ -3256,7 +3265,6 @@ function getFillType(node) {
                 switch (algn) {
                     case "l":
                         if (prg_dir == "pregraph-rtl"){
-                            //return "h-right";
                             return "h-left-rtl";
                         }else{
                             return "h-left";
@@ -3264,7 +3272,6 @@ function getFillType(node) {
                         break;
                     case "r":
                         if (prg_dir == "pregraph-rtl") {
-                            //return "h-left";
                             return "h-right-rtl";
                         }else{
                             return "h-right";
