@@ -20,14 +20,14 @@ export default [
     input: 'src/js/index.js',
     output: [
       {
-        file: pkg.module,
+        file: './dist/ppt-parser.esm.js',
         format: 'es',
         banner,
         sourcemap: true,
         exports: 'named'
       },
       {
-        file: pkg.main,
+        file: './dist/ppt-parser.cjs.js',
         format: 'cjs',
         banner,
         sourcemap: true,
@@ -40,32 +40,6 @@ export default [
       typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } })
     ],
     external: [...Object.keys(pkg.dependencies)]
-  },
-  // 打包浏览器版本：输出 ESM 格式（压缩版本，包含所有依赖）
-  {
-    input: 'src/js/index.js',
-    output: {
-      file: './dist/ppt-parser.browser.min.js',
-      format: 'es',
-      banner,
-      sourcemap: true,
-      exports: 'named'
-    },
-    plugins: [
-      nodeResolve({
-        browser: true,
-        preferBuiltins: false
-      }),
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
-      terser({
-        compress: true,
-        mangle: true,
-        format: {
-          comments: false
-        }
-      })
-    ]
   },
   // 打包浏览器版本：输出 ESM 格式（非压缩版本，包含所有依赖）
   {
@@ -87,9 +61,10 @@ export default [
     ]
   },
   // 打包类型声明文件：生成完整的.d.ts文件
-  {
-    input: 'src/js/index.js',
-    output: [{ file: pkg.types, format: 'es' }],
-    plugins: [dts()]
-  }
+  // 注释掉以避免覆盖现有的 index.d.ts 文件
+  // {
+  //   input: 'src/js/index.js',
+  //   output: [{ file: pkg.types, format: 'es' }],
+  //   plugins: [dts()]
+  // }
 ];
