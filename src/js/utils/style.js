@@ -754,8 +754,15 @@ function getFillType(node) {
                 lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
                 if (lnRefNode !== undefined){
                     let lnIdx = PPTXXmlUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
-                    //console.log("lnIdx:", lnIdx, "lnStyleLst:", warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx)])
-                    lineNode = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx)];
+                    // 检查lnStyleLst的结构
+                    const lnStyleLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"];
+                    // 处理lnStyleLst可能是对象而不是数组的情况
+                    if (Array.isArray(lnStyleLst)) {
+                        lineNode = lnStyleLst[Number(lnIdx)];
+                    } else {
+                        // 如果是对象而不是数组，直接使用
+                        lineNode = lnStyleLst;
+                    }
                 }
             }
             if (lineNode == undefined) {
