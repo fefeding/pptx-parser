@@ -749,12 +749,13 @@ function getFillType(node) {
             }
 
             //console.log("lineNode: ", lineNode)
+            let lnRefNode;
             if (lineNode == undefined) {
-                let lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
+                lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
                 if (lnRefNode !== undefined){
                     let lnIdx = PPTXXmlUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
-                    //console.log("lnIdx:", lnIdx, "lnStyleLst:", warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) -1])
-                    lineNode = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx) - 1];
+                    //console.log("lnIdx:", lnIdx, "lnStyleLst:", warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx)])
+                    lineNode = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"][Number(lnIdx)];
                 }
             }
             if (lineNode == undefined) {
@@ -838,7 +839,15 @@ function getFillType(node) {
                 if (fillTyp === "NO_FILL") {
                     borderColor = isSvgMode ? "none" : "";//"background-color: initial;";
                 } else if (fillTyp === "SOLID_FILL") {
-                    borderColor = getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
+                    // 获取lnRef中的颜色作为phClr参数
+                    if (!lnRefNode) {
+                        lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
+                    }
+                    let phClr = undefined;
+                    if (lnRefNode !== undefined) {
+                        phClr = getSolidFill(lnRefNode, undefined, undefined, warpObj);
+                    }
+                    borderColor = getSolidFill(lineNode["a:solidFill"], undefined, phClr, warpObj);
                 } else if (fillTyp === "GRADIENT_FILL") {
                     borderColor = getGradientFill(lineNode["a:gradFill"], warpObj);
                     //console.log("shpFill",shpFill,grndColor.color)

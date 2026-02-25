@@ -236,9 +236,34 @@ export const PPTXShapeUtils = (function() {
                 //"a:extrusionClr"
                 //"a:contourClr"
                 //"a:extLst"?
+                ////////////////////effectRef handling///////////////////////////////////////////
+                // Check if there's an effectRef in p:style
+                var effectRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:effectRef"]);
+                var effectStyleNode = undefined;
+                
+                if (effectRefNode !== undefined) {
+                    var effectIdx = PPTXXmlUtils.getTextByPathList(effectRefNode, ["attrs", "idx"]);
+                    if (effectIdx !== undefined && warpObj["themeContent"] !== undefined) {
+                        // Access the effect style from the theme
+                        var effectStyleLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:effectStyleLst"]["a:effectStyle"];
+                        if (effectStyleLst !== undefined) {
+                            var idx = Number(effectIdx) - 1;
+                            if (idx >= 0 && effectStyleLst[idx] !== undefined) {
+                                effectStyleNode = effectStyleLst[idx];
+                            }
+                        }
+                    }
+                }
+                
                 //////////////////////////////outerShdw///////////////////////////////////////////
                 //not support sizing the shadow
                 var outerShdwNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
+                
+                // If no direct outerShdw, check from effectStyle
+                if (outerShdwNode === undefined && effectStyleNode !== undefined) {
+                    outerShdwNode = PPTXXmlUtils.getTextByPathList(effectStyleNode, ["a:effectLst", "a:outerShdw"]);
+                }
+                
                 var oShadowSvgUrlStr = ""
                 if (outerShdwNode !== undefined) {
                     var chdwClrNode = PPTXStyleUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
