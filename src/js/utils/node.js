@@ -300,10 +300,10 @@ function processCxnSpNode(node, parentNode, wrapObj, source, shapeType, settings
     const name = node['p:nvCxnSpPr']['p:cNvPr'].attrs.name;
     const idx = node['p:nvCxnSpPr']['p:nvPr']['p:ph'] === undefined 
         ? undefined 
-        : node['p:nvSpPr']['p:nvPr']['p:ph'].attrs.idx;
+        : node['p:nvCxnSpPr']['p:nvPr']['p:ph'].attrs.idx;
     const type = node['p:nvCxnSpPr']['p:nvPr']['p:ph'] === undefined 
         ? undefined 
-        : node['p:nvSpPr']['p:nvPr']['p:ph'].attrs.type;
+        : node['p:nvCxnSpPr']['p:nvPr']['p:ph'].attrs.type;
     const order = node.attrs.order;
 
     return PPTXShapeUtils.genShape(node, parentNode, undefined, undefined, id, name, idx, type, order, wrapObj, undefined, shapeType, source, settings);

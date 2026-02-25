@@ -194,7 +194,7 @@ function getTextWidth(html) {
                     prg_width = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
                 }
                 let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "";
-                let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj);
+                let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj, spNode);
                 
                 
                 let textAlignStyle = "";
