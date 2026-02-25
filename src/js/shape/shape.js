@@ -2728,11 +2728,7 @@ export const PPTXShapeUtils = (function() {
                     case "line":
                     case "straightConnector1":
                     case "bentConnector4":
-                    case "bentConnector5":
-                    case "curvedConnector2":
-                    case "curvedConnector3":
-                    case "curvedConnector4":
-                    case "curvedConnector5": {
+                    case "bentConnector5": {
                         // if (isFlipV) {
                         //     result += "<line x1='" + w + "' y1='0' x2='0' y2='" + h + "' stroke='" + border.color +
                         //         "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
@@ -2740,6 +2736,62 @@ export const PPTXShapeUtils = (function() {
                         result += "<line x1='0' y1='0' x2='" + w + "' y2='" + h + "' stroke='" + border.color +
                             "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                         //}
+                        if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
+                            result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                        }
+                        if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
+                            result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                        }
+                        result += "/>";
+                        break;
+                    }
+                    case "curvedConnector2":
+                    case "curvedConnector3":
+                    case "curvedConnector4":
+                    case "curvedConnector5": {
+                        // 获取调整值
+                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        var adj1 = 50000; // 默认值
+                        if (shapAdjst_ary !== undefined) {
+                            if (Array.isArray(shapAdjst_ary)) {
+                                for (var i = 0; i < shapAdjst_ary.length; i++) {
+                                    var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                    if (sAdj_name == "adj1") {
+                                        var sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        adj1 = parseInt(sAdj1.substr(4));
+                                        break;
+                                    }
+                                }
+                            } else {
+                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "name"]);
+                                if (sAdj_name == "adj1") {
+                                    var sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
+                                    adj1 = parseInt(sAdj1.substr(4));
+                                }
+                            }
+                        }
+                        
+                        // 计算曲线控制点
+                        var cx1, cy1, cx2, cy2;
+                        if (shapType === "curvedConnector2" || shapType === "curvedConnector3") {
+                            // 对于 curvedConnector2 和 curvedConnector3，使用简单的二次贝塞尔曲线
+                            var controlPointRatio = adj1 / 100000;
+                            cx1 = w * controlPointRatio;
+                            cy1 = 0;
+                            cx2 = w * (1 - controlPointRatio);
+                            cy2 = h;
+                        } else {
+                            // 对于其他弯曲连接器，使用默认控制点
+                            cx1 = w / 4;
+                            cy1 = 0;
+                            cx2 = w * 3 / 4;
+                            cy2 = h;
+                        }
+                        
+                        // 使用 SVG 路径元素创建曲线
+                        result += "<path d='M 0,0 Q " + cx1 + "," + cy1 + " " + w/2 + "," + h/2 + " Q " + cx2 + "," + cy2 + " " + w + "," + h + "' stroke='" + border.color +
+                            "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
+                        
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
                             result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
                         }
