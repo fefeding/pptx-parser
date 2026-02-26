@@ -979,15 +979,11 @@ export const PPTXShapeUtils = (function() {
                          * noSmoking: 禁止符形状
                          * 
                          * 形状说明：
-                         * - 一个圆圈中间有一条斜杠
-                         * - 常用于表示"禁止"、"不允许"的意思
+                         * - 一个完整的圆圈
+                         * - 中间有一条从左上到右下的斜杠
                          *
                          * 参数说明：
-                         * - adj: 控制斜杠的粗细和角度 (范围: 0-50000)
-                         *
-                         * 坐标系统：
-                         * - (w/2, h/2): 圆心
-                         * - w/2, h/2: 圆的半径
+                         * - adj: 控制斜杠的粗细 (范围: 0-50000)
                          */
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 18750 * SLIDE_FACTOR;
@@ -1007,27 +1003,24 @@ export const PPTXShapeUtils = (function() {
                         var rx = w / 2;
                         var ry = h / 2;
                         
-                        // 斜杠的粗细
-                        var dr = Math.min(w, h) * a / cnstVal2;
+                        // 斜杠的粗细（斜杠的一半宽度）
+                        var dr = (Math.min(w, h) / 2) * a / cnstVal2;
                         
-                        // 计算斜杠的四个角点
-                        // 斜杠从左下到右上，角度为45度
+                        // 斜杠角度（从左上到右下，约45度）
                         var angle = Math.atan(h / w);
                         var cos = Math.cos(angle);
                         var sin = Math.sin(angle);
                         
-                        // 斜杠的内圈和外圈距离
-                        var innerR = dr / 2;
-                        
-                        // 计算四个角点
-                        var x1 = w / 2 - rx * cos - innerR * sin;
-                        var y1 = h / 2 - ry * sin + innerR * cos;
-                        var x2 = w / 2 + rx * cos - innerR * sin;
-                        var y2 = h / 2 + ry * sin + innerR * cos;
-                        var x3 = w / 2 + rx * cos + innerR * sin;
-                        var y3 = h / 2 + ry * sin - innerR * cos;
-                        var x4 = w / 2 - rx * cos + innerR * sin;
-                        var y4 = h / 2 - ry * sin - innerR * cos;
+                        // 斜杠的四个角点
+                        // 从左上角附近开始，到右下角附近结束
+                        var x1 = w/2 - rx * cos - dr * sin;
+                        var y1 = h/2 - ry * sin + dr * cos;
+                        var x2 = w/2 + rx * cos - dr * sin;
+                        var y2 = h/2 + ry * sin + dr * cos;
+                        var x3 = w/2 + rx * cos + dr * sin;
+                        var y3 = h/2 + ry * sin - dr * cos;
+                        var x4 = w/2 - rx * cos + dr * sin;
+                        var y4 = h/2 - ry * sin - dr * cos;
                         
                         // 绘制圆圈和斜杠
                         var d = "M" + 0 + "," + h / 2 +
@@ -1037,7 +1030,7 @@ export const PPTXShapeUtils = (function() {
                             " L" + x2 + "," + y2 +
                             " L" + x3 + "," + y3 +
                             " L" + x4 + "," + y4 +
-                            " z"; // 斜杠
+                            " z"; // 斜杠（矩形条）
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4118,14 +4111,13 @@ export const PPTXShapeUtils = (function() {
                          * curvedRightArrow: 手杖形箭头（弯曲向右的箭头）
                          * 
                          * 形状说明：
-                         * - 一个从左侧开始向上弯曲的箭杆
-                         * - 右侧有箭头头部
-                         * - 整体呈现弯曲形状
+                         * - 从左侧开始，向上弯曲，最后指向右侧
+                         * - 有箭头头部
                          *
                          * 参数说明：
                          * - adj1: 控制箭头尖端的高度
                          * - adj2: 控制箭头宽度
-                         * - adj3: 控制弯曲程度
+                         * - adj3: 控制弯曲程度（箭头宽度）
                          */
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
@@ -4203,11 +4195,12 @@ export const PPTXShapeUtils = (function() {
 
                         /**
                          * 路径绘制顺序：
-                         * 1. 从左侧开始，画到右下角附近的弧线
-                         * 2. 连接到箭头尖端的下翼
-                         * 3. 连接到箭头尖端的上翼
-                         * 4. 沿上边缘弧线返回
-                         * 5. 连接到起点
+                         * 1. 从左侧 (l, hR) 开始
+                         * 2. 画圆弧到右下角附近
+                         * 3. 连接到箭头下翼
+                         * 4. 连接到箭头上翼
+                         * 5. 沿上边缘圆弧返回
+                         * 6. 闭合到起点
                          */
                         var d_val = "M" + l + "," + hR +
                             PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
@@ -4355,27 +4348,26 @@ export const PPTXShapeUtils = (function() {
                             tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
                         }
                         
-                        // cylinder 和 can 的区别：cylinder 需要画完整的3D圆柱效果
+                        // cylinder 和 can 的区别
                         if (shapType == "cylinder") {
                             /**
                              * cylinder: 圆柱形
                              * 
                              * 形状说明：
                              * - 3D圆柱体效果
-                             * - 底部椭圆（上半圆，从右到左）
-                             * - 左侧面直线
-                             * - 顶部椭圆（上半圆，从左到右，显示圆柱顶部）
-                             * - 右侧面直线
+                             * - y1: 底部椭圆中心的y坐标
+                             * - y3: 顶部椭圆中心的y坐标
+                             * - 绘制顺序：底部椭圆上半圆 -> 左侧面 -> 顶部椭圆上半圆 -> 右侧面
                              */
                             dVal = "M" + wd2 + "," + y1 + // 起点：底部椭圆中心
-                                // 画底部椭圆（上半圆，顺时针：从右到左）
-                                PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
-                                // 画左侧面（从底部左侧到顶部左侧）
-                                " L0," + y3 +
-                                // 画顶部椭圆（上半圆，顺时针：从左到右）
-                                PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, cd2, 0, false).replace("M", "L") +
-                                // 画右侧面（从顶部右侧到底部右侧）
-                                " L" + w + "," + y1 +
+                                // 画底部椭圆上半圆（从左到右）
+                                PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 180, 0, false).replace("M", "L") +
+                                // 画右侧面（从底部右侧到顶部右侧）
+                                " L" + w + "," + y3 +
+                                // 画顶部椭圆上半圆（从右到左）
+                                PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, 180, false).replace("M", "L") +
+                                // 画左侧面（从顶部左侧到底部左侧）
+                                " L0," + y1 +
                                 " z";
                         } else {
                             // can 的原有逻辑
@@ -4975,19 +4967,91 @@ export const PPTXShapeUtils = (function() {
 
                         break;
                     }
-                    case "leftRightCircularArrow":
+                    case "funnel": {
+                        /**
+                         * funnel: 漏斗形
+                         * 
+                         * 形状说明：
+                         * - 上宽下窄的漏斗形状
+                         * - 常用于数据分析和流程图
+                         */
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var adj = 40000 * SLIDE_FACTOR;
+                        if (shapAdjst !== undefined) {
+                            adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
+                        }
+                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        var a = (adj < 0) ? 0 : (adj > cnstVal2) ? cnstVal2 : adj;
+                        
+                        // 漏斗底部宽度
+                        var bottomW = w * a / cnstVal2;
+                        
+                        var d = "M0,0" + // 左上角
+                            " L" + w + ",0" + // 右上角
+                            " L" + ((w + bottomW) / 2) + "," + h + // 右下角
+                            " L" + ((w - bottomW) / 2) + "," + h + // 左下角
+                            " z";
+                        
+                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        break;
+                    }
+                    case "leftRightCircularArrow": {
+                        /**
+                         * leftRightCircularArrow: 双向圆形箭头
+                         * 
+                         * 形状说明：
+                         * - 圆形路径，两端有向左和向右的箭头
+                         */
+                        var wd2 = w / 2;
+                        var hd2 = h / 2;
+                        var r = Math.min(wd2, hd2);
+                        
+                        var d = "M" + (wd2 - r) + "," + hd2 +
+                            PPTXShapeUtils.shapeArc(wd2, hd2, r, r, 180, 360, false).replace("M", "L") +
+                            // 左箭头
+                            " M" + (wd2 - r - r * 0.3) + "," + (hd2 - r * 0.2) +
+                            " L" + (wd2 - r) + "," + hd2 +
+                            " L" + (wd2 - r - r * 0.3) + "," + (hd2 + r * 0.2) +
+                            // 右箭头
+                            " M" + (wd2 + r + r * 0.3) + "," + (hd2 - r * 0.2) +
+                            " L" + (wd2 + r) + "," + hd2 +
+                            " L" + (wd2 + r + r * 0.3) + "," + (hd2 + r * 0.2);
+                        
+                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        break;
+                    }
+                    case "flowChartOfflineStorage": {
+                        /**
+                         * flowChartOfflineStorage: 流程图 - 离线存储
+                         * 
+                         * 形状说明：
+                         * - 底部有三个向下的尖角（代表存储）
+                         */
+                        var d = "M0,0" +
+                            " L" + w + ",0" +
+                            " L" + w + "," + (h * 0.7) +
+                            " L" + (w * 0.66) + "," + h +
+                            " L" + (w * 0.34) + "," + h +
+                            " L0," + (h * 0.7) +
+                            " z";
+                        
+                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        break;
+                    }
                     case "chartPlus":
                     case "chartStar":
                     case "chartX":
                     case "cornerTabs":
-                    case "flowChartOfflineStorage":
                     case "folderCorner":
-                    case "funnel":
                     case "lineInv":
                     case "nonIsoscelesTrapezoid":
                     case "plaqueTabs":
                     case "squareTabs":
                     case "upDownArrowCallout": {
+                        // 其他占位符形状暂未实现
                         break;
                     }
                     case undefined:
