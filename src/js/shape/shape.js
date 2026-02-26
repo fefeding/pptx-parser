@@ -698,8 +698,32 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val = "M0," + h + " L" + w + "," + h + " L" + w + "," + (h / 2) * sAdj2_val +
-                            " L" + (w / 2 + (w / 2) * (1 - sAdj2_val)) + ",0 L" + (w / 2) * sAdj1_val + ",0 Q0,0 0," + (h / 2) * sAdj1_val + " z";
+                        /**
+                         * snipRoundRect: 混合形状，有两个角是圆角，有两个角是缺角
+                         *
+                         * 形状说明：
+                         * - 左上角：凹进去的缺角（直线斜切）
+                         * - 右上角：凹进去的缺角（直线斜切）
+                         * - 右下角：凹进去的圆角
+                         * - 左下角：凹进去的圆角
+                         *
+                         * 参数说明：
+                         * - adj1: 控制圆角的半径（用于右下角和左下角）
+                         * - adj2: 控制缺角的大小（用于左上角和右上角）
+                         */
+                        var radius = Math.min(w, h) * sAdj1_val;     // 圆角半径
+                        var snipSize = Math.min(w, h) * sAdj2_val;   // 缺角大小
+
+                        // 生成路径：从左下角开始，逆时针绘制
+                        var d_val = "M0," + (h - radius) +           // 左下角圆弧起点
+                            " Q0," + h + " " + radius + "," + h +   // 左下角圆弧（凸圆角）
+                            " L" + w + "," + h +                    // 沿底边到右下角
+                            " Q" + w + "," + h + " " + w + "," + (h - radius) + // 右下角圆弧（凸圆角）
+                            " L" + w + "," + snipSize +             // 沿右边向下到缺角位置
+                            " L" + (w - snipSize) + ",0" +          // 斜切到左上角缺角
+                            " L" + snipSize + ",0" +                // 沿上边向右到右上角缺角位置
+                            " L0," + (h - snipSize) +               // 斜切到左下角
+                            " z";
 
                         result += "<path   d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -1238,29 +1262,65 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "plaque": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 16667 * SLIDE_FACTOR;
-                        var cnsVal1 = 50000 * SLIDE_FACTOR;
-                        var cnsVal2 = 100000 * SLIDE_FACTOR;
-                        if (shapAdjst !== undefined) {
-                            adj1 = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
-                        }
-                        var a1, x1, x2, y2;
-                        if (adj1 < 0) a1 = 0
-                        else if (adj1 > cnsVal1) a1 = cnsVal1
-                        else a1 = adj1
-                        x1 = a1 * (Math.min(w, h)) / cnsVal2;
-                        x2 = w - x1;
-                        y2 = h - x1;
+                        /**
+                         * plaque: 凸出圆角的矩形
+                         *
+                         * 形状说明：
+                         * - 4个角都是向外凸出的1/4圆弧
+                         * - 类似凸出卡片的样式
+                         * - 半圆弧的圆心在矩形的四个角上
+                         *
+                         * 参数说明：
+                         * - adj: 控制圆角半径大小 (范围: 0-50000)
+                         *
+                         * 坐标系统：
+                         * - (0, 0) 到 (w, h) 的矩形区域
+                         * - 四个角向外延伸出1/4圆弧
+                         */
 
-                        var d_val = "M0," + x1 +
-                            PPTXShapeUtils.shapeArc(0, 0, x1, x1, 90, 0, false).replace("M", "L") +
-                            " L" + x2 + "," + 0 +
-                            PPTXShapeUtils.shapeArc(w, 0, x1, x1, 180, 90, false).replace("M", "L") +
-                            " L" + w + "," + y2 +
-                            PPTXShapeUtils.shapeArc(w, h, x1, x1, 270, 180, false).replace("M", "L") +
-                            " L" + x1 + "," + h +
-                            PPTXShapeUtils.shapeArc(0, h, x1, x1, 0, -90, false).replace("M", "L") + " z";
+                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        var adjVal = 25000; // 默认值
+                        if (shapAdjst !== undefined) {
+                            adjVal = parseInt(shapAdjst.substr(4));
+                        }
+                        // 限制 adj 在有效范围内 (0-50000)
+                        if (adjVal < 0) adjVal = 0;
+                        else if (adjVal > 50000) adjVal = 50000;
+
+                        // 计算圆弧半径：adj/100000 * min(w, h)
+                        var r = (adjVal / 100000) * Math.min(w, h);
+
+                        /**
+                         * 路径绘制顺序（逆时针从左上角圆弧开始）：
+                         *
+                         * 左上角：向外凸出的1/4圆弧，圆心在(0,0)
+                         * - 起点: (r, 0)
+                         * - 圆弧到: (0, r) - 1/4圆弧（0度到90度）
+                         *
+                         * 右上角：向外凸出的1/4圆弧，圆心在(w,0)
+                         * - 线段到: (w - r, 0)
+                         * - 圆弧到: (w, r) - 1/4圆弧（90度到180度）
+                         *
+                         * 右下角：向外凸出的1/4圆弧，圆心在(w,h)
+                         * - 线段到: (w, h - r)
+                         * - 圆弧到: (w - r, h) - 1/4圆弧（180度到270度）
+                         *
+                         * 左下角：向外凸出的1/4圆弧，圆心在(0,h)
+                         * - 线段到: (r, h)
+                         * - 圆弧到: (0, h - r) - 1/4圆弧（270度到360度）
+                         * - 闭合: 回到起点
+                         */
+
+                        var d_val = "M" + r + ",0" +
+                            "A" + r + " " + r + " 0 0 1 0," + r +
+                            "L0," + (h - r) +
+                            "A" + r + " " + r + " 0 0 1 " + r + "," + h +
+                            "L" + (w - r) + "," + h +
+                            "A" + r + " " + r + " 0 0 1 " + w + "," + (h - r) +
+                            "L" + w + "," + r +
+                            "A" + r + " " + r + " 0 0 1 " + (w - r) + ",0" +
+                            " z";
+
                         result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -3241,7 +3301,7 @@ export const PPTXShapeUtils = (function() {
                         x7 = x6 + dh2;
                         x4 = x9 - bd;
                         x5 = x7 - bd2;
-                        cx = (th + x7) / 2
+                        var cx = (th + x7) / 2
                         var cy = (y4 + th) / 2
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + bd +
