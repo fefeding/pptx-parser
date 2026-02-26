@@ -120,11 +120,18 @@ function getTextWidth(html) {
                 }
                 let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
+                let isRTL = (prg_dir == "pregraph-rtl");
                 text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + ` ${prg_dir} ` + cssName + "' >";
                 let buText_ary = genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
-                text += (buText_ary[0] !== undefined) ? buText_ary[0]:"";
+
+                // 在 RTL 模式下，项目符号在右边，所以先添加文本，再添加项目符号
+                if (isRTL && isBullate) {
+                    // 暂时不添加项目符号，等文本添加后再添加
+                } else {
+                    text += (buText_ary[0] !== undefined) ? buText_ary[0]:"";
+                }
                 //get text margin 
                 // 获取段落的字体大小，用于计算项目符号边距
                 let fontSize = undefined;
@@ -189,14 +196,19 @@ function getTextWidth(html) {
                 }
                 // 如果没有明确设置wrap="none"或spAutoFit，默认不设置内层div的宽度，让文本自然流动
                 let prg_width = "";
+                let textContainerWidth = "width: 100%;"; // 默认宽度
+                if (isRTL && isBullate) {
+                    // RTL 模式下有项目符号时，文本容器不设 100%，让内容自适应
+                    textContainerWidth = "";
+                }
                 if (prg_width_node !== undefined && prg_width_node !== null && !isNoWrap) {
                     // 只有明确不需要换行时才设置宽度
                     prg_width = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
                 }
                 let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "";
                 let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj, spNode);
-                
-                
+
+
                 let textAlignStyle = "";
                 if (horizontalAlign === "h-mid") {
                     textAlignStyle = "text-align: center;";
@@ -216,11 +228,15 @@ function getTextWidth(html) {
                 } else {
                     flexStyle = "justify-content: flex-start;";
                 }
-                text += "<div style='display: flex;" + flexStyle + "width: 100%;'>";
+                text += "<div style='display: flex;" + flexStyle + textContainerWidth + "'>";
                 text += "<div style='direction: initial;" + whiteSpaceStyle + margin + textAlignStyle + "'>";
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
+                // 在 RTL 模式下，项目符号放在最后（右边）
+                if (isRTL && isBullate && buText_ary[0] !== undefined) {
+                    text += buText_ary[0];
+                }
                 text += "</div>";
             }
 
@@ -415,13 +431,16 @@ function getTextWidth(html) {
             //console.log("genBuChar() isRTL", isRTL, "alignNode:", alignNode)
             if (marLNode !== undefined) {
                 let marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
-                if (isRTL) {// && alignNode == "r") {
-                    marLStr = "padding-right:";// "margin-right: ";
+                // 在 RTL 模式下，项目符号在文本右边，需要左边距靠近文本
+                // 在 LTR 模式下，项目符号在文本左边，需要右边距靠近文本
+                if (isRTL) {
+                    marLStr = "padding-left: 5px;";  // 项目符号左边的小间隔（靠近文本）
                 } else {
-                    marLStr = "padding-left:";//"margin-left: ";
+                    marLStr = "padding-left:";
+                    marLStr += ((marginLeft + indent < 0) ? 0 : (marginLeft + indent)) + "px;";
                 }
+                // margin_val 始终返回实际值，用于文本容器宽度计算
                 margin_val = ((marginLeft + indent < 0) ? 0 : (marginLeft + indent));
-                marLStr += margin_val + "px;";
             }
             
             //marR?
@@ -435,11 +454,7 @@ function getTextWidth(html) {
             }
             if (marRNode !== undefined) {
                 let marginRight = parseInt(marRNode) * SLIDE_FACTOR;
-                if (isRTL) {// && alignNode == "r") {
-                    marLStr = "padding-right:";// "margin-right: ";
-                } else {
-                    marLStr = "padding-left:";//"margin-left: ";
-                }
+                marRStr = "padding-right:";
                 marRStr += ((marginRight + indent < 0) ? 0 : (marginRight + indent)) + "px;";
             }
 

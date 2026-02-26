@@ -3389,10 +3389,11 @@ function getFillType(node) {
             let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
             let pPrNodeLaout = layoutMasterNode.nodeLaout;
             let pPrNodeMaster = layoutMasterNode.nodeMaster;
-            
-            // let lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
-            // let isRtlLan = (lang !== undefined && RTL_LANGS_ARRAY.indexOf(lang) !== -1) ? true : false;
-            //rtl
+
+            // 在 RTL 模式下，margin 和 indent 的语义保持不变
+            // - marL (margin-left): 左边距（在 RTL 中是文本结束边的距离）
+            // - indent: 缩进，负值表示从起始边向内缩进
+            // 这些属性值直接转换为 CSS 的 padding，不需要根据 RTL 进行方向翻转
             let getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "rtl"]);
             if (getRtlVal === undefined) {
                 getRtlVal = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
@@ -3401,10 +3402,8 @@ function getFillType(node) {
                 }
             }
             let isRTL = false;
-            let dirStr = "ltr";
             if (getRtlVal !== undefined && getRtlVal == "1") {
                 isRTL = true;
-                dirStr = "rtl";
             }
 
             //align
@@ -3441,15 +3440,12 @@ function getFillType(node) {
                 marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
             }
             if ((indentNode !== undefined || marLNode !== undefined)) {
-                //let lvlIndent = defTabSz * lvl;
-
-                if (isRTL) {// && alignNode == "r") {
-                    //marLStr = "margin-right: ";
-                    marLStr = "padding-right: ";
-                } else {
-                    //marLStr = "margin-left: ";
-                    marLStr = "padding-left: ";
-                }
+                // let lvlIndent = defTabSz * lvl;
+                // 无论 RTL 还是 LTR，marL 和 indent 都转换为 padding-left
+                // 在 RTL 模式下，文本从右向左排列，但 padding-left 仍然是左边距
+                // align="ctr" + marL > 0: 文本居中，但有左边距，导致整体偏右
+                // align="ctr" + indent < 0: 文本居中，向左（文本起始方向）缩进，导致整体偏右
+                marLStr = "padding-left: ";
                 if (isBullate) {
                     maginVal = Math.abs(0 - indent);
                     // 减去项目符号数字的长度/大小，根据字体大小估算
@@ -3477,13 +3473,8 @@ function getFillType(node) {
             }
             if (marRNode !== undefined && isBullate) {
                 let marginRight = parseInt(marRNode) * SLIDE_FACTOR;
-                if (isRTL) {// && alignNode == "r") {
-                    //marRStr = "margin-right: ";
-                    marRStr = "padding-right: ";
-                } else {
-                    //marRStr = "margin-left: ";
-                    marRStr = "padding-left: ";
-                }
+                // 无论 RTL 还是 LTR，marR 都转换为 padding-right（右边距）
+                marRStr = "padding-right: ";
                 marRStr += Math.abs(0 - indent) + "px;";
             }
 
