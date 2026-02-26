@@ -20,7 +20,7 @@ export function isPieShape(shapType) {
 /**
  * 渲染饼图/弧形形状
  */
-export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node) {
+export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node, oShadowSvgUrlStr) {
     let result = "";
     let dVal = "";
 
@@ -59,7 +59,7 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
         }
         var pieVals = shapePie(H, w, adj1, adj2, isClose);
         result += "<path d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
     }
     else if (shapType === "chord") {
         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -81,7 +81,7 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
         var wR = w / 2;
         dVal = shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
         result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
     }
     else if (shapType === "blockArc") {
         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -180,7 +180,7 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
             shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
             " z";
         result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
     }
 
     return result;

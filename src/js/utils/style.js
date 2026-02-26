@@ -389,8 +389,28 @@ function getFillType(node) {
                     );
                 }
             }
+            // Check for direct shadow effect in text run properties
             let txtShadow = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:outerShdw"]);
             let oShadowStr = "";
+            
+            // If no direct shadow, check effectRef from p:style
+            if (txtShadow === undefined) {
+                var effectRefNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:style", "a:effectRef"]);
+                if (effectRefNode !== undefined) {
+                    var effectIdx = PPTXXmlUtils.getTextByPathList(effectRefNode, ["attrs", "idx"]);
+                    if (effectIdx !== undefined && warpObj["themeContent"] !== undefined) {
+                        // Access the effect style from the theme
+                        var effectStyleLst = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:fmtScheme", "a:effectStyleLst", "a:effectStyle"]);
+                        if (effectStyleLst !== undefined) {
+                            var idx = Number(effectIdx) - 1;
+                            if (idx >= 0 && effectStyleLst[idx] !== undefined) {
+                                txtShadow = PPTXXmlUtils.getTextByPathList(effectStyleLst[idx], ["a:effectLst", "a:outerShdw"]);
+                            }
+                        }
+                    }
+                }
+            }
+            
             if (txtShadow !== undefined) {
                 //https://developer.mozilla.org/en-US/docs/Web/CSS/filter-function/drop-shadow()
                 //https://stackoverflow.com/questions/60468487/css-text-with-linear-gradient-shadow-and-text-outline

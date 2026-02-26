@@ -911,7 +911,7 @@ export const PPTXShapeUtils = (function() {
                     case "pieWedge":
                     case "arc":
                     case "chord": {
-                        result += renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        result += renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node, oShadowSvgUrlStr);
                         break;
                     }
                     case "frame": {
@@ -971,7 +971,7 @@ export const PPTXShapeUtils = (function() {
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
                             " z";
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + " />";
                         break;
                     }
                     case "noSmoking": {
