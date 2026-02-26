@@ -3316,18 +3316,18 @@ export const PPTXShapeUtils = (function() {
                         var cy = (y4 + th) / 2
                         var d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + bd +
-                            PPTXShapeUtils.shapeArc(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
+                            shapeArcAlt(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + 0 +
-                            PPTXShapeUtils.shapeArc(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
+                            shapeArcAlt(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
                             " L" + x9 + "," + y4 +
                             " L" + w + "," + y4 +
                             " L" + x8 + "," + y5 +
                             " L" + x6 + "," + y4 +
                             " L" + x7 + "," + y4 +
                             " L" + x7 + "," + x3 +
-                            PPTXShapeUtils.shapeArc(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
+                            shapeArcAlt(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
                             " L" + x3 + "," + th +
-                            PPTXShapeUtils.shapeArc(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
+                            shapeArcAlt(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
                             " L" + th + "," + h + " z";
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
