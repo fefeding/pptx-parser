@@ -975,6 +975,20 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "noSmoking": {
+                        /**
+                         * noSmoking: 禁止符形状
+                         * 
+                         * 形状说明：
+                         * - 一个圆圈中间有一条斜杠
+                         * - 常用于表示"禁止"、"不允许"的意思
+                         *
+                         * 参数说明：
+                         * - adj: 控制斜杠的粗细和角度 (范围: 0-50000)
+                         *
+                         * 坐标系统：
+                         * - (w/2, h/2): 圆心
+                         * - w/2, h/2: 圆的半径
+                         */
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var adj = 18750 * SLIDE_FACTOR;
                         var cnstVal1 = 50000 * SLIDE_FACTOR;
@@ -982,53 +996,48 @@ export const PPTXShapeUtils = (function() {
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        var a, dr, iwd2, ihd2, ang, ang2rad, ct, st, m, n, drd2, dang, dang2, swAng, t3, stAng1, stAng2;
-                        if (adj < 0) a = 0
-                        else if (adj > cnstVal1) a = cnstVal1
-                        else a = adj
-                        dr = Math.min(w, h) * a / cnstVal2;
-                        iwd2 = w / 2 - dr;
-                        ihd2 = h / 2 - dr;
-                        ang = Math.atan(h / w);
-                        //ang2rad = ang*Math.PI/180;
-                        ct = ihd2 * Math.cos(ang);
-                        st = iwd2 * Math.sin(ang);
-                        m = Math.sqrt(ct * ct + st * st); //"mod ct st 0"
-                        n = iwd2 * ihd2 / m;
-                        drd2 = dr / 2;
-                        dang = Math.atan(drd2 / n);
-                        dang2 = dang * 2;
-                        swAng = -Math.PI + dang2;
-                        //t3 = Math.atan(h/w);
-                        stAng1 = ang - dang;
-                        stAng2 = stAng1 - Math.PI;
-                        var ct1, st1, m1, n1, dx1, dy1, x1, y1, y1, y2;
-                        ct1 = ihd2 * Math.cos(stAng1);
-                        st1 = iwd2 * Math.sin(stAng1);
-                        m1 = Math.sqrt(ct1 * ct1 + st1 * st1); //"mod ct1 st1 0"
-                        n1 = iwd2 * ihd2 / m1;
-                        dx1 = n1 * Math.cos(stAng1);
-                        dy1 = n1 * Math.sin(stAng1);
-                        x1 = w / 2 + dx1;
-                        y1 = h / 2 + dy1;
-                        x2 = w / 2 - dx1;
-                        y2 = h / 2 - dy1;
-                        var stAng1deg = stAng1 * 180 / Math.PI;
-                        var stAng2deg = stAng2 * 180 / Math.PI;
-                        var swAng2deg = swAng * 180 / Math.PI;
+                        
+                        // 计算调整值
+                        var a;
+                        if (adj < 0) a = 0;
+                        else if (adj > cnstVal1) a = cnstVal1;
+                        else a = adj;
+                        
+                        // 圆的半径
+                        var rx = w / 2;
+                        var ry = h / 2;
+                        
+                        // 斜杠的粗细
+                        var dr = Math.min(w, h) * a / cnstVal2;
+                        
+                        // 计算斜杠的四个角点
+                        // 斜杠从左下到右上，角度为45度
+                        var angle = Math.atan(h / w);
+                        var cos = Math.cos(angle);
+                        var sin = Math.sin(angle);
+                        
+                        // 斜杠的内圈和外圈距离
+                        var innerR = dr / 2;
+                        
+                        // 计算四个角点
+                        var x1 = w / 2 - rx * cos - innerR * sin;
+                        var y1 = h / 2 - ry * sin + innerR * cos;
+                        var x2 = w / 2 + rx * cos - innerR * sin;
+                        var y2 = h / 2 + ry * sin + innerR * cos;
+                        var x3 = w / 2 + rx * cos + innerR * sin;
+                        var y3 = h / 2 + ry * sin - innerR * cos;
+                        var x4 = w / 2 - rx * cos + innerR * sin;
+                        var y4 = h / 2 - ry * sin - innerR * cos;
+                        
+                        // 绘制圆圈和斜杠
                         var d = "M" + 0 + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
-                            " z" +
-                            "M" + x1 + "," + y1 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
-                            " z" +
-                            "M" + x2 + "," + y2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
-                            " z";
-                        //console.log("adj: ",adj,"x1:",x1,",y1:",y1," x2:",x2,",y2:",y2,",stAng1:",stAng1,",stAng1deg:",stAng1deg,",stAng2:",stAng2,",stAng2deg:",stAng2deg,",swAng:",swAng,",swAng2deg:",swAng2deg)
+                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rx, ry, 180, 360, false).replace("M", "L") +
+                            " z" + // 外圈
+                            " M" + x1 + "," + y1 +
+                            " L" + x2 + "," + y2 +
+                            " L" + x3 + "," + y3 +
+                            " L" + x4 + "," + y4 +
+                            " z"; // 斜杠
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4105,6 +4114,19 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "curvedRightArrow": {
+                        /**
+                         * curvedRightArrow: 手杖形箭头（弯曲向右的箭头）
+                         * 
+                         * 形状说明：
+                         * - 一个从左侧开始向上弯曲的箭杆
+                         * - 右侧有箭头头部
+                         * - 整体呈现弯曲形状
+                         *
+                         * 参数说明：
+                         * - adj1: 控制箭头尖端的高度
+                         * - adj2: 控制箭头宽度
+                         * - adj3: 控制弯曲程度
+                         */
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
                         var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
@@ -4179,6 +4201,14 @@ export const PPTXShapeUtils = (function() {
                         swAngDg = swAng * 180 / Math.PI;
                         swAng2dg = swAng2 * 180 / Math.PI;
 
+                        /**
+                         * 路径绘制顺序：
+                         * 1. 从左侧开始，画到右下角附近的弧线
+                         * 2. 连接到箭头尖端的下翼
+                         * 3. 连接到箭头尖端的上翼
+                         * 4. 沿上边缘弧线返回
+                         * 5. 连接到起点
+                         */
                         var d_val = "M" + l + "," + hR +
                             PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y5 +
@@ -4188,10 +4218,8 @@ export const PPTXShapeUtils = (function() {
                             " L" + x1 + "," + y7 +
                             PPTXShapeUtils.shapeArc(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
                             " L" + l + "," + hR +
-                            PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
-                            " L" + r + "," + th +
-                            PPTXShapeUtils.shapeArc(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")
-                        "";
+                            " z";
+
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
@@ -4299,6 +4327,7 @@ export const PPTXShapeUtils = (function() {
                         result += renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
                         break;
                     }
+                    case "cylinder":
                     case "can":
                     case "flowChartMagneticDisk":
                     case "flowChartMagneticDrum": {
@@ -4325,11 +4354,37 @@ export const PPTXShapeUtils = (function() {
                         if (shapType == "flowChartMagneticDrum") {
                             tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
                         }
-                        dVal = PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
-                            PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
-                            " L" + w + "," + y3 +
-                            PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
-                            " L" + 0 + "," + y1;
+                        
+                        // cylinder 和 can 的区别：cylinder 需要画完整的3D圆柱效果
+                        if (shapType == "cylinder") {
+                            /**
+                             * cylinder: 圆柱形
+                             * 
+                             * 形状说明：
+                             * - 3D圆柱体效果
+                             * - 底部椭圆（上半圆，从右到左）
+                             * - 左侧面直线
+                             * - 顶部椭圆（上半圆，从左到右，显示圆柱顶部）
+                             * - 右侧面直线
+                             */
+                            dVal = "M" + wd2 + "," + y1 + // 起点：底部椭圆中心
+                                // 画底部椭圆（上半圆，顺时针：从右到左）
+                                PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
+                                // 画左侧面（从底部左侧到顶部左侧）
+                                " L0," + y3 +
+                                // 画顶部椭圆（上半圆，顺时针：从左到右）
+                                PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, cd2, 0, false).replace("M", "L") +
+                                // 画右侧面（从顶部右侧到底部右侧）
+                                " L" + w + "," + y1 +
+                                " z";
+                        } else {
+                            // can 的原有逻辑
+                            dVal = PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
+                                PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
+                                " L" + w + "," + y3 +
+                                PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
+                                " L" + 0 + "," + y1;
+                        }
 
                         result += "<path " + tranglRott + " d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
