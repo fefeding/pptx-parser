@@ -977,10 +977,11 @@ export const PPTXShapeUtils = (function() {
                     case "noSmoking": {
                         /**
                          * noSmoking: 禁止符形状
-                         * 
+                         * 参考 pptxjs.js 实现
+                         *
                          * 形状说明：
                          * - 一个完整的圆圈
-                         * - 中间有一条从左上到右下的斜杠
+                         * - 中间有一条从左上到右下的斜杠（带圆角）
                          *
                          * 参数说明：
                          * - adj: 控制斜杠的粗细 (范围: 0-50000)
@@ -992,45 +993,53 @@ export const PPTXShapeUtils = (function() {
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        
+
                         // 计算调整值
-                        var a;
+                        var a, dr, iwd2, ihd2, ang, ct, st, m, n;
                         if (adj < 0) a = 0;
                         else if (adj > cnstVal1) a = cnstVal1;
                         else a = adj;
-                        
-                        // 圆的半径
-                        var rx = w / 2;
-                        var ry = h / 2;
-                        
-                        // 斜杠的粗细（斜杠的一半宽度）
-                        var dr = (Math.min(w, h) / 2) * a / cnstVal2;
-                        
-                        // 斜杠角度（从左上到右下，约45度）
-                        var angle = Math.atan(h / w);
-                        var cos = Math.cos(angle);
-                        var sin = Math.sin(angle);
-                        
-                        // 斜杠的四个角点
-                        // 从左上角附近开始，到右下角附近结束
-                        var x1 = w/2 - rx * cos - dr * sin;
-                        var y1 = h/2 - ry * sin + dr * cos;
-                        var x2 = w/2 + rx * cos - dr * sin;
-                        var y2 = h/2 + ry * sin + dr * cos;
-                        var x3 = w/2 + rx * cos + dr * sin;
-                        var y3 = h/2 + ry * sin - dr * cos;
-                        var x4 = w/2 - rx * cos + dr * sin;
-                        var y4 = h/2 - ry * sin - dr * cos;
-                        
-                        // 绘制圆圈和斜杠
+
+                        // 斜杠宽度
+                        dr = Math.min(w, h) * a / cnstVal2;
+                        iwd2 = w / 2 - dr;
+                        ihd2 = h / 2 - dr;
+                        ang = Math.atan(h / w);
+                        ct = ihd2 * Math.cos(ang);
+                        st = iwd2 * Math.sin(ang);
+                        m = Math.sqrt(ct * ct + st * st);
+                        n = iwd2 * ihd2 / m;
+                        var drd2 = dr / 2;
+                        var dang = Math.atan(drd2 / n);
+                        var dang2 = dang * 2;
+                        var swAng = -Math.PI + dang2;
+
+                        // 绘制路径（参考 pptxjs.js 使用圆弧方式）
+                        var stAng1 = ang - dang;
+                        var stAng2 = stAng1 - Math.PI;
+                        var stAng1deg = stAng1 * 180 / Math.PI;
+                        var stAng2deg = stAng2 * 180 / Math.PI;
+                        var swAng2deg = swAng * 180 / Math.PI;
+
+                        var dx1 = n * Math.cos(stAng1);
+                        var dy1 = n * Math.sin(stAng1);
+                        var x1 = w / 2 + dx1;
+                        var y1 = h / 2 + dy1;
+                        var x2 = w / 2 - dx1;
+                        var y2 = h / 2 - dy1;
+
                         var d = "M" + 0 + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rx, ry, 180, 360, false).replace("M", "L") +
-                            " z" + // 外圈
-                            " M" + x1 + "," + y1 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x4 + "," + y4 +
-                            " z"; // 斜杠（矩形条）
+                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
+                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
+                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
+                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
+                            " z" +
+                            "M" + x1 + "," + y1 +
+                            shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
+                            " z" +
+                            "M" + x2 + "," + y2 +
+                            shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
+                            " z";
 
                         result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4194,23 +4203,26 @@ export const PPTXShapeUtils = (function() {
                         swAng2dg = swAng2 * 180 / Math.PI;
 
                         /**
-                         * 路径绘制顺序：
-                         * 1. 从左侧 (l, hR) 开始
-                         * 2. 画圆弧到右下角附近
-                         * 3. 连接到箭头下翼
-                         * 4. 连接到箭头上翼
-                         * 5. 沿上边缘圆弧返回
-                         * 6. 闭合到起点
+                         * 路径绘制顺序（参考 pptxjs.js）：
+                         * 1. 从左侧 (l, hR) 开始，画第一个大圆弧
+                         * 2. 画箭头下翼（多条线段）
+                         * 3. 连接到箭头上翼
+                         * 4. 画第二个大圆弧（沿上边缘）
+                         * 5. 画第三个圆弧（箭头部分）
+                         * 6. 闭合
                          */
                         var d_val = "M" + l + "," + hR +
-                            PPTXShapeUtils.shapeArc(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
+                            shapeArcAlt(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + y4 +
                             " L" + r + "," + y6 +
                             " L" + x1 + "," + y8 +
                             " L" + x1 + "," + y7 +
-                            PPTXShapeUtils.shapeArc(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
+                            shapeArcAlt(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
                             " L" + l + "," + hR +
+                            shapeArcAlt(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
+                            " L" + r + "," + th +
+                            shapeArcAlt(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L") +
                             " z";
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -4347,36 +4359,13 @@ export const PPTXShapeUtils = (function() {
                         if (shapType == "flowChartMagneticDrum") {
                             tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
                         }
-                        
-                        // cylinder 和 can 的区别
-                        if (shapType == "cylinder") {
-                            /**
-                             * cylinder: 圆柱形
-                             * 
-                             * 形状说明：
-                             * - 3D圆柱体效果
-                             * - y1: 底部椭圆中心的y坐标
-                             * - y3: 顶部椭圆中心的y坐标
-                             * - 绘制顺序：底部椭圆上半圆 -> 左侧面 -> 顶部椭圆上半圆 -> 右侧面
-                             */
-                            dVal = "M" + wd2 + "," + y1 + // 起点：底部椭圆中心
-                                // 画底部椭圆上半圆（从左到右）
-                                PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 180, 0, false).replace("M", "L") +
-                                // 画右侧面（从底部右侧到顶部右侧）
-                                " L" + w + "," + y3 +
-                                // 画顶部椭圆上半圆（从右到左）
-                                PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, 180, false).replace("M", "L") +
-                                // 画左侧面（从顶部左侧到底部左侧）
-                                " L0," + y1 +
-                                " z";
-                        } else {
-                            // can 的原有逻辑
-                            dVal = PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, 0, cd2, false) +
-                                PPTXShapeUtils.shapeArc(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
-                                " L" + w + "," + y3 +
-                                PPTXShapeUtils.shapeArc(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
-                                " L" + 0 + "," + y1;
-                        }
+
+                        // 使用 shapeArcAlt，参数是半径而非直径（参考 pptxjs.js）
+                        dVal = shapeArcAlt(wd2, y1, wd2, y1, 0, cd2, false) +
+                            shapeArcAlt(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
+                            " L" + w + "," + y3 +
+                            shapeArcAlt(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
+                            " L" + 0 + "," + y1;
 
                         result += "<path " + tranglRott + " d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
