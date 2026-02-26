@@ -797,7 +797,8 @@ function getFillType(node) {
             let strokeDasharray = "0";
             if (lineNode !== undefined) {
                 // Border width: 1pt = 12700, default = 0.75pt
-                borderWidth = parseInt (PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "w"])) / 12700;
+                let w = PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "w"]);
+                borderWidth = (w !== undefined) ? parseInt(w) / 12700 : (4/3);
                 if (isNaN(borderWidth) || borderWidth < 1) {
                     cssText += (4/3) + "px ";//"1pt ";
                 } else {
