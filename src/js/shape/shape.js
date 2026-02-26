@@ -247,7 +247,7 @@ export const PPTXShapeUtils = (function() {
                         // Access the effect style from the theme
                         var effectStyleLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:effectStyleLst"]["a:effectStyle"];
                         if (effectStyleLst !== undefined) {
-                            var idx = Number(effectIdx) - 1;
+                            var idx = Number(effectIdx); // idx is 0-based, not 1-based
                             if (idx >= 0 && effectStyleLst[idx] !== undefined) {
                                 effectStyleNode = effectStyleLst[idx];
                             }

@@ -171,7 +171,7 @@ function getTextWidth(html) {
                             rNode[j]["a:rPr"]["attrs"]["sz"] = previousStyle["sz"];
                         }
                         
-                        let prgr_text = genSpanElement(rNode[j], j, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
+                        let prgr_text = genSpanElement(rNode[j], j, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
                         if (isBullate) {
                             total_text_len += getTextWidth(prgr_text);
                         }
