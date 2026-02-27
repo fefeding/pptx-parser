@@ -3544,11 +3544,25 @@ function extractChartTitleStyle(chartNode, warpObj) {
     
     const style = {};
     
-    // 提取标题文本属性
+    // 提取标题文本
+    // 尝试从富文本中提取
     const txPr = PPTXXmlUtils.getTextByPathList(titleNode, ["c:txPr"]);
     if (txPr) {
         const p = PPTXXmlUtils.getTextByPathList(txPr, ["a:p"]);
         if (p) {
+            // 从段落中提取文本
+            const r = PPTXXmlUtils.getTextByPathList(p, ["a:r"]);
+            if (r) {
+                // 可能有多个 run
+                if (Array.isArray(r)) {
+                    const textArray = r.map(run => PPTXXmlUtils.getTextByPathList(run, ["a:t"]));
+                    style.text = textArray.filter(t => t).join('');
+                } else {
+                    style.text = PPTXXmlUtils.getTextByPathList(r, ["a:t"]);
+                }
+            }
+            
+            // 提取标题文本属性
             const pPr = PPTXXmlUtils.getTextByPathList(p, ["a:pPr"]);
             if (pPr) {
                 const defRPr = PPTXXmlUtils.getTextByPathList(pPr, ["a:defRPr"]);
@@ -3574,6 +3588,14 @@ function extractChartTitleStyle(chartNode, warpObj) {
                     }
                 }
             }
+        }
+    }
+    
+    // 如果没有找到文本，尝试从字符串引用中提取
+    if (!style.text) {
+        const tx = PPTXXmlUtils.getTextByPathList(titleNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]);
+        if (tx) {
+            style.text = tx;
         }
     }
     
@@ -3783,6 +3805,7 @@ const PPTXStyleUtils = {
         hueToRgb,
         getColorName2Hex,
         getSchemeColorFromTheme,
+        getGradientFill,
         extractChartData,
         extractChartTitleStyle,
         extractChartAreaStyle,

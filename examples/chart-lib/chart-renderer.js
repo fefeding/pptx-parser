@@ -99,6 +99,7 @@ export class ChartRenderer {
         }
 
         const isPieChart = chartType === 'pie';
+        const is3DPie = chartInfo.type === 'pie3DChart';
         const option = {
             tooltip: {
                 trigger: isPieChart ? 'item' : 'axis'
@@ -123,6 +124,15 @@ export class ChartRenderer {
 
             // 应用图表区域布局
             option.grid = this.getGridConfig(chartInfo);
+        } else if (isPieChart) {
+            // 为饼图添加布局配置
+            option.grid = {
+                top: chartInfo.style?.title ? '15%' : '10%',
+                bottom: chartInfo.style?.legend?.position === 'bottom' ? '15%' : '5%',
+                left: '5%',
+                right: '5%',
+                containLabel: true
+            };
         }
 
         return option;
@@ -139,27 +149,51 @@ export class ChartRenderer {
         // 应用图表区域背景
         if (style.chartArea?.fillColor) {
             option.backgroundColor = style.chartArea.fillColor;
+        } else if (style.chartArea?.gradientFill) {
+            // 应用渐变背景
+            const gradFill = style.chartArea.gradientFill;
+            if (gradFill.color && gradFill.color.length >= 2) {
+                option.backgroundColor = new echarts.graphic.LinearGradient(
+                    0, 0, 1, 1,  // 渐变方向
+                    [{
+                        offset: 0,
+                        color: gradFill.color[0].startsWith('#') 
+                            ? gradFill.color[0] 
+                            : '#' + gradFill.color[0]
+                    }, {
+                        offset: 1,
+                        color: gradFill.color[1] 
+                            ? (gradFill.color[1].startsWith('#') 
+                                ? gradFill.color[1] 
+                                : '#' + gradFill.color[1])
+                            : gradFill.color[0].startsWith('#') 
+                                ? gradFill.color[0] 
+                                : '#' + gradFill.color[0]
+                    }]
+                );
+            }
         }
 
         // 应用边框（通过 ECharts 的 graphic 组件）
         if (style.chartArea?.borderColor && style.chartArea?.borderWidth) {
-            option.graphic = {
-                elements: [{
-                    type: 'rect',
-                    shape: {
-                        x: 0,
-                        y: 0,
-                        width: '100%',
-                        height: '100%'
-                    },
-                    style: {
-                        fill: 'transparent',
-                        stroke: style.chartArea.borderColor,
-                        lineWidth: style.chartArea.borderWidth
-                    },
-                    z: -1  // 放在最底层
-                }]
+            option.graphic = option.graphic || {
+                elements: []
             };
+            option.graphic.elements.push({
+                type: 'rect',
+                shape: {
+                    x: 0,
+                    y: 0,
+                    width: '100%',
+                    height: '100%'
+                },
+                style: {
+                    fill: 'transparent',
+                    stroke: style.chartArea.borderColor,
+                    lineWidth: style.chartArea.borderWidth
+                },
+                z: -1  // 放在最底层
+            });
         }
     }
 
@@ -182,6 +216,10 @@ export class ChartRenderer {
 
         if (titleStyle.fontSize) {
             config.textStyle.fontSize = titleStyle.fontSize;
+        }
+
+        if (titleStyle.fontWeight) {
+            config.textStyle.fontWeight = titleStyle.fontWeight;
         }
 
         return config;
@@ -324,6 +362,8 @@ export class ChartRenderer {
         }
 
         const series = chartData[0];
+        const chartStyle = chartInfo.style || {};
+        const is3D = chartInfo.type === 'pie3DChart';
         const data = [];
 
         if (Array.isArray(series.values)) {
@@ -337,15 +377,35 @@ export class ChartRenderer {
                     value = parseFloat(item.y);
                 }
 
-                data.push({
+                const dataItem = {
                     name: label,
                     value: value
-                });
+                };
+
+                // 应用数据点样式（包括爆炸效果和渐变填充）
+                if (chartStyle.dataPointStyles && chartStyle.dataPointStyles.length > 0) {
+                    const dpStyle = chartStyle.dataPointStyles[0][index];
+                    if (dpStyle) {
+                        // 爆炸效果
+                        if (dpStyle.explosion !== undefined && dpStyle.explosion > 0) {
+                            dataItem.selected = true;
+                            dataItem.selectedOffset = dpStyle.explosion;
+                        }
+                        
+                        // 渐变填充
+                        if (dpStyle.gradientFill && dpStyle.gradientFill.color) {
+                            dataItem.itemStyle = {
+                                color: '#' + dpStyle.gradientFill.color[0]
+                            };
+                        }
+                    }
+                }
+
+                data.push(dataItem);
             });
         }
 
-        // 应用饼图样式
-        const seriesStyle = chartInfo.style || {};
+        // 标准 2D 饼图
         const pieConfig = {
             name: series.key || 'Series 1',
             type: 'pie',
@@ -364,17 +424,135 @@ export class ChartRenderer {
             }
         };
 
-        // 如果有全局颜色设置，应用到饼图
-        if (seriesStyle.fillColor) {
-            pieConfig.itemStyle = {
-                color: seriesStyle.fillColor
-            };
+        // 3D 效果（通过阴影和多层饼图模拟）
+        if (is3D) {
+            const depthPercent = chartStyle.view3D?.depthPercent || 100;
+            const depth = depthPercent / 100;
+            
+            // 为 3D 饼图存储数据项名称，用于图例显示
+            const dataNames = data.map(item => item.name);
+            
+            // 创建多层饼图模拟 3D 效果
+            const series3D = [];
+            
+            // 第一层：顶部亮色层（这个系列的名称用于图例）
+            series3D.push({
+                name: series.key || 'Series 1',
+                type: 'pie',
+                radius: ['30%', '55%'],
+                data: data.map(item => ({
+                    ...item,
+                    itemStyle: {
+                        color: item.itemStyle?.color || undefined,
+                        borderWidth: 0,
+                        opacity: 1
+                    }
+                })),
+                label: {
+                    show: true,
+                    formatter: '{b}: {d}%'
+                },
+                z: 2,
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 0, 0, 0.3)',
+                    shadowOffsetY: -2
+                }
+            });
+
+            // 第二层：中间渐变层
+            series3D.push({
+                name: series.key || 'Series 1',
+                type: 'pie',
+                radius: ['30%', '55%'],
+                data: data.map(item => ({
+                    name: item.name,
+                    value: item.value,
+                    itemStyle: {
+                        color: this.darkenColor(item.itemStyle?.color || '#5470c6', 0.1),
+                        borderWidth: 0,
+                        opacity: 0.7
+                    }
+                })),
+                label: { show: false },
+                z: 1,
+                center: ['50%', '50%']
+            });
+
+            // 第三层：底部阴影层
+            series3D.push({
+                name: series.key || 'Series 1',
+                type: 'pie',
+                radius: ['30%', '55%'],
+                data: data.map(item => ({
+                    name: item.name,
+                    value: item.value,
+                    itemStyle: {
+                        color: this.darkenColor(item.itemStyle?.color || '#5470c6', 0.3),
+                        borderWidth: 0,
+                        opacity: 0.4
+                    }
+                })),
+                label: { show: false },
+                z: 0,
+                center: ['50%', '50%']
+            });
+
+            // 如果有全局颜色设置，应用到所有层
+            if (chartStyle.fillColor) {
+                series3D.forEach(s => {
+                    s.data.forEach(item => {
+                        if (!item.itemStyle) item.itemStyle = {};
+                        item.itemStyle.color = chartStyle.fillColor;
+                    });
+                });
+            }
+
+            // 将数据名称存储在图表样式中，供图例配置使用
+            chartStyle._pieDataNames = dataNames;
+
+            return series3D;
         }
 
-        // 如果每个饼片有自己的颜色，保持 ECharts 默认的配色方案
-        // 或者可以根据 style.gradientFill 自定义
+        // 如果有全局颜色设置，应用到饼图
+        if (chartStyle.fillColor) {
+            pieConfig.itemStyle = pieConfig.itemStyle || {};
+            pieConfig.itemStyle.color = chartStyle.fillColor;
+        }
+
+        // varyColors 控制：如果为 false，使用统一颜色
+        if (chartStyle.varyColors === false && !pieConfig.itemStyle?.color) {
+            pieConfig.itemStyle = pieConfig.itemStyle || {};
+            pieConfig.itemStyle.color = '#5470c6';
+        }
 
         return [pieConfig];
+    }
+
+    /**
+     * 将颜色变暗，用于模拟 3D 阴影
+     * @param {string} color - 颜色值
+     * @param {number} amount - 变暗程度 (0-1)
+     * @returns {string} 变暗后的颜色
+     */
+    darkenColor(color, amount) {
+        // 如果没有颜色或不是 hex 格式，返回默认值
+        if (!color || !color.startsWith('#')) return '#5470c6';
+        
+        let hex = color.replace('#', '');
+        if (hex.length === 3) {
+            hex = hex.split('').map(c => c + c).join('');
+        }
+        
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        
+        const newR = Math.max(0, Math.floor(r * (1 - amount)));
+        const newG = Math.max(0, Math.floor(g * (1 - amount)));
+        const newB = Math.max(0, Math.floor(b * (1 - amount)));
+        
+        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
     }
 
     /**
@@ -417,10 +595,27 @@ export class ChartRenderer {
         const legendPosition = this.getLegendPosition(chartInfo);
         const legendStyle = chartInfo.style?.legend || {};
         const chartData = chartInfo.data;
+        const isPieChart = chartInfo.type === 'pieChart' || chartInfo.type === 'pie3DChart';
 
-        // 提取系列名称作为图例数据
+        // 提取图例数据
         const legendData = [];
-        if (Array.isArray(chartData)) {
+        if (isPieChart && Array.isArray(chartData) && chartData.length > 0) {
+            // 饼图：使用数据项名称（xlabels）作为图例
+            const series = chartData[0];
+            
+            // 对于 3D 饼图，如果已经存储了数据名称，使用它
+            if (chartInfo.style?._pieDataNames) {
+                legendData.push(...chartInfo.style._pieDataNames);
+            } else if (series.xlabels && Array.isArray(series.xlabels)) {
+                legendData.push(...series.xlabels);
+            } else if (series.values && Array.isArray(series.values)) {
+                // 如果没有 xlabels，使用值的索引
+                series.values.forEach((v, i) => {
+                    legendData.push(`Item ${i + 1}`);
+                });
+            }
+        } else if (Array.isArray(chartData)) {
+            // 其他图表：使用系列名称
             chartData.forEach((series, index) => {
                 legendData.push(series.key || `Series ${index + 1}`);
             });

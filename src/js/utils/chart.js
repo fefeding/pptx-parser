@@ -26,13 +26,66 @@ async function genChart(node, warpObj) {
     const chart = PPTXXmlUtils.getTextByPathList(chartSpace, ["c:chart"]);
     const plotArea = PPTXXmlUtils.getTextByPathList(chart, ["c:plotArea"]);
 
+    // 提取3D视图属性
+    const view3D = PPTXXmlUtils.getTextByPathList(chart, ["c:view3D"]);
+    const view3DProps = {};
+    if (view3D) {
+        if (view3D["attrs"]?.rotX !== undefined) view3DProps.rotX = parseFloat(view3D["attrs"].rotX);
+        if (view3D["attrs"]?.rotY !== undefined) view3DProps.rotY = parseFloat(view3D["attrs"].rotY);
+        if (view3D["attrs"]?.depthPercent !== undefined) view3DProps.depthPercent = parseFloat(view3D["attrs"].depthPercent);
+        if (view3D["attrs"]?.rAngAx !== undefined) view3DProps.rAngAx = view3D["attrs"].rAngAx === "1";
+    }
+
+    // 提取图表类型特定属性
+    const chartType = Object.keys(plotArea).find(key => key.startsWith('c:') && key.endsWith('Chart'));
+    const varyColors = chartType ? PPTXXmlUtils.getTextByPathList(plotArea[chartType], ["c:varyColors", "attrs", "val"]) : undefined;
+
+    // 提取系列数据点的样式（dPt）和爆炸效果（explosion）
+    let dataPointStyles = [];
+    if (chartType && plotArea[chartType]["c:ser"]) {
+        const serArray = Array.isArray(plotArea[chartType]["c:ser"]) 
+            ? plotArea[chartType]["c:ser"] 
+            : [plotArea[chartType]["c:ser"]];
+        
+        serArray.forEach(ser => {
+            const dPtArray = ser["c:dPt"];
+            if (dPtArray) {
+                const dpStyles = {};
+                const dpList = Array.isArray(dPtArray) ? dPtArray : [dPtArray];
+                dpList.forEach(dp => {
+                    const idx = dp["c:idx"]?.["attrs"]?.val;
+                    const explosion = dp["c:explosion"]?.["attrs"]?.val;
+                    const spPr = dp["c:spPr"];
+                    
+                    if (idx !== undefined) {
+                        const dpStyle = {};
+                        if (explosion !== undefined) {
+                            dpStyle.explosion = parseFloat(explosion);
+                        }
+                        if (spPr) {
+                            const gradFill = spPr["a:gradFill"];
+                            if (gradFill) {
+                                dpStyle.gradientFill = PPTXStyleUtils.getGradientFill(gradFill, warpObj);
+                            }
+                        }
+                        dpStyles[idx] = dpStyle;
+                    }
+                });
+                dataPointStyles.push(dpStyles);
+            }
+        });
+    }
+
     // 提取图表样式信息
     const chartStyle = {
         title: PPTXStyleUtils.extractChartTitleStyle(chart, warpObj),
         chartArea: PPTXStyleUtils.extractChartAreaStyle(chartSpace, warpObj),
         legend: PPTXStyleUtils.extractChartLegendStyle(chart, warpObj),
         categoryAxis: PPTXStyleUtils.extractChartAxisStyle(plotArea, "c:catAx", warpObj),
-        valueAxis: PPTXStyleUtils.extractChartAxisStyle(plotArea, "c:valAx", warpObj)
+        valueAxis: PPTXStyleUtils.extractChartAxisStyle(plotArea, "c:valAx", warpObj),
+        view3D: view3DProps,
+        varyColors: varyColors === "1",
+        dataPointStyles: dataPointStyles
     };
 
     let chartData = null;
