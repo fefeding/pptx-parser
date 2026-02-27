@@ -305,6 +305,32 @@ export const PPTXShapeUtils = (function() {
                         "text": svg_css_shadow
                     };
 
+                }
+
+                //////////////////////////////softEdge///////////////////////////////////////////
+                // Soft edge effect - creates a blurred/feathered edge
+                var softEdgeNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:softEdge"]);
+                
+                // If no direct softEdge, check from effectStyle
+                if (softEdgeNode === undefined && effectStyleNode !== undefined) {
+                    softEdgeNode = PPTXXmlUtils.getTextByPathList(effectStyleNode, ["a:effectLst", "a:softEdge"]);
+                }
+                
+                var softEdgeFilterStr = ""
+                if (softEdgeNode !== undefined) {
+                    var softEdgeAttrs = softEdgeNode["attrs"];
+                    var rad = (softEdgeAttrs["rad"]) ? (parseInt(softEdgeAttrs["rad"]) * SLIDE_FACTOR) : 0;
+                    
+                    // softEdge effect according to Office Open XML specification:
+                    // Applies a Gaussian blur to the edges of the shape
+                    // The radius determines how far the blur extends from the edge
+                    var softEdgeId = "softedge_" + shpId;
+                    var softEdgeFilter = '<filter id="' + softEdgeId + '" x="-20%" y="-20%" width="140%" height="140%">';
+                    // Blur the source to create soft edge
+                    softEdgeFilter += '<feGaussianBlur in="SourceGraphic" stdDeviation="' + rad + '" />';
+                    softEdgeFilter += '</filter>';
+                    result += softEdgeFilter;
+                    softEdgeFilterStr = 'filter="url(#' + softEdgeId + ')"';
                 } 
                 ////////////////////////////////////////////////////////////////////////////////////////
                 if ((headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) ||
@@ -341,7 +367,7 @@ export const PPTXShapeUtils = (function() {
                             " L" + w + "," + h +
                             " z";
                         result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + " " + softEdgeFilterStr + " />";
 
                         break;
                     }
