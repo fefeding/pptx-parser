@@ -117,6 +117,34 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
             });
         }
 
+        // a:quadBezTo
+        var quadBezToNodes = pathNodes["a:quadBezTo"];
+        if (quadBezToNodes !== undefined) {
+            var quadBezToPtNodesAry = [];
+            if (!Array.isArray(quadBezToNodes)) {
+                quadBezToNodes = [quadBezToNodes];
+            }
+            Object.keys(quadBezToNodes).forEach(function (key) {
+                quadBezToPtNodesAry.push(quadBezToNodes[key]["a:pt"]);
+            });
+
+            quadBezToPtNodesAry.forEach(function (key2) {
+                var nodeObj = {};
+                nodeObj.type = "quadBezTo";
+                nodeObj.order = key2[0]["attrs"]["order"];
+                var pts_ary = [];
+                key2.forEach(function (pt) {
+                    var pt_obj = {
+                        x: pt["attrs"]["x"],
+                        y: pt["attrs"]["y"]
+                    };
+                    pts_ary.push(pt_obj);
+                });
+                nodeObj.quadBzPt = pts_ary;
+                multiSapeAry.push(nodeObj);
+            });
+        }
+
         // a:arcTo
         if (arcToNodes !== undefined) {
             var arcToNodesAttrs = arcToNodes["attrs"];
@@ -213,7 +241,19 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                     d += shapeArcFn(wR, hR, wR, hR, stAng, endAng, false);
                 }
             } else if (multiSapeAry[k].type == "quadBezTo") {
-                console.log("custShapType: quadBezTo - TODO");
+                // Quadratic Bezier curve: Q controlPoint endPoint
+                // PPTX quadBezTo has 2 points: control point and end point
+                // The start point is the previous point in the path
+                var quadBzPt = multiSapeAry[k].quadBzPt;
+                if (quadBzPt && quadBzPt.length >= 2) {
+                    var ctrlX = quadBzPt[0].x * cX;
+                    var ctrlY = quadBzPt[0].y * cY;
+                    var endX = quadBzPt[1].x * cX;
+                    var endY = quadBzPt[1].y * cY;
+                    d += "Q" + ctrlX + "," + ctrlY + " " + endX + "," + endY;
+                } else {
+                    console.warn("Invalid quadBezTo parameters detected");
+                }
             } else if (multiSapeAry[k].type == "close") {
                 d += "z";
             }
