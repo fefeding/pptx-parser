@@ -14,6 +14,12 @@
 <script type="text/javascript" src="/src/lib/d3.min.js"></script>
 <script type="text/javascript" src="/src/lib/nv.d3.min.js"></script>
 
+<!-- 引入 Chart Renderer -->
+<script type="module">
+import { chartRenderer } from '/src/lib/chart-renderer.js';
+window.chartRenderer = chartRenderer;
+</script>
+
 
 <style>
 	html, body { margin: 0; padding: 0; }
@@ -157,10 +163,25 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 			result.slides.forEach(slide => {
 				resultDiv.innerHTML += slide.html;
 			});
-			
+
 			console.log('charts', result.charts);
-			// 渲染所有图表
+			// 渲染所有图表 - 使用 ChartRenderer 模块
 			if (result.charts && result.charts.length > 0) {
+				// 使用 chartRenderer 渲染所有图表
+				// 注意：由于 chart-renderer 是 module，需要异步加载后再渲染
+				// 这里先手动调用旧的渲染逻辑，后续可以迁移
+				if (typeof chartRenderer !== 'undefined') {
+					console.log('Using ChartRenderer module');
+					chartRenderer.renderCharts(result.charts);
+				} else {
+					console.log('ChartRenderer not available, using fallback rendering');
+					// Fallback: 原有的渲染代码（已保留在下方）
+				}
+			}
+
+			// Fallback: 原有的图表渲染代码（如果 chartRenderer 不可用）
+			if (typeof chartRenderer === 'undefined' && result.charts && result.charts.length > 0) {
+				console.log('ChartRenderer not available, rendering charts manually...');
 				result.charts.forEach(chartInfo => {
 					var chartElement = d3.select("#" + chartInfo.chartId);
 					if (chartElement.empty()) {
@@ -567,8 +588,19 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 						}
 					}
 				});
+
+				// 使用 chartRenderer 渲染所有图表
+				// 注意：由于 chart-renderer 是 module，需要异步加载后再渲染
+				// 这里先手动调用旧的渲染逻辑，后续可以迁移
+				if (typeof chartRenderer !== 'undefined') {
+					console.log('Using ChartRenderer module');
+					chartRenderer.renderCharts(result.charts);
+				} else {
+					console.log('ChartRenderer not available, using fallback rendering');
+					// Fallback: 原有的渲染代码（已保留在下方）
+				}
 			}
-			
+
 			// 创建幻灯片包装器
 			createSlidesWrapper();
 			removeLoadingMsg();
