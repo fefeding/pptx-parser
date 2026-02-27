@@ -1,7 +1,7 @@
 /**
  * Chart Renderer Module
  *
- * 这个模块负责在浏览器中使用 NVD3/D3 渲染图表
+ * 这个模块负责在浏览器中使用 ECharts 渲染图表
  * 从 PPTX 解析器中提取的图表数据和样式将被用来创建交互式图表
  *
  * 使用方法:
@@ -48,8 +48,8 @@ export class ChartRenderer {
      * @param {Object} chartInfo.style - 图表样式
      */
     renderChart(chartInfo) {
-        const chartElement = d3.select("#" + chartInfo.chartId);
-        if (chartElement.empty()) {
+        const chartElement = document.getElementById(chartInfo.chartId);
+        if (!chartElement) {
             console.warn(`Chart element not found: #${chartInfo.chartId}`);
             return;
         }
@@ -59,23 +59,24 @@ export class ChartRenderer {
             return;
         }
 
-        // 准备图表数据
-        const preparedData = this.prepareChartData(chartInfo);
-        if (!preparedData) {
+        // 准备 ECharts 配置
+        const option = this.prepareEChartsOption(chartInfo);
+        if (!option) {
             return;
         }
 
-        // 创建图表
-        const chart = this.createChart(chartInfo);
-        if (!chart) {
-            return;
-        }
+        console.log(`Chart ${chartInfo.chartId} option:`, option);
 
-        // 应用样式
-        this.applyChartStyles(chart, chartInfo, preparedData);
+        // 创建 ECharts 实例
+        const chart = echarts.init(chartElement);
 
-        // 渲染图表
-        this.renderChartElement(chart, chartElement, preparedData);
+        // 设置配置
+        chart.setOption(option);
+
+        // 启用窗口大小调整
+        window.addEventListener('resize', () => {
+            chart.resize();
+        });
 
         // 存储图表实例以便后续更新
         this.chartInstances.set(chartInfo.chartId, chart);
@@ -84,130 +85,389 @@ export class ChartRenderer {
     }
 
     /**
-     * 准备图表数据
+     * 准备 ECharts 配置
      * @param {Object} chartInfo - 图表信息
-     * @returns {Array} 准备好的数据
+     * @returns {Object} ECharts 配置对象
      */
-    prepareChartData(chartInfo) {
+    prepareEChartsOption(chartInfo) {
         const chartData = chartInfo.data;
-        const isPieChart = chartInfo.type === "pieChart" || chartInfo.type === "pie3DChart";
+        const chartType = this.mapChartType(chartInfo.type);
+
+        if (!chartType) {
+            console.warn(`Unsupported chart type: ${chartInfo.type}`);
+            return null;
+        }
+
+        const isPieChart = chartType === 'pie';
+        const option = {
+            tooltip: {
+                trigger: isPieChart ? 'item' : 'axis'
+            },
+            legend: this.getLegendConfig(chartInfo),
+            series: this.prepareSeries(chartInfo, chartType)
+        };
+
+        // 应用图表背景
+        this.applyChartBackground(option, chartInfo.style);
+
+        // 添加标题
+        if (chartInfo.style?.title) {
+            option.title = this.getTitleConfig(chartInfo.style.title);
+        }
+
+        // 为非饼图添加坐标轴配置
+        if (!isPieChart) {
+            const xAxisData = this.getXAxisData(chartInfo);
+            option.xAxis = this.getXAxisConfig(chartInfo, xAxisData);
+            option.yAxis = this.getYAxisConfig(chartInfo);
+
+            // 应用图表区域布局
+            option.grid = this.getGridConfig(chartInfo);
+        }
+
+        return option;
+    }
+
+    /**
+     * 应用图表背景和边框
+     * @param {Object} option - ECharts 配置对象
+     * @param {Object} style - 样式对象
+     */
+    applyChartBackground(option, style) {
+        if (!style) return;
+
+        // 应用图表区域背景
+        if (style.chartArea?.fillColor) {
+            option.backgroundColor = style.chartArea.fillColor;
+        }
+
+        // 应用边框（通过 ECharts 的 graphic 组件）
+        if (style.chartArea?.borderColor && style.chartArea?.borderWidth) {
+            option.graphic = {
+                elements: [{
+                    type: 'rect',
+                    shape: {
+                        x: 0,
+                        y: 0,
+                        width: '100%',
+                        height: '100%'
+                    },
+                    style: {
+                        fill: 'transparent',
+                        stroke: style.chartArea.borderColor,
+                        lineWidth: style.chartArea.borderWidth
+                    },
+                    z: -1  // 放在最底层
+                }]
+            };
+        }
+    }
+
+    /**
+     * 获取标题配置
+     * @param {Object} titleStyle - 标题样式
+     * @returns {Object} 标题配置
+     */
+    getTitleConfig(titleStyle) {
+        const config = {
+            text: titleStyle.text || '',
+            left: 'center',
+            top: 0,
+            textStyle: {}
+        };
+
+        if (titleStyle.color) {
+            config.textStyle.color = titleStyle.color;
+        }
+
+        if (titleStyle.fontSize) {
+            config.textStyle.fontSize = titleStyle.fontSize;
+        }
+
+        return config;
+    }
+
+    /**
+     * 获取网格配置
+     * @param {Object} chartInfo - 图表信息
+     * @returns {Object} 网格配置
+     */
+    getGridConfig(chartInfo) {
+        const chartArea = chartInfo.style?.chartArea;
+        const title = chartInfo.style?.title;
+
+        // 默认边距
+        let top = '15%';
+        let bottom = '10%';
+        let left = '10%';
+        let right = '10%';
+
+        // 根据图例位置调整
+        const legendPosition = this.getLegendPosition(chartInfo);
+        switch (legendPosition) {
+            case 'top':
+                top = title ? '20%' : '15%';
+                break;
+            case 'bottom':
+                bottom = '15%';
+                break;
+            case 'left':
+                left = '15%';
+                break;
+            case 'right':
+                right = '15%';
+                break;
+        }
+
+        return {
+            left: left,
+            right: right,
+            top: top,
+            bottom: bottom,
+            containLabel: true
+        };
+    }
+
+    /**
+     * 映射 PPTX 图表类型到 ECharts 类型
+     * @param {string} pptxType - PPTX 图表类型
+     * @returns {string} ECharts 图表类型
+     */
+    mapChartType(pptxType) {
+        const typeMap = {
+            'lineChart': 'line',
+            'barChart': 'bar',
+            'pieChart': 'pie',
+            'pie3DChart': 'pie',
+            'areaChart': 'line',
+            'scatterChart': 'scatter'
+        };
+        return typeMap[pptxType] || null;
+    }
+
+    /**
+     * 准备系列数据
+     * @param {Object} chartInfo - 图表信息
+     * @param {string} echartsType - ECharts 图表类型
+     * @returns {Array} 系列配置数组
+     */
+    prepareSeries(chartInfo, echartsType) {
+        const chartData = chartInfo.data;
+        const isPieChart = echartsType === 'pie';
+        const isAreaChart = chartInfo.type === 'areaChart';
 
         if (!Array.isArray(chartData)) {
-            console.error(`Chart data is not an array for chart ${chartInfo.chartId}`);
-            return null;
+            console.error('Chart data is not an array');
+            return [];
         }
 
         // 饼图需要特殊的数据格式转换
         if (isPieChart) {
-            console.log("Converting pie chart data");
-            if (chartData.length > 0 && chartData[0]?.values) {
-                const series = chartData[0];
-                if (Array.isArray(series.values)) {
-                    return series.values.map((item, index) => {
-                        let label = `Item ${index}`;
-                        if (series.xlabels && series.xlabels[index] !== undefined) {
-                            label = series.xlabels[index];
-                        }
-                        let value = 0;
-                        if (item && item.y !== undefined) {
-                            value = parseFloat(item.y);
-                        }
-                        return { x: label, y: value };
-                    });
+            return this.preparePieSeries(chartData, chartInfo);
+        }
+
+        // 散点图需要特殊的数据格式
+        if (echartsType === 'scatter') {
+            return this.prepareScatterSeries(chartData, chartInfo);
+        }
+
+        // 折线图、柱状图、面积图
+        return chartData.map((series, index) => {
+            // ECharts 对于有 xlabels 的图表，data 需要是数值数组
+            // 对于散点图，data 需要是 [x, y] 数组
+            let seriesData;
+            if (echartsType === 'scatter') {
+                // 散点图保持原格式 [x, y]
+                seriesData = series.values || [];
+            } else if (series.xlabels && series.values) {
+                // 有 xlabels 的折线图/柱状图，提取 y 值
+                seriesData = series.values.map(v => v ? v.y : 0);
+            } else {
+                // 没有 xlabels，使用原始数据
+                seriesData = series.values || [];
+            }
+
+            const seriesConfig = {
+                name: series.key || `Series ${index}`,
+                type: echartsType,
+                data: seriesData,
+                smooth: isAreaChart,
+                areaStyle: isAreaChart ? {} : undefined
+            };
+
+            // 应用系列颜色
+            if (series.style) {
+                if (series.style.fillColor) {
+                    seriesConfig.itemStyle = {
+                        color: series.style.fillColor
+                    };
+                } else if (series.style.gradientFill?.color?.length > 0) {
+                    seriesConfig.itemStyle = {
+                        color: '#' + series.style.gradientFill.color[0]
+                    };
                 }
             }
-            return [];
-        } else {
-            // 非饼图使用原始数据格式
-            return chartData;
-        }
+
+            return seriesConfig;
+        });
     }
 
     /**
-     * 创建图表实例
+     * 准备饼图系列
+     * @param {Array} chartData - 图表数据
      * @param {Object} chartInfo - 图表信息
-     * @returns {Object} NVD3 图表实例
+     * @returns {Array} 饼图系列配置
      */
-    createChart(chartInfo) {
-        let chart = null;
-        const legendPosition = this.getLegendPosition(chartInfo);
-
-        switch (chartInfo.type) {
-            case "lineChart":
-                chart = nv.models.lineChart().useInteractiveGuideline(true);
-                this.configureChartMargins(chart, legendPosition, chartInfo.type);
-                break;
-
-            case "barChart":
-                chart = nv.models.multiBarChart();
-                this.configureChartMargins(chart, legendPosition, chartInfo.type);
-                break;
-
-            case "pieChart":
-            case "pie3DChart":
-                chart = nv.models.pieChart()
-                    .x(d => d.x)
-                    .y(d => d.y)
-                    .showLabels(true);
-                break;
-
-            case "areaChart":
-                chart = nv.models.stackedAreaChart()
-                    .clipEdge(true)
-                    .useInteractiveGuideline(true);
-                this.configureChartMargins(chart, legendPosition, chartInfo.type);
-                break;
-
-            case "scatterChart":
-                chart = nv.models.scatterChart()
-                    .showDistX(true)
-                    .showDistY(true)
-                    .color(d3.scale.category10().range());
-                chart.xAxis.axisLabel('X').tickFormat(d3.format('.02f'));
-                chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
-                this.configureChartMargins(chart, legendPosition, chartInfo.type);
-                break;
-
-            default:
-                console.warn(`Unknown chart type: ${chartInfo.type}`);
-                return null;
+    preparePieSeries(chartData, chartInfo) {
+        if (chartData.length === 0) {
+            return [];
         }
 
-        return chart;
-    }
+        const series = chartData[0];
+        const data = [];
 
-    /**
-     * 配置图表边距和图例位置
-     * @param {Object} chart - 图表实例
-     * @param {string} legendPosition - 图例位置
-     * @param {string} chartType - 图表类型
-     */
-    configureChartMargins(chart, legendPosition, chartType) {
-        // 饼图不支持图例位置配置
-        if (chartType === "pieChart" || chartType === "pie3DChart") {
-            return;
+        if (Array.isArray(series.values)) {
+            series.values.forEach((item, index) => {
+                let label = `Item ${index}`;
+                if (series.xlabels && series.xlabels[index] !== undefined) {
+                    label = series.xlabels[index];
+                }
+                let value = 0;
+                if (item && item.y !== undefined) {
+                    value = parseFloat(item.y);
+                }
+
+                data.push({
+                    name: label,
+                    value: value
+                });
+            });
         }
 
-        const marginConfig = {
-            right: { top: 30, right: 100, bottom: 50, left: 60 },
-            left: { top: 30, right: 50, bottom: 50, left: 100 },
-            top: { top: 50, right: 50, bottom: 50, left: 60 },
-            bottom: { top: 30, right: 50, bottom: 80, left: 60 }
+        // 应用饼图样式
+        const seriesStyle = chartInfo.style || {};
+        const pieConfig = {
+            name: series.key || 'Series 1',
+            type: 'pie',
+            radius: '50%',
+            data: data,
+            label: {
+                show: true,
+                formatter: '{b}: {d}%'
+            },
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+            }
         };
 
-        const margins = marginConfig[legendPosition] || marginConfig.right;
-
-        if (legendPosition === 'right') {
-            chart.legend.rightAlign(true).align(true).height(30);
-        } else if (legendPosition === 'left') {
-            chart.legend.rightAlign(false).align(false).height(30);
-        } else if (legendPosition === 'top') {
-            chart.legend.rightAlign(false).align(false).height(30);
-        } else if (legendPosition === 'bottom') {
-            chart.legend.rightAlign(false).align(false).height(30);
+        // 如果有全局颜色设置，应用到饼图
+        if (seriesStyle.fillColor) {
+            pieConfig.itemStyle = {
+                color: seriesStyle.fillColor
+            };
         }
 
-        chart.margin(margins);
+        // 如果每个饼片有自己的颜色，保持 ECharts 默认的配色方案
+        // 或者可以根据 style.gradientFill 自定义
+
+        return [pieConfig];
+    }
+
+    /**
+     * 准备散点图系列
+     * @param {Array} chartData - 图表数据
+     * @param {Object} chartInfo - 图表信息
+     * @returns {Array} 散点图系列配置
+     */
+    prepareScatterSeries(chartData, chartInfo) {
+        return chartData.map((series, index) => {
+            const seriesConfig = {
+                name: series.key || `Series ${index}`,
+                type: 'scatter',
+                data: series.values || []
+            };
+
+            // 应用系列颜色
+            if (series.style) {
+                if (series.style.fillColor) {
+                    seriesConfig.itemStyle = {
+                        color: series.style.fillColor
+                    };
+                } else if (series.style.gradientFill?.color?.length > 0) {
+                    seriesConfig.itemStyle = {
+                        color: '#' + series.style.gradientFill.color[0]
+                    };
+                }
+            }
+
+            return seriesConfig;
+        });
+    }
+
+    /**
+     * 获取图例配置
+     * @param {Object} chartInfo - 图表信息
+     * @returns {Object} 图例配置
+     */
+    getLegendConfig(chartInfo) {
+        const legendPosition = this.getLegendPosition(chartInfo);
+        const legendStyle = chartInfo.style?.legend || {};
+        const chartData = chartInfo.data;
+
+        // 提取系列名称作为图例数据
+        const legendData = [];
+        if (Array.isArray(chartData)) {
+            chartData.forEach((series, index) => {
+                legendData.push(series.key || `Series ${index + 1}`);
+            });
+        }
+
+        const legendConfig = {
+            data: legendData
+        };
+
+        // 设置图例位置
+        switch (legendPosition) {
+            case 'top':
+                legendConfig.top = 0;
+                legendConfig.left = 'center';
+                legendConfig.orient = 'horizontal';
+                break;
+            case 'bottom':
+                legendConfig.bottom = 0;
+                legendConfig.left = 'center';
+                legendConfig.orient = 'horizontal';
+                break;
+            case 'left':
+                legendConfig.left = 0;
+                legendConfig.top = 'middle';
+                legendConfig.orient = 'vertical';
+                break;
+            case 'right':
+            default:
+                legendConfig.right = 0;
+                legendConfig.top = 'middle';
+                legendConfig.orient = 'vertical';
+                break;
+        }
+
+        // 应用图例样式
+        if (legendStyle.color) {
+            legendConfig.textStyle = {
+                color: legendStyle.color
+            };
+        }
+
+        if (legendStyle.fontSize) {
+            legendConfig.textStyle = legendConfig.textStyle || {};
+            legendConfig.textStyle.fontSize = legendStyle.fontSize;
+        }
+
+        return legendConfig;
     }
 
     /**
@@ -235,164 +495,147 @@ export class ChartRenderer {
     }
 
     /**
-     * 应用图表样式
-     * @param {Object} chart - 图表实例
+     * 获取 X 轴数据
      * @param {Object} chartInfo - 图表信息
-     * @param {Array} chartData - 图表数据
+     * @returns {Array} X 轴数据
      */
-    applyChartStyles(chart, chartInfo, chartData) {
-        const chartStyle = chartInfo.style;
-        const isPieChart = chartInfo.type === "pieChart" || chartInfo.type === "pie3DChart";
+    getXAxisData(chartInfo) {
+        const chartData = chartInfo.data;
 
-        // 应用系列颜色
-        this.applySeriesColors(chart, chartData, chartStyle, isPieChart);
+        if (!Array.isArray(chartData) || chartData.length === 0) {
+            return [];
+        }
 
-        // 应用图表区域样式
-        this.applyChartAreaStyle(chartStyle);
+        // 使用第一个系列的 xlabels 作为 X 轴数据
+        const firstSeries = chartData[0];
+        if (firstSeries.xlabels && Array.isArray(firstSeries.xlabels)) {
+            return firstSeries.xlabels;
+        }
 
-        // 应用轴样式
-        this.applyAxisStyles(chartStyle);
+        // 如果没有 xlabels，使用值的索引
+        if (firstSeries.values && Array.isArray(firstSeries.values)) {
+            return firstSeries.values.map((v, i) => i.toString());
+        }
 
-        // 应用标题样式
-        this.applyTitleStyle(chartStyle);
-
-        // 应用图例样式
-        this.applyLegendStyle(chartStyle);
+        return [];
     }
 
     /**
-     * 应用系列颜色
-     * @param {Object} chart - 图表实例
-     * @param {Array} chartData - 图表数据
-     * @param {Object} chartStyle - 图表样式
-     * @param {boolean} isPieChart - 是否为饼图
+     * 获取 X 轴配置
+     * @param {Object} chartInfo - 图表信息
+     * @param {Array} xAxisData - X 轴数据
+     * @returns {Object} X 轴配置
      */
-    applySeriesColors(chart, chartData, chartStyle, isPieChart) {
-        // 提取系列样式
-        const seriesStyles = [];
-        if (Array.isArray(chartData) && !isPieChart) {
-            chartData.forEach((series, index) => {
-                seriesStyles[index] = series.style || {};
-            });
-        } else if (isPieChart && chartStyle) {
-            seriesStyles[0] = chartStyle;
+    getXAxisConfig(chartInfo, xAxisData) {
+        const xAxisStyle = chartInfo.style?.categoryAxis || {};
+
+        const config = {
+            type: 'category',
+            data: xAxisData,
+            axisLine: {
+                show: true,
+                lineStyle: {}
+            },
+            axisLabel: {},
+            axisTick: {
+                show: true
+            }
+        };
+
+        // 轴标签颜色和字体大小
+        if (xAxisStyle.color) {
+            config.axisLabel.color = xAxisStyle.color;
+        }
+        if (xAxisStyle.fontSize) {
+            config.axisLabel.fontSize = xAxisStyle.fontSize;
         }
 
-        // 设置颜色
-        if (chart.color) {
-            chart.color((d, i) => {
-                const style = seriesStyles[i] || seriesStyles[0];
-                if (style) {
-                    if (style.gradientFill?.color?.length > 0) {
-                        return "#" + style.gradientFill.color[0];
-                    } else if (style.fillColor) {
-                        return style.fillColor;
-                    }
+        // 轴线颜色
+        if (xAxisStyle.lineColor) {
+            config.axisLine.lineStyle.color = xAxisStyle.lineColor;
+        }
+
+        // 网格线配置（如果有的话）
+        if (xAxisStyle.gridlineColor) {
+            config.splitLine = {
+                show: true,
+                lineStyle: {
+                    color: xAxisStyle.gridlineColor
                 }
-                return d3.scale.category10().range()[i % 10];
-            });
+            };
+        } else {
+            config.splitLine = {
+                show: false
+            };
         }
+
+        return config;
     }
 
     /**
-     * 应用图表区域样式
-     * @param {Object} chartStyle - 图表样式
+     * 获取 Y 轴配置
+     * @param {Object} chartInfo - 图表信息
+     * @returns {Object} Y 轴配置
      */
-    applyChartAreaStyle(chartStyle) {
-        // 样式在渲染时应用到 SVG 元素
-        // 这里只是记录样式信息
-        if (chartStyle?.chartArea) {
-            console.log("Chart area style:", chartStyle.chartArea);
-        }
-    }
+    getYAxisConfig(chartInfo) {
+        const yAxisStyle = chartInfo.style?.valueAxis || {};
 
-    /**
-     * 应用轴样式
-     * @param {Object} chartStyle - 图表样式
-     */
-    applyAxisStyles(chartStyle) {
-        if (chartStyle?.categoryAxis) {
-            console.log("Category axis style:", chartStyle.categoryAxis);
-        }
-        if (chartStyle?.valueAxis) {
-            console.log("Value axis style:", chartStyle.valueAxis);
-        }
-    }
+        const config = {
+            type: 'value',
+            axisLine: {
+                show: true,
+                lineStyle: {}
+            },
+            axisLabel: {},
+            axisTick: {
+                show: true
+            },
+            splitLine: {
+                show: true,
+                lineStyle: {}
+            }
+        };
 
-    /**
-     * 应用标题样式
-     * @param {Object} chartStyle - 图表样式
-     */
-    applyTitleStyle(chartStyle) {
-        if (chartStyle?.title) {
-            console.log("Title style:", chartStyle.title);
+        // 轴标签颜色和字体大小
+        if (yAxisStyle.color) {
+            config.axisLabel.color = yAxisStyle.color;
         }
-    }
-
-    /**
-     * 应用图例样式
-     * @param {Object} chartStyle - 图表样式
-     */
-    applyLegendStyle(chartStyle) {
-        if (chartStyle?.legend) {
-            console.log("Legend style:", chartStyle.legend);
-        }
-    }
-
-    /**
-     * 渲染图表元素到 DOM
-     * @param {Object} chart - 图表实例
-     * @param {Object} chartElement - D3 选择器
-     * @param {Array} chartData - 图表数据
-     */
-    renderChartElement(chart, chartElement, chartData) {
-        // 移除已存在的 SVG
-        const existingSvg = chartElement.select("svg");
-        if (!existingSvg.empty()) {
-            existingSvg.remove();
+        if (yAxisStyle.fontSize) {
+            config.axisLabel.fontSize = yAxisStyle.fontSize;
         }
 
-        // 创建新的 SVG 元素
-        chartElement.append("svg")
-            .datum(chartData)
-            .transition().duration(500)
-            .call(chart);
+        // 轴线颜色
+        if (yAxisStyle.lineColor) {
+            config.axisLine.lineStyle.color = yAxisStyle.lineColor;
+        }
 
-        // 启用窗口大小调整
-        nv.utils.windowResize(chart.update);
+        // 网格线颜色
+        if (yAxisStyle.gridlineColor) {
+            config.splitLine.lineStyle.color = yAxisStyle.gridlineColor;
+        }
+        if (yAxisStyle.gridlineWidth) {
+            config.splitLine.lineStyle.width = yAxisStyle.gridlineWidth;
+        }
 
-        // 应用图表区域的背景和边框
-        this.applyChartAreaStylesToSvg(chartElement);
-    }
-
-    /**
-     * 应用图表区域样式到 SVG 元素
-     * @param {Object} chartElement - D3 选择器
-     */
-    applyChartAreaStylesToSvg(chartElement) {
-        const svgElement = chartElement.select("svg");
-
-        // 样式会在图表数据中传递，但需要在渲染后应用
-        // 由于样式信息不在这个函数中直接可用，
-        // 实际使用时应该通过参数传递或从外部应用
+        return config;
     }
 
     /**
      * 更新图表数据
      * @param {string} chartId - 图表 ID
-     * @param {Array} newData - 新数据
+     * @param {Object} newChartInfo - 新的图表信息
      */
-    updateChart(chartId, newData) {
+    updateChart(chartId, newChartInfo) {
         const chart = this.chartInstances.get(chartId);
         if (!chart) {
             console.warn(`Chart ${chartId} not found`);
             return;
         }
 
-        // 更新数据
-        const chartElement = d3.select("#" + chartId);
-        chartElement.datum(newData).transition().duration(500).call(chart);
-        chart.update();
+        const option = this.prepareEChartsOption(newChartInfo);
+        if (option) {
+            chart.setOption(option);
+        }
     }
 
     /**
@@ -402,7 +645,7 @@ export class ChartRenderer {
     destroyChart(chartId) {
         const chart = this.chartInstances.get(chartId);
         if (chart) {
-            // NVD3 图表会自动清理，但我们可以从 Map 中移除
+            chart.dispose();
             this.chartInstances.delete(chartId);
             console.log(`Chart ${chartId} destroyed`);
         }

@@ -5,7 +5,7 @@
 ## 功能特性
 
 - 支持多种图表类型：折线图、柱状图、饼图、3D 饼图、面积图、散点图
-- 支持 NVD3/D3 图表库
+- 使用 ECharts 图表库
 - 自动处理数据格式转换（特别是饼图）
 - 支持图表样式（颜色、边距、图例位置等）
 - 提供图表实例管理（创建、更新、销毁）
@@ -15,13 +15,12 @@
 ### 基本使用
 
 ```html
-<!-- 引入必要的库 -->
-<script type="text/javascript" src="/src/lib/d3.min.js"></script>
-<script type="text/javascript" src="/src/lib/nv.d3.min.js"></script>
+<!-- 引入 ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
 <!-- 引入 ChartRenderer -->
 <script type="module">
-import { chartRenderer } from '/src/lib/chart-renderer.js';
+import { chartRenderer } from './chart-renderer.js';
 window.chartRenderer = chartRenderer;
 </script>
 
@@ -40,7 +39,7 @@ if (result.charts && result.charts.length > 0) {
 ### 创建自定义实例
 
 ```javascript
-import { ChartRenderer } from '/src/lib/chart-renderer.js';
+import { ChartRenderer } from './chart-renderer.js';
 
 // 创建新的渲染器实例
 const myRenderer = new ChartRenderer();
@@ -85,17 +84,17 @@ chartRenderer.renderCharts(result.charts);
 - `areaChart`: 面积图
 - `scatterChart`: 散点图
 
-#### `updateChart(chartId, newData)`
+#### `updateChart(chartId, newChartInfo)`
 
 更新图表数据。
 
 **参数:**
 - `chartId` (string): 图表 ID
-- `newData` (Array): 新数据
+- `newChartInfo` (Object): 新的图表信息
 
 **示例:**
 ```javascript
-chartRenderer.updateChart('chart1', newData);
+chartRenderer.updateChart('chart1', newChartInfo);
 ```
 
 #### `destroyChart(chartId)`
@@ -161,12 +160,15 @@ chartRenderer.destroyAllCharts();
     }
 ]
 
-// 自动转换为
-[
-    { x: "Label 1", y: 10 },
-    { x: "Label 2", y: 20 },
-    { x: "Label 3", y: 15 }
-]
+// 自动转换为 ECharts 饼图格式
+{
+    type: 'pie',
+    data: [
+        { name: "Label 1", value: 10 },
+        { name: "Label 2", value: 20 },
+        { name: "Label 3", value: 15 }
+    ]
+}
 ```
 
 ### 散点图
@@ -176,9 +178,9 @@ chartRenderer.destroyAllCharts();
     {
         key: "Series 1",
         values: [
-            { x: 0.5, y: 0.8 },
-            { x: 0.6, y: 0.9 },
-            { x: 0.7, y: 0.85 }
+            [0.5, 0.8],
+            [0.6, 0.9],
+            [0.7, 0.85]
         ]
     }
 ]
@@ -191,6 +193,7 @@ chartRenderer.destroyAllCharts();
 ```javascript
 {
     title: {
+        text: "Chart Title",
         color: "#000000",
         fontSize: 18
     },
@@ -221,22 +224,22 @@ chartRenderer.destroyAllCharts();
 
 ## 依赖项
 
-- D3.js
-- NVD3.js
+- ECharts 5.x
 
 ## 注意事项
 
-1. 确保在引入 `chart-renderer.js` 之前先引入 D3 和 NVD3
+1. 确保在引入 `chart-renderer.js` 之前先引入 ECharts
 2. 图表容器元素必须存在（通过 `chartId` 引用）
 3. 饼图数据会自动转换格式
-4. 图表样式会自动应用，但部分样式可能不被图表库支持
+4. 图表样式会自动应用到 ECharts 配置中
+5. 图表会自动响应窗口大小变化
 
 ## 迁移到其他图表库
 
-如果需要使用其他图表库（如 ECharts、Chart.js 等），可以：
+如果需要使用其他图表库（如 Highcharts、Plotly 等），可以：
 
-1. 修改 `createChart()` 方法创建目标库的图表实例
-2. 修改 `renderChartElement()` 方法使用目标库的渲染 API
+1. 修改 `prepareEChartsOption()` 方法创建目标库的配置
+2. 修改 `renderChart()` 方法使用目标库的初始化 API
 3. 根据需要调整样式应用逻辑
 
 ## 示例
