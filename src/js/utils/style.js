@@ -2538,26 +2538,26 @@ function getFillType(node) {
                 return undefined;
             }
 
-            Object.prototype.set = function (parts, value) {
-                if(!parts) return this;
+            function setObjectPath(obj, parts, value) {
+                if(!parts) return obj;
                 //var parts = prop.split('.');
-                let obj = this;
+                let current = obj;
                 let lent = parts.length;
                 for (let i = 0; i < lent; i++) {
                     var p = parts[i];
-                    if (obj[p] === undefined) {
+                    if (current[p] === undefined) {
                         if (i == lent - 1) {
-                            obj[p] = value;
+                            current[p] = value;
                         } else {
-                            obj[p] = {};
+                            current[p] = {};
                         }
                     }
-                    obj = obj[p];
+                    current = current[p];
                 }
                 return obj;
             }
 
-            node.set(path, value)
+            setObjectPath(node, path, value)
         }
 
         /**

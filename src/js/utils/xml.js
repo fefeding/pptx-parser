@@ -159,7 +159,9 @@ export const PPTXXmlUtils = (function() {
      */
     async function readXmlFile(zip, filename, isSlideContent, appVersion) {
         try {
-            let fileContent = zip.file(filename).asText();
+            const zipFile = zip.file(filename);
+            if (!zipFile) return null;
+            let fileContent = zipFile.asText? zipFile.asText() : await zipFile.async("text");
             if (isSlideContent && appVersion <= 12) {
                 //< office2007
                 //remove "<!CDATA[ ... ]]>" tag

@@ -10,7 +10,7 @@
         <label class="upload-label">
           <input type="file" accept=".pptx" @change="handleFileUpload" :disabled="loading" />
           <span v-if="!loading">点击选择 PPTX 文件</span>
-          <span v-else>解析中...</span>
+          <span v-else>解析中... {{ progress }}%</span>
         </label>
       </div>
 
@@ -18,10 +18,19 @@
         {{ error }}
       </div>
 
-      <div v-if="htmlContent" class="preview-section">
-        <h3>PPTX HTML预览：</h3>
-        <div class="slide-viewer">
-          <div class="slide-container" v-html="htmlContent"></div>
+      <div v-if="slides.length > 0" class="preview-section">
+        <div class="info-bar">
+          <span>共 {{ slides.length }} 张幻灯片</span>
+          <button v-if="slideSize" @click="toggleFullscreen" class="fullscreen-btn">全屏</button>
+        </div>
+        <div class="slide-viewer" ref="slideViewer">
+          <div class="slide-container">
+            <div class="slides-wrapper">
+              <div v-for="(slide, index) in slides" :key="index" class="slide-wrapper">
+                <div v-html="slide.html"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -29,41 +38,116 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, shallowRef, nextTick } from 'vue'
 import { pptxToHtml } from '@fefeding/ppt-parser'
+import '/Users/jiamao/project/github/pptx-parser/src/lib/jszip.min.js'
+
+interface Slide {
+  html: string
+  slideNum: number
+  fileName: string
+}
+
+interface PPTXResult {
+  slides: Slide[]
+  slideSize?: {
+    width: number
+    height: number
+  }
+  styles: {
+    global: string
+  }
+  metadata: Record<string, any>
+  charts: any[]
+}
 
 const loading = ref(false)
 const error = ref('')
-const htmlContent = ref('')
+const slides = shallowRef<Slide[]>([])
+const slideSize = ref<{ width: number; height: number } | null>(null)
+const progress = ref(0)
+const slideViewer = ref<HTMLElement | null>(null)
 
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
 
+  // 验证文件类型
+  if (file.type !== 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+    error.value = '请选择有效的 PPTX 文件'
+    return
+  }
+
   loading.value = true
   error.value = ''
-  htmlContent.value = ''
+  slides.value = []
+  slideSize.value = null
+  progress.value = 0
 
   try {
+    // 读取文件为 ArrayBuffer
+    const fileData = await file.arrayBuffer()
 
-    // 使用新版本的API直接传递 File 对象
-    const html = await pptxToHtml(file, {
+    // 使用新版本的 API 解析 PPTX
+    const result: PPTXResult = await pptxToHtml(fileData, {
       mediaProcess: true,
-      themeProcess: true
+      themeProcess: true,
+      callbacks: {
+        onProgress: (percent: number) => {
+          progress.value = percent
+        }
+      }
     })
 
-    // 获取生成的HTML内容
-    htmlContent.value = html
+    // 保存结果
+    slides.value = result.slides || []
+    slideSize.value = {width: result.slideSize?.width || 0, height: result.slideSize?.height || 0}
+
+    // 等待 DOM 更新后注入全局样式
+    await nextTick()
+    if (result.styles && result.styles.global) {
+      applyGlobalStyles(result.styles.global)
+    }
 
   } catch (e) {
     error.value = e instanceof Error ? e.message : '解析失败'
-    console.error('PPTX解析失败:', e)
+    console.error('PPTX 解析失败:', e)
   } finally {
     loading.value = false
+    // 清空 input 允许重复上传同一文件
+    target.value = ''
+  }
+}
+
+function applyGlobalStyles(css: string) {
+  // 查找或创建全局样式容器
+  let styleEl = document.getElementById('pptx-global-styles')
+  if (!styleEl) {
+    styleEl = document.createElement('style')
+    styleEl.id = 'pptx-global-styles'
+    document.head.appendChild(styleEl)
+  }
+  styleEl.innerHTML = css
+}
+
+function toggleFullscreen() {
+  const viewer = slideViewer.value
+  if (!viewer) return
+
+  if (document.fullscreenElement) {
+    document.exitFullscreen()
+  } else {
+    viewer.requestFullscreen().catch((err: Error) => {
+      console.error('全屏失败:', err)
+    })
   }
 }
 </script>
+
+<style>
+@import '/Users/jiamao/project/github/pptx-parser/src/css/pptxjs.css';
+</style>
 
 <style scoped>
 #app {
@@ -157,5 +241,54 @@ async function handleFileUpload(event: Event) {
   background: white;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
+}
+
+.slides-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.slide-wrapper :deep(section.slide) {
+  margin: 0;
+  overflow: hidden;
+}
+
+.info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.fullscreen-btn {
+  padding: 0.5rem 1rem;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.fullscreen-btn:hover {
+  background: #4338ca;
+}
+</style>
+
+<!-- 全局样式 -->
+<style>
+/* 为 PPTX 生成的元素添加基础样式 */
+#app .slide {
+  position: relative;
+  background: white;
+  overflow: hidden;
+}
+
+#app .slide * {
+  box-sizing: border-box;
 }
 </style>

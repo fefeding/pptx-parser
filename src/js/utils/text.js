@@ -744,7 +744,7 @@ function getTextWidth(html) {
                     let bulletNumColorValue = bultColor[0];
                     if (bulletNumColorValue.length === 8) {
                         let colorObj = tinycolor(bulletNumColorValue);
-                        bulletNumColorValue = colorObj.toRgbString();
+                        bulletNumColorValue = colorObj.toRgbaString();
                     } else {
                         bulletNumColorValue = "#" + bulletNumColorValue;
                     }
@@ -1703,7 +1703,7 @@ function getTextWidth(html) {
                         let tableColorValue = fontClrPr;
                         if (tableColorValue.length === 8) {
                             let colorObj = tinycolor(tableColorValue);
-                            tableColorValue = colorObj.toRgbString();
+                            tableColorValue = colorObj.toRgbaString();
                         } else {
                             tableColorValue = "#" + tableColorValue;
                         }
@@ -2017,12 +2017,12 @@ function getTextWidth(html) {
                     colFontWeight = local_fontWeight;
                 }
             }
-            colStyl += ((colFontClrPr !== "" && typeof colFontClrPr === 'string') ? 
-                ((colFontClrPr.length === 8) ? 
+            colStyl += ((colFontClrPr !== "" && typeof colFontClrPr === 'string') ?
+                ((colFontClrPr.length === 8) ?
                     (() => {
                         let colorObj = tinycolor(colFontClrPr);
                         return `color: ${colorObj.toRgbString()};`;
-                    })() : 
+                    })() :
                     `color: #${colFontClrPr};`) : "");
             colStyl += ((colFontWeight != "") ? ` font-weight:${colFontWeight};` : "");
 

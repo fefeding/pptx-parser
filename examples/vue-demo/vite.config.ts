@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
-      '@fefeding/ppt-parser': resolve(__dirname, '../../src/index.ts')
+      '@fefeding/ppt-parser': resolve(__dirname, '../../src/js/index.js')
     }
   },
   optimizeDeps: {

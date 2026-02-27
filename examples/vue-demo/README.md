@@ -6,9 +6,8 @@
 
 - 📤 上传 PPTX 文件进行解析
 - 🎨 可视化展示幻灯片内容
-- ⌨️ 支持键盘方向键切换幻灯片
-- 📱 响应式设计
-- 🔍 查看原始 JSON 数据
+- 📊 解析进度显示
+- 🖼️ 全屏查看模式
 - 🔥 **热加载支持**：修改上层库源码后自动重新加载
 
 ## 安装依赖
@@ -23,15 +22,45 @@ pnpm install
 pnpm dev
 ```
 
-应用将在 http://localhost:3000 启动。
+应用将在 http://localhost:5173 启动（默认 Vite 端口）。
 
 ## 热加载说明
 
-本项目配置了 Vite 直接引用上层库的源码（`../../src`），当你修改 `pptx-parser` 的源码时，Vue Demo 会自动热更新，无需重新构建库文件。
+本项目通过本地包引用（`file:../../`）使用 pptx-parser 库。
 
-如果热加载没有生效，可以：
-1. 刷新浏览器页面
-2. 重启 Vite 开发服务器（`Ctrl+C` 然后再次运行 `pnpm dev`）
+如果你修改了 pptx-parser 的源码，需要：
+1. 在根目录重新构建库：`pnpm build`
+2. 或者在 vue-demo 目录运行：`pnpm install --force`
+
+## API 说明
+
+本示例使用最新版 `pptxToHtml` API：
+
+```typescript
+const result = await pptxToHtml(fileData, {
+  mediaProcess: true,      // 处理媒体文件
+  themeProcess: true,      // 处理主题样式
+  callbacks: {
+    onProgress: (percent: number) => {
+      // 解析进度回调
+    }
+  }
+})
+
+// result 包含：
+// - slides: 幻灯片数组 { html, slideNum, fileName }
+// - slideSize: 幻灯片尺寸 { width, height }
+// - styles: 全局样式 { global: string }
+// - metadata: 文件元数据
+// - charts: 图表数据
+```
+
+## 使用说明
+
+1. 点击上传区域选择 PPTX 文件
+2. 等待解析完成（显示进度百分比）
+3. 所有幻灯片会以垂直排列方式展示
+4. 点击"全屏"按钮可进入全屏模式
 
 ## 构建生产版本
 
@@ -45,26 +74,8 @@ pnpm build
 pnpm preview
 ```
 
-## 使用说明
-
-1. 点击上传区域选择 PPTX 文件
-2. 等待解析完成
-3. 使用上一页/下一页按钮或点击缩略图切换幻灯片
-4. 查看可视化展示效果
-5. 展开"查看原始数据"可查看解析后的 JSON 数据
-
-## 支持的元素类型
-
-- 文本（Text）
-- 图片（Image）
-- 形状（Shape）
-- 表格（Table）
-- 图表（Chart，显示为占位符）
-- 其他元素类型会显示为"暂不支持"
-
 ## 技术栈
 
-- Vue 3
-- TypeScript
+- Vue 3 (Composition API + TypeScript)
 - Vite
 - pptx-parser
