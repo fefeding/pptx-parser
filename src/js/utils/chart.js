@@ -76,6 +76,10 @@ async function genChart(node, warpObj) {
         });
     }
 
+    // 提取图表标题
+    const chartTitleObj = PPTXStyleUtils.extractChartTitleStyle(chart, warpObj);
+    const chartTitle = chartTitleObj.text;
+
     // 提取图表样式信息
     const chartStyle = {
         chartArea: PPTXStyleUtils.extractChartAreaStyle(chartSpace, warpObj),
@@ -84,11 +88,9 @@ async function genChart(node, warpObj) {
         valueAxis: PPTXStyleUtils.extractChartAxisStyle(plotArea, "c:valAx", warpObj),
         view3D: view3DProps,
         varyColors: varyColors === "1",
-        dataPointStyles: dataPointStyles
+        dataPointStyles: dataPointStyles,
+        title: chartTitleObj.style
     };
-
-    // 提取图表标题（作为一级属性，不在style中）
-    const chartTitle = PPTXStyleUtils.extractChartTitleStyle(chart, warpObj);
 
     let chartData = null;
     for (const key in plotArea) {
@@ -195,7 +197,8 @@ function processMsgQueue(queue, result) {
                 chartId: chartObj.chartId,
                 type: chartObj.chartType,
                 data: chartObj.chartData,
-                style: chartObj.style
+                style: chartObj.style,
+                title: chartObj.title
             });
         }
     }

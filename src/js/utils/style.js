@@ -3566,9 +3566,10 @@ function getFillType(node) {
 // 提取图表标题样式
 function extractChartTitleStyle(chartNode, warpObj) {
     const titleNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:title"]);
-    if (!titleNode) return {};
+    if (!titleNode) return { text: "", style: {} };
     
     const style = {};
+    let text = "";
     
     // 提取标题文本
     // 方法1: 尝试从富文本 (c:rich) 中提取
@@ -3582,9 +3583,9 @@ function extractChartTitleStyle(chartNode, warpObj) {
                 // 可能有多个 run
                 if (Array.isArray(r)) {
                     const textArray = r.map(run => PPTXXmlUtils.getTextByPathList(run, ["a:t"]));
-                    style.text = textArray.filter(t => t).join('');
+                    text = textArray.filter(t => t).join('');
                 } else {
-                    style.text = PPTXXmlUtils.getTextByPathList(r, ["a:t"]);
+                    text = PPTXXmlUtils.getTextByPathList(r, ["a:t"]);
                 }
             }
             
@@ -3618,7 +3619,7 @@ function extractChartTitleStyle(chartNode, warpObj) {
     }
     
     // 方法2: 尝试从文本属性 (c:txPr) 中提取
-    if (!style.text) {
+    if (!text) {
         const txPr = PPTXXmlUtils.getTextByPathList(titleNode, ["c:txPr"]);
         if (txPr) {
             const p = PPTXXmlUtils.getTextByPathList(txPr, ["a:p"]);
@@ -3629,9 +3630,9 @@ function extractChartTitleStyle(chartNode, warpObj) {
                     // 可能有多个 run
                     if (Array.isArray(r)) {
                         const textArray = r.map(run => PPTXXmlUtils.getTextByPathList(run, ["a:t"]));
-                        style.text = textArray.filter(t => t).join('');
+                        text = textArray.filter(t => t).join('');
                     } else {
-                        style.text = PPTXXmlUtils.getTextByPathList(r, ["a:t"]);
+                        text = PPTXXmlUtils.getTextByPathList(r, ["a:t"]);
                     }
                 }
                 
@@ -3666,14 +3667,14 @@ function extractChartTitleStyle(chartNode, warpObj) {
     }
     
     // 方法3: 如果没有找到文本，尝试从字符串引用中提取
-    if (!style.text) {
+    if (!text) {
         const tx = PPTXXmlUtils.getTextByPathList(titleNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]);
         if (tx) {
-            style.text = tx;
+            text = tx;
         }
     }
     
-    return style;
+    return { text, style };
 }
 
 // 提取图表区域样式

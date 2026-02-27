@@ -105,8 +105,8 @@ export class ChartRenderer {
         this.applyChartBackground(option, chartInfo.style);
 
         // 添加标题
-        if (chartInfo.style?.title) {
-            option.title = this.getTitleConfig(chartInfo.style.title);
+        if (chartInfo.title || chartInfo.style?.title) {
+            option.title = this.getTitleConfig(chartInfo.title, chartInfo.style?.title);
         }
 
         // 为非饼图添加坐标轴配置
@@ -120,7 +120,7 @@ export class ChartRenderer {
         } else if (isPieChart) {
             // 为饼图添加布局配置
             option.grid = {
-                top: chartInfo.style?.title ? '15%' : '10%',
+                top: (chartInfo.title || chartInfo.style?.title) ? '15%' : '10%',
                 bottom: chartInfo.style?.legend?.position === 'bottom' ? '15%' : '5%',
                 left: '5%',
                 right: '5%',
@@ -192,27 +192,30 @@ export class ChartRenderer {
 
     /**
      * 获取标题配置
+     * @param {string} titleText - 标题文本
      * @param {Object} titleStyle - 标题样式
      * @returns {Object} 标题配置
      */
-    getTitleConfig(titleStyle) {
+    getTitleConfig(titleText, titleStyle) {
         const config = {
-            text: titleStyle.text || '',
+            text: titleText || '',
             left: 'center',
             top: 0,
             textStyle: {}
         };
 
-        if (titleStyle.color) {
-            config.textStyle.color = titleStyle.color;
-        }
+        if (titleStyle) {
+            if (titleStyle.color) {
+                config.textStyle.color = titleStyle.color;
+            }
 
-        if (titleStyle.fontSize) {
-            config.textStyle.fontSize = titleStyle.fontSize;
-        }
+            if (titleStyle.fontSize) {
+                config.textStyle.fontSize = titleStyle.fontSize;
+            }
 
-        if (titleStyle.fontWeight) {
-            config.textStyle.fontWeight = titleStyle.fontWeight;
+            if (titleStyle.fontWeight) {
+                config.textStyle.fontWeight = titleStyle.fontWeight;
+            }
         }
 
         return config;
@@ -225,7 +228,7 @@ export class ChartRenderer {
      */
     getGridConfig(chartInfo) {
         const chartArea = chartInfo.style?.chartArea;
-        const title = chartInfo.style?.title;
+        const hasTitle = chartInfo.title || chartInfo.style?.title;
 
         // 默认边距
         let top = '15%';
@@ -237,7 +240,7 @@ export class ChartRenderer {
         const legendPosition = this.getLegendPosition(chartInfo);
         switch (legendPosition) {
             case 'top':
-                top = title ? '20%' : '15%';
+                top = hasTitle ? '20%' : '15%';
                 break;
             case 'bottom':
                 bottom = '15%';
