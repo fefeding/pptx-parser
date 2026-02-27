@@ -24,11 +24,8 @@ export class ChartRenderer {
      */
     renderCharts(charts, container = null) {
         if (!charts || charts.length === 0) {
-            console.log('No charts to render');
             return;
         }
-
-        console.log(`Rendering ${charts.length} chart(s)...`);
 
         charts.forEach(chartInfo => {
             try {
@@ -65,8 +62,6 @@ export class ChartRenderer {
             return;
         }
 
-        console.log(`Chart ${chartInfo.chartId} option:`, option);
-
         // 创建 ECharts 实例
         const chart = echarts.init(chartElement);
 
@@ -80,8 +75,6 @@ export class ChartRenderer {
 
         // 存储图表实例以便后续更新
         this.chartInstances.set(chartInfo.chartId, chart);
-
-        console.log(`Chart ${chartInfo.chartId} rendered successfully`);
     }
 
     /**

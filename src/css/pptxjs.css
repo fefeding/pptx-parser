@@ -117,6 +117,15 @@
 	border: none !important;
 }
 
+/* 处理文本换行符 */
+.slide .line-break-br {
+	display: inline;
+}
+.slide .line-break-br::before {
+	content: "\A";
+	white-space: pre;
+}
+
 /*
 #pptx-thumb {
 	min-width: 240px;

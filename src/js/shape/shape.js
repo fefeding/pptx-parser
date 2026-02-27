@@ -255,12 +255,6 @@ export const PPTXShapeUtils = (function() {
                             // Convert effectIdx to number and use as array index
                             // effectRef idx is 0-based (idx="0" refers to first effectStyle)
                             var idx = Number(effectIdx);
-                            // DEBUG: Log for troubleshooting
-                            if (name === "TextBox 5") {
-                                console.log("=== " + name + " effectRef Debug ===");
-                                console.log("effectIdx:", effectIdx, "Number(effectIdx):", idx);
-                                console.log("effectStyleLst length:", effectStyleLst.length);
-                            }
                             // Handle idx out of range
                             if (effectStyleLst.length > 0) {
                                 if (idx >= 0 && idx < effectStyleLst.length) {
@@ -273,9 +267,6 @@ export const PPTXShapeUtils = (function() {
                                         var hasShadow = PPTXXmlUtils.getTextByPathList(testEffectStyle, ["a:effectLst", "a:outerShdw"]);
                                         if (hasShadow !== undefined) {
                                             effectStyleNode = testEffectStyle;
-                                            if (name === "TextBox 5") {
-                                                console.log("effectIdx " + Number(effectIdx) + " is out of range, using idx " + i + " (has shadow) instead");
-                                            }
                                             break;
                                         }
                                     }
@@ -284,9 +275,6 @@ export const PPTXShapeUtils = (function() {
                                         idx = idx % effectStyleLst.length;
                                         if (idx < 0) idx += effectStyleLst.length;
                                         effectStyleNode = effectStyleLst[idx];
-                                        if (name === "TextBox 5") {
-                                            console.log("effectIdx " + Number(effectIdx) + " is out of range, no shadow found, using idx " + idx + " instead");
-                                        }
                                     }
                                 }
                             }
@@ -344,14 +332,6 @@ export const PPTXShapeUtils = (function() {
                     }
                 }
 
-                // DEBUG: Log for TextBox 2 on slide 6
-                if (name === "TextBox 2" || name === "TextBox 5") {
-                    console.log("=== " + name + " Shadow Debug ===");
-                    console.log("effectRef:", effectRefNode ? JSON.stringify(effectRefNode) : "none");
-                    console.log("effectStyleNode:", effectStyleNode ? JSON.stringify(effectStyleNode).substring(0, 200) : "none");
-                    console.log("outerShdwNode:", outerShdwNode ? JSON.stringify(outerShdwNode).substring(0, 200) : "none");
-                    console.log("hasOuterShadow:", hasOuterShadow);
-                }
 
                 if (hasOuterShadow) {
                     var chdwClrNode = PPTXStyleUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);

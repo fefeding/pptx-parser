@@ -752,12 +752,6 @@ function getFillType(node) {
         }
         //////////////////////////////////////////////////////////////////
         function getBorder(node, pNode, isSvgMode, bType, warpObj) {
-            // DEBUG: Log for TextBox 5
-            let shapeName = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr", "p:cNvPr", "attrs", "name"]);
-            if (shapeName === "TextBox 5") {
-                console.log("=== TextBox 5 getBorder Debug ===");
-                console.log("bType:", bType, "isSvgMode:", isSvgMode);
-            }
             //console.log("getBorder", node, pNode, isSvgMode, bType)
             let cssText, lineNode, subNodeTxt;
 
@@ -785,25 +779,15 @@ function getFillType(node) {
                 lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
                 if (lnRefNode !== undefined){
                     let lnIdx = PPTXXmlUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
-                    // DEBUG: Log for TextBox 5
-                    if (shapeName === "TextBox 5") {
-                        console.log("lnRefNode found, lnIdx:", lnIdx);
-                    }
                     // Extract phClr from lnRef to replace placeholder colors in lnStyleLst
                     if (lnRefNode !== undefined) {
                         phClr = getSolidFill(lnRefNode, undefined, undefined, warpObj);
-                        if (shapeName === "TextBox 5") {
-                            console.log("phClr from lnRef:", phClr);
-                        }
                     }
                     // 检查lnStyleLst的结构
                     const lnStyleLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"];
                     // 处理lnStyleLst可能是对象而不是数组的情况
                     if (Array.isArray(lnStyleLst)) {
                         lineNode = lnStyleLst[Number(lnIdx)];
-                        if (shapeName === "TextBox 5") {
-                            console.log("lineNode from lnStyleLst:", JSON.stringify(lineNode).substring(0, 200));
-                        }
                     } else {
                         // 如果是对象而不是数组，直接使用
                         lineNode = lnStyleLst;
@@ -955,15 +939,6 @@ function getFillType(node) {
 
             if (isSvgMode) {
                 let result = { "color": borderColor, "width": borderWidth, "type": borderType, "strokeDasharray": strokeDasharray };
-                // DEBUG: Log for TextBox 5
-                if (shapeName === "TextBox 5") {
-                    console.log("=== TextBox 5 getBorder Result ===");
-                    console.log("borderColor:", borderColor);
-                    console.log("borderWidth:", borderWidth);
-                    console.log("borderType:", borderType);
-                    console.log("strokeDasharray:", strokeDasharray);
-                    console.log("Final result:", result);
-                }
                 return result;
             } else {
                 return cssText + ";";

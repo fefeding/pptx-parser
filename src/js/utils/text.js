@@ -205,7 +205,7 @@ function getTextWidth(html) {
                     // 只有明确不需要换行时才设置宽度
                     prg_width = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
                 }
-                let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "";
+                let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "white-space: pre-wrap;";
                 let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj, spNode);
 
 
@@ -1353,8 +1353,8 @@ function getTextWidth(html) {
                 };
             }
             let linkColorSyle = "";
-            if (fontClrType == "solid" && linkID !== undefined) {
-                linkColorSyle = "style='color: inherit;'";
+            if (fontClrType == "solid" && linkID !== undefined && defLinkClr !== undefined) {
+                linkColorSyle = `style='color: #${defLinkClr};'`;
             }
 
             if (linkID !== undefined && linkID != "") {

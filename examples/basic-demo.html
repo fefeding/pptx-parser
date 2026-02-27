@@ -146,10 +146,7 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 					}
 				}
 			});
-			
-			console.log("PPTX Result:", result);
-			console.log("PPTX Charts:", result.charts);
-			
+
 			// 渲染全局CSS
 			if (result.styles && result.styles.global) {
 				var style = document.createElement("style");
@@ -162,7 +159,6 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 				resultDiv.innerHTML += slide.html;
 			});
 
-			console.log('charts', result.charts);
 			// 渲染所有图表 - 使用 ChartRenderer 模块
 			if (result.charts && result.charts.length > 0) {
 				// 使用 chartRenderer 渲染所有图表
