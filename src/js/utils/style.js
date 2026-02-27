@@ -2422,7 +2422,27 @@ function getFillType(node) {
             } else {
                 eachElement(serNode, function (innerNode, index) {
                     var dataRow = new Array();
-                    let colName = PPTXXmlUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]) || index;
+                    // 提取系列名称（从c:tx中）
+                    let colName;
+                    const txStrRef = PPTXXmlUtils.getTextByPathList(innerNode, ["c:tx", "c:strRef"]);
+                    if (txStrRef) {
+                        const strCache = PPTXXmlUtils.getTextByPathList(txStrRef, ["c:strCache"]);
+                        if (strCache) {
+                            const pt = PPTXXmlUtils.getTextByPathList(strCache, ["c:pt"]);
+                            if (pt) {
+                                // pt可能是数组或单个对象
+                                if (Array.isArray(pt)) {
+                                    colName = pt[0]["c:v"];
+                                } else {
+                                    colName = pt["c:v"];
+                                }
+                            }
+                        }
+                    }
+                    // 如果没有从strRef中提取到，尝试从其他方式提取
+                    if (!colName) {
+                        colName = PPTXXmlUtils.getTextByPathList(innerNode, ["c:tx", "c:v"]) || index;
+                    }
 
                     // Category (string or number)
                     let rowNames = {};
@@ -3551,10 +3571,10 @@ function extractChartTitleStyle(chartNode, warpObj) {
     const style = {};
     
     // 提取标题文本
-    // 尝试从富文本中提取
-    const txPr = PPTXXmlUtils.getTextByPathList(titleNode, ["c:txPr"]);
-    if (txPr) {
-        const p = PPTXXmlUtils.getTextByPathList(txPr, ["a:p"]);
+    // 方法1: 尝试从富文本 (c:rich) 中提取
+    const rich = PPTXXmlUtils.getTextByPathList(titleNode, ["c:tx", "c:rich"]);
+    if (rich) {
+        const p = PPTXXmlUtils.getTextByPathList(rich, ["a:p"]);
         if (p) {
             // 从段落中提取文本
             const r = PPTXXmlUtils.getTextByPathList(p, ["a:r"]);
@@ -3597,7 +3617,55 @@ function extractChartTitleStyle(chartNode, warpObj) {
         }
     }
     
-    // 如果没有找到文本，尝试从字符串引用中提取
+    // 方法2: 尝试从文本属性 (c:txPr) 中提取
+    if (!style.text) {
+        const txPr = PPTXXmlUtils.getTextByPathList(titleNode, ["c:txPr"]);
+        if (txPr) {
+            const p = PPTXXmlUtils.getTextByPathList(txPr, ["a:p"]);
+            if (p) {
+                // 从段落中提取文本
+                const r = PPTXXmlUtils.getTextByPathList(p, ["a:r"]);
+                if (r) {
+                    // 可能有多个 run
+                    if (Array.isArray(r)) {
+                        const textArray = r.map(run => PPTXXmlUtils.getTextByPathList(run, ["a:t"]));
+                        style.text = textArray.filter(t => t).join('');
+                    } else {
+                        style.text = PPTXXmlUtils.getTextByPathList(r, ["a:t"]);
+                    }
+                }
+                
+                // 提取标题文本属性
+                const pPr = PPTXXmlUtils.getTextByPathList(p, ["a:pPr"]);
+                if (pPr) {
+                    const defRPr = PPTXXmlUtils.getTextByPathList(pPr, ["a:defRPr"]);
+                    if (defRPr) {
+                        // 提取字体大小
+                        if (defRPr["attrs"] && defRPr["attrs"]["sz"]) {
+                            style.fontSize = parseFloat(defRPr["attrs"]["sz"]) / 100;
+                        }
+                        
+                        // 提取字体粗细
+                        if (defRPr["attrs"] && defRPr["attrs"]["b"] === "1") {
+                            style.fontWeight = "bold";
+                        }
+                        
+                        // 提取字体颜色
+                        const solidFill = PPTXXmlUtils.getTextByPathList(defRPr, ["a:solidFill"]);
+                        if (solidFill) {
+                            let color = getColor(solidFill, undefined, undefined, warpObj);
+                            if (color && !color.startsWith('#')) {
+                                color = '#' + color;
+                            }
+                            style.color = color;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 方法3: 如果没有找到文本，尝试从字符串引用中提取
     if (!style.text) {
         const tx = PPTXXmlUtils.getTextByPathList(titleNode, ["c:tx", "c:strRef", "c:strCache", "c:pt", "c:v"]);
         if (tx) {

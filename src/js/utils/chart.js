@@ -78,7 +78,6 @@ async function genChart(node, warpObj) {
 
     // 提取图表样式信息
     const chartStyle = {
-        title: PPTXStyleUtils.extractChartTitleStyle(chart, warpObj),
         chartArea: PPTXStyleUtils.extractChartAreaStyle(chartSpace, warpObj),
         legend: PPTXStyleUtils.extractChartLegendStyle(chart, warpObj),
         categoryAxis: PPTXStyleUtils.extractChartAxisStyle(plotArea, "c:catAx", warpObj),
@@ -87,6 +86,9 @@ async function genChart(node, warpObj) {
         varyColors: varyColors === "1",
         dataPointStyles: dataPointStyles
     };
+
+    // 提取图表标题（作为一级属性，不在style中）
+    const chartTitle = PPTXStyleUtils.extractChartTitleStyle(chart, warpObj);
 
     let chartData = null;
     for (const key in plotArea) {
@@ -98,7 +100,8 @@ async function genChart(node, warpObj) {
                         "chartId": "chart" + warpObj.chartId.value++,
                         "chartType": "lineChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
-                        "style": chartStyle
+                        "style": chartStyle,
+                        "title": chartTitle
                     }
                 };
                 warpObj.msgQueue.push(chartData);
@@ -110,7 +113,8 @@ async function genChart(node, warpObj) {
                         "chartId": "chart" + warpObj.chartId.value++,
                         "chartType": "barChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
-                        "style": chartStyle
+                        "style": chartStyle,
+                        "title": chartTitle
                     }
                 };
                 warpObj.msgQueue.push(chartData);
@@ -122,7 +126,8 @@ async function genChart(node, warpObj) {
                         "chartId": "chart" + warpObj.chartId.value++,
                         "chartType": "pieChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
-                        "style": chartStyle
+                        "style": chartStyle,
+                        "title": chartTitle
                     }
                 };
                 warpObj.msgQueue.push(chartData);
@@ -134,7 +139,8 @@ async function genChart(node, warpObj) {
                         "chartId": "chart" + warpObj.chartId.value++,
                         "chartType": "pie3DChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
-                        "style": chartStyle
+                        "style": chartStyle,
+                        "title": chartTitle
                     }
                 };
                 warpObj.msgQueue.push(chartData);
@@ -146,7 +152,8 @@ async function genChart(node, warpObj) {
                         "chartId": "chart" + warpObj.chartId.value++,
                         "chartType": "areaChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
-                        "style": chartStyle
+                        "style": chartStyle,
+                        "title": chartTitle
                     }
                 };
                 warpObj.msgQueue.push(chartData);
@@ -158,7 +165,8 @@ async function genChart(node, warpObj) {
                         "chartId": "chart" + warpObj.chartId.value++,
                         "chartType": "scatterChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
-                        "style": chartStyle
+                        "style": chartStyle,
+                        "title": chartTitle
                     }
                 };
                 warpObj.msgQueue.push(chartData);
