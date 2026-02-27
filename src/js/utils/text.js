@@ -744,7 +744,7 @@ function getTextWidth(html) {
                     let bulletNumColorValue = bultColor[0];
                     if (bulletNumColorValue.length === 8) {
                         let colorObj = tinycolor(bulletNumColorValue);
-                        bulletNumColorValue = colorObj.toRgbaString();
+                        bulletNumColorValue = colorObj.toRgbString();
                     } else {
                         bulletNumColorValue = "#" + bulletNumColorValue;
                     }
@@ -1703,7 +1703,7 @@ function getTextWidth(html) {
                         let tableColorValue = fontClrPr;
                         if (tableColorValue.length === 8) {
                             let colorObj = tinycolor(tableColorValue);
-                            tableColorValue = colorObj.toRgbaString();
+                            tableColorValue = colorObj.toRgbString();
                         } else {
                             tableColorValue = "#" + tableColorValue;
                         }
