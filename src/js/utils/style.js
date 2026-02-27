@@ -13,7 +13,10 @@
 
 import { PPTXXmlUtils } from './xml.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constants.js';
-import tinycolor from '../core/tinycolor.js';
+import { TinyColor } from '@ctrl/tinycolor';
+
+// 创建 tinycolor 工厂函数以保持向后兼容
+const tinycolor = (color, opts) => new TinyColor(color, opts);
 
 
 
