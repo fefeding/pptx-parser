@@ -165,7 +165,7 @@ document.getElementById("uploadFileInput").addEventListener("change", function(e
 				// 注意：由于 chart-renderer 是 module，需要异步加载后再渲染
 				// 这里先手动调用旧的渲染逻辑，后续可以迁移
 				if (typeof chartRenderer !== 'undefined') {
-					console.log('Using ChartRenderer module');
+					console.log('Using ChartRenderer module', result.charts);
 					chartRenderer.renderCharts(result.charts);
 				} else {
 					console.log('ChartRenderer not available, using fallback rendering');

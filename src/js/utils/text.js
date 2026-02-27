@@ -44,6 +44,22 @@ function getTextWidth(html) {
             //rtl : <p:txBody>
             //          <a:bodyPr wrap="square" rtlCol="1">
 
+            // 获取anchor属性（垂直对齐方式）
+            let anchor = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "anchor"]);
+            if (anchor === undefined) {
+                anchor = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
+                if (anchor === undefined) {
+                    anchor = PPTXXmlUtils.getTextByPathList(slideMasterSpNode, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
+                    if (anchor === undefined) {
+                        anchor = "t";
+                    }
+                }
+            }
+
+            // 获取bodyPr的内边距设置
+            let bodyPrPadding = getBodyPrPadding(textBodyNode, type, anchor);
+            text += bodyPrPadding;
+
             let pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
             let wrapAttr = PPTXXmlUtils.getTextByPathList(textBodyNode["a:bodyPr"], ["attrs", "wrap"]);
             let spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode["a:bodyPr"], ["a:spAutoFit"]);
@@ -240,8 +256,59 @@ function getTextWidth(html) {
                 text += "</div>";
             }
 
+            // 关闭bodyPr内边距div（如果存在）
+            if (type === "textBox" || type === "shape") {
+                text += "</div>";
+            }
+
             return text;
+    }
+
+    /**
+     * 获取bodyPr的内边距设置
+     * @param {Object} textBodyNode - 文本体节点
+     * @param {string} type - 形状类型
+     * @param {string} anchor - 垂直对齐方式（t=顶部, ctr=居中, b=底部）
+     * @returns {string} CSS padding字符串
+     */
+    function getBodyPrPadding(textBodyNode, type, anchor) {
+        let paddingStyle = "";
+        
+        // 获取bodyPr的各个内边距属性
+        let lIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "lIns"]);
+        let tIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "tIns"]);
+        let rIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "rIns"]);
+        let bIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "bIns"]);
+
+        // 只有在文本框或形状类型时才应用内边距
+        if (type === "textBox" || type === "shape") {
+            // 根据PPTX规范，bodyPr的ins属性单位是EMU（English Metric Units）
+            // 1 inch = 914400 EMU, 1 inch = 96px, 所以 1 EMU = 96/914400 px ≈ 0.000105 px
+            // 如果没有设置内边距，使用默认值：
+            // - tIns 和 bIns 默认值为 0.05 inch = 45720 EMU ≈ 4.8px
+            // - lIns 和 rIns 默认值为 0.1 inch = 91440 EMU ≈ 9.6px
+            let lInsPx = lIns ? (parseInt(lIns) * SLIDE_FACTOR).toFixed(2) : (0.1 * 96).toFixed(2);  // 默认0.1 inch
+            let tInsPx = tIns ? (parseInt(tIns) * SLIDE_FACTOR).toFixed(2) : (0.05 * 96).toFixed(2); // 默认0.05 inch
+            let rInsPx = rIns ? (parseInt(rIns) * SLIDE_FACTOR).toFixed(2) : (0.1 * 96).toFixed(2);  // 默认0.1 inch
+            let bInsPx = bIns ? (parseInt(bIns) * SLIDE_FACTOR).toFixed(2) : (0.05 * 96).toFixed(2); // 默认0.05 inch
+
+            // 如果明确设置了lIns="0"或rIns="0"，则不应用默认值
+            if (lIns === "0") lInsPx = "0";
+            if (rIns === "0") rInsPx = "0";
+
+            // 根据anchor决定padding div的高度设置
+            // 如果是垂直居中（anchor="ctr"），不设置height: 100%，让内容自然撑开
+            // 这样外层的v-mid类的justify-content: center才能生效
+            let heightStyle = "";
+            if (anchor !== "ctr") {
+                heightStyle = "height: 100%;";
+            }
+
+            paddingStyle = `<div style="padding: ${tInsPx}px ${rInsPx}px ${bInsPx}px ${lInsPx}px; box-sizing: border-box; ${heightStyle}">`;
         }
+
+        return paddingStyle;
+    }
         
         function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
             //console.log("genBuChar node: ", node, ", spNode: ", spNode, ", pFontStyle: ", pFontStyle, "type", type)

@@ -3209,10 +3209,41 @@ function getFillType(node) {
             if (spcAftNode !== undefined) {
                 spcAfter = parseInt(spcAftNode) / 100;
             }
-            
-            // 移除line-height设置，因为PPTX的行间距与CSS的line-height含义不同
-            // 直接使用会导致行高过大
-            // 只保留段落间距设置
+
+            // 处理行间距（lnSpc）
+            if (lnSpcNode !== undefined) {
+                if (lnSpcNodeType === "Pct") {
+                    // 百分比类型的行间距（如90000 = 90%）
+                    spcLines = parseInt(lnSpcNode) / 100000;
+                    // 将百分比转换为line-height
+                    // PPTX的行间距百分比与CSS的line-height含义相同
+                    let lineHeight = spcLines;
+                    // 如果行间距太小（如90%），调整为更合理的值
+                    // 实际测试发现，90%太挤，1.3更符合PPT的实际显示效果
+                    if (lineHeight < 1.0) {
+                        lineHeight = 1.3;
+                    }
+                    marginTopBottomStr += "line-height: " + lineHeight + ";";
+                } else if (lnSpcNodeType === "Pts") {
+                    // 点数类型的行间距
+                    spcLines = parseInt(lnSpcNode) / 100;
+                    // 将点数转换为line-height（相对于字体大小）
+                    if (fontSize && fontSize > 0) {
+                        let lineHeight = spcLines / fontSize;
+                        // 如果行间距太小，调整为更合理的值
+                        if (lineHeight < 1.0) {
+                            lineHeight = 1.3;
+                        }
+                        marginTopBottomStr += "line-height: " + lineHeight + ";";
+                    }
+                }
+            } else if (type === "textBox") {
+                // PPTX标准：当段落没有明确设置行间距时，使用合理的默认行高
+                // 实际测试发现，虽然PPTX标准说是100%，但在实际软件中默认值更接近130%
+                // 使用1.3作为默认值，完全符合PPT的实际显示效果
+                // bodyPr的内边距已经减少了可用空间，配合box-sizing: border-box使用更合适
+                marginTopBottomStr += "line-height: 1.3;";
+            }
 
             // 段落前间距
             if (spcBefNode !== undefined) {
