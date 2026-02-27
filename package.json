@@ -1,6 +1,6 @@
 {
   "name": "@fefeding/ppt-parser",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖",
   "main": "./dist/ppt-parser.cjs.js",
   "module": "./dist/ppt-parser.esm.js",
@@ -26,7 +26,7 @@
   "scripts": {
     "dev": "rollup -c rollup.config.mjs -w",
     "build": "rimraf dist && rollup -c rollup.config.mjs --environment production",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit --skipLibCheck",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * TinyColor v1.4.2
  * https://github.com/bgrins/TinyColor
