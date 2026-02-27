@@ -11,12 +11,12 @@
 
 <!-- 引入 PPTX 解析所需的第三方库 -->
 <script type="text/javascript" src="/src/lib/jszip.min.js"></script>
-<script type="text/javascript" src="/src/lib/d3.min.js"></script>
-<script type="text/javascript" src="/src/lib/nv.d3.min.js"></script>
+<script type="text/javascript" src="./chart-lib/d3.min.js"></script>
+<script type="text/javascript" src="./chart-lib/nv.d3.min.js"></script>
 
 <!-- 引入 Chart Renderer -->
 <script type="module">
-import { chartRenderer } from '/src/lib/chart-renderer.js';
+import { chartRenderer } from './chart-renderer.js';
 window.chartRenderer = chartRenderer;
 </script>
 
