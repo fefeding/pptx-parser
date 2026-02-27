@@ -60,7 +60,7 @@ function getFillType(node) {
         //     let arrByte = new Uint8Array(arrBuff);
         //     return arrByte[1] + "," + arrByte[2] + "," + arrByte[3];
         // }
-        function getShapeFill(node, pNode, isSvgMode, warpObj, source) {
+        async function getShapeFill(node, pNode, isSvgMode, warpObj, source) {
 
             // 1. presentationML
             // p:spPr/ [a:noFill, solidFill, gradFill, blipFill, pattFill, grpFill]
@@ -83,7 +83,7 @@ function getFillType(node) {
                 fillColor = getPatternFill(shpFill, warpObj);
             } else if (fillType === "PIC_FILL") {
                 let shpFill = node["p:spPr"]["a:blipFill"];
-                fillColor = getPicFill(source, shpFill, warpObj);
+                fillColor = await getPicFill(source, shpFill, warpObj);
             }
             //console.log("getShapeFill ShapeFill: ", node, ", isSvgMode; ", isSvgMode, ", fillType: ", fillType, ", fillColor: ", fillColor, ", source: ", source)
 
@@ -111,7 +111,7 @@ function getFillType(node) {
                     //console.log("ShapeFill: grpFill: ", grpFill, ", pNode: ", pNode)
                     let grpShpFill = pNode["p:grpSpPr"];
                     let spShpNode = { "p:spPr": grpShpFill }
-                    return getShapeFill(spShpNode, node, isSvgMode, warpObj, source);
+                    return await getShapeFill(spShpNode, node, isSvgMode, warpObj, source);
                 } else if (fillType === "NO_FILL") {
                     return isSvgMode ? "none" : "";
                 }
@@ -218,7 +218,7 @@ function getFillType(node) {
             return (typeface === undefined) ? "inherit" : typeface;
         }
 
-        function getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj) {
+        async function getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj) {
             //text border using: text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
             //{getFontColor(..) return color} -> getFontColorPr(..) return array[color,textBordr/shadow]
             //https://stackoverflow.com/questions/2570972/css-font-border
@@ -243,7 +243,7 @@ function getFillType(node) {
                     color = getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
-                    color = getBgPicFill(rPrNode, "slideBg", warpObj, undefined, undefined);
+                    color = await getBgPicFill(rPrNode, "slideBg", warpObj, undefined, undefined);
                     //color = getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
                     colorType = "pic";
                 } else if (filTyp == "GRADIENT_FILL") {
@@ -269,7 +269,7 @@ function getFillType(node) {
                     color = getPatternFill(pattFill, warpObj);
                     colorType = "pattern";
                 } else if (filTyp == "PIC_FILL") {
-                    color = getBgPicFill(lstStyledefRPr, "slideBg", warpObj, undefined, undefined);
+                    color = await getBgPicFill(lstStyledefRPr, "slideBg", warpObj, undefined, undefined);
                     //color = getPicFill("slideBg", rPrNode["a:blipFill"], warpObj);
                     colorType = "pic";
                 } else if (filTyp == "GRADIENT_FILL") {
@@ -954,7 +954,7 @@ function getFillType(node) {
             //     }
             // }
         }
-        function getSlideBackgroundFill(warpObj, index) {
+        async function getSlideBackgroundFill(warpObj, index) {
             let slideContent = warpObj["slideContent"];
             let slideLayoutContent = warpObj["slideLayoutContent"];
             let slideMasterContent = warpObj["slideMasterContent"];
@@ -996,7 +996,7 @@ function getFillType(node) {
                     bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
                 } else if (bgFillTyp === "PIC_FILL") {
                     //console.log("PIC_FILL - ", bgFillTyp, bgPr, warpObj);
-                    bgcolor = getBgPicFill(bgPr, "slideBg", warpObj, undefined, index);
+                    bgcolor = await getBgPicFill(bgPr, "slideBg", warpObj, undefined, index);
 
                 }
                 //console.log(slideContent,slideMasterContent,color_ary,tint_ary,rot,bgcolor)
@@ -1107,7 +1107,7 @@ function getFillType(node) {
                     } else if (bgFillTyp === "GRADIENT_FILL") {
                         bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
                     } else if (bgFillTyp === "PIC_FILL") {
-                        bgcolor = getBgPicFill(bgPr, "slideLayoutBg", warpObj, undefined, index);
+                        bgcolor = await getBgPicFill(bgPr, "slideLayoutBg", warpObj, undefined, index);
 
                     }
                     //console.log("slideLayoutContent",bgcolor)
@@ -1175,7 +1175,7 @@ function getFillType(node) {
                         } else if (bgFillTyp === "PIC_FILL") {
                             //theme rels
                             //console.log("PIC_FILL - ", bgFillTyp, bgFillLstIdx, bgFillLst, warpObj);
-                            bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
+                            bgcolor = await getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
                         } else {
                             console.log(bgFillTyp)
                         }
@@ -1197,7 +1197,7 @@ function getFillType(node) {
                         } else if (bgFillTyp === "GRADIENT_FILL") {
                             bgcolor = getBgGradientFill(bgPr, undefined, slideMasterContent, warpObj);
                         } else if (bgFillTyp === "PIC_FILL") {
-                            bgcolor = getBgPicFill(bgPr, "slideMasterBg", warpObj, undefined, index);
+                            bgcolor = await getBgPicFill(bgPr, "slideMasterBg", warpObj, undefined, index);
                         }
                     } else if (bgRef !== undefined) {
                         //let obj={
@@ -1273,7 +1273,7 @@ function getFillType(node) {
                             } else if (bgFillTyp == "PIC_FILL") {
                                 //theme rels
                                 // console.log("PIC_FILL - ", bgFillTyp, bgFillLstIdx, bgFillLst, warpObj);
-                                bgcolor = getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
+                                bgcolor = await getBgPicFill(bgFillLstIdx, "themeBg", warpObj, phClr, index);
                             } else {
                                 console.log(bgFillTyp)
                             }
@@ -1345,10 +1345,10 @@ function getFillType(node) {
             }
             return bgcolor;
         }
-        function getBgPicFill(bgPr, sorce, warpObj, phClr, index) {
+        async function getBgPicFill(bgPr, sorce, warpObj, phClr, index) {
             //console.log("getBgPicFill bgPr", bgPr)
             let bgcolor;
-            let picFillResult = getPicFill(sorce, bgPr["a:blipFill"], warpObj);
+            let picFillResult = await getPicFill(sorce, bgPr["a:blipFill"], warpObj);
             let picFillBase64 = picFillResult;
             if (typeof picFillResult === 'object' && picFillResult.img) {
                 picFillBase64 = picFillResult.img;
@@ -1473,7 +1473,7 @@ function getFillType(node) {
                 "rot": rot
             }
         }
-        function getPicFill(type, node, warpObj) {
+        async function getPicFill(type, node, warpObj) {
             //Need to test/////////////////////////////////////////////
             //rId
             let img;
@@ -1514,7 +1514,7 @@ function getFillType(node) {
                     console.warn("Image file not found:", imgPath);
                     return undefined;
                 }
-                let imgArrayBuffer = imgFile.asArrayBuffer();
+                let imgArrayBuffer = await imgFile.async("arraybuffer");
                 let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
                 img = "data:" + imgMimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer);
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,

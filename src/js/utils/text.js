@@ -37,7 +37,7 @@ function getTextWidth(html) {
         return width;
     }
 
-    function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width) {
+    async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width) {
             let text = "";
             let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
@@ -141,7 +141,7 @@ function getTextWidth(html) {
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 let isRTL = (prg_dir == "pregraph-rtl");
                 text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + ` ${prg_dir} ` + cssName + "' >";
-                let buText_ary = genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
+                let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
 
@@ -174,7 +174,7 @@ function getTextWidth(html) {
                 let total_text_len = 0;
                 if (rNode === undefined && pNode !== undefined) {
                     // without r
-                    let prgr_text = genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
+                    let prgr_text = await genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
                     if (isBullate) {
                         total_text_len += getTextWidth(prgr_text);
                     }
@@ -190,7 +190,7 @@ function getTextWidth(html) {
                             rNode[j]["a:rPr"]["attrs"]["sz"] = previousStyle["sz"];
                         }
                         
-                        let prgr_text = genSpanElement(rNode[j], j, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
+                        let prgr_text = await genSpanElement(rNode[j], j, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNode.length, warpObj, isBullate);
                         if (isBullate) {
                             total_text_len += getTextWidth(prgr_text);
                         }
@@ -313,7 +313,7 @@ function getTextWidth(html) {
         return paddingStyle;
     }
         
-        function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
+        async function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
             //console.log("genBuChar node: ", node, ", spNode: ", spNode, ", pFontStyle: ", pFontStyle, "type", type)
             ///////////////////////////////////////Amir///////////////////////////////
             let sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
@@ -501,16 +501,13 @@ function getTextWidth(html) {
             //console.log("genBuChar() isRTL", isRTL, "alignNode:", alignNode)
             if (marLNode !== undefined) {
                 let marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
-                // 在 RTL 模式下，项目符号在文本右边，需要左边距靠近文本
-                // 在 LTR 模式下，项目符号在文本左边，需要右边距靠近文本
-                if (isRTL) {
-                    marLStr = "padding-left: 5px;";  // 项目符号左边的小间隔（靠近文本）
+                if (isRTL) {// && alignNode == "r") {
+                    marLStr = "padding-right:";// "margin-right: ";
                 } else {
-                    marLStr = "padding-left:";
-                    marLStr += ((marginLeft + indent < 0) ? 0 : (marginLeft + indent)) + "px;";
+                    marLStr = "padding-left:";//"margin-left: ";
                 }
-                // margin_val 始终返回实际值，用于文本容器宽度计算
                 margin_val = ((marginLeft + indent < 0) ? 0 : (marginLeft + indent));
+                marLStr += margin_val + "px;";
             }
             
             //marR?
@@ -524,7 +521,11 @@ function getTextWidth(html) {
             }
             if (marRNode !== undefined) {
                 let marginRight = parseInt(marRNode) * SLIDE_FACTOR;
-                marRStr = "padding-right:";
+                if (isRTL) {// && alignNode == "r") {
+                    marLStr = "padding-right:";// "margin-right: ";
+                } else {
+                    marLStr = "padding-left:";//"margin-left: ";
+                }
                 marRStr += ((marginRight + indent < 0) ? 0 : (marginRight + indent)) + "px;";
             }
 
@@ -795,7 +796,7 @@ function getTextWidth(html) {
                             console.warn("Bullet image file not found:", imgPath);
                             buImg = "";
                         } else {
-                            let imgArrayBuffer = imgFile.asArrayBuffer();
+                            let imgArrayBuffer = await imgFile.async("arraybuffer");
                             let imgExt = imgPath.split(".").pop();
                             let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
                             buImg = `<img src='data:${imgMimeType};base64,` + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
@@ -1146,7 +1147,7 @@ function getTextWidth(html) {
         return rtrnNum;
     }
 
-    function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
+    async function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
             //https://codepen.io/imdunn/pen/GRgwaye ?
             let text_style = "";
             let lstStyle = textBodyNode["a:lstStyle"];
@@ -1243,7 +1244,7 @@ function getTextWidth(html) {
             }
             /////////////////////////////////////////////////////////////////////////////////////
             //getFontColor
-            let fontClrPr = PPTXStyleUtils.getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
+            let fontClrPr = await PPTXStyleUtils.getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
             let fontClrType = fontClrPr[2];
             //console.log("genSpanElement fontClrPr: ", fontClrPr, "linkID", linkID);
             if (fontClrType == "solid") {
@@ -1444,7 +1445,7 @@ function getTextWidth(html) {
         }
 
 
-        function genTable(node, warpObj) {
+        async function genTable(node, warpObj) {
             let order = node["attrs"]["order"];
             let tableNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
             let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
@@ -1777,7 +1778,7 @@ function getTextWidth(html) {
                                         }
                                     }
 
-                                    let cellParmAry = getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj)
+                                    let cellParmAry = await getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj)
                                     let text = cellParmAry[0];
                                     let colStyl = cellParmAry[1];
                                     let cssName = cellParmAry[2];
@@ -1834,7 +1835,7 @@ function getTextWidth(html) {
                             }
 
 
-                            let cellParmAry = getTableCellParams(tcNodes, getColsGrid , i , undefined , thisTblStyle, a_sorce, warpObj)
+                            let cellParmAry = await getTableCellParams(tcNodes, getColsGrid , i , undefined , thisTblStyle, a_sorce, warpObj)
                             let text = cellParmAry[0];
                             let colStyl = cellParmAry[1];
                             let cssName = cellParmAry[2];
@@ -1855,7 +1856,7 @@ function getTextWidth(html) {
             return tableHtml;
         }
         
-        function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
+        async function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
             //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
             //text, cell-width, cell-borders, 
             //let text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
@@ -1887,7 +1888,7 @@ function getTextWidth(html) {
             }
             
 
-            let text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width);//tableStyles
+            let text = await PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width);//tableStyles
 
             if (total_col_width != 0 /*&& row_idx == 0*/) {
                 colWidth = parseInt(total_col_width) * SLIDE_FACTOR;
@@ -1961,7 +1962,7 @@ function getTextWidth(html) {
                 let cellObj = {
                     "p:spPr": getCelFill
                 };
-                celFillColor = PPTXStyleUtils.getShapeFill(cellObj, undefined, false, warpObj, "slide")
+                celFillColor = await PPTXStyleUtils.getShapeFill(cellObj, undefined, false, warpObj, "slide")
             }
 
             //cell fill color theme

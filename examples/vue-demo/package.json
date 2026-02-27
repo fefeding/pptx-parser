@@ -9,8 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.21",
-    "@fefeding/ppt-parser": "file:../../"
+    "@fefeding/ppt-parser": "file:../../",
+    "echarts": "^6.0.0",
+    "vue": "^3.4.21"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",

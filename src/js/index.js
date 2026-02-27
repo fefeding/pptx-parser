@@ -24,7 +24,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
     const thumbFile = zip.file("docProps/thumbnail.jpeg");
     let thumbnail = null;
     if (thumbFile !== null) {
-        const pptxThumbImg = PPTXXmlUtils.base64ArrayBuffer(thumbFile.asArrayBuffer());
+        const pptxThumbImg = PPTXXmlUtils.base64ArrayBuffer(await thumbFile.async("arraybuffer"));
         thumbnail = pptxThumbImg;
     }
 
@@ -371,7 +371,7 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
 
     let bgColor = "";
     if (processFullTheme === "colorsAndImageOnly") {
-        bgColor = PPTXStyleUtils.getSlideBackgroundFill(warpObj, slideData.index);
+        bgColor = await PPTXStyleUtils.getSlideBackgroundFill(warpObj, slideData.index);
     }
 
     let result = `<section class='slide' style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;

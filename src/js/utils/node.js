@@ -212,11 +212,11 @@ async function processGroupSpNode(node, wrapObj, source, settings) {
 async function processNodesInSlide(nodeKey, nodeValue, nodes, wrapObj, source, shapeType, settings) {
     switch (nodeKey) {
         case 'p:sp':    // Shape, Text
-            return processSpNode(nodeValue, nodes, wrapObj, source, shapeType, settings);
+            return await processSpNode(nodeValue, nodes, wrapObj, source, shapeType, settings);
         case 'p:cxnSp':    // Shape, Text (with connection)
-            return processCxnSpNode(nodeValue, nodes, wrapObj, source, shapeType, settings);
+            return await processCxnSpNode(nodeValue, nodes, wrapObj, source, shapeType, settings);
         case 'p:pic':    // Picture
-            return processPicNode(nodeValue, wrapObj, source, shapeType, settings);
+            return await processPicNode(nodeValue, wrapObj, source, shapeType, settings);
         case 'p:graphicFrame':    // Chart, Diagram, Table
             return await processGraphicFrameNode(nodeValue, wrapObj, source, shapeType, settings);
         case 'p:grpSp':
@@ -237,9 +237,9 @@ async function processNodesInSlide(nodeKey, nodeValue, nodes, wrapObj, source, s
  * @param {string} source - 源
  * @param {string} shapeType - 形状类型
  * @param {Object} settings - 设置对象
- * @returns {string} 生成的HTML
+ * @returns {Promise<string>} 生成的HTML
  */
-function processSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
+async function processSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
     const id = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:cNvPr', 'attrs', 'id']);
     const name = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:cNvPr', 'attrs', 'name']);
     let idx = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'idx']);
@@ -281,7 +281,7 @@ function processSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
         }
     }
 
-    const result = PPTXShapeUtils.genShape(node, parentNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, wrapObj, isUserDrawnBg, shapeType, source, settings);
+    const result = await PPTXShapeUtils.genShape(node, parentNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, wrapObj, isUserDrawnBg, shapeType, source, settings);
     return result;
 }
 
@@ -293,9 +293,9 @@ function processSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
  * @param {string} source - 源
  * @param {string} shapeType - 形状类型
  * @param {Object} settings - 设置对象
- * @returns {string} 生成的HTML
+ * @returns {Promise<string>} 生成的HTML
  */
-function processCxnSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
+async function processCxnSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
     const id = node['p:nvCxnSpPr']['p:cNvPr'].attrs.id;
     const name = node['p:nvCxnSpPr']['p:cNvPr'].attrs.name;
     const idx = node['p:nvCxnSpPr']['p:nvPr']['p:ph'] === undefined 
@@ -306,7 +306,7 @@ function processCxnSpNode(node, parentNode, wrapObj, source, shapeType, settings
         : node['p:nvCxnSpPr']['p:nvPr']['p:ph'].attrs.type;
     const order = node.attrs.order;
 
-    return PPTXShapeUtils.genShape(node, parentNode, undefined, undefined, id, name, idx, type, order, wrapObj, undefined, shapeType, source, settings);
+    return await PPTXShapeUtils.genShape(node, parentNode, undefined, undefined, id, name, idx, type, order, wrapObj, undefined, shapeType, source, settings);
 }
 
 /**
@@ -316,9 +316,9 @@ function processCxnSpNode(node, parentNode, wrapObj, source, shapeType, settings
  * @param {string} source - 源
  * @param {string} shapeType - 形状类型
  * @param {Object} settings - 设置对象
- * @returns {string} 生成的HTML
+ * @returns {Promise<string>} 生成的HTML
  */
-function processPicNode(node, wrapObj, source, shapeType, settings) {
+async function processPicNode(node, wrapObj, source, shapeType, settings) {
     const order = node.attrs.order;
     const rid = node['p:blipFill']['a:blip'].attrs['r:embed'];
     
@@ -356,7 +356,7 @@ function processPicNode(node, wrapObj, source, shapeType, settings) {
         return '';
     }
     
-    const imgArrayBuffer = imgFile.asArrayBuffer();
+    const imgArrayBuffer = await imgFile.async("arraybuffer");
     let xfrmNode = node['p:spPr']?.['a:xfrm'];
     
     if (xfrmNode === undefined) {
@@ -399,7 +399,7 @@ function processPicNode(node, wrapObj, source, shapeType, settings) {
                 if (vdoFileObj === null) {
                     console.warn('Video file not found:', videoFile);
                 } else {
-                    const uInt8Array = vdoFileObj.asArrayBuffer();
+                    const uInt8Array = await vdoFileObj.async("arraybuffer");
                     const vdoMimeType = PPTXXmlUtils.getMimeType(vdoFileExt);
                     const blob = new Blob([uInt8Array], { type: vdoMimeType });
                     videoBlob = URL.createObjectURL(blob);
@@ -427,14 +427,14 @@ function processPicNode(node, wrapObj, source, shapeType, settings) {
             if (audioFileObj === null) {
                 console.warn('Audio file not found:', audioFile);
             } else {
-                const uInt8ArrayAudio = audioFileObj.asArrayBuffer();
+                const uInt8ArrayAudio = await audioFileObj.async("arraybuffer");
                 const blobAudio = new Blob([uInt8ArrayAudio]);
                 audioBlob = URL.createObjectURL(blobAudio);
                 
                 const cx = parseInt(xfrmNode['a:ext'].attrs.cx) * 20;
-                const cy = xfrmNode['a:ext'].attrs.cy;
+                const cy = parseInt(xfrmNode['a:ext'].attrs.cy);
                 const x = parseInt(xfrmNode['a:off'].attrs.x) / 2.5;
-                const y = xfrmNode['a:off'].attrs.y;
+                const y = parseInt(xfrmNode['a:off'].attrs.y);
                 
                 audioObj = {
                     'a:ext': { attrs: { cx, cy } },
@@ -494,7 +494,7 @@ async function processGraphicFrameNode(node, wrapObj, source, shapeType, setting
 
     switch (graphicTypeUri) {
         case 'http://schemas.openxmlformats.org/drawingml/2006/table':
-            return PPTXTextUtils.genTable(node, wrapObj);
+            return await PPTXTextUtils.genTable(node, wrapObj);
         case 'http://schemas.openxmlformats.org/drawingml/2006/chart':
             return await genChart(node, wrapObj);
         case 'http://schemas.openxmlformats.org/drawingml/2006/diagram':
@@ -539,7 +539,7 @@ async function getBackground(wrapObj, slideSize, index, settings) {
     const nodesSldMaster = PPTXXmlUtils.getTextByPathList(slideMasterContent, ['p:sldMaster', 'p:cSld', 'p:spTree']);
     const showMasterSp = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ['p:sldLayout', 'attrs', 'showMasterSp']);
     
-    const bgColor = PPTXStyleUtils.getSlideBackgroundFill(wrapObj, index);
+    const bgColor = await PPTXStyleUtils.getSlideBackgroundFill(wrapObj, index);
     let result = `<div class='slide-background-${index}' style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
 
     if (nodesSldLayout !== undefined) {

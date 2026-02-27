@@ -38,9 +38,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, nextTick } from 'vue'
+import { ref, shallowRef, nextTick, onMounted } from 'vue'
 import { pptxToHtml } from '@fefeding/ppt-parser'
-import '/Users/jiamao/project/github/pptx-parser/src/lib/jszip.min.js'
+import JSZip from 'jszip'
+import * as echarts from 'echarts'
+import { chartRenderer } from '../../chart-lib/chart-renderer.js'
+
+// 设置全局 JSZip 对象，供 ppt-parser 使用
+;(window as any).JSZip = JSZip
+;(window as any).echarts = echarts
+;(window as any).chartRenderer = chartRenderer
 
 interface Slide {
   html: string
@@ -108,6 +115,13 @@ async function handleFileUpload(event: Event) {
     await nextTick()
     if (result.styles && result.styles.global) {
       applyGlobalStyles(result.styles.global)
+    }
+
+    // 渲染图表
+    if (result.charts && result.charts.length > 0) {
+      await nextTick()
+      console.log('Rendering charts:', result.charts)
+      chartRenderer.renderCharts(result.charts)
     }
 
   } catch (e) {

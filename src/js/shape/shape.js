@@ -61,7 +61,7 @@ import {
 import { renderActionButton, isActionButton } from './action-buttons.js';
 
 export const PPTXShapeUtils = (function() {
-    function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, settings) {
+    async function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, settings) {
             //var dltX = 0;
             //var dltY = 0;
             var xfrmList = ["p:spPr", "a:xfrm"];
@@ -158,7 +158,7 @@ export const PPTXShapeUtils = (function() {
                 result += svgTag;
                 result += '<defs>'
                 // Fill Color
-                var fillColor = PPTXStyleUtils.getShapeFill(node, pNode, true, warpObj, source);
+                var fillColor = await PPTXStyleUtils.getShapeFill(node, pNode, true, warpObj, source);
                 //console.log("genShape: fillColor: ", fillColor)
                 var grndFillFlg = false;
                 var imgFillFlg = false;
@@ -5161,7 +5161,7 @@ export const PPTXShapeUtils = (function() {
                     if (type != "diagram" && type != "textBox") {
                         type = "shape";
                     }
-                    result += PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type='shape'
+                    result += await PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type='shape'
                 }
                 result += "</div>";
             } else if (custShapType !== undefined) {
@@ -5184,7 +5184,7 @@ export const PPTXShapeUtils = (function() {
                     if (type != "diagram" && type != "textBox") {
                         type = "shape";
                     }
-                    result += PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type=shape
+                    result += await PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type=shape
                 }
                 result += "</div>";
 
@@ -5198,13 +5198,13 @@ export const PPTXShapeUtils = (function() {
                     PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
                     PPTXStyleUtils.getBorder(node, pNode, false, "shape", warpObj) +
-                    PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source) +
+                    await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source) +
                     " z-index: " + order + ";" +
                     "'>";
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
-                    result += PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj);
+                    result += await PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj);
                 }
                 result += "</div>";
 
