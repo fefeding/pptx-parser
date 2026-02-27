@@ -774,10 +774,15 @@ function getFillType(node) {
 
             //console.log("lineNode: ", lineNode)
             let lnRefNode;
+            let phClr = undefined;
             if (lineNode == undefined) {
                 lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"])
                 if (lnRefNode !== undefined){
                     let lnIdx = PPTXXmlUtils.getTextByPathList(lnRefNode, ["attrs", "idx"]);
+                    // Extract phClr from lnRef to replace placeholder colors in lnStyleLst
+                    if (lnRefNode !== undefined) {
+                        phClr = getSolidFill(lnRefNode, undefined, undefined, warpObj);
+                    }
                     // 检查lnStyleLst的结构
                     const lnStyleLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:lnStyleLst"]["a:ln"];
                     // 处理lnStyleLst可能是对象而不是数组的情况
@@ -875,8 +880,8 @@ function getFillType(node) {
                     if (!lnRefNode) {
                         lnRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:lnRef"]);
                     }
-                    let phClr = undefined;
-                    if (lnRefNode !== undefined) {
+                    // phClr should already be extracted at line 780, but fallback here if not
+                    if (phClr === undefined && lnRefNode !== undefined) {
                         phClr = getSolidFill(lnRefNode, undefined, undefined, warpObj);
                     }
                     borderColor = getSolidFill(lineNode["a:solidFill"], undefined, phClr, warpObj);

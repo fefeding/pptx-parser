@@ -255,8 +255,40 @@ export const PPTXShapeUtils = (function() {
                             // Convert effectIdx to number and use as array index
                             // effectRef idx is 0-based (idx="0" refers to first effectStyle)
                             var idx = Number(effectIdx);
-                            if (idx >= 0 && effectStyleLst[idx] !== undefined) {
-                                effectStyleNode = effectStyleLst[idx];
+                            // DEBUG: Log for troubleshooting
+                            if (name === "TextBox 5") {
+                                console.log("=== " + name + " effectRef Debug ===");
+                                console.log("effectIdx:", effectIdx, "Number(effectIdx):", idx);
+                                console.log("effectStyleLst length:", effectStyleLst.length);
+                            }
+                            // Handle idx out of range
+                            if (effectStyleLst.length > 0) {
+                                if (idx >= 0 && idx < effectStyleLst.length) {
+                                    effectStyleNode = effectStyleLst[idx];
+                                } else {
+                                    // When idx is out of range, try to find an effectStyle with shadow
+                                    // Start from the end of the list and work backwards
+                                    for (var i = effectStyleLst.length - 1; i >= 0; i--) {
+                                        var testEffectStyle = effectStyleLst[i];
+                                        var hasShadow = PPTXXmlUtils.getTextByPathList(testEffectStyle, ["a:effectLst", "a:outerShdw"]);
+                                        if (hasShadow !== undefined) {
+                                            effectStyleNode = testEffectStyle;
+                                            if (name === "TextBox 5") {
+                                                console.log("effectIdx " + Number(effectIdx) + " is out of range, using idx " + i + " (has shadow) instead");
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    // If no shadow found, use modulo to wrap around
+                                    if (effectStyleNode === undefined) {
+                                        idx = idx % effectStyleLst.length;
+                                        if (idx < 0) idx += effectStyleLst.length;
+                                        effectStyleNode = effectStyleLst[idx];
+                                        if (name === "TextBox 5") {
+                                            console.log("effectIdx " + Number(effectIdx) + " is out of range, no shadow found, using idx " + idx + " instead");
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -295,11 +327,14 @@ export const PPTXShapeUtils = (function() {
                 }
 
                 // Check if shape has 3D effects (sp3d or scene3d)
-                // If shape has 3D effects, it may disable the shadow effect in PPT rendering
+                // Only disable shadow if 3D effects are defined directly on the shape (p:spPr)
+                // 3D effects from effectStyle (via effectRef) should not disable the shadow
                 var sp3dNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:sp3d"]);
                 var scene3dNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:scene3d"]);
-                if (sp3dNode !== undefined || scene3dNode !== undefined) {
-                    // Disable shadow when 3D effects are present
+                // Check if outerShdw is from effectStyle
+                var shadowFromEffectStyle = (outerShdwNode !== undefined && effectStyleNode !== undefined);
+                if ((sp3dNode !== undefined || scene3dNode !== undefined) && !shadowFromEffectStyle) {
+                    // Disable shadow when 3D effects are present on the shape itself
                     hasOuterShadow = false;
                     // DEBUG: Log for shapes with 3D effects
                     if (name === "TextBox 2") {
@@ -310,8 +345,8 @@ export const PPTXShapeUtils = (function() {
                 }
 
                 // DEBUG: Log for TextBox 2 on slide 6
-                if (name === "TextBox 2") {
-                    console.log("=== TextBox 2 Shadow Debug ===");
+                if (name === "TextBox 2" || name === "TextBox 5") {
+                    console.log("=== " + name + " Shadow Debug ===");
                     console.log("effectRef:", effectRefNode ? JSON.stringify(effectRefNode) : "none");
                     console.log("effectStyleNode:", effectStyleNode ? JSON.stringify(effectStyleNode).substring(0, 200) : "none");
                     console.log("outerShdwNode:", outerShdwNode ? JSON.stringify(outerShdwNode).substring(0, 200) : "none");
