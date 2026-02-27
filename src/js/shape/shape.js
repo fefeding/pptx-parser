@@ -146,8 +146,9 @@ export const PPTXShapeUtils = (function() {
 
                 var svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
                 //console.log("name:", name, "svgCssName: ", svgCssName)
+                var hasCssEffect = false; // Track if there's a CSS effect (like shadow)
                 var effectsClassName = svgCssName + "_effects";
-                const svgTag = "<svg class='drawing " + svgCssName + " " + effectsClassName + " ' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
+                const svgTag = "<svg class='drawing " + svgCssName + "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
                     "' style='" +
                     PPTXXmlUtils.getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
                     PPTXXmlUtils.getSize(slideXfrmNode, undefined, undefined) +
@@ -247,7 +248,13 @@ export const PPTXShapeUtils = (function() {
                         // Access the effect style from the theme
                         var effectStyleLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:effectStyleLst"]["a:effectStyle"];
                         if (effectStyleLst !== undefined) {
-                            var idx = Number(effectIdx); // idx is 0-based, not 1-based
+                            // Ensure effectStyleLst is an array
+                            if (!Array.isArray(effectStyleLst)) {
+                                effectStyleLst = [effectStyleLst];
+                            }
+                            // Convert effectIdx to number and use as array index
+                            // effectRef idx is 0-based (idx="0" refers to first effectStyle)
+                            var idx = Number(effectIdx);
                             if (idx >= 0 && effectStyleLst[idx] !== undefined) {
                                 effectStyleNode = effectStyleLst[idx];
                             }
@@ -263,9 +270,55 @@ export const PPTXShapeUtils = (function() {
                 if (outerShdwNode === undefined && effectStyleNode !== undefined) {
                     outerShdwNode = PPTXXmlUtils.getTextByPathList(effectStyleNode, ["a:effectLst", "a:outerShdw"]);
                 }
-                
+
                 var oShadowSvgUrlStr = ""
-                if (outerShdwNode !== undefined) {
+                // Check if outerShdwNode exists and has valid shadow attributes
+                // A valid shadow should have at least dist defined with a non-zero value
+                var hasOuterShadow = false;
+                if (outerShdwNode && typeof outerShdwNode === 'object' && !Array.isArray(outerShdwNode)) {
+                    // Check that outerShdwNode is not empty and is actually a valid outerShdw node
+                    var nodeKeys = Object.keys(outerShdwNode);
+                    if (nodeKeys.length > 0) {
+                        var attrs = outerShdwNode.attrs;
+                        // A valid outerShdw node should have an attrs object with shadow properties
+                        if (attrs && typeof attrs === 'object') {
+                            var distVal = attrs.dist;
+                            var blurRadVal = attrs.blurRad;
+                            // Only consider it a valid shadow if dist is defined and non-zero
+                            // Also check if at least one of the required shadow attributes is present
+                            var hasShadowAttrs = (distVal !== undefined || blurRadVal !== undefined ||
+                                                 attrs.dir !== undefined || attrs.sx !== undefined ||
+                                                 attrs.sy !== undefined || attrs.algn !== undefined);
+                            hasOuterShadow = hasShadowAttrs && (distVal !== undefined && distVal !== "" && distVal !== "0" && distVal !== 0);
+                        }
+                    }
+                }
+
+                // Check if shape has 3D effects (sp3d or scene3d)
+                // If shape has 3D effects, it may disable the shadow effect in PPT rendering
+                var sp3dNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:sp3d"]);
+                var scene3dNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:scene3d"]);
+                if (sp3dNode !== undefined || scene3dNode !== undefined) {
+                    // Disable shadow when 3D effects are present
+                    hasOuterShadow = false;
+                    // DEBUG: Log for shapes with 3D effects
+                    if (name === "TextBox 2") {
+                        console.log("=== TextBox 2: 3D effects detected, disabling shadow ===");
+                        console.log("sp3d:", sp3dNode ? "present" : "none");
+                        console.log("scene3d:", scene3dNode ? "present" : "none");
+                    }
+                }
+
+                // DEBUG: Log for TextBox 2 on slide 6
+                if (name === "TextBox 2") {
+                    console.log("=== TextBox 2 Shadow Debug ===");
+                    console.log("effectRef:", effectRefNode ? JSON.stringify(effectRefNode) : "none");
+                    console.log("effectStyleNode:", effectStyleNode ? JSON.stringify(effectStyleNode).substring(0, 200) : "none");
+                    console.log("outerShdwNode:", outerShdwNode ? JSON.stringify(outerShdwNode).substring(0, 200) : "none");
+                    console.log("hasOuterShadow:", hasOuterShadow);
+                }
+
+                if (hasOuterShadow) {
                     var chdwClrNode = PPTXStyleUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
                     var outerShdwAttrs = outerShdwNode["attrs"];
 
@@ -305,6 +358,9 @@ export const PPTXShapeUtils = (function() {
                         "text": svg_css_shadow
                     };
 
+                    // Add effectsClassName to the SVG tag since we have a CSS shadow effect
+                    hasCssEffect = true;
+                    result = result.replace("class='drawing " + svgCssName + "'", "class='drawing " + svgCssName + " " + effectsClassName + "'");
                 }
 
                 //////////////////////////////softEdge///////////////////////////////////////////

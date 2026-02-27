@@ -402,6 +402,10 @@ function getFillType(node) {
                         // Access the effect style from the theme
                         var effectStyleLst = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:fmtScheme", "a:effectStyleLst", "a:effectStyle"]);
                         if (effectStyleLst !== undefined) {
+                            // Ensure effectStyleLst is an array
+                            if (!Array.isArray(effectStyleLst)) {
+                                effectStyleLst = [effectStyleLst];
+                            }
                             var idx = Number(effectIdx); // idx is 0-based, not 1-based
                             if (idx >= 0 && effectStyleLst[idx] !== undefined) {
                                 txtShadow = PPTXXmlUtils.getTextByPathList(effectStyleLst[idx], ["a:effectLst", "a:outerShdw"]);
