@@ -1164,9 +1164,11 @@ function getTextWidth(html) {
 
 
                 //console.log("genSpanElement defLinkClr: ", defLinkClr, "rPrlinkClr:", rPrlinkClr)
-                if (rPrlinkClr !== undefined && rPrlinkClr != "") {
-                    defLinkClr = rPrlinkClr;
-                }
+                // 对于超链接，优先使用主题中的超链接颜色，而不是文本运行中的颜色定义
+                // 注释掉下面的覆盖逻辑，让超链接始终使用主题颜色
+                // if (rPrlinkClr !== undefined && rPrlinkClr != "") {
+                //     defLinkClr = rPrlinkClr;
+                // }
 
             }
             /////////////////////////////////////////////////////////////////////////////////////
@@ -1353,8 +1355,11 @@ function getTextWidth(html) {
                 };
             }
             let linkColorSyle = "";
-            if (fontClrType == "solid" && linkID !== undefined && defLinkClr !== undefined) {
-                linkColorSyle = `style='color: #${defLinkClr};'`;
+            if (fontClrType == "solid" && linkID !== undefined) {
+                // 对于超链接，始终使用主题中的超链接颜色，而不是文本运行中的颜色
+                if (defLinkClr !== undefined) {
+                    linkColorSyle = `style='color: #${defLinkClr};'`;
+                }
             }
 
             if (linkID !== undefined && linkID != "") {
