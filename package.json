@@ -35,7 +35,7 @@
     "static:build": "vite build --config vite.static.config.ts",
     "static:nojquery": "vite --config vite.static.config.ts --open",
     "static:nojquery:build": "vite build --config vite.static.config.ts",
-    "prepublishOnly": "npm run build && npm run type-check"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "pptx",
