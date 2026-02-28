@@ -586,7 +586,7 @@ async function pptxToJson(fileData, options) {
 
         const msgQueue = [];
         const zip = new JSZip().load(file);
-        
+
         // Parse PPTX to structured data
         const parsedData = await parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
 
@@ -609,7 +609,7 @@ async function pptxToJson(fileData, options) {
                 slideNum: slideData.slideNum,
                 fileName: slideData.fileName
             });
-            
+
             if (callbacks.onSlide) {
                 callbacks.onSlide(slideData.data, {
                     slideNum: slideData.slideNum,
@@ -622,11 +622,11 @@ async function pptxToJson(fileData, options) {
         if (parsedData.thumbnail && callbacks.onThumbnail) {
             callbacks.onThumbnail(parsedData.thumbnail);
         }
-        
+
         if (parsedData.slideSize && callbacks.onSlideSize) {
             callbacks.onSlideSize(parsedData.slideSize);
         }
-        
+
         if (callbacks.onGlobalCSS) {
             callbacks.onGlobalCSS(result.styles.global);
         }
@@ -655,18 +655,99 @@ async function pptxToJson(fileData, options) {
     return null;
 }
 
+/**
+ * PPTX to File Index and Content converter
+ * @param {ArrayBuffer} fileData - The PPTX file data
+ * @returns {Promise<Object>} File index and content result
+ */
+async function pptxToFiles(fileData) {
+    if (fileData.byteLength < 10) {
+        console.error("Invalid file: file too small");
+        throw new Error("Invalid file: file too small");
+    }
+
+    const zip = JSZip.loadAsync ? await JSZip.loadAsync(fileData) : new JSZip().load(fileData);
+
+    const result = {
+        files: [],
+        content: {}
+    };
+
+    // Iterate through all files in the zip
+    const promises = [];
+    zip.forEach((relativePath, zipEntry) => {
+        result.files.push({
+            name: relativePath,
+            dir: zipEntry.dir,
+            size: zipEntry._data.uncompressedSize
+        });
+
+        // Read file content based on type
+        const promise = (async () => {
+            try {
+                if (zipEntry.dir) {
+                    return;
+                }
+
+                const ext = relativePath.split('.').pop().toLowerCase();
+
+                // For XML files, read as text
+                if (ext === 'xml' || ext === 'rels') {
+                    const content = await zipEntry.async('text');
+                    result.content[relativePath] = {
+                        type: 'text',
+                        content: content
+                    };
+                }
+                // For image files, read as base64
+                else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'].includes(ext)) {
+                    const base64 = await zipEntry.async('base64');
+                    result.content[relativePath] = {
+                        type: 'image',
+                        format: ext,
+                        base64: base64,
+                        dataUrl: `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,${base64}`
+                    };
+                }
+                // For other binary files, read as base64
+                else {
+                    const base64 = await zipEntry.async('base64');
+                    result.content[relativePath] = {
+                        type: 'binary',
+                        base64: base64
+                    };
+                }
+            } catch (error) {
+                console.error(`Error reading file ${relativePath}:`, error);
+                result.content[relativePath] = {
+                    type: 'error',
+                    error: error.message
+                };
+            }
+        })();
+
+        promises.push(promise);
+    });
+
+    await Promise.all(promises);
+
+    return result;
+}
+
 // Export functions
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         pptxToHtml,
-        pptxToJson
+        pptxToJson,
+        pptxToFiles
     };
 } else if (typeof window !== 'undefined') {
     window.pptxParser = {
         pptxToHtml,
-        pptxToJson
+        pptxToJson,
+        pptxToFiles
     };
 }
 
 export default pptxToHtml;
-export { pptxToJson, pptxToHtml };
+export { pptxToJson, pptxToHtml, pptxToFiles };

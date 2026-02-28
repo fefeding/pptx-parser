@@ -65,6 +65,63 @@ fileInput.addEventListener('change', async (e) => {
 });
 ```
 
+### 解析 PPTX 文件获取所有文件索引和内容
+
+```javascript
+import { pptxToFiles } from '@fefeding/ppt-parser';
+
+// 解析 PPTX 文件获取所有文件的索引和内容
+const fileInput = document.querySelector('#ppt-upload');
+
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const result = await pptxToFiles(file);
+
+  // 查看文件索引
+  console.log('文件列表:', result.files);
+  // [
+  //   { name: 'ppt/slides/slide1.xml', dir: false, size: 12345 },
+  //   { name: 'ppt/media/image1.png', dir: false, size: 6789 },
+  //   ...
+  // ]
+
+  // 获取特定文件内容
+  const slide1Content = result.content['ppt/slides/slide1.xml'];
+  console.log('Slide1 内容:', slide1Content.content);
+
+  // 获取图片
+  const image1 = result.content['ppt/media/image1.png'];
+  console.log('图片 Data URL:', image1.dataUrl);
+});
+```
+
+`pptxToFiles` 返回值结构：
+```javascript
+{
+  files: [
+    {
+      name: "ppt/slides/slide1.xml",    // 文件路径
+      dir: false,                         // 是否为目录
+      size: 12345                         // 解压后大小
+    }
+  ],
+  content: {
+    "ppt/slides/slide1.xml": {
+      type: "text",
+      content: "<?xml version=\"1.0\"..."  // XML 文件内容
+    },
+    "ppt/media/image1.png": {
+      type: "image",
+      format: "png",
+      base64: "iVBORw0KGgoAAAANSUhEUg...",   // Base64 编码
+      dataUrl: "data:image/png;base64,iVBORw0KGgo..."  // Data URL
+    }
+  }
+}
+```
+
 ### 导出 PPTX 文件
 
 > 注意：当前版本导出功能正在完善中，主要支持解析功能
