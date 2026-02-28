@@ -223,10 +223,10 @@ async function processNodesInSlide(nodeKey, nodeValue, nodes, wrapObj, source, s
         case 'p:graphicFrame':    // Chart, Diagram, Table
             return await processGraphicFrameNode(nodeValue, wrapObj, source, shapeType, settings);
         case 'p:grpSp':
-            return processGroupSpNode(nodeValue, wrapObj, source, settings);
+            return await processGroupSpNode(nodeValue, wrapObj, source, settings);
         case 'mc:AlternateContent': // Equations and formulas as Image
             const mcFallbackNode = PPTXXmlUtils.getTextByPathList(nodeValue, ['mc:Fallback']);
-            return processGroupSpNode(mcFallbackNode, wrapObj, source, settings);
+            return await processGroupSpNode(mcFallbackNode, wrapObj, source, settings);
         default:
             return '';
     }
@@ -508,7 +508,7 @@ async function processGraphicFrameNode(node, wrapObj, source, shapeType, setting
                 oleObjNode = PPTXXmlUtils.getTextByPathList(node, ['a:graphic', 'a:graphicData', 'p:oleObj']);
             }
             if (oleObjNode !== undefined) {
-                return processGroupSpNode(oleObjNode, wrapObj, source, settings);
+                return await processGroupSpNode(oleObjNode, wrapObj, source, settings);
             }
             return '';
         default:
