@@ -227,6 +227,11 @@ function getFillType(node) {
             //console.log("getFontColorPr>> type:", type, ", node: ", node)
             let rPrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr"]);
             let filTyp, color, textBordr, colorType = "", highlightColor = "";
+            console.log('[DEBUG] getFontColorPr:', {
+                nodeKeys: node ? Object.keys(node) : [],
+                has_rPr: !!rPrNode,
+                rPr_keys: rPrNode ? Object.keys(rPrNode) : []
+            });
             //console.log("getFontColorPr type:", type, ", node: ", node, "pNode:", pNode, "pFontStyle:", pFontStyle)
             if (rPrNode !== undefined) {
                 filTyp = getFillType(rPrNode);

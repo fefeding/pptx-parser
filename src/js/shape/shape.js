@@ -121,8 +121,6 @@ export const PPTXShapeUtils = (function() {
                 txtFlip = " scale(-1,-1)";
             }
             //////////////////////////////////////////////////
-            if (shapType === undefined && custShapType === undefined) {
-            }
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
                 var off = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
                 var x = (off !== undefined) ? parseInt(off["x"]) * SLIDE_FACTOR : 0;
@@ -144,14 +142,57 @@ export const PPTXShapeUtils = (function() {
                 w = isNaN(w) ? 100 : w;
                 h = isNaN(h) ? 100 : h;
 
+                // 对于连接器类型，需要特殊处理
+                var isConnector = (shapType === 'straightConnector1' || shapType === 'bentConnector2' ||
+                                   shapType === 'bentConnector3' || shapType === 'bentConnector4' ||
+                                   shapType === 'bentConnector5' || shapType === 'curvedConnector2' ||
+                                   shapType === 'curvedConnector3' || shapType === 'curvedConnector4' ||
+                                   shapType === 'curvedConnector5');
+
+                // 保存原始的w和h，用于内部绘图
+                var drawW = w;
+                var drawH = h;
+
+                // 调试日志
+                if (w === 0 || h === 0) {
+                    console.log('[DEBUG] Shape with zero dimension detected:', {
+                        name: name,
+                        id: id,
+                        shapType: shapType,
+                        isConnector: isConnector,
+                        w: w,
+                        h: h,
+                        ext: ext
+                    });
+                }
+
                 var svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
                 //console.log("name:", name, "svgCssName: ", svgCssName)
                 var hasCssEffect = false; // Track if there's a CSS effect (like shadow)
                 var effectsClassName = svgCssName + "_effects";
+
+                // 对于连接器，当width或height为0时，需要设置最小尺寸
+                var svgSizeStyle = "";
+                if (isConnector && (w === 0 || h === 0)) {
+                    // 设置最小尺寸为strokeWidth的2倍（或至少4px），确保线条可见
+                    var strokeWidth = 1.5; // 默认stroke-width，实际可以从border获取
+                    var minSize = Math.max(strokeWidth * 2, 4);
+                    // SVG容器的尺寸至少为minSize
+                    var svgW = (w === 0 || w < minSize) ? minSize : w;
+                    var svgH = (h === 0 || h < minSize) ? minSize : h;
+                    svgSizeStyle = "width:" + svgW + "px; height:" + svgH + "px; overflow: visible;";
+                    // 更新w和h为SVG容器尺寸，这样后续代码会使用正确的尺寸
+                    w = svgW;
+                    h = svgH;
+                    console.log('[DEBUG] Connector size adjusted:', { name: name, svgW: svgW, svgH: svgH });
+                } else {
+                    svgSizeStyle = PPTXXmlUtils.getSize(slideXfrmNode, undefined, undefined);
+                }
+
                 const svgTag = "<svg class='drawing " + svgCssName + "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
                     "' style='" +
                     PPTXXmlUtils.getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
-                    PPTXXmlUtils.getSize(slideXfrmNode, undefined, undefined) +
+                    svgSizeStyle +
                     " z-index: " + order + ";" +
                     "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";" +
                     "'>";
@@ -828,10 +869,13 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "bentConnector2": {
                         var d = "";
+                        // 使用drawW和drawH（原始尺寸）
+                        var bendW = (drawW !== undefined) ? drawW : w;
+                        var bendH = (drawH !== undefined) ? drawH : h;
                         // if (isFlipV) {
-                        //     d = "M 0 " + w + " L " + h + " " + w + " L " + h + " 0";
+                        //     d = "M 0 " + bendW + " L " + bendH + " " + bendW + " L " + bendH + " 0";
                         // } else {
-                        d = "M " + w + " 0 L " + w + " " + h + " L 0 " + h;
+                        d = "M " + bendW + " 0 L " + bendW + " " + bendH + " L 0 " + bendH;
                         //}
                         result += "<path d='" + d + "' stroke='" + border.color +
                             "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
@@ -1300,13 +1344,16 @@ export const PPTXShapeUtils = (function() {
                     case "bentConnector3": {
                         var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
                         var shapAdjst_val = 0.5;
+                        // 使用drawW和drawH（原始尺寸）
+                        var connectorW = (drawW !== undefined) ? drawW : w;
+                        var connectorH = (drawH !== undefined) ? drawH : h;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
                             // if (isFlipV) {
-                            //     result += " <polyline points='" + w + " 0," + ((1 - shapAdjst_val) * w) + " 0," + ((1 - shapAdjst_val) * w) + " " + h + ",0 " + h + "' fill='transparent'" +
+                            //     result += " <polyline points='" + connectorW + " 0," + ((1 - shapAdjst_val) * connectorW) + " 0," + ((1 - shapAdjst_val) * connectorW) + " " + connectorH + ",0 " + connectorH + "' fill='transparent'" +
                             //         "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                             // } else {
-                            result += " <polyline points='0 0," + (shapAdjst_val) * w + " 0," + (shapAdjst_val) * w + " " + h + "," + w + " " + h + "' fill='transparent'" +
+                            result += " <polyline points='0 0," + (shapAdjst_val) * connectorW + " 0," + (shapAdjst_val) * connectorW + " " + connectorH + "," + connectorW + " " + connectorH + "' fill='transparent'" +
                                 "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                             //}
                             if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
@@ -2897,11 +2944,17 @@ export const PPTXShapeUtils = (function() {
                     case "straightConnector1":
                     case "bentConnector4":
                     case "bentConnector5": {
+                        // 使用drawW和drawH（原始尺寸）而不是w和h（可能被调整的SVG容器尺寸）
+                        var lineW = drawW;
+                        var lineH = drawH;
+                        // 如果drawW或drawH未定义（非连接器情况），回退到w和h
+                        if (lineW === undefined) lineW = w;
+                        if (lineH === undefined) lineH = h;
                         // if (isFlipV) {
-                        //     result += "<line x1='" + w + "' y1='0' x2='0' y2='" + h + "' stroke='" + border.color +
+                        //     result += "<line x1='" + lineW + "' y1='0' x2='0' y2='" + lineH + "' stroke='" + border.color +
                         //         "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                         // } else {
-                        result += "<line x1='0' y1='0' x2='" + w + "' y2='" + h + "' stroke='" + border.color +
+                        result += "<line x1='0' y1='0' x2='" + lineW + "' y2='" + lineH + "' stroke='" + border.color +
                             "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
                         //}
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
@@ -2938,26 +2991,30 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        
+
+                        // 使用drawW和drawH（原始尺寸）
+                        var curveW = (drawW !== undefined) ? drawW : w;
+                        var curveH = (drawH !== undefined) ? drawH : h;
+
                         // 计算曲线控制点
                         var cx1, cy1, cx2, cy2;
                         if (shapType === "curvedConnector2" || shapType === "curvedConnector3") {
                             // 对于 curvedConnector2 和 curvedConnector3，使用简单的二次贝塞尔曲线
                             var controlPointRatio = adj1 / 100000;
-                            cx1 = w * controlPointRatio;
+                            cx1 = curveW * controlPointRatio;
                             cy1 = 0;
-                            cx2 = w * (1 - controlPointRatio);
-                            cy2 = h;
+                            cx2 = curveW * (1 - controlPointRatio);
+                            cy2 = curveH;
                         } else {
                             // 对于其他弯曲连接器，使用默认控制点
-                            cx1 = w / 4;
+                            cx1 = curveW / 4;
                             cy1 = 0;
-                            cx2 = w * 3 / 4;
-                            cy2 = h;
+                            cx2 = curveW * 3 / 4;
+                            cy2 = curveH;
                         }
-                        
+
                         // 使用 SVG 路径元素创建曲线
-                        result += "<path d='M 0,0 Q " + cx1 + "," + cy1 + " " + w/2 + "," + h/2 + " Q " + cx2 + "," + cy2 + " " + w + "," + h + "' stroke='" + border.color +
+                        result += "<path d='M 0,0 Q " + cx1 + "," + cy1 + " " + curveW/2 + "," + curveH/2 + " Q " + cx2 + "," + cy2 + " " + curveW + "," + curveH + "' stroke='" + border.color +
                             "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
                         
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
@@ -5209,7 +5266,6 @@ export const PPTXShapeUtils = (function() {
                 result += "</div>";
 
             }
-            //console.log("div block result:\n", result)
             return result;
         }
 

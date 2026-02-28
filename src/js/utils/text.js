@@ -156,7 +156,7 @@ function getTextWidth(html) {
                 text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + outerFlexStyle + "' class='slide-prgrph " + horizontalAlign + ` ${prg_dir} ` + cssName + "' >";
                 let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
-                let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
+                let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? (Number(buText_ary[1]) + Number(buText_ary[2])) : 0;
 
                 // 在 RTL 模式下，项目符号在右边，所以先添加文本，再添加项目符号
                 if (isRTL && isBullate) {
@@ -265,14 +265,15 @@ function getTextWidth(html) {
                 // 根据 RTL 设置 direction 属性
                 let directionStyle = isRTL ? "direction: rtl;" : "direction: ltr;";
                 text += "<div style='display: flex;" + flexStyle + textContainerWidth + "'>";
+                // 在 RTL 模式下，项目符号应该和文本在同一个容器中
+                if (isRTL && isBullate && buText_ary[0] !== undefined) {
+                    // 先添加项目符号，再添加文本（RTL 模式下，项目符号在右边）
+                    text += buText_ary[0];
+                }
                 text += "<div style='" + directionStyle + whiteSpaceStyle + margin + textAlignStyle + "'>";
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
-                // 在 RTL 模式下，项目符号放在最后（右边）
-                if (isRTL && isBullate && buText_ary[0] !== undefined) {
-                    text += buText_ary[0];
-                }
                 text += "</div>";
             }
 
@@ -340,6 +341,15 @@ function getTextWidth(html) {
             if (rNode !== undefined && rNode.constructor === Array) {
                 rNode = rNode[0]; //bullet only to first "a:r"
             }
+            console.log('[DEBUG] genBuChar node structure:', {
+                has_r: !!node['a:r'],
+                has_pPr: !!node['a:pPr'],
+                pPr_keys: node['a:pPr'] ? Object.keys(node['a:pPr']) : [],
+                rNode: rNode ? {
+                    has_rPr: !!rNode['a:rPr'],
+                    rPr_keys: rNode['a:rPr'] ? Object.keys(rNode['a:rPr']) : []
+                } : null
+            });
             let lvl = parseInt (PPTXXmlUtils.getTextByPathList(node["a:pPr"], ["attrs", "lvl"])) + 1;
             if (isNaN(lvl)) {
                 lvl = 1;
@@ -348,9 +358,15 @@ function getTextWidth(html) {
             let dfltBultColor, dfltBultSize, bultColor, bultSize, color_tye;
 
             if (rNode !== undefined) {
-                dfltBultColor = PPTXStyleUtils.getFontColorPr(rNode, spNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
+                dfltBultColor = await PPTXStyleUtils.getFontColorPr(rNode, spNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
                 color_tye = dfltBultColor[2];
                 dfltBultSize = PPTXStyleUtils.getFontSize(rNode, textBodyNode, pFontStyle, lvl, type, warpObj);
+                // 调试：输出从 rNode 获取的颜色
+                console.log('[DEBUG] getFontColorPr result from rNode:', {
+                    dfltBultColor,
+                    color_tye,
+                    rPr: rNode['a:rPr']
+                });
             } else {
                 return "";
             }
@@ -566,17 +582,24 @@ function getTextWidth(html) {
             let defBultColor;
             if (buClrNode !== undefined) {
                 defBultColor = PPTXStyleUtils.getSolidFill(buClrNode, undefined, undefined, warpObj);
-            } else {
-                if (pFontStyle !== undefined) {
-                    //console.log("genBuChar pFontStyle: ", pFontStyle)
-                    defBultColor = PPTXStyleUtils.getSolidFill(pFontStyle, undefined, undefined, warpObj);
-                }
             }
             if (defBultColor === undefined || defBultColor == "NONE") {
                 bultColor = dfltBultColor;
             } else {
                 bultColor = [defBultColor, "", "solid"];
                 color_tye = "solid";
+            }
+            // 调试：对于编号类型，输出颜色信息
+            if (buType === "TYPE_NUMERIC") {
+                console.log('[DEBUG] Number bullet color:', {
+                    buType,
+                    buClrNode,
+                    defBultColor,
+                    pFontStyle,
+                    dfltBultColor,
+                    bultColor,
+                    rNodeColor: rNode ? rNode['a:rPr']?.['a:solidFill'] : undefined
+                });
             }
             //console.log("genBuChar node:", node, "pPrNode", pPrNode, " buClrNode: ", buClrNode, "defBultColor:", defBultColor,"dfltBultColor:" , dfltBultColor , "bultColor:", bultColor)
 
@@ -761,7 +784,7 @@ function getTextWidth(html) {
                 const bulletText = getNumTypeNum(buNum, bulletIndex);
 
                 bullet = "<div style='" + marLStr + marRStr;
-                if (bultColor[0] !== undefined && bultColor[0] != "") {
+                if (bultColor && bultColor[0] !== undefined && bultColor[0] != "") {
                     let bulletNumColorValue = bultColor[0];
                     if (bulletNumColorValue.length === 8) {
                         let colorObj = tinycolor(bulletNumColorValue);
