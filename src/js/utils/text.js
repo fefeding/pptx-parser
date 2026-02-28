@@ -140,7 +140,20 @@ function getTextWidth(html) {
                 let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 let isRTL = (prg_dir == "pregraph-rtl");
-                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + "' class='slide-prgrph " + PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj) + ` ${prg_dir} ` + cssName + "' >";
+                let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj);
+                // 在外层div上也设置justify-content，确保对齐正确
+                // 注意：表格单元格的对齐由td元素的text-align控制，这里不设置justify-content
+                let outerFlexStyle = "";
+                if (type !== "table") {
+                    if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
+                        outerFlexStyle = "justify-content: flex-end;";
+                    } else if (horizontalAlign === "h-mid") {
+                        outerFlexStyle = "justify-content: center;";
+                    } else {
+                        outerFlexStyle = "justify-content: flex-start;";
+                    }
+                }
+                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + outerFlexStyle + "' class='slide-prgrph " + horizontalAlign + ` ${prg_dir} ` + cssName + "' >";
                 let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? buText_ary[1] + buText_ary[2] : 0;
@@ -225,7 +238,6 @@ function getTextWidth(html) {
                     prg_width = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
                 }
                 let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "white-space: pre-wrap;";
-                let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj, spNode);
 
 
                 let textAlignStyle = "";
@@ -239,16 +251,21 @@ function getTextWidth(html) {
                     textAlignStyle = "text-align: left;";
                 }
                 // 为了确保右对齐生效，添加flex布局的justify-content属性
+                // 注意：表格单元格的对齐由td元素的text-align控制，这里不设置justify-content
                 let flexStyle = "";
-                if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
-                    flexStyle = "justify-content: flex-end;";
-                } else if (horizontalAlign === "h-mid") {
-                    flexStyle = "justify-content: center;";
-                } else {
-                    flexStyle = "justify-content: flex-start;";
+                if (type !== "table") {
+                    if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
+                        flexStyle = "justify-content: flex-end;";
+                    } else if (horizontalAlign === "h-mid") {
+                        flexStyle = "justify-content: center;";
+                    } else {
+                        flexStyle = "justify-content: flex-start;";
+                    }
                 }
+                // 根据 RTL 设置 direction 属性
+                let directionStyle = isRTL ? "direction: rtl;" : "direction: ltr;";
                 text += "<div style='display: flex;" + flexStyle + textContainerWidth + "'>";
-                text += "<div style='direction: initial;" + whiteSpaceStyle + margin + textAlignStyle + "'>";
+                text += "<div style='" + directionStyle + whiteSpaceStyle + margin + textAlignStyle + "'>";
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
@@ -1452,11 +1469,14 @@ function getTextWidth(html) {
             /////////////////////////////////////////Amir////////////////////////////////////////////////
             let getTblPr = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblPr"]);
             let getColsGrid = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblGrid", "a:gridCol"]);
+            // PPTX中的rtl属性通常表示文本方向，而不是表格布局方向
+            // 不在table标签上设置dir属性，避免列顺序反转
+            // 单元格内部的文本会根据自身的RTL设置正确显示
             let tblDir = "";
-            if (getTblPr !== undefined) {
-                let isRTL = getTblPr["attrs"]["rtl"];
-                tblDir = (isRTL == 1 ? "dir=rtl" : "dir=ltr");
-            }
+            // if (getTblPr !== undefined) {
+            //     let isRTL = getTblPr["attrs"]["rtl"];
+            //     tblDir = (isRTL == 1 ? "dir=rtl" : "dir=ltr");
+            // }
             let firstRowAttr = getTblPr["attrs"]["firstRow"]; //associated element <a:firstRow> in the table styles
             let firstColAttr = getTblPr["attrs"]["firstCol"]; //associated element <a:firstCol> in the table styles
             let lastRowAttr = getTblPr["attrs"]["lastRow"]; //associated element <a:lastRow> in the table styles
@@ -1888,11 +1908,50 @@ function getTextWidth(html) {
             }
             
 
-            let text = await PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj, total_col_width);//tableStyles
+            let text = await PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, "table", undefined, warpObj, total_col_width);//tableStyles
 
             if (total_col_width != 0 /*&& row_idx == 0*/) {
                 colWidth = parseInt(total_col_width) * SLIDE_FACTOR;
                 colStyl += `width:${colWidth}px;`;
+            }
+
+            //cell horizontal alignment
+            let cellAlign = "";
+            // 获取表格单元格文本的RTL状态，以确定正确的对齐方式
+            let textBodyNode = tcNodes["a:txBody"];
+            let prg_dir = "";
+            if (textBodyNode !== undefined) {
+                // 获取段落的RTL状态
+                let pNodes = textBodyNode["a:p"];
+                if (pNodes !== undefined) {
+                    if (Array.isArray(pNodes) && pNodes.length > 0) {
+                        prg_dir = PPTXStyleUtils.getPregraphDir(pNodes[0], textBodyNode, 0, "table", warpObj);
+                    } else {
+                        prg_dir = PPTXStyleUtils.getPregraphDir(pNodes, textBodyNode, 0, "table", warpObj);
+                    }
+                }
+            }
+            let isRTL = (prg_dir == "pregraph-rtl");
+
+            // 获取水平对齐属性
+            if (textBodyNode !== undefined) {
+                let pNodes = textBodyNode["a:p"];
+                if (pNodes !== undefined) {
+                    let firstP = Array.isArray(pNodes) ? pNodes[0] : pNodes;
+                    let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(firstP, textBodyNode, 0, "table", prg_dir, warpObj);
+                    if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
+                        cellAlign = isRTL ? "text-align: left;" : "text-align: right;";
+                    } else if (horizontalAlign === "h-mid") {
+                        cellAlign = "text-align: center;";
+                    } else if (horizontalAlign === "h-left-rtl") {
+                        cellAlign = "text-align: right;";
+                    } else {
+                        cellAlign = isRTL ? "text-align: right;" : "text-align: left;";
+                    }
+                }
+            }
+            if (cellAlign !== "") {
+                colStyl += cellAlign;
             }
 
             //cell bords

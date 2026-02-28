@@ -50,10 +50,13 @@ async function genDiagram(node, wrapObj, source, shapeType, settings) {
     let result = '';
 
     if (dgmDrwSpArray !== undefined) {
+        const results = [];
         for (const dspSp of dgmDrwSpArray) {
             const txBody = PPTXXmlUtils.getTextByPathList(dspSp, ['p:txBody', 'a:p', 'a:r', 'a:t']);
-            result += processSpNode(dspSp, node, wrapObj, 'diagramBg', shapeType);
+            results.push(processSpNode(dspSp, node, wrapObj, 'diagramBg', shapeType));
         }
+        const resolvedResults = await Promise.all(results);
+        result = resolvedResults.join('');
     }
 
     const position = PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined, shapeType);

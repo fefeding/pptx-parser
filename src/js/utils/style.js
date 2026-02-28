@@ -3061,6 +3061,21 @@ function getFillType(node) {
             let lvl = 1
             var spcBefNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
             var spcAftNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
+            var spcBefType = "Pts";
+            var spcAftType = "Pts";
+            // 如果没有找到 spcPts，则查找 spcPct（百分比类型的段落间距）
+            if (spcBefNode === undefined) {
+                spcBefNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPct", "attrs", "val"]);
+                if (spcBefNode !== undefined) {
+                    spcBefType = "Pct";
+                }
+            }
+            if (spcAftNode === undefined) {
+                spcAftNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPct", "attrs", "val"]);
+                if (spcAftNode !== undefined) {
+                    spcAftType = "Pct";
+                }
+            }
             let lnSpcNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:lnSpc", "a:spcPct", "attrs", "val"]);
             let lnSpcNodeType = "Pct";
             if (lnSpcNode === undefined) {
@@ -3106,6 +3121,41 @@ function getFillType(node) {
             // if(spcAftNode !== undefined){
             //     //check in layout and then in master
             // }
+            // 首先检查slide本身的lstStyle（PPTX标准：段落样式继承顺序：pPr -> lstStyle -> layout -> master）
+            let lstStyle = textBodyNode["a:lstStyle"];
+            if (lstStyle !== undefined && (spcBefNode === undefined || spcAftNode === undefined || lnSpcNode === undefined)) {
+                let lvlKey = "a:lvl" + lvl + "pPr";
+                let lstLvlNode = lstStyle[lvlKey];
+                if (lstLvlNode !== undefined) {
+                    if (spcBefNode === undefined) {
+                        spcBefNode = PPTXXmlUtils.getTextByPathList(lstLvlNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
+                        if (spcBefNode === undefined) {
+                            spcBefNode = PPTXXmlUtils.getTextByPathList(lstLvlNode, ["a:spcBef", "a:spcPct", "attrs", "val"]);
+                            if (spcBefNode !== undefined) {
+                                spcBefType = "Pct";
+                            }
+                        }
+                    }
+                    if (spcAftNode === undefined) {
+                        spcAftNode = PPTXXmlUtils.getTextByPathList(lstLvlNode, ["a:spcAft", "a:spcPts", "attrs", "val"]);
+                        if (spcAftNode === undefined) {
+                            spcAftNode = PPTXXmlUtils.getTextByPathList(lstLvlNode, ["a:spcAft", "a:spcPct", "attrs", "val"]);
+                            if (spcAftNode !== undefined) {
+                                spcAftType = "Pct";
+                            }
+                        }
+                    }
+                    if (lnSpcNode === undefined) {
+                        lnSpcNode = PPTXXmlUtils.getTextByPathList(lstLvlNode, ["a:lnSpc", "a:spcPct", "attrs", "val"]);
+                        if (lnSpcNode === undefined) {
+                            lnSpcNode = PPTXXmlUtils.getTextByPathList(lstLvlNode, ["a:lnSpc", "a:spcPts", "attrs", "val"]);
+                            if (lnSpcNode !== undefined) {
+                                lnSpcNodeType = "Pts";
+                            }
+                        }
+                    }
+                }
+            }
             let isInLayoutOrMaster = true;
             if(type == "shape" || type == "textBox"){
                 isInLayoutOrMaster = false;
@@ -3117,30 +3167,22 @@ function getFillType(node) {
 
                     if (spcBefNode === undefined) {
                         spcBefNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
-                        // if(spcBefNode !== undefined){
-                        //     spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "pt;"
-                        // } 
-                        // else{
-                        //    //i did not found case with percentage 
-                        //     spcBefNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcBef", "a:spcPct","attrs","val"]);
-                        //     if(spcBefNode !== undefined){
-                        //         spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "%;"
-                        //     }
-                        // }
+                        if (spcBefNode === undefined) {
+                            spcBefNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcBef", "a:spcPct", "attrs", "val"]);
+                            if (spcBefNode !== undefined) {
+                                spcBefType = "Pct";
+                            }
+                        }
                     }
 
                     if (spcAftNode === undefined) {
                         spcAftNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcAft", "a:spcPts", "attrs", "val"]);
-                        // if(spcAftNode !== undefined){
-                        //     spcAft = "margin-bottom:" + parseInt(spcAftNode)/100 + "pt;"
-                        // }
-                        // else{
-                        //    //i did not found case with percentage 
-                        //     spcAftNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcAft", "a:spcPct","attrs","val"]);
-                        //     if(spcAftNode !== undefined){
-                        //         spcBef = "margin-bottom:" + parseInt(spcAftNode)/100 + "%;"
-                        //     }
-                        // }
+                        if (spcAftNode === undefined) {
+                            spcAftNode = PPTXXmlUtils.getTextByPathList(laypPrNode, ["a:spcAft", "a:spcPct", "attrs", "val"]);
+                            if (spcAftNode !== undefined) {
+                                spcAftType = "Pct";
+                            }
+                        }
                     }
 
                     if (lnSpcNode === undefined) {
@@ -3187,30 +3229,22 @@ function getFillType(node) {
                 if (inLvlNode !== undefined) {
                     if (spcBefNode === undefined) {
                         spcBefNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPts", "attrs", "val"]);
-                        // if(spcBefNode !== undefined){
-                        //     spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "pt;"
-                        // } 
-                        // else{
-                        //    //i did not found case with percentage 
-                        //     spcBefNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPct","attrs","val"]);
-                        //     if(spcBefNode !== undefined){
-                        //         spcBef = "margin-top:" + parseInt(spcBefNode)/100 + "%;"
-                        //     }
-                        // }
+                        if (spcBefNode === undefined) {
+                            spcBefNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcBef", "a:spcPct", "attrs", "val"]);
+                            if (spcBefNode !== undefined) {
+                                spcBefType = "Pct";
+                            }
+                        }
                     }
 
                     if (spcAftNode === undefined) {
                         spcAftNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcAft", "a:spcPts", "attrs", "val"]);
-                        // if(spcAftNode !== undefined){
-                        //     spcAft = "margin-bottom:" + parseInt(spcAftNode)/100 + "pt;"
-                        // }
-                        // else{
-                        //    //i did not found case with percentage 
-                        //     spcAftNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcAft", "a:spcPct","attrs","val"]);
-                        //     if(spcAftNode !== undefined){
-                        //         spcBef = "margin-bottom:" + parseInt(spcAftNode)/100 + "%;"
-                        //     }
-                        // }
+                        if (spcAftNode === undefined) {
+                            spcAftNode = PPTXXmlUtils.getTextByPathList(inLvlNode, ["a:spcAft", "a:spcPct", "attrs", "val"]);
+                            if (spcAftNode !== undefined) {
+                                spcAftType = "Pct";
+                            }
+                        }
                     }
 
                     if (lnSpcNode === undefined) {
@@ -3227,10 +3261,22 @@ function getFillType(node) {
             let spcBefor = 0, spcAfter = 0, spcLines = 0;
             let marginTopBottomStr = "";
             if (spcBefNode !== undefined) {
-                spcBefor = parseInt(spcBefNode) / 100;
+                if (spcBefType === "Pct") {
+                    // 百分比类型：值以千分之一为单位，如 20000 = 20000‰ = 20倍行高
+                    spcBefor = parseInt(spcBefNode) / 1000;
+                } else {
+                    // 点数类型：值以百分之一磅为单位，需要除以 100 转换为 pt
+                    spcBefor = parseInt(spcBefNode) / 100;
+                }
             }
             if (spcAftNode !== undefined) {
-                spcAfter = parseInt(spcAftNode) / 100;
+                if (spcAftType === "Pct") {
+                    // 百分比类型
+                    spcAfter = parseInt(spcAftNode) / 1000;
+                } else {
+                    // 点数类型
+                    spcAfter = parseInt(spcAftNode) / 100;
+                }
             }
 
             // 处理行间距（lnSpc）
@@ -3270,19 +3316,37 @@ function getFillType(node) {
 
             // 段落前间距
             if (spcBefNode !== undefined) {
-                // 转换为像素（假设1pt = 1.33px）
-                let marginTop = spcBefor * 1.33;
-                // 减小段落前间距，避免行距过大
-                marginTop = Math.max(0, marginTop * 0.8);
+                let marginTop;
+                if (spcBefType === "Pct") {
+                    // 百分比类型：相对于行高
+                    // PPTX中 spcPct 值以千分之一为单位
+                    // 实际测试发现，某些PPT文件中的值（如20000）会设置得非常大
+                    // 但在PPT中实际渲染时并不会完全按照这个值显示
+                    // 可能是PPT内部有最大值限制或特殊处理
+                    // 根据经验，将超过500‰（50%行高）的值限制为50%更符合实际效果
+                    let lineHeightPx = fontSize || 18; // 默认 18px
+                    let spcBeforLimited = Math.min(spcBefor, 0.5); // 限制最大为0.5（即50%行高）
+                    marginTop = lineHeightPx * spcBeforLimited;
+                } else {
+                    // 点数类型：转换为像素（假设1pt = 1.33px）
+                    marginTop = spcBefor * 1.33;
+                }
                 marginTopBottomStr += "margin-top: " + marginTop + "px;";
             }
-            
+
             // 段落后间距
             if (spcAftNode !== undefined) {
-                // 转换为像素（假设1pt = 1.33px）
-                let marginBottom = spcAfter * 1.33;
-                // 减小段落后间距，避免行距过大
-                marginBottom = Math.max(0, marginBottom * 0.8);
+                let marginBottom;
+                if (spcAftType === "Pct") {
+                    // 百分比类型：相对于行高
+                    let lineHeightPx = fontSize || 18; // 默认 18px
+                    // 同样对过大的值进行限制
+                    let spcAfterLimited = Math.min(spcAfter, 0.5);
+                    marginBottom = lineHeightPx * spcAfterLimited;
+                } else {
+                    // 点数类型：转换为像素
+                    marginBottom = spcAfter * 1.33;
+                }
                 marginTopBottomStr += "margin-bottom: " + marginBottom + "px;";
             }
 
@@ -3445,6 +3509,14 @@ function getFillType(node) {
                 rtl = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (rtl === undefined && type != "shape") {
                     rtl = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
+                }
+            }
+
+            // 检查 bodyPr 的 rtlCol 属性（表格单元格和文本框的RTL设置）
+            if (rtl === undefined && textBodyNode !== undefined) {
+                let rtlCol = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "rtlCol"]);
+                if (rtlCol !== undefined) {
+                    rtl = rtlCol;
                 }
             }
 
