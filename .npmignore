@@ -3,6 +3,7 @@
 docs
 test
 node_modules
+examples/vue-demo/node_modules
 templates
 examples
 .DS_Store

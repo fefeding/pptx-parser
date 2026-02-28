@@ -252,17 +252,17 @@ export interface PptxJsonResult {
      * 幻灯片JSON结果数组
      */
     slides: SlideJson[];
-    
+
     /**
      * 幻灯片大小信息
      */
     slideSize: SlideSize;
-    
+
     /**
      * 缩略图
      */
     thumbnail: string | null;
-    
+
     /**
      * 样式信息
      */
@@ -272,7 +272,7 @@ export interface PptxJsonResult {
          */
         global: string;
     };
-    
+
     /**
      * 元数据
      */
@@ -330,11 +330,114 @@ export interface PptxJsonResult {
          */
         version?: string;
     };
-    
+
     /**
      * 图表数据
      */
     charts: ChartData[];
+}
+
+/**
+ * 文件信息
+ */
+export interface FileInfo {
+    /**
+     * 文件路径
+     */
+    name: string;
+    /**
+     * 是否为目录
+     */
+    dir: boolean;
+    /**
+     * 解压后大小
+     */
+    size: number;
+}
+
+/**
+ * 文本内容
+ */
+export interface TextContent {
+    /**
+     * 类型为 text
+     */
+    type: 'text';
+    /**
+     * 文本内容
+     */
+    content: string;
+}
+
+/**
+ * 图片内容
+ */
+export interface ImageContent {
+    /**
+     * 类型为 image
+     */
+    type: 'image';
+    /**
+     * 图片格式
+     */
+    format: string;
+    /**
+     * Base64 编码
+     */
+    base64: string;
+    /**
+     * Data URL
+     */
+    dataUrl: string;
+}
+
+/**
+ * 二进制内容
+ */
+export interface BinaryContent {
+    /**
+     * 类型为 binary
+     */
+    type: 'binary';
+    /**
+     * Base64 编码
+     */
+    base64: string;
+}
+
+/**
+ * 错误内容
+ */
+export interface ErrorContent {
+    /**
+     * 类型为 error
+     */
+    type: 'error';
+    /**
+     * 错误信息
+     */
+    error: string;
+}
+
+/**
+ * 文件内容（联合类型）
+ */
+export type FileContent = TextContent | ImageContent | BinaryContent | ErrorContent;
+
+/**
+ * PPTX转文件索引和内容结果
+ */
+export interface PptxFilesResult {
+    /**
+     * 文件索引列表
+     */
+    files: FileInfo[];
+    /**
+     * 文件内容映射
+     */
+    content: {
+        [key: string]: FileContent;
+    };
 }
 
 /**
@@ -451,6 +554,15 @@ export declare function pptxToJson(
 ): Promise<PptxJsonResult | null>;
 
 /**
+ * PPTX转文件索引和内容转换器
+ * @param fileData - PPTX文件数据
+ * @returns 文件索引和内容结果
+ */
+export declare function pptxToFiles(
+    fileData: ArrayBuffer
+): Promise<PptxFilesResult>;
+
+/**
  * PPTX解析器命名空间
  */
 export declare namespace pptxParser {
@@ -458,11 +570,16 @@ export declare namespace pptxParser {
      * PPTX转HTML转换器
      */
     const pptxToHtml: typeof import('./src/js/index').pptxToHtml;
-    
+
     /**
      * PPTX转JSON转换器
      */
     const pptxToJson: typeof import('./src/js/index').pptxToJson;
+
+    /**
+     * PPTX转文件索引和内容转换器
+     */
+    const pptxToFiles: typeof import('./src/js/index').pptxToFiles;
 }
 
 /**
@@ -473,6 +590,7 @@ declare global {
         pptxParser: {
             pptxToHtml: typeof import('./src/js/index').pptxToHtml;
             pptxToJson: typeof import('./src/js/index').pptxToJson;
+            pptxToFiles: typeof import('./src/js/index').pptxToFiles;
         };
     }
 }
