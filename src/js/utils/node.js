@@ -337,7 +337,6 @@ async function processPicNode(node, wrapObj, source, shapeType, settings) {
     const imgName = resObj[rid]?.target;
 
     if (imgName === undefined) {
-        console.warn('Image reference not found in resObj for rid:', rid);
         return '';
     }
 
@@ -355,7 +354,6 @@ async function processPicNode(node, wrapObj, source, shapeType, settings) {
     // 使用改进的媒体文件查找方法
     const imgFile = PPTXXmlUtils.findMediaFile(zip, imgName, context, '');
     if (imgFile === null) {
-        console.warn('Image file not found in processPicNode:', imgName);
         return '';
     }
     
@@ -399,9 +397,7 @@ async function processPicNode(node, wrapObj, source, shapeType, settings) {
             const vdoFileExt = PPTXXmlUtils.extractFileExtension(videoFile).toLowerCase();
             if (['mp4', 'webm', 'ogg'].includes(vdoFileExt)) {
                 const vdoFileObj = PPTXXmlUtils.findMediaFile(zip, videoFile, context, '');
-                if (vdoFileObj === null) {
-                    console.warn('Video file not found:', videoFile);
-                } else {
+                if (vdoFileObj !== null) {
                     const uInt8Array = await vdoFileObj.async("arraybuffer");
                     const vdoMimeType = PPTXXmlUtils.getMimeType(vdoFileExt);
                     const blob = new Blob([uInt8Array], { type: vdoMimeType });
@@ -427,23 +423,21 @@ async function processPicNode(node, wrapObj, source, shapeType, settings) {
         
         if (['mp3', 'wav', 'ogg'].includes(audioFileExt)) {
             const audioFileObj = PPTXXmlUtils.findMediaFile(zip, audioFile, context, '');
-            if (audioFileObj === null) {
-                console.warn('Audio file not found:', audioFile);
-            } else {
+            if (audioFileObj !== null) {
                 const uInt8ArrayAudio = await audioFileObj.async("arraybuffer");
                 const blobAudio = new Blob([uInt8ArrayAudio]);
                 audioBlob = URL.createObjectURL(blobAudio);
-                
+
                 const cx = parseInt(xfrmNode['a:ext'].attrs.cx) * 20;
                 const cy = parseInt(xfrmNode['a:ext'].attrs.cy);
                 const x = parseInt(xfrmNode['a:off'].attrs.x) / 2.5;
                 const y = parseInt(xfrmNode['a:off'].attrs.y);
-                
+
                 audioObj = {
                     'a:ext': { attrs: { cx, cy } },
                     'a:off': { attrs: { x, y } }
                 };
-                
+
                 audioPlayerFlag = true;
                 mediaSupportFlag = true;
                 mediaPicFlag = true;

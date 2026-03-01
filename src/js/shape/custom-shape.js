@@ -235,9 +235,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                 if (isNaN(swAng)) swAng = 0;
                 var endAng = stAng + swAng;
 
-                if (isNaN(hR) || isNaN(wR) || isNaN(stAng) || isNaN(swAng)) {
-                    console.warn("Invalid arc parameters detected");
-                } else {
+                if (!isNaN(hR) && !isNaN(wR) && !isNaN(stAng) && !isNaN(swAng)) {
                     d += shapeArcFn(wR, hR, wR, hR, stAng, endAng, false);
                 }
             } else if (multiSapeAry[k].type == "quadBezTo") {
@@ -251,8 +249,6 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                     var endX = quadBzPt[1].x * cX;
                     var endY = quadBzPt[1].y * cY;
                     d += "Q" + ctrlX + "," + ctrlY + " " + endX + "," + endY;
-                } else {
-                    console.warn("Invalid quadBezTo parameters detected");
                 }
             } else if (multiSapeAry[k].type == "close") {
                 d += "z";

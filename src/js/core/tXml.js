@@ -474,10 +474,6 @@ tXml.parseStream = function(source, chunkSize) {
         }
     });
 
-    source.on('end', function() {
-        console.log('end');
-    });
-
     return source;
 };
 

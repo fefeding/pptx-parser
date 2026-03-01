@@ -71,7 +71,6 @@ export const PPTXShapeUtils = (function() {
 
             var result = "";
             var shpId = PPTXXmlUtils.getTextByPathList(node, ["attrs", "order"]);
-            //console.log("shpId: ",shpId)
             var shapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
 
             //custGeom - Amir
@@ -97,7 +96,7 @@ export const PPTXShapeUtils = (function() {
             //rotate
             var rotate = PPTXXmlUtils.angleToDegrees(PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
 
-            //console.log("genShape rotate: " + rotate);
+
             var txtRotate;
             var txtXframeNode = PPTXXmlUtils.getTextByPathList(node, ["p:txXfrm"]);
             if (txtXframeNode !== undefined) {
@@ -153,21 +152,10 @@ export const PPTXShapeUtils = (function() {
                 var drawW = w;
                 var drawH = h;
 
-                // 调试日志
-                if (w === 0 || h === 0) {
-                    console.log('[DEBUG] Shape with zero dimension detected:', {
-                        name: name,
-                        id: id,
-                        shapType: shapType,
-                        isConnector: isConnector,
-                        w: w,
-                        h: h,
-                        ext: ext
-                    });
-                }
+
 
                 var svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
-                //console.log("name:", name, "svgCssName: ", svgCssName)
+
                 var hasCssEffect = false; // Track if there's a CSS effect (like shadow)
                 var effectsClassName = svgCssName + "_effects";
 
@@ -184,7 +172,7 @@ export const PPTXShapeUtils = (function() {
                     // 更新w和h为SVG容器尺寸，这样后续代码会使用正确的尺寸
                     w = svgW;
                     h = svgH;
-                    console.log('[DEBUG] Connector size adjusted:', { name: name, svgW: svgW, svgH: svgH });
+
                 } else {
                     svgSizeStyle = PPTXXmlUtils.getSize(slideXfrmNode, undefined, undefined);
                 }
@@ -200,7 +188,7 @@ export const PPTXShapeUtils = (function() {
                 result += '<defs>'
                 // Fill Color
                 var fillColor = await PPTXStyleUtils.getShapeFill(node, pNode, true, warpObj, source);
-                //console.log("genShape: fillColor: ", fillColor)
+
                 var grndFillFlg = false;
                 var imgFillFlg = false;
                 var clrFillType = PPTXStyleUtils.getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
@@ -210,7 +198,7 @@ export const PPTXShapeUtils = (function() {
                 // if (clrFillType == "") {
                 //     var clrFillType = PPTXStyleUtils.getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:style","a:fillRef"]));
                 // }
-                //console.log("genShape: fillColor: ", fillColor, ", clrFillType: ", clrFillType, ", node: ", node)
+
                 /////////////////////////////////////////                    
                 if (clrFillType == "GRADIENT_FILL") {
                     grndFillFlg = true;
@@ -365,12 +353,6 @@ export const PPTXShapeUtils = (function() {
                 if ((sp3dNode !== undefined || scene3dNode !== undefined) && !shadowFromEffectStyle) {
                     // Disable shadow when 3D effects are present on the shape itself
                     hasOuterShadow = false;
-                    // DEBUG: Log for shapes with 3D effects
-                    if (name === "TextBox 2") {
-                        console.log("=== TextBox 2: 3D effects detected, disabling shadow ===");
-                        console.log("sp3d:", sp3dNode ? "present" : "none");
-                        console.log("scene3d:", scene3dNode ? "present" : "none");
-                    }
                 }
 
 
@@ -5199,7 +5181,6 @@ export const PPTXShapeUtils = (function() {
                     }
                     case undefined:
                     default:
-                        console.warn("Undefine shape type.(" + shapType + ")");
                 }
 
                 result += "</svg>";

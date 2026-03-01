@@ -215,7 +215,6 @@ function processSingleMsg(data, callbacks) {
     let chart = null;
 
     if (!chartData || !Array.isArray(chartData) || chartData.length === 0) {
-        console.warn(`Invalid chart data for chart ID: ${chartId}`);
         return;
     }
 
@@ -271,7 +270,6 @@ function processSingleMsg(data, callbacks) {
             break;
 
         default:
-            console.warn(`Unknown chart type: ${chartType}`);
     }
 
     if (chart !== null && callbacks.onChartReady) {

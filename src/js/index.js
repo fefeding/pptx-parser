@@ -56,7 +56,6 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
             }
         }
     } catch (error) {
-        console.error("Error parsing metadata:", error);
         // If error, return empty metadata object
         metadata = {};
     }
@@ -450,7 +449,6 @@ async function pptxToHtml(fileData, options) {
      */
     async function convertToHtml(file) {
         if (file.byteLength < 10) {
-            console.error("Invalid file: file too small");
             if (callbacks.onError) {
                 callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
             }
@@ -577,7 +575,6 @@ async function pptxToJson(fileData, options) {
      */
     async function convertToJson(file) {
         if (file.byteLength < 10) {
-            console.error("Invalid file: file too small");
             if (callbacks.onError) {
                 callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
             }
@@ -662,7 +659,6 @@ async function pptxToJson(fileData, options) {
  */
 async function pptxToFiles(fileData) {
     if (fileData.byteLength < 10) {
-        console.error("Invalid file: file too small");
         throw new Error("Invalid file: file too small");
     }
 
@@ -718,7 +714,6 @@ async function pptxToFiles(fileData) {
                     };
                 }
             } catch (error) {
-                console.error(`Error reading file ${relativePath}:`, error);
                 result.content[relativePath] = {
                     type: 'error',
                     error: error.message

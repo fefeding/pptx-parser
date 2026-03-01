@@ -72,7 +72,7 @@ function getTextWidth(html) {
             let isRTLCol = (rtlColAttr === "1" && wrapAttr === undefined);
             let isNoWrap = (wrapAttr === "none");
             let isAutoFit = (spAutoFitNode !== undefined);
-            //console.log("genTextBody spNode: ", PPTXXmlUtils.getTextByPathList(spNode,["p:spPr","a:xfrm","a:ext"]));
+
             
             let apNode = textBodyNode["a:p"];
             if (apNode.constructor !== Array) {
@@ -101,11 +101,9 @@ function getTextWidth(html) {
                         brNode.shift();
                     }
                     rNode = rNode.concat(brNode)
-                    //console.log("single a:p  rNode:", rNode, "brNode:", brNode )
                     rNode.sort((a, b) => {
                         return a.attrs.order - b.attrs.order;
                     });
-                    //console.log("sorted rNode:",rNode)
                 }
                 //rtlStr = "";//`dir='${isRTL}'`;
                 let styleText = "";
@@ -131,7 +129,7 @@ function getTextWidth(html) {
                         "text": styleText
                     };
                 }
-                //console.log("textBodyNode: ", textBodyNode["a:lstStyle"])
+
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
                 let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
                 let sld_prg_width_val = (prg_width_node !== undefined && prg_width_node !== null) ? Math.round(parseInt(prg_width_node) * SLIDE_FACTOR * 100) / 100 : null;
@@ -224,7 +222,7 @@ function getTextWidth(html) {
                 prg_width_node = Math.round(prg_width_node * 100) / 100;
                 if (isBullate) {
                     //get prg_width_node if there is a bulltes
-                    //console.log("total_text_len: ", total_text_len, "prg_width_node:", prg_width_node)
+
 
                     if (total_text_len < prg_width_node ){
                         prg_width_node = total_text_len + bu_width;
@@ -336,7 +334,7 @@ function getTextWidth(html) {
     }
         
         async function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
-            //console.log("genBuChar node: ", node, ", spNode: ", spNode, ", pFontStyle: ", pFontStyle, "type", type)
+
             ///////////////////////////////////////Amir///////////////////////////////
             let sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
             let lstStyle = textBodyNode["a:lstStyle"];
@@ -345,15 +343,7 @@ function getTextWidth(html) {
             if (rNode !== undefined && rNode.constructor === Array) {
                 rNode = rNode[0]; //bullet only to first "a:r"
             }
-            console.log('[DEBUG] genBuChar node structure:', {
-                has_r: !!node['a:r'],
-                has_pPr: !!node['a:pPr'],
-                pPr_keys: node['a:pPr'] ? Object.keys(node['a:pPr']) : [],
-                rNode: rNode ? {
-                    has_rPr: !!rNode['a:rPr'],
-                    rPr_keys: rNode['a:rPr'] ? Object.keys(rNode['a:rPr']) : []
-                } : null
-            });
+
             let lvl = parseInt (PPTXXmlUtils.getTextByPathList(node["a:pPr"], ["attrs", "lvl"])) + 1;
             if (isNaN(lvl)) {
                 lvl = 1;
@@ -365,16 +355,11 @@ function getTextWidth(html) {
                 dfltBultColor = await PPTXStyleUtils.getFontColorPr(rNode, spNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
                 color_tye = dfltBultColor[2];
                 dfltBultSize = PPTXStyleUtils.getFontSize(rNode, textBodyNode, pFontStyle, lvl, type, warpObj);
-                // 调试：输出从 rNode 获取的颜色
-                console.log('[DEBUG] getFontColorPr result from rNode:', {
-                    dfltBultColor,
-                    color_tye,
-                    rPr: rNode['a:rPr']
-                });
+
             } else {
                 return "";
             }
-            //console.log("Bullet Size: " + bultSize);
+
 
             let bullet = "", marRStr = "", marLStr = "", margin_val=0, font_val=0;
             /////////////////////////////////////////////////////////////////
@@ -535,7 +520,7 @@ function getTextWidth(html) {
                     marLNode = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "marL"]);
                 }
             }
-            //console.log("genBuChar() isRTL", isRTL, "alignNode:", alignNode)
+
             if (marLNode !== undefined) {
                 let marginLeft = parseInt(marLNode) * SLIDE_FACTOR;
                 if (isRTL) {// && alignNode == "r") {
@@ -569,9 +554,7 @@ function getTextWidth(html) {
             if (buType != "TYPE_NONE") {
                 //let buFontAttrs = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs"]);
             }
-            //console.log("Bullet Type: " + buType);
-            //console.log("NumericTypr: " + buNum);
-            //console.log("buChar: " + (buChar === undefined?'':buChar.charCodeAt(0)));
+
             //get definde bullet COLOR
             if (buClrNode === undefined){
                 //lstStyle
@@ -593,21 +576,8 @@ function getTextWidth(html) {
                 bultColor = [defBultColor, "", "solid"];
                 color_tye = "solid";
             }
-            // 调试：对于编号类型，输出颜色信息
-            if (buType === "TYPE_NUMERIC") {
-                console.log('[DEBUG] Number bullet color:', {
-                    buType,
-                    buClrNode,
-                    defBultColor,
-                    pFontStyle,
-                    dfltBultColor,
-                    bultColor,
-                    rNodeColor: rNode ? rNode['a:rPr']?.['a:solidFill'] : undefined
-                });
-            }
-            //console.log("genBuChar node:", node, "pPrNode", pPrNode, " buClrNode: ", buClrNode, "defBultColor:", defBultColor,"dfltBultColor:" , dfltBultColor , "bultColor:", bultColor)
 
-            //console.log("genBuChar: buClrNode: ", buClrNode, "bultColor", bultColor)
+
             //get definde bullet SIZE
             if (buFontSize === undefined) {
                 buFontSize = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:buSzPts", "attrs", "val"]);
@@ -813,7 +783,7 @@ function getTextWidth(html) {
                 // if (isNaN(marginRight)) {
                 //     marginRight = 0;
                 // }
-                // //console.log("marginRight: "+marginRight)
+                // 
                 // //buPic
                 // if (isNaN(marginLeft)) {
                 //     marginLeft = 328600 * SLIDE_FACTOR;
@@ -830,21 +800,19 @@ function getTextWidth(html) {
                     //}else{
                     //buPicId = PPTXXmlUtils.getTextByPathList(buPic, ["a:blip", "attrs", "r:embed"]);
                     let imgPath = (warpObj["slideResObj"][buPicId] !== undefined) ? warpObj["slideResObj"][buPicId]["target"] : undefined;
-                    //console.log("imgPath: ", imgPath);
+
                     if (imgPath === undefined) {
-                        console.warn("Bullet image reference not found for buPicId:", buPicId);
                         buImg = "";
                     } else {
                         let imgFile = warpObj["zip"].file(imgPath);
                         if (imgFile === null) {
-                            console.warn("Bullet image file not found:", imgPath);
                             buImg = "";
                         } else {
                             let imgArrayBuffer = await imgFile.async("arraybuffer");
                             let imgExt = imgPath.split(".").pop();
                             let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
                             buImg = `<img src='data:${imgMimeType};base64,` + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer) + "' style='width: 100%;'/>"// height: 100%
-                            //console.log(`imgPath: ${imgPath}\nimgMimeType: `+imgMimeType)
+        
                         }
                     }
                 }
@@ -864,7 +832,7 @@ function getTextWidth(html) {
             //     bullet = "<div style='margin-left: " + 328600 * SLIDE_FACTOR * lvl + "px" +
             //         `; margin-right: ${0}px;'></div>`;
             // }
-            //console.log("genBuChar: width: ", $(bullet).outerWidth())
+
             return [bullet, margin_val, font_val];//$(bullet).outerWidth()];
         }
         function getHtmlBullet(typefaceNode, buChar) {
