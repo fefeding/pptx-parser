@@ -9,8 +9,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/ppt-parser.esm.js",
-      "require": "./dist/ppt-parser.cjs.js",
+      "import": "./src/js/index.js",
+      "require": "./src/js/index.js",
       "browser": "./dist/ppt-parser.browser.js",
       "types": "./index.d.ts"
     }
