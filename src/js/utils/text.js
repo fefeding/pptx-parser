@@ -66,6 +66,10 @@ function getTextWidth(html) {
             let pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
             let wrapAttr = PPTXXmlUtils.getTextByPathList(textBodyNode["a:bodyPr"], ["attrs", "wrap"]);
             let spAutoFitNode = PPTXXmlUtils.getTextByPathList(textBodyNode["a:bodyPr"], ["a:spAutoFit"]);
+            let rtlColAttr = PPTXXmlUtils.getTextByPathList(textBodyNode["a:bodyPr"], ["attrs", "rtlCol"]);
+            // 只有在没有 wrap 属性时，rtlCol="1" 才表示每个单词单独一行
+            // 如果有 wrap="square" 等属性，则表示正常自动换行
+            let isRTLCol = (rtlColAttr === "1" && wrapAttr === undefined);
             let isNoWrap = (wrapAttr === "none");
             let isAutoFit = (spAutoFitNode !== undefined);
             //console.log("genTextBody spNode: ", PPTXXmlUtils.getTextByPathList(spNode,["p:spPr","a:xfrm","a:ext"]));
@@ -1074,6 +1078,39 @@ function getTextWidth(html) {
     }
 
     /**
+     * hebrewAlphaNumeric - 将数字转换为希伯来字母编号格式
+     * @param {number} num - 数字
+     * @returns {string} 希伯来字母编号字符串
+     */
+    function hebrewAlphaNumeric(num) {
+        num = Number(num) - 1;
+        // 希伯来字母表（22个字母）
+        const hebrewLetters = [
+            'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט',
+            'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ',
+            'ק', 'ר', 'ש', 'ת'
+        ];
+        const hebrewLength = hebrewLetters.length;
+
+        if (num < hebrewLength) {
+            // 单字母（1-22）
+            return hebrewLetters[num];
+        } else if (num < hebrewLength * (hebrewLength + 1)) {
+            // 双字母（23-506）
+            const first = Math.floor(num / hebrewLength);
+            const second = num % hebrewLength;
+            return hebrewLetters[first] + hebrewLetters[second];
+        } else {
+            // 三字母（507+）
+            const third = num % hebrewLength;
+            const remaining = Math.floor(num / hebrewLength);
+            const second = remaining % hebrewLength;
+            const first = Math.floor(remaining / hebrewLength);
+            return hebrewLetters[first] + hebrewLetters[second] + hebrewLetters[third];
+        }
+    }
+
+    /**
      * archaicNumbers - 处理古数字格式
      * @param {Array} arr - 数字映射数组
      * @returns {Object} 包含format方法的对象
@@ -1179,7 +1216,8 @@ function getTextWidth(html) {
                 rtrnNum = romanize(num) + ") ";
                 break;
             case "hebrew2Minus":
-                rtrnNum = hebrew2Minus.format(num) + "-";
+                // 希伯来字母编号：使用现代希伯来字母（א, ב, ג, ד, ...）类似英文字母编号
+                rtrnNum = hebrewAlphaNumeric(num) + "-";
                 break;
             default:
                 rtrnNum = num;
@@ -1194,6 +1232,12 @@ function getTextWidth(html) {
             let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
             let text = node["a:t"];
+
+            // 检查是否启用 rtlCol 模式（每个单词单独一行）
+            // 只有在没有 wrap 属性时，rtlCol="1" 才表示每个单词单独一行
+            let rtlColAttr = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "rtlCol"]);
+            let wrapAttr = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "wrap"]);
+            let isRTLCol = (rtlColAttr === "1" && wrapAttr === undefined);
             //let text_count = text.length;
 
             let openElemnt = "<span";//"<bdi";
@@ -1476,10 +1520,32 @@ function getTextWidth(html) {
             if (linkID !== undefined && linkID != "") {
                 let linkURL = warpObj["slideResObj"][linkID]["target"];
                 linkURL = PPTXXmlUtils.escapeHtml(linkURL);
+                // 处理文本：制表符、换行符、多个连续空格
+                let processedText = text
+                    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')  // 制表符转4个空格
+                    .replace(/\n/g, "<br>")                      // 换行符转<br>
+                    .replace(/  +/g, (spaces) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
+
+                // 在 rtlCol 模式下，每个单词单独一行
+                if (isRTLCol) {
+                    processedText = processedText.split(/\s+/).filter(word => word.length > 0).join("<br>");
+                }
+
                 return openElemnt + ` class='text-block ${cssName}' style='` + text_style + `'><a href='${linkURL}' ` + linkColorSyle + `  ${linkTooltip} target='_blank'>` +
-                        text.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\s/g, "&nbsp;") + "</a>" + closeElemnt;
+                        processedText + "</a>" + closeElemnt;
             } else {
-                return openElemnt + ` class='text-block ${cssName}' style='` + text_style + "'>" + text.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\s/g, "&nbsp;") + closeElemnt;//"</bdi>";
+                // 处理文本：制表符、换行符、多个连续空格
+                let processedText = text
+                    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')  // 制表符转4个空格
+                    .replace(/\n/g, "<br>")                      // 换行符转<br>
+                    .replace(/  +/g, (spaces) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
+
+                // 在 rtlCol 模式下，每个单词单独一行
+                if (isRTLCol) {
+                    processedText = processedText.split(/\s+/).filter(word => word.length > 0).join("<br>");
+                }
+
+                return openElemnt + ` class='text-block ${cssName}' style='` + text_style + "'>" + processedText + closeElemnt;//"</bdi>";
             }
 
         }
