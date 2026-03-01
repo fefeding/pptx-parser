@@ -3054,7 +3054,7 @@ function getFillType(node) {
             //console.log("getContentDir() type:", type, "slideMasterTextStyles:", slideMasterTextStyles,"dirNode:",dirVal)
         }
 
-        function getVerticalMargins(pNode, textBodyNode, type, idx, warpObj) {
+        function getVerticalMargins(pNode, textBodyNode, type, idx, warpObj, totalParagraphs, paragraphIndex) {
             //margin-top ; 
             //a:pPr => a:spcBef => a:spcPts (/100) | a:spcPct (/?)
             //margin-bottom
@@ -3068,6 +3068,14 @@ function getFillType(node) {
             var spcAftNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
             var spcBefType = "Pts";
             var spcAftType = "Pts";
+            // 标记 spcBef 是否来自段落的显式设置（而非 lstStyle 的默认值）
+            var spcBefIsExplicit = (spcBefNode !== undefined);
+            // 标记是否应该减少 lstStyle 的默认 spcBef
+            // 当只有一个段落时，且是第一个段落，则减少 lstStyle 的默认 spcBef
+            var spcBefScale = 1.0;
+            if (!spcBefIsExplicit && totalParagraphs === 1 && paragraphIndex === 0) {
+                spcBefScale = 0.0; // 完全忽略第一个段落的默认 spcBef
+            }
             // 如果没有找到 spcPts，则查找 spcPct（百分比类型的段落间距）
             if (spcBefNode === undefined) {
                 spcBefNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPct", "attrs", "val"]);
@@ -3320,7 +3328,10 @@ function getFillType(node) {
             }
 
             // 段落前间距
-            if (spcBefNode !== undefined) {
+            // 只有当间距来自段落的显式设置（而非 lstStyle 的默认值）时才应用
+            // 或者当有多个段落时，lstStyle 的默认间距也是合理的（用于段落之间）
+            // 或者应用缩放比例（主要用于单个段落的情况）
+            if (spcBefNode !== undefined && (spcBefIsExplicit || spcBefScale > 0)) {
                 let marginTop;
                 if (spcBefType === "Pct") {
                     // 百分比类型：相对于行高
@@ -3331,12 +3342,17 @@ function getFillType(node) {
                     // 根据经验，将超过500‰（50%行高）的值限制为50%更符合实际效果
                     let lineHeightPx = fontSize || 18; // 默认 18px
                     let spcBeforLimited = Math.min(spcBefor, 0.5); // 限制最大为0.5（即50%行高）
+                    // 应用缩放比例（主要用于单个段落的情况）
+                    spcBeforLimited *= spcBefScale;
                     marginTop = lineHeightPx * spcBeforLimited;
                 } else {
                     // 点数类型：转换为像素（假设1pt = 1.33px）
-                    marginTop = spcBefor * 1.33;
+                    marginTop = spcBefor * 1.33 * spcBefScale;
                 }
-                marginTopBottomStr += "margin-top: " + marginTop + "px;";
+                // 只有当间距大于0时才应用
+                if (marginTop > 0) {
+                    marginTopBottomStr += "margin-top: " + marginTop + "px;";
+                }
             }
 
             // 段落后间距
