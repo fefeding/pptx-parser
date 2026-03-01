@@ -214,6 +214,175 @@ const result = await pptxToHtml(buffer);
 console.log(result.html);
 ```
 
+### Vue 中使用
+
+在 Vue 项目中使用 PPTX Parser，包括图表渲染功能。
+
+#### 1. 安装依赖
+
+```bash
+npm install @fefeding/ppt-parser echarts jszip
+```
+
+#### 2. 配置组件
+
+```vue
+<template>
+  <div class="pptx-viewer">
+    <!-- 文件上传 -->
+    <input type="file" accept=".pptx" @change="handleFileUpload" :disabled="loading" />
+    
+    <!-- PPT 预览区域 -->
+    <div v-if="slides.length > 0">
+      <div v-for="(slide, index) in slides" :key="index">
+        <div v-html="slide.html"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, nextTick, onMounted } from 'vue'
+import { pptxToHtml } from '@fefeding/ppt-parser'
+import JSZip from 'jszip'
+import * as echarts from 'echarts'
+import { chartRenderer } from './chart-renderer'  // 需要从示例中复制到项目
+
+// 初始化全局依赖（必须在解析前设置）
+onMounted(() => {
+  ;(window as any).JSZip = JSZip
+  ;(window as any).echarts = echarts
+  ;(window as any).chartRenderer = chartRenderer
+})
+
+const loading = ref(false)
+const slides = ref([])
+
+async function handleFileUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  loading.value = true
+
+  try {
+    // 读取文件为 ArrayBuffer
+    const fileData = await file.arrayBuffer()
+
+    // 解析 PPTX 文件
+    const result = await pptxToHtml(fileData, {
+      mediaProcess: true,      // 处理媒体文件
+      themeProcess: true,      // 处理主题样式
+      callbacks: {
+        onProgress: (percent: number) => {
+          console.log(`解析进度: ${percent}%`)
+        }
+      }
+    })
+
+    // 保存解析结果
+    slides.value = result.slides || []
+
+    // 等待 DOM 更新后注入全局样式
+    await nextTick()
+    if (result.styles?.global) {
+      applyGlobalStyles(result.styles.global)
+    }
+
+    // 渲染图表（关键步骤）
+    if (result.charts && result.charts.length > 0) {
+      await nextTick()
+      console.log('检测到图表:', result.charts.length, '个')
+      chartRenderer.renderCharts(result.charts)
+    }
+
+  } catch (error) {
+    console.error('PPTX 解析失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+function applyGlobalStyles(css: string) {
+  let styleEl = document.getElementById('pptx-global-styles')
+  if (!styleEl) {
+    styleEl = document.createElement('style')
+    styleEl.id = 'pptx-global-styles'
+    document.head.appendChild(styleEl)
+  }
+  styleEl.innerHTML = css
+}
+</script>
+
+<style>
+/* 引入 PPTX 样式文件 */
+@import '@fefeding/ppt-parser/src/css/pptxjs.css';
+</style>
+```
+
+#### 3. 图表渲染说明
+
+PPTX Parser 支持解析 PPTX 中的图表，并提供两种渲染方式：
+
+**方式一：使用内置图表渲染器（推荐）**
+
+需要从 [`examples/chart-lib/chart-renderer.js`](./examples/chart-lib/chart-renderer.js) 复制该文件到你的项目中。
+
+```typescript
+import { chartRenderer } from './chart-renderer'  // 从示例复制到你的项目
+
+// 确保已设置全局 echarts
+;(window as any).echarts = echarts
+
+// 解析完成后渲染图表
+if (result.charts && result.charts.length > 0) {
+  await nextTick() // 等待 DOM 更新
+  chartRenderer.renderCharts(result.charts)
+}
+```
+
+**方式二：自定义图表渲染**
+
+```typescript
+// 解析结果中的图表数据结构
+interface ChartData {
+  chartId: string      // 图表容器 ID
+  type: string         // 图表类型（bar, line, pie 等）
+  data: Array<any>     // 图表数据
+  style: object        // 图表样式
+}
+
+// 自定义渲染逻辑
+result.charts.forEach((chart: ChartData) => {
+  const element = document.getElementById(chart.chartId)
+  if (element) {
+    const myChart = echarts.init(element)
+    const option = convertToEChartsOption(chart) // 自定义转换函数
+    myChart.setOption(option)
+  }
+})
+```
+
+#### 4. 完整示例
+
+参考 [`examples/vue-demo`](./examples/vue-demo) 目录查看完整的使用示例，包括：
+- 文件上传处理
+- 进度显示
+- 全屏预览
+- 样式注入
+- 图表渲染
+
+**重要**：图表渲染器 `chart-renderer.js` 位于 [`examples/chart-lib/chart-renderer.js`](./examples/chart-lib/chart-renderer.js)，需要将其复制到你的 Vue 项目中使用。
+
+#### 5. 注意事项
+
+- **全局依赖设置**：必须在解析前设置 `window.JSZip`、`window.echarts` 和 `window.chartRenderer`
+- **图表渲染器**：需要从 [`examples/chart-lib/chart-renderer.js`](./examples/chart-lib/chart-renderer.js) 复制到你的项目中
+- **样式加载**：需要引入 PPTX Parser 的样式文件 `pptxjs.css`
+- **DOM 更新**：渲染图表前必须使用 `nextTick()` 等待 DOM 更新完成
+- **图表容器**：确保图表容器已正确挂载到 DOM 中
+- **响应式处理**：ECharts 实例会自动监听窗口大小变化并调整
+
 ## 使用场景
 
 - 📊 在线 PPT 编辑器
