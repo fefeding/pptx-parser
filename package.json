@@ -75,6 +75,7 @@
   "files": [
     "dist",
     "src",
+    "examples/chart-lib",
     "README.md"
   ]
 }
