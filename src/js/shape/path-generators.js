@@ -15,9 +15,13 @@
  */
 export function polarToCartesian(cx, cy, w, h, angleInDegrees) {
     var angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+    // 格式化数字为2位小数
+    function fmt(num) {
+        return parseFloat(num.toFixed(2));
+    }
     return {
-        x: cx + (w / 2) * Math.cos(angleInRadians),
-        y: cy + (h / 2) * Math.sin(angleInRadians)
+        x: fmt(cx + (w / 2) * Math.cos(angleInRadians)),
+        y: fmt(cy + (h / 2) * Math.sin(angleInRadians))
     };
 }
 
@@ -36,9 +40,13 @@ export function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
     var start = polarToCartesian(cx, cy, w, h, endAngle);
     var end = polarToCartesian(cx, cy, w, h, startAngle);
     var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    // 格式化数字为2位小数
+    function fmt(num) {
+        return parseFloat(num.toFixed(2));
+    }
     var d = [
         "M", start.x, start.y,
-        "A", w, h, 0, largeArcFlag, clockwise ? "0" : "1", end.x, end.y
+        "A", fmt(w), fmt(h), 0, largeArcFlag, clockwise ? "0" : "1", end.x, end.y
     ].join(" ");
     return d;
 }
@@ -57,15 +65,19 @@ export function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
 export function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
     var dData;
     var angle = stAng;
+    // 辅助函数：格式化数字为2位小数
+    function fmt(num) {
+        return parseFloat(num.toFixed(2));
+    }
     if (endAng >= stAng) {
         while (angle <= endAng) {
             var radians = angle * (Math.PI / 180);
             var x = cX + Math.cos(radians) * rX;
             var y = cY + Math.sin(radians) * rY;
             if (angle == stAng) {
-                dData = " M" + x + " " + y;
+                dData = " M" + fmt(x) + " " + fmt(y);
             }
-            dData += " L" + x + " " + y;
+            dData += " L" + fmt(x) + " " + fmt(y);
             angle++;
         }
     } else {
@@ -74,9 +86,9 @@ export function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
             var x = cX + Math.cos(radians) * rX;
             var y = cY + Math.sin(radians) * rY;
             if (angle == stAng) {
-                dData = " M " + x + " " + y;
+                dData = " M " + fmt(x) + " " + fmt(y);
             }
-            dData += " L " + x + " " + y;
+            dData += " L " + fmt(x) + " " + fmt(y);
             angle--;
         }
     }

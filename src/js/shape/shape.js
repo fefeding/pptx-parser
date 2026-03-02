@@ -279,7 +279,7 @@ export const PPTXShapeUtils = (function() {
                     h = svgH;
 
                 } else {
-                    svgSizeStyle = PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined);
+                    svgSizeStyle = PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) + " overflow: visible;";
                 }
 
                 // 如果形状在组合中被缩放，SVG内容需要应用相反的缩放
@@ -1141,14 +1141,16 @@ export const PPTXShapeUtils = (function() {
                     case "star16":
                     case "star24":
                     case "star32": {
-                        result += renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt, node);
+                        // 使用drawW和drawH（原始尺寸）进行形状计算
+                        result += renderStar(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt, node);
                         break;
                     }
                     case "pie":
                     case "pieWedge":
                     case "arc":
                     case "chord": {
-                        result += renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node, oShadowSvgUrlStr);
+                        // 使用drawW和drawH（原始尺寸）进行形状计算
+                        result += renderPieShape(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node, oShadowSvgUrlStr);
                         break;
                     }
                     case "frame": {
@@ -1335,7 +1337,8 @@ export const PPTXShapeUtils = (function() {
                     case "leftBracket":
                     case "rightBrace":
                     case "rightBracket": {
-                        result += renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        // 使用drawW和drawH（原始尺寸）进行形状计算
+                        result += renderBracket(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
                         break;
                     }
                     case "moon": {
@@ -1850,38 +1853,53 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "cloud":
                     case "cloudCallout": {
+                        // 云形使用w和h（SVG容器尺寸）进行路径计算
+                        // 这样路径坐标会在容器范围内，不会出现负坐标或溢出
+
+                        // 辅助函数：格式化数字为2位小数
+                        function fmt(num) {
+                            return parseFloat(num.toFixed(2));
+                        }
+
+                        // 辅助函数：格式化弧线路径中的所有坐标
+                        function fmtArc(arcStr) {
+                            return arcStr.replace(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g, function(match) {
+                                return fmt(parseFloat(match)).toString();
+                            });
+                        }
+
                         var x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11,
                             rx1, rx2, rx3, rx4, rx5, rx6, rx7, rx8, rx9, rx10, rx11, ry1, ry2, ry3, ry4, ry5, ry6, ry7, ry8, ry9, ry10, ry11;
-                        x0 = w * 3900 / 43200;;
-                        x1 = w * 4693 / 43200;
-                        x2 = w * 6928 / 43200;
-                        x3 = w * 16478 / 43200;
-                        x4 = w * 28827 / 43200;
-                        x5 = w * 34129 / 43200;
-                        x6 = w * 41798 / 43200;
-                        x7 = w * 38324 / 43200;
-                        x8 = w * 29078 / 43200;
-                        x9 = w * 22141 / 43200;
-                        x10 = w * 14000 / 43200;
-                        x11 = w * 4127 / 43200;
-                        y0 = h * 14370 / 43200;
-                        y1 = h * 26177 / 43200;
-                        y2 = h * 34899 / 43200;
-                        y3 = h * 39090 / 43200;
-                        y4 = h * 34751 / 43200;
-                        y5 = h * 22954 / 43200;
-                        y6 = h * 15354 / 43200;
-                        y7 = h * 5426 / 43200;
-                        y8 = h * 3952 / 43200;
-                        y9 = h * 4720 / 43200;
-                        y10 = h * 5192 / 43200;
-                        y11 = h * 15789 / 43200;
+                        x0 = fmt(w * 3900 / 43200);
+                        x1 = fmt(w * 4693 / 43200);
+                        x2 = fmt(w * 6928 / 43200);
+                        x3 = fmt(w * 16478 / 43200);
+                        x4 = fmt(w * 28827 / 43200);
+                        x5 = fmt(w * 34129 / 43200);
+                        x6 = fmt(w * 41798 / 43200);
+                        x7 = fmt(w * 38324 / 43200);
+                        x8 = fmt(w * 29078 / 43200);
+                        x9 = fmt(w * 22141 / 43200);
+                        x10 = fmt(w * 14000 / 43200);
+                        x11 = fmt(w * 4127 / 43200);
+                        y0 = fmt(h * 14370 / 43200);
+                        y1 = fmt(h * 26177 / 43200);
+                        y2 = fmt(h * 34899 / 43200);
+                        y3 = fmt(h * 39090 / 43200);
+                        y4 = fmt(h * 34751 / 43200);
+                        y5 = fmt(h * 22954 / 43200);
+                        y6 = fmt(h * 15354 / 43200);
+                        y7 = fmt(h * 5426 / 43200);
+                        y8 = fmt(h * 3952 / 43200);
+                        y9 = fmt(h * 4720 / 43200);
+                        y10 = fmt(h * 5192 / 43200);
+                        y11 = fmt(h * 15789 / 43200);
                         //Path:
                         //(path attrs: w = 43200; h = 43200; )
-                        var rX1 = w * 6753 / 43200, rY1 = h * 9190 / 43200, rX2 = w * 5333 / 43200, rY2 = h * 7267 / 43200, rX3 = w * 4365 / 43200,
-                            rY3 = h * 5945 / 43200, rX4 = w * 4857 / 43200, rY4 = h * 6595 / 43200, rY5 = h * 7273 / 43200, rX6 = w * 6775 / 43200,
-                            rY6 = h * 9220 / 43200, rX7 = w * 5785 / 43200, rY7 = h * 7867 / 43200, rX8 = w * 6752 / 43200, rY8 = h * 9215 / 43200,
-                            rX9 = w * 7720 / 43200, rY9 = h * 10543 / 43200, rX10 = w * 4360 / 43200, rY10 = h * 5918 / 43200, rX11 = w * 4345 / 43200;
+                        var rX1 = fmt(w * 6753 / 43200), rY1 = fmt(h * 9190 / 43200), rX2 = fmt(w * 5333 / 43200), rY2 = fmt(h * 7267 / 43200), rX3 = fmt(w * 4365 / 43200),
+                            rY3 = fmt(h * 5945 / 43200), rX4 = fmt(w * 4857 / 43200), rY4 = fmt(h * 6595 / 43200), rY5 = fmt(h * 7273 / 43200), rX6 = fmt(w * 6775 / 43200),
+                            rY6 = fmt(h * 9220 / 43200), rX7 = fmt(w * 5785 / 43200), rY7 = fmt(h * 7867 / 43200), rX8 = fmt(w * 6752 / 43200), rY8 = fmt(h * 9215 / 43200),
+                            rX9 = fmt(w * 7720 / 43200), rY9 = fmt(h * 10543 / 43200), rX10 = fmt(w * 4360 / 43200), rY10 = fmt(h * 5918 / 43200), rX11 = fmt(w * 4345 / 43200);
                         var sA1 = -11429249 / 60000, wA1 = 7426832 / 60000, sA2 = -8646143 / 60000, wA2 = 5396714 / 60000, sA3 = -8748475 / 60000,
                             wA3 = 5983381 / 60000, sA4 = -7859164 / 60000, wA4 = 7034504 / 60000, sA5 = -4722533 / 60000, wA5 = 6541615 / 60000,
                             sA6 = -2776035 / 60000, wA6 = 7816140 / 60000, sA7 = 37501 / 60000, wA7 = 6842000 / 60000, sA8 = 1347096 / 60000,
@@ -1892,63 +1910,90 @@ export const PPTXShapeUtils = (function() {
                         var arc1, arc2, arc3, arc4, arc5, arc6, arc7, arc8, arc9, arc10, arc11;
                         var lxy1, lxy2, lxy3, lxy4, lxy5, lxy6, lxy7, lxy8, lxy9, lxy10;
 
-                        cX0 = x0 - rX1 * Math.cos(sA1 * Math.PI / 180);
-                        cY0 = y0 - rY1 * Math.sin(sA1 * Math.PI / 180);
-                        arc1 = PPTXShapeUtils.shapeArc(cX0, cY0, rX1, rY1, sA1, sA1 + wA1, false).replace("M", "L");
-                        lxy1 = arc1.substr(arc1.lastIndexOf("L") + 1).split(" ");
-                        cX1 = parseInt(lxy1[0]) - rX2 * Math.cos(sA2 * Math.PI / 180);
-                        cY1 = parseInt(lxy1[1]) - rY2 * Math.sin(sA2 * Math.PI / 180);
-                        arc2 = PPTXShapeUtils.shapeArc(cX1, cY1, rX2, rY2, sA2, sA2 + wA2, false).replace("M", "L");
-                        lxy2 = arc2.substr(arc2.lastIndexOf("L") + 1).split(" ");
-                        cX2 = parseInt(lxy2[0]) - rX3 * Math.cos(sA3 * Math.PI / 180);
-                        cY2 = parseInt(lxy2[1]) - rY3 * Math.sin(sA3 * Math.PI / 180);
-                        arc3 = PPTXShapeUtils.shapeArc(cX2, cY2, rX3, rY3, sA3, sA3 + wA3, false).replace("M", "L");
-                        lxy3 = arc3.substr(arc3.lastIndexOf("L") + 1).split(" ");
-                        cX3 = parseInt(lxy3[0]) - rX4 * Math.cos(sA4 * Math.PI / 180);
-                        cY3 = parseInt(lxy3[1]) - rY4 * Math.sin(sA4 * Math.PI / 180);
-                        arc4 = PPTXShapeUtils.shapeArc(cX3, cY3, rX4, rY4, sA4, sA4 + wA4, false).replace("M", "L");
-                        lxy4 = arc4.substr(arc4.lastIndexOf("L") + 1).split(" ");
-                        cX4 = parseInt(lxy4[0]) - rX2 * Math.cos(sA5 * Math.PI / 180);
-                        cY4 = parseInt(lxy4[1]) - rY5 * Math.sin(sA5 * Math.PI / 180);
-                        arc5 = PPTXShapeUtils.shapeArc(cX4, cY4, rX2, rY5, sA5, sA5 + wA5, false).replace("M", "L");
-                        lxy5 = arc5.substr(arc5.lastIndexOf("L") + 1).split(" ");
-                        cX5 = parseInt(lxy5[0]) - rX6 * Math.cos(sA6 * Math.PI / 180);
-                        cY5 = parseInt(lxy5[1]) - rY6 * Math.sin(sA6 * Math.PI / 180);
-                        arc6 = PPTXShapeUtils.shapeArc(cX5, cY5, rX6, rY6, sA6, sA6 + wA6, false).replace("M", "L");
-                        lxy6 = arc6.substr(arc6.lastIndexOf("L") + 1).split(" ");
-                        cX6 = parseInt(lxy6[0]) - rX7 * Math.cos(sA7 * Math.PI / 180);
-                        cY6 = parseInt(lxy6[1]) - rY7 * Math.sin(sA7 * Math.PI / 180);
-                        arc7 = PPTXShapeUtils.shapeArc(cX6, cY6, rX7, rY7, sA7, sA7 + wA7, false).replace("M", "L");
-                        lxy7 = arc7.substr(arc7.lastIndexOf("L") + 1).split(" ");
-                        cX7 = parseInt(lxy7[0]) - rX8 * Math.cos(sA8 * Math.PI / 180);
-                        cY7 = parseInt(lxy7[1]) - rY8 * Math.sin(sA8 * Math.PI / 180);
-                        arc8 = PPTXShapeUtils.shapeArc(cX7, cY7, rX8, rY8, sA8, sA8 + wA8, false).replace("M", "L");
-                        lxy8 = arc8.substr(arc8.lastIndexOf("L") + 1).split(" ");
-                        cX8 = parseInt(lxy8[0]) - rX9 * Math.cos(sA9 * Math.PI / 180);
-                        cY8 = parseInt(lxy8[1]) - rY9 * Math.sin(sA9 * Math.PI / 180);
-                        arc9 = PPTXShapeUtils.shapeArc(cX8, cY8, rX9, rY9, sA9, sA9 + wA9, false).replace("M", "L");
-                        lxy9 = arc9.substr(arc9.lastIndexOf("L") + 1).split(" ");
-                        cX9 = parseInt(lxy9[0]) - rX10 * Math.cos(sA10 * Math.PI / 180);
-                        cY9 = parseInt(lxy9[1]) - rY10 * Math.sin(sA10 * Math.PI / 180);
-                        arc10 = PPTXShapeUtils.shapeArc(cX9, cY9, rX10, rY10, sA10, sA10 + wA10, false).replace("M", "L");
-                        lxy10 = arc10.substr(arc10.lastIndexOf("L") + 1).split(" ");
-                        cX10 = parseInt(lxy10[0]) - rX11 * Math.cos(sA11 * Math.PI / 180);
-                        cY10 = parseInt(lxy10[1]) - rY3 * Math.sin(sA11 * Math.PI / 180);
-                        arc11 = PPTXShapeUtils.shapeArc(cX10, cY10, rX11, rY3, sA11, sA11 + wA11, false).replace("M", "L");
+                        // 辅助函数：从shapeArc返回的字符串中提取终点坐标
+                        function getArcEnd(arcStr) {
+                            // shapeArc返回格式: "M x y A rx ry x-axis-rotation large-arc-flag sweep-flag x y"
+                            // 我们需要提取最后的两个数值(x,y)
+                            var parts = arcStr.trim().split(/\s+/);
+                            // 最后两个数值是终点坐标
+                            return {
+                                x: fmt(parseFloat(parts[parts.length - 2])),
+                                y: fmt(parseFloat(parts[parts.length - 1]))
+                            };
+                        }
 
+                        cX0 = fmt(x0 - rX1 * Math.cos(sA1 * Math.PI / 180));
+                        cY0 = fmt(y0 - rY1 * Math.sin(sA1 * Math.PI / 180));
+                        arc1 = PPTXShapeUtils.shapeArc(cX0, cY0, rX1, rY1, sA1, sA1 + wA1, false);
+                        var end1 = getArcEnd(arc1);
+                        cX1 = fmt(end1.x - rX2 * Math.cos(sA2 * Math.PI / 180));
+                        cY1 = fmt(end1.y - rY2 * Math.sin(sA2 * Math.PI / 180));
+                        arc2 = PPTXShapeUtils.shapeArc(cX1, cY1, rX2, rY2, sA2, sA2 + wA2, false);
+                        var end2 = getArcEnd(arc2);
+                        cX2 = fmt(end2.x - rX3 * Math.cos(sA3 * Math.PI / 180));
+                        cY2 = fmt(end2.y - rY3 * Math.sin(sA3 * Math.PI / 180));
+                        arc3 = PPTXShapeUtils.shapeArc(cX2, cY2, rX3, rY3, sA3, sA3 + wA3, false);
+                        var end3 = getArcEnd(arc3);
+                        cX3 = fmt(end3.x - rX4 * Math.cos(sA4 * Math.PI / 180));
+                        cY3 = fmt(end3.y - rY4 * Math.sin(sA4 * Math.PI / 180));
+                        arc4 = PPTXShapeUtils.shapeArc(cX3, cY3, rX4, rY4, sA4, sA4 + wA4, false);
+                        var end4 = getArcEnd(arc4);
+                        cX4 = fmt(end4.x - rX2 * Math.cos(sA5 * Math.PI / 180));
+                        cY4 = fmt(end4.y - rY5 * Math.sin(sA5 * Math.PI / 180));
+                        arc5 = PPTXShapeUtils.shapeArc(cX4, cY4, rX2, rY5, sA5, sA5 + wA5, false);
+                        var end5 = getArcEnd(arc5);
+                        cX5 = fmt(end5.x - rX6 * Math.cos(sA6 * Math.PI / 180));
+                        cY5 = fmt(end5.y - rY6 * Math.sin(sA6 * Math.PI / 180));
+                        arc6 = PPTXShapeUtils.shapeArc(cX5, cY5, rX6, rY6, sA6, sA6 + wA6, false);
+                        var end6 = getArcEnd(arc6);
+                        cX6 = fmt(end6.x - rX7 * Math.cos(sA7 * Math.PI / 180));
+                        cY6 = fmt(end6.y - rY7 * Math.sin(sA7 * Math.PI / 180));
+                        arc7 = PPTXShapeUtils.shapeArc(cX6, cY6, rX7, rY7, sA7, sA7 + wA7, false);
+                        var end7 = getArcEnd(arc7);
+                        cX7 = fmt(end7.x - rX8 * Math.cos(sA8 * Math.PI / 180));
+                        cY7 = fmt(end7.y - rY8 * Math.sin(sA8 * Math.PI / 180));
+                        arc8 = PPTXShapeUtils.shapeArc(cX7, cY7, rX8, rY8, sA8, sA8 + wA8, false);
+                        var end8 = getArcEnd(arc8);
+                        cX8 = fmt(end8.x - rX9 * Math.cos(sA9 * Math.PI / 180));
+                        cY8 = fmt(end8.y - rY9 * Math.sin(sA9 * Math.PI / 180));
+                        arc9 = PPTXShapeUtils.shapeArc(cX8, cY8, rX9, rY9, sA9, sA9 + wA9, false);
+                        var end9 = getArcEnd(arc9);
+                        cX9 = fmt(end9.x - rX10 * Math.cos(sA10 * Math.PI / 180));
+                        cY9 = fmt(end9.y - rY10 * Math.sin(sA10 * Math.PI / 180));
+                        arc10 = PPTXShapeUtils.shapeArc(cX9, cY9, rX10, rY10, sA10, sA10 + wA10, false);
+                        var end10 = getArcEnd(arc10);
+                        cX10 = fmt(end10.x - rX11 * Math.cos(sA11 * Math.PI / 180));
+                        cY10 = fmt(end10.y - rY3 * Math.sin(sA11 * Math.PI / 180));
+                        arc11 = PPTXShapeUtils.shapeArc(cX10, cY10, rX11, rY3, sA11, sA11 + wA11, false);
+
+                        // 构建路径字符串，将后续arc的"M"替换为"L"，并格式化所有坐标
                         var d1 = "M" + x0 + "," + y0 +
-                            arc1 +
-                            arc2 +
-                            arc3 +
-                            arc4 +
-                            arc5 +
-                            arc6 +
-                            arc7 +
-                            arc8 +
-                            arc9 +
-                            arc10 +
-                            arc11 +
+                            fmtArc(arc1).replace("M", "L") +
+                            fmtArc(arc2).replace("M", "L") +
+                            fmtArc(arc3).replace("M", "L") +
+                            fmtArc(arc4).replace("M", "L") +
+                            fmtArc(arc5).replace("M", "L") +
+                            fmtArc(arc6).replace("M", "L") +
+                            fmtArc(arc7).replace("M", "L") +
+                            fmtArc(arc8).replace("M", "L") +
+                            fmtArc(arc9).replace("M", "L") +
+                            fmtArc(arc10).replace("M", "L") +
+                            fmtArc(arc11).replace("M", "L") +
                             " z";
+
+                        // 云形路径会有负坐标，需要计算实际路径的边界盒
+                        // 将路径平移到SVG容器居中
+                        var pathMinX = Math.min(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11);
+                        var pathMinY = Math.min(y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11);
+                        var pathMaxX = Math.max(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11);
+                        var pathMaxY = Math.max(y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11);
+                        var pathWidth = pathMaxX - pathMinX;
+                        var pathHeight = pathMaxY - pathMinY;
+
+                        // 计算平移量，使路径在SVG容器中居中
+                        var cloudTranslateX = (w - pathWidth) / 2 - pathMinX;
+                        var cloudTranslateY = (h - pathHeight) / 2 - pathMinY;
+                        var cloudTransformAttr = " transform='translate(" + fmt(cloudTranslateX) + "," + fmt(cloudTranslateY) + ")'";
                         if (shapType == "cloudCallout") {
                             var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                             var refr = SLIDE_FACTOR;
@@ -2026,7 +2071,7 @@ export const PPTXShapeUtils = (function() {
                                 " z";
                             d1 += d_val;
                         }
-                        result += "<path d='" + d1 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                        result += "<path d='" + d1 + "'" + cloudTransformAttr + " fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
@@ -2034,7 +2079,8 @@ export const PPTXShapeUtils = (function() {
                     case "smileyFace":
                     case "verticalScroll":
                     case "horizontalScroll": {
-                        result += renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        // 使用drawW和drawH（原始尺寸）进行形状计算
+                        result += renderMiscShape(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
                         break;
                     }
                     case "wedgeEllipseCallout": {
@@ -2112,7 +2158,7 @@ export const PPTXShapeUtils = (function() {
                             PPTXShapeUtils.shapeArcAlt(hc, vc, hc, vc, 0, 360, true);// +
                         //PPTXShapeUtils.shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
                         //" z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                        result += "<path d='" + d_val + "'" + cloudTransformAttr + " fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
@@ -4186,6 +4232,7 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "curvedDownArrow": {
+                        // 下弧形箭头使用drawW和drawH（原始尺寸）进行形状计算
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
                         var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
@@ -4207,11 +4254,19 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(w, h);
+                        // 使用drawW和drawH进行形状计算
+                        var cw = (drawW !== undefined) ? drawW : w;
+                        var ch = (drawH !== undefined) ? drawH : h;
+                        var vc = ch / 2, hc = cw / 2, wd2 = cw / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
+                        var ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, stAng, stAng2, swAng2, swAng3;
 
-                        maxAdj2 = cnstVal1 * w / ss;
+                        // 辅助函数：格式化数字为2位小数
+                        function fmt(num) {
+                            return parseFloat(num.toFixed(2));
+                        }
+
+                        maxAdj2 = cnstVal1 * cw / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal2) ? cnstVal2 : adj1;
                         th = ss * a1 / cnstVal2;
@@ -4223,16 +4278,16 @@ export const PPTXShapeUtils = (function() {
                         q9 = th * th;
                         q10 = q8 - q9;
                         q11 = Math.sqrt(q10);
-                        idy = q11 * h / q7;
+                        idy = q11 * ch / q7;
                         maxAdj3 = cnstVal2 * idy / ss;
                         a3 = (adj3 < 0) ? 0 : (adj3 > maxAdj3) ? maxAdj3 : adj3;
                         ah = ss * adj3 / cnstVal2;
                         x3 = wR + th;
-                        q2 = h * h;
+                        q2 = ch * ch;
                         q3 = ah * ah;
                         q4 = q2 - q3;
                         q5 = Math.sqrt(q4);
-                        dx = q5 * wR / h;
+                        dx = q5 * wR / ch;
                         x5 = wR + dx;
                         x7 = x3 + dx;
                         q6 = aw - th;
@@ -4257,18 +4312,31 @@ export const PPTXShapeUtils = (function() {
                         //var cX = x5 - Math.cos(stAng*Math.PI/180) * wR;
                         //var cY = y1 - Math.sin(stAng*Math.PI/180) * h;
 
+                        // 格式化所有坐标值
+                        x6 = fmt(x6);
+                        b = fmt(b);
+                        x4 = fmt(x4);
+                        y1 = fmt(y1);
+                        x5 = fmt(x5);
+                        x3 = fmt(x3);
+                        t = fmt(t);
+                        th = fmt(th);
+                        x8 = fmt(x8);
+                        wR = fmt(wR);
+                        ch = fmt(ch);
+
                         var d_val = "M" + x6 + "," + b +
                             " L" + x4 + "," + y1 +
                             " L" + x5 + "," + y1 +
-                            PPTXShapeUtils.shapeArc(wR, h, wR, h, stAng, (stAng + mswAng), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wR, ch, wR, ch, stAng, (stAng + mswAng), false).replace("M", "L") +
                             " L" + x3 + "," + t +
-                            PPTXShapeUtils.shapeArc(x3, h, wR, h, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
-                            " L" + (x5 + th) + "," + y1 +
+                            PPTXShapeUtils.shapeArc(x3, ch, wR, ch, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
+                            " L" + fmt(x5 + th) + "," + y1 +
                             " L" + x8 + "," + y1 +
                             " z" +
                             "M" + x3 + "," + t +
-                            PPTXShapeUtils.shapeArc(x3, h, wR, h, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(wR, h, wR, h, cd2, (cd2 + swAng3), false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(x3, ch, wR, ch, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(wR, ch, wR, ch, cd2, (cd2 + swAng3), false).replace("M", "L");
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4276,6 +4344,7 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "curvedLeftArrow": {
+                        // 左弧形箭头使用drawW和drawH（原始尺寸）进行形状计算
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
                         var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
@@ -4297,11 +4366,19 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(w, h);
+                        // 使用drawW和drawH进行形状计算
+                        var cw = (drawW !== undefined) ? drawW : w;
+                        var ch = (drawH !== undefined) ? drawH : h;
+                        var vc = ch / 2, hc = cw / 2, hd2 = ch / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
+                        var ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
 
-                        maxAdj2 = cnstVal1 * h / ss;
+                        // 辅助函数：格式化数字为2位小数
+                        function fmt(num) {
+                            return parseFloat(num.toFixed(2));
+                        }
+
+                        maxAdj2 = cnstVal1 * ch / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         a1 = (adj1 < 0) ? 0 : (adj1 > a2) ? a2 : adj1;
                         th = ss * a1 / cnstVal2;
@@ -4313,16 +4390,16 @@ export const PPTXShapeUtils = (function() {
                         q9 = th * th;
                         q10 = q8 - q9;
                         q11 = Math.sqrt(q10);
-                        iDx = q11 * w / q7;
+                        iDx = q11 * cw / q7;
                         maxAdj3 = cnstVal2 * iDx / ss;
                         a3 = (adj3 < 0) ? 0 : (adj3 > maxAdj3) ? maxAdj3 : adj3;
                         ah = ss * a3 / cnstVal2;
                         y3 = hR + th;
-                        q2 = w * w;
+                        q2 = cw * cw;
                         q3 = ah * ah;
                         q4 = q2 - q3;
                         q5 = Math.sqrt(q4);
-                        dy = q5 * hR / w;
+                        dy = q5 * hR / cw;
                         y5 = hR + dy;
                         y7 = y3 + dy;
                         q6 = aw - th;
@@ -4347,20 +4424,34 @@ export const PPTXShapeUtils = (function() {
                         swAng3Dg = swAng3 * 180 / Math.PI;
                         stAng3dg = stAng3 * 180 / Math.PI;
 
+                        // 格式化所有坐标值
+                        r = fmt(r);
+                        y3 = fmt(y3);
+                        l = fmt(l);
+                        hR = fmt(hR);
+                        cw = fmt(cw);
+                        t = fmt(t);
+                        x1 = fmt(x1);
+                        y7 = fmt(y7);
+                        y8 = fmt(y8);
+                        y6 = fmt(y6);
+                        y4 = fmt(y4);
+                        y5 = fmt(y5);
+
                         var d_val = "M" + r + "," + y3 +
-                            PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L") +
                             " L" + l + "," + t +
-                            PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
                             " L" + r + "," + y3 +
-                            PPTXShapeUtils.shapeArc(l, y3, w, hR, 0, swAngDg, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, 0, swAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y7 +
                             " L" + x1 + "," + y8 +
                             " L" + l + "," + y6 +
                             " L" + x1 + "," + y4 +
                             " L" + x1 + "," + y5 +
-                            PPTXShapeUtils.shapeArc(l, hR, w, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(l, hR, w, hR, 0, -cd4, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(l, y3, w, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
+                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L") +
+                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4370,7 +4461,7 @@ export const PPTXShapeUtils = (function() {
                     case "curvedRightArrow": {
                         /**
                          * curvedRightArrow: 手杖形箭头（弯曲向右的箭头）
-                         * 
+                         *
                          * 形状说明：
                          * - 从左侧开始，向上弯曲，最后指向右侧
                          * - 有箭头头部
@@ -4401,12 +4492,15 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, hd2 = h / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(w, h);
+                        // 使用drawW和drawH进行形状计算
+                        var cw = (drawW !== undefined) ? drawW : w;
+                        var ch = (drawH !== undefined) ? drawH : h;
+                        var vc = ch / 2, hc = cw / 2, hd2 = ch / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
+                        var ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy,
                             y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, stAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
 
-                        maxAdj2 = cnstVal1 * h / ss;
+                        maxAdj2 = cnstVal1 * ch / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         a1 = (adj1 < 0) ? 0 : (adj1 > a2) ? a2 : adj1;
                         th = ss * a1 / cnstVal2;
@@ -4418,16 +4512,16 @@ export const PPTXShapeUtils = (function() {
                         q9 = th * th;
                         q10 = q8 - q9;
                         q11 = Math.sqrt(q10);
-                        iDx = q11 * w / q7;
+                        iDx = q11 * cw / q7;
                         maxAdj3 = cnstVal2 * iDx / ss;
                         a3 = (adj3 < 0) ? 0 : (adj3 > maxAdj3) ? maxAdj3 : adj3;
                         ah = ss * a3 / cnstVal2;
                         y3 = hR + th;
-                        q2 = w * w;
+                        q2 = cw * cw;
                         q3 = ah * ah;
                         q4 = q2 - q3;
                         q5 = Math.sqrt(q4);
-                        dy = q5 * hR / w;
+                        dy = q5 * hR / cw;
                         y5 = hR + dy;
                         y7 = y3 + dy;
                         q6 = aw - th;
@@ -4464,17 +4558,17 @@ export const PPTXShapeUtils = (function() {
                          * 6. 闭合
                          */
                         var d_val = "M" + l + "," + hR +
-                            shapeArcAlt(w, hR, w, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
+                            shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + y4 +
                             " L" + r + "," + y6 +
                             " L" + x1 + "," + y8 +
                             " L" + x1 + "," + y7 +
-                            shapeArcAlt(w, y3, w, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
+                            shapeArcAlt(cw, y3, cw, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
                             " L" + l + "," + hR +
-                            shapeArcAlt(w, hR, w, hR, cd2, cd2 + cd4, false).replace("M", "L") +
+                            shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + cd4, false).replace("M", "L") +
                             " L" + r + "," + th +
-                            shapeArcAlt(w, y3, w, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L") +
+                            shapeArcAlt(cw, y3, cw, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L") +
                             " z";
 
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -4483,6 +4577,8 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "curvedUpArrow": {
+                        // 上弧形箭头使用drawW和drawH（原始尺寸）进行形状计算
+                        // 这样在group-abs类型组合中不会被缩放影响
                         var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
                         var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
@@ -4504,11 +4600,26 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, wd2 = w / 2, r = w, b = h, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(w, h);
+                        // 使用drawW和drawH进行形状计算
+                        var cw = (drawW !== undefined) ? drawW : w;
+                        var ch = (drawH !== undefined) ? drawH : h;
+                        var vc = ch / 2, hc = cw / 2, wd2 = cw / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
+                        var ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, swAng2, mswAng2, stAng3, swAng3, stAng2;
 
-                        maxAdj2 = cnstVal1 * w / ss;
+                        // 辅助函数：格式化数字为2位小数
+                        function fmt(num) {
+                            return parseFloat(num.toFixed(2));
+                        }
+
+                        // 辅助函数：格式化弧线路径中的所有坐标
+                        function fmtArc(arcStr) {
+                            return arcStr.replace(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g, function(match) {
+                                return fmt(parseFloat(match)).toString();
+                            });
+                        }
+
+                        maxAdj2 = cnstVal1 * cw / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal2) ? cnstVal2 : adj1;
                         th = ss * a1 / cnstVal2;
@@ -4520,16 +4631,16 @@ export const PPTXShapeUtils = (function() {
                         q9 = th * th;
                         q10 = q8 - q9;
                         q11 = Math.sqrt(q10);
-                        idy = q11 * h / q7;
+                        idy = q11 * ch / q7;
                         maxAdj3 = cnstVal2 * idy / ss;
                         a3 = (adj3 < 0) ? 0 : (adj3 > maxAdj3) ? maxAdj3 : adj3;
                         ah = ss * adj3 / cnstVal2;
                         x3 = wR + th;
-                        q2 = h * h;
+                        q2 = ch * ch;
                         q3 = ah * ah;
                         q4 = q2 - q3;
                         q5 = Math.sqrt(q4);
-                        dx = q5 * wR / h;
+                        dx = q5 * wR / ch;
                         x5 = wR + dx;
                         x7 = x3 + dx;
                         q6 = aw - th;
@@ -4557,18 +4668,33 @@ export const PPTXShapeUtils = (function() {
                         stAng3dg = stAng3 * 180 / Math.PI;
                         swAngDg = swAng * 180 / Math.PI;
 
-                        var d_val = //"M" + ix + "," +iy + 
-                            PPTXShapeUtils.shapeArc(wR, 0, wR, h, stAng2dg, stAng2dg + swAng2dg, false) + //.replace("M","L") +
+                        // 格式化所有坐标值
+                        wR = fmt(wR);
+                        ch = fmt(ch);
+                        cw = fmt(cw);
+                        x3 = fmt(x3);
+                        x5 = fmt(x5);
+                        x7 = fmt(x7);
+                        x4 = fmt(x4);
+                        x8 = fmt(x8);
+                        x6 = fmt(x6);
+                        y1 = fmt(y1);
+                        b = fmt(b);
+                        th = fmt(th);
+                        t = fmt(t);
+
+                        var d_val = //"M" + ix + "," +iy +
+                            fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, stAng2dg, stAng2dg + swAng2dg, false)) + //.replace("M","L") +
                             " L" + x5 + "," + y1 +
                             " L" + x4 + "," + y1 +
                             " L" + x6 + "," + t +
                             " L" + x8 + "," + y1 +
                             " L" + x7 + "," + y1 +
-                            PPTXShapeUtils.shapeArc(x3, 0, wR, h, stAng3dg, stAng3dg + swAngDg, false).replace("M", "L") +
+                            fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, stAng3dg, stAng3dg + swAngDg, false)).replace("M", "L") +
                             " L" + wR + "," + b +
-                            PPTXShapeUtils.shapeArc(wR, 0, wR, h, cd4, cd2, false).replace("M", "L") +
+                            fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, cd4, cd2, false)).replace("M", "L") +
                             " L" + th + "," + t +
-                            PPTXShapeUtils.shapeArc(x3, 0, wR, h, cd2, cd4, false).replace("M", "L") +
+                            fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, cd2, cd4, false)).replace("M", "L") +
                             "";
                         result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
@@ -4581,7 +4707,8 @@ export const PPTXShapeUtils = (function() {
                     case "mathMultiply":
                     case "mathNotEqual":
                     case "mathPlus": {
-                        result += renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        // 使用drawW和drawH（原始尺寸）进行形状计算
+                        result += renderMathSymbol(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
                         break;
                     }
                     case "cylinder":
@@ -5322,8 +5449,8 @@ export const PPTXShapeUtils = (function() {
                 }
                 result += "</div>";
             } else if (custShapType !== undefined) {
-                // 使用自定义形状渲染函数
-                result += renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArc);
+                // 使用drawW和drawH（原始尺寸）进行形状计算
+                result += renderCustomShape(custShapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArc);
                 //console.log(result);
 
                 result += "</svg>";
