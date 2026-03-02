@@ -621,7 +621,11 @@ function getFillType(node) {
         }
 
         function getFontBold(node, type, slideMasterTextStyles) {
-            return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["b"] === "1") ? "bold" : "inherit";
+            if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] !== undefined) {
+                const boldAttr = node["a:rPr"]["attrs"]["b"];
+                return (boldAttr === "1" || boldAttr === "true" || boldAttr === "on") ? "bold" : "inherit";
+            }
+            return "inherit";
         }
 
         function getFontItalic(node, type, slideMasterTextStyles) {

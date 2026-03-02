@@ -237,9 +237,13 @@ function getTextWidth(html) {
                 }
                 // 如果没有明确设置wrap="none"或spAutoFit，默认不设置内层div的宽度，让文本自然流动
                 let prg_width = "";
-                let textContainerWidth = "width: 100%;"; // 默认宽度
+                let textContainerWidth = ""; // 默认不设置宽度，让文本容器自适应
+                // 如果是 noAutofit（文本框宽度固定），需要设置文本容器宽度以限制换行
+                if (!isAutoFit && !isNoWrap && prg_width_node !== undefined && prg_width_node !== null) {
+                    textContainerWidth = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
+                }
                 if (isRTL && isBullate) {
-                    // RTL 模式下有项目符号时，文本容器不设 100%，让内容自适应
+                    // RTL 模式下有项目符号时，文本容器不设宽度，让内容自适应
                     textContainerWidth = "";
                 }
                 if (prg_width_node !== undefined && prg_width_node !== null && !isNoWrap) {
