@@ -135,10 +135,12 @@ export const PPTXShapeUtils = (function() {
             var isFlipV = false;
             var isFlipH = false;
             var flip = "";
-            if  (PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipV"]) === "1") {
+            var flipVAttr = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipV"]);
+            var flipHAttr = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipH"]);
+            if (flipVAttr === "1" || flipVAttr === "true") {
                 isFlipV = true;
             }
-            if  (PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipH"]) === "1") {
+            if (flipHAttr === "1" || flipHAttr === "true") {
                 isFlipH = true;
             }
             if (isFlipH && !isFlipV) {
@@ -968,11 +970,8 @@ export const PPTXShapeUtils = (function() {
                         // 使用drawW和drawH（原始尺寸）
                         var bendW = (drawW !== undefined) ? drawW : w;
                         var bendH = (drawH !== undefined) ? drawH : h;
-                        // if (isFlipV) {
-                        //     d = "M 0 " + bendW + " L " + bendH + " " + bendW + " L " + bendH + " 0";
-                        // } else {
+                        // 路径方向（SVG容器会通过flip变换处理翻转）
                         d = "M " + bendW + " 0 L " + bendW + " " + bendH + " L 0 " + bendH;
-                        //}
                         result += "<path d='" + d + "' stroke='" + border.color +
                             "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
@@ -1448,13 +1447,9 @@ export const PPTXShapeUtils = (function() {
                         var connectorH = (drawH !== undefined) ? drawH : h;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
-                            // if (isFlipV) {
-                            //     result += " <polyline points='" + connectorW + " 0," + ((1 - shapAdjst_val) * connectorW) + " 0," + ((1 - shapAdjst_val) * connectorW) + " " + connectorH + ",0 " + connectorH + "' fill='transparent'" +
-                            //         "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
-                            // } else {
+                            // 路径方向（SVG容器会通过flip变换处理翻转）
                             result += " <polyline points='0 0," + (shapAdjst_val) * connectorW + " 0," + (shapAdjst_val) * connectorW + " " + connectorH + "," + connectorW + " " + connectorH + "' fill='transparent'" +
                                 "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
-                            //}
                             if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
                                 result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
                             }
@@ -3092,13 +3087,12 @@ export const PPTXShapeUtils = (function() {
                         // 如果drawW或drawH未定义（非连接器情况），回退到w和h
                         if (lineW === undefined) lineW = w;
                         if (lineH === undefined) lineH = h;
-                        // if (isFlipV) {
-                        //     result += "<line x1='" + lineW + "' y1='0' x2='0' y2='" + lineH + "' stroke='" + border.color +
-                        //         "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
-                        // } else {
-                        result += "<line x1='0' y1='0' x2='" + lineW + "' y2='" + lineH + "' stroke='" + border.color +
+                        
+                        // 根据flipH和flipV确定线条的起点和终点
+                        var x1 = 0, y1 = 0, x2 = lineW, y2 = lineH;
+                        
+                        result += "<line x1='" + x1 + "' y1='" + y1 + "' x2='" + x2 + "' y2='" + y2 + "' stroke='" + border.color +
                             "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
-                        //}
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
                             result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
                         }
@@ -3140,6 +3134,9 @@ export const PPTXShapeUtils = (function() {
 
                         // 计算曲线控制点
                         var cx1, cy1, cx2, cy2;
+                        var pathD;
+                        
+                        // 路径方向（SVG容器会通过flip变换处理翻转）
                         if (shapType === "curvedConnector2" || shapType === "curvedConnector3") {
                             // 对于 curvedConnector2 和 curvedConnector3，使用简单的二次贝塞尔曲线
                             var controlPointRatio = adj1 / 100000;
@@ -3154,9 +3151,11 @@ export const PPTXShapeUtils = (function() {
                             cx2 = curveW * 3 / 4;
                             cy2 = curveH;
                         }
+                        // 正常路径
+                        pathD = "M 0,0 Q " + cx1 + "," + cy1 + " " + curveW/2 + "," + curveH/2 + " Q " + cx2 + "," + cy2 + " " + curveW + "," + curveH;
 
                         // 使用 SVG 路径元素创建曲线
-                        result += "<path d='M 0,0 Q " + cx1 + "," + cy1 + " " + curveW/2 + "," + curveH/2 + " Q " + cx2 + "," + cy2 + " " + curveW + "," + curveH + "' stroke='" + border.color +
+                        result += "<path d='" + pathD + "' stroke='" + border.color +
                             "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
                         
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
