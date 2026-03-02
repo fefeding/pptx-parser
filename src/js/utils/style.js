@@ -3050,7 +3050,11 @@ function getFillType(node) {
             if  (PPTXXmlUtils.getTextByPathList(pNode, ["a:r"]) !== undefined) {
                 let fontSizeStr = getFontSize(pNode["a:r"], textBodyNode,undefined, lvl, type, warpObj);
                 if (fontSizeStr != "inherit") {
-                    fontSize = parseInt(fontSizeStr, "px"); //pt
+                    // 提取数字部分（假设格式为 "35px"）
+                    const fontSizeMatch = fontSizeStr.match(/(\d+(?:\.\d+)?)px/);
+                    if (fontSizeMatch) {
+                        fontSize = parseFloat(fontSizeMatch[1]);
+                    }
                 }
             }
             //var spcBef = "";
@@ -3295,6 +3299,7 @@ function getFillType(node) {
                 }
                 // 只有当间距大于0时才应用
                 if (marginTop > 0) {
+                    marginTop = Math.round(marginTop * 100) / 100;
                     marginTopBottomStr += "margin-top: " + marginTop + "px;";
                 }
             }
@@ -3312,6 +3317,7 @@ function getFillType(node) {
                     // 点数类型：转换为像素
                     marginBottom = spcAfter * 1.33;
                 }
+                marginBottom = Math.round(marginBottom * 100) / 100;
                 marginTopBottomStr += "margin-bottom: " + marginBottom + "px;";
             }
 

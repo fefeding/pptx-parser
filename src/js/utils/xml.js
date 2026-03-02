@@ -511,20 +511,24 @@ export const PPTXXmlUtils = (function() {
                 off = slideMasterSpNode["a:off"]["attrs"];
             }
             let offX = 0, offY = 0;
-            let grpX = 0, grpY = 0;
-            if (sType == "group") {
-
+            // 计算子元素的偏移量
+            if (sType == "group" && pNode !== undefined) {
                 var grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
-                if (xfrmNode !== undefined) {
-                    grpX = parseInt(grpXfrmNode["a:off"]["attrs"]["x"]) * SLIDE_FACTOR;
-                    grpY = parseInt(grpXfrmNode["a:off"]["attrs"]["y"]) * SLIDE_FACTOR;
-                    // var chx = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
-                    // var chy = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
-                    // var cx = parseInt(grpXfrmNode["a:ext"]["attrs"]["cx"]) * SLIDE_FACTOR;
-                    // var cy = parseInt(grpXfrmNode["a:ext"]["attrs"]["cy"]) * SLIDE_FACTOR;
-                    // var chcx = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cx"]) * SLIDE_FACTOR;
-                    // var chcy = parseInt(grpXfrmNode["a:chExt"]["attrs"]["cy"]) * SLIDE_FACTOR;
-                    // var rotate = parseInt(grpXfrmNode["attrs"]["rot"])
+                if (grpXfrmNode !== undefined && grpXfrmNode["a:chOff"] !== undefined && grpXfrmNode["a:chOff"]["attrs"] !== undefined) {
+                    offX = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
+                    offY = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
+                    offX = Math.round(offX * 100) / 100;
+                    offY = Math.round(offY * 100) / 100;
+                }
+            } else if (sType == "group-abs" && pNode !== undefined) {
+                // 当容器扩展时，子元素使用相对chOff的绝对定位
+                // 但相对于新的容器位置(minY, minX)
+                var grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
+                if (grpXfrmNode !== undefined && grpXfrmNode["a:chOff"] !== undefined && grpXfrmNode["a:chOff"]["attrs"] !== undefined) {
+                    offX = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
+                    offY = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
+                    offX = Math.round(offX * 100) / 100;
+                    offY = Math.round(offY * 100) / 100;
                 }
             }
             if (sType == "group-rotate" && pNode["p:grpSpPr"] !== undefined) {
@@ -534,8 +538,8 @@ export const PPTXXmlUtils = (function() {
                 var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
                 var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
 
-                offX = chx;
-                offY = chy;
+                offX = Math.round(chx * 100) / 100;
+                offY = Math.round(chy * 100) / 100;
             }
             if (off === undefined) {
                 return "";
@@ -544,7 +548,10 @@ export const PPTXXmlUtils = (function() {
                 y = parseInt(off["y"]) * SLIDE_FACTOR;
                 x = Math.round(x * 100) / 100;
                 y = Math.round(y * 100) / 100;
-                return (isNaN(x) || isNaN(y)) ? "" : "top:" + (y - offY + grpY) + "px; left:" + (x - offX + grpX) + "px;";
+                // 当元素在组合内时，减去chOff得到相对于组合的位置
+                let finalX = Math.round((x - offX) * 100) / 100;
+                let finalY = Math.round((y - offY) * 100) / 100;
+                return (isNaN(finalX) || isNaN(finalY)) ? "" : "top:" + finalY + "px; left:" + finalX + "px;";
             }
 
         }

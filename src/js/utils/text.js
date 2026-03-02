@@ -132,7 +132,14 @@ function getTextWidth(html) {
 
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
                 let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
+
+                // 处理组合缩放 - 如果形状在group-abs组合中,需要应用缩放到段落宽度
                 let sld_prg_width_val = (prg_width_node !== undefined && prg_width_node !== null) ? Math.round(parseInt(prg_width_node) * SLIDE_FACTOR * 100) / 100 : null;
+                if (sld_prg_width_val !== null && warpObj.currentGroupScale) {
+                    const { scaleX, scaleY } = warpObj.currentGroupScale;
+                    sld_prg_width_val = Math.round(sld_prg_width_val * scaleX * 100) / 100;
+                }
+
                 let sld_prg_width = "";
                 if (sld_prg_width_val !== null && !isNoWrap) {
                     sld_prg_width = "width:" + sld_prg_width_val + "px;";
@@ -272,7 +279,7 @@ function getTextWidth(html) {
                     // 先添加项目符号，再添加文本（RTL 模式下，项目符号在右边）
                     text += buText_ary[0];
                 }
-                text += "<div style='" + directionStyle + whiteSpaceStyle + margin + textAlignStyle + "'>";
+                text += "<div style='" + styleText + directionStyle + whiteSpaceStyle + margin + textAlignStyle + "'>";
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
@@ -1519,10 +1526,41 @@ function getTextWidth(html) {
         }
 
 
-        async function genTable(node, warpObj) {
+        async function genTable(node, warpObj, shapeType) {
             let order = node["attrs"]["order"];
             let tableNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
             let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
+
+            // 处理组合缩放 - 当table在group-abs类型组合中时需要应用缩放
+            let workingXfrmNode = xfrmNode;
+            if (shapeType === 'group-abs' && warpObj.currentGroupScale && xfrmNode) {
+                const { scaleX, scaleY, childX, childY } = warpObj.currentGroupScale;
+
+                // 创建缩放后的xfrmNode
+                workingXfrmNode = JSON.parse(JSON.stringify(xfrmNode));
+
+                // 缩放尺寸
+                if (xfrmNode['a:ext'] && xfrmNode['a:ext'].attrs) {
+                    const originalCx = parseInt(xfrmNode['a:ext'].attrs.cx);
+                    const originalCy = parseInt(xfrmNode['a:ext'].attrs.cy);
+                    workingXfrmNode['a:ext'].attrs.cx = Math.round(originalCx * scaleX);
+                    workingXfrmNode['a:ext'].attrs.cy = Math.round(originalCy * scaleY);
+                }
+
+                // 调整位置(相对于childX/childY)
+                if (xfrmNode['a:off'] && xfrmNode['a:off'].attrs) {
+                    const originalOffX = parseInt(xfrmNode['a:off'].attrs.x);
+                    const originalOffY = parseInt(xfrmNode['a:off'].attrs.y);
+
+                    // 计算相对于childOff的偏移
+                    const relativeX = originalOffX - (childX / SLIDE_FACTOR);
+                    const relativeY = originalOffY - (childY / SLIDE_FACTOR);
+
+                    // 应用缩放
+                    workingXfrmNode['a:off'].attrs.x = Math.round(childX / SLIDE_FACTOR + relativeX * scaleX);
+                    workingXfrmNode['a:off'].attrs.y = Math.round(childY / SLIDE_FACTOR + relativeY * scaleY);
+                }
+            }
             /////////////////////////////////////////Amir////////////////////////////////////////////////
             let getTblPr = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblPr"]);
             let getColsGrid = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl", "a:tblGrid", "a:gridCol"]);
@@ -1600,8 +1638,8 @@ function getTextWidth(html) {
             }
             ////////////////////////////////////////////////////////////////////////////////////////////
             let tableHtml = `<table ${tblDir} style='border-collapse: collapse;` +
-                PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined) +
-                PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
+                PPTXXmlUtils.getPosition(workingXfrmNode, node, undefined, undefined, shapeType) +
+                PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) +
                 ` z-index: ${order};` +
                 tbl_borders + `;${tbl_bgcolor}'>`;
 
@@ -1620,6 +1658,7 @@ function getTextWidth(html) {
                     let rowsStyl = "";
                     if (rowHeightParam !== undefined) {
                         rowHeight = parseInt(rowHeightParam) * SLIDE_FACTOR;
+                        rowHeight = Math.round(rowHeight * 100) / 100;
                         rowsStyl += `height:${rowHeight}px;`;
                     }
                     let fillColor = "";
@@ -1969,6 +2008,7 @@ function getTextWidth(html) {
 
             if (total_col_width != 0 /*&& row_idx == 0*/) {
                 colWidth = parseInt(total_col_width) * SLIDE_FACTOR;
+                colWidth = Math.round(colWidth * 100) / 100;
                 colStyl += `width:${colWidth}px;`;
             }
 

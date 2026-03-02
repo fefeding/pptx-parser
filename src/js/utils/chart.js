@@ -5,19 +5,69 @@
 
 import { PPTXXmlUtils } from './xml.js';
 import { PPTXStyleUtils } from './style.js';
+import { SLIDE_FACTOR } from '../core/constants.js';
 
 /**
  * Generate chart HTML and data
  * @param {Object} node - Chart node
  * @param {Object} warpObj - Warp object containing context
+ * @param {Object} parentNode - Parent node (for group elements coordinate calculation)
  * @returns {Promise<string>} Chart HTML
  */
-async function genChart(node, warpObj) {
+async function genChart(node, warpObj, parentNode) {
     const order = node["attrs"]["order"];
-    const xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
+    let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
+
+    // 处理组合缩放 - 当chart在group-abs类型组合中时需要应用缩放
+    let workingXfrmNode = xfrmNode;
+    if (warpObj.currentGroupScale && xfrmNode) {
+        const { scaleX, scaleY, childX, childY } = warpObj.currentGroupScale;
+
+        // 创建缩放后的xfrmNode
+        workingXfrmNode = JSON.parse(JSON.stringify(xfrmNode));
+
+        // 缩放尺寸
+        if (xfrmNode['a:ext'] && xfrmNode['a:ext'].attrs) {
+            const originalCx = parseInt(xfrmNode['a:ext'].attrs.cx);
+            const originalCy = parseInt(xfrmNode['a:ext'].attrs.cy);
+            workingXfrmNode['a:ext'].attrs.cx = Math.round(originalCx * scaleX);
+            workingXfrmNode['a:ext'].attrs.cy = Math.round(originalCy * scaleY);
+        }
+
+        // 调整位置(相对于childX/childY)
+        if (xfrmNode['a:off'] && xfrmNode['a:off'].attrs) {
+            const originalOffX = parseInt(xfrmNode['a:off'].attrs.x);
+            const originalOffY = parseInt(xfrmNode['a:off'].attrs.y);
+
+            // 计算相对于childOff的偏移
+            const relativeX = originalOffX - (childX / SLIDE_FACTOR);
+            const relativeY = originalOffY - (childY / SLIDE_FACTOR);
+
+            // 应用缩放
+            workingXfrmNode['a:off'].attrs.x = Math.round(childX / SLIDE_FACTOR + relativeX * scaleX);
+            workingXfrmNode['a:off'].attrs.y = Math.round(childY / SLIDE_FACTOR + relativeY * scaleY);
+        }
+    }
+
+    // 提取位置和尺寸信息
+    let offX = 0, offY = 0, extCx = 0, extCy = 0;
+    if (workingXfrmNode !== undefined) {
+        if (workingXfrmNode['a:off'] && workingXfrmNode['a:off'].attrs) {
+            offX = workingXfrmNode['a:off'].attrs.x || 0;
+            offY = workingXfrmNode['a:off'].attrs.y || 0;
+        }
+        if (workingXfrmNode['a:ext'] && workingXfrmNode['a:ext'].attrs) {
+            extCx = workingXfrmNode['a:ext'].attrs.cx || 0;
+            extCy = workingXfrmNode['a:ext'].attrs.cy || 0;
+        }
+    }
+
+    // 生成 data- 属性
+    const dataAttrs = ` data-node-type="chart" data-off-x="${offX}" data-off-y="${offY}" data-ext-cx="${extCx}" data-ext-cy="${extCy}"`;
+
     const result = "<div id='chart" + warpObj.chartId.value + "' class='block content' style='" +
-        PPTXXmlUtils.getPosition(xfrmNode, node, undefined, undefined) + PPTXXmlUtils.getSize(xfrmNode, undefined, undefined) +
-        ` z-index: ${order};'></div>`;
+        PPTXXmlUtils.getPosition(workingXfrmNode, parentNode || node, undefined, undefined) + PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) +
+        ` z-index: ${order};'${dataAttrs}></div>`;
 
     const rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
     const refName = warpObj["slideResObj"][rid]["target"];

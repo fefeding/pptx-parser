@@ -160,7 +160,7 @@ function toggleFullscreen() {
 </script>
 
 <style>
-@import '/Users/jiamao/project/github/pptx-parser/src/css/pptxjs.css';
+@import '../../../src/css/pptxjs.css';
 </style>
 
 <style scoped>

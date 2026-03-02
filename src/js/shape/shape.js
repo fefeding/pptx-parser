@@ -61,6 +61,62 @@ import {
 import { renderActionButton, isActionButton } from './action-buttons.js';
 
 export const PPTXShapeUtils = (function() {
+    /**
+     * 辅助函数：生成形状的 data- 属性字符串
+     * @param {Object} node - 节点
+     * @param {Object} slideXfrmNode - 变换节点
+     * @param {string} id - ID
+     * @param {string} name - 名称
+     * @param {string} idx - 索引
+     * @param {string} type - 类型
+     * @param {number} rotate - 旋转角度
+     * @param {string} sType - 形状类型
+     * @returns {string} data- 属性字符串
+     */
+    function genShapeDataAttributes(node, slideXfrmNode, id, name, idx, type, rotate, sType) {
+        let dataAttrs = '';
+        
+        // 提取位置和尺寸信息
+        let offX = 0, offY = 0, extCx = 0, extCy = 0, rot = 0, flipH = 0, flipV = 0;
+        if (slideXfrmNode !== undefined) {
+            if (slideXfrmNode['a:off'] && slideXfrmNode['a:off'].attrs) {
+                offX = slideXfrmNode['a:off'].attrs.x || 0;
+                offY = slideXfrmNode['a:off'].attrs.y || 0;
+            }
+            if (slideXfrmNode['a:ext'] && slideXfrmNode['a:ext'].attrs) {
+                extCx = slideXfrmNode['a:ext'].attrs.cx || 0;
+                extCy = slideXfrmNode['a:ext'].attrs.cy || 0;
+            }
+            if (slideXfrmNode['attrs']) {
+                rot = slideXfrmNode['attrs'].rot || 0;
+                flipH = slideXfrmNode['attrs'].flipH || '0';
+                flipV = slideXfrmNode['attrs'].flipV || '0';
+            }
+        }
+        
+        // 获取形状类型
+        const shapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
+        
+        // 构建 data- 属性
+        dataAttrs += ` data-node-id="${id || ''}"`;
+        dataAttrs += ` data-node-name="${name || ''}"`;
+        dataAttrs += ` data-node-idx="${idx || ''}"`;
+        dataAttrs += ` data-node-type="${type || ''}"`;
+        dataAttrs += ` data-shape-type="${sType || ''}"`;
+        dataAttrs += ` data-off-x="${offX}"`;
+        dataAttrs += ` data-off-y="${offY}"`;
+        dataAttrs += ` data-ext-cx="${extCx}"`;
+        dataAttrs += ` data-ext-cy="${extCy}"`;
+        dataAttrs += ` data-rotate="${rotate || 0}"`;
+        dataAttrs += ` data-flip-h="${flipH}"`;
+        dataAttrs += ` data-flip-v="${flipV}"`;
+        if (shapType) {
+            dataAttrs += ` data-geom-type="${shapType}"`;
+        }
+        
+        return dataAttrs;
+    }
+
     async function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, settings) {
             //var dltX = 0;
             //var dltY = 0;
@@ -120,13 +176,59 @@ export const PPTXShapeUtils = (function() {
                 txtFlip = " scale(-1,-1)";
             }
             //////////////////////////////////////////////////
+
+            // 处理组合缩放 - 当形状在group-abs类型组合中时需要应用缩放
+            let workingXfrmNode = slideXfrmNode;
+            let drawW, drawH; // 原始未缩放的尺寸，用于SVG内部绘图
+
+            // 先保存原始尺寸（如果存在）
+            if (slideXfrmNode && slideXfrmNode['a:ext'] && slideXfrmNode['a:ext'].attrs) {
+                const originalCx = parseInt(slideXfrmNode['a:ext'].attrs.cx);
+                const originalCy = parseInt(slideXfrmNode['a:ext'].attrs.cy);
+                drawW = (originalCx !== undefined && originalCy !== undefined)
+                    ? originalCx * SLIDE_FACTOR
+                    : undefined;
+                drawH = (originalCx !== undefined && originalCy !== undefined)
+                    ? originalCy * SLIDE_FACTOR
+                    : undefined;
+            }
+
+            if (sType === 'group-abs' && warpObj.currentGroupScale && slideXfrmNode) {
+                const { scaleX, scaleY, childX, childY } = warpObj.currentGroupScale;
+
+                // 创建缩放后的xfrmNode
+                workingXfrmNode = JSON.parse(JSON.stringify(slideXfrmNode));
+
+                // 缩放尺寸
+                if (slideXfrmNode['a:ext'] && slideXfrmNode['a:ext'].attrs) {
+                    const originalCx = parseInt(slideXfrmNode['a:ext'].attrs.cx);
+                    const originalCy = parseInt(slideXfrmNode['a:ext'].attrs.cy);
+                    workingXfrmNode['a:ext'].attrs.cx = Math.round(originalCx * scaleX);
+                    workingXfrmNode['a:ext'].attrs.cy = Math.round(originalCy * scaleY);
+                }
+
+                // 调整位置(相对于childX/childY)
+                if (slideXfrmNode['a:off'] && slideXfrmNode['a:off'].attrs) {
+                    const originalOffX = parseInt(slideXfrmNode['a:off'].attrs.x);
+                    const originalOffY = parseInt(slideXfrmNode['a:off'].attrs.y);
+
+                    // 计算相对于childOff的偏移
+                    const relativeX = originalOffX - (childX / SLIDE_FACTOR);
+                    const relativeY = originalOffY - (childY / SLIDE_FACTOR);
+
+                    // 应用缩放
+                    workingXfrmNode['a:off'].attrs.x = Math.round(childX / SLIDE_FACTOR + relativeX * scaleX);
+                    workingXfrmNode['a:off'].attrs.y = Math.round(childY / SLIDE_FACTOR + relativeY * scaleY);
+                }
+            }
+
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
                 var off = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
                 var x = (off !== undefined) ? parseInt(off["x"]) * SLIDE_FACTOR : 0;
                 var y = (off !== undefined) ? parseInt(off["y"]) * SLIDE_FACTOR : 0;
 
                 var ext = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:ext", "attrs"]);
-                
+
                 // Fallback to slideLayoutXfrmNode if slideXfrmNode is undefined or ext is undefined
                 if (ext === undefined && slideLayoutXfrmNode !== undefined) {
                     ext = PPTXXmlUtils.getTextByPathList(slideLayoutXfrmNode, ["a:ext", "attrs"]);
@@ -135,11 +237,15 @@ export const PPTXShapeUtils = (function() {
                 if (ext === undefined && slideMasterXfrmNode !== undefined) {
                     ext = PPTXXmlUtils.getTextByPathList(slideMasterXfrmNode, ["a:ext", "attrs"]);
                 }
-                
+
                 var w = (ext !== undefined && ext["cx"] !== undefined) ? parseInt(ext["cx"]) * SLIDE_FACTOR : 100;
                 var h = (ext !== undefined && ext["cy"] !== undefined) ? parseInt(ext["cy"]) * SLIDE_FACTOR : 100;
                 w = isNaN(w) ? 100 : w;
                 h = isNaN(h) ? 100 : h;
+
+                // 如果drawW/drawH未定义（非group-abs情况），则使用w和h
+                if (drawW === undefined) drawW = w;
+                if (drawH === undefined) drawH = h;
 
                 // 对于连接器类型，需要特殊处理
                 var isConnector = (shapType === 'straightConnector1' || shapType === 'bentConnector2' ||
@@ -148,9 +254,7 @@ export const PPTXShapeUtils = (function() {
                                    shapType === 'curvedConnector3' || shapType === 'curvedConnector4' ||
                                    shapType === 'curvedConnector5');
 
-                // 保存原始的w和h，用于内部绘图
-                var drawW = w;
-                var drawH = h;
+
 
 
 
@@ -161,6 +265,7 @@ export const PPTXShapeUtils = (function() {
 
                 // 对于连接器，当width或height为0时，需要设置最小尺寸
                 var svgSizeStyle = "";
+
                 if (isConnector && (w === 0 || h === 0)) {
                     // 设置最小尺寸为strokeWidth的2倍（或至少4px），确保线条可见
                     var strokeWidth = 1.5; // 默认stroke-width，实际可以从border获取
@@ -174,15 +279,24 @@ export const PPTXShapeUtils = (function() {
                     h = svgH;
 
                 } else {
-                    svgSizeStyle = PPTXXmlUtils.getSize(slideXfrmNode, undefined, undefined);
+                    svgSizeStyle = PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined);
+                }
+
+                // 如果形状在组合中被缩放，SVG内容需要应用相反的缩放
+                // 这样points可以基于原始尺寸计算，然后通过transform scale()缩放
+                let svgTransform = "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";";
+                if (sType === 'group-abs' && warpObj.currentGroupScale) {
+                    const { scaleX, scaleY } = warpObj.currentGroupScale;
+                    // 使用原始尺寸计算points，通过transform scale()缩放整个SVG
+                    svgTransform = `transform: rotate(${(rotate !== undefined) ? rotate : 0}deg)${flip} scale(${scaleX},${scaleY});`;
                 }
 
                 const svgTag = "<svg class='drawing " + svgCssName + "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
                     "' style='" +
-                    PPTXXmlUtils.getPosition(slideXfrmNode, pNode, undefined, undefined, sType) +
+                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, undefined, undefined, sType) +
                     svgSizeStyle +
                     " z-index: " + order + ";" +
-                    "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";" +
+                    svgTransform +
                     "'>";
                 result += svgTag;
                 result += '<defs>'
@@ -3014,7 +3128,9 @@ export const PPTXShapeUtils = (function() {
                     case "upArrow":
                     case "leftRightArrow":
                     case "upDownArrow": {
-                        result += renderArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        // 使用drawW和drawH（原始尺寸）而不是w和h（缩放后尺寸）
+                        // SVG会通过transform scale()进行缩放
+                        result += renderArrow(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
                         break;
                     }
                     case "quadArrow": {
@@ -5185,14 +5301,17 @@ export const PPTXShapeUtils = (function() {
 
                 result += "</svg>";
 
+                // 生成 data- 属性
+                const dataAttrs1 = genShapeDataAttributes(node, workingXfrmNode, id, name, idx, type, rotate, sType);
+
                 result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
                     " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
                     "' style='" +
-                    PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
-                    PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
+                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
+                    PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
                     " z-index: " + order + ";" +
-                    "'>";
+                    "'" + dataAttrs1 + ">";
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -5208,14 +5327,18 @@ export const PPTXShapeUtils = (function() {
                 //console.log(result);
 
                 result += "</svg>";
+
+                // 生成 data- 属性
+                const dataAttrs2 = genShapeDataAttributes(node, workingXfrmNode, id, name, idx, type, rotate, sType);
+
                 result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
                     " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
                     "' style='" +
-                    PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
-                    PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
+                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
+                    PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
                     " z-index: " + order + ";" +
-                    "'>";
+                    "'" + dataAttrs2 + ">";
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -5229,6 +5352,9 @@ export const PPTXShapeUtils = (function() {
                 // result = "";
             } else {
 
+                // 生成 data- 属性
+                const dataAttrs3 = genShapeDataAttributes(node, slideXfrmNode, id, name, idx, type, rotate, sType);
+
                 result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content 
                     " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
                     "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
@@ -5238,7 +5364,7 @@ export const PPTXShapeUtils = (function() {
                     PPTXStyleUtils.getBorder(node, pNode, false, "shape", warpObj) +
                     await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source) +
                     " z-index: " + order + ";" +
-                    "'>";
+                    "'" + dataAttrs3 + ">";
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
