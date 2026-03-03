@@ -1857,147 +1857,137 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "cloud":
                     case "cloudCallout": {
-                        // 云形使用w和h（SVG容器尺寸）进行路径计算
-                        // 这样路径坐标会在容器范围内，不会出现负坐标或溢出
+                        // 云形的原始设计是基于 43200x43200 的正方形
+                        // 根据 Office Open XML 规范，X坐标使用w缩放，Y坐标使用h缩放
 
                         // 辅助函数：格式化数字为2位小数
                         function fmt(num) {
                             return parseFloat(num.toFixed(2));
                         }
 
-                        // 辅助函数：格式化弧线路径中的所有坐标
-                        function fmtArc(arcStr) {
-                            return arcStr.replace(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g, function(match) {
-                                return fmt(parseFloat(match)).toString();
-                            });
-                        }
-
-                        var x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11,
-                            rx1, rx2, rx3, rx4, rx5, rx6, rx7, rx8, rx9, rx10, rx11, ry1, ry2, ry3, ry4, ry5, ry6, ry7, ry8, ry9, ry10, ry11;
-                        x0 = fmt(w * 3900 / 43200);
-                        x1 = fmt(w * 4693 / 43200);
-                        x2 = fmt(w * 6928 / 43200);
-                        x3 = fmt(w * 16478 / 43200);
-                        x4 = fmt(w * 28827 / 43200);
-                        x5 = fmt(w * 34129 / 43200);
-                        x6 = fmt(w * 41798 / 43200);
-                        x7 = fmt(w * 38324 / 43200);
-                        x8 = fmt(w * 29078 / 43200);
-                        x9 = fmt(w * 22141 / 43200);
-                        x10 = fmt(w * 14000 / 43200);
-                        x11 = fmt(w * 4127 / 43200);
-                        y0 = fmt(h * 14370 / 43200);
-                        y1 = fmt(h * 26177 / 43200);
-                        y2 = fmt(h * 34899 / 43200);
-                        y3 = fmt(h * 39090 / 43200);
-                        y4 = fmt(h * 34751 / 43200);
-                        y5 = fmt(h * 22954 / 43200);
-                        y6 = fmt(h * 15354 / 43200);
-                        y7 = fmt(h * 5426 / 43200);
-                        y8 = fmt(h * 3952 / 43200);
-                        y9 = fmt(h * 4720 / 43200);
-                        y10 = fmt(h * 5192 / 43200);
-                        y11 = fmt(h * 15789 / 43200);
-                        //Path:
-                        //(path attrs: w = 43200; h = 43200; )
-                        var rX1 = fmt(w * 6753 / 43200), rY1 = fmt(h * 9190 / 43200), rX2 = fmt(w * 5333 / 43200), rY2 = fmt(h * 7267 / 43200), rX3 = fmt(w * 4365 / 43200),
-                            rY3 = fmt(h * 5945 / 43200), rX4 = fmt(w * 4857 / 43200), rY4 = fmt(h * 6595 / 43200), rY5 = fmt(h * 7273 / 43200), rX6 = fmt(w * 6775 / 43200),
-                            rY6 = fmt(h * 9220 / 43200), rX7 = fmt(w * 5785 / 43200), rY7 = fmt(h * 7867 / 43200), rX8 = fmt(w * 6752 / 43200), rY8 = fmt(h * 9215 / 43200),
-                            rX9 = fmt(w * 7720 / 43200), rY9 = fmt(h * 10543 / 43200), rX10 = fmt(w * 4360 / 43200), rY10 = fmt(h * 5918 / 43200), rX11 = fmt(w * 4345 / 43200);
-                        var sA1 = -11429249 / 60000, wA1 = 7426832 / 60000, sA2 = -8646143 / 60000, wA2 = 5396714 / 60000, sA3 = -8748475 / 60000,
-                            wA3 = 5983381 / 60000, sA4 = -7859164 / 60000, wA4 = 7034504 / 60000, sA5 = -4722533 / 60000, wA5 = 6541615 / 60000,
-                            sA6 = -2776035 / 60000, wA6 = 7816140 / 60000, sA7 = 37501 / 60000, wA7 = 6842000 / 60000, sA8 = 1347096 / 60000,
-                            wA8 = 6910353 / 60000, sA9 = 3974558 / 60000, wA9 = 4542661 / 60000, sA10 = -16496525 / 60000, wA10 = 8804134 / 60000,
-                            sA11 = -14809710 / 60000, wA11 = 9151131 / 60000;
-
-                        var cX0, cX1, cX2, cX3, cX4, cX5, cX6, cX7, cX8, cX9, cX10, cY0, cY1, cY2, cY3, cY4, cY5, cY6, cY7, cY8, cY9, cY10;
-                        var arc1, arc2, arc3, arc4, arc5, arc6, arc7, arc8, arc9, arc10, arc11;
-                        var lxy1, lxy2, lxy3, lxy4, lxy5, lxy6, lxy7, lxy8, lxy9, lxy10;
-
-                        // 辅助函数：从shapeArc返回的字符串中提取终点坐标
-                        function getArcEnd(arcStr) {
-                            // shapeArc返回格式: "M x y A rx ry x-axis-rotation large-arc-flag sweep-flag x y"
-                            // 我们需要提取最后的两个数值(x,y)
-                            var parts = arcStr.trim().split(/\s+/);
-                            // 最后两个数值是终点坐标
+                        // 生成椭圆弧路径的辅助函数（使用SVG A命令）
+                        // 参数：中心点(cx,cy)，半径(rx,ry)，起始角度startAngle，扫描角度sweepAngle
+                        function ellipseArc(cx, cy, rx, ry, startAngle, sweepAngle) {
+                            var endAngle = startAngle + sweepAngle;
+                            // 计算起点和终点
+                            var startX = cx + rx * Math.cos(startAngle * Math.PI / 180);
+                            var startY = cy + ry * Math.sin(startAngle * Math.PI / 180);
+                            var endX = cx + rx * Math.cos(endAngle * Math.PI / 180);
+                            var endY = cy + ry * Math.sin(endAngle * Math.PI / 180);
+                            
+                            // 确定large-arc-flag和sweep-flag
+                            var largeArc = Math.abs(sweepAngle) > 180 ? 1 : 0;
+                            var sweep = sweepAngle > 0 ? 1 : 0;
+                            
                             return {
-                                x: fmt(parseFloat(parts[parts.length - 2])),
-                                y: fmt(parseFloat(parts[parts.length - 1]))
+                                start: { x: fmt(startX), y: fmt(startY) },
+                                end: { x: fmt(endX), y: fmt(endY) },
+                                path: "A " + fmt(rx) + " " + fmt(ry) + " 0 " + largeArc + " " + sweep + " " + fmt(endX) + " " + fmt(endY)
                             };
                         }
 
-                        cX0 = fmt(x0 - rX1 * Math.cos(sA1 * Math.PI / 180));
-                        cY0 = fmt(y0 - rY1 * Math.sin(sA1 * Math.PI / 180));
-                        arc1 = PPTXShapeUtils.shapeArc(cX0, cY0, rX1, rY1, sA1, sA1 + wA1, false);
-                        var end1 = getArcEnd(arc1);
-                        cX1 = fmt(end1.x - rX2 * Math.cos(sA2 * Math.PI / 180));
-                        cY1 = fmt(end1.y - rY2 * Math.sin(sA2 * Math.PI / 180));
-                        arc2 = PPTXShapeUtils.shapeArc(cX1, cY1, rX2, rY2, sA2, sA2 + wA2, false);
-                        var end2 = getArcEnd(arc2);
-                        cX2 = fmt(end2.x - rX3 * Math.cos(sA3 * Math.PI / 180));
-                        cY2 = fmt(end2.y - rY3 * Math.sin(sA3 * Math.PI / 180));
-                        arc3 = PPTXShapeUtils.shapeArc(cX2, cY2, rX3, rY3, sA3, sA3 + wA3, false);
-                        var end3 = getArcEnd(arc3);
-                        cX3 = fmt(end3.x - rX4 * Math.cos(sA4 * Math.PI / 180));
-                        cY3 = fmt(end3.y - rY4 * Math.sin(sA4 * Math.PI / 180));
-                        arc4 = PPTXShapeUtils.shapeArc(cX3, cY3, rX4, rY4, sA4, sA4 + wA4, false);
-                        var end4 = getArcEnd(arc4);
-                        cX4 = fmt(end4.x - rX2 * Math.cos(sA5 * Math.PI / 180));
-                        cY4 = fmt(end4.y - rY5 * Math.sin(sA5 * Math.PI / 180));
-                        arc5 = PPTXShapeUtils.shapeArc(cX4, cY4, rX2, rY5, sA5, sA5 + wA5, false);
-                        var end5 = getArcEnd(arc5);
-                        cX5 = fmt(end5.x - rX6 * Math.cos(sA6 * Math.PI / 180));
-                        cY5 = fmt(end5.y - rY6 * Math.sin(sA6 * Math.PI / 180));
-                        arc6 = PPTXShapeUtils.shapeArc(cX5, cY5, rX6, rY6, sA6, sA6 + wA6, false);
-                        var end6 = getArcEnd(arc6);
-                        cX6 = fmt(end6.x - rX7 * Math.cos(sA7 * Math.PI / 180));
-                        cY6 = fmt(end6.y - rY7 * Math.sin(sA7 * Math.PI / 180));
-                        arc7 = PPTXShapeUtils.shapeArc(cX6, cY6, rX7, rY7, sA7, sA7 + wA7, false);
-                        var end7 = getArcEnd(arc7);
-                        cX7 = fmt(end7.x - rX8 * Math.cos(sA8 * Math.PI / 180));
-                        cY7 = fmt(end7.y - rY8 * Math.sin(sA8 * Math.PI / 180));
-                        arc8 = PPTXShapeUtils.shapeArc(cX7, cY7, rX8, rY8, sA8, sA8 + wA8, false);
-                        var end8 = getArcEnd(arc8);
-                        cX8 = fmt(end8.x - rX9 * Math.cos(sA9 * Math.PI / 180));
-                        cY8 = fmt(end8.y - rY9 * Math.sin(sA9 * Math.PI / 180));
-                        arc9 = PPTXShapeUtils.shapeArc(cX8, cY8, rX9, rY9, sA9, sA9 + wA9, false);
-                        var end9 = getArcEnd(arc9);
-                        cX9 = fmt(end9.x - rX10 * Math.cos(sA10 * Math.PI / 180));
-                        cY9 = fmt(end9.y - rY10 * Math.sin(sA10 * Math.PI / 180));
-                        arc10 = PPTXShapeUtils.shapeArc(cX9, cY9, rX10, rY10, sA10, sA10 + wA10, false);
-                        var end10 = getArcEnd(arc10);
-                        cX10 = fmt(end10.x - rX11 * Math.cos(sA11 * Math.PI / 180));
-                        cY10 = fmt(end10.y - rY3 * Math.sin(sA11 * Math.PI / 180));
-                        arc11 = PPTXShapeUtils.shapeArc(cX10, cY10, rX11, rY3, sA11, sA11 + wA11, false);
+                        // X坐标使用 w 缩放，Y坐标使用 h 缩放
+                        var x0 = fmt(w * 3900 / 43200);
+                        var y0 = fmt(h * 14370 / 43200);
+                        
+                        // 半径：RX使用 w 缩放，RY使用 h 缩放
+                        var rX1 = fmt(w * 6753 / 43200), rY1 = fmt(h * 9190 / 43200);
+                        var rX2 = fmt(w * 5333 / 43200), rY2 = fmt(h * 7267 / 43200);
+                        var rX3 = fmt(w * 4365 / 43200), rY3 = fmt(h * 5945 / 43200);
+                        var rX4 = fmt(w * 4857 / 43200), rY4 = fmt(h * 6595 / 43200);
+                        var rY5 = fmt(h * 7273 / 43200);
+                        var rX6 = fmt(w * 6775 / 43200), rY6 = fmt(h * 9220 / 43200);
+                        var rX7 = fmt(w * 5785 / 43200), rY7 = fmt(h * 7867 / 43200);
+                        var rX8 = fmt(w * 6752 / 43200), rY8 = fmt(h * 9215 / 43200);
+                        var rX9 = fmt(w * 7720 / 43200), rY9 = fmt(h * 10543 / 43200);
+                        var rX10 = fmt(w * 4360 / 43200), rY10 = fmt(h * 5918 / 43200);
+                        var rX11 = fmt(w * 4345 / 43200);
 
-                        // 构建路径字符串，将后续arc的"M"替换为"L"，并格式化所有坐标
-                        var d1 = "M" + x0 + "," + y0 +
-                            fmtArc(arc1).replace("M", "L") +
-                            fmtArc(arc2).replace("M", "L") +
-                            fmtArc(arc3).replace("M", "L") +
-                            fmtArc(arc4).replace("M", "L") +
-                            fmtArc(arc5).replace("M", "L") +
-                            fmtArc(arc6).replace("M", "L") +
-                            fmtArc(arc7).replace("M", "L") +
-                            fmtArc(arc8).replace("M", "L") +
-                            fmtArc(arc9).replace("M", "L") +
-                            fmtArc(arc10).replace("M", "L") +
-                            fmtArc(arc11).replace("M", "L") +
-                            " z";
+                        // 角度（以度为单位）
+                        var sA1 = -11429249 / 60000, wA1 = 7426832 / 60000;
+                        var sA2 = -8646143 / 60000, wA2 = 5396714 / 60000;
+                        var sA3 = -8748475 / 60000, wA3 = 5983381 / 60000;
+                        var sA4 = -7859164 / 60000, wA4 = 7034504 / 60000;
+                        var sA5 = -4722533 / 60000, wA5 = 6541615 / 60000;
+                        var sA6 = -2776035 / 60000, wA6 = 7816140 / 60000;
+                        var sA7 = 37501 / 60000, wA7 = 6842000 / 60000;
+                        var sA8 = 1347096 / 60000, wA8 = 6910353 / 60000;
+                        var sA9 = 3974558 / 60000, wA9 = 4542661 / 60000;
+                        var sA10 = -16496525 / 60000, wA10 = 8804134 / 60000;
+                        var sA11 = -14809710 / 60000, wA11 = 9151131 / 60000;
 
-                        // 云形路径会有负坐标，需要计算实际路径的边界盒
-                        // 将路径平移到SVG容器居中
-                        var pathMinX = Math.min(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11);
-                        var pathMinY = Math.min(y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11);
-                        var pathMaxX = Math.max(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11);
-                        var pathMaxY = Math.max(y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11);
-                        var pathWidth = pathMaxX - pathMinX;
-                        var pathHeight = pathMaxY - pathMinY;
+                        // 计算各弧线的中心点
+                        // 弧线中心点 = 起点 - 半径 * cos/sin(起始角度)
+                        var cX0 = fmt(x0 - rX1 * Math.cos(sA1 * Math.PI / 180));
+                        var cY0 = fmt(y0 - rY1 * Math.sin(sA1 * Math.PI / 180));
 
-                        // 计算平移量，使路径在SVG容器中居中
-                        var cloudTranslateX = (w - pathWidth) / 2 - pathMinX;
-                        var cloudTranslateY = (h - pathHeight) / 2 - pathMinY;
-                        var cloudTransformAttr = " transform='translate(" + fmt(cloudTranslateX) + "," + fmt(cloudTranslateY) + ")'";
+                        // 生成弧线1
+                        var arc1 = ellipseArc(cX0, cY0, rX1, rY1, sA1, wA1);
+                        
+                        // 计算弧线2的中心点（基于弧线1的终点）
+                        var cX1 = fmt(arc1.end.x - rX2 * Math.cos(sA2 * Math.PI / 180));
+                        var cY1 = fmt(arc1.end.y - rY2 * Math.sin(sA2 * Math.PI / 180));
+                        var arc2 = ellipseArc(cX1, cY1, rX2, rY2, sA2, wA2);
+                        
+                        // 弧线3
+                        var cX2 = fmt(arc2.end.x - rX3 * Math.cos(sA3 * Math.PI / 180));
+                        var cY2 = fmt(arc2.end.y - rY3 * Math.sin(sA3 * Math.PI / 180));
+                        var arc3 = ellipseArc(cX2, cY2, rX3, rY3, sA3, wA3);
+                        
+                        // 弧线4
+                        var cX3 = fmt(arc3.end.x - rX4 * Math.cos(sA4 * Math.PI / 180));
+                        var cY3 = fmt(arc3.end.y - rY4 * Math.sin(sA4 * Math.PI / 180));
+                        var arc4 = ellipseArc(cX3, cY3, rX4, rY4, sA4, wA4);
+                        
+                        // 弧线5
+                        var cX4 = fmt(arc4.end.x - rX2 * Math.cos(sA5 * Math.PI / 180));
+                        var cY4 = fmt(arc4.end.y - rY5 * Math.sin(sA5 * Math.PI / 180));
+                        var arc5 = ellipseArc(cX4, cY4, rX2, rY5, sA5, wA5);
+                        
+                        // 弧线6
+                        var cX5 = fmt(arc5.end.x - rX6 * Math.cos(sA6 * Math.PI / 180));
+                        var cY5 = fmt(arc5.end.y - rY6 * Math.sin(sA6 * Math.PI / 180));
+                        var arc6 = ellipseArc(cX5, cY5, rX6, rY6, sA6, wA6);
+                        
+                        // 弧线7
+                        var cX6 = fmt(arc6.end.x - rX7 * Math.cos(sA7 * Math.PI / 180));
+                        var cY6 = fmt(arc6.end.y - rY7 * Math.sin(sA7 * Math.PI / 180));
+                        var arc7 = ellipseArc(cX6, cY6, rX7, rY7, sA7, wA7);
+                        
+                        // 弧线8
+                        var cX7 = fmt(arc7.end.x - rX8 * Math.cos(sA8 * Math.PI / 180));
+                        var cY7 = fmt(arc7.end.y - rY8 * Math.sin(sA8 * Math.PI / 180));
+                        var arc8 = ellipseArc(cX7, cY7, rX8, rY8, sA8, wA8);
+                        
+                        // 弧线9
+                        var cX8 = fmt(arc8.end.x - rX9 * Math.cos(sA9 * Math.PI / 180));
+                        var cY8 = fmt(arc8.end.y - rY9 * Math.sin(sA9 * Math.PI / 180));
+                        var arc9 = ellipseArc(cX8, cY8, rX9, rY9, sA9, wA9);
+                        
+                        // 弧线10
+                        var cX9 = fmt(arc9.end.x - rX10 * Math.cos(sA10 * Math.PI / 180));
+                        var cY9 = fmt(arc9.end.y - rY10 * Math.sin(sA10 * Math.PI / 180));
+                        var arc10 = ellipseArc(cX9, cY9, rX10, rY10, sA10, wA10);
+                        
+                        // 弧线11
+                        var cX10 = fmt(arc10.end.x - rX11 * Math.cos(sA11 * Math.PI / 180));
+                        var cY10 = fmt(arc10.end.y - rY3 * Math.sin(sA11 * Math.PI / 180));
+                        var arc11 = ellipseArc(cX10, cY10, rX11, rY3, sA11, wA11);
+
+                        // 构建完整路径
+                        var d1 = "M" + x0 + "," + y0 + " " +
+                            arc1.path + " " +
+                            arc2.path + " " +
+                            arc3.path + " " +
+                            arc4.path + " " +
+                            arc5.path + " " +
+                            arc6.path + " " +
+                            arc7.path + " " +
+                            arc8.path + " " +
+                            arc9.path + " " +
+                            arc10.path + " " +
+                            arc11.path + " z";
+
                         if (shapType == "cloudCallout") {
                             var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                             var refr = SLIDE_FACTOR;
@@ -2075,7 +2065,7 @@ export const PPTXShapeUtils = (function() {
                                 " z";
                             d1 += d_val;
                         }
-                        result += "<path d='" + d1 + "'" + cloudTransformAttr + " fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
+                        result += "<path d='" + d1 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
 
                         break;
