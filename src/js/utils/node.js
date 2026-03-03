@@ -201,12 +201,13 @@ function objectToDataAttributes(obj, prefix = '') {
 /**
  * 处理组形状节点
  * @param {Object} node - 组形状节点
+ * @param {Object} parentNode - 父节点
  * @param {Object} wrapObj - 包装对象
  * @param {string} source - 源
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 生成的HTML
  */
-async function processGroupSpNode(node, wrapObj, source, settings) {
+async function processGroupSpNode(node, parentNode, wrapObj, source, settings) {
     const xfrmNode = PPTXXmlUtils.getTextByPathList(node, ['p:grpSpPr', 'a:xfrm']);
 
     let groupStyle = '';
@@ -222,6 +223,16 @@ async function processGroupSpNode(node, wrapObj, source, settings) {
         x = Math.round(parseInt(xfrmNode['a:off'].attrs.x) * SLIDE_FACTOR * 100) / 100;
         y = Math.round(parseInt(xfrmNode['a:off'].attrs.y) * SLIDE_FACTOR * 100) / 100;
 
+        // 计算相对位置（对于嵌套组合）
+        let parentChOffX = 0, parentChOffY = 0;
+        if (parentNode !== undefined) {
+            const parentGrpXfrmNode = PPTXXmlUtils.getTextByPathList(parentNode, ['p:grpSpPr', 'a:xfrm']);
+            if (parentGrpXfrmNode !== undefined && parentGrpXfrmNode['a:chOff'] !== undefined && parentGrpXfrmNode['a:chOff'].attrs !== undefined) {
+                parentChOffX = Math.round(parseInt(parentGrpXfrmNode['a:chOff'].attrs.x) * SLIDE_FACTOR * 100) / 100;
+                parentChOffY = Math.round(parseInt(parentGrpXfrmNode['a:chOff'].attrs.y) * SLIDE_FACTOR * 100) / 100;
+            }
+        }
+
         // 根据ECMA-376标准，a:chOff和a:chExt是可选元素
         // 当不存在时，应该使用父元素的对应值作为默认值
 
@@ -232,6 +243,16 @@ async function processGroupSpNode(node, wrapObj, source, settings) {
             // 当a:chOff不存在时，使用a:off的值作为默认值
             childX = x;
             childY = y;
+        }
+
+        // 对于嵌套组合，计算相对位置
+        if (parentChOffX > 0 || parentChOffY > 0) {
+            // 调整 childX/childY 为相对于父组的坐标
+            childX = childX - parentChOffX;
+            childY = childY - parentChOffY;
+            // 调整 off 为相对于父组的坐标（用于设置 top/left）
+            x = x - parentChOffX;
+            y = y - parentChOffY;
         }
 
         cx = Math.round(parseInt(xfrmNode['a:ext'].attrs.cx) * SLIDE_FACTOR * 100) / 100;
@@ -325,10 +346,10 @@ async function processGroupSpNode(node, wrapObj, source, settings) {
     for (const nodeKey in node) {
         if (Array.isArray(node[nodeKey])) {
             for (const childNode of node[nodeKey]) {
-                result += await processNodesInSlide(nodeKey, childNode, node, wrapObj, source, shapeType, settings);
+                result += await processNodesInSlide(nodeKey, childNode, node, wrapObj, source, shapeType, settings, node);
             }
         } else {
-            result += await processNodesInSlide(nodeKey, node[nodeKey], node, wrapObj, source, shapeType, settings);
+            result += await processNodesInSlide(nodeKey, node[nodeKey], node, wrapObj, source, shapeType, settings, node);
         }
     }
 
@@ -392,23 +413,24 @@ function applyGroupScale(xfrmNode, shapeType, wrapObj) {
  * @param {string} source - 源
  * @param {string} shapeType - 形状类型
  * @param {Object} settings - 设置对象
+ * @param {Object} parentNode - 父节点
  * @returns {Promise<string>} 生成的HTML
  */
-async function processNodesInSlide(nodeKey, nodeValue, nodes, wrapObj, source, shapeType, settings) {
+async function processNodesInSlide(nodeKey, nodeValue, nodes, wrapObj, source, shapeType, settings, parentNode) {
     switch (nodeKey) {
         case 'p:sp':    // Shape, Text
-            return await processSpNode(nodeValue, nodes, wrapObj, source, shapeType, settings);
+            return await processSpNode(nodeValue, parentNode, wrapObj, source, shapeType, settings);
         case 'p:cxnSp':    // Shape, Text (with connection)
-            return await processCxnSpNode(nodeValue, nodes, wrapObj, source, shapeType, settings);
+            return await processCxnSpNode(nodeValue, parentNode, wrapObj, source, shapeType, settings);
         case 'p:pic':    // Picture
-            return await processPicNode(nodeValue, nodes, wrapObj, source, shapeType, settings);
+            return await processPicNode(nodeValue, parentNode, wrapObj, source, shapeType, settings);
         case 'p:graphicFrame':    // Chart, Diagram, Table
-            return await processGraphicFrameNode(nodeValue, nodes, wrapObj, source, shapeType, settings);
+            return await processGraphicFrameNode(nodeValue, parentNode, wrapObj, source, shapeType, settings);
         case 'p:grpSp':
-            return await processGroupSpNode(nodeValue, wrapObj, source, settings);
+            return await processGroupSpNode(nodeValue, parentNode, wrapObj, source, settings);
         case 'mc:AlternateContent': // Equations and formulas as Image
             const mcFallbackNode = PPTXXmlUtils.getTextByPathList(nodeValue, ['mc:Fallback']);
-            return await processGroupSpNode(mcFallbackNode, wrapObj, source, settings);
+            return await processGroupSpNode(mcFallbackNode, parentNode, wrapObj, source, settings);
         default:
             return '';
     }
@@ -790,13 +812,13 @@ async function getBackground(wrapObj, slideSize, index, settings) {
                 for (const node of nodesSldLayout[nodeKey]) {
                     const phType = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'type']);
                     if (phType !== 'pic') {
-                        result += await processNodesInSlide(nodeKey, node, nodesSldLayout, wrapObj, 'slideLayoutBg', 'group', settings);
+                        result += await processNodesInSlide(nodeKey, node, nodesSldLayout, wrapObj, 'slideLayoutBg', 'group', settings, undefined);
                     }
                 }
             } else {
                 const phType = PPTXXmlUtils.getTextByPathList(nodesSldLayout[nodeKey], ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'type']);
                 if (phType !== 'pic') {
-                    result += await processNodesInSlide(nodeKey, nodesSldLayout[nodeKey], nodesSldLayout, wrapObj, 'slideLayoutBg', 'group', settings);
+                    result += await processNodesInSlide(nodeKey, nodesSldLayout[nodeKey], nodesSldLayout, wrapObj, 'slideLayoutBg', 'group', settings, undefined);
                 }
             }
         }
@@ -807,10 +829,10 @@ async function getBackground(wrapObj, slideSize, index, settings) {
             if (Array.isArray(nodesSldMaster[nodeKey])) {
                 for (const node of nodesSldMaster[nodeKey]) {
                     const phType = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'type']);
-                    result += await processNodesInSlide(nodeKey, node, nodesSldMaster, wrapObj, 'slideMasterBg', 'group', settings);
+                    result += await processNodesInSlide(nodeKey, node, nodesSldMaster, wrapObj, 'slideMasterBg', 'group', settings, undefined);
                 }
             } else {
-                result += await processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, wrapObj, 'slideMasterBg', 'group', settings);
+                result += await processNodesInSlide(nodeKey, nodesSldMaster[nodeKey], nodesSldMaster, wrapObj, 'slideMasterBg', 'group', settings, undefined);
             }
         }
     }
