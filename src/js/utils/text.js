@@ -158,6 +158,9 @@ function getTextWidth(html) {
                         outerFlexStyle = "justify-content: flex-end;";
                     } else if (horizontalAlign === "h-mid") {
                         outerFlexStyle = "justify-content: center;";
+                    } else if (horizontalAlign === "h-left-rtl") {
+                        // RTL 模式下的左对齐，需要使用 flex-end 才能让文本靠左显示
+                        outerFlexStyle = "justify-content: flex-end;";
                     } else {
                         outerFlexStyle = "justify-content: flex-start;";
                     }
@@ -271,6 +274,9 @@ function getTextWidth(html) {
                         flexStyle = "justify-content: flex-end;";
                     } else if (horizontalAlign === "h-mid") {
                         flexStyle = "justify-content: center;";
+                    } else if (horizontalAlign === "h-left-rtl") {
+                        // RTL 模式下的左对齐，需要使用 flex-end 才能让文本靠左显示
+                        flexStyle = "justify-content: flex-end;";
                     } else {
                         flexStyle = "justify-content: flex-start;";
                     }
@@ -291,7 +297,8 @@ function getTextWidth(html) {
             }
 
             // 关闭bodyPr内边距div（如果存在）
-            if (type === "textBox" || type === "shape") {
+            // 与 getBodyPrPadding 中的条件保持一致：type !== "table"
+            if (type !== "table") {
                 text += "</div>";
             }
 
@@ -307,24 +314,41 @@ function getTextWidth(html) {
      */
     function getBodyPrPadding(textBodyNode, type, anchor) {
         let paddingStyle = "";
-        
+
         // 获取bodyPr的各个内边距属性
         let lIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "lIns"]);
         let tIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "tIns"]);
         let rIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "rIns"]);
         let bIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "bIns"]);
 
-        // 只有在文本框或形状类型时才应用内边距
-        if (type === "textBox" || type === "shape") {
+        // 文本框、形状、diagram 或普通对象时都应用内边距
+        // 注意：type 可能为 "textBox", "shape", "diagram", "obj" 或 undefined
+        // 只要不是 table 类型，就应该应用内边距
+        if (type !== "table") {
             // 根据PPTX规范，bodyPr的ins属性单位是EMU（English Metric Units）
             // 1 inch = 914400 EMU, 1 inch = 96px, 所以 1 EMU = 96/914400 px ≈ 0.000105 px
             // 如果没有设置内边距，使用默认值：
-            // - tIns 和 bIns 默认值为 0.05 inch = 45720 EMU ≈ 4.8px
-            // - lIns 和 rIns 默认值为 0.1 inch = 91440 EMU ≈ 9.6px
-            let lInsPx = lIns ? (parseInt(lIns) * SLIDE_FACTOR).toFixed(2) : (0.1 * 96).toFixed(2);  // 默认0.1 inch
-            let tInsPx = tIns ? (parseInt(tIns) * SLIDE_FACTOR).toFixed(2) : (0.05 * 96).toFixed(2); // 默认0.05 inch
-            let rInsPx = rIns ? (parseInt(rIns) * SLIDE_FACTOR).toFixed(2) : (0.1 * 96).toFixed(2);  // 默认0.1 inch
-            let bInsPx = bIns ? (parseInt(bIns) * SLIDE_FACTOR).toFixed(2) : (0.05 * 96).toFixed(2); // 默认0.05 inch
+            // - diagram 类型使用更小的默认值，使其更接近原始 PPT 效果
+            // - 其他类型：tIns 和 bIns 默认值为 0.05 inch = 45720 EMU ≈ 4.8px
+            // - 其他类型：lIns 和 rIns 默认值为 0.1 inch = 91440 EMU ≈ 9.6px
+            let defaultLIns, defaultTIns, defaultRIns, defaultBIns;
+            if (type === "diagram") {
+                // diagram 类型使用更小的默认内边距
+                defaultLIns = 0.04 * 96;  // 0.04 inch ≈ 3.84px
+                defaultTIns = 0.02 * 96;  // 0.02 inch ≈ 1.92px
+                defaultRIns = 0.04 * 96;  // 0.04 inch ≈ 3.84px
+                defaultBIns = 0.02 * 96;  // 0.02 inch ≈ 1.92px
+            } else {
+                defaultLIns = 0.1 * 96;   // 0.1 inch ≈ 9.6px
+                defaultTIns = 0.05 * 96;  // 0.05 inch ≈ 4.8px
+                defaultRIns = 0.1 * 96;   // 0.1 inch ≈ 9.6px
+                defaultBIns = 0.05 * 96;  // 0.05 inch ≈ 4.8px
+            }
+
+            let lInsPx = lIns ? (parseInt(lIns) * SLIDE_FACTOR).toFixed(2) : defaultLIns.toFixed(2);
+            let tInsPx = tIns ? (parseInt(tIns) * SLIDE_FACTOR).toFixed(2) : defaultTIns.toFixed(2);
+            let rInsPx = rIns ? (parseInt(rIns) * SLIDE_FACTOR).toFixed(2) : defaultRIns.toFixed(2);
+            let bInsPx = bIns ? (parseInt(bIns) * SLIDE_FACTOR).toFixed(2) : defaultBIns.toFixed(2);
 
             // 如果明确设置了lIns="0"或rIns="0"，则不应用默认值
             if (lIns === "0") lInsPx = "0";
