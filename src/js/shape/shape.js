@@ -214,24 +214,29 @@ export const PPTXShapeUtils = (function() {
                     const originalOffX = parseInt(slideXfrmNode['a:off'].attrs.x);
                     const originalOffY = parseInt(slideXfrmNode['a:off'].attrs.y);
 
-                    // 计算相对于childOff的偏移
-                    const relativeX = originalOffX - (childX / SLIDE_FACTOR);
-                    const relativeY = originalOffY - (childY / SLIDE_FACTOR);
+                    // childX和childY已经是像素值，需要转换为EMU单位来计算
+                    const childXEmu = childX / SLIDE_FACTOR;
+                    const childYEmu = childY / SLIDE_FACTOR;
 
-                    // 应用缩放
-                    workingXfrmNode['a:off'].attrs.x = Math.round(childX / SLIDE_FACTOR + relativeX * scaleX);
-                    workingXfrmNode['a:off'].attrs.y = Math.round(childY / SLIDE_FACTOR + relativeY * scaleY);
+                    // 计算相对于childOff的偏移（EMU单位）
+                    const relativeX = originalOffX - childXEmu;
+                    const relativeY = originalOffY - childYEmu;
+
+                    // 应用缩放，结果为EMU单位
+                    workingXfrmNode['a:off'].attrs.x = Math.round(childXEmu + relativeX * scaleX);
+                    workingXfrmNode['a:off'].attrs.y = Math.round(childYEmu + relativeY * scaleY);
                 }
             }
 
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
-                var off = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:off", "attrs"]);
+                // 使用 workingXfrmNode 而不是 slideXfrmNode，以正确处理 group-abs 情况
+                var off = PPTXXmlUtils.getTextByPathList(workingXfrmNode, ["a:off", "attrs"]);
                 var x = (off !== undefined) ? parseInt(off["x"]) * SLIDE_FACTOR : 0;
                 var y = (off !== undefined) ? parseInt(off["y"]) * SLIDE_FACTOR : 0;
 
-                var ext = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["a:ext", "attrs"]);
+                var ext = PPTXXmlUtils.getTextByPathList(workingXfrmNode, ["a:ext", "attrs"]);
 
-                // Fallback to slideLayoutXfrmNode if slideXfrmNode is undefined or ext is undefined
+                // Fallback to slideLayoutXfrmNode if workingXfrmNode is undefined or ext is undefined
                 if (ext === undefined && slideLayoutXfrmNode !== undefined) {
                     ext = PPTXXmlUtils.getTextByPathList(slideLayoutXfrmNode, ["a:ext", "attrs"]);
                 }
@@ -284,13 +289,16 @@ export const PPTXShapeUtils = (function() {
                     svgSizeStyle = PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) + " overflow: visible;";
                 }
 
-                // 如果形状在组合中被缩放，SVG内容需要应用相反的缩放
-                // 这样points可以基于原始尺寸计算，然后通过transform scale()缩放
+                // 如果形状在组合中被缩放，SVG内容需要应用缩放
                 let svgTransform = "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";";
                 if (sType === 'group-abs' && warpObj.currentGroupScale) {
-                    const { scaleX, scaleY } = warpObj.currentGroupScale;
-                    // 使用原始尺寸计算points，通过transform scale()缩放整个SVG
-                    svgTransform = `transform: rotate(${(rotate !== undefined) ? rotate : 0}deg)${flip} scale(${scaleX},${scaleY});`;
+                    // 对于自定义形状，我们已经在 renderCustomShape 中使用了缩放后的尺寸
+                    // 所以不需要在这里应用 SVG transform scale()
+                    // 预置形状仍然需要使用 transform scale()
+                    if (custShapType === undefined) {
+                        const { scaleX, scaleY } = warpObj.currentGroupScale;
+                        svgTransform = `transform: rotate(${(rotate !== undefined) ? rotate : 0}deg)${flip} scale(${scaleX},${scaleY});`;
+                    }
                 }
 
                 const svgTag = "<svg class='drawing " + svgCssName + "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
@@ -5449,8 +5457,11 @@ export const PPTXShapeUtils = (function() {
                 }
                 result += "</div>";
             } else if (custShapType !== undefined) {
-                // 使用drawW和drawH（原始尺寸）进行形状计算
-                result += renderCustomShape(custShapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArc);
+                // 对于 group-abs 情况，使用缩放后的尺寸进行形状计算
+                // 否则使用原始尺寸
+                const renderW = (sType === 'group-abs') ? w : drawW;
+                const renderH = (sType === 'group-abs') ? h : drawH;
+                result += renderCustomShape(custShapType, renderW, renderH, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArc);
                 //console.log(result);
 
                 result += "</svg>";
@@ -5472,7 +5483,16 @@ export const PPTXShapeUtils = (function() {
                     if (type != "diagram" && type != "textBox") {
                         type = "shape";
                     }
-                    result += await PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type=shape
+                    // 对于 group-abs 情况，使用 workingXfrmNode 替换原始 xfrmNode
+                    // 这样 genTextBody 就能获取到正确的缩放后尺寸
+                    let textNode = node;
+                    if (sType === 'group-abs' && workingXfrmNode !== slideXfrmNode) {
+                        textNode = JSON.parse(JSON.stringify(node));
+                        if (textNode["p:spPr"] && textNode["p:spPr"]["a:xfrm"]) {
+                            textNode["p:spPr"]["a:xfrm"] = workingXfrmNode;
+                        }
+                    }
+                    result += await PPTXTextUtils.genTextBody(textNode["p:txBody"], textNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type=shape
                 }
                 result += "</div>";
 

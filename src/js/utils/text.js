@@ -107,7 +107,7 @@ function getTextWidth(html) {
                 }
                 //rtlStr = "";//`dir='${isRTL}'`;
                 let styleText = "";
-                let marginsVer = PPTXStyleUtils.getVerticalMargins(pNode, textBodyNode, type, idx, warpObj, apNode.length, i);
+                let marginsVer = PPTXStyleUtils.getVerticalMargins(pNode, textBodyNode, type, idx, warpObj, apNode.length, i, anchor);
                 if (marginsVer != "") {
                     styleText = marginsVer;
                 }

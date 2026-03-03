@@ -539,6 +539,16 @@ async function processPicNode(node, parentNode, wrapObj, source, shapeType, sett
         resObj = wrapObj.slideResObj;
     }
     
+    // 如果 resObj 不存在，尝试使用 slideResObj 作为备用
+    if (resObj === undefined) {
+        resObj = wrapObj.slideResObj;
+    }
+    
+    // 如果仍然为 undefined，返回空字符串
+    if (resObj === undefined) {
+        return '';
+    }
+    
     const imgName = resObj[rid]?.target;
 
     if (imgName === undefined) {
@@ -769,7 +779,7 @@ async function processGraphicFrameNode(node, parentNode, wrapObj, source, shapeT
                 oleObjNode = PPTXXmlUtils.getTextByPathList(node, ['a:graphic', 'a:graphicData', 'p:oleObj']);
             }
             if (oleObjNode !== undefined) {
-                return await processGroupSpNode(oleObjNode, wrapObj, source, settings);
+                return await processGroupSpNode(oleObjNode, undefined, wrapObj, source, settings);
             }
             return '';
         default:

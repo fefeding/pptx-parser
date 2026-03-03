@@ -3004,8 +3004,8 @@ function getFillType(node) {
             //console.log("getContentDir() type:", type, "slideMasterTextStyles:", slideMasterTextStyles,"dirNode:",dirVal)
         }
 
-        function getVerticalMargins(pNode, textBodyNode, type, idx, warpObj, totalParagraphs, paragraphIndex) {
-            //margin-top ; 
+        function getVerticalMargins(pNode, textBodyNode, type, idx, warpObj, totalParagraphs, paragraphIndex, anchor) {
+            //margin-top ;
             //a:pPr => a:spcBef => a:spcPts (/100) | a:spcPct (/?)
             //margin-bottom
             //a:pPr => a:spcAft => a:spcPts (/100) | a:spcPct (/?)
@@ -3283,7 +3283,8 @@ function getFillType(node) {
             // 只有当间距来自段落的显式设置（而非 lstStyle 的默认值）时才应用
             // 或者当有多个段落时，lstStyle 的默认间距也是合理的（用于段落之间）
             // 或者应用缩放比例（主要用于单个段落的情况）
-            if (spcBefNode !== undefined && (spcBefIsExplicit || spcBefScale > 0)) {
+            // 重要：当垂直居中时（anchor="ctr"），PPT会自动计算文本的中心位置，不应用段落间距
+            if (spcBefNode !== undefined && (spcBefIsExplicit || spcBefScale > 0) && anchor !== "ctr") {
                 let marginTop;
                 if (spcBefType === "Pct") {
                     // 百分比类型：相对于行高
@@ -3309,7 +3310,8 @@ function getFillType(node) {
             }
 
             // 段落后间距
-            if (spcAftNode !== undefined) {
+            // 重要：当垂直居中时（anchor="ctr"），PPT会自动计算文本的中心位置，不应用段落间距
+            if (spcAftNode !== undefined && anchor !== "ctr") {
                 let marginBottom;
                 if (spcAftType === "Pct") {
                     // 百分比类型：相对于行高
