@@ -8,8 +8,6 @@
 <!-- 引入 PPTX 解析所需的样式表 -->
 <link rel="stylesheet" href="/src/css/pptxjs.css">
 
-<!-- 引入 PPTX 解析所需的第三方库 -->
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="chart-lib/echarts.min.js"></script>
 
 <!-- 引入 Chart Renderer -->
@@ -43,7 +41,7 @@ window.chartRenderer = chartRenderer;
 	</div>
 <script type="module">
 // 引入 PPTX 解析核心模块
-import pptxToHtml from '/src/js/index.js';
+import pptxToHtml from '/dist/ppt-parser.browser.js';
 
 // 获取 DOM 元素引用
 var resultDiv = document.getElementById("result");
