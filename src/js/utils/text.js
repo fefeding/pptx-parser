@@ -159,8 +159,8 @@ function getTextWidth(html) {
                     } else if (horizontalAlign === "h-mid") {
                         outerFlexStyle = "justify-content: center;";
                     } else if (horizontalAlign === "h-left-rtl") {
-                        // RTL 模式下的左对齐，需要使用 flex-end 才能让文本靠左显示
-                        outerFlexStyle = "justify-content: flex-end;";
+                        // RTL + 左对齐应贴左侧显示，避免整体被推到右边
+                        outerFlexStyle = "justify-content: flex-start;";
                     } else {
                         outerFlexStyle = "justify-content: flex-start;";
                     }
@@ -230,14 +230,8 @@ function getTextWidth(html) {
 
                 prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR - bu_width - mrgin_val;
                 prg_width_node = Math.round(prg_width_node * 100) / 100;
-                if (isBullate) {
-                    //get prg_width_node if there is a bulltes
-
-
-                    if (total_text_len < prg_width_node ){
-                        prg_width_node = total_text_len + bu_width;
-                    }
-                }
+                // 不根据文本测量宽度收缩段落容器：PPT 段落应以文本框可用宽度为准，
+                // 否则在中文/混合字体场景下会因测量误差导致提前换行。
                 // 如果没有明确设置wrap="none"或spAutoFit，默认不设置内层div的宽度，让文本自然流动
                 let prg_width = "";
                 let textContainerWidth = ""; // 默认不设置宽度，让文本容器自适应
@@ -275,8 +269,8 @@ function getTextWidth(html) {
                     } else if (horizontalAlign === "h-mid") {
                         flexStyle = "justify-content: center;";
                     } else if (horizontalAlign === "h-left-rtl") {
-                        // RTL 模式下的左对齐，需要使用 flex-end 才能让文本靠左显示
-                        flexStyle = "justify-content: flex-end;";
+                        // RTL + 左对齐应贴左侧显示，避免整体被推到右边
+                        flexStyle = "justify-content: flex-start;";
                     } else {
                         flexStyle = "justify-content: flex-start;";
                     }
