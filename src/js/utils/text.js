@@ -149,23 +149,25 @@ function getTextWidth(html) {
                 let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 let isRTL = (prg_dir == "pregraph-rtl");
+                let directionStyle = isRTL ? "direction: rtl;" : "direction: ltr;";
                 let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj);
                 // 在外层div上也设置justify-content，确保对齐正确
                 // 注意：表格单元格的对齐由td元素的text-align控制，这里不设置justify-content
                 let outerFlexStyle = "";
                 if (type !== "table") {
                     if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
-                        outerFlexStyle = "justify-content: flex-end;";
+                        // 如果是 RTL，则 flex-start 是右对齐；如果是 LTR，则 flex-end 是右对齐
+                        outerFlexStyle = isRTL ? "justify-content: flex-start;" : "justify-content: flex-end;";
                     } else if (horizontalAlign === "h-mid") {
                         outerFlexStyle = "justify-content: center;";
                     } else if (horizontalAlign === "h-left-rtl") {
-                        // RTL + 左对齐应贴左侧显示，避免整体被推到右边
-                        outerFlexStyle = "justify-content: flex-start;";
+                        // RTL 模式下，左对齐使用 flex-end
+                        outerFlexStyle = "justify-content: flex-end;";
                     } else {
                         outerFlexStyle = "justify-content: flex-start;";
                     }
                 }
-                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + outerFlexStyle + "' class='slide-prgrph " + horizontalAlign + ` ${prg_dir} ` + cssName + "' >";
+                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + outerFlexStyle + directionStyle + "' class='slide-prgrph " + horizontalAlign + ` ${prg_dir} ` + cssName + "' >";
                 let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? (Number(buText_ary[1]) + Number(buText_ary[2])) : 0;
@@ -265,22 +267,21 @@ function getTextWidth(html) {
                 let flexStyle = "";
                 if (type !== "table") {
                     if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
-                        flexStyle = "justify-content: flex-end;";
+                        // 如果是 RTL，则 flex-start 是右对齐；如果是 LTR，则 flex-end 是右对齐
+                        flexStyle = isRTL ? "justify-content: flex-start;" : "justify-content: flex-end;";
                     } else if (horizontalAlign === "h-mid") {
                         flexStyle = "justify-content: center;";
                     } else if (horizontalAlign === "h-left-rtl") {
-                        // RTL + 左对齐应贴左侧显示，避免整体被推到右边
-                        flexStyle = "justify-content: flex-start;";
+                        // RTL 模式下，左对齐使用 flex-end
+                        flexStyle = "justify-content: flex-end;";
                     } else {
                         flexStyle = "justify-content: flex-start;";
                     }
                 }
-                // 根据 RTL 设置 direction 属性
-                let directionStyle = isRTL ? "direction: rtl;" : "direction: ltr;";
-                text += "<div style='display: flex;" + flexStyle + textContainerWidth + "'>";
+                text += "<div style='display: flex;" + flexStyle + textContainerWidth + directionStyle + "'>";
                 // 在 RTL 模式下，项目符号应该和文本在同一个容器中
                 if (isRTL && isBullate && buText_ary[0] !== undefined) {
-                    // 先添加项目符号，再添加文本（RTL 模式下，项目符号在右边）
+                    // 先添加项目符号，再添加文本（在 RTL 容器中，第一个子元素显示在最右边）
                     text += buText_ary[0];
                 }
                 text += "<div style='" + styleText + directionStyle + whiteSpaceStyle + margin + textAlignStyle + "'>";
