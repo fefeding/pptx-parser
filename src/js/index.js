@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import { PPTXNodeUtils } from './utils/node.js';
 import { PPTXXmlUtils } from './utils/xml.js';
 import { PPTXStyleUtils } from './utils/style.js';

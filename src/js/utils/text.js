@@ -149,23 +149,25 @@ function getTextWidth(html) {
                 let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 let isRTL = (prg_dir == "pregraph-rtl");
+                let directionStyle = isRTL ? "direction: rtl;" : "direction: ltr;";
                 let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj);
                 // 在外层div上也设置justify-content，确保对齐正确
                 // 注意：表格单元格的对齐由td元素的text-align控制，这里不设置justify-content
                 let outerFlexStyle = "";
                 if (type !== "table") {
                     if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
-                        outerFlexStyle = "justify-content: flex-end;";
+                        // 如果是 RTL，则 flex-start 是右对齐；如果是 LTR，则 flex-end 是右对齐
+                        outerFlexStyle = isRTL ? "justify-content: flex-start;" : "justify-content: flex-end;";
                     } else if (horizontalAlign === "h-mid") {
                         outerFlexStyle = "justify-content: center;";
                     } else if (horizontalAlign === "h-left-rtl") {
-                        // RTL 模式下的左对齐，需要使用 flex-end 才能让文本靠左显示
+                        // RTL 模式下，左对齐使用 flex-end
                         outerFlexStyle = "justify-content: flex-end;";
                     } else {
                         outerFlexStyle = "justify-content: flex-start;";
                     }
                 }
-                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + outerFlexStyle + "' class='slide-prgrph " + horizontalAlign + ` ${prg_dir} ` + cssName + "' >";
+                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + outerFlexStyle + directionStyle + "' class='slide-prgrph " + horizontalAlign + ` ${prg_dir} ` + cssName + "' >";
                 let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? (Number(buText_ary[1]) + Number(buText_ary[2])) : 0;
@@ -230,14 +232,8 @@ function getTextWidth(html) {
 
                 prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR - bu_width - mrgin_val;
                 prg_width_node = Math.round(prg_width_node * 100) / 100;
-                if (isBullate) {
-                    //get prg_width_node if there is a bulltes
-
-
-                    if (total_text_len < prg_width_node ){
-                        prg_width_node = total_text_len + bu_width;
-                    }
-                }
+                // 不根据文本测量宽度收缩段落容器：PPT 段落应以文本框可用宽度为准，
+                // 否则在中文/混合字体场景下会因测量误差导致提前换行。
                 // 如果没有明确设置wrap="none"或spAutoFit，默认不设置内层div的宽度，让文本自然流动
                 let prg_width = "";
                 let textContainerWidth = ""; // 默认不设置宽度，让文本容器自适应
@@ -271,22 +267,21 @@ function getTextWidth(html) {
                 let flexStyle = "";
                 if (type !== "table") {
                     if (horizontalAlign === "h-right" || horizontalAlign === "h-right-rtl") {
-                        flexStyle = "justify-content: flex-end;";
+                        // 如果是 RTL，则 flex-start 是右对齐；如果是 LTR，则 flex-end 是右对齐
+                        flexStyle = isRTL ? "justify-content: flex-start;" : "justify-content: flex-end;";
                     } else if (horizontalAlign === "h-mid") {
                         flexStyle = "justify-content: center;";
                     } else if (horizontalAlign === "h-left-rtl") {
-                        // RTL 模式下的左对齐，需要使用 flex-end 才能让文本靠左显示
+                        // RTL 模式下，左对齐使用 flex-end
                         flexStyle = "justify-content: flex-end;";
                     } else {
                         flexStyle = "justify-content: flex-start;";
                     }
                 }
-                // 根据 RTL 设置 direction 属性
-                let directionStyle = isRTL ? "direction: rtl;" : "direction: ltr;";
-                text += "<div style='display: flex;" + flexStyle + textContainerWidth + "'>";
+                text += "<div style='display: flex;" + flexStyle + textContainerWidth + directionStyle + "'>";
                 // 在 RTL 模式下，项目符号应该和文本在同一个容器中
                 if (isRTL && isBullate && buText_ary[0] !== undefined) {
-                    // 先添加项目符号，再添加文本（RTL 模式下，项目符号在右边）
+                    // 先添加项目符号，再添加文本（在 RTL 容器中，第一个子元素显示在最右边）
                     text += buText_ary[0];
                 }
                 text += "<div style='" + styleText + directionStyle + whiteSpaceStyle + margin + textAlignStyle + "'>";

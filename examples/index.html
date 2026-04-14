@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>pptx 解析</title>
+
+<!-- 引入 PPTX 解析所需的样式表 -->
+<link rel="stylesheet" href="../src/css/pptxjs.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="chart-lib/echarts.min.js"></script>
+
+<!-- 引入 Chart Renderer -->
+<script type="module">
+import { chartRenderer } from './chart-lib/chart-renderer.js';
+window.chartRenderer = chartRenderer;
+</script>
+
+
+<style>
+    :root {
+        --primary-color: #4f46e5;
+        --primary-hover: #4338ca;
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --radius: 12px;
+    }
+
+    * {
+        box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
+    }
+
+	body { 
+        margin: 0; 
+        padding: 0; 
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        min-height: 100vh;
+    }
+
+    header {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+
+    .logo {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+
+    /* 上传区域美化 */
+    .upload-section {
+        background: var(--card-bg);
+        border: 2px dashed var(--border-color);
+        border-radius: var(--radius);
+        padding: 3rem 2rem;
+        text-align: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-section:hover, .upload-section.dragover {
+        border-color: var(--primary-color);
+        background: #f5f3ff;
+    }
+
+    .upload-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 1rem;
+        color: var(--text-muted);
+    }
+
+    .upload-section h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .upload-section p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    #uploadFileInput {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    /* 进度条美化 */
+    .progress-container {
+        display: none;
+        margin-top: 1.5rem;
+        background: #e2e8f0;
+        border-radius: 999px;
+        height: 8px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: var(--primary-color);
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    /* 结果区域 */
+    #result {
+        margin-top: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .slide {
+        background: white;
+        box-shadow: var(--shadow);
+        border-radius: 4px;
+        overflow: hidden;
+        transition: transform 0.2s ease;
+    }
+
+    /* 工具栏 */
+    .toolbar {
+        display: none;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.2s;
+    }
+
+    .btn:hover {
+        background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+        background: #fff;
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #f1f5f9;
+    }
+
+    .loading-text {
+        text-align: center;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .container { margin: 1rem auto; }
+        .upload-section { padding: 2rem 1rem; }
+    }
+</style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M2 15h10"></path><path d="m9 18 3-3-3-3"></path></svg>
+            PPTX Parser
+        </div>
+        <div class="actions">
+            <a href="https://github.com/fefeding/pptx-parser" target="_blank" class="btn btn-secondary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                GitHub
+            </a>
+        </div>
+    </header>
+
+	<div class="container">
+        <div class="upload-section" id="dropZone">
+            <div class="upload-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <h2>点击上传 PPTX 文件</h2>
+            <p>或者将文件拖拽到此处，支持 .pptx 格式</p>
+            <input id="uploadFileInput" type="file" accept=".pptx" />
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="loading-text" id="loadingText">正在准备解析...</div>
+        </div>
+
+        <div class="toolbar" id="toolbar">
+            <button id="fullscreen-btn" class="btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                全屏演示
+            </button>
+        </div>
+
+        <div id="result"></div>
+	</div>
+<script type="module">
+// 引入 PPTX 解析核心模块
+import pptxToHtml from '../dist/ppt-parser.browser.js';
+
+// 获取 DOM 元素引用
+const resultDiv = document.getElementById("result");
+const uploadFileInput = document.getElementById("uploadFileInput");
+const dropZone = document.getElementById("dropZone");
+const progressContainer = document.getElementById("progressContainer");
+const progressBar = document.getElementById("progressBar");
+const loadingText = document.getElementById("loadingText");
+const toolbar = document.getElementById("toolbar");
+
+// 处理拖拽视觉效果
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (eventName === 'drop') {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+    }, false);
+});
+
+// 全屏功能实现
+let oldWidth, oldMargin, isFullscreenMode = false;
+const fullscreenBtn = document.getElementById("fullscreen-btn");
+
+fullscreenBtn.addEventListener("click", function() {
+    if (!isFullscreenMode) {
+        // 进入全屏模式
+        const slides = document.querySelectorAll("#result .slide");
+        if (slides.length > 0) {
+            oldWidth = slides[0].style.width;
+            oldMargin = slides[0].style.margin;
+            slides.forEach(s => {
+                s.style.width = "99%";
+                s.style.margin = "0 auto";
+            });
+        }
+        
+        const docElm = document.documentElement;
+        if (docElm.requestFullscreen) docElm.requestFullscreen();
+        else if (docElm.webkitRequestFullscreen) docElm.webkitRequestFullscreen();
+        else if (docElm.msRequestFullscreen) docElm.msRequestFullscreen();
+        else if (docElm.mozRequestFullScreen) docElm.mozRequestFullScreen();
+        
+        isFullscreenMode = true;
+        fullscreenBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg> 退出全屏';
+    } else {
+        // 退出全屏模式
+        const slides = document.querySelectorAll("#result .slide");
+        slides.forEach(s => {
+            s.style.width = oldWidth;
+            s.style.margin = oldMargin;
+        });
+        
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        else if (document.msExitFullscreen) document.msExitFullscreen();
+        else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+        
+        isFullscreenMode = false;
+        fullscreenBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> 全屏演示';
+    }
+});
+
+// 监听全屏状态变化（如按 ESC 退出）
+document.addEventListener("fullscreenchange", function() {
+    if (!document.fullscreenElement && isFullscreenMode) {
+        isFullscreenMode = false;
+        fullscreenBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> 全屏演示';
+        const slides = document.querySelectorAll("#result .slide");
+        slides.forEach(s => {
+            s.style.width = oldWidth;
+            s.style.margin = oldMargin;
+        });
+    }
+});
+
+// 处理文件输入变化事件
+uploadFileInput.addEventListener("change", function(evt) {
+	const file = evt.target.files[0];
+	if (!file) return;
+    handleFile(file);
+});
+
+async function handleFile(file) {
+	// 验证文件类型
+	if (file.name.split('.').pop().toLowerCase() !== "pptx") {
+		alert("请上传有效的 .pptx 文件");
+		return;
+	}
+
+	// 初始化界面状态
+	resultDiv.innerHTML = "";
+    toolbar.style.display = "none";
+    progressContainer.style.display = "block";
+    progressBar.style.width = "0%";
+    loadingText.innerText = "正在读取文件...";
+
+	// 使用 FileReader 读取文件
+	const reader = new FileReader();
+	reader.onload = async function(e) {
+		const fileData = e.target.result;
+		
+		try {
+            loadingText.innerText = "正在解析幻灯片...";
+			// 直接获取解析结果（异步函数）
+			const result = await pptxToHtml(fileData, {
+				slideMode: false,
+				keyBoardShortCut: false,
+				callbacks: {
+					onProgress: function(percent) {
+						progressBar.style.width = percent + "%";
+                        loadingText.innerText = `解析进度: ${percent}%`;
+					}
+				}
+			});
+
+			// 渲染全局CSS
+			if (result.styles && result.styles.global) {
+				const style = document.createElement("style");
+				style.innerHTML = result.styles.global;
+				resultDiv.appendChild(style);
+			}
+			
+			// 渲染所有幻灯片
+			result.slides.forEach(slide => {
+				const slideContainer = document.createElement("div");
+                slideContainer.innerHTML = slide.html;
+                resultDiv.appendChild(slideContainer.firstChild);
+			});
+
+			// 渲染所有图表 - 使用 ChartRenderer 模块
+			if (result.charts && result.charts.length > 0) {
+				window.chartRenderer.renderCharts(result.charts);
+			}
+
+            // 完成后的处理
+            progressContainer.style.display = "none";
+            toolbar.style.display = "flex";
+			
+		} catch (err) {
+			console.error(err);
+            progressContainer.style.display = "none";
+			alert("解析失败: " + err.message);
+		}
+	};
+	reader.readAsArrayBuffer(file);
+}
+</script>
+</script>
+<script type="text/javascript">
+    // 全屏功能实现
+    var oldWidth, oldMargin, isFullscreenMode = false;
+    document.getElementById("fullscreen-btn").addEventListener("click", function() {
+        if (!isFullscreenMode) {
+            // 进入全屏模式
+            var slides = document.querySelectorAll("#result .slide");
+            if (slides.length > 0) {
+                oldWidth = slides[0].style.width;
+                oldMargin = slides[0].style.margin;
+                for (var i = 0; i < slides.length; i++) {
+                    slides[i].style.width = "99%";
+                    slides[i].style.margin = "0 auto";
+                }
+            }
+            
+            // 兼容不同浏览器的全屏 API
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen();
+            } else if (document.documentElement.mozRequestFullScreen) {
+                document.documentElement.mozRequestFullScreen();
+            }
+            isFullscreenMode = true;
+        } else {
+            // 退出全屏模式
+            var slides = document.querySelectorAll("#result .slide");
+            for (var i = 0; i < slides.length; i++) {
+                slides[i].style.width = oldWidth;
+                slides[i].style.margin = oldMargin;
+            }
+            
+            // 兼容不同浏览器的退出全屏 API
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            }
+            isFullscreenMode = false;
+        }
+    });
+
+    // 监听全屏状态变化
+    document.addEventListener("fullscreenchange", function() {
+        if (!document.fullscreenElement) {
+            // 退出全屏时恢复原始样式
+            var slides = document.querySelectorAll("#result .slide");
+            for (var i = 0; i < slides.length; i++) {
+                slides[i].style.width = oldWidth;
+                slides[i].style.margin = oldMargin;
+            }
+        }
+    });
+</script>
+</body>
+</html>
