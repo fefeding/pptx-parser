@@ -26,7 +26,7 @@ npm install @fefeding/ppt-parser
 ### 解析 PPTX 文件为 HTML（推荐）
 
 ```javascript
-import pptxParser from '@fefeding/ppt-parser';
+import { pptxToHtml } from '@fefeding/ppt-parser';
 
 // 上传并解析 PPTX 文件为 HTML
 const fileInput = document.querySelector('#ppt-upload');
@@ -35,16 +35,28 @@ fileInput.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
-  const result = await pptxParser.parseToHtml(file, {
-    parseImages: true,    // 解析图片为Base64
-    verbose: true         // 详细日志
+  // 读取文件为 ArrayBuffer
+  const fileData = await file.arrayBuffer();
+
+  const result = await pptxToHtml(fileData, {
+    mediaProcess: true,    // 处理媒体文件
+    themeProcess: true     // 处理主题样式
   });
 
-  console.log('HTML:', result.html);
+  // result.slides 是幻灯片数组
+  console.log('幻灯片数量:', result.slides.length);
+  console.log('幻灯片大小:', result.slideSize);
   console.log('样式:', result.styles);
-  
-  // 直接获取转换后的HTML内容
-  document.getElementById('preview').innerHTML = result.html;
+  console.log('元数据:', result.metadata);
+  console.log('图表数据:', result.charts);
+
+  // 渲染所有幻灯片
+  const container = document.getElementById('preview');
+  result.slides.forEach(slide => {
+    const div = document.createElement('div');
+    div.innerHTML = slide.html;
+    container.appendChild(div);
+  });
 });
 ```
 
@@ -60,8 +72,14 @@ fileInput.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
-  const result = await pptxToJson(file);
-  console.log('JSON:', result);
+  // 读取文件为 ArrayBuffer
+  const fileData = await file.arrayBuffer();
+
+  const result = await pptxToJson(fileData);
+  // result.slides 是幻灯片 JSON 数据数组
+  console.log('幻灯片数量:', result.slides.length);
+  console.log('幻灯片大小:', result.slideSize);
+  console.log('元数据:', result.metadata);
 });
 ```
 
@@ -77,7 +95,10 @@ fileInput.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
-  const result = await pptxToFiles(file);
+  // 读取文件为 ArrayBuffer
+  const fileData = await file.arrayBuffer();
+
+  const result = await pptxToFiles(fileData);
 
   // 查看文件索引
   console.log('文件列表:', result.files);
@@ -89,10 +110,12 @@ fileInput.addEventListener('change', async (e) => {
 
   // 获取特定文件内容
   const slide1Content = result.content['ppt/slides/slide1.xml'];
+  // slide1Content.type === 'text' 时，content 字段为文本内容
   console.log('Slide1 内容:', slide1Content.content);
 
   // 获取图片
   const image1 = result.content['ppt/media/image1.png'];
+  // image1.type === 'image' 时，有 base64 和 dataUrl 字段
   console.log('图片 Data URL:', image1.dataUrl);
 });
 ```
@@ -126,38 +149,73 @@ fileInput.addEventListener('change', async (e) => {
 
 > 注意：当前版本导出功能正在完善中，主要支持解析功能
 
-### 使用工具函数
-
-```javascript
-import { utils } from '@fefeding/ppt-parser';
-
-// 像素转 EMU
-const emu = utils.px2emu(100);
-
-// EMU 转像素
-const px = utils.emu2px(914400);
-
-// 生成唯一 ID
-const id = utils.generateId('slide');
-```
-
 ## 输出格式
 
-`parseToHtml` 方法返回以下结构：
+### pptxToHtml 返回值结构
 
-```javascript
+```typescript
+interface PptxHtmlResult {
+  // 幻灯片 HTML 结果数组
+  slides: Array<{
+    html: string;       // 幻灯片 HTML
+    slideNum: number;   // 幻灯片编号
+    fileName: string;   // 幻灯片文件名
+  }>;
+
+  // 幻灯片大小信息
+  slideSize: {
+    width: number;
+    height: number;
+    defaultTextStyle?: any;
+  };
+
+  // 缩略图（Base64 Data URL）
+  thumbnail: string | null;
+
+  // 样式信息
+  styles: {
+    global: string;     // 全局 CSS
+  };
+
+  // 元数据
+  metadata: {
+    title?: string;
+    subject?: string;
+    author?: string;
+    keywords?: string;
+    description?: string;
+    lastModifiedBy?: string;
+    created?: string;
+    modified?: string;
+    category?: string;
+    status?: string;
+    contentType?: string;
+    language?: string;
+    version?: string;
+  };
+
+  // 图表数据
+  charts: Array<{
+    chartId: string;    // 图表容器 ID
+    type: string;       // 图表类型
+    data: Array<{       // 图表系列数据
+      key: string;
+      values: Array<{ x: string; y: number }>;
+      xlabels: { [key: string]: string };
+    }>;
+  }>;
+}
+```
+
+### pptxToJson 返回值结构
+
+与 `pptxToHtml` 结构相同，但 `slides` 数组中的每个元素为：
+
+```typescript
 {
-  html: '<div class="pptx-preview">...</div>',  // 转换后的HTML内容
-  styles: {                                     // 全局样式表
-    global: '._css_1 { ... }',
-    table: '._tbl_cell_css_1 { ... }'
-  },
-  slides: [                                     // 幻灯片数据
-    {
-      id: 'slide-1',
-      elements: [...]
-    }
-  ]
+  data: any;          // 幻灯片 JSON 数据
+  slideNum: number;   // 幻灯片编号
+  fileName: string;   // 幻灯片文件名
 }
 ```
 
@@ -177,12 +235,62 @@ const id = utils.generateId('slide');
 
 ### 解析选项
 
+```typescript
+interface PptxParserOptions {
+  // 是否处理媒体文件
+  mediaProcess?: boolean;
+
+  // 主题处理方式
+  themeProcess?: boolean | 'colorsAndImageOnly';
+
+  // 幻灯片尺寸调整
+  incSlide?: {
+    width: number;
+    height: number;
+  };
+
+  // 样式表
+  styleTable?: {
+    [key: string]: {
+      name: string;
+      text: string;
+      suffix?: string;
+    };
+  };
+
+  // 回调函数
+  callbacks?: {
+    onFileStart?: () => void;
+    onError?: (error: { type: string; message: string }) => void;
+    onSlide?: (data: any, info: { slideNum: number; fileName: string }) => void;
+    onThumbnail?: (thumbnail: string | null) => void;
+    onSlideSize?: (slideSize: SlideSize) => void;
+    onGlobalCSS?: (css: string) => void;
+    onComplete?: (info: {
+      executionTime: number;
+      slideWidth: number;
+      slideHeight: number;
+      styleTable: StyleTable;
+      settings: PptxParserOptions;
+    }) => void;
+  };
+}
+```
+
+使用示例：
+
 ```javascript
-const result = await pptxParser.parseToHtml(file, {
-  parseImages: true,    // 解析图片为Base64
-  verbose: true,       // 详细日志
-  slideHeight: 540,    // 幻灯片高度
-  slideWidth: 960      // 幻灯片宽度
+const result = await pptxToHtml(fileData, {
+  mediaProcess: true,
+  themeProcess: true,
+  callbacks: {
+    onSlide: (data, info) => {
+      console.log(`处理幻灯片 ${info.slideNum}`);
+    },
+    onComplete: (info) => {
+      console.log(`解析完成，耗时 ${info.executionTime}ms`);
+    }
+  }
 });
 ```
 
@@ -192,13 +300,30 @@ const result = await pptxParser.parseToHtml(file, {
 <script src="./dist/ppt-parser.browser.js"></script>
 <script>
   const fileInput = document.querySelector('#ppt-upload');
-  
+
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    const result = await pptxParser.parseToHtml(file);
-    document.getElementById('preview').innerHTML = result.html;
+
+    // 读取文件为 ArrayBuffer
+    const fileData = await file.arrayBuffer();
+
+    const result = await pptxParser.pptxToHtml(fileData);
+
+    // 渲染所有幻灯片
+    const container = document.getElementById('preview');
+    result.slides.forEach(slide => {
+      const div = document.createElement('div');
+      div.innerHTML = slide.html;
+      container.appendChild(div);
+    });
+
+    // 注入全局样式
+    if (result.styles?.global) {
+      const styleEl = document.createElement('style');
+      styleEl.innerHTML = result.styles.global;
+      document.head.appendChild(styleEl);
+    }
   });
 </script>
 ```
@@ -209,9 +334,22 @@ const result = await pptxParser.parseToHtml(file, {
 const fs = require('fs');
 const { pptxToHtml } = require('@fefeding/ppt-parser');
 
-const buffer = fs.readFileSync('presentation.pptx');
-const result = await pptxToHtml(buffer);
-console.log(result.html);
+async function parsePptx() {
+  const buffer = fs.readFileSync('presentation.pptx');
+  const result = await pptxToHtml(buffer);
+
+  // 输出幻灯片信息
+  console.log('幻灯片数量:', result.slides.length);
+  console.log('幻灯片大小:', result.slideSize);
+  console.log('元数据:', result.metadata);
+
+  // 输出每张幻灯片的 HTML
+  result.slides.forEach(slide => {
+    console.log(`幻灯片 ${slide.slideNum}:`, slide.html);
+  });
+}
+
+parsePptx();
 ```
 
 ### Vue 中使用
@@ -274,8 +412,8 @@ async function handleFileUpload(event: Event) {
       mediaProcess: true,      // 处理媒体文件
       themeProcess: true,      // 处理主题样式
       callbacks: {
-        onProgress: (percent: number) => {
-          console.log(`解析进度: ${percent}%`)
+        onSlide: (data, info) => {
+          console.log(`处理幻灯片 ${info.slideNum}`)
         }
       }
     })
@@ -402,21 +540,6 @@ result.charts.forEach((chart: ChartData) => {
 - Firefox ≥ 75
 - Edge ≥ 80
 - Safari ≥ 14
-
-## Node.js 支持
-
-```javascript
-const { pptxToHtml } = require('@fefeding/ppt-parser');
-const fs = require('fs');
-
-async function parsePptx() {
-  const buffer = fs.readFileSync('presentation.pptx');
-  const result = await pptxToHtml(buffer);
-  console.log(result.html);
-}
-
-parsePptx();
-```
 
 ## 开发
 
