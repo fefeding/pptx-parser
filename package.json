@@ -33,8 +33,6 @@
     "vue": "cd examples/vue-demo && npm run dev && cd ../..",
     "static": "vite --config vite.static.config.ts",
     "static:build": "vite build --config vite.static.config.ts",
-    "static:nojquery": "vite --config vite.static.config.ts --open",
-    "static:nojquery:build": "vite build --config vite.static.config.ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -48,7 +46,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@ctrl/tinycolor": "^4.2.0",
+    "tinycolor2": "^1.6.0",
     "jszip": "^3.10.1"
   },
   "devDependencies": {

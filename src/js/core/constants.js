@@ -61,8 +61,41 @@ export const DPI = 96;
 /**
  * 右到左（RTL）语言代码数组
  * @type {string[]}
+ * 
+ * 支持的RTL语言列表：
+ * - 阿拉伯语系：ar-* (阿拉伯联合酋长国、沙特阿拉伯、埃及、伊拉克、约旦、科威特、黎巴嫩、利比亚、摩洛哥、阿曼、巴勒斯坦、卡塔尔、苏丹、叙利亚、突尼斯、也门等)
+ * - 希伯来语：he-IL (以色列)
+ * - 波斯语：fa-IR (伊朗)
+ * - 乌尔都语：ur-PK (巴基斯坦)
+ * - 迪维希语：dv-MV (马尔代夫)
+ * - 撒哈拉阿拉伯语：szq-DZ (阿尔及利亚)
+ * - 普什图语：ps-AF (阿富汗)
+ * - 维吾尔语：ug-CN (中国)
+ * - 哈萨克语：kk-KZ (哈萨克斯坦)
+ * - 吉尔吉斯语：ky-KG (吉尔吉斯斯坦)
+ * - 乌兹别克语：uz-UZ (乌兹别克斯坦)
  */
-export const RTL_LANGS_ARRAY = ["he-IL", "ar-AE", "ar-SA", "dv-MV", "fa-IR", "ur-PK"];
+export const RTL_LANGS_ARRAY = [
+    // 阿拉伯语变体
+    "he-IL", "ar-AE", "ar-SA", "ar-EG", "ar-IQ", "ar-JO", "ar-KW", "ar-LB", "ar-LY", 
+    "ar-MA", "ar-OM", "ar-PS", "ar-QA", "ar-SD", "ar-SY", "ar-TN", "ar-YE",
+    // 波斯语
+    "fa-IR", "fa-AF",
+    // 乌尔都语
+    "ur-PK", "ur-IN",
+    // 迪维希语
+    "dv-MV",
+    // 撒哈拉阿拉伯语
+    "szq-DZ",
+    // 普什图语
+    "ps-AF", "ps-PK",
+    // 维吾尔语
+    "ug-CN",
+    // 中亚语言
+    "kk-KZ", "ky-KG", "uz-UZ", "tg-TJ",
+    // 其他RTL语言
+    "yi-DE", "jpr-IL", "jrb-IL"
+];
 
 // =============================================================================
 // Dingbat Unicode 映射表

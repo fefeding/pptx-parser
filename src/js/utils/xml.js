@@ -591,6 +591,105 @@ export const PPTXXmlUtils = (function() {
             */
             let urlregex = /^(https?|ftp):\/\/([a-zA-Z0-9.-]+(:[a-zA-Z0-9.&%$-]+)*@)*((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(:[0-9]+)*(\/($|[a-zA-Z0-9.,?'\\+&%$#=~_-]+))*$/;
             return urlregex.test(vdoFile);
+        }
+
+        /**
+         * 将视频URL转换为YouTube embed格式
+         * 支持的URL格式：
+         * - https://www.youtube.com/watch?v=VIDEO_ID
+         * - https://youtube.com/watch?v=VIDEO_ID
+         * - https://youtu.be/VIDEO_ID
+         * - https://www.youtube.com/embed/VIDEO_ID
+         * - https://www.youtube.com/v/VIDEO_ID
+         * 
+         * @param {string} videoUrl - 原始视频URL
+         * @returns {string} 转换后的embed URL
+         */
+        function convertYouTubeUrl(videoUrl) {
+            if (!videoUrl) return videoUrl;
+            
+            // YouTube视频ID正则表达式
+            const youtubeIdPatterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/watch\?.*list=([a-zA-Z0-9_-]+)/,
+                /youtube\.com\/playlist\?list=([a-zA-Z0-9_-]+)/
+            ];
+            
+            // 检查是否是YouTube链接
+            const isYouTubeUrl = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
+            
+            if (!isYouTubeUrl) {
+                return videoUrl;
+            }
+            
+            // 提取YouTube视频ID
+            for (const pattern of youtubeIdPatterns) {
+                const match = videoUrl.match(pattern);
+                if (match && match[1]) {
+                    const videoId = match[1];
+                    // 转换为embed格式，添加必要的参数
+                    const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
+                    return embedUrl;
+                }
+            }
+            
+            // 如果已经是embed格式，直接返回
+            if (videoUrl.includes('/embed/')) {
+                return videoUrl;
+            }
+            
+            return videoUrl;
+        }
+
+        /**
+         * 将视频URL转换为Vimeo embed格式
+         * 支持的URL格式：
+         * - https://vimeo.com/VIDEO_ID
+         * - https://www.vimeo.com/VIDEO_ID
+         * 
+         * @param {string} videoUrl - 原始视频URL
+         * @returns {string} 转换后的embed URL
+         */
+        function convertVimeoUrl(videoUrl) {
+            if (!videoUrl) return videoUrl;
+            
+            // 检查是否是Vimeo链接
+            const isVimeoUrl = videoUrl.includes('vimeo.com');
+            
+            if (!isVimeoUrl) {
+                return videoUrl;
+            }
+            
+            // 提取Vimeo视频ID
+            const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
+            if (vimeoMatch && vimeoMatch[1]) {
+                const videoId = vimeoMatch[1];
+                return `https://player.vimeo.com/video/${videoId}?title=0&byline=0&portrait=0`;
+            }
+            
+            return videoUrl;
+        }
+
+        /**
+         * 统一转换视频URL为embed格式
+         * @param {string} videoUrl - 原始视频URL
+         * @returns {string} 转换后的embed URL
+         */
+        function convertVideoToEmbed(videoUrl) {
+            if (!videoUrl) return videoUrl;
+            
+            // 优先处理YouTube
+            if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+                return convertYouTubeUrl(videoUrl);
+            }
+            
+            // 处理Vimeo
+            if (videoUrl.includes('vimeo.com')) {
+                return convertVimeoUrl(videoUrl);
+            }
+            
+            // 其他视频链接直接返回（可能是iframe支持的直接嵌入URL）
+            return videoUrl;
         }   
     return {
         getTextByPathStr: getTextByPathStr,
@@ -611,5 +710,8 @@ export const PPTXXmlUtils = (function() {
         getPosition,
         getSize,
         IsVideoLink,
+        convertYouTubeUrl,
+        convertVimeoUrl,
+        convertVideoToEmbed,
     };
 })();

@@ -604,6 +604,8 @@ async function processPicNode(node, parentNode, wrapObj, source, shapeType, sett
         const checkIfLink = PPTXXmlUtils.IsVideoLink(videoFile);
         
         if (checkIfLink) {
+            // 使用新的URL转换函数将视频链接转换为embed格式
+            videoFile = PPTXXmlUtils.convertVideoToEmbed(videoFile);
             videoFile = PPTXXmlUtils.escapeHtml(videoFile);
             isVideoLink = true;
             mediaSupportFlag = true;
@@ -727,19 +729,25 @@ async function processPicNode(node, parentNode, wrapObj, source, shapeType, sett
         'shape-type': shapeType,
         'rotate': rotate,
         'is-video': (vdoNode !== undefined) ? 'true' : 'false',
-        'is-audio': (audioNode !== undefined) ? 'true' : 'false'
+        'is-audio': (audioNode !== undefined) ? 'true' : 'false',
+        'is-gif': (mimeType === 'image/gif') ? 'true' : 'false'
     });
 
     let result = `<div class='block content' style='${position}${size} z-index: ${order};transform: rotate(${rotate}deg);'${dataAttrs}>`;
     
     if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
         const base64Data = PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer);
-        result += `<img src='data:${mimeType};base64,${base64Data}' style='width: 100%; height: 100%'/>`;
+        // 检测GIF格式，添加autoplay支持（GIF自动播放是浏览器默认行为）
+        const gifAttrs = (mimeType === 'image/gif') ? 'autoplay loop muted playsinline' : '';
+        result += `<img src='data:${mimeType};base64,${base64Data}' style='width: 100%; height: 100%' ${gifAttrs}/>`;
     } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
         if (vdoNode !== undefined && !isVideoLink) {
-            result += `<video src='${videoBlob}' controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;
+            result += `<video src='${videoBlob}' autoplay loop muted controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;
         } else if (vdoNode !== undefined && isVideoLink) {
-            result += `<iframe src='${videoFile}' controls style='width: 100%; height: 100%'></iframe>`;
+            // 使用iframe嵌入视频，支持YouTube/Vimeo等
+            // 添加allowfullscreen支持，并设置合适的sandbox权限
+            const iframeAttrs = 'allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"';
+            result += `<iframe src='${videoFile}' ${iframeAttrs} style='width: 100%; height: 100%; border: none;'></iframe>`;
         }
         if (audioNode !== undefined) {
             result += `<audio id="audio_player" controls><source src="${audioBlob}"></audio>`;

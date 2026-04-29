@@ -56,9 +56,14 @@ export default [
         browser: true,
         preferBuiltins: false
       }),
-      commonjs(),
+      commonjs({
+        // 将 CJS 模块转换为 ESM
+        include: /node_modules/
+      }),
       typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } })
-    ]
+    ],
+    // 不标记 dependencies 为 external，让它们被打包进去
+    // external: []
   },
   // 打包类型声明文件：生成完整的.d.ts文件
   // 注释掉以避免覆盖现有的 index.d.ts 文件
