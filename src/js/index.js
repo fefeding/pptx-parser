@@ -8,6 +8,42 @@ import { processMsgQueue, processSingleMsg } from './utils/chart.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants.js';
 
 /**
+ * Parse PPTX file to structured JSON data (internal function)
+ * @param {ArrayBuffer} file - The PPTX file data
+ * @param {Object} settings - Conversion settings
+ * @param {Object} callbacks - Callback functions
+ * @param {Object} chartId - Chart ID tracker
+ * @param {Object} styleTable - Style table
+ * @param {*} defaultTextStyle - Default text style
+ * @returns {Promise<Object>} Parsed result with structured data
+ */
+async function processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle) {
+    if (file.byteLength < 10) {
+        if (callbacks.onError) {
+            callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
+        }
+        throw new Error("Invalid file: file too small");
+    }
+
+    const msgQueue = [];
+    const zip = JSZip.loadAsync ? await JSZip.loadAsync(file) : new JSZip().load(file);
+
+    // Parse PPTX to structured data
+    const parsedData = await parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
+
+    // Return structured data (styleTable is populated during parsing)
+    return {
+        parsedData,
+        msgQueue,
+        zip,
+        slideSize: parsedData.slideSize,
+        thumbnail: parsedData.thumbnail,
+        metadata: parsedData.metadata,
+        executionTime: parsedData.executionTime
+    };
+}
+
+/**
  * Parse PPTX to structured data (internal function)
  * @param {JSZip} zip - The JSZip instance
  * @param {Array} msgQueue - Message queue for charts
@@ -430,11 +466,6 @@ async function pptxToHtml(fileData, options) {
     // State variables
     let defaultTextStyle = null;
     const chartId = { value: 0 };
-    let order = 1;
-    let appVersion;
-    let slideWidth = 0;
-    let slideHeight = 0;
-    const processFullTheme = settings.themeProcess;
     const styleTable = settings.styleTable;
     let isDone = false;
 
@@ -449,40 +480,32 @@ async function pptxToHtml(fileData, options) {
      * @returns {Promise<Object>} Parsed result
      */
     async function convertToHtml(file) {
-        if (file.byteLength < 10) {
-            if (callbacks.onError) {
-                callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
-            }
-            throw new Error("Invalid file: file too small");
-        }
+        // Step 1: Parse PPTX to structured JSON data
+        const { parsedData, msgQueue, zip, slideSize, thumbnail, metadata, executionTime } = 
+            await processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle);
 
-        const msgQueue = [];
-        const zip = JSZip.loadAsync? await JSZip.loadAsync(file) :new JSZip().load(file);
-        
-        // Parse PPTX to structured data
-        const parsedData = await parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
-
-        // Convert structured data to HTML result
+        // Step 2: Convert structured data to HTML result
         const result = {
             slides: [],
-            slideSize: parsedData.slideSize,
-            thumbnail: parsedData.thumbnail,
+            slideSize,
+            thumbnail,
             styles: {
                 global: ""
             },
-            metadata: parsedData.metadata,
+            metadata,
             charts: []
         };
 
-        // Process slides and convert to HTML
+        // Step 3: Process slides and convert to HTML
         for (const slideData of parsedData.slides) {
-            const slideHtml = await convertSlideDataToHtml(slideData.data, parsedData.slideSize, settings, zip);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip);
             result.slides.push({
                 html: slideHtml,
+                data: slideData.data,  // Keep structured data for potential reuse
                 slideNum: slideData.slideNum,
                 fileName: slideData.fileName
             });
-            
+
             if (callbacks.onSlide) {
                 callbacks.onSlide(slideHtml, {
                     slideNum: slideData.slideNum,
@@ -491,31 +514,31 @@ async function pptxToHtml(fileData, options) {
             }
         }
 
-        // Generate global CSS after all slides are processed (styleTable is populated during slide conversion)
+        // Step 4: Generate global CSS after all slides are processed
         result.styles.global = genGlobalCSS(styleTable);
 
-        // Trigger other callbacks
-        if (parsedData.thumbnail && callbacks.onThumbnail) {
-            callbacks.onThumbnail(parsedData.thumbnail);
+        // Step 5: Trigger other callbacks
+        if (thumbnail && callbacks.onThumbnail) {
+            callbacks.onThumbnail(thumbnail);
         }
-        
-        if (parsedData.slideSize && callbacks.onSlideSize) {
-            callbacks.onSlideSize(parsedData.slideSize);
+
+        if (slideSize && callbacks.onSlideSize) {
+            callbacks.onSlideSize(slideSize);
         }
-        
+
         if (callbacks.onGlobalCSS) {
             callbacks.onGlobalCSS(result.styles.global);
         }
 
-        // Process message queue for charts
+        // Step 6: Process message queue for charts
         processMsgQueue(msgQueue, result);
         isDone = true;
 
         if (callbacks.onComplete) {
             callbacks.onComplete({
-                executionTime: parsedData.executionTime,
-                slideWidth: parsedData.slideSize?.width || 0,
-                slideHeight: parsedData.slideSize?.height || 0,
+                executionTime,
+                slideWidth: slideSize?.width || 0,
+                slideHeight: slideSize?.height || 0,
                 styleTable,
                 settings
             });
@@ -556,11 +579,6 @@ async function pptxToJson(fileData, options) {
     // State variables
     let defaultTextStyle = null;
     const chartId = { value: 0 };
-    let order = 1;
-    let appVersion;
-    let slideWidth = 0;
-    let slideHeight = 0;
-    const processFullTheme = settings.themeProcess;
     const styleTable = settings.styleTable;
     let isDone = false;
 
@@ -575,32 +593,23 @@ async function pptxToJson(fileData, options) {
      * @returns {Promise<Object>} Parsed result
      */
     async function convertToJson(file) {
-        if (file.byteLength < 10) {
-            if (callbacks.onError) {
-                callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
-            }
-            throw new Error("Invalid file: file too small");
-        }
+        // Step 1: Parse PPTX to structured JSON data
+        const { parsedData, msgQueue, slideSize, thumbnail, metadata, executionTime } = 
+            await processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle);
 
-        const msgQueue = [];
-        const zip = JSZip.loadAsync? await JSZip.loadAsync(file) :new JSZip().load(file);
-
-        // Parse PPTX to structured data
-        const parsedData = await parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
-
-        // Convert structured data to JSON result
+        // Step 2: Convert structured data to JSON result
         const result = {
             slides: [],
-            slideSize: parsedData.slideSize,
-            thumbnail: parsedData.thumbnail,
+            slideSize,
+            thumbnail,
             styles: {
                 global: genGlobalCSS(styleTable)
             },
-            metadata: parsedData.metadata,
+            metadata,
             charts: []
         };
 
-        // Process slides and keep as structured data
+        // Step 3: Process slides and keep as structured data
         for (const slideData of parsedData.slides) {
             result.slides.push({
                 data: slideData.data,
@@ -616,28 +625,28 @@ async function pptxToJson(fileData, options) {
             }
         }
 
-        // Trigger other callbacks
-        if (parsedData.thumbnail && callbacks.onThumbnail) {
-            callbacks.onThumbnail(parsedData.thumbnail);
+        // Step 4: Trigger other callbacks
+        if (thumbnail && callbacks.onThumbnail) {
+            callbacks.onThumbnail(thumbnail);
         }
 
-        if (parsedData.slideSize && callbacks.onSlideSize) {
-            callbacks.onSlideSize(parsedData.slideSize);
+        if (slideSize && callbacks.onSlideSize) {
+            callbacks.onSlideSize(slideSize);
         }
 
         if (callbacks.onGlobalCSS) {
             callbacks.onGlobalCSS(result.styles.global);
         }
 
-        // Process message queue for charts
+        // Step 5: Process message queue for charts
         processMsgQueue(msgQueue, result);
         isDone = true;
 
         if (callbacks.onComplete) {
             callbacks.onComplete({
-                executionTime: parsedData.executionTime,
-                slideWidth: parsedData.slideSize?.width || 0,
-                slideHeight: parsedData.slideSize?.height || 0,
+                executionTime,
+                slideWidth: slideSize?.width || 0,
+                slideHeight: slideSize?.height || 0,
                 styleTable,
                 settings
             });
