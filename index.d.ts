@@ -121,6 +121,11 @@ export interface SlideHtml {
     html: string;
     
     /**
+     * 幻灯片结构化数据（可用于后续处理）
+     */
+    data: any;
+    
+    /**
      * 幻灯片编号
      */
     slideNum: number;
