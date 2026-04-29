@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { ref, shallowRef, nextTick, onMounted } from 'vue'
-import { pptxToHtml } from '@fefeding/ppt-parser'
+import { pptxToHtml, pptxToJson } from '@fefeding/ppt-parser'
 import JSZip from 'jszip'
 import * as echarts from 'echarts'
 import { chartRenderer } from '../../chart-lib/chart-renderer.js'
@@ -95,7 +95,8 @@ async function handleFileUpload(event: Event) {
   try {
     // 读取文件为 ArrayBuffer
     const fileData = await file.arrayBuffer()
-
+    const data = await pptxToJson(fileData);
+    console.log('data:', data)
     // 使用新版本的 API 解析 PPTX
     const result: PPTXResult = await pptxToHtml(fileData, {
       mediaProcess: true,

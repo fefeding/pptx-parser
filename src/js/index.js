@@ -583,7 +583,7 @@ async function pptxToJson(fileData, options) {
         }
 
         const msgQueue = [];
-        const zip = new JSZip().load(file);
+        const zip = JSZip.loadAsync? await JSZip.loadAsync(file) :new JSZip().load(file);
 
         // Parse PPTX to structured data
         const parsedData = await parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
