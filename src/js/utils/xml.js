@@ -67,24 +67,20 @@ export const PPTXXmlUtils = (function() {
             return undefined;
         }
 
-        Object.prototype.set = function (parts, value) {
-            var obj = this;
-            let lent = parts.length;
-            for (let i = 0; i < lent; i++) {
-                var p = parts[i];
-                if (obj[p] === undefined) {
-                    if (i == lent - 1) {
-                        obj[p] = value;
-                    } else {
-                        obj[p] = {};
-                    }
+        let obj = node;
+        const len = path.length;
+        for (let i = 0; i < len; i++) {
+            const p = path[i];
+            if (obj[p] === undefined) {
+                if (i === len - 1) {
+                    obj[p] = value;
+                } else {
+                    obj[p] = {};
                 }
-                obj = obj[p];
             }
-            return obj;
-        };
-
-        node.set(path, value);
+            obj = obj[p];
+        }
+        return obj;
     }
 
     /**
@@ -398,39 +394,50 @@ export const PPTXXmlUtils = (function() {
      * @returns {string} Base64字符串
      */
     function base64ArrayBuffer(arrayBuffer) {
-        let base64 = '';
-        let encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        let bytes = new Uint8Array(arrayBuffer);
-        let byteLength = bytes.byteLength;
-        let byteRemainder = byteLength % 3;
-        let mainLength = byteLength - byteRemainder;
-
-        let a, b, c, d;
-        let chunk;
-
-        for (let i = 0; i < mainLength; i = i + 3) {
-            chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
-            a = (chunk & 16515072) >> 18;
-            b = (chunk & 258048) >> 12;
-            c = (chunk & 4032) >> 6;
-            d = chunk & 63;
-            base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d];
+        // Node.js: use Buffer (fastest)
+        if (typeof Buffer !== 'undefined' && Buffer.from) {
+            return Buffer.from(arrayBuffer).toString('base64');
         }
 
-        if (byteRemainder == 1) {
-            chunk = bytes[mainLength];
-            a = (chunk & 252) >> 2;
-            b = (chunk & 3) << 4;
-            base64 += encodings[a] + encodings[b] + '==';
-        } else if (byteRemainder == 2) {
-            chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
-            a = (chunk & 64512) >> 10;
-            b = (chunk & 1008) >> 4;
-            c = (chunk & 15) << 2;
-            base64 += encodings[a] + encodings[b] + encodings[c] + '=';
+        // Browser: use btoa with chunked processing for large buffers
+        const bytes = new Uint8Array(arrayBuffer);
+        const byteLength = bytes.byteLength;
+
+        if (typeof btoa === 'function') {
+            const CHUNK_SIZE = 0x8000;
+            let binary = '';
+            for (let i = 0; i < byteLength; i += CHUNK_SIZE) {
+                const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, byteLength));
+                binary += String.fromCharCode.apply(null, chunk);
+            }
+            return btoa(binary);
         }
 
-        return base64;
+        // Fallback: manual encoding
+        const encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        const byteRemainder = byteLength % 3;
+        const mainLength = byteLength - byteRemainder;
+        const parts = [];
+
+        for (let i = 0; i < mainLength; i += 3) {
+            const chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+            parts.push(
+                encodings[(chunk & 16515072) >> 18] +
+                encodings[(chunk & 258048) >> 12] +
+                encodings[(chunk & 4032) >> 6] +
+                encodings[chunk & 63]
+            );
+        }
+
+        if (byteRemainder === 1) {
+            const chunk = bytes[mainLength];
+            parts.push(encodings[(chunk & 252) >> 2] + encodings[(chunk & 3) << 4] + '==');
+        } else if (byteRemainder === 2) {
+            const chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
+            parts.push(encodings[(chunk & 64512) >> 10] + encodings[(chunk & 1008) >> 4] + encodings[(chunk & 15) << 2] + '=');
+        }
+
+        return parts.join('');
     }
 
     function extractFileExtension(filename) {
@@ -483,11 +490,12 @@ export const PPTXXmlUtils = (function() {
                 case "wav":
                     mimeType = "audio/wav";
                     break;
-                case "emf":
-                    mimeType = "image/emf";
+                case "bmp":
+                    mimeType = "image/bmp";
                     break;
-                case "wmf":
-                    mimeType = "image/wmf";
+                case "webp":
+                    mimeType = "image/webp";
+                    break;
                 case "tif":
                 case "tiff":
                     mimeType = "image/tiff";

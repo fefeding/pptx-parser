@@ -38,9 +38,6 @@ function getTextWidth(html) {
     }
 
     async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width) {
-            // Reset per-text-body state
-            is_first_br = false;
-
             let text = "";
             let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
