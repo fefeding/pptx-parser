@@ -38,6 +38,9 @@ function getTextWidth(html) {
     }
 
     async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width) {
+            // Reset per-text-body state
+            is_first_br = false;
+
             let text = "";
             let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
@@ -1311,7 +1314,19 @@ function getTextWidth(html) {
                     linkTooltip = `title='${linkTooltip}'`;
                 }
                 defLinkClr = PPTXStyleUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
+            } else {
+                // Fallback to hover hyperlink (a:hlinkHover)
+                linkID = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkHover", "attrs", "r:id"]);
+                if (linkID !== undefined) {
+                    linkTooltip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkHover", "attrs", "tooltip"]);
+                    if (linkTooltip !== undefined) {
+                        linkTooltip = `title='${linkTooltip}'`;
+                    }
+                    defLinkClr = PPTXStyleUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
+                }
+            }
 
+            if (linkID !== undefined) {
                 let linkClrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
                 let rPrlinkClr = PPTXStyleUtils.getSolidFill(linkClrNode, undefined, undefined, warpObj);
 
@@ -1322,7 +1337,6 @@ function getTextWidth(html) {
                 // if (rPrlinkClr !== undefined && rPrlinkClr != "") {
                 //     defLinkClr = rPrlinkClr;
                 // }
-
             }
             /////////////////////////////////////////////////////////////////////////////////////
             //getFontColor
