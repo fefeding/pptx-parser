@@ -397,6 +397,38 @@ function getFillType(node) {
             let txtShadow = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:outerShdw"]);
             let oShadowStr = "";
             
+            // Check for reflection effect
+            let txtReflection = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:reflection"]);
+            let reflectionStyle = "";
+            if (txtReflection !== undefined) {
+                // 解析反射效果参数
+                const blurRad = parseInt(txtReflection.attrs?.["blurRad"] || "0") * SLIDE_FACTOR;
+                const stA = parseInt(txtReflection.attrs?.["stA"] || "100000"); // 开始透明度 (0-100000)
+                const endA = parseInt(txtReflection.attrs?.["endA"] || "0");   // 结束透明度
+                const dist = parseInt(txtReflection.attrs?.["dist"] || "0") * SLIDE_FACTOR; // 距离
+                const dir = parseInt(txtReflection.attrs?.["dir"] || "5400000"); // 方向 (0-21600000)
+                
+                // 转换为CSS渐变
+                const startOpacity = Math.min(1, stA / 100000);
+                const endOpacity = Math.min(1, endA / 100000);
+                
+                if (startOpacity > 0 || endOpacity > 0) {
+                    // 创建反射效果的伪元素样式
+                    reflectionStyle = ` position: relative; `;
+                    // 反射效果将通过CSS伪元素实现
+                }
+            }
+            
+            // Check for soft edge effect
+            let txtSoftEdge = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:effectLst", "a:softEdge"]);
+            let softEdgeStyle = "";
+            if (txtSoftEdge !== undefined) {
+                const rad = parseInt(txtSoftEdge.attrs?.["rad"] || "0") * SLIDE_FACTOR;
+                if (rad > 0) {
+                    softEdgeStyle = ` filter: blur(${rad}px); `;
+                }
+            }
+            
             // If no direct shadow, check effectRef from p:style
             if (txtShadow === undefined) {
                 var effectRefNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:style", "a:effectRef"]);

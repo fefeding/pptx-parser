@@ -872,5 +872,198 @@ const PPTXNodeUtils = {
     genDiagram
 };
 
+/**
+ * 渲染SmartArt图表
+ * @param {Object} smartArtData - SmartArt数据对象
+ * @param {Object} xfrmNode - 变换节点
+ * @param {number} order - 顺序
+ * @param {Object} wrapObj - 包装对象
+ * @param {string} shapeType - 形状类型
+ * @returns {string} HTML内容
+ */
+function renderSmartArt(smartArtData, xfrmNode, order, wrapObj, shapeType) {
+    // 如果没有数据文件，返回空内容
+    if (!smartArtData.data) {
+        return '';
+    }
+    
+    const data = smartArtData.data;
+    
+    // 解析SmartArt数据结构
+    const nodes = extractSmartArtNodes(data);
+    const layout = smartArtData.layout || {};
+    const colors = smartArtData.colors || {};
+    const styles = smartArtData.style || {};
+    
+    // 生成HTML结构
+    let html = '<div class="smartart-container" style="width:100%;height:100%;">';
+    
+    // 渲染根节点
+    if (nodes.root) {
+        html += renderSmartArtNode(nodes.root, nodes, layout, colors, styles, 0);
+    }
+    
+    html += '</div>';
+    
+    return html;
+}
+
+/**
+ * 提取SmartArt节点数据
+ * @param {Object} data - SmartArt数据
+ * @returns {Object} 节点映射
+ */
+function extractSmartArtNodes(data) {
+    const nodes = {};
+    const rootNodes = [];
+    
+    // 查找所有节点
+    const allNodes = findAllNodes(data, 'dgm:pt');
+    
+    allNodes.forEach(node => {
+        if (node.attrs && node.attrs["modelId"]) {
+            const nodeId = node.attrs["modelId"];
+            const modelType = node.attrs["modelType"] || "node";
+            
+            // 提取文本内容
+            let text = "";
+            if (node["p:prSet"] && node["p:prSet"]["p:phldr"]) {
+                text = node["p:prSet"]["p:phldr"]["attrs"]["text"] || "";
+            }
+            
+            nodes[nodeId] = {
+                id: nodeId,
+                type: modelType,
+                text: text,
+                children: [],
+                parent: null
+            };
+            
+            // 根节点没有父节点
+            if (modelType === "doc") {
+                rootNodes.push(nodeId);
+            }
+        }
+    });
+    
+    // 建立父子关系
+    const connections = findAllNodes(data, 'dgm:cxn');
+    connections.forEach(conn => {
+        if (conn.attrs) {
+            const srcId = conn.attrs["srcId"];
+            const destId = conn.attrs["destId"];
+            
+            if (nodes[srcId] && nodes[destId]) {
+                nodes[srcId].children.push(destId);
+                nodes[destId].parent = srcId;
+            }
+        }
+    });
+    
+    // 确定根节点
+    let root = null;
+    if (rootNodes.length > 0) {
+        root = nodes[rootNodes[0]];
+    } else {
+        // 找到没有父节点的节点作为根
+        for (const nodeId in nodes) {
+            if (!nodes[nodeId].parent) {
+                root = nodes[nodeId];
+                break;
+            }
+        }
+    }
+    
+    return {
+        nodes: nodes,
+        root: root
+    };
+}
+
+/**
+ * 递归查找所有指定类型的节点
+ * @param {Object} obj - 对象
+ * @param {string} type - 节点类型
+ * @returns {Array} 节点数组
+ */
+function findAllNodes(obj, type) {
+    const results = [];
+    
+    function traverse(current) {
+        if (Array.isArray(current)) {
+            current.forEach(item => traverse(item));
+        } else if (typeof current === 'object' && current !== null) {
+            if (current.hasOwnProperty(type)) {
+                if (Array.isArray(current[type])) {
+                    results.push(...current[type]);
+                } else {
+                    results.push(current[type]);
+                }
+            }
+            
+            Object.values(current).forEach(value => {
+                if (typeof value === 'object') {
+                    traverse(value);
+                }
+            });
+        }
+    }
+    
+    traverse(obj);
+    return results;
+}
+
+/**
+ * 渲染单个SmartArt节点
+ * @param {Object} node - 节点
+ * @param {Object} allNodes - 所有节点
+ * @param {Object} layout - 布局数据
+ * @param {Object} colors - 颜色数据
+ * @param {Object} styles - 样式数据
+ * @param {number} depth - 深度
+ * @returns {string} HTML内容
+ */
+function renderSmartArtNode(node, allNodes, layout, colors, styles, depth) {
+    if (!node) return '';
+    
+    let html = `<div class="smartart-node level-${depth}" style="padding: 5px; margin: 2px; border: 1px solid #ccc; background: #f9f9f9;">`;
+    html += `<div class="smartart-text">${escapeHtml(node.text)}</div>`;
+    
+    // 渲染子节点
+    if (node.children && node.children.length > 0) {
+        html += '<div class="smartart-children" style="margin-top: 5px;">';
+        node.children.forEach(childId => {
+            const child = allNodes[childId];
+            if (child) {
+                html += renderSmartArtNode(child, allNodes, layout, colors, styles, depth + 1);
+            }
+        });
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    
+    return html;
+}
+
+/**
+ * HTML转义
+ * @param {string} str - 字符串
+ * @returns {string} 转义后的字符串
+ */
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>'"]/g, function(tag) {
+        const charsToReplace = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        };
+        return charsToReplace[tag] || tag;
+    });
+}
+
 export { PPTXNodeUtils };
 export default PPTXNodeUtils;

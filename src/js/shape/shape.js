@@ -129,6 +129,8 @@ export const PPTXShapeUtils = (function() {
             var shpId = PPTXXmlUtils.getTextByPathList(node, ["attrs", "order"]);
             var shapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
 
+            // 初始化3D变换样式
+            let transform3dStyle = "";
             //custGeom - Amir
             var custShapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:custGeom"]);
 
@@ -390,7 +392,14 @@ export const PPTXShapeUtils = (function() {
                 //"a:extrusionClr"
                 //"a:contourClr"
                 //"a:extLst"?
-                ////////////////////effectRef handling///////////////////////////////////////////
+                
+                // 处理3D效果
+                const scene3d = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:scene3d"]);
+                const sp3d = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:sp3d"]);
+                
+                if (scene3d || sp3d) {
+                    transform3dStyle = process3DEffects(scene3d, sp3d);
+                }
                 // Check if there's an effectRef in p:style
                 var effectRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:effectRef"]);
                 var effectStyleNode = undefined;
@@ -5428,6 +5437,13 @@ export const PPTXShapeUtils = (function() {
 
                 // 生成 data- 属性
                 const dataAttrs1 = genShapeDataAttributes(node, workingXfrmNode, id, name, idx, type, rotate, sType);
+                
+                // 检测动画信息并添加到data属性
+                const animationData = extractAnimationData(node, warpObj);
+                let animationAttrs = "";
+                if (animationData) {
+                    animationAttrs = ` data-animation='${JSON.stringify(animationData)}'`;
+                }
 
                 result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
                     " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
@@ -5435,8 +5451,9 @@ export const PPTXShapeUtils = (function() {
                     "' style='" +
                     PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
+                    transform3dStyle +
                     " z-index: " + order + ";" +
-                    "'" + dataAttrs1 + ">";
+                    "'" + dataAttrs1 + animationAttrs + ">";
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -5458,6 +5475,13 @@ export const PPTXShapeUtils = (function() {
 
                 // 生成 data- 属性
                 const dataAttrs2 = genShapeDataAttributes(node, workingXfrmNode, id, name, idx, type, rotate, sType);
+                
+                // 检测动画信息并添加到data属性
+                const animationData2 = extractAnimationData(node, warpObj);
+                let animationAttrs2 = "";
+                if (animationData2) {
+                    animationAttrs2 = ` data-animation='${JSON.stringify(animationData2)}'`;
+                }
 
                 result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
                     " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
@@ -5466,7 +5490,7 @@ export const PPTXShapeUtils = (function() {
                     PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
                     PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
                     " z-index: " + order + ";" +
-                    "'" + dataAttrs2 + ">";
+                    "'" + dataAttrs2 + animationAttrs2 + ">";
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -5491,6 +5515,13 @@ export const PPTXShapeUtils = (function() {
 
                 // 生成 data- 属性
                 const dataAttrs3 = genShapeDataAttributes(node, slideXfrmNode, id, name, idx, type, rotate, sType);
+                
+                // 检测动画信息并添加到data属性
+                const animationData3 = extractAnimationData(node, warpObj);
+                let animationAttrs3 = "";
+                if (animationData3) {
+                    animationAttrs3 = ` data-animation='${JSON.stringify(animationData3)}'`;
+                }
 
                 result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content 
                     " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
@@ -5525,4 +5556,194 @@ export const PPTXShapeUtils = (function() {
         // 核心形状生成函数
         genShape,
     };
+
+/**
+ * 提取形状的动画数据
+ * @param {Object} node - 形状节点
+ * @param {Object} warpObj - 包装对象
+ * @returns {Object|null} 动画数据或null
+ */
+function extractAnimationData(node, warpObj) {
+    // 检查形状是否有动画引用
+    const nvSpPr = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr"]);
+    if (!nvSpPr) return null;
+    
+    const nvPr = PPTXXmlUtils.getTextByPathList(nvSpPr, ["p:nvPr"]);
+    if (!nvPr) return null;
+    
+    // 检查是否有动画效果
+    const animLst = PPTXXmlUtils.getTextByPathList(nvPr, ["p:animLst"]);
+    if (animLst) {
+        // 解析动画列表
+        return parseAnimationList(animLst);
+    }
+    
+    // 检查是否有动画引用
+    const animRef = PPTXXmlUtils.getTextByPathList(nvPr, ["p:animRef"]);
+    if (animRef && animRef.attrs) {
+        const rId = animRef.attrs["r:embed"];
+        if (rId && warpObj.slideAnims && warpObj.slideAnims[rId]) {
+            return warpObj.slideAnims[rId];
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * 解析动画列表
+ * @param {Object} animLst - 动画列表
+ * @returns {Object} 解析后的动画数据
+ */
+function parseAnimationList(animLst) {
+    // 处理单个动画或动画数组
+    const animArray = Array.isArray(animLst["p:par"]) ? animLst["p:par"] : 
+                     (animLst["p:par"] ? [animLst["p:par"]] : []);
+    
+    if (animArray.length === 0) return null;
+    
+    const par = animArray[0];
+    if (par["p:cTn"]) {
+        const cTn = par["p:cTn"];
+        const animType = getAnimationType(cTn);
+        const duration = cTn.attrs["dur"] || "1000";
+        const delay = cTn.attrs["st"] || "0";
+        
+        return {
+            type: animType,
+            duration: parseInt(duration),
+            delay: parseInt(delay)
+        };
+    }
+    
+    return null;
+}
+
+/**
+ * 获取动画类型
+ * @param {Object} cTn - 动画时间节点
+ * @returns {string} 动画类型
+ */
+function getAnimationType(cTn) {
+    // 检查子动画类型
+    if (cTn["p:childTnLst"]) {
+        const childTnLst = cTn["p:childTnLst"];
+        
+        // 检查是否有set动画（属性设置）
+        if (childTnLst["p:set"]) {
+            const set = childTnLst["p:set"];
+            if (set["p:to"]) {
+                const to = set["p:to"];
+                if (to["p:strVal"] && to["p:strVal"].attrs["val"] === "visible") {
+                    return "fade-in";
+                }
+            }
+        }
+        
+        // 检查是否有motion动画（移动）
+        if (childTnLst["p:cmd"]) {
+            return "custom";
+        }
+    }
+    
+    // 默认动画类型
+    return "appear";
+}
+
+/**
+ * 处理3D效果
+ * @param {Object} scene3d - 场景3D数据
+ * @param {Object} sp3d - 形状3D数据
+ * @returns {string} CSS 3D变换样式
+ */
+function process3DEffects(scene3d, sp3d) {
+    let transform = "";
+    
+    // 处理相机设置
+    if (scene3d && scene3d["a:camera"]) {
+        const camera = scene3d["a:camera"];
+        const prst = camera.attrs?.["prst"];
+        
+        // 根据预设相机类型应用不同的视角
+        switch (prst) {
+            case "orthographicFront":
+                // 正交前视图 - 无3D效果
+                break;
+            case "orthographicTop":
+                transform += " rotateX(-90deg)";
+                break;
+            case "orthographicBottom":
+                transform += " rotateX(90deg)";
+                break;
+            case "orthographicLeft":
+                transform += " rotateY(90deg)";
+                break;
+            case "orthographicRight":
+                transform += " rotateY(-90deg)";
+                break;
+            case "perspectiveFront":
+                // 透视前视图 - 轻微的3D效果
+                transform += " perspective(1000px)";
+                break;
+            case "perspectiveTop":
+                transform += " perspective(1000px) rotateX(-60deg)";
+                break;
+            case "perspectiveBottom":
+                transform += " perspective(1000px) rotateX(60deg)";
+                break;
+            case "perspectiveLeft":
+                transform += " perspective(1000px) rotateY(60deg)";
+                break;
+            case "perspectiveRight":
+                transform += " perspective(1000px) rotateY(-60deg)";
+                break;
+            default:
+                // 默认轻微透视
+                transform += " perspective(800px)";
+        }
+    }
+    
+    // 处理形状3D效果（挤出、斜角等）
+    if (sp3d) {
+        // 挤出深度
+        if (sp3d["a:extrusionH"]) {
+            const extrusionH = parseInt(sp3d["a:extrusionH"].attrs?.["val"] || "0");
+            if (extrusionH > 0) {
+                // 转换为像素值
+                const depth = Math.round(extrusionH * SLIDE_FACTOR);
+                if (depth > 0) {
+                    transform += ` translateZ(${depth}px)`;
+                }
+            }
+        }
+        
+        // 顶部斜角
+        if (sp3d["a:bevelT"]) {
+            const bevelT = sp3d["a:bevelT"];
+            const w = parseInt(bevelT.attrs?.["w"] || "0");
+            const h = parseInt(bevelT.attrs?.["h"] || "0");
+            if (w > 0 || h > 0) {
+                // 应用轻微的3D旋转来模拟斜角效果
+                transform += " rotateX(5deg) rotateY(5deg)";
+            }
+        }
+        
+        // 底部斜角
+        if (sp3d["a:bevelB"]) {
+            const bevelB = sp3d["a:bevelB"];
+            const w = parseInt(bevelB.attrs?.["w"] || "0");
+            const h = parseInt(bevelB.attrs?.["h"] || "0");
+            if (w > 0 || h > 0) {
+                // 应用轻微的3D旋转来模拟底部斜角
+                transform += " rotateX(-3deg) rotateY(-3deg)";
+            }
+        }
+    }
+    
+    if (transform) {
+        return ` transform:${transform}; transform-style: preserve-3d;`;
+    }
+    
+    return "";
+}
 })();

@@ -171,6 +171,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
 
     let layoutFilename = "";
     let diagramFilename = "";
+    let notesFilename = ""; // 添加备注文件名
     const slideResObj = {};
 
     if (Array.isArray(relationshipArray)) {
@@ -189,6 +190,10 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
                         target
                     };
                     break;
+                case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide":
+                    // 处理备注关系
+                    notesFilename = target;
+                    break;
                 default:
                     slideResObj[rel.attrs.Id] = {
                         type: relType.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
@@ -197,7 +202,23 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
             }
         }
     } else {
-        layoutFilename = relationshipArray.attrs.Target.replace("../", "ppt/");
+        const relType = relationshipArray.attrs.Type;
+        const target = relationshipArray.attrs.Target.replace("../", "ppt/");
+        
+        if (relType === "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout") {
+            layoutFilename = target;
+        } else if (relType === "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide") {
+            notesFilename = target;
+        } else if (relType === "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing") {
+            diagramFilename = target;
+            slideResObj[relationshipArray.attrs.Id] = {
+                type: relType.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
+                target: target
+            };
+        } else {
+            // 默认处理为slideLayout
+            layoutFilename = target;
+        }
     }
 
     // Open slide layout
@@ -337,6 +358,13 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
 
     // Read slide content
     const slideContent = await PPTXXmlUtils.readXmlFile(zip, slideFileName, true);
+    
+    // Read notes content if available
+    let notesContent = null;
+    if (notesFilename) {
+        notesContent = await PPTXXmlUtils.readXmlFile(zip, notesFilename);
+    }
+
     const nodes = slideContent["p:sld"]["p:cSld"]["p:spTree"];
 
     const processFullTheme = settings.themeProcess;
@@ -356,6 +384,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
         themeResObj,
         diagramContent,
         diagramResObj,
+        notesContent, // 添加备注内容
         defaultTextStyle: slideSize.defaultTextStyle || defaultTextStyle,
         tableStyles,
         styleTable,
@@ -409,8 +438,15 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
     if (processFullTheme === "colorsAndImageOnly") {
         bgColor = await PPTXStyleUtils.getSlideBackgroundFill(warpObj, slideData.index);
     }
+    
+    // 检测幻灯片过渡效果
+    let transitionClass = "";
+    const transitionData = extractSlideTransition(slideData.slideContent);
+    if (transitionData) {
+        transitionClass = ` data-transition='${JSON.stringify(transitionData)}'`;
+    }
 
-    let result = `<section class='slide' style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
+    let result = `<section class='slide'${transitionClass} style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
     result += bgResult;
 
     const nodes = slideData.slideContent["p:sld"]["p:cSld"]["p:spTree"];
@@ -740,17 +776,47 @@ async function pptxToFiles(fileData) {
 }
 
 // Export functions
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        pptxToHtml,
-        pptxToJson,
-        pptxToFiles
-    };
-} else if (typeof window !== 'undefined') {
-    window.pptxParser = {
-        pptxToHtml,
-        pptxToJson,
-        pptxToFiles
+/**
+ * 提取幻灯片过渡效果数据
+ * @param {Object} slideContent - 幻灯片内容
+ * @returns {Object|null} 过渡效果数据或null
+ */
+function extractSlideTransition(slideContent) {
+    // 检查slide中是否有transition元素
+    const sld = slideContent["p:sld"];
+    if (!sld) return null;
+    
+    const transition = PPTXXmlUtils.getTextByPathList(sld, ["p:transition"]);
+    if (!transition) return null;
+    
+    // 解析过渡效果类型
+    let transitionType = "fade"; // 默认淡入淡出
+    let duration = 1000; // 默认1秒
+    
+    // 检查具体的过渡类型
+    const transitionTypes = [
+        "p:blinds", "p:checker", "p:circle", "p:comb", 
+        "p:cover", "p:dissolve", "p:fade", "p:push",
+        "p:random", "p:split", "p:strips", "p:wipe"
+    ];
+    
+    for (const type of transitionTypes) {
+        if (transition[type]) {
+            transitionType = type.replace("p:", "");
+            break;
+        }
+    }
+    
+    // 获取持续时间
+    if (transition.attrs && transition.attrs["spd"]) {
+        // spd值: slow=3, med=2, fast=1
+        const speedMap = { "1": 500, "2": 1000, "3": 2000 };
+        duration = speedMap[transition.attrs["spd"]] || 1000;
+    }
+    
+    return {
+        type: transitionType,
+        duration: duration
     };
 }
 
