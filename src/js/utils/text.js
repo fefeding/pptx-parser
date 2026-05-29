@@ -59,6 +59,18 @@ function getTextWidth(html) {
                 }
             }
 
+            // 对于圆形/椭圆类形状，强制使用居中对齐以确保文本在形状内正确居中显示
+            if (type === "shape") {
+                let shapeType = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
+                const circularShapes = [
+                    "ellipse", "ovalCallout", "wedgeEllipseCallout",
+                    "pie", "pieWedge", "chord", "sector", "arc", "blockArc"
+                ];
+                if (circularShapes.includes(shapeType) && anchor === "t") {
+                    anchor = "ctr";
+                }
+            }
+
             // 获取bodyPr的内边距设置
             let bodyPrPadding = getBodyPrPadding(textBodyNode, type, anchor);
             text += bodyPrPadding;
@@ -132,17 +144,58 @@ function getTextWidth(html) {
 
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
                 let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
-
+                
+                // 获取bodyPr的内边距属性，用于计算可用宽度
+                let lIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "lIns"]);
+                let rIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "rIns"]);
+                            
+                // 计算内边距像素值
+                let lInsPx, rInsPx;
+                if (type === "table") {
+                    // 对于表格，如果没有明确设置内边距，则使用0
+                    lInsPx = lIns ? (parseInt(lIns) * SLIDE_FACTOR) : 0;
+                    rInsPx = rIns ? (parseInt(rIns) * SLIDE_FACTOR) : 0;
+                } else {
+                    lInsPx = lIns ? (parseInt(lIns) * SLIDE_FACTOR) : (type === "diagram" ? 0.04 * 96 : 0.1 * 96);
+                    rInsPx = rIns ? (parseInt(rIns) * SLIDE_FACTOR) : (type === "diagram" ? 0.04 * 96 : 0.1 * 96);
+                }
+                            
+                // 如果明确设置了lIns="0"或rIns="0"，则不应用默认值
+                if (lIns === "0") lInsPx = 0;
+                if (rIns === "0") rInsPx = 0;
+                            
+                // 检查是否为圆形/椭圆类形状，如果是则应用额外的安全边距
+                let shapeType = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
+                const circularShapes = [
+                    "ellipse", "ovalCallout", "wedgeEllipseCallout",
+                    "pie", "pieWedge", "chord", "sector", "arc", "blockArc"
+                ];
+                const isCircularShape = circularShapes.includes(shapeType);
+                
                 // 处理组合缩放 - 如果形状在group-abs组合中,需要应用缩放到段落宽度
-                let sld_prg_width_val = (prg_width_node !== undefined && prg_width_node !== null) ? Math.round(parseInt(prg_width_node) * SLIDE_FACTOR * 100) / 100 : null;
+                let sld_prg_width_val = null;
+                if (prg_width_node !== undefined && prg_width_node !== null) {
+                    let parsedWidth = parseInt(prg_width_node);
+                    if (!isNaN(parsedWidth) && parsedWidth > 0) {
+                        sld_prg_width_val = Math.round(parsedWidth * SLIDE_FACTOR * 100) / 100;
+                    }
+                }
                 if (sld_prg_width_val !== null && warpObj.currentGroupScale) {
                     const { scaleX, scaleY } = warpObj.currentGroupScale;
                     sld_prg_width_val = Math.round(sld_prg_width_val * scaleX * 100) / 100;
                 }
-
+                
                 let sld_prg_width = "";
                 if (sld_prg_width_val !== null && !isNoWrap) {
-                    sld_prg_width = "width:" + sld_prg_width_val + "px;";
+                    // 减去内边距宽度，得到实际可用宽度
+                    let availableWidth = sld_prg_width_val - lInsPx - rInsPx;
+                                
+                    // 对于圆形/椭圆类形状，应用额外的安全边距（减少5%）以确保正确换行
+                    if (isCircularShape) {
+                        availableWidth = availableWidth * 0.95;
+                    }
+                                
+                    sld_prg_width = "width:" + Math.max(0, Math.round(availableWidth * 100) / 100) + "px;";
                 } else if (sld_prg_width_val === null) {
                     sld_prg_width = "width:inherit;";
                 }
@@ -150,7 +203,7 @@ function getTextWidth(html) {
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
                 let isRTL = (prg_dir == "pregraph-rtl");
                 let directionStyle = isRTL ? "direction: rtl;" : "direction: ltr;";
-                let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj);
+                let horizontalAlign = PPTXStyleUtils.getHorizontalAlign(pNode, textBodyNode, idx, type, prg_dir, warpObj, spNode);
                 // 在外层div上也设置justify-content，确保对齐正确
                 // 注意：表格单元格的对齐由td元素的text-align控制，这里不设置justify-content
                 let outerFlexStyle = "";
@@ -199,6 +252,8 @@ function getTextWidth(html) {
                 let prgrph_text = "";
                 //let prgr_txt_art = [];
                 let total_text_len = 0;
+                
+
                 if (rNode === undefined && pNode !== undefined) {
                     // without r
                     let prgr_text = await genSpanElement(pNode, undefined, spNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, 1, warpObj, isBullate);
@@ -221,6 +276,8 @@ function getTextWidth(html) {
                         if (isBullate) {
                             total_text_len += getTextWidth(prgr_text);
                         }
+                        
+
                         prgrph_text += prgr_text;
                         
                         // 保存当前元素的样式，供后面元素继承
@@ -238,8 +295,15 @@ function getTextWidth(html) {
                 let prg_width = "";
                 let textContainerWidth = ""; // 默认不设置宽度，让文本容器自适应
                 // 如果是 noAutofit（文本框宽度固定），需要设置文本容器宽度以限制换行
-                if (!isAutoFit && !isNoWrap && prg_width_node !== undefined && prg_width_node !== null) {
-                    textContainerWidth = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
+                // 但对于表格，不设置内层容器宽度，让其自适应
+                if (!isAutoFit && !isNoWrap && prg_width_node !== undefined && prg_width_node !== null && type !== "table") {
+                    // 使用与外层段落相同的可用宽度
+                    let availableWidthForTextContainer = sld_prg_width_val - lInsPx - rInsPx;
+                    // 对于圆形/椭圆类形状，应用额外的安全边距
+                    if (isCircularShape) {
+                        availableWidthForTextContainer = availableWidthForTextContainer * 0.95;
+                    }
+                    textContainerWidth = "width:" + Math.max(0, Math.round(availableWidthForTextContainer * 100) / 100) + "px;";
                 }
                 if (isRTL && isBullate) {
                     // RTL 模式下有项目符号时，文本容器不设宽度，让内容自适应
@@ -249,7 +313,13 @@ function getTextWidth(html) {
                     // 只有明确不需要换行时才设置宽度
                     prg_width = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
                 }
-                let whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "white-space: pre-wrap;";
+                // 对于圆形/椭圆类形状，使用normal white-space和break-word以确保正确换行
+                let whiteSpaceStyle;
+                if (isCircularShape) {
+                    whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "white-space: normal; overflow-wrap: break-word;";
+                } else {
+                    whiteSpaceStyle = isNoWrap ? "white-space: nowrap;" : "white-space: pre-wrap;";
+                }
 
 
                 let textAlignStyle = "";
@@ -262,6 +332,9 @@ function getTextWidth(html) {
                 } else {
                     textAlignStyle = "text-align: left;";
                 }
+                
+                // 添加强制换行样式以确保中文文本正确换行
+                textAlignStyle += " word-break: break-all;";
                 // 为了确保右对齐生效，添加flex布局的justify-content属性
                 // 注意：表格单元格的对齐由td元素的text-align控制，这里不设置justify-content
                 let flexStyle = "";

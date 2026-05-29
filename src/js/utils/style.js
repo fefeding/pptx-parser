@@ -2936,6 +2936,17 @@ function getFillType(node) {
                     }
                 }
             }
+
+            // 对于圆形/椭圆类形状，强制使用居中对齐以确保文本在形状内正确居中显示
+            let shapeType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
+            const circularShapes = [
+                "ellipse", "ovalCallout", "wedgeEllipseCallout",
+                "pie", "pieWedge", "chord", "sector", "arc", "blockArc"
+            ];
+            if (circularShapes.includes(shapeType) && anchor === "t") {
+                anchor = "ctr";
+            }
+            
             return (anchor === "ctr")?"v-mid" : ((anchor === "b") ? "v-down" : "v-up");
         }
 
@@ -3330,7 +3341,7 @@ function getFillType(node) {
             //return spcAft + spcBef;
             return marginTopBottomStr;
         }
-        function getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj) {
+        function getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj, spNode) {
             let algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
@@ -3400,6 +3411,26 @@ function getFillType(node) {
                     return "h-left";
                 }
             }
+            
+            // 对于圆形/椭圆类形状，强制使用居中对齐
+            let shapeType = "";
+            if (spNode) {
+                shapeType = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
+            }
+            // 如果在组合形状中没有找到，尝试从数据属性中获取
+            if (!shapeType && spNode && spNode["attrs"] && spNode["attrs"]["data-geom-type"]) {
+                shapeType = spNode["attrs"]["data-geom-type"];
+            }
+            const circularShapes = [
+                "ellipse", "ovalCallout", "wedgeEllipseCallout",
+                "pie", "pieWedge", "chord", "sector", "arc", "blockArc"
+            ];
+            const isCircularShape = circularShapes.includes(shapeType);
+            
+            if (isCircularShape) {
+                return "h-mid";
+            }
+            
             if (algn !== undefined) {
                 switch (algn) {
                     case "l":
