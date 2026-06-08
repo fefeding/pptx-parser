@@ -72,7 +72,14 @@ async function genChart(node, warpObj, parentNode) {
     const rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
     const refName = warpObj["slideResObj"][rid]["target"];
     const content = await PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
+    // Guard: chart XML file may be missing or unreadable
+    if (!content) {
+        return result;
+    }
     const chartSpace = PPTXXmlUtils.getTextByPathList(content, ["c:chartSpace"]);
+    if (!chartSpace) {
+        return result;
+    }
     const chart = PPTXXmlUtils.getTextByPathList(chartSpace, ["c:chart"]);
     const plotArea = PPTXXmlUtils.getTextByPathList(chart, ["c:plotArea"]);
 
