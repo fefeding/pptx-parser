@@ -177,7 +177,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     if (Array.isArray(relationshipArray)) {
         for (const rel of relationshipArray) {
             const relType = rel.attrs.Type;
-            const target = rel.attrs.Target.replace("../", "ppt/");
+            const target = rel.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "");
 
             switch (relType) {
                 case "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout":
@@ -203,7 +203,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
         }
     } else {
         const relType = relationshipArray.attrs.Type;
-        const target = relationshipArray.attrs.Target.replace("../", "ppt/");
+        const target = relationshipArray.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "");
         
         if (relType === "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout") {
             layoutFilename = target;
@@ -242,7 +242,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     if (Array.isArray(layoutRelArray)) {
         for (const rel of layoutRelArray) {
             const relType = rel.attrs.Type;
-            const target = rel.attrs.Target.replace("../", "ppt/");
+            const target = rel.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "");
 
             if (relType === "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster") {
                 masterFilename = target;
@@ -254,7 +254,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
             }
         }
     } else {
-        masterFilename = layoutRelArray.attrs.Target.replace("../", "ppt/");
+        masterFilename = layoutRelArray.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "");
     }
 
     // Open slide master
@@ -273,7 +273,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     if (Array.isArray(masterRelArray)) {
         for (const rel of masterRelArray) {
             const relType = rel.attrs.Type;
-            const target = rel.attrs.Target.replace("../", "ppt/");
+            const target = rel.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "");
 
             if (relType === "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme") {
                 themeFilename = target;
@@ -285,7 +285,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
             }
         }
     } else {
-        themeFilename = masterRelArray.attrs.Target.replace("../", "ppt/");
+        themeFilename = masterRelArray.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "");
     }
 
     // Load theme file
@@ -306,13 +306,13 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
                     for (const rel of themeRelArray) {
                         themeResObj[rel.attrs.Id] = {
                             type: rel.attrs.Type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                            target: rel.attrs.Target.replace("../", "ppt/")
+                            target: rel.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "")
                         };
                     }
                 } else {
                     themeResObj[themeRelArray.attrs.Id] = {
                         type: themeRelArray.attrs.Type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                        target: themeRelArray.attrs.Target.replace("../", "ppt/")
+                        target: themeRelArray.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "")
                     };
                 }
             }
@@ -341,13 +341,13 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
                 for (const rel of diagramRelArray) {
                     diagramResObj[rel.attrs.Id] = {
                         type: rel.attrs.Type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                        target: rel.attrs.Target.replace("../", "ppt/")
+                        target: rel.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "")
                     };
                 }
             } else {
                 diagramResObj[diagramRelArray.attrs.Id] = {
                     type: diagramRelArray.attrs.Type.replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", ""),
-                    target: diagramRelArray.attrs.Target.replace("../", "ppt/")
+                    target: diagramRelArray.attrs.Target.replace("../", "ppt/").replace(/^\/+/, "")
                 };
             }
         }

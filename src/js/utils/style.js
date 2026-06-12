@@ -2463,6 +2463,21 @@ function getFillType(node) {
                             rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
                             return "";
                         });
+                    } else if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:multiLvlStrRef", "c:multiLvlStrCache"]) !== undefined) {
+                        // Handle multi-level string reference (c:multiLvlStrRef) - use first level labels
+                        const multiLvlCache = PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:multiLvlStrRef", "c:multiLvlStrCache"]);
+                        const lvl = PPTXXmlUtils.getTextByPathList(multiLvlCache, ["c:lvl"]);
+                        if (lvl) {
+                            // lvl might be an array of levels; use the first level
+                            const firstLvl = Array.isArray(lvl) ? lvl[0] : lvl;
+                            const pts = PPTXXmlUtils.getTextByPathList(firstLvl, ["c:pt"]);
+                            if (pts) {
+                                eachElement(pts, function (pt, index) {
+                                    rowNames[pt["attrs"]["idx"]] = pt["c:v"];
+                                    return "";
+                                });
+                            }
+                        }
                     }
 
                     // Value
