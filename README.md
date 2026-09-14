@@ -12,6 +12,10 @@ A lightweight PPTX parsing library that makes working with PowerPoint files simp
 - **Universal Module** — Supports both ESM and CommonJS
 - **Browser & Node.js** — Runs seamlessly in both environments
 
+## Live Demo
+
+Try it online: [https://fefeding.github.io/pptx-parser/examples/index.html](https://fefeding.github.io/pptx-parser/examples/index.html)
+
 ## Installation
 
 ```bash

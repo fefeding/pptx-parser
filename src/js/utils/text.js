@@ -143,6 +143,13 @@ function getTextWidth(html) {
                 }
 
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
+                // 占位符可能没有自己的xfrm（<p:spPr/>为空），尺寸继承自版式/母版中的同名占位符，需回退获取
+                if (prg_width_node === undefined || prg_width_node === null) {
+                    prg_width_node = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
+                }
+                if (prg_width_node === undefined || prg_width_node === null) {
+                    prg_width_node = PPTXXmlUtils.getTextByPathList(slideMasterSpNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
+                }
                 let prg_height_node;// = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cy"]);
                 
                 // 获取bodyPr的内边距属性，用于计算可用宽度
@@ -296,7 +303,8 @@ function getTextWidth(html) {
                 let textContainerWidth = ""; // 默认不设置宽度，让文本容器自适应
                 // 如果是 noAutofit（文本框宽度固定），需要设置文本容器宽度以限制换行
                 // 但对于表格，不设置内层容器宽度，让其自适应
-                if (!isAutoFit && !isNoWrap && prg_width_node !== undefined && prg_width_node !== null && type !== "table") {
+                // 只有拿到了有效的文本框宽度才设置内层容器宽度，避免 width:NaNpx/0px 导致逐字换行（视觉上变竖排）
+                if (!isAutoFit && !isNoWrap && sld_prg_width_val !== null && !isNaN(sld_prg_width_val) && type !== "table") {
                     // 使用与外层段落相同的可用宽度
                     let availableWidthForTextContainer = sld_prg_width_val - lInsPx - rInsPx;
                     // 对于圆形/椭圆类形状，应用额外的安全边距
