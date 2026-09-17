@@ -338,13 +338,8 @@ uploadFileInput.addEventListener("change", function(evt) {
     handleFile(file);
 });
 
-async function handleFile(file) {
-	// 验证文件类型
-	if (file.name.split('.').pop().toLowerCase() !== "pptx") {
-		alert("请上传有效的 .pptx 文件");
-		return;
-	}
-
+// 核心解析逻辑：接收 ArrayBuffer 数据进行解析并渲染
+async function parseAndRender(fileData) {
 	// 初始化界面状态
 	resultDiv.innerHTML = "";
     toolbar.style.display = "none";
@@ -352,56 +347,84 @@ async function handleFile(file) {
     progressBar.style.width = "0%";
     loadingText.innerText = "正在读取文件...";
 
+	try {
+        loadingText.innerText = "正在解析幻灯片...";
+		// 直接获取解析结果（异步函数）
+		const result = await pptxToHtml(fileData, {
+			slideMode: false,
+			keyBoardShortCut: false,
+			callbacks: {
+				onProgress: function(percent) {
+					progressBar.style.width = percent + "%";
+                    loadingText.innerText = `解析进度: ${percent}%`;
+				}
+			}
+		});
+
+		// 渲染全局CSS
+		if (result.styles && result.styles.global) {
+			const style = document.createElement("style");
+			style.innerHTML = result.styles.global;
+			resultDiv.appendChild(style);
+		}
+		
+		// 渲染所有幻灯片
+		result.slides.forEach(slide => {
+			const slideContainer = document.createElement("div");
+            slideContainer.innerHTML = slide.html;
+            resultDiv.appendChild(slideContainer.firstChild);
+		});
+
+		// 渲染所有图表 - 使用 ChartRenderer 模块
+		if (result.charts && result.charts.length > 0) {
+			window.chartRenderer.renderCharts(result.charts);
+		}
+
+        // 完成后的处理
+        progressContainer.style.display = "none";
+        toolbar.style.display = "flex";
+		
+	} catch (err) {
+		console.error(err);
+        progressContainer.style.display = "none";
+		alert("解析失败: " + err.message);
+	}
+}
+
+async function handleFile(file) {
+	// 验证文件类型
+	if (file.name.split('.').pop().toLowerCase() !== "pptx") {
+		alert("请上传有效的 .pptx 文件");
+		return;
+	}
+
 	// 使用 FileReader 读取文件
 	const reader = new FileReader();
 	reader.onload = async function(e) {
-		const fileData = e.target.result;
-		
-		try {
-            loadingText.innerText = "正在解析幻灯片...";
-			// 直接获取解析结果（异步函数）
-			const result = await pptxToHtml(fileData, {
-				slideMode: false,
-				keyBoardShortCut: false,
-				callbacks: {
-					onProgress: function(percent) {
-						progressBar.style.width = percent + "%";
-                        loadingText.innerText = `解析进度: ${percent}%`;
-					}
-				}
-			});
-
-			// 渲染全局CSS
-			if (result.styles && result.styles.global) {
-				const style = document.createElement("style");
-				style.innerHTML = result.styles.global;
-				resultDiv.appendChild(style);
-			}
-			
-			// 渲染所有幻灯片
-			result.slides.forEach(slide => {
-				const slideContainer = document.createElement("div");
-                slideContainer.innerHTML = slide.html;
-                resultDiv.appendChild(slideContainer.firstChild);
-			});
-
-			// 渲染所有图表 - 使用 ChartRenderer 模块
-			if (result.charts && result.charts.length > 0) {
-				window.chartRenderer.renderCharts(result.charts);
-			}
-
-            // 完成后的处理
-            progressContainer.style.display = "none";
-            toolbar.style.display = "flex";
-			
-		} catch (err) {
-			console.error(err);
-            progressContainer.style.display = "none";
-			alert("解析失败: " + err.message);
-		}
+		await parseAndRender(e.target.result);
 	};
 	reader.readAsArrayBuffer(file);
 }
+
+// 默认加载远程示例 PPTX
+const DEFAULT_PPTX_URL = "https://pptx.js.org/pages/Sample_demo1.pptx";
+
+async function loadDefaultPptx() {
+    try {
+        loadingText.innerText = "正在下载示例文件...";
+        progressContainer.style.display = "block";
+        const resp = await fetch(DEFAULT_PPTX_URL);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const fileData = await resp.arrayBuffer();
+        await parseAndRender(fileData);
+    } catch (err) {
+        console.error(err);
+        progressContainer.style.display = "none";
+        alert("默认示例加载失败: " + err.message);
+    }
+}
+
+loadDefaultPptx();
 </script>
 </script>
 <script type="text/javascript">
