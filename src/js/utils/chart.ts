@@ -7,6 +7,10 @@ import { PPTXXmlUtils } from './xml';
 import { PPTXStyleUtils } from './style';
 import { SLIDE_FACTOR } from '../core/constants';
 
+// nvd3 / d3 由浏览器通过 <script> 标签注入，运行时作为全局变量存在
+declare const nv: any;
+declare const d3: any;
+
 /**
  * Generate chart HTML and data
  * @param {Object} node - Chart node
@@ -271,7 +275,7 @@ function processMsgQueue(queue: any, result: any) {
 function processSingleMsg(data: any, callbacks: any) {
     const { chartId, chartType, chartData } = data;
     let chartDataArray = [];
-    let chart = null;
+    let chart: any = null;
 
     if (!chartData || !Array.isArray(chartData) || chartData.length === 0) {
         return;
@@ -280,7 +284,7 @@ function processSingleMsg(data: any, callbacks: any) {
     switch (chartType) {
         case "lineChart":
             chartDataArray = chartData;
-            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+            
             chart = nv.models.lineChart().useInteractiveGuideline(true);
             if (chartData[0]?.xlabels) {
                 chart.xAxis.tickFormat((d: any) => chartData[0].xlabels[d] || d);
@@ -289,7 +293,7 @@ function processSingleMsg(data: any, callbacks: any) {
 
         case "barChart":
             chartDataArray = chartData;
-            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+            
             chart = nv.models.multiBarChart();
             if (chartData[0]?.xlabels) {
                 chart.xAxis.tickFormat((d: any) => chartData[0].xlabels[d] || d);
@@ -299,13 +303,13 @@ function processSingleMsg(data: any, callbacks: any) {
         case "pieChart":
         case "pie3DChart":
             chartDataArray = chartData[0]?.values || [];
-            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+            
             chart = nv.models.pieChart();
             break;
 
         case "areaChart":
             chartDataArray = chartData;
-            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+            
             chart = nv.models.stackedAreaChart()
                 .clipEdge(true)
                 .useInteractiveGuideline(true);
@@ -324,15 +328,15 @@ function processSingleMsg(data: any, callbacks: any) {
                 }
                 chartDataArray.push({ key: `data${i + 1}`, values: arr });
             }
-            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+            
             chart = nv.models.scatterChart()
                 .showDistX(true)
                 .showDistY(true)
-                // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+                
                 .color(d3.scale.category10().range());
-            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+            
             chart.xAxis.axisLabel('X').tickFormat(d3.format('.02f'));
-            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+            
             chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
             break;
 

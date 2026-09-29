@@ -6361,9 +6361,9 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 Object.keys(moveToPtNode).forEach((key2) => {
                     var ptObj = {};
                     var moveToNoPt = moveToPtNode[key2];
-                    var spX = moveToNoPt["x"];
-                    var spY = moveToNoPt["y"];
-                    var ptOrdr = moveToNoPt["order"];
+                    var spX = moveToNoPt["attrs"]["x"];
+                    var spY = moveToNoPt["attrs"]["y"];
+                    var ptOrdr = moveToNoPt["attrs"]["order"];
                     ptObj.type = "movto";
                     ptObj.order = ptOrdr;
                     ptObj.x = spX;
@@ -6379,9 +6379,9 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                     Object.keys(lnToPtNode).forEach((key2) => {
                         var ptObj = {};
                         var lnToNoPt = lnToPtNode[key2];
-                        var ptX = lnToNoPt["x"];
-                        var ptY = lnToNoPt["y"];
-                        var ptOrdr = lnToNoPt["order"];
+                        var ptX = lnToNoPt["attrs"]["x"];
+                        var ptY = lnToNoPt["attrs"]["y"];
+                        var ptOrdr = lnToNoPt["attrs"]["order"];
                         ptObj.type = "lnto";
                         ptObj.order = ptOrdr;
                         ptObj.x = ptX;
@@ -9444,6 +9444,7 @@ const PPTXShapeUtils = (function () {
                     break;
                 }
                 case "wedgeEllipseCallout": {
+                    const cloudTransformAttr = '';
                     const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                     const refr = SLIDE_FACTOR$1;
                     let sAdj1, adj1 = -20833 * refr;

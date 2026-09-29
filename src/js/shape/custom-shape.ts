@@ -57,12 +57,12 @@ export function renderCustomShape(custShapType: any, w: any, h: any, imgFillFlg:
         Object.keys(moveToPtNode).forEach((key2) => {
     var ptObj: any = {};
     var moveToNoPt = moveToPtNode[key2];
-    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
-    var spX = moveToNoPt["attrs", "x"];
-    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
-    var spY = moveToNoPt["attrs", "y"];
-    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
-    var ptOrdr = moveToNoPt["attrs", "order"];
+    
+    var spX = moveToNoPt["attrs"]["x"];
+    
+    var spY = moveToNoPt["attrs"]["y"];
+    
+    var ptOrdr = moveToNoPt["attrs"]["order"];
     ptObj.type = "movto";
     ptObj.order = ptOrdr;
     ptObj.x = spX;
@@ -80,12 +80,12 @@ export function renderCustomShape(custShapType: any, w: any, h: any, imgFillFlg:
         Object.keys(lnToPtNode).forEach((key2) => {
     var ptObj: any = {};
     var lnToNoPt = lnToPtNode[key2];
-    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
-    var ptX = lnToNoPt["attrs", "x"];
-    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
-    var ptY = lnToNoPt["attrs", "y"];
-    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
-    var ptOrdr = lnToNoPt["attrs", "order"];
+    
+    var ptX = lnToNoPt["attrs"]["x"];
+    
+    var ptY = lnToNoPt["attrs"]["y"];
+    
+    var ptOrdr = lnToNoPt["attrs"]["order"];
     ptObj.type = "lnto";
     ptObj.order = ptOrdr;
     ptObj.x = ptX;

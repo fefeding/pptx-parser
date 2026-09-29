@@ -1749,6 +1749,10 @@ export const PPTXShapeUtils: any = (function() {
                         break;
                     }
                     case "wedgeEllipseCallout": {
+                        // cloudTransformAttr: 原代码引用了一个从未声明的变换属性，
+                        // 运行时会导致 ReferenceError。其余 preset 形状路径均不带 transform 属性，
+                        // 故此处置为空字符串，保证该分支行为正确且不崩溃。
+                        const cloudTransformAttr = '';
                         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
                         const refr = SLIDE_FACTOR;
                         let sAdj1, adj1 = -20833 * refr;
@@ -1819,7 +1823,7 @@ export const PPTXShapeUtils: any = (function() {
                         d_val = `M${x1},${y1} L${xPos},${yPos} L${x2},${y2}${PPTXShapeUtils.shapeArcAlt(hc, vc, hc, vc, 0, 360, true)}`;// +
                         //PPTXShapeUtils.shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
                         //" z";
-                        // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
+                        
                         result += `<path d='${d_val}'${cloudTransformAttr} fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
