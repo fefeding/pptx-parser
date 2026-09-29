@@ -10,6 +10,7 @@
  * @module utils/node
  */
 
+import type { XmlNode, WarpObject } from '../core/types';
 import { PPTXXmlUtils } from './xml';
 import { PPTXStyleUtils } from './style';
 import { PPTXTextUtils } from './text';
@@ -27,8 +28,9 @@ import { SLIDE_FACTOR } from '../core/constants';
  * @param {Object} parentNode - 父节点（用于组合元素的坐标计算）
  * @returns {Promise<string>} 生成的HTML
  */
-async function genDiagram(node: any, wrapObj: any, source: any, shapeType: any, settings: any, parentNode: any) {
-    const order = node.attrs.order;
+async function genDiagram(node: XmlNode | undefined, wrapObj: WarpObject, source: any, shapeType: any, settings: any, parentNode: XmlNode | undefined) {
+    if (!node) return '';
+    const order = node.attrs?.order;
     const zip = wrapObj.zip;
     let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ['p:xfrm']);
     const dgmRelIds = PPTXXmlUtils.getTextByPathList(node, ['a:graphic', 'a:graphicData', 'dgm:relIds', 'attrs']);
@@ -118,7 +120,8 @@ async function genDiagram(node: any, wrapObj: any, source: any, shapeType: any, 
  * @param {Object} content - 幻灯片内容
  * @returns {Object} 包含idTable、idxTable和typeTable的对象
  */
-function indexNodes(content: any) {
+function indexNodes(content: XmlNode | undefined) {
+    if (!content) return {};
     const keys = Object.keys(content);
     const spTreeNode = content[keys[0]]['p:cSld']['p:spTree'];
 
@@ -207,7 +210,8 @@ function objectToDataAttributes(obj: any, prefix = '') {
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 生成的HTML
  */
-async function processGroupSpNode(node: any, parentNode: any, wrapObj: any, source: any, settings: any) {
+async function processGroupSpNode(node: XmlNode | undefined, parentNode: XmlNode | undefined, wrapObj: WarpObject, source: any, settings: any) {
+    if (!node) return '';
     const xfrmNode = PPTXXmlUtils.getTextByPathList(node, ['p:grpSpPr', 'a:xfrm']);
 
     let groupStyle = '';
@@ -320,7 +324,7 @@ async function processGroupSpNode(node: any, parentNode: any, wrapObj: any, sour
     if (width !== undefined) groupStyle += `width: ${width}px;`;
     if (height !== undefined) groupStyle += `height: ${height}px;`;
 
-    const order = node.attrs.order;
+    const order = node.attrs?.order;
     // 生成 data- 属性
     const dataAttrs = objectToDataAttributes({
         'node-id': PPTXXmlUtils.getTextByPathList(node, ['p:nvGrpSpPr', 'p:cNvPr', 'attrs', 'id']),
@@ -367,7 +371,7 @@ async function processGroupSpNode(node: any, parentNode: any, wrapObj: any, sour
  * @param {Object} wrapObj - 包装对象
  * @returns {Object|null} 缩放后的xfrm节点,如果不需要缩放则返回null
  */
-function applyGroupScale(xfrmNode: any, shapeType: any, wrapObj: any) {
+function applyGroupScale(xfrmNode: XmlNode | undefined, shapeType: any, wrapObj: WarpObject) {
     if (shapeType !== 'group-abs' || !wrapObj.currentGroupScale || !xfrmNode) {
         return null;
     }
@@ -416,7 +420,7 @@ function applyGroupScale(xfrmNode: any, shapeType: any, wrapObj: any) {
  * @param {Object} parentNode - 父节点
  * @returns {Promise<string>} 生成的HTML
  */
-async function processNodesInSlide(nodeKey: any, nodeValue: any, nodes: any, wrapObj: any, source: any, shapeType: any, settings: any, parentNode?: any) {
+async function processNodesInSlide(nodeKey: any, nodeValue: any, nodes: any, wrapObj: WarpObject, source: any, shapeType: any, settings: any, parentNode?: XmlNode | undefined) {
     switch (nodeKey) {
         case 'p:sp':    // Shape, Text
             return await processSpNode(nodeValue, parentNode, wrapObj, source, shapeType, settings);
@@ -446,7 +450,7 @@ async function processNodesInSlide(nodeKey: any, nodeValue: any, nodes: any, wra
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 生成的HTML
  */
-async function processSpNode(node: any, parentNode: any, wrapObj: any, source: any, shapeType: any, settings?: any) {
+async function processSpNode(node: XmlNode | undefined, parentNode: XmlNode | undefined, wrapObj: WarpObject, source: any, shapeType: any, settings?: any) {
     const id = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:cNvPr', 'attrs', 'id']);
     const name = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:cNvPr', 'attrs', 'name']);
     let idx = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'idx']);
@@ -502,7 +506,8 @@ async function processSpNode(node: any, parentNode: any, wrapObj: any, source: a
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 生成的HTML
  */
-async function processCxnSpNode(node: any, parentNode: any, wrapObj: any, source: any, shapeType: any, settings: any) {
+async function processCxnSpNode(node: XmlNode | undefined, parentNode: XmlNode | undefined, wrapObj: WarpObject, source: any, shapeType: any, settings: any) {
+    if (!node) return '';
     const id = node['p:nvCxnSpPr']['p:cNvPr'].attrs.id;
     const name = node['p:nvCxnSpPr']['p:cNvPr'].attrs.name;
     const idx = node['p:nvCxnSpPr']['p:nvPr']['p:ph'] === undefined 
@@ -511,7 +516,7 @@ async function processCxnSpNode(node: any, parentNode: any, wrapObj: any, source
     const type = node['p:nvCxnSpPr']['p:nvPr']['p:ph'] === undefined 
         ? undefined 
         : node['p:nvCxnSpPr']['p:nvPr']['p:ph'].attrs.type;
-    const order = node.attrs.order;
+    const order = node.attrs?.order;
 
     return await PPTXShapeUtils.genShape(node, parentNode, undefined, undefined, id, name, idx, type, order, wrapObj, undefined, shapeType, source, settings);
 }
@@ -526,8 +531,9 @@ async function processCxnSpNode(node: any, parentNode: any, wrapObj: any, source
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 生成的HTML
  */
-async function processPicNode(node: any, parentNode: any, wrapObj: any, source: any, shapeType: any, settings: any) {
-    const order = node.attrs.order;
+async function processPicNode(node: XmlNode | undefined, parentNode: XmlNode | undefined, wrapObj: WarpObject, source: any, shapeType: any, settings: any) {
+    if (!node) return '';
+    const order = node.attrs?.order;
     const rid = node['p:blipFill']['a:blip'].attrs['r:embed'];
     
     let resObj;
@@ -771,7 +777,7 @@ async function processPicNode(node: any, parentNode: any, wrapObj: any, source: 
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 生成的HTML
  */
-async function processGraphicFrameNode(node: any, parentNode: any, wrapObj: any, source: any, shapeType: any, settings: any) {
+async function processGraphicFrameNode(node: XmlNode | undefined, parentNode: XmlNode | undefined, wrapObj: WarpObject, source: any, shapeType: any, settings: any) {
     const graphicTypeUri = PPTXXmlUtils.getTextByPathList(node, ['a:graphic', 'a:graphicData', 'attrs', 'uri']);
 
     switch (graphicTypeUri) {
@@ -800,7 +806,7 @@ async function processGraphicFrameNode(node: any, parentNode: any, wrapObj: any,
  * @param {Object} node - 形状属性节点
  * @param {Object} wrapObj - 包装对象
  */
-function processSpPrNode(node: any, wrapObj: any) {
+function processSpPrNode(node: XmlNode | undefined, wrapObj: WarpObject) {
     // TODO: Implement shape properties processing
 }
 
@@ -812,7 +818,7 @@ function processSpPrNode(node: any, wrapObj: any) {
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 背景HTML
  */
-async function getBackground(wrapObj: any, slideSize: any, index: any, settings: any) {
+async function getBackground(wrapObj: WarpObject, slideSize: any, index: any, settings: any) {
     const { slideContent, slideLayoutContent, slideMasterContent } = wrapObj;
 
     const nodesSldLayout = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ['p:sldLayout', 'p:cSld', 'p:spTree']);
@@ -879,7 +885,7 @@ const PPTXNodeUtils = {
  * @param {string} shapeType - 形状类型
  * @returns {string} HTML内容
  */
-function renderSmartArt(smartArtData: any, xfrmNode: any, order: any, wrapObj: any, shapeType: any) {
+function renderSmartArt(smartArtData: any, xfrmNode: XmlNode | undefined, order: any, wrapObj: WarpObject, shapeType: any) {
     // 如果没有数据文件，返回空内容
     if (!smartArtData.data) {
         return '';
@@ -918,7 +924,8 @@ function extractSmartArtNodes(data: any) {
     // 查找所有节点
     const allNodes = findAllNodes(data, 'dgm:pt');
     
-    allNodes.forEach((node: any) => {
+    allNodes.forEach((node: XmlNode | undefined) => {
+        if (!node) return;
         if (node.attrs && node.attrs["modelId"]) {
             const nodeId = node.attrs["modelId"];
             const modelType = node.attrs["modelType"] || "node";
@@ -1021,7 +1028,7 @@ function findAllNodes(obj: any, type: any) {
  * @param {number} depth - 深度
  * @returns {string} HTML内容
  */
-function renderSmartArtNode(node: any, allNodes: any, layout: any, colors: any, styles: any, depth: any) {
+function renderSmartArtNode(node: XmlNode | undefined, allNodes: any, layout: any, colors: any, styles: any, depth: any) {
     if (!node) return '';
     
     let html = `<div class="smartart-node level-${depth}" style="padding: 5px; margin: 2px; border: 1px solid #ccc; background: #f9f9f9;">`;

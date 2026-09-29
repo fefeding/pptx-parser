@@ -12442,7 +12442,9 @@ function processMsgQueue(queue, result) {
 }
 
 async function genDiagram(node, wrapObj, source, shapeType, settings, parentNode) {
-    node.attrs.order;
+    if (!node)
+        return '';
+    node.attrs?.order;
     const zip = wrapObj.zip;
     let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ['p:xfrm']);
     const dgmRelIds = PPTXXmlUtils.getTextByPathList(node, ['a:graphic', 'a:graphicData', 'dgm:relIds', 'attrs']);
@@ -12505,6 +12507,8 @@ async function genDiagram(node, wrapObj, source, shapeType, settings, parentNode
     return `<div class='block diagram-content' style='${position}${size}'${dataAttrs}>${result}</div>`;
 }
 function indexNodes(content) {
+    if (!content)
+        return {};
     const keys = Object.keys(content);
     const spTreeNode = content[keys[0]]['p:cSld']['p:spTree'];
     const idTable = {};
@@ -12572,6 +12576,8 @@ function objectToDataAttributes(obj, prefix = '') {
     return result;
 }
 async function processGroupSpNode(node, parentNode, wrapObj, source, settings) {
+    if (!node)
+        return '';
     const xfrmNode = PPTXXmlUtils.getTextByPathList(node, ['p:grpSpPr', 'a:xfrm']);
     let groupStyle = '';
     let shapeType = 'group';
@@ -12651,7 +12657,7 @@ async function processGroupSpNode(node, parentNode, wrapObj, source, settings) {
         groupStyle += `width: ${width}px;`;
     if (height !== undefined)
         groupStyle += `height: ${height}px;`;
-    const order = node.attrs.order;
+    const order = node.attrs?.order;
     const dataAttrs = objectToDataAttributes({
         'node-id': PPTXXmlUtils.getTextByPathList(node, ['p:nvGrpSpPr', 'p:cNvPr', 'attrs', 'id']),
         'node-name': PPTXXmlUtils.getTextByPathList(node, ['p:nvGrpSpPr', 'p:cNvPr', 'attrs', 'name']),
@@ -12743,6 +12749,8 @@ async function processSpNode(node, parentNode, wrapObj, source, shapeType, setti
     return result;
 }
 async function processCxnSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
+    if (!node)
+        return '';
     const id = node['p:nvCxnSpPr']['p:cNvPr'].attrs.id;
     const name = node['p:nvCxnSpPr']['p:cNvPr'].attrs.name;
     const idx = node['p:nvCxnSpPr']['p:nvPr']['p:ph'] === undefined
@@ -12751,11 +12759,13 @@ async function processCxnSpNode(node, parentNode, wrapObj, source, shapeType, se
     const type = node['p:nvCxnSpPr']['p:nvPr']['p:ph'] === undefined
         ? undefined
         : node['p:nvCxnSpPr']['p:nvPr']['p:ph'].attrs.type;
-    const order = node.attrs.order;
+    const order = node.attrs?.order;
     return await PPTXShapeUtils.genShape(node, parentNode, undefined, undefined, id, name, idx, type, order, wrapObj, undefined, shapeType, source, settings);
 }
 async function processPicNode(node, parentNode, wrapObj, source, shapeType, settings) {
-    const order = node.attrs.order;
+    if (!node)
+        return '';
+    const order = node.attrs?.order;
     const rid = node['p:blipFill']['a:blip'].attrs['r:embed'];
     let resObj;
     if (source === 'slideMasterBg') {
