@@ -65,7 +65,7 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
         let sAdj1, sAdj1_val = 45;
         let sAdj2, sAdj2_val = 270;
         if (shapAdjst_ary !== undefined) {
-            for (const [i, item] of shapAdjst_ary.entries()){
+            for (const i of shapAdjst_ary.keys()){
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -89,7 +89,7 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
         const cnstVal1 = 50000 * SLIDE_FACTOR;
         const cnstVal2 = 100000 * SLIDE_FACTOR;
         if (shapAdjst_ary !== undefined) {
-            for (const [i, item] of shapAdjst_ary.entries()){
+            for (const i of shapAdjst_ary.keys()){
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);

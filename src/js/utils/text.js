@@ -91,7 +91,7 @@ function getTextWidth(html) {
                 apNode = [apNode];
             }
 
-            for (const [i, el] of apNode.entries()){
+            for (const i of apNode.keys()){
                 let pNode = apNode[i];
                 let rNode = pNode["a:r"];
                 let fldNode = pNode["a:fld"];
@@ -271,7 +271,7 @@ function getTextWidth(html) {
                 } else if (rNode !== undefined) {
                     // with multi r
                     let previousStyle = {};
-                    for (const [j, elem] of rNode.entries()){
+                    for (const j of rNode.keys()){
                         // 如果当前元素没有sz属性，使用前面元素的样式
                         if (rNode[j]["a:rPr"] && !rNode[j]["a:rPr"]["attrs"] && previousStyle["sz"]) {
                             rNode[j]["a:rPr"]["attrs"] = { "sz": previousStyle["sz"] };
@@ -791,7 +791,7 @@ function getTextWidth(html) {
                         let rot = bultColor[0].rot;
 
                         bullet += `background: linear-gradient(${rot}deg,`;
-                        for (const [i, item] of colorAry.entries()){
+                        for (const i of colorAry.keys()){
                             if (i == colorAry.length - 1) {
                                 bullet += `#${colorAry[i]});`;
                             } else {
@@ -1471,7 +1471,7 @@ function getTextWidth(html) {
                     let rot = fontClrPr[0].rot;
 
                     styleText += `background: linear-gradient(${rot}deg,`;
-                    for (const [i, item] of colorAry.entries()){
+                    for (const i of colorAry.keys()){
                         if (i == colorAry.length - 1) {
                             styleText += `#${colorAry[i]});`;
                         } else {
@@ -1775,7 +1775,7 @@ function getTextWidth(html) {
                 //multi rows
                 let totalrowSpan = 0;
                 let rowSpanAry = [];
-                for (const [i, el] of trNodes.entries()){
+                for (const i of trNodes.keys()){
                     //////////////rows Style ////////////Amir
                     let rowHeightParam = trNodes[i]["attrs"]["h"];
                     let rowHeight = 0;
