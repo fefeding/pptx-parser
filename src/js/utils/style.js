@@ -2454,16 +2454,16 @@ function getFillType(node) {
     // Category (string or number)
     let rowNames = {};
     if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
-            rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
-            return "";
-        });
+        eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], (innerNode, index) => {
+    rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+    return "";
+});
     }
     else if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-            rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
-            return "";
-        });
+        eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode, index) => {
+    rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+    return "";
+});
     }
     else if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:multiLvlStrRef", "c:multiLvlStrCache"]) !== undefined) {
         // Handle multi-level string reference (c:multiLvlStrRef) - use first level labels
@@ -2474,19 +2474,19 @@ function getFillType(node) {
             const firstLvl = Array.isArray(lvl) ? lvl[0] : lvl;
             const pts = PPTXXmlUtils.getTextByPathList(firstLvl, ["c:pt"]);
             if (pts) {
-                eachElement(pts, function (pt, index) {
-                    rowNames[pt["attrs"]["idx"]] = pt["c:v"];
-                    return "";
-                });
+                eachElement(pts, (pt, index) => {
+    rowNames[pt["attrs"]["idx"]] = pt["c:v"];
+    return "";
+});
             }
         }
     }
     // Value
     if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-            dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
-            return "";
-        });
+        eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode, index) => {
+    dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
+    return "";
+});
     }
     // Extract series style information
     let seriesStyle = {};

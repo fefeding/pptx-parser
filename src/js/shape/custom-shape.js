@@ -54,18 +54,18 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
         Object.keys(moveToNode).forEach((key) => {
     var moveToPtNode = moveToNode[key]["a:pt"];
     if (moveToPtNode !== undefined) {
-        Object.keys(moveToPtNode).forEach(function (key2) {
-            var ptObj = {};
-            var moveToNoPt = moveToPtNode[key2];
-            var spX = moveToNoPt["attrs", "x"];
-            var spY = moveToNoPt["attrs", "y"];
-            var ptOrdr = moveToNoPt["attrs", "order"];
-            ptObj.type = "movto";
-            ptObj.order = ptOrdr;
-            ptObj.x = spX;
-            ptObj.y = spY;
-            multiSapeAry.push(ptObj);
-        });
+        Object.keys(moveToPtNode).forEach((key2) => {
+    var ptObj = {};
+    var moveToNoPt = moveToPtNode[key2];
+    var spX = moveToNoPt["attrs", "x"];
+    var spY = moveToNoPt["attrs", "y"];
+    var ptOrdr = moveToNoPt["attrs", "order"];
+    ptObj.type = "movto";
+    ptObj.order = ptOrdr;
+    ptObj.x = spX;
+    ptObj.y = spY;
+    multiSapeAry.push(ptObj);
+});
     }
 });
 
@@ -74,18 +74,18 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
             Object.keys(lnToNodes).forEach((key) => {
     var lnToPtNode = lnToNodes[key]["a:pt"];
     if (lnToPtNode !== undefined) {
-        Object.keys(lnToPtNode).forEach(function (key2) {
-            var ptObj = {};
-            var lnToNoPt = lnToPtNode[key2];
-            var ptX = lnToNoPt["attrs", "x"];
-            var ptY = lnToNoPt["attrs", "y"];
-            var ptOrdr = lnToNoPt["attrs", "order"];
-            ptObj.type = "lnto";
-            ptObj.order = ptOrdr;
-            ptObj.x = ptX;
-            ptObj.y = ptY;
-            multiSapeAry.push(ptObj);
-        });
+        Object.keys(lnToPtNode).forEach((key2) => {
+    var ptObj = {};
+    var lnToNoPt = lnToPtNode[key2];
+    var ptX = lnToNoPt["attrs", "x"];
+    var ptY = lnToNoPt["attrs", "y"];
+    var ptOrdr = lnToNoPt["attrs", "order"];
+    ptObj.type = "lnto";
+    ptObj.order = ptOrdr;
+    ptObj.x = ptX;
+    ptObj.y = ptY;
+    multiSapeAry.push(ptObj);
+});
     }
 });
         }
@@ -105,13 +105,13 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
     nodeObj.type = "cubicBezTo";
     nodeObj.order = key2[0]["attrs"]["order"];
     var pts_ary = [];
-    key2.forEach(function (pt) {
-        var pt_obj = {
-            x: pt["attrs"]["x"],
-            y: pt["attrs"]["y"]
-        };
-        pts_ary.push(pt_obj);
-    });
+    key2.forEach((pt) => {
+    var pt_obj = {
+        x: pt["attrs"]["x"],
+        y: pt["attrs"]["y"]
+    };
+    pts_ary.push(pt_obj);
+});
     nodeObj.cubBzPt = pts_ary;
     multiSapeAry.push(nodeObj);
 });
@@ -133,13 +133,13 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
     nodeObj.type = "quadBezTo";
     nodeObj.order = key2[0]["attrs"]["order"];
     var pts_ary = [];
-    key2.forEach(function (pt) {
-        var pt_obj = {
-            x: pt["attrs"]["x"],
-            y: pt["attrs"]["y"]
-        };
-        pts_ary.push(pt_obj);
-    });
+    key2.forEach((pt) => {
+    var pt_obj = {
+        x: pt["attrs"]["x"],
+        y: pt["attrs"]["y"]
+    };
+    pts_ary.push(pt_obj);
+});
     nodeObj.quadBzPt = pts_ary;
     multiSapeAry.push(nodeObj);
 });

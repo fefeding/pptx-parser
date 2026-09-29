@@ -267,29 +267,29 @@ tXml.simplify = (nodes) => {
     if (nodes.length === 1 && typeof nodes[0] === 'string') {
         return nodes[0];
     }
-    nodes.forEach(function (node) {
-        if (typeof node !== 'object') {
-            return;
+    nodes.forEach((node) => {
+    if (typeof node !== 'object') {
+        return;
+    }
+    if (!result[node.tagName]) {
+        result[node.tagName] = [];
+    }
+    const simplified = tXml.simplify(node.children || []);
+    result[node.tagName].push(simplified);
+    // 只在对象是对象类型时设置属性
+    if (typeof simplified === 'object' && simplified !== null) {
+        if (node.attributes) {
+            simplified.attrs = node.attributes;
         }
-        if (!result[node.tagName]) {
-            result[node.tagName] = [];
+        if (simplified.attrs === undefined) {
+            simplified.attrs = { order: order };
         }
-        const simplified = tXml.simplify(node.children || []);
-        result[node.tagName].push(simplified);
-        // 只在对象是对象类型时设置属性
-        if (typeof simplified === 'object' && simplified !== null) {
-            if (node.attributes) {
-                simplified.attrs = node.attributes;
-            }
-            if (simplified.attrs === undefined) {
-                simplified.attrs = { order: order };
-            }
-            else {
-                simplified.attrs.order = order;
-            }
-            order++;
+        else {
+            simplified.attrs.order = order;
         }
-    });
+        order++;
+    }
+});
     // 如果数组只有一个元素，直接返回该元素
     for (const key in result) {
         if (result[key].length === 1) {
@@ -307,15 +307,15 @@ tXml.simplify = (nodes) => {
  */
 tXml.filter = (nodes, filterFn) => {
     const result = [];
-    nodes.forEach(function (node) {
-        if (typeof node === 'object' && filterFn(node)) {
-            result.push(node);
-        }
-        if (node.children) {
-            const filtered = tXml.filter(node.children, filterFn);
-            result.push(...filtered);
-        }
-    });
+    nodes.forEach((node) => {
+    if (typeof node === 'object' && filterFn(node)) {
+        result.push(node);
+    }
+    if (node.children) {
+        const filtered = tXml.filter(node.children, filterFn);
+        result.push(...filtered);
+    }
+});
     return result;
 };
 
@@ -368,10 +368,10 @@ tXml.stringify = (nodes) => {
 tXml.toContentString = (node) => {
     if (Array.isArray(node)) {
         let text = '';
-        node.forEach(function (child) {
-            text += ' ' + tXml.toContentString(child);
-            text = text.trim();
-        });
+        node.forEach((child) => {
+    text += ' ' + tXml.toContentString(child);
+    text = text.trim();
+});
         return text;
     }
     if (typeof node === 'object') {
@@ -434,26 +434,26 @@ tXml.parseStream = (source, chunkSize) => {
     let pos = chunkSize;
     let buffer = '';
     let chunkIndex = 0;
-    source.on('data', function (chunk) {
-        chunkIndex++;
-        buffer += chunk;
-        let lastPos = 0;
-        while (true) {
-            pos = buffer.indexOf('<', pos) + 1;
-            const node = tXml(buffer, { pos: pos, parseNode: true });
-            pos = node.pos;
-            if (pos > buffer.length - 1 || lastPos > pos) {
-                if (lastPos) {
-                    buffer = buffer.slice(lastPos);
-                    pos = 0;
-                    lastPos = 0;
-                }
-                return;
+    source.on('data', (chunk) => {
+    chunkIndex++;
+    buffer += chunk;
+    let lastPos = 0;
+    while (true) {
+        pos = buffer.indexOf('<', pos) + 1;
+        const node = tXml(buffer, { pos: pos, parseNode: true });
+        pos = node.pos;
+        if (pos > buffer.length - 1 || lastPos > pos) {
+            if (lastPos) {
+                buffer = buffer.slice(lastPos);
+                pos = 0;
+                lastPos = 0;
             }
-            source.emit('xml', node);
-            lastPos = pos;
+            return;
         }
-    });
+        source.emit('xml', node);
+        lastPos = pos;
+    }
+});
     return source;
 };
 

@@ -341,29 +341,29 @@ tXml.simplify = (nodes) => {
     if (nodes.length === 1 && typeof nodes[0] === 'string') {
         return nodes[0];
     }
-    nodes.forEach(function (node) {
-        if (typeof node !== 'object') {
-            return;
+    nodes.forEach((node) => {
+    if (typeof node !== 'object') {
+        return;
+    }
+    if (!result[node.tagName]) {
+        result[node.tagName] = [];
+    }
+    const simplified = tXml.simplify(node.children || []);
+    result[node.tagName].push(simplified);
+    // 只在对象是对象类型时设置属性
+    if (typeof simplified === 'object' && simplified !== null) {
+        if (node.attributes) {
+            simplified.attrs = node.attributes;
         }
-        if (!result[node.tagName]) {
-            result[node.tagName] = [];
+        if (simplified.attrs === undefined) {
+            simplified.attrs = { order: order };
         }
-        const simplified = tXml.simplify(node.children || []);
-        result[node.tagName].push(simplified);
-        // 只在对象是对象类型时设置属性
-        if (typeof simplified === 'object' && simplified !== null) {
-            if (node.attributes) {
-                simplified.attrs = node.attributes;
-            }
-            if (simplified.attrs === undefined) {
-                simplified.attrs = { order: order };
-            }
-            else {
-                simplified.attrs.order = order;
-            }
-            order++;
+        else {
+            simplified.attrs.order = order;
         }
-    });
+        order++;
+    }
+});
     // 如果数组只有一个元素，直接返回该元素
     for (const key in result) {
         if (result[key].length === 1) {
@@ -381,15 +381,15 @@ tXml.simplify = (nodes) => {
  */
 tXml.filter = (nodes, filterFn) => {
     const result = [];
-    nodes.forEach(function (node) {
-        if (typeof node === 'object' && filterFn(node)) {
-            result.push(node);
-        }
-        if (node.children) {
-            const filtered = tXml.filter(node.children, filterFn);
-            result.push(...filtered);
-        }
-    });
+    nodes.forEach((node) => {
+    if (typeof node === 'object' && filterFn(node)) {
+        result.push(node);
+    }
+    if (node.children) {
+        const filtered = tXml.filter(node.children, filterFn);
+        result.push(...filtered);
+    }
+});
     return result;
 };
 
@@ -442,10 +442,10 @@ tXml.stringify = (nodes) => {
 tXml.toContentString = (node) => {
     if (Array.isArray(node)) {
         let text = '';
-        node.forEach(function (child) {
-            text += ' ' + tXml.toContentString(child);
-            text = text.trim();
-        });
+        node.forEach((child) => {
+    text += ' ' + tXml.toContentString(child);
+    text = text.trim();
+});
         return text;
     }
     if (typeof node === 'object') {
@@ -505,25 +505,25 @@ tXml.parseStream = (source, chunkSize) => {
     }
     let pos = chunkSize;
     let buffer = '';
-    source.on('data', function (chunk) {
-        buffer += chunk;
-        let lastPos = 0;
-        while (true) {
-            pos = buffer.indexOf('<', pos) + 1;
-            const node = tXml(buffer, { pos: pos, parseNode: true });
-            pos = node.pos;
-            if (pos > buffer.length - 1 || lastPos > pos) {
-                if (lastPos) {
-                    buffer = buffer.slice(lastPos);
-                    pos = 0;
-                    lastPos = 0;
-                }
-                return;
+    source.on('data', (chunk) => {
+    buffer += chunk;
+    let lastPos = 0;
+    while (true) {
+        pos = buffer.indexOf('<', pos) + 1;
+        const node = tXml(buffer, { pos: pos, parseNode: true });
+        pos = node.pos;
+        if (pos > buffer.length - 1 || lastPos > pos) {
+            if (lastPos) {
+                buffer = buffer.slice(lastPos);
+                pos = 0;
+                lastPos = 0;
             }
-            source.emit('xml', node);
-            lastPos = pos;
+            return;
         }
-    });
+        source.emit('xml', node);
+        lastPos = pos;
+    }
+});
     return source;
 };
 
@@ -3599,16 +3599,16 @@ function getFillType(node) {
     // Category (string or number)
     let rowNames = {};
     if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], function (innerNode, index) {
-            rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
-            return "";
-        });
+        eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], (innerNode, index) => {
+    rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+    return "";
+});
     }
     else if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-            rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
-            return "";
-        });
+        eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode, index) => {
+    rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
+    return "";
+});
     }
     else if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:multiLvlStrRef", "c:multiLvlStrCache"]) !== undefined) {
         // Handle multi-level string reference (c:multiLvlStrRef) - use first level labels
@@ -3619,19 +3619,19 @@ function getFillType(node) {
             const firstLvl = Array.isArray(lvl) ? lvl[0] : lvl;
             const pts = PPTXXmlUtils.getTextByPathList(firstLvl, ["c:pt"]);
             if (pts) {
-                eachElement(pts, function (pt, index) {
-                    rowNames[pt["attrs"]["idx"]] = pt["c:v"];
-                    return "";
-                });
+                eachElement(pts, (pt, index) => {
+    rowNames[pt["attrs"]["idx"]] = pt["c:v"];
+    return "";
+});
             }
         }
     }
     // Value
     if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], function (innerNode, index) {
-            dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
-            return "";
-        });
+        eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode, index) => {
+    dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
+    return "";
+});
     }
     // Extract series style information
     let seriesStyle = {};
@@ -7905,18 +7905,18 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
         Object.keys(moveToNode).forEach((key) => {
     var moveToPtNode = moveToNode[key]["a:pt"];
     if (moveToPtNode !== undefined) {
-        Object.keys(moveToPtNode).forEach(function (key2) {
-            var ptObj = {};
-            var moveToNoPt = moveToPtNode[key2];
-            var spX = moveToNoPt["x"];
-            var spY = moveToNoPt["y"];
-            var ptOrdr = moveToNoPt["order"];
-            ptObj.type = "movto";
-            ptObj.order = ptOrdr;
-            ptObj.x = spX;
-            ptObj.y = spY;
-            multiSapeAry.push(ptObj);
-        });
+        Object.keys(moveToPtNode).forEach((key2) => {
+    var ptObj = {};
+    var moveToNoPt = moveToPtNode[key2];
+    var spX = moveToNoPt["x"];
+    var spY = moveToNoPt["y"];
+    var ptOrdr = moveToNoPt["order"];
+    ptObj.type = "movto";
+    ptObj.order = ptOrdr;
+    ptObj.x = spX;
+    ptObj.y = spY;
+    multiSapeAry.push(ptObj);
+});
     }
 });
 
@@ -7925,18 +7925,18 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
             Object.keys(lnToNodes).forEach((key) => {
     var lnToPtNode = lnToNodes[key]["a:pt"];
     if (lnToPtNode !== undefined) {
-        Object.keys(lnToPtNode).forEach(function (key2) {
-            var ptObj = {};
-            var lnToNoPt = lnToPtNode[key2];
-            var ptX = lnToNoPt["x"];
-            var ptY = lnToNoPt["y"];
-            var ptOrdr = lnToNoPt["order"];
-            ptObj.type = "lnto";
-            ptObj.order = ptOrdr;
-            ptObj.x = ptX;
-            ptObj.y = ptY;
-            multiSapeAry.push(ptObj);
-        });
+        Object.keys(lnToPtNode).forEach((key2) => {
+    var ptObj = {};
+    var lnToNoPt = lnToPtNode[key2];
+    var ptX = lnToNoPt["x"];
+    var ptY = lnToNoPt["y"];
+    var ptOrdr = lnToNoPt["order"];
+    ptObj.type = "lnto";
+    ptObj.order = ptOrdr;
+    ptObj.x = ptX;
+    ptObj.y = ptY;
+    multiSapeAry.push(ptObj);
+});
     }
 });
         }
@@ -7956,13 +7956,13 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
     nodeObj.type = "cubicBezTo";
     nodeObj.order = key2[0]["attrs"]["order"];
     var pts_ary = [];
-    key2.forEach(function (pt) {
-        var pt_obj = {
-            x: pt["attrs"]["x"],
-            y: pt["attrs"]["y"]
-        };
-        pts_ary.push(pt_obj);
-    });
+    key2.forEach((pt) => {
+    var pt_obj = {
+        x: pt["attrs"]["x"],
+        y: pt["attrs"]["y"]
+    };
+    pts_ary.push(pt_obj);
+});
     nodeObj.cubBzPt = pts_ary;
     multiSapeAry.push(nodeObj);
 });
@@ -7984,13 +7984,13 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
     nodeObj.type = "quadBezTo";
     nodeObj.order = key2[0]["attrs"]["order"];
     var pts_ary = [];
-    key2.forEach(function (pt) {
-        var pt_obj = {
-            x: pt["attrs"]["x"],
-            y: pt["attrs"]["y"]
-        };
-        pts_ary.push(pt_obj);
-    });
+    key2.forEach((pt) => {
+    var pt_obj = {
+        x: pt["attrs"]["x"],
+        y: pt["attrs"]["y"]
+    };
+    pts_ary.push(pt_obj);
+});
     nodeObj.quadBzPt = pts_ary;
     multiSapeAry.push(nodeObj);
 });
