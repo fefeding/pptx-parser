@@ -127,7 +127,7 @@ function getFillType(node) {
                         let { color: colorAry, rot } = fillColor;
 
                         let bgcolor = `background: linear-gradient(${rot}deg,`;
-                        for (let i = 0; i < colorAry.length; i++) {
+                        for (const [i, item] of colorAry.entries()){
                             if (i == colorAry.length - 1) {
                                 bgcolor += `#${colorAry[i]});`;
                             } else {
@@ -1308,7 +1308,7 @@ function getFillType(node) {
                 let color_ary = [];
                 const pos_ary = [];
                 //let tint_ary = [];
-                for (let i = 0; i < gsLst.length; i++) {
+                for (const [i, item] of gsLst.entries()){
                     let lo_tint;
                     let lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
                     const pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"])
@@ -1328,7 +1328,7 @@ function getFillType(node) {
                     rot = rot + 90;
                 }
                 bgcolor = `background: linear-gradient(${rot}deg,`;
-                for (let i = 0; i < gsLst.length; i++) {
+                for (const [i, item] of gsLst.entries()){
                     if (i == gsLst.length - 1) {
                         //if (phClr === undefined) {
                         //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ");";
@@ -1465,7 +1465,7 @@ function getFillType(node) {
             //get start color
             let color_ary = [];
             let tint_ary = [];
-            for (let i = 0; i < gsLst.length; i++) {
+            for (const [i, item] of gsLst.entries()){
                 let lo_tint;
                 let lo_color = getSolidFill(gsLst[i], undefined, undefined, warpObj);
                 color_ary[i] = lo_color;

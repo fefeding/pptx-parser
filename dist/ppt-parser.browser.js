@@ -2571,7 +2571,7 @@ function getFillType(node) {
                         let { color: colorAry, rot } = fillColor;
 
                         let bgcolor = `background: linear-gradient(${rot}deg,`;
-                        for (let i = 0; i < colorAry.length; i++) {
+                        for (const [i, item] of colorAry.entries()){
                             if (i == colorAry.length - 1) {
                                 bgcolor += `#${colorAry[i]});`;
                             } else {
@@ -3696,7 +3696,7 @@ function getFillType(node) {
                 let color_ary = [];
                 const pos_ary = [];
                 //let tint_ary = [];
-                for (let i = 0; i < gsLst.length; i++) {
+                for (const [i, item] of gsLst.entries()){
                     let lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
                     const pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"]);
                     if (pos !== undefined) {
@@ -3715,7 +3715,7 @@ function getFillType(node) {
                     rot = rot + 90;
                 }
                 bgcolor = `background: linear-gradient(${rot}deg,`;
-                for (let i = 0; i < gsLst.length; i++) {
+                for (const [i, item] of gsLst.entries()){
                     if (i == gsLst.length - 1) {
                         //if (phClr === undefined) {
                         //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ");";
@@ -3850,7 +3850,7 @@ function getFillType(node) {
             let gsLst = node["a:gsLst"]["a:gs"];
             //get start color
             let color_ary = [];
-            for (let i = 0; i < gsLst.length; i++) {
+            for (const [i, item] of gsLst.entries()){
                 let lo_color = getSolidFill(gsLst[i], undefined, undefined, warpObj);
                 color_ary[i] = lo_color;
             }
@@ -6579,7 +6579,7 @@ function getTextWidth(html) {
                 apNode = [apNode];
             }
 
-            for (let i = 0; i < apNode.length; i++) {
+            for (const [i, el] of apNode.entries()){
                 let pNode = apNode[i];
                 let rNode = pNode["a:r"];
                 let fldNode = pNode["a:fld"];
@@ -6756,7 +6756,7 @@ function getTextWidth(html) {
                 } else if (rNode !== undefined) {
                     // with multi r
                     let previousStyle = {};
-                    for (let j = 0; j < rNode.length; j++) {
+                    for (const [j, elem] of rNode.entries()){
                         // 如果当前元素没有sz属性，使用前面元素的样式
                         if (rNode[j]["a:rPr"] && !rNode[j]["a:rPr"]["attrs"] && previousStyle["sz"]) {
                             rNode[j]["a:rPr"]["attrs"] = { "sz": previousStyle["sz"] };
@@ -7264,7 +7264,7 @@ function getTextWidth(html) {
                         let rot = bultColor[0].rot;
 
                         bullet += `background: linear-gradient(${rot}deg,`;
-                        for (let i = 0; i < colorAry.length; i++) {
+                        for (const [i, item] of colorAry.entries()){
                             if (i == colorAry.length - 1) {
                                 bullet += `#${colorAry[i]});`;
                             } else {
@@ -7880,7 +7880,7 @@ function getTextWidth(html) {
                     let rot = fontClrPr[0].rot;
 
                     styleText += `background: linear-gradient(${rot}deg,`;
-                    for (let i = 0; i < colorAry.length; i++) {
+                    for (const [i, item] of colorAry.entries()){
                         if (i == colorAry.length - 1) {
                             styleText += `#${colorAry[i]});`;
                         } else {
@@ -8180,7 +8180,7 @@ function getTextWidth(html) {
                 trNodes = [trNodes];
             }
                 let rowSpanAry = [];
-                for (let i = 0; i < trNodes.length; i++) {
+                for (const [i, el] of trNodes.entries()){
                     //////////////rows Style ////////////Amir
                     let rowHeightParam = trNodes[i]["attrs"]["h"];
                     let rowHeight = 0;
@@ -10109,7 +10109,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         let sAdj2, adj2 = 50000 * SLIDE_FACTOR$1;
         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
+            for (const [i, item] of shapAdjst_ary.entries()){
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -10145,7 +10145,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         let sAdj2, adj2 = 50000 * SLIDE_FACTOR$1;
         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
+            for (const [i, item] of shapAdjst_ary.entries()){
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -10383,7 +10383,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
         let sAdj1, sAdj1_val = 45;
         let sAdj2, sAdj2_val = 270;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
+            for (const [i, item] of shapAdjst_ary.entries()){
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -10407,7 +10407,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
         const cnstVal1 = 50000 * SLIDE_FACTOR$1;
         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
+            for (const [i, item] of shapAdjst_ary.entries()){
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -11769,7 +11769,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj2, sAdj2_val;// = 0.33334;
                         let shpTyp, adjTyp;
                         if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor === Array) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -11851,7 +11851,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj1, sAdj1_val = 0.33334;
                         let sAdj2, sAdj2_val = 0.33334;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -12151,7 +12151,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj2, sAdj2_val = 3.5;
                         const cnsVal = 100000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -12219,7 +12219,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj2, sAdj2_val = 50000 * SLIDE_FACTOR$1;
                         const cnsVal = 100000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -12698,7 +12698,7 @@ const PPTXShapeUtils = (function() {
                             let sAdj1, adj1 = -20833 * refr;
                             let sAdj2, adj2 = 62500 * refr;
                             if (shapAdjst_ary !== undefined) {
-                                for (var i = 0; i < shapAdjst_ary.length; i++) {
+                                for (const [i, item] of shapAdjst_ary.entries()){
                                     const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
                                         sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -12779,7 +12779,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj1, adj1 = -20833 * refr;
                         let sAdj2, adj2 = 62500 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -12853,7 +12853,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj1, adj1 = -20833 * refr;
                         let sAdj2, adj2 = 62500 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -12917,7 +12917,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj2, adj2 = 62500 * refr;
                         let sAdj3, adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13000,7 +13000,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj7, adj7 = 112963 * refr;
                         let sAdj8, adj8 = -8333 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13179,7 +13179,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj2, adj2 = 50000 * refr;
                         let sAdj3, adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13238,7 +13238,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj1, adj1 = 16667 * SLIDE_FACTOR$1;
                         let sAdj2, adj2 = 50000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13303,7 +13303,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj1, adj1 = (shapType == "doubleWave") ? 6250 * SLIDE_FACTOR$1 : 12500 * SLIDE_FACTOR$1;
                         let sAdj2, adj2 = 0;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13390,7 +13390,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj2, adj2 = 50000 * SLIDE_FACTOR$1;
                         let sAdj3, adj3 = 12500 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13524,7 +13524,7 @@ const PPTXShapeUtils = (function() {
                         let adj1 = 50000; // 默认值
                         if (shapAdjst_ary !== undefined) {
                             if (Array.isArray(shapAdjst_ary)) {
-                                for (var i = 0; i < shapAdjst_ary.length; i++) {
+                                for (const [i, item] of shapAdjst_ary.entries()){
                                     const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
                                         let sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13599,7 +13599,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13655,7 +13655,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13711,7 +13711,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13765,7 +13765,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13815,7 +13815,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal1 = 50000 * SLIDE_FACTOR$1;
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13883,7 +13883,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal1 = 25000 * SLIDE_FACTOR$1;
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -13962,7 +13962,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 200000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 84375 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14006,7 +14006,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal1 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal2 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14091,7 +14091,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14145,7 +14145,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14200,7 +14200,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14255,7 +14255,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14310,7 +14310,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14365,7 +14365,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         const cnstVal3 = 200000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14427,7 +14427,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal1 = 50000 * SLIDE_FACTOR$1;
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14525,7 +14525,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal1 = 50000 * SLIDE_FACTOR$1;
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14634,7 +14634,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal1 = 50000 * SLIDE_FACTOR$1;
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14727,7 +14727,7 @@ const PPTXShapeUtils = (function() {
                         const cnstVal1 = 50000 * SLIDE_FACTOR$1;
                         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14878,7 +14878,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj1, adj1 = 25000 * refr;
                         let sAdj2, adj2 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -14939,7 +14939,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj4, adj4 = (10800000 / 60000) * Math.PI / 180;
                         let sAdj5, adj5 = 12500 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -15194,7 +15194,7 @@ const PPTXShapeUtils = (function() {
                         let sAdj4, adj4 = (10800000 / 60000) * Math.PI / 180;
                         let sAdj5, adj5 = 12500 * SLIDE_FACTOR$1;
                         if (shapAdjst_ary !== undefined) {
-                            for (var i = 0; i < shapAdjst_ary.length; i++) {
+                            for (const [i, item] of shapAdjst_ary.entries()){
                                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -17609,7 +17609,7 @@ async function jsonToPptx(presentation, options = {}) {
     const allChartNames = [];   // 图表部件名（用于 Content-Types 覆盖）
     let presRelId = 2;         // rId1 为母版
 
-    for (let i = 0; i < pres.slides.length; i++) {
+    for (const [i, item] of pres.slides.entries()){
         const slideIndex = i + 1;
         const ctx = createElementContext();
         const slideRoot = await buildSlideRoot(ctx, pres.slides[i]);

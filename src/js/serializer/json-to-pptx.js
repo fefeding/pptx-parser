@@ -65,7 +65,7 @@ async function jsonToPptx(presentation, options = {}) {
     const allChartNames = [];   // 图表部件名（用于 Content-Types 覆盖）
     let presRelId = 2;         // rId1 为母版
 
-    for (let i = 0; i < pres.slides.length; i++) {
+    for (const [i, item] of pres.slides.entries()){
         const slideIndex = i + 1;
         const ctx = createElementContext();
         const slideRoot = await buildSlideRoot(ctx, pres.slides[i]);

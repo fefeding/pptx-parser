@@ -311,10 +311,10 @@ function processSingleMsg(data, callbacks) {
             break;
 
         case "scatterChart":
-            for (let i = 0; i < chartData.length; i++) {
+            for (const [i, item] of chartData.entries()){
                 const arr = [];
                 if (Array.isArray(chartData[i])) {
-                    for (let j = 0; j < chartData[i].length; j++) {
+                    for (const [j, el] of chartData[i].entries()){
                         arr.push({ x: j, y: chartData[i][j] });
                     }
                 }

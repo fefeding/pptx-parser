@@ -53,7 +53,7 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
         let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
         const cnstVal2 = 100000 * SLIDE_FACTOR;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
+            for (const [i, item] of shapAdjst_ary.entries()){
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
@@ -89,7 +89,7 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
         let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
         const cnstVal2 = 100000 * SLIDE_FACTOR;
         if (shapAdjst_ary !== undefined) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
+            for (const [i, item] of shapAdjst_ary.entries()){
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
