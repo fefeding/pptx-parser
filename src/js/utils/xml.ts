@@ -12,6 +12,7 @@
  */
 
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from '../core/constants';
+import type { XmlNode, XmlPath, WarpObject } from '../core/types';
 import tXml from '../core/tXml';
 
 export const PPTXXmlUtils = (function() {
@@ -22,7 +23,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string} pathStr - 路径字符串（空格分隔）
      * @returns {*} 获取的值
      */
-    function getTextByPathStr(node: any, pathStr: any) {
+    function getTextByPathStr(node: XmlNode | undefined, pathStr: string) {
         return getTextByPathList(node, pathStr.trim().split(/\s+/));
     }
 
@@ -32,7 +33,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string[]} path - 路径数组
      * @returns {*} 获取的值
      */
-    function getTextByPathList(node: any, path: any) {
+    function getTextByPathList(node: XmlNode | undefined, path: XmlPath): any {
         if (path.constructor !== Array) {
             throw Error("Error of path type! path is not array.");
         }
@@ -41,15 +42,16 @@ export const PPTXXmlUtils = (function() {
             return undefined;
         }
 
-        let l = path.length;
+        let cur: any = node;
+        const l = path.length;
         for (let i = 0; i < l; i++) {
-            node = node[path[i]];
-            if (node === undefined) {
+            cur = cur[path[i]];
+            if (cur === undefined) {
                 return undefined;
             }
         }
 
-        return node;
+        return cur;
     }
 
     /**
@@ -58,7 +60,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string[]} path - 路径数组
      * @param {*} value - 要设置的值
      */
-    function setTextByPathList(node: any, path: any, value: any) {
+    function setTextByPathList(node: XmlNode | undefined, path: XmlPath, value: any): any {
         if (path.constructor !== Array) {
             throw Error("Error of path type! path is not array.");
         }
@@ -67,7 +69,7 @@ export const PPTXXmlUtils = (function() {
             return undefined;
         }
 
-        let obj = node;
+        let obj: any = node;
         const len = path.length;
         for (let i = 0; i < len; i++) {
             const p = path[i];
@@ -89,18 +91,19 @@ export const PPTXXmlUtils = (function() {
      * @param {Function} doFunction - 对每个节点执行的函数
      * @returns {string} 所有函数返回值的拼接
      */
-    function eachElement(node: any, doFunction: any) {
+    function eachElement(node: XmlNode | XmlNode[] | undefined, doFunction: (el: any, idx: number) => any) {
         if (node === undefined) {
             return;
         }
         let result = "";
-        if (node.constructor === Array) {
-            let l = node.length;
+        const target: any = node;
+        if (target.constructor === Array) {
+            let l = target.length;
             for (let i = 0; i < l; i++) {
-                result += doFunction(node[i], i);
+                result += doFunction(target[i], i);
             }
         } else {
-            result += doFunction(node, 0);
+            result += doFunction(target, 0);
         }
         return result;
     }
@@ -505,7 +508,7 @@ export const PPTXXmlUtils = (function() {
         }
 
     
-        function getPosition(slideSpNode: any, pNode: any, slideLayoutSpNode: any, slideMasterSpNode: any, sType?: any) {
+        function getPosition(slideSpNode: XmlNode | undefined, pNode: XmlNode | undefined, slideLayoutSpNode: XmlNode | undefined, slideMasterSpNode: XmlNode | undefined, sType?: any) {
             let off;
             let x = -1, y = -1;
 
@@ -539,7 +542,7 @@ export const PPTXXmlUtils = (function() {
                     offY = Math.round(offY * 100) / 100;
                 }
             }
-            if (sType == "group-rotate" && pNode["p:grpSpPr"] !== undefined) {
+            if (sType == "group-rotate" && pNode !== undefined && pNode["p:grpSpPr"] !== undefined) {
                 const xfrmNode = pNode["p:grpSpPr"]["a:xfrm"];
                 // var ox = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * SLIDE_FACTOR;
                 // var oy = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * SLIDE_FACTOR;
@@ -564,7 +567,7 @@ export const PPTXXmlUtils = (function() {
 
         }
 
-        function getSize(slideSpNode: any, slideLayoutSpNode: any, slideMasterSpNode: any) {
+        function getSize(slideSpNode: XmlNode | undefined, slideLayoutSpNode: XmlNode | undefined, slideMasterSpNode: XmlNode | undefined) {
             let ext = undefined;
             let w = -1, h = -1;
 

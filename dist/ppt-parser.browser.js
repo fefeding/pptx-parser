@@ -1261,14 +1261,15 @@ const PPTXXmlUtils = (function () {
         if (node === undefined) {
             return undefined;
         }
-        let l = path.length;
+        let cur = node;
+        const l = path.length;
         for (let i = 0; i < l; i++) {
-            node = node[path[i]];
-            if (node === undefined) {
+            cur = cur[path[i]];
+            if (cur === undefined) {
                 return undefined;
             }
         }
-        return node;
+        return cur;
     }
     function setTextByPathList(node, path, value) {
         if (path.constructor !== Array) {
@@ -1298,14 +1299,15 @@ const PPTXXmlUtils = (function () {
             return;
         }
         let result = "";
-        if (node.constructor === Array) {
-            let l = node.length;
+        const target = node;
+        if (target.constructor === Array) {
+            let l = target.length;
             for (let i = 0; i < l; i++) {
-                result += doFunction(node[i], i);
+                result += doFunction(target[i], i);
             }
         }
         else {
-            result += doFunction(node, 0);
+            result += doFunction(target, 0);
         }
         return result;
     }
@@ -1581,7 +1583,7 @@ const PPTXXmlUtils = (function () {
                 offY = Math.round(offY * 100) / 100;
             }
         }
-        if (sType == "group-rotate" && pNode["p:grpSpPr"] !== undefined) {
+        if (sType == "group-rotate" && pNode !== undefined && pNode["p:grpSpPr"] !== undefined) {
             const xfrmNode = pNode["p:grpSpPr"]["a:xfrm"];
             const chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR$1;
             const chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR$1;
