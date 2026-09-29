@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import JSZip from 'jszip';
-import { pptxToJson, jsonToPptx, editPptx, PPTXComposer } from '../src/js/index.js';
+import { pptxToJson, jsonToPptx, editPptx, PPTXComposer } from '../src/js/index.ts';
 
 // 1x1 红色 PNG 的 base64
 const TINY_PNG_BASE64 =

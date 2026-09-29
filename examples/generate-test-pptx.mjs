@@ -8,7 +8,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import JSZip from 'jszip';
-import { PPTXComposer, pptxToJson } from '../src/js/index.js';
+// 源码已转为 TypeScript，Node 无法直接运行 .ts，故改用构建产物（需先 npm run build）
+import { PPTXComposer, pptxToJson } from '../dist/ppt-parser.esm.js';
 
 // ---- 测试用图片（base64）----
 // 64x64 蓝色 PNG

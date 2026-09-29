@@ -2,15 +2,15 @@
   "name": "@fefeding/ppt-parser",
   "version": "1.0.12",
   "description": "PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖",
-  "main": "./src/js/index.js",
+  "main": "./dist/ppt-parser.esm.js",
   "module": "./dist/ppt-parser.esm.js",
   "browser": "./dist/ppt-parser.browser.js",
   "types": "./index.d.ts",
   "type": "module",
   "exports": {
     ".": {
-      "import": "./src/js/index.js",
-      "require": "./src/js/index.js",
+      "import": "./dist/ppt-parser.esm.js",
+      "require": "./dist/ppt-parser.cjs.js",
       "browser": "./dist/ppt-parser.browser.js",
       "types": "./index.d.ts"
     }

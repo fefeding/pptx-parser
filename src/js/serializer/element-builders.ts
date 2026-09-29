@@ -24,7 +24,7 @@ import { REL_TYPES } from './templates.js';
  * @param {number} [options.startMediaIndex=0] - 媒体文件起始编号（避免与已有文件冲突）
  * @returns {Object} 构建上下文
  */
-export function createElementContext(options = {}) {
+export function createElementContext(options: any = {}) {
     return {
         /** 关系列表 {relId, type, target, external} */
         rels: [],
@@ -51,7 +51,7 @@ export function createElementContext(options = {}) {
  * @param {boolean} [external=false] - 是否为外部链接
  * @returns {string} 关系 id（如 rId3）
  */
-function addRelationship(ctx, type, target, external) {
+function addRelationship(ctx, type, target, external?) {
     const relId = `rId${ctx.nextRelId++}`;
     ctx.rels.push({ relId, type, target, external: !!external });
     return relId;
@@ -162,7 +162,7 @@ function buildHyperlink(ctx, href) {
  * @param {Object} opts - 运行选项（fontSize/color/bold/italic/underline/fontFace/href）
  * @returns {Object} a:r 节点
  */
-function buildTextRun(ctx, text, opts = {}) {
+function buildTextRun(ctx, text, opts: any = {}) {
     const rPrChildren = [];
 
     if (opts.color) {

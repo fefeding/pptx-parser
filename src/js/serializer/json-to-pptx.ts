@@ -54,7 +54,7 @@ function normalizePresentation(input) {
  *        （uint8array / arraybuffer / blob / nodebuffer / base64）
  * @returns {Promise<Uint8Array>} PPTX 文件二进制数据
  */
-async function jsonToPptx(presentation, options = {}) {
+async function jsonToPptx(presentation, options: any = {}) {
     const pres = normalizePresentation(presentation);
     const slideSize = pres.slideSize || { width: 1280, height: 720 };
     const zip = new JSZip();
@@ -152,7 +152,7 @@ function parseRelationships(relsText) {
     const attrRe = /(\w+)="([^"]*)"/g;
     let match;
     while ((match = re.exec(relsText)) !== null) {
-        const attrs = {};
+        const attrs: any = {};
         let attrMatch;
         while ((attrMatch = attrRe.exec(match[1])) !== null) {
             attrs[attrMatch[1]] = attrMatch[2];
@@ -171,7 +171,7 @@ function parseSldIdLst(presentationText) {
     const attrRe = /([\w:.-]+)="([^"]*)"/g;
     let match;
     while ((match = re.exec(lstMatch[1])) !== null) {
-        const attrs = {};
+        const attrs: any = {};
         let attrMatch;
         while ((attrMatch = attrRe.exec(match[1])) !== null) {
             attrs[attrMatch[1]] = attrMatch[2];
@@ -233,7 +233,7 @@ async function editPptx(fileData) {
         if (!text) throw new Error('editPptx: 无效的 PPTX 文件（缺少 ppt/presentation.xml）');
         const relsText = await readText('ppt/_rels/presentation.xml.rels');
         const rels = parseRelationships(relsText || '');
-        const relById = {};
+        const relById: any = {};
         for (const r of rels) relById[r.Id] = r;
         const entries = parseSldIdLst(text);
         // 解析每页对应的 slide 部件路径
@@ -260,7 +260,7 @@ async function editPptx(fileData) {
      * @param {string} [options.outputType='uint8array'] - JSZip 输出类型
      * @returns {Promise<Uint8Array>} 新的 PPTX 文件数据
      */
-    async function save(options = {}) {
+    async function save(options: any = {}) {
         return zip.generateAsync({
             type: options.outputType || 'uint8array',
             compression: 'DEFLATE',
@@ -368,7 +368,7 @@ async function editPptx(fileData) {
                 if (!m) throw new Error(`moveSlide: 无法解析 slide 目标 ${rel.Target}`);
                 return Number(m[1]);
             });
-            const mapping = {}; // 旧编号 → 新编号
+            const mapping: any = {}; // 旧编号 → 新编号
             oldNums.forEach((oldNum, i) => { mapping[oldNum] = i + 1; });
 
             // 先读出全部内容，避免读写交叉覆盖
@@ -490,7 +490,7 @@ async function editPptx(fileData) {
             const MIME_MAP = { png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml' };
             for (const ext of mediaExts) {
                 if (!newCt.includes(`Extension="${ext}"`)) {
-                    newCt = newCt.replace('</Types>', `<Default Extension="${ext}" ContentType="${MIME_MAP[ext] || 'application/octet-stream'}"/></Types>`);
+                    newCt = newCt.replace('</Types>', `<Default Extension="${ext}" ContentType="${MIME_MAP[ext as string] || 'application/octet-stream'}"/></Types>`);
                 }
             }
             for (const chartName of newCtCharts) {

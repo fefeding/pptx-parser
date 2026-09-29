@@ -153,7 +153,7 @@ export const PPTXXmlUtils = (function() {
      * @param {number} appVersion - 应用版本
      * @returns {Promise<Object>} 解析后的XML对象
      */
-    async function readXmlFile(zip, filename, isSlideContent, appVersion) {
+    async function readXmlFile(zip, filename, isSlideContent?, appVersion?) {
         try {
             const zipFile = zip.file(filename);
             if (!zipFile) return null;
@@ -181,7 +181,7 @@ export const PPTXXmlUtils = (function() {
      * @param {number} appVersion - Office版本
      * @returns {Promise<Object>} 包含slides和slideLayouts的对象
      */
-    async function getContentTypes(zip, appVersion) {
+    async function getContentTypes(zip, appVersion?) {
         let ContentTypesJson = await PPTXXmlUtils.readXmlFile(zip, "[Content_Types].xml", false, appVersion);
         
         let subObj = ContentTypesJson["Types"]["Override"];
@@ -218,7 +218,7 @@ export const PPTXXmlUtils = (function() {
         const app_verssion = Number(app_verssion_str);
 
         //get slide dimensions
-        let rtenObj = {};
+        let rtenObj: any = {};
         let content = await PPTXXmlUtils.readXmlFile(zip, "ppt/presentation.xml");
         let sldSzAttrs = content["p:presentation"]["p:sldSz"]["attrs"];
         let sldSzWidth = parseInt(sldSzAttrs["cx"]);
@@ -505,7 +505,7 @@ export const PPTXXmlUtils = (function() {
         }
 
     
-        function getPosition(slideSpNode, pNode, slideLayoutSpNode, slideMasterSpNode, sType) {
+        function getPosition(slideSpNode, pNode, slideLayoutSpNode, slideMasterSpNode, sType?) {
             let off;
             let x = -1, y = -1;
 

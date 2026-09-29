@@ -16,7 +16,7 @@ import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constan
 import TinyColor from 'tinycolor2';
 
 // 创建 tinycolor 工厂函数以保持向后兼容
-const tinycolor = (color, opts) => new TinyColor(color, opts);
+const tinycolor = (color: any, opts?: any) => new TinyColor(color, opts);
 
 
 
@@ -332,7 +332,7 @@ function getFillType(node) {
                 }
             }
             let txtEffects = [];
-            let txtEffObj = {}
+            let txtEffObj: any = {}
             //textBordr
             let txtBrdrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:ln"]);
             textBordr = "";
@@ -432,7 +432,7 @@ function getFillType(node) {
                             if (!Array.isArray(effectStyleLst)) {
                                 effectStyleLst = [effectStyleLst];
                             }
-                            var idx = Number(effectIdx); // idx is 0-based, not 1-based
+                            var idx: any = Number(effectIdx); // idx is 0-based, not 1-based
                             if (idx >= 0 && effectStyleLst[idx] !== undefined) {
                                 txtShadow = PPTXXmlUtils.getTextByPathList(effectStyleLst[idx], ["a:effectLst", "a:outerShdw"]);
                             }
@@ -781,7 +781,7 @@ function getFillType(node) {
             return borderStyle;
         }
         //////////////////////////////////////////////////////////////////
-        function getBorder(node, pNode, isSvgMode, bType, warpObj) {
+        function getBorder(node: any, pNode: any, isSvgMode: any, bType: any, warpObj: any): any {
             //console.log("getBorder", node, pNode, isSvgMode, bType)
             let cssText, lineNode, subNodeTxt;
 
@@ -1069,7 +1069,7 @@ function getFillType(node) {
                         if (key != "attrs") {
                             if (bgFillLstTyp.constructor === Array) {
                                 for (const item of bgFillLstTyp){
-                                    let obj = {};
+                                    let obj: any = {};
                                     obj[key] = item;
                                     obj["idex"] = item["attrs"]["order"];
                                     obj["attrs"] = {
@@ -1078,7 +1078,7 @@ function getFillType(node) {
                                     sortblAry.push(obj)
                                 }
                             } else {
-                                let obj = {};
+                                let obj: any = {};
                                 obj[key] = bgFillLstTyp;
                                 obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                 obj["attrs"] = {
@@ -1159,7 +1159,7 @@ function getFillType(node) {
                             if (key != "attrs") {
                                 if (bgFillLstTyp.constructor === Array) {
                                     for (const item of bgFillLstTyp){
-                                        let obj = {};
+                                        let obj: any = {};
                                         obj[key] = item;
                                         obj["idex"] = item["attrs"]["order"];
                                         obj["attrs"] = {
@@ -1168,7 +1168,7 @@ function getFillType(node) {
                                         sortblAry.push(obj)
                                     }
                                 } else {
-                                    let obj = {};
+                                    let obj: any = {};
                                     obj[key] = bgFillLstTyp;
                                     obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                     obj["attrs"] = {
@@ -1254,7 +1254,7 @@ function getFillType(node) {
                                 if (key != "attrs") {
                                     if (bgFillLstTyp.constructor === Array) {
                                         for (const item of bgFillLstTyp){
-                                            let obj = {};
+                                            let obj: any = {};
                                             obj[key] = item;
                                             obj["idex"] = item["attrs"]["order"];
                                             obj["attrs"] = {
@@ -1263,7 +1263,7 @@ function getFillType(node) {
                                             sortblAry.push(obj)
                                         }
                                     } else {
-                                        let obj = {};
+                                        let obj: any = {};
                                         obj[key] = bgFillLstTyp;
                                         obj["idex"] = bgFillLstTyp["attrs"]["order"];
                                         obj["attrs"] = {
@@ -1375,7 +1375,7 @@ function getFillType(node) {
                 Object.keys(duotone).forEach(clr_type => {
 
                     if (clr_type != "attrs") {
-                        let obj = {};
+                        let obj: any = {};
                         obj[clr_type] = duotone[clr_type];
                         clr_ary.push(getSolidFill(obj, undefined, phClr, warpObj));
                     }
@@ -2402,7 +2402,7 @@ function getFillType(node) {
         colName = PPTXXmlUtils.getTextByPathList(innerNode, ["c:tx", "c:v"]) || index;
     }
     // Category (string or number)
-    let rowNames = {};
+    let rowNames: any = {};
     if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
         eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], (innerNode, index) => {
     rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
@@ -2439,7 +2439,7 @@ function getFillType(node) {
 });
     }
     // Extract series style information
-    let seriesStyle = {};
+    let seriesStyle: any = {};
     // Extract fill color if available
     let fillType = getFillType(PPTXXmlUtils.getTextByPathList(innerNode, ["c:spPr"]));
     if (fillType === "SOLID_FILL" && warpObj !== undefined) {
@@ -2854,7 +2854,7 @@ function getFillType(node) {
                     //Object.keys(duotoneNode[clr_type]).forEach(clr => {
                     //console.log("blip pic duotone clr: ", duotoneNode[clr_type][clr], clr)
                     if (clr_type != "attrs") {
-                        let obj = {};
+                        let obj: any = {};
                         obj[clr_type] = duotoneNode[clr_type];
                         let hexClr = getSolidFill(obj, undefined, undefined, warpObj)
                         //clr_ary.push();
@@ -3006,7 +3006,7 @@ function getFillType(node) {
             //+
             //a:pPr =>a:lnSpc => a:spcPts (/?) | a:spcPct (/?)
             //let lstStyle = textBodyNode["a:lstStyle"];
-            let lvl = 1
+            let lvl: any = 1
             let spcBefNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
             let spcAftNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
             let spcBefType = "Pts";
@@ -3324,7 +3324,7 @@ function getFillType(node) {
             //return spcAft + spcBef;
             return marginTopBottomStr;
         }
-        function getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj, spNode) {
+        function getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj, spNode?) {
             let algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
@@ -3626,7 +3626,7 @@ function extractChartTitleStyle(chartNode, warpObj) {
     const titleNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:title"]);
     if (!titleNode) return { text: "", style: {} };
     
-    const style = {};
+    const style: any = {};
     let text = "";
     
     // 提取标题文本
@@ -3737,7 +3737,7 @@ function extractChartTitleStyle(chartNode, warpObj) {
 
 // 提取图表区域样式
 function extractChartAreaStyle(chartSpaceNode, warpObj) {
-    const style = {};
+    const style: any = {};
     
     // 提取图表区域填充
     const spPr = PPTXXmlUtils.getTextByPathList(chartSpaceNode, ["c:spPr"]);
@@ -3785,7 +3785,7 @@ function extractChartLegendStyle(chartNode, warpObj) {
     const legendNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:legend"]);
     if (!legendNode) return {};
     
-    const style = {};
+    const style: any = {};
     
     // 提取图例位置
     if (legendNode["c:legendPos"]) {
@@ -3828,7 +3828,7 @@ function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
     const axisNode = PPTXXmlUtils.getTextByPathList(plotAreaNode, [axisType]);
     if (!axisNode) return {};
     
-    const style = {};
+    const style: any = {};
     
     // 提取轴文本属性
     const txPr = PPTXXmlUtils.getTextByPathList(axisNode, ["c:txPr"]);
@@ -3938,7 +3938,6 @@ const PPTXStyleUtils = {
         hueToRgb,
         getColorName2Hex,
         getSchemeColorFromTheme,
-        getGradientFill,
         extractChartData,
         extractChartTitleStyle,
         extractChartAreaStyle,

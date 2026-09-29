@@ -122,9 +122,9 @@ function indexNodes(content) {
     const keys = Object.keys(content);
     const spTreeNode = content[keys[0]]['p:cSld']['p:spTree'];
 
-    const idTable = {};
-    const idxTable = {};
-    const typeTable = {};
+    const idTable: any = {};
+    const idxTable: any = {};
+    const typeTable: any = {};
 
     for (const key in spTreeNode) {
         if (key === 'p:nvGrpSpPr' || key === 'p:grpSpPr') {
@@ -416,7 +416,7 @@ function applyGroupScale(xfrmNode, shapeType, wrapObj) {
  * @param {Object} parentNode - 父节点
  * @returns {Promise<string>} 生成的HTML
  */
-async function processNodesInSlide(nodeKey, nodeValue, nodes, wrapObj, source, shapeType, settings, parentNode) {
+async function processNodesInSlide(nodeKey, nodeValue, nodes, wrapObj, source, shapeType, settings, parentNode?) {
     switch (nodeKey) {
         case 'p:sp':    // Shape, Text
             return await processSpNode(nodeValue, parentNode, wrapObj, source, shapeType, settings);
@@ -446,7 +446,7 @@ async function processNodesInSlide(nodeKey, nodeValue, nodes, wrapObj, source, s
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 生成的HTML
  */
-async function processSpNode(node, parentNode, wrapObj, source, shapeType, settings) {
+async function processSpNode(node, parentNode, wrapObj, source, shapeType, settings?) {
     const id = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:cNvPr', 'attrs', 'id']);
     const name = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:cNvPr', 'attrs', 'name']);
     let idx = PPTXXmlUtils.getTextByPathList(node, ['p:nvSpPr', 'p:nvPr', 'p:ph', 'attrs', 'idx']);
@@ -812,7 +812,7 @@ function processSpPrNode(node, wrapObj) {
  * @param {Object} settings - 设置对象
  * @returns {Promise<string>} 背景HTML
  */
-async function getBackground(wrapObj, slideSize, index, settings) {
+async function getBackground(wrapObj, slideSize, index, settings, _styleUtils?: any) {
     const { slideContent, slideLayoutContent, slideMasterContent } = wrapObj;
 
     const nodesSldLayout = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ['p:sldLayout', 'p:cSld', 'p:spTree']);
@@ -912,7 +912,7 @@ function renderSmartArt(smartArtData, xfrmNode, order, wrapObj, shapeType) {
  * @returns {Object} 节点映射
  */
 function extractSmartArtNodes(data) {
-    const nodes = {};
+    const nodes: any = {};
     const rootNodes = [];
     
     // 查找所有节点

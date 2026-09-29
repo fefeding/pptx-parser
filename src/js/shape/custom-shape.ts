@@ -55,10 +55,13 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
     var moveToPtNode = moveToNode[key]["a:pt"];
     if (moveToPtNode !== undefined) {
         Object.keys(moveToPtNode).forEach((key2) => {
-    var ptObj = {};
+    var ptObj: any = {};
     var moveToNoPt = moveToPtNode[key2];
+    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
     var spX = moveToNoPt["attrs", "x"];
+    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
     var spY = moveToNoPt["attrs", "y"];
+    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
     var ptOrdr = moveToNoPt["attrs", "order"];
     ptObj.type = "movto";
     ptObj.order = ptOrdr;
@@ -75,10 +78,13 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
     var lnToPtNode = lnToNodes[key]["a:pt"];
     if (lnToPtNode !== undefined) {
         Object.keys(lnToPtNode).forEach((key2) => {
-    var ptObj = {};
+    var ptObj: any = {};
     var lnToNoPt = lnToPtNode[key2];
+    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
     var ptX = lnToNoPt["attrs", "x"];
+    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
     var ptY = lnToNoPt["attrs", "y"];
+    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
     var ptOrdr = lnToNoPt["attrs", "order"];
     ptObj.type = "lnto";
     ptObj.order = ptOrdr;
@@ -101,7 +107,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
 });
 
             cubicBezToPtNodesAry.forEach((key2) => {
-    var nodeObj = {};
+    var nodeObj: any = {};
     nodeObj.type = "cubicBezTo";
     nodeObj.order = key2[0]["attrs"]["order"];
     var pts_ary = [];
@@ -129,7 +135,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
 });
 
             quadBezToPtNodesAry.forEach((key2) => {
-    var nodeObj = {};
+    var nodeObj: any = {};
     nodeObj.type = "quadBezTo";
     nodeObj.order = key2[0]["attrs"]["order"];
     var pts_ary = [];
@@ -160,7 +166,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                 shftX = arcToPtNode["x"];
                 shftY = arcToPtNode["y"];
             }
-            var ptObj = {};
+            var ptObj: any = {};
             ptObj.type = "arcTo";
             ptObj.order = arcOrder;
             ptObj.hR = hR;
@@ -180,7 +186,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
             Object.keys(closeNode).forEach((key) => {
     var clsAttrs = closeNode[key]["attrs"];
     var clsOrder = clsAttrs["order"];
-    var ptObj = {};
+    var ptObj: any = {};
     ptObj.type = "close";
     ptObj.order = clsOrder;
     multiSapeAry.push(ptObj);

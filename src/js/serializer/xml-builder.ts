@@ -103,14 +103,14 @@ export function colorToHex(color) {
  * @param {...(string|Object)} children - 子内容：字符串或其他节点对象
  * @returns {Object} 节点对象 { tagName, attrs, children }
  */
-export function xmlNode(tagName, attrs, ...children) {
+export function xmlNode(tagName, attrs?, ...children) {
     // 容错：第二参数误传节点对象时（如 xmlNode('a:solidFill', xmlNode(...))），
     // 自动将其视为子节点，避免节点属性被当成属性表序列化
     if (attrs && typeof attrs === 'object' && !Array.isArray(attrs) && typeof attrs.tagName === 'string') {
         children.unshift(attrs);
         attrs = null;
     }
-    const filteredAttrs = {};
+    const filteredAttrs: any = {};
     if (attrs) {
         for (const key in attrs) {
             const val = attrs[key];

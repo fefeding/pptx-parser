@@ -31,7 +31,7 @@ const DEFAULT_SLIDE_SIZE = { width: 1280, height: 720 };
  * @returns {Object} 构建器（每个 key 对应一个 setter，返回构建器自身以支持链式调用）
  */
 function makeFluent(el, keys) {
-    const builder = {};
+    const builder: any = {};
     for (const key of keys) {
         builder[key] = (value) => {
     el[key] = value === undefined ? true : value;
@@ -58,6 +58,7 @@ function applyConfig(element, config) {
  * 幻灯片构建器
  */
 class SlideComposer {
+    slide: any;
     constructor() {
         /** @type {{background: *, elements: Array}} */
         this.slide = { background: null, elements: [] };
@@ -79,7 +80,7 @@ class SlideComposer {
      * @returns {SlideComposer} this
      */
     addText(config) {
-        const el = { type: 'text', x: 0, y: 0, width: 300, height: 60 };
+        const el: any = { type: 'text', x: 0, y: 0, width: 300, height: 60 };
         if (typeof config === 'function') {
             const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'align', 'valign',
                 'fontSize', 'color', 'bold', 'italic', 'underline', 'fontFace', 'href', 'lang', 'name']);
@@ -100,7 +101,7 @@ class SlideComposer {
      * @returns {SlideComposer} this
      */
     addShape(config) {
-        const el = { type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 200, height: 120 };
+        const el: any = { type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 200, height: 120 };
         if (typeof config === 'function') {
             const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'rotation', 'name']);
             builder.shapeType = (type) => { el.shapeType = type; return builder; };
@@ -120,7 +121,7 @@ class SlideComposer {
      * @returns {SlideComposer} this
      */
     addImage(config) {
-        const el = { type: 'image', x: 0, y: 0, width: 300, height: 200 };
+        const el: any = { type: 'image', x: 0, y: 0, width: 300, height: 200 };
         if (typeof config === 'function') {
             const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'extension', 'href', 'name']);
             builder.data = (data) => { el.data = data; return builder; };
@@ -143,7 +144,7 @@ class SlideComposer {
      * @returns {SlideComposer} this
      */
     addChart(config) {
-        const el = { type: 'chart', chartType: 'barChart', x: 0, y: 0, width: 600, height: 400 };
+        const el: any = { type: 'chart', chartType: 'barChart', x: 0, y: 0, width: 600, height: 400 };
         if (typeof config === 'function') {
             config(el);
         } else {
@@ -158,6 +159,7 @@ class SlideComposer {
  * 演示文稿构建器（Composer）
  */
 class PPTXComposer {
+    presentation: any;
     constructor() {
         this.presentation = {
             metadata: {},

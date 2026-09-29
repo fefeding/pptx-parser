@@ -18,7 +18,7 @@ let order = 1;
  * @param {Function} [options.filter] - 过滤函数
  * @returns {Array|Object} 解析结果
  */
-function tXml(xml, options = {}) {
+function tXml(xml, options: any = {}) {
     const POS = options.pos || 0;
 
     // 字符常量
@@ -151,7 +151,7 @@ function tXml(xml, options = {}) {
      * @returns {Object} 节点对象
      */
     function parseNode() {
-        const node = {};
+        const node: any = {};
         pos++;
         node.tagName = parseTagName();
 
@@ -256,7 +256,7 @@ function tXml(xml, options = {}) {
  * @returns {Object|string} 简化后的对象
  */
 tXml.simplify = (nodes) => {
-    const result = {};
+    const result: any = {};
     if (nodes === undefined) {
         return {};
     }

@@ -87,7 +87,7 @@ async function genChart(node, warpObj, parentNode) {
 
     // 提取3D视图属性
     const view3D = PPTXXmlUtils.getTextByPathList(chart, ["c:view3D"]);
-    const view3DProps = {};
+    const view3DProps: any = {};
     if (view3D) {
         if (view3D["attrs"]?.rotX !== undefined) view3DProps.rotX = parseFloat(view3D["attrs"].rotX);
         if (view3D["attrs"]?.rotY !== undefined) view3DProps.rotY = parseFloat(view3D["attrs"].rotY);
@@ -109,7 +109,7 @@ async function genChart(node, warpObj, parentNode) {
         serArray.forEach(ser => {
             const dPtArray = ser["c:dPt"];
             if (dPtArray) {
-                const dpStyles = {};
+                const dpStyles: any = {};
                 const dpList = Array.isArray(dPtArray) ? dPtArray : [dPtArray];
                 dpList.forEach(dp => {
                     const idx = dp["c:idx"]?.["attrs"]?.val;
@@ -117,7 +117,7 @@ async function genChart(node, warpObj, parentNode) {
                     const spPr = dp["c:spPr"];
                     
                     if (idx !== undefined) {
-                        const dpStyle = {};
+                        const dpStyle: any = {};
                         if (explosion !== undefined) {
                             dpStyle.explosion = parseFloat(explosion);
                         }
@@ -280,6 +280,7 @@ function processSingleMsg(data, callbacks) {
     switch (chartType) {
         case "lineChart":
             chartDataArray = chartData;
+            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart = nv.models.lineChart().useInteractiveGuideline(true);
             if (chartData[0]?.xlabels) {
                 chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
@@ -288,6 +289,7 @@ function processSingleMsg(data, callbacks) {
 
         case "barChart":
             chartDataArray = chartData;
+            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart = nv.models.multiBarChart();
             if (chartData[0]?.xlabels) {
                 chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
@@ -297,11 +299,13 @@ function processSingleMsg(data, callbacks) {
         case "pieChart":
         case "pie3DChart":
             chartDataArray = chartData[0]?.values || [];
+            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart = nv.models.pieChart();
             break;
 
         case "areaChart":
             chartDataArray = chartData;
+            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart = nv.models.stackedAreaChart()
                 .clipEdge(true)
                 .useInteractiveGuideline(true);
@@ -320,11 +324,15 @@ function processSingleMsg(data, callbacks) {
                 }
                 chartDataArray.push({ key: `data${i + 1}`, values: arr });
             }
+            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart = nv.models.scatterChart()
                 .showDistX(true)
                 .showDistY(true)
+                // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
                 .color(d3.scale.category10().range());
+            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart.xAxis.axisLabel('X').tickFormat(d3.format('.02f'));
+            // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart.yAxis.axisLabel('Y').tickFormat(d3.format('.02f'));
             break;
 

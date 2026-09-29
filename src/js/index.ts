@@ -28,7 +28,7 @@ async function processToJson(file, settings, callbacks, chartId, styleTable, def
     }
 
     const msgQueue = [];
-    const zip = JSZip.loadAsync ? await JSZip.loadAsync(file) : new JSZip().load(file);
+    const zip = JSZip.loadAsync ? await JSZip.loadAsync(file) : (new JSZip() as any).load(file);
 
     // Parse PPTX to structured data
     const parsedData = await parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle);
@@ -68,7 +68,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
     }
 
     // Extract metadata from core.xml
-    let metadata = {};
+    let metadata: any = {};
     try {
         const coreFile = zip.file("docProps/core.xml");
         if (coreFile !== null) {
@@ -148,7 +148,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
         slideSize,
         thumbnail,
         metadata,
-        executionTime: dateAfter - dateBefore
+        executionTime: dateAfter.getTime() - dateBefore.getTime()
     };
 }
 
@@ -174,7 +174,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     let layoutFilename = "";
     let diagramFilename = "";
     let notesFilename = ""; // 添加备注文件名
-    const slideResObj = {};
+    const slideResObj: any = {};
 
     if (Array.isArray(relationshipArray)) {
         for (const rel of relationshipArray) {
@@ -228,7 +228,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     const slideLayoutTables = PPTXNodeUtils.indexNodes(slideLayoutContent);
     const layoutColorOverride = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ["p:sldLayout", "p:clrMapOvr", "a:overrideClrMapping"]);
 
-    let slideLayoutClrOvride = {};
+    let slideLayoutClrOvride: any = {};
     if (layoutColorOverride !== undefined) {
         slideLayoutClrOvride = layoutColorOverride.attrs;
     }
@@ -239,7 +239,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     const layoutRelArray = slideLayoutResContent.Relationships.Relationship;
 
     let masterFilename = "";
-    const layoutResObj = {};
+    const layoutResObj: any = {};
 
     if (Array.isArray(layoutRelArray)) {
         for (const rel of layoutRelArray) {
@@ -270,7 +270,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     const masterRelArray = slideMasterResContent.Relationships.Relationship;
 
     let themeFilename = "";
-    const masterResObj = {};
+    const masterResObj: any = {};
 
     if (Array.isArray(masterRelArray)) {
         for (const rel of masterRelArray) {
@@ -292,7 +292,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
 
     // Load theme file
     let themeContent;
-    const themeResObj = {};
+    const themeResObj: any = {};
 
     if (themeFilename !== undefined) {
         const themeName = themeFilename.split("/").pop();
@@ -322,8 +322,8 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     }
 
     // Load diagram file
-    let diagramContent = {};
-    const diagramResObj = {};
+    let diagramContent: any = {};
+    const diagramResObj: any = {};
 
     if (diagramFilename !== undefined) {
         const diagramName = diagramFilename.split("/").pop();
@@ -711,7 +711,7 @@ async function pptxToFiles(fileData) {
         throw new Error("Invalid file: file too small");
     }
 
-    const zip = JSZip.loadAsync ? await JSZip.loadAsync(fileData) : new JSZip().load(fileData);
+    const zip = JSZip.loadAsync ? await JSZip.loadAsync(fileData) : (new JSZip() as any).load(fileData);
 
     const result = {
         files: [],

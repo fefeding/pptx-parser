@@ -112,7 +112,7 @@ export function buildContentTypesXml(mediaExts, slideCount) {
         .map(ext => `<Default Extension="${ext}" ContentType="${ext === 'rels' ? 'application/vnd.openxmlformats-package.relationships+xml' : 'application/xml'}"/>`)
         .join('');
     const mediaDefaults = [...new Set(mediaExts)]
-        .map(ext => `<Default Extension="${escapeXml(ext)}" ContentType="${MIME_MAP[ext.toLowerCase()] || 'application/octet-stream'}"/>`)
+        .map(ext => `<Default Extension="${escapeXml(ext)}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/>`)
         .join('');
     const slideOverrides = Array.from({ length: slideCount }, (_, i) =>
         `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`

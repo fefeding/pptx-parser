@@ -17,7 +17,7 @@ const banner = `/**
 export default [
   // 打包核心代码：输出 ESM + CJS 双格式，不压缩（用于 Node.js 开发）
   {
-    input: 'src/js/index.js',
+    input: 'src/js/index.ts',
     output: [
       {
         file: './dist/ppt-parser.esm.js',
@@ -43,7 +43,7 @@ export default [
   },
   // 打包浏览器版本：输出 ESM 格式（非压缩版本，包含所有依赖）
   {
-    input: 'src/js/index.js',
+    input: 'src/js/index.ts',
     output: {
       file: './dist/ppt-parser.browser.js',
       format: 'es',
@@ -68,7 +68,7 @@ export default [
   // 打包类型声明文件：生成完整的.d.ts文件
   // 注释掉以避免覆盖现有的 index.d.ts 文件
   // {
-  //   input: 'src/js/index.js',
+  //   input: 'src/js/index.ts',
   //   output: [{ file: pkg.types, format: 'es' }],
   //   plugins: [dts()]
   // }

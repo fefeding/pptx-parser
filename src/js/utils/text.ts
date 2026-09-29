@@ -19,7 +19,7 @@ import { genChart } from './chart.js';
 import TinyColor from 'tinycolor2';
 
 // 创建 tinycolor 工厂函数以保持向后兼容
-const tinycolor = (color, opts) => new TinyColor(color, opts);
+const tinycolor = (color: any, opts?: any) => new TinyColor(color, opts);
 let is_first_br = false;
 
 
@@ -37,7 +37,7 @@ function getTextWidth(html) {
         return width;
     }
 
-    async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width) {
+    async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width?) {
             let text = "";
             let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
@@ -270,7 +270,7 @@ function getTextWidth(html) {
                     prgrph_text += prgr_text;
                 } else if (rNode !== undefined) {
                     // with multi r
-                    let previousStyle = {};
+                    let previousStyle: any = {};
                     for (const j of rNode.keys()){
                         // 如果当前元素没有sz属性，使用前面元素的样式
                         if (rNode[j]["a:rPr"] && !rNode[j]["a:rPr"]["attrs"] && previousStyle["sz"]) {
@@ -294,7 +294,7 @@ function getTextWidth(html) {
                     }
                 }
 
-                prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR - bu_width - mrgin_val;
+                prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR - (bu_width as any) - (mrgin_val as any);
                 prg_width_node = Math.round(prg_width_node * 100) / 100;
                 // 不根据文本测量宽度收缩段落容器：PPT 段落应以文本框可用宽度为准，
                 // 否则在中文/混合字体场景下会因测量误差导致提前换行。
@@ -507,8 +507,8 @@ function getTextWidth(html) {
                     let prcnt = parseInt(buFontSize) / 100000;
                     //dfltBultSize = XXpt
                     //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
-                    let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                    bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
+                    let dfltBultSizeNoPt = parseInt(dfltBultSize, 10);
+                    bultSize = `${prcnt * (parseInt(String(dfltBultSizeNoPt)))}px`;// + "pt";
                 }
             } else {
                 bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
@@ -696,8 +696,8 @@ function getTextWidth(html) {
                     if (buFontSize !== undefined) {
                         let prcnt = parseInt(buFontSize) / 100000;
                         //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
-                        let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                        bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
+                        let dfltBultSizeNoPt = parseInt(dfltBultSize, 10);
+                        bultSize = `${prcnt * (parseInt(String(dfltBultSizeNoPt)))}px`;// + "pt";
                     }
                 }else{
                     bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
@@ -711,8 +711,8 @@ function getTextWidth(html) {
                         let prcnt = parseInt(buFontSize) / 100000;
                         //dfltBultSize = XXpt
                         //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
-                        let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                        bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
+                        let dfltBultSizeNoPt = parseInt(dfltBultSize, 10);
+                        bultSize = `${prcnt * (parseInt(String(dfltBultSizeNoPt)))}px`;// + "pt";
                     }
                 } else {
                     bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
@@ -721,7 +721,7 @@ function getTextWidth(html) {
             if (buFontSize === undefined) {
                 bultSize = dfltBultSize;
             }
-            font_val = parseInt(bultSize, "px");
+            font_val = parseInt(bultSize, 10);
             ////////////////////////////////////////////////////////////////////////
             if (buType == "TYPE_BULLET") {
                 let typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
@@ -816,7 +816,7 @@ function getTextWidth(html) {
                     //bullet += "display: inline-block;white-space: nowrap ;direction:rtl"; // float: right;  
                     bullet += "white-space: nowrap ;direction:rtl"; // display: table-cell;;
                 }
-                let isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
+                let isIE11 = !!(window as any).MSInputMethodContext && !!(document as any).documentMode;
                 let htmlBu = buChar;
                 let useUnicodeFont = false;
 
@@ -1118,13 +1118,16 @@ function getTextWidth(html) {
             }
         }
         function getDingbatToUnicode(typefaceNode, buChar){
+            // @ts-ignore 历史遗留拼写问题：此处应为已导入的 DINGBAT_UNICODE，现保留运行时行为未改
             if (dingbatUnicode){
                 let dingbat_code = buChar.codePointAt(0) & 0xFFF;
                 let char_unicode = null;
+                // @ts-ignore 同上：DINGBAT_UNICODE 拼写问题
                 let len = dingbatUnicode.length;
                 let i = 0;
                 while (len--) {
                     // blah blah
+                    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
                     let item = dingbatUnicode[i];
                     if (item.f == typefaceNode && item.code == dingbat_code) {
                         char_unicode = item.unicode;
@@ -2131,7 +2134,7 @@ function getTextWidth(html) {
             let text = await PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, "table", undefined, warpObj, total_col_width);//tableStyles
 
             if (total_col_width != 0 /*&& row_idx == 0*/) {
-                colWidth = parseInt(total_col_width) * SLIDE_FACTOR;
+                colWidth = parseInt(String(total_col_width)) * SLIDE_FACTOR;
                 colWidth = Math.round(colWidth * 100) / 100;
                 colStyl += `width:${colWidth}px;`;
             }
