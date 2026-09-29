@@ -127,27 +127,7 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         yC3 = (y3 + y4) / 2;
         yC4 = (dry + dly) / 2;
 
-        dVal = "M" + x1 + "," + y1 +
-            " L" + x6 + "," + y1 +
-            " L" + lx + "," + ly +
-            " L" + rx + "," + ry +
-            " L" + rx6 + "," + y1 +
-            " L" + x8 + "," + y1 +
-            " L" + x8 + "," + y2 +
-            " L" + rx5 + "," + y2 +
-            " L" + rx4 + "," + y3 +
-            " L" + x8 + "," + y3 +
-            " L" + x8 + "," + y4 +
-            " L" + rx3 + "," + y4 +
-            " L" + drx + "," + dry +
-            " L" + dlx + "," + dly +
-            " L" + x3 + "," + y4 +
-            " L" + x1 + "," + y4 +
-            " L" + x1 + "," + y3 +
-            " L" + x4 + "," + y3 +
-            " L" + x5 + "," + y2 +
-            " L" + x1 + "," + y2 +
-            " z";
+        dVal = `M${x1},${y1} L${x6},${y1} L${lx},${ly} L${rx},${ry} L${rx6},${y1} L${x8},${y1} L${x8},${y2} L${rx5},${y2} L${rx4},${y3} L${x8},${y3} L${x8},${y4} L${rx3},${y4} L${drx},${dry} L${dlx},${dly} L${x3},${y4} L${x1},${y4} L${x1},${y3} L${x4},${y3} L${x5},${y2} L${x1},${y2} z`;
     } 
     // mathDivide (除号)
     else if (shapType == "mathDivide") {
@@ -192,17 +172,7 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         const cY1 = y1 - Math.sin(c3d4 * Math.PI / 180) * rad;
         const cX2 = hc - Math.cos(Math.PI / 2) * rad;
         const cY2 = y5 - Math.sin(Math.PI / 2) * rad;
-            dVal = "M" + hc + "," + y1 +
-                shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
-                " z" +
-                " M" + hc + "," + y5 +
-                shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
-                " z" +
-            " M" + x1 + "," + y3 +
-            " L" + x3 + "," + y3 +
-            " L" + x3 + "," + y4 +
-            " L" + x1 + "," + y4 +
-            " z";
+            dVal = `M${hc},${y1}${shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L")} z M${hc},${y5}${shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L")} z M${x1},${y3} L${x3},${y3} L${x3},${y4} L${x1},${y4} z`;
     } 
     // mathEqual (等号)
     else if (shapType == "mathEqual") {
@@ -232,16 +202,7 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         x2 = hc + dx1;
         yC1 = (y1 + y2) / 2;
         yC2 = (y3 + y4) / 2;
-        dVal = "M" + x1 + "," + y1 +
-            " L" + x2 + "," + y1 +
-            " L" + x2 + "," + y2 +
-            " L" + x1 + "," + y2 +
-            " z" +
-            "M" + x1 + "," + y3 +
-            " L" + x2 + "," + y3 +
-            " L" + x2 + "," + y4 +
-            " L" + x1 + "," + y4 +
-            " z";
+        dVal = `M${x1},${y1} L${x2},${y1} L${x2},${y2} L${x1},${y2} zM${x1},${y3} L${x2},${y3} L${x2},${y4} L${x1},${y4} z`;
     } 
     // mathMinus (减号)
     else if (shapType == "mathMinus") {
@@ -260,11 +221,7 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         x1 = hc - dx1;
         x2 = hc + dx1;
 
-        dVal = "M" + x1 + "," + y1 +
-            " L" + x2 + "," + y1 +
-            " L" + x2 + "," + y2 +
-            " L" + x1 + "," + y2 +
-            " z";
+        dVal = `M${x1},${y1} L${x2},${y1} L${x2},${y2} L${x1},${y2} z`;
     } 
     // mathMultiply (乘号)
     else if (shapType == "mathMultiply") {
@@ -309,19 +266,7 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         xC2 = w - xM;
         yC3 = h - yM;
 
-        dVal = "M" + xA + "," + yA +
-            " L" + xB + "," + yB +
-            " L" + hc + "," + yC +
-            " L" + xD + "," + yB +
-            " L" + xE + "," + yA +
-            " L" + xF + "," + vc +
-            " L" + xE + "," + yG +
-            " L" + xD + "," + yH +
-            " L" + hc + "," + yI +
-            " L" + xB + "," + yH +
-            " L" + xA + "," + yG +
-            " L" + xL + "," + vc +
-            " z";
+        dVal = `M${xA},${yA} L${xB},${yB} L${hc},${yC} L${xD},${yB} L${xE},${yA} L${xF},${vc} L${xE},${yG} L${xD},${yH} L${hc},${yI} L${xB},${yH} L${xA},${yG} L${xL},${vc} z`;
     } 
     // mathPlus (加号)
     else if (shapType == "mathPlus") {
@@ -347,23 +292,10 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         y3 = vc + dx2;
         y4 = vc + dy1;
 
-        dVal = "M" + x1 + "," + y2 +
-            " L" + x2 + "," + y2 +
-            " L" + x2 + "," + y1 +
-            " L" + x3 + "," + y1 +
-            " L" + x3 + "," + y2 +
-            " L" + x4 + "," + y2 +
-            " L" + x4 + "," + y3 +
-            " L" + x3 + "," + y3 +
-            " L" + x3 + "," + y4 +
-            " L" + x2 + "," + y4 +
-            " L" + x2 + "," + y3 +
-            " L" + x1 + "," + y3 +
-            " z";
+        dVal = `M${x1},${y2} L${x2},${y2} L${x2},${y1} L${x3},${y1} L${x3},${y2} L${x4},${y2} L${x4},${y3} L${x3},${y3} L${x3},${y4} L${x2},${y4} L${x2},${y3} L${x1},${y3} z`;
     }
 
-    result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
     return result;
 }

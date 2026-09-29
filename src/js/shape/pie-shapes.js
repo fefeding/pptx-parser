@@ -58,8 +58,7 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
             }
         }
         const pieVals = shapePie(H, w, adj1, adj2, isClose);
-        result += "<path d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
+        result += `<path d='${pieVals[0]}' transform='${pieVals[1]}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
     else if (shapType === "chord") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -80,8 +79,7 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
         const hR = h / 2;
         const wR = w / 2;
         dVal = shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
-        result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
+        result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
     else if (shapType === "blockArc") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -174,13 +172,8 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
             x2 = hc - dx2;
             y2 = vc - dy2;
         }
-        dVal = "M" + x1 + "," + y1 +
-            shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
-            " L" + x2 + "," + y2 +
-            shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
-            " z";
-        result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
+        dVal = `M${x1},${y1}${shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L")} L${x2},${y2}${shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L")} z`;
+        result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
 
     return result;

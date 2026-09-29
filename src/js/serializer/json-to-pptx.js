@@ -130,7 +130,7 @@ async function jsonToPptx(presentation, options = {}) {
     // 图表部件 Content-Types 覆盖
     for (const chartName of allChartNames) {
         const override = `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`;
-        contentTypeXml = contentTypeXml.replace('</Types>', override + '</Types>');
+        contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
     }
     zip.file('[Content_Types].xml', contentTypeXml);
 
@@ -321,13 +321,13 @@ async function editPptx(fileData) {
             zip.file('ppt/_rels/presentation.xml.rels', relsText.replace(relRe, ''));
 
             // 3. 找到并移除 notesSlide（通过 slide 的 rels）
-            const slideRelsText = await readText(slidePath.replace('slides/', 'slides/_rels/') + '.rels');
+            const slideRelsText = await readText(`${slidePath.replace('slides/', 'slides/_rels/')}.rels`);
             if (slideRelsText) {
                 for (const rel of parseRelationships(slideRelsText)) {
                     if (rel.Type && rel.Type.endsWith('/notesSlide')) {
                         const notesPath = rel.Target.replace('../', 'ppt/');
                         zip.remove(notesPath);
-                        zip.remove(notesPath.replace('notesSlides/', 'notesSlides/_rels/') + '.rels');
+                        zip.remove(`${notesPath.replace('notesSlides/', 'notesSlides/_rels/')}.rels`);
                         await removeContentTypeOverride(notesPath);
                     }
                 }
@@ -335,7 +335,7 @@ async function editPptx(fileData) {
 
             // 4. 移除 slide 部件与关系文件
             zip.remove(slidePath);
-            zip.remove(slidePath.replace('slides/', 'slides/_rels/') + '.rels');
+            zip.remove(`${slidePath.replace('slides/', 'slides/_rels/')}.rels`);
 
             // 5. 移除 Content-Types 覆盖项
             await removeContentTypeOverride(slidePath);
@@ -420,12 +420,12 @@ async function editPptx(fileData) {
                 const rootRels = await readText('_rels/.rels');
                 if (rootRels && !rootRels.includes('core-properties')) {
                     const newRel = '<Relationship Id="rIdCore" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>';
-                    zip.file('_rels/.rels', rootRels.replace('</Relationships>', newRel + '</Relationships>'));
+                    zip.file('_rels/.rels', rootRels.replace('</Relationships>', `${newRel}</Relationships>`));
                 }
                 const ctText = await readText('[Content_Types].xml');
                 if (ctText && !ctText.includes('core-properties')) {
                     const override = '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>';
-                    zip.file('[Content_Types].xml', ctText.replace('</Types>', override + '</Types>'));
+                    zip.file('[Content_Types].xml', ctText.replace('</Types>', `${override}</Types>`));
                 }
             }
         },
@@ -480,13 +480,13 @@ async function editPptx(fileData) {
             // presentation.xml.rels 追加关系
             const relsText = await readText('ppt/_rels/presentation.xml.rels');
             const newRel = `<Relationship Id="${newRelId}" Type="${REL_TYPES.slide}" Target="slides/slide${nextNum}.xml"/>`;
-            zip.file('ppt/_rels/presentation.xml.rels', relsText.replace('</Relationships>', newRel + '</Relationships>'));
+            zip.file('ppt/_rels/presentation.xml.rels', relsText.replace('</Relationships>', `${newRel}</Relationships>`));
 
             // Content-Types 追加
             const ctText = await readText('[Content_Types].xml');
             let newCt = ctText;
             const override = `<Override PartName="/ppt/slides/slide${nextNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
-            newCt = newCt.replace('</Types>', override + '</Types>');
+            newCt = newCt.replace('</Types>', `${override}</Types>`);
             const MIME_MAP = { png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml' };
             for (const ext of mediaExts) {
                 if (!newCt.includes(`Extension="${ext}"`)) {

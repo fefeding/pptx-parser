@@ -45,20 +45,7 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
         y2 = vc - x1;
         y3 = vc + x1;
         y4 = h - x1;
-        dVal = "M" + x2 + "," + h +
-            shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
-            " L" + x1 + "," + y3 +
-            shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
-            shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L") +
-            " L" + x1 + "," + x1 +
-            shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L") +
-            " M" + x3 + "," + 0 +
-            shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L") +
-            " L" + x4 + "," + y2 +
-            shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-            shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L") +
-            " L" + x4 + "," + y4 +
-            shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
+        dVal = `M${x2},${h}${shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L")} L${x1},${y3}${shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L")}${shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L")} L${x1},${x1}${shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L")} M${x3},${0}${shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L")} L${x4},${y2}${shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L")}${shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L")} L${x4},${y4}${shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L")}`;
     }
     else if (shapType === "leftBrace") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -94,13 +81,7 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
         y3 = h * a2 / cnstVal2;
         y2 = y3 - y1;
         y4 = y3 + y1;
-        dVal = "M" + w + "," + h +
-            shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
-            " L" + w / 2 + "," + y4 +
-            shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
-            shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L") +
-            " L" + w / 2 + "," + y1 +
-            shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
+        dVal = `M${w},${h}${shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L")} L${w / 2},${y4}${shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L")}${shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L")} L${w / 2},${y1}${shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L")}`;
     }
     else if (shapType === "rightBrace") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -136,13 +117,7 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
         y3 = h * a2 / cnstVal2;
         y2 = y3 - y1;
         y4 = h - y1;
-        dVal = "M" + 0 + "," + 0 +
-            shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
-            " L" + w / 2 + "," + y2 +
-            shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
-            shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L") +
-            " L" + w / 2 + "," + y4 +
-            shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
+        dVal = `M${0},${0}${shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L")} L${w / 2},${y2}${shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L")}${shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L")} L${w / 2},${y4}${shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L")}`;
     }
     else if (shapType === "bracketPair") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -180,11 +155,7 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
         y1 = Math.min(w, h) * a / cnstVal2;
         if (y1 > w) y1 = w;
         y2 = b - y1;
-        dVal = "M" + r + "," + b +
-            shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
-            " L" + 0 + "," + y1 +
-            shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
-            " L" + r + "," + 0;
+        dVal = `M${r},${b}${shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L")} L${0},${y1}${shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L")} L${r},${0}`;
     }
     else if (shapType === "rightBracket") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -202,15 +173,10 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
         y1 = Math.min(w, h) * a / cnstVal2;
         y2 = h - y1;
         y3 = w - y1;
-        dVal = "M" + 0 + "," + h +
-            shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
-            " L" + w + "," + h / 2 +
-            shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
-            " L" + 0 + "," + 0;
+        dVal = `M${0},${h}${shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L")} L${w},${h / 2}${shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L")} L${0},${0}`;
     }
 
-    result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
     return result;
 }

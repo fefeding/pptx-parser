@@ -135,7 +135,7 @@ function getTextWidth(html) {
                 if (styleText in warpObj.styleTable) {
                     cssName = warpObj.styleTable[styleText]["name"];
                 } else {
-                    cssName = "_css_" + (Object.keys(warpObj.styleTable).length + 1);
+                    cssName = `_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
                     warpObj.styleTable[styleText] = {
                         "name": cssName,
                         "text": styleText
@@ -202,7 +202,7 @@ function getTextWidth(html) {
                         availableWidth = availableWidth * 0.95;
                     }
                                 
-                    sld_prg_width = "width:" + Math.max(0, Math.round(availableWidth * 100) / 100) + "px;";
+                    sld_prg_width = `width:${Math.max(0, Math.round(availableWidth * 100) / 100)}px;`;
                 } else if (sld_prg_width_val === null) {
                     sld_prg_width = "width:inherit;";
                 }
@@ -227,7 +227,7 @@ function getTextWidth(html) {
                         outerFlexStyle = "justify-content: flex-start;";
                     }
                 }
-                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + outerFlexStyle + directionStyle + "' class='slide-prgrph " + horizontalAlign + ` ${prg_dir} ` + cssName + "' >";
+                text += `<div style='display: flex;${sld_prg_width}${sld_prg_height}${outerFlexStyle}${directionStyle}' class='slide-prgrph ${horizontalAlign}` + ` ${prg_dir} ` + cssName + "' >";
                 let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? (Number(buText_ary[1]) + Number(buText_ary[2])) : 0;
@@ -311,7 +311,7 @@ function getTextWidth(html) {
                     if (isCircularShape) {
                         availableWidthForTextContainer = availableWidthForTextContainer * 0.95;
                     }
-                    textContainerWidth = "width:" + Math.max(0, Math.round(availableWidthForTextContainer * 100) / 100) + "px;";
+                    textContainerWidth = `width:${Math.max(0, Math.round(availableWidthForTextContainer * 100) / 100)}px;`;
                 }
                 if (isRTL && isBullate) {
                     // RTL 模式下有项目符号时，文本容器不设宽度，让内容自适应
@@ -319,7 +319,7 @@ function getTextWidth(html) {
                 }
                 if (prg_width_node !== undefined && prg_width_node !== null && !isNoWrap) {
                     // 只有明确不需要换行时才设置宽度
-                    prg_width = "width:" + (Math.round(prg_width_node * 100) / 100) + "px;";
+                    prg_width = `width:${(Math.round(prg_width_node * 100) / 100)}px;`;
                 }
                 // 对于圆形/椭圆类形状，使用normal white-space和break-word以确保正确换行
                 let whiteSpaceStyle;
@@ -359,13 +359,13 @@ function getTextWidth(html) {
                         flexStyle = "justify-content: flex-start;";
                     }
                 }
-                text += "<div style='display: flex;" + flexStyle + textContainerWidth + directionStyle + "'>";
+                text += `<div style='display: flex;${flexStyle}${textContainerWidth}${directionStyle}'>`;
                 // 在 RTL 模式下，项目符号应该和文本在同一个容器中
                 if (isRTL && isBullate && buText_ary[0] !== undefined) {
                     // 先添加项目符号，再添加文本（在 RTL 容器中，第一个子元素显示在最右边）
                     text += buText_ary[0];
                 }
-                text += "<div style='" + styleText + directionStyle + whiteSpaceStyle + margin + textAlignStyle + "'>";
+                text += `<div style='${styleText}${directionStyle}${whiteSpaceStyle}${margin}${textAlignStyle}'>`;
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
@@ -509,10 +509,10 @@ function getTextWidth(html) {
                     //dfltBultSize = XXpt
                     //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
                     let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                    bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
+                    bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
                 }
             } else {
-                bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
+                bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
             }
 
             //get definde bullet COLOR
@@ -640,7 +640,7 @@ function getTextWidth(html) {
                     marLStr = "padding-left:";//"margin-left: ";
                 }
                 margin_val = ((marginLeft + indent < 0) ? 0 : (marginLeft + indent));
-                marLStr += margin_val + "px;";
+                marLStr += `${margin_val}px;`;
             }
             
             //marR?
@@ -659,7 +659,7 @@ function getTextWidth(html) {
                 } else {
                     marLStr = "padding-left:";//"margin-left: ";
                 }
-                marRStr += ((marginRight + indent < 0) ? 0 : (marginRight + indent)) + "px;";
+                marRStr += `${((marginRight + indent < 0) ? 0 : (marginRight + indent))}px;`;
             }
 
             if (buType != "TYPE_NONE") {
@@ -698,10 +698,10 @@ function getTextWidth(html) {
                         let prcnt = parseInt(buFontSize) / 100000;
                         //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
                         let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                        bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
+                        bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
                     }
                 }else{
-                    bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
+                    bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
                 }
             }
             if (buFontSize === undefined) {
@@ -713,10 +713,10 @@ function getTextWidth(html) {
                         //dfltBultSize = XXpt
                         //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
                         let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                        bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
+                        bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
                     }
                 } else {
-                    bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
+                    bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
                 }
             }
             if (buFontSize === undefined) {
@@ -730,7 +730,7 @@ function getTextWidth(html) {
                 let isWingdingsFont = false;
                 if (typefaceNode !== undefined) {
                     isWingdingsFont = (typefaceNode == "Wingdings" || typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3" || typefaceNode == "Webdings");
-                    typeface = "font-family: " + typefaceNode;
+                    typeface = `font-family: ${typefaceNode}`;
                 }
                 // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * SLIDE_FACTOR;
                 // let marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * SLIDE_FACTOR;
@@ -754,12 +754,12 @@ function getTextWidth(html) {
                             let colorObj = tinycolor(bulletColorValue);
                             bulletColorValue = colorObj.toRgbString();
                         } else {
-                            bulletColorValue = "#" + bulletColorValue;
+                            bulletColorValue = `#${bulletColorValue}`;
                         }
-                        bullet += "color:" + bulletColorValue + "; ";
+                        bullet += `color:${bulletColorValue}; `;
                     }
                     if (bultColor[1] !== undefined && bultColor[1] != "" && bultColor[1] != ";") {
-                        bullet += "text-shadow:" + bultColor[1] + ";";
+                        bullet += `text-shadow:${bultColor[1]};`;
                     }
                     //no highlight/background-color to bullet
                     // if (bultColor[3] !== undefined && bultColor[3] != "") {
@@ -767,12 +767,12 @@ function getTextWidth(html) {
                     // }
                 } else if (color_tye == "pattern" || color_tye == "pic" || color_tye == "gradient") {
                     if (color_tye == "pattern") {
-                        bullet += "background:" + bultColor[0][0] + ";";
+                        bullet += `background:${bultColor[0][0]};`;
                         if (bultColor[0][1] !== null && bultColor[0][1] !== undefined && bultColor[0][1] != "") {
-                            bullet += "background-size:" + bultColor[0][1] + ";";//" 2px 2px;" +
+                            bullet += `background-size:${bultColor[0][1]};`;//" 2px 2px;" +
                         }
                         if (bultColor[0][2] !== null && bultColor[0][2] !== undefined && bultColor[0][2] != "") {
-                            bullet += "background-position:" + bultColor[0][2] + ";";//" 2px 2px;" +
+                            bullet += `background-position:${bultColor[0][2]};`;//" 2px 2px;" +
                         }
                         // bullet += "-webkit-background-clip: text;" +
                         //     "background-clip: text;" +
@@ -780,7 +780,7 @@ function getTextWidth(html) {
                         //     "-webkit-text-stroke: " + bultColor[1].border + ";" +
                         //     "filter: " + bultColor[1].effcts + ";";
                     } else if (color_tye == "pic") {
-                        bullet += bultColor[0] + ";";
+                        bullet += `${bultColor[0]};`;
                         // bullet += "-webkit-background-clip: text;" +
                         //     "background-clip: text;" +
                         //     "color: transparent;" +
@@ -794,9 +794,9 @@ function getTextWidth(html) {
                         bullet += `background: linear-gradient(${rot}deg,`;
                         for (let i = 0; i < colorAry.length; i++) {
                             if (i == colorAry.length - 1) {
-                                bullet += "#" + colorAry[i] + ");";
+                                bullet += `#${colorAry[i]});`;
                             } else {
-                                bullet += "#" + colorAry[i] + ", ";
+                                bullet += `#${colorAry[i]}, `;
                             }
                         }
                         // bullet += "color: transparent;" +
@@ -804,14 +804,12 @@ function getTextWidth(html) {
                         //     "background-clip: text;" +
                         //     "-webkit-text-stroke: " + bultColor[1].border + ";";
                     }
-                    bullet += "-webkit-background-clip: text;" +
-                        "background-clip: text;" +
-                        "color: transparent;";
+                    bullet += `-webkit-background-clip: text;background-clip: text;color: transparent;`;
                     if (bultColor[1].border !== undefined && bultColor[1].border !== "") {
-                        bullet += "-webkit-text-stroke: " + bultColor[1].border + ";";
+                        bullet += `-webkit-text-stroke: ${bultColor[1].border};`;
                     }
                     if (bultColor[1].effcts !== undefined && bultColor[1].effcts !== "") {
-                        bullet += "filter: " + bultColor[1].effcts + ";";
+                        bullet += `filter: ${bultColor[1].effcts};`;
                     }
                 }
 
@@ -836,7 +834,7 @@ function getTextWidth(html) {
                     bullet = bullet.replace(/font-family:\s*(Wingdings|Wingdings\s*2|Wingdings\s*3|Webdings)\s*/gi, "font-family: Arial, sans-serif");
                 }
                 
-                bullet += "display: flex; align-items: center;'><div>" + htmlBu + "</div></div>";
+                bullet += `display: flex; align-items: center;'><div>${htmlBu}</div></div>`;
                 //} 
                 // else {
                 //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
@@ -868,16 +866,16 @@ function getTextWidth(html) {
                 const bulletIndex = warpObj.bulletCounter[bulletKey].index;
                 const bulletText = getNumTypeNum(buNum, bulletIndex);
 
-                bullet = "<div style='" + marLStr + marRStr;
+                bullet = `<div style='${marLStr}${marRStr}`;
                 if (bultColor && bultColor[0] !== undefined && bultColor[0] != "") {
                     let bulletNumColorValue = bultColor[0];
                     if (bulletNumColorValue.length === 8) {
                         let colorObj = tinycolor(bulletNumColorValue);
                         bulletNumColorValue = colorObj.toRgbString();
                     } else {
-                        bulletNumColorValue = "#" + bulletNumColorValue;
+                        bulletNumColorValue = `#${bulletNumColorValue}`;
                     }
-                    bullet += "color:" + bulletNumColorValue + ";";
+                    bullet += `color:${bulletNumColorValue};`;
                 }
                 bullet += `font-size:${bultSize};`;
                 if (isRTL) {
@@ -930,7 +928,7 @@ function getTextWidth(html) {
                 if (buPicId === undefined) {
                     buImg = "&#8227;";
                 }
-                bullet = "<div style='" + marLStr + marRStr +
+                bullet = `<div style='${marLStr}${marRStr}` +
                     `width:${bultSize};display: flex; align-items: center;`;// +
                 //"line-height: 0px;";
                 if (isRTL) {
@@ -1117,7 +1115,7 @@ function getTextWidth(html) {
                             return `&#${wingCharCode};`;
                         }
                     }
-                    return "&#" + (buChar.charCodeAt(0)) + ";";
+                    return `&#${(buChar.charCodeAt(0))};`;
             }
         }
         function getDingbatToUnicode(typefaceNode, buChar){
@@ -1269,34 +1267,34 @@ function getTextWidth(html) {
         let rtrnNum = "";
         switch (numTyp) {
             case "arabicPeriod":
-                rtrnNum = num + ". ";
+                rtrnNum = `${num}. `;
                 break;
             case "arabicParenR":
-                rtrnNum = num + ") ";
+                rtrnNum = `${num}) `;
                 break;
             case "alphaLcParenR":
-                rtrnNum = alphaNumeric(num, "lowerCase") + ") ";
+                rtrnNum = `${alphaNumeric(num, "lowerCase")}) `;
                 break;
             case "alphaLcPeriod":
-                rtrnNum = alphaNumeric(num, "lowerCase") + ". ";
+                rtrnNum = `${alphaNumeric(num, "lowerCase")}. `;
                 break;
 
             case "alphaUcParenR":
-                rtrnNum = alphaNumeric(num, "upperCase") + ") ";
+                rtrnNum = `${alphaNumeric(num, "upperCase")}) `;
                 break;
             case "alphaUcPeriod":
-                rtrnNum = alphaNumeric(num, "upperCase") + ". ";
+                rtrnNum = `${alphaNumeric(num, "upperCase")}. `;
                 break;
 
             case "romanUcPeriod":
-                rtrnNum = romanize(num) + ". ";
+                rtrnNum = `${romanize(num)}. `;
                 break;
             case "romanLcParenR":
-                rtrnNum = romanize(num) + ") ";
+                rtrnNum = `${romanize(num)}) `;
                 break;
             case "hebrew2Minus":
                 // 希伯来字母编号：使用现代希伯来字母（א, ב, ג, ד, ...）类似英文字母编号
-                rtrnNum = hebrewAlphaNumeric(num) + "-";
+                rtrnNum = `${hebrewAlphaNumeric(num)}-`;
                 break;
             default:
                 rtrnNum = num;
@@ -1387,18 +1385,18 @@ function getTextWidth(html) {
             let linkTooltip = "";
             let defLinkClr;
             if (linkID !== undefined) {
-                linkTooltip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "tooltip"]);
-                if (linkTooltip !== undefined) {
-                    linkTooltip = `title='${linkTooltip}'`;
+                const tip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "tooltip"]);
+                if (tip !== undefined) {
+                    linkTooltip = `title='${tip}'`;
                 }
                 defLinkClr = PPTXStyleUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
             } else {
                 // Fallback to hover hyperlink (a:hlinkHover)
                 linkID = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkHover", "attrs", "r:id"]);
                 if (linkID !== undefined) {
-                    linkTooltip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkHover", "attrs", "tooltip"]);
-                    if (linkTooltip !== undefined) {
-                        linkTooltip = `title='${linkTooltip}'`;
+                    const tip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkHover", "attrs", "tooltip"]);
+                    if (tip !== undefined) {
+                        linkTooltip = `title='${tip}'`;
                     }
                     defLinkClr = PPTXStyleUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
                 }
@@ -1428,16 +1426,16 @@ function getTextWidth(html) {
                         let colorObj = tinycolor(colorValue);
                         colorValue = colorObj.toRgbString();
                     } else {
-                        colorValue = "#" + colorValue;
+                        colorValue = `#${colorValue}`;
                     }
-                    styleText += "color: " + colorValue + ";";
+                    styleText += `color: ${colorValue};`;
                 }
                 else if (linkID !== undefined && defLinkClr !== undefined) {
                     styleText += `color: #${defLinkClr};`;
                 }
 
                 if (fontClrPr[1] !== undefined && fontClrPr[1] != "" && fontClrPr[1] != ";") {
-                    styleText += "text-shadow:" + fontClrPr[1] + ";";
+                    styleText += `text-shadow:${fontClrPr[1]};`;
                 }
                 if (fontClrPr[3] !== undefined && fontClrPr[3] != "") {
                     let highlightColorValue = fontClrPr[3];
@@ -1445,18 +1443,18 @@ function getTextWidth(html) {
                         let colorObj = tinycolor(highlightColorValue);
                         highlightColorValue = colorObj.toRgbString();
                     } else {
-                        highlightColorValue = "#" + highlightColorValue;
+                        highlightColorValue = `#${highlightColorValue}`;
                     }
-                    styleText += "background-color: " + highlightColorValue + ";";
+                    styleText += `background-color: ${highlightColorValue};`;
                 }
             } else if (fontClrType == "pattern" || fontClrType == "pic" || fontClrType == "gradient") {
                 if (fontClrType == "pattern") {
-                    styleText += "background:" + fontClrPr[0][0] + ";";
+                    styleText += `background:${fontClrPr[0][0]};`;
                     if (fontClrPr[0][1] !== null && fontClrPr[0][1] !== undefined && fontClrPr[0][1] != "") {
-                        styleText += "background-size:" + fontClrPr[0][1] + ";";//" 2px 2px;" +
+                        styleText += `background-size:${fontClrPr[0][1]};`;//" 2px 2px;" +
                     }
                     if (fontClrPr[0][2] !== null && fontClrPr[0][2] !== undefined && fontClrPr[0][2] != "") {
-                        styleText += "background-position:" + fontClrPr[0][2] + ";";//" 2px 2px;" +
+                        styleText += `background-position:${fontClrPr[0][2]};`;//" 2px 2px;" +
                     }
                     // styleText += "-webkit-background-clip: text;" +
                     //     "background-clip: text;" +
@@ -1464,7 +1462,7 @@ function getTextWidth(html) {
                     //     "-webkit-text-stroke: " + fontClrPr[1].border + ";" +
                     //     "filter: " + fontClrPr[1].effcts + ";";
                 } else if (fontClrType == "pic") {
-                    styleText += fontClrPr[0] + ";";
+                    styleText += `${fontClrPr[0]};`;
                     // styleText += "-webkit-background-clip: text;" +
                     //     "background-clip: text;" +
                     //     "color: transparent;" +
@@ -1477,9 +1475,9 @@ function getTextWidth(html) {
                     styleText += `background: linear-gradient(${rot}deg,`;
                     for (let i = 0; i < colorAry.length; i++) {
                         if (i == colorAry.length - 1) {
-                            styleText += "#" + colorAry[i] + ");";
+                            styleText += `#${colorAry[i]});`;
                         } else {
-                            styleText += "#" + colorAry[i] + ", ";
+                            styleText += `#${colorAry[i]}, `;
                         }
                     }
                     // styleText += "-webkit-background-clip: text;" +
@@ -1488,14 +1486,12 @@ function getTextWidth(html) {
                     //     "-webkit-text-stroke: " + fontClrPr[1].border + ";";
 
                 }
-                styleText += "-webkit-background-clip: text;" +
-                    "background-clip: text;" +
-                    "color: transparent;";
+                styleText += `-webkit-background-clip: text;background-clip: text;color: transparent;`;
                 if (fontClrPr[1].border !== undefined && fontClrPr[1].border !== "") {
-                    styleText += "-webkit-text-stroke: " + fontClrPr[1].border + ";";
+                    styleText += `-webkit-text-stroke: ${fontClrPr[1].border};`;
                 }
                 if (fontClrPr[1].effcts !== undefined && fontClrPr[1].effcts !== "") {
-                    styleText += "filter: " + fontClrPr[1].effcts + ";";
+                    styleText += `filter: ${fontClrPr[1].effcts};`;
                 }
             }
             let font_size = PPTXStyleUtils.getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj);
@@ -1554,9 +1550,9 @@ function getTextWidth(html) {
                         let colorObj = tinycolor(highlightColor);
                         highlightColor = colorObj.toRgbString();
                     } else {
-                        highlightColor = "#" + highlightColor;
+                        highlightColor = `#${highlightColor}`;
                     }
-                    styleText += "background-color:" + highlightColor + ";";
+                    styleText += `background-color:${highlightColor};`;
                 }
                 //styleText += "Opacity:" + getColorOpacity(highlight) + ";";
             }
@@ -1593,7 +1589,7 @@ function getTextWidth(html) {
             if (styleText in warpObj.styleTable) {
                 cssName = warpObj.styleTable[styleText]["name"];
             } else {
-                cssName = "_css_" + (Object.keys(warpObj.styleTable).length + 1);
+                cssName = `_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
                 warpObj.styleTable[styleText] = {
                     "name": cssName,
                     "text": styleText
@@ -1608,7 +1604,22 @@ function getTextWidth(html) {
             }
 
             if (linkID !== undefined && linkID != "") {
-                let linkURL = warpObj["slideResObj"][linkID]["target"];
+                const linkRes = warpObj["slideResObj"][linkID];
+                let linkURL = linkRes && linkRes.target ? linkRes.target : "";
+                const linkType = linkRes && linkRes.type ? linkRes.type : "";
+
+                // 内部幻灯片跳转（如 PPT 中“跳到第 N 页”）：关系类型为 slide，
+                // target 指向 slideX.xml。渲染为同页锚点跳转到对应幻灯片（id="slide-N"），
+                // 而非打开不存在的原始 xml 文件；因此不设置 target='_blank'。
+                let linkTargetAttr = " target='_blank'";
+                if (linkType === "slide") {
+                    const m = linkURL.match(/slide(\d+)\.xml$/i);
+                    if (m) {
+                        linkURL = `#slide-${m[1]}`;
+                        linkTargetAttr = "";
+                    }
+                }
+
                 linkURL = PPTXXmlUtils.escapeHtml(linkURL);
                 // 处理文本：制表符、换行符、多个连续空格
                 let processedText = text
@@ -1621,7 +1632,7 @@ function getTextWidth(html) {
                     processedText = processedText.split(/\s+/).filter(word => word.length > 0).join("<br>");
                 }
 
-                return openElemnt + ` class='text-block ${cssName}' style='` + text_style + `'><a href='${linkURL}' ` + linkColorSyle + `  ${linkTooltip} target='_blank'>` +
+                return openElemnt + ` class='text-block ${cssName}' style='` + text_style + `'><a href='${linkURL}' ` + linkColorSyle + `  ${linkTooltip}${linkTargetAttr}>` +
                         processedText + "</a>" + closeElemnt;
             } else {
                 // 处理文本：制表符、换行符、多个连续空格
@@ -1747,7 +1758,7 @@ function getTextWidth(html) {
                     let colorObj = tinycolor(tbl_bgcolor);
                     tbl_bgcolor = colorObj.toRgbString();
                 } else {
-                    tbl_bgcolor = "#" + tbl_bgcolor;
+                    tbl_bgcolor = `#${tbl_bgcolor}`;
                 }
                 tbl_bgcolor = `background-color: ${tbl_bgcolor};`;
             }
@@ -1940,7 +1951,7 @@ function getTextWidth(html) {
                             let colorObj = tinycolor(tableColorValue);
                             tableColorValue = colorObj.toRgbString();
                         } else {
-                            tableColorValue = "#" + tableColorValue;
+                            tableColorValue = `#${tableColorValue}`;
                         }
                         rowsStyl += ` color: ${tableColorValue};`;
                     }
@@ -1950,7 +1961,7 @@ function getTextWidth(html) {
                             let colorObj = tinycolor(fillColor);
                             fillColor = colorObj.toRgbString();
                         } else {
-                            fillColor = "#" + fillColor;
+                            fillColor = `#${fillColor}`;
                         }
                         //rowsStyl += "background-color: rgba(" + hexToRgbNew(fillColor) + `,${colorOpacity});`;
                         rowsStyl += `background-color: ${fillColor};`;
@@ -2253,7 +2264,7 @@ function getTextWidth(html) {
                 if (celFillColor in warpObj.styleTable) {
                     cssName = warpObj.styleTable[celFillColor]["name"];
                 } else {
-                    cssName = "_tbl_cell_css_" + (Object.keys(warpObj.styleTable).length + 1);
+                    cssName = `_tbl_cell_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
                     warpObj.styleTable[celFillColor] = {
                         "name": cssName,
                         "text": celFillColor

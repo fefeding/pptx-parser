@@ -145,7 +145,7 @@ function tXml(xml, options) {
      * @returns {number} 属性位置索引
      */
     function findAttributePosition() {
-        const pattern = new RegExp('\\s' + options.attrName + '\\s*=[\'"]' + options.attrValue + '[\'"]');
+        const pattern = new RegExp(`\\s${options.attrName}\\s*=[\'"]${options.attrValue}[\'"]`);
         const match = pattern.exec(xml);
         return match ? match.index : -1;
     }
@@ -339,22 +339,22 @@ tXml.stringify = (nodes) => {
         }
     }
     function processNode(node) {
-        xmlString += '<' + node.tagName;
+        xmlString += `<${node.tagName}`;
         for (const attr in node.attributes) {
             const value = node.attributes[attr];
             if (value === null) {
-                xmlString += ' ' + attr;
+                xmlString += ` ${attr}`;
             }
             else if (value.indexOf('"') === -1) {
-                xmlString += ' ' + attr + '="' + value.trim() + '"';
+                xmlString += ` ${attr}="${value.trim()}"`;
             }
             else {
-                xmlString += ' ' + attr + "='" + value.trim() + "'";
+                xmlString += ` ${attr}='${value.trim()}'`;
             }
         }
         xmlString += '>';
         processNodes(node.children);
-        xmlString += '</' + node.tagName + '>';
+        xmlString += `</${node.tagName}>`;
     }
     processNodes(nodes);
     return xmlString;
@@ -369,7 +369,7 @@ tXml.toContentString = (node) => {
     if (Array.isArray(node)) {
         let text = '';
         node.forEach((child) => {
-    text += ' ' + tXml.toContentString(child);
+    text += ` ${tXml.toContentString(child)}`;
     text = text.trim();
 });
         return text;
@@ -377,7 +377,7 @@ tXml.toContentString = (node) => {
     if (typeof node === 'object') {
         return tXml.toContentString(node.children);
     }
-    return ' ' + node;
+    return ` ${node}`;
 };
 
 /**
@@ -405,7 +405,7 @@ tXml.getElementById = (xml, id, simplify) => {
 tXml.getElementsByClassName = (xml, className, simplify) => {
     return tXml(xml, {
         attrName: 'class',
-        attrValue: '[a-zA-Z0-9-s ]*' + className + '[a-zA-Z0-9-s ]*',
+        attrValue: `[a-zA-Z0-9-s ]*${className}[a-zA-Z0-9-s ]*`,
         simplify: simplify
     });
 };

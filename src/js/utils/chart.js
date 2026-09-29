@@ -68,8 +68,7 @@ async function genChart(node, warpObj, parentNode) {
     // 生成 data- 属性
     const dataAttrs = ` data-node-type="chart" data-off-x="${offX}" data-off-y="${offY}" data-ext-cx="${extCx}" data-ext-cy="${extCy}"`;
 
-    const result = "<div id='chart" + warpObj.chartId.value + "' class='block content' style='" +
-        PPTXXmlUtils.getPosition(workingXfrmNode, parentNode || node, undefined, undefined) + PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) +
+    const result = `<div id='chart${warpObj.chartId.value}' class='block content' style='${PPTXXmlUtils.getPosition(workingXfrmNode, parentNode || node, undefined, undefined)}${PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined)}` +
         ` z-index: ${order};'${dataAttrs}></div>`;
 
     const rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
@@ -159,7 +158,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "lineChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -172,7 +171,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "barChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -185,7 +184,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "pieChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -198,7 +197,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "pie3DChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -211,7 +210,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "areaChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -224,7 +223,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "scatterChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,

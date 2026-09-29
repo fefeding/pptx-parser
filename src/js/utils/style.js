@@ -130,9 +130,9 @@ function getFillType(node) {
                         let bgcolor = `background: linear-gradient(${rot}deg,`;
                         for (let i = 0; i < colorAry.length; i++) {
                             if (i == colorAry.length - 1) {
-                                bgcolor += "#" + colorAry[i] + ");";
+                                bgcolor += `#${colorAry[i]});`;
                             } else {
-                                bgcolor += "#" + colorAry[i] + ", ";
+                                bgcolor += `#${colorAry[i]}, `;
                             }
 
                         }
@@ -164,12 +164,12 @@ function getFillType(node) {
                     let bgPtrn = "", bgSize = "", bgPos = "";
                     bgPtrn = fillColor[0];
                     if (fillColor[1] !== null && fillColor[1] !== undefined && fillColor[1] != "") {
-                        bgSize = " background-size:" + fillColor[1] + ";";
+                        bgSize = ` background-size:${fillColor[1]};`;
                     }
                     if (fillColor[2] !== null && fillColor[2] !== undefined && fillColor[2] != "") {
-                        bgPos = " background-position:" + fillColor[2] + ";";
+                        bgPos = ` background-position:${fillColor[2]};`;
                     }
-                    return "background: " + bgPtrn + ";" + bgSize + bgPos;
+                    return `background: ${bgPtrn};${bgSize}${bgPos}`;
                     //}
                 } else {
                     if (isSvgMode) {
@@ -211,7 +211,7 @@ function getFillType(node) {
                         fontIdx = "minor";
                     }
                 }
-                fontGrup = "a:" + fontIdx + "Font";
+                fontGrup = `a:${fontIdx}Font`;
                 typeface = PPTXXmlUtils.getTextByPathList(fontSchemeNode, [fontGrup, "a:latin", "attrs", "typeface"]);
             }
 
@@ -253,9 +253,9 @@ function getFillType(node) {
                     colorType = "gradient";
                 } 
             }
-            if (color === undefined && PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]) !== undefined) {
+            if (color === undefined && PPTXXmlUtils.getTextByPathList(lstStyle, [`a:lvl${lvl}pPr`, "a:defRPr"]) !== undefined) {
                 //lstStyle
-                let lstStyledefRPr = PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]);
+                let lstStyledefRPr = PPTXXmlUtils.getTextByPathList(lstStyle, [`a:lvl${lvl}pPr`, "a:defRPr"]);
                 filTyp = getFillType(lstStyledefRPr);
                 if (filTyp == "SOLID_FILL") {
                     let solidFillNode = lstStyledefRPr["a:solidFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
@@ -342,7 +342,7 @@ function getFillType(node) {
                 let txBrd = getBorder(node, pNode, false, "text", warpObj);
                 let txBrdAry = txBrd.split(" ");
                 //let brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("pt")))) + "px";
-                let brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("px")))) + "px";
+                let brdSize = `${(parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("px"))))}px`;
                 let brdClr = txBrdAry[2];
                 //let brdTyp = txBrdAry[1]; //not in use
                 //console.log("getFontColorPr txBrdAry:", txBrdAry)
@@ -356,7 +356,7 @@ function getFillType(node) {
                     txtEffects.push(textBordr);
                 } else {
                     //textBordr = brdSize + " " + brdClr;
-                    txtEffObj.border = brdSize + " " + brdClr;
+                    txtEffObj.border = `${brdSize} ${brdClr}`;
                 }
             }
             // else {
@@ -372,13 +372,7 @@ function getFillType(node) {
             if (txtGlowNode !== undefined) {
                 let glowClr = getSolidFill(txtGlowNode, undefined, undefined, warpObj);
                 let rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * SLIDE_FACTOR) : 0;
-                oGlowStr = "0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr;
+                oGlowStr = `0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}`;
                 if (colorType == "solid") {
                     txtEffects.push(oGlowStr);
                 } else {
@@ -387,9 +381,7 @@ function getFillType(node) {
                     //     color: glowClr
                     // } 
                     txtEffects.push(
-                        "drop-shadow(0 0 " + rad / 3 + "px #" + glowClr + ") " +
-                        "drop-shadow(0 0 " + rad * 2 / 3 + "px #" + glowClr + ") " +
-                        "drop-shadow(0 0 " + rad + "px #" + glowClr + ")"
+                        `drop-shadow(0 0 ${rad / 3}px #${glowClr}) drop-shadow(0 0 ${rad * 2 / 3}px #${glowClr}) drop-shadow(0 0 ${rad}px #${glowClr})`
                     );
                 }
             }
@@ -472,7 +464,7 @@ function getFillType(node) {
                 let dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
                 let dist = parseInt(outerShdwAttrs["dist"]) * SLIDE_FACTOR;//(px) //* (3 / 4); //(pt)
                 let rotWithShape = outerShdwAttrs["rotWithShape"];
-                let blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR + "px") : "";
+                let blurRad = (outerShdwAttrs["blurRad"]) ? (`${parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR}px`) : "";
                 let sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
                 let sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
                 let vx = dist * Math.sin(dir * Math.PI / 180);
@@ -481,7 +473,7 @@ function getFillType(node) {
                 //console.log("getFontColorPr outerShdwAttrs:", outerShdwAttrs, ", shadowClr:", shadowClr, ", algn: ", algn, ",dir: ", dir, ", dist: ", dist, ",rotWithShape: ", rotWithShape, ", color: ", color)
 
                 if (!isNaN(vx) && !isNaN(hx)) {
-                    oShadowStr = hx + "px " + vx + "px " + blurRad + " #" + shadowClr;// + ";";
+                    oShadowStr = `${hx}px ${vx}px ${blurRad} #${shadowClr}`;// + ";";
                     if (colorType == "solid") {
                         txtEffects.push(oShadowStr);
                     } else {
@@ -495,7 +487,7 @@ function getFillType(node) {
 
                         //txtEffObj.oShadow = hx + "px " + vx + "px " + blurRad + " #" + shadowClr;
 
-                        txtEffects.push("drop-shadow(" + hx + "px " + vx + "px " + blurRad + " #" + shadowClr + ")");
+                        txtEffects.push(`drop-shadow(${hx}px ${vx}px ${blurRad} #${shadowClr})`);
                     }
                 }
                 //console.log("getFontColorPr vx:", vx, ", hx: ", hx, ", sx: ", sx, ", sy: ", sy, ",oShadowStr: ", oShadowStr)
@@ -511,7 +503,7 @@ function getFillType(node) {
                 if (txtEffects.length > 0) {
                     text_effcts = txtEffects.join(",");
                 }
-                txt_effects = text_effcts + ";"
+                txt_effects = `${text_effcts};`
             } else {
                 if (txtEffects.length > 0) {
                     text_effcts = txtEffects.join(" ");
@@ -528,7 +520,7 @@ function getFillType(node) {
             // if(type == "sldNum")
             //console.log("getFontSize node:", node, "lstStyle", lstStyle, "lvl:", lvl, 'type:', type, "warpObj:", warpObj)
             let lstStyle = (textBodyNode !== undefined)? textBodyNode["a:lstStyle"] : undefined;
-            let lvlpPr = "a:lvl" + lvl + "pPr";
+            let lvlpPr = `a:lvl${lvl}pPr`;
             let fontSize = undefined;
             let sz, kern;
             if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] && node["a:rPr"]["attrs"]["sz"] !== undefined) {
@@ -649,7 +641,7 @@ function getFillType(node) {
                 }
             }
 
-            return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (fontSize * FONT_SIZE_FACTOR + "px");// + "pt");
+            return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (`${fontSize * FONT_SIZE_FACTOR}px`);// + "pt");
         }
 
         function getFontBold(node, type, slideMasterTextStyles) {
@@ -700,7 +692,7 @@ function getFillType(node) {
                     if (lvlNode !== undefined) {
                         lvlIdx = parseInt(lvlNode) + 1;
                     }
-                    let lvlStr = "a:lvl" + lvlIdx + "pPr";
+                    let lvlStr = `a:lvl${lvlIdx}pPr`;
                     getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
                     if (getAlgn === undefined) {
                         getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
@@ -746,7 +738,7 @@ function getFillType(node) {
         /////////////////////////////////////////////////////////////////////
         function getTextVerticalAlign(node, type, slideMasterTextStyles) {
             let baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
-            return baseline === undefined ? "baseline" : (parseInt(baseline) / 1000) + "%";
+            return baseline === undefined ? "baseline" : `${(parseInt(baseline) / 1000)}%`;
         }
 
         function getTableBorders(node, warpObj) {
@@ -849,9 +841,9 @@ function getFillType(node) {
                 let w = PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "w"]);
                 borderWidth = (w !== undefined) ? parseInt(w) / 12700 : (4/3);
                 if (isNaN(borderWidth) || borderWidth < 1) {
-                    cssText += (4/3) + "px ";//"1pt ";
+                    cssText += `${(4/3)}px `;//"1pt ";
                 } else {
-                    cssText += borderWidth + "px ";// + "pt ";
+                    cssText += `${borderWidth}px `;// + "pt ";
                 }
                 // Border type
                 borderType = PPTXXmlUtils.getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
@@ -971,17 +963,17 @@ function getFillType(node) {
                 if (borderColor && typeof borderColor === 'string') {
                     // 如果不是以#开头的十六进制颜色，添加#前缀
                     if (!borderColor.startsWith('#') && !borderColor.startsWith('rgb') && !borderColor.startsWith('hsl') && borderColor !== 'none' && borderColor !== 'hidden') {
-                        borderColor = "#" + borderColor;
+                        borderColor = `#${borderColor}`;
                     }
                 }
             }
-            cssText += " " + borderColor + " ";
+            cssText += ` ${borderColor} `;
 
             if (isSvgMode) {
                 let result = { "color": borderColor, "width": borderWidth, "type": borderType, "strokeDasharray": strokeDasharray };
                 return result;
             } else {
-                return cssText + ";";
+                return `${cssText};`;
             }
             // } else {
             //     if (isSvgMode) {
@@ -1323,11 +1315,11 @@ function getFillType(node) {
                     let lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
                     const pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"])
                     if (pos !== undefined) {
-                        pos_ary[i] = pos / 1000 + "%";
+                        pos_ary[i] = `${pos / 1000}%`;
                     } else {
                         pos_ary[i] = "";
                     }
-                    color_ary[i] = "#" + lo_color;
+                    color_ary[i] = `#${lo_color}`;
                     //tint_ary[i] = (lo_tint !== undefined) ? parseInt(lo_tint) / 100000 : 1;
                 }
                 //get rot
@@ -1342,7 +1334,7 @@ function getFillType(node) {
                     if (i == gsLst.length - 1) {
                         //if (phClr === undefined) {
                         //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ");";
-                        bgcolor += color_ary[i] + " " + pos_ary[i] + ");";
+                        bgcolor += `${color_ary[i]} ${pos_ary[i]});`;
                         //} else {
                         //bgcolor += "rgba(" + hexToRgbNew(phClr) + "," + tint_ary[i] + ")" + ");";
                         // bgcolor += "" + phClr + ";";;
@@ -1350,7 +1342,7 @@ function getFillType(node) {
                     } else {
                         //if (phClr === undefined) {
                         //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ", ";
-                        bgcolor += color_ary[i] + " " + pos_ary[i] + ", ";;
+                        bgcolor += `${color_ary[i]} ${pos_ary[i]}, `;;
                         //} else {
                         //bgcolor += "rgba(" + hexToRgbNew(phClr) + "," + tint_ary[i] + ")" + ", ";
                         // bgcolor += phClr + ", ";
@@ -1361,7 +1353,7 @@ function getFillType(node) {
                 if (phClr !== undefined) {
                     //bgcolor = "rgba(" + hexToRgbNew(phClr) + ",0);";
                     //bgcolor = phClr + ");";
-                    bgcolor = "background: #" + phClr + ";";
+                    bgcolor = `background: #${phClr};`;
                 }
             }
             return bgcolor;
@@ -1447,23 +1439,23 @@ function getFillType(node) {
             if (aphaModFixNode !== undefined && aphaModFixNode["amt"] !== undefined && aphaModFixNode["amt"] != "") {
                 const amt = parseInt(aphaModFixNode["amt"]) / 100000;
                 //let opacity = amt;
-                imgOpacity = "opacity:" + amt + ";";
+                imgOpacity = `opacity:${amt};`;
 
             }
             // 使用getPicFill函数返回的填充模式信息
             let prop_style = "";
             if (typeof picFillResult === 'object') {
                 if (picFillResult.backgroundSize) {
-                    prop_style += "background-size: " + picFillResult.backgroundSize + ";";
+                    prop_style += `background-size: ${picFillResult.backgroundSize};`;
                 }
                 if (picFillResult.backgroundPosition) {
-                    prop_style += "background-position: " + picFillResult.backgroundPosition + ";";
+                    prop_style += `background-position: ${picFillResult.backgroundPosition};`;
                 }
                 if (picFillResult.backgroundRepeat) {
-                    prop_style += "background-repeat: " + picFillResult.backgroundRepeat + ";";
+                    prop_style += `background-repeat: ${picFillResult.backgroundRepeat};`;
                 }
             }
-            bgcolor = "background: url(" + picFillBase64 + ");  z-index: " + ordr + ";" + prop_style + imgOpacity;
+            bgcolor = `background: url(${picFillBase64});  z-index: ${ordr};${prop_style}${imgOpacity}`;
 
             return bgcolor;
         }
@@ -1532,7 +1524,7 @@ function getFillType(node) {
                 }
                 let imgArrayBuffer = await imgFile.async("arraybuffer");
                 let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
-                img = "data:" + imgMimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer);
+                img = `data:${imgMimeType};base64,${PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer)}`;
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
                 setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
             }
@@ -1555,7 +1547,7 @@ function getFillType(node) {
                 if (sx && sy) {
                     let widthPercent = parseInt(sx) / 100000 * 100;
                     let heightPercent = parseInt(sy) / 100000 * 100;
-                    backgroundSize = widthPercent + "% " + heightPercent + "%";
+                    backgroundSize = `${widthPercent}% ${heightPercent}%`;
                 }
                 
                 // 处理平铺偏移
@@ -1564,7 +1556,7 @@ function getFillType(node) {
                 if (tx && ty) {
                     let xPercent = parseInt(tx) / 100000 * 100;
                     let yPercent = parseInt(ty) / 100000 * 100;
-                    backgroundPosition = xPercent + "% " + yPercent + "%";
+                    backgroundPosition = `${xPercent}% ${yPercent}%`;
                 }
             } else if (stretchNode) {
                 // 拉伸模式
@@ -1664,55 +1656,52 @@ function getFillType(node) {
             // vert(Vertical)
             switch (prst) {
                 case "smGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1px)  #" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(to right,  #${fgColor} -1px, transparent 1px ), linear-gradient(to bottom,  #${fgColor} -1px, transparent 1px)  #${bgColor};`, "4px 4px"];
                     break
                 case "dotGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1px)  #" + bgColor + ";", "8px 8px"];
+                    return [`linear-gradient(to right,  #${fgColor} -1px, transparent 1px ), linear-gradient(to bottom,  #${fgColor} -1px, transparent 1px)  #${bgColor};`, "8px 8px"];
                     break
                 case "lgGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1.5px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1.5px)  #" + bgColor + ";", "8px 8px"];
+                    return [`linear-gradient(to right,  #${fgColor} -1px, transparent 1.5px ), linear-gradient(to bottom,  #${fgColor} -1px, transparent 1.5px)  #${bgColor};`, "8px 8px"];
                     break
                 case "wdUpDiag":
                     //return ["repeating-linear-gradient(-45deg,  #" + bgColor + ", #" + bgColor + " 1px,#" + fgColor + " 5px);"];
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , transparent 4px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(-45deg, transparent 1px , transparent 4px, #${fgColor} 7px)#${bgColor};`];
                     // return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 1px),  #" + fgColor + " 50%, transparent calc(50% + 1px),  transparent 100%) " +
                     //     "#" + bgColor + ";", "6px 6px"];
                     break
                 case "dkUpDiag":
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , #" + bgColor + " 5px)" + "#" + fgColor + ";"];
+                    return [`repeating-linear-gradient(-45deg, transparent 1px , #${bgColor} 5px)#${fgColor};`];
                     break
                 case "ltUpDiag":
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(-45deg, transparent 1px , transparent 2px, #${fgColor} 4px)#${bgColor};`];
                     break
                 case "wdDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , transparent 4px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(45deg, transparent 1px , transparent 4px, #${fgColor} 7px)#${bgColor};`];
                     break
                 case "dkDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , #" + bgColor + " 5px)" + "#" + fgColor + ";"];
+                    return [`repeating-linear-gradient(45deg, transparent 1px , #${bgColor} 5px)#${fgColor};`];
                     break
                 case "ltDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(45deg, transparent 1px , transparent 2px, #${fgColor} 4px)#${bgColor};`];
                     break
                 case "dkHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #" + bgColor + " 7px)" + "#" + fgColor + ";"];
+                    return [`repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #${bgColor} 7px)#${fgColor};`];
                     break
                 case "ltHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 5px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(0deg, transparent 1px , transparent 5px, #${fgColor} 7px)#${bgColor};`];
                     break
                 case "narHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #${fgColor} 4px)#${bgColor};`];
                     break
                 case "dkVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #" + bgColor + " 7px)" + "#" + fgColor + ";"];
+                    return [`repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #${bgColor} 7px)#${fgColor};`];
                     break
                 case "ltVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 5px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(90deg, transparent 1px , transparent 5px, #${fgColor} 7px)#${bgColor};`];
                     break
                 case "narVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #${fgColor} 4px)#${bgColor};`];
                     break
                 case "lgCheck":
                 case "smCheck":
@@ -1725,9 +1714,7 @@ function getFillType(node) {
                         size = "4px 4px";
                         pos = "0 0, 2px 2px, 2px 2px, 4px 4px";
                     }
-                    return ["linear-gradient(45deg,  #" + fgColor + " 25%, transparent 0, transparent 75%,  #" + fgColor + " 0), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 0, transparent 75%,  #" + fgColor + " 0) " +
-                        "#" + bgColor + ";", size, pos];
+                    return [`linear-gradient(45deg,  #${fgColor} 25%, transparent 0, transparent 75%,  #${fgColor} 0), linear-gradient(45deg,  #${fgColor} 25%, transparent 0, transparent 75%,  #${fgColor} 0) #${bgColor};`, size, pos];
                     break
                 // case "smCheck":
                 //     return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%), " +
@@ -1736,76 +1723,47 @@ function getFillType(node) {
                 //     break 
 
                 case "dashUpDiag":
-                    return ["repeating-linear-gradient(152deg, #" + fgColor + ", #" + fgColor + " 5% , transparent 0, transparent 70%)" +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`repeating-linear-gradient(152deg, #${fgColor}, #${fgColor} 5% , transparent 0, transparent 70%)#${bgColor};`, "4px 4px"];
                     break
                 case "dashDnDiag":
-                    return ["repeating-linear-gradient(45deg, #" + fgColor + ", #" + fgColor + " 5% , transparent 0, transparent 70%)" +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`repeating-linear-gradient(45deg, #${fgColor}, #${fgColor} 5% , transparent 0, transparent 70%)#${bgColor};`, "4px 4px"];
                     break
                 case "diagBrick":
-                    return ["linear-gradient(45deg, transparent 15%,  #" + fgColor + " 30%, transparent 30%), " +
-                        "linear-gradient(-45deg, transparent 15%,  #" + fgColor + " 30%, transparent 30%), " +
-                        "linear-gradient(-45deg, transparent 65%,  #" + fgColor + " 80%, transparent 0) " +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(45deg, transparent 15%,  #${fgColor} 30%, transparent 30%), linear-gradient(-45deg, transparent 15%,  #${fgColor} 30%, transparent 30%), linear-gradient(-45deg, transparent 65%,  #${fgColor} 80%, transparent 0) #${bgColor};`, "4px 4px"];
                     break
                 case "horzBrick":
-                    return ["linear-gradient(335deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(155deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(335deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(155deg, #" + bgColor + " 1.6px, transparent 1.6px) " +
-                        "#" + fgColor + ";", "4px 4px", "0 0.15px, 0.3px 2.5px, 2px 2.15px, 2.35px 0.4px"];
+                    return [`linear-gradient(335deg, #${bgColor} 1.6px, transparent 1.6px), linear-gradient(155deg, #${bgColor} 1.6px, transparent 1.6px), linear-gradient(335deg, #${bgColor} 1.6px, transparent 1.6px), linear-gradient(155deg, #${bgColor} 1.6px, transparent 1.6px) #${fgColor};`, "4px 4px", "0 0.15px, 0.3px 2.5px, 2px 2.15px, 2.35px 0.4px"];
                     break
 
                 case "dashVert":
-                    return ["linear-gradient(0deg,  #" + bgColor + " 30%, transparent 30%)," +
-                        "linear-gradient(90deg,transparent, transparent 40%, #" + fgColor + " 40%, #" + fgColor + " 60% , transparent 60%)" +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(0deg,  #${bgColor} 30%, transparent 30%),linear-gradient(90deg,transparent, transparent 40%, #${fgColor} 40%, #${fgColor} 60% , transparent 60%)#${bgColor};`, "4px 4px"];
                     break
                 case "dashHorz":
-                    return ["linear-gradient(90deg,  #" + bgColor + " 30%, transparent 30%)," +
-                        "linear-gradient(0deg,transparent, transparent 40%, #" + fgColor + " 40%, #" + fgColor + " 60% , transparent 60%)" +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(90deg,  #${bgColor} 30%, transparent 30%),linear-gradient(0deg,transparent, transparent 40%, #${fgColor} 40%, #${fgColor} 60% , transparent 60%)#${bgColor};`, "4px 4px"];
                     break
                 case "solidDmnd":
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", "8px 8px"];
+                    return [`linear-gradient(135deg,  #${fgColor} 25%, transparent 25%), linear-gradient(225deg,  #${fgColor} 25%, transparent 25%), linear-gradient(315deg,  #${fgColor} 25%, transparent 25%), linear-gradient(45deg,  #${fgColor} 25%, transparent 25%) #${bgColor};`, "8px 8px"];
                     break
                 case "openDmnd":
-                    return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%), " +
-                        "linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%) " +
-                        "#" + bgColor + ";", "8px 8px"];
+                    return [`linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #${fgColor} 50%, transparent calc(50% + 0.5px),  transparent 100%), linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #${fgColor} 50%, transparent calc(50% + 0.5px),  transparent 100%) #${bgColor};`, "8px 8px"];
                     break
 
                 case "dotDmnd":
-                    return ["radial-gradient(#" + fgColor + " 15%, transparent 0), " +
-                        "radial-gradient(#" + fgColor + " 15%, transparent 0) " +
-                        "#" + bgColor + ";", "4px 4px", "0 0, 2px 2px"];
+                    return [`radial-gradient(#${fgColor} 15%, transparent 0), radial-gradient(#${fgColor} 15%, transparent 0) #${bgColor};`, "4px 4px", "0 0, 2px 2px"];
                     break
                 case "zigZag":
                 case "wave":
                     var size = "";
                     if (prst == "zigZag") size = "0";
                     else size = "1px";
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%) 50px " + size + ", " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%) 50px " + size + ", " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(135deg,  #${fgColor} 25%, transparent 25%) 50px ${size}, linear-gradient(225deg,  #${fgColor} 25%, transparent 25%) 50px ${size}, linear-gradient(315deg,  #${fgColor} 25%, transparent 25%), linear-gradient(45deg,  #${fgColor} 25%, transparent 25%) #${bgColor};`, "4px 4px"];
                     break
                 case "lgConfetti":
                 case "smConfetti":
                     var size = "";
                     if (prst == "lgConfetti") size = "4px 4px";
                     else size = "2px 2px";
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%) 50px 1px, " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%) 50px 1px , " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", size];
+                    return [`linear-gradient(135deg,  #${fgColor} 25%, transparent 25%) 50px 1px, linear-gradient(225deg,  #${fgColor} 25%, transparent 25%), linear-gradient(315deg,  #${fgColor} 25%, transparent 25%) 50px 1px , linear-gradient(45deg,  #${fgColor} 25%, transparent 25%) #${bgColor};`, size];
                     break
                 // case "weave":
                 //     return ["linear-gradient(45deg,  #" + bgColor + " 5%, transparent 25%) 50px 0, " +
@@ -1819,9 +1777,7 @@ function getFillType(node) {
                 //     break;
 
                 case "plaid":
-                    return ["linear-gradient(0deg, transparent, transparent 25%, #" + fgColor + "33 25%, #" + fgColor + "33 50%)," +
-                        "linear-gradient(90deg, transparent, transparent 25%, #" + fgColor + "66 25%, #" + fgColor + "66 50%) " +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(0deg, transparent, transparent 25%, #${fgColor}33 25%, #${fgColor}33 50%),linear-gradient(90deg, transparent, transparent 25%, #${fgColor}66 25%, #${fgColor}66 50%) #${bgColor};`, "4px 4px"];
                     /**
                         background-color: #6677dd;
                         background-image: 
@@ -1830,14 +1786,11 @@ function getFillType(node) {
                      */
                     break;
                 case "sphere":
-                    return ["radial-gradient(#" + fgColor + " 50%, transparent 50%)," +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`radial-gradient(#${fgColor} 50%, transparent 50%),#${bgColor};`, "4px 4px"];
                     break
                 case "weave":
                 case "shingle":
-                    return ["linear-gradient(45deg, #" + bgColor + " 1.31px , #" + fgColor + " 1.4px, #" + fgColor + " 1.5px, transparent 1.5px, transparent 4.2px, #" + fgColor + " 4.2px, #" + fgColor + " 4.3px, transparent 4.31px), " +
-                        "linear-gradient(-45deg,  #" + bgColor + " 1.31px , #" + fgColor + " 1.4px, #" + fgColor + " 1.5px, transparent 1.5px, transparent 4.2px, #" + fgColor + " 4.2px, #" + fgColor + " 4.3px, transparent 4.31px) 0 4px, " +
-                        "#" + bgColor + ";", "4px 8px"];
+                    return [`linear-gradient(45deg, #${bgColor} 1.31px , #${fgColor} 1.4px, #${fgColor} 1.5px, transparent 1.5px, transparent 4.2px, #${fgColor} 4.2px, #${fgColor} 4.3px, transparent 4.31px), linear-gradient(-45deg,  #${bgColor} 1.31px , #${fgColor} 1.4px, #${fgColor} 1.5px, transparent 1.5px, transparent 4.2px, #${fgColor} 4.2px, #${fgColor} 4.3px, transparent 4.31px) 0 4px, #${bgColor};`, "4px 8px"];
                     break
                 //background:
                 //linear-gradient(45deg, #708090 1.31px, #d9ecff 1.4px, #d9ecff 1.5px, transparent 1.5px, transparent 4.2px, #d9ecff 4.2px, #d9ecff 4.3px, transparent 4.31px),
@@ -1903,8 +1856,7 @@ function getFillType(node) {
                             px_pr_ary = ["1px", "100%", "2px 2px"];
                             break
                     }
-                    return ["radial-gradient(#" + fgColor + " " + px_pr_ary[0] + ", transparent " + px_pr_ary[1] + ")," +
-                        "#" + bgColor + ";", px_pr_ary[2]];
+                    return [`radial-gradient(#${fgColor} ${px_pr_ary[0]}, transparent ${px_pr_ary[1]}),#${bgColor};`, px_pr_ary[2]];
                     break
                 default:
                     return [0, 0];
@@ -1925,7 +1877,7 @@ function getFillType(node) {
             } else if (node["a:schemeClr"] !== undefined) { //a:schemeClr
                 clrNode = node["a:schemeClr"];
                 let schemeClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]);
-                color = getSchemeColorFromTheme("a:" + schemeClr, clrMap, phClr, warpObj);
+                color = getSchemeColorFromTheme(`a:${schemeClr}`, clrMap, phClr, warpObj);
             } else if (node["a:scrgbClr"] !== undefined) {
                 clrNode = node["a:scrgbClr"];
                 //<a:scrgbClr r="50%" g="50%" b="50%"/>  //Need to test/////////////////////////////////////////////
@@ -2309,7 +2261,7 @@ function getFillType(node) {
         }
         function toHex(n) {
             let hex = n.toString(16);
-            while (hex.length < 2) { hex = "0" + hex; }
+            while (hex.length < 2) { hex = `0${hex}`; }
             return hex;
         }
         function hslToRgb(hue, sat, light) {
@@ -2376,7 +2328,7 @@ function getFillType(node) {
                         case "tx2":
                         case "bg1":
                         case "bg2":
-                            schemeClr = "a:" + slideLayoutClrOvride[schmClrName];
+                            schemeClr = `a:${slideLayoutClrOvride[schmClrName]}`;
                             break;
                     }
                 } else {
@@ -2498,7 +2450,7 @@ function getFillType(node) {
             let fillColor = getSolidFill(fillNode, undefined, undefined, warpObj);
             if (fillColor !== undefined) {
                 if (fillColor && !fillColor.startsWith('#')) {
-                    fillColor = '#' + fillColor;
+                    fillColor = `#${fillColor}`;
                 }
                 seriesStyle.fillColor = fillColor;
             }
@@ -2521,7 +2473,7 @@ function getFillType(node) {
             let lineColor = getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
             if (lineColor !== undefined) {
                 if (lineColor && !lineColor.startsWith('#')) {
-                    lineColor = '#' + lineColor;
+                    lineColor = `#${lineColor}`;
                 }
                 seriesStyle.lineColor = lineColor;
             }
@@ -2771,18 +2723,18 @@ function getFillType(node) {
 
             let sal = stopsArray.length,
                 sr = sal < 20 ? 100 : 1000;
-            svgAngle = ' gradientUnits="userSpaceOnUse" x1="' + x1 + '%" y1="' + y1 + '%" x2="' + x2 + '%" y2="' + y2 + '%"';
-            svgAngle = '<linearGradient id="linGrd_' + shpId + '"' + svgAngle + '>\n';
+            svgAngle = ` gradientUnits="userSpaceOnUse" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%"`;
+            svgAngle = `<linearGradient id="linGrd_${shpId}"${svgAngle}>\n`;
             svg += svgAngle;
 
             for (let i = 0; i < sal; i++) {
-                const tinClr = tinycolor("#" + color_arry[i]);
+                const tinClr = tinycolor(`#${color_arry[i]}`);
                 let alpha = tinClr.getAlpha();
-                svg += '<stop offset="' + Math.round(parseFloat(stopsArray[i]) / 100 * sr) / sr + '" style="stop-color:' + tinClr.toHexString() + '; stop-opacity:' + (alpha) + ';"';
+                svg += `<stop offset="${Math.round(parseFloat(stopsArray[i]) / 100 * sr) / sr}" style="stop-color:${tinClr.toHexString()}; stop-opacity:${(alpha)};"`;
                 svg += '/>\n'
             }
 
-            svg += '</linearGradient>\n' + '';
+            svg += `</linearGradient>\n`;
 
             return svg
         }
@@ -2794,7 +2746,7 @@ function getFillType(node) {
                 let i = s;
                 while (i--) {
                     let middleStop = 100 - ((100 / (s + 1)) * (i + 1)), // AM: Ex - For 3 middle stops, progression will be 25%, 50%, and 75%, plus 0% and 100% at the ends.
-                        middleStopString = middleStop + "%";
+                        middleStopString = `${middleStop}%`;
                     sArry.splice(-1, 0, middleStopString);
                 } // AM: add into stopsArray before 100%
             }
@@ -2886,14 +2838,14 @@ function getFillType(node) {
             if (tialphaModFixNode !== undefined && tialphaModFixNode["amt"] !== undefined && tialphaModFixNode["amt"] != "") {
                 const amt = parseInt(tialphaModFixNode["amt"]) / 100000;
                 let opacity = amt;
-                let imgOpacity = "opacity='" + opacity + "'";
+                let imgOpacity = `opacity='${opacity}'`;
 
             }
             let ptrn = '';
             if (sx !== undefined && sx != 0) {
-                ptrn = '<pattern id="imgPtrn_' + shpId + '" x="0" y="0"  width="' + sx + '" height="' + sy + '" patternUnits="userSpaceOnUse">';
+                ptrn = `<pattern id="imgPtrn_${shpId}" x="0" y="0"  width="${sx}" height="${sy}" patternUnits="userSpaceOnUse">`;
             } else {
-                ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
+                ptrn = `<pattern id="imgPtrn_${shpId}"  patternContentUnits="objectBoundingBox"  width="1" height="1">`;
             }
             let duotoneNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:duotone"])
             let fillterNode = "";
@@ -2909,7 +2861,7 @@ function getFillType(node) {
                         let hexClr = getSolidFill(obj, undefined, undefined, warpObj)
                         //clr_ary.push();
 
-                        let color = tinycolor("#" + hexClr);
+                        let color = tinycolor(`#${hexClr}`);
                         clr_ary.push(color.toRgb()); // { r: 255, g: 0, b: 0, a: 1 }
                     }
                     // })
@@ -2917,20 +2869,7 @@ function getFillType(node) {
 
                 if (clr_ary.length == 2) {
 
-                    fillterNode = '<filter id="svg_image_duotone"> ' +
-                        '<feColorMatrix type="matrix" values=".33 .33 .33 0 0' +
-                        '.33 .33 .33 0 0' +
-                        '.33 .33 .33 0 0' +
-                        '0 0 0 1 0">' +
-                        '</feColorMatrix>' +
-                        '<feComponentTransfer color-interpolation-filters="sRGB">' +
-                        //clr_ary.forEach(function(clr){
-                        '<feFuncR type="table" tableValues="' + clr_ary[0].r / 255 + ' ' + clr_ary[1].r / 255 + '"></feFuncR>' +
-                        '<feFuncG type="table" tableValues="' + clr_ary[0].g / 255 + ' ' + clr_ary[1].g / 255 + '"></feFuncG>' +
-                        '<feFuncB type="table" tableValues="' + clr_ary[0].b / 255 + ' ' + clr_ary[1].b / 255 + '"></feFuncB>' +
-                        //});
-                        '</feComponentTransfer>' +
-                        ' </filter>';
+                    fillterNode = `<filter id="svg_image_duotone"> <feColorMatrix type="matrix" values=".33 .33 .33 0 0.33 .33 .33 0 0.33 .33 .33 0 00 0 0 1 0"></feColorMatrix><feComponentTransfer color-interpolation-filters="sRGB"><feFuncR type="table" tableValues="${clr_ary[0].r / 255} ${clr_ary[1].r / 255}"></feFuncR><feFuncG type="table" tableValues="${clr_ary[0].g / 255} ${clr_ary[1].g / 255}"></feFuncG><feFuncB type="table" tableValues="${clr_ary[0].b / 255} ${clr_ary[1].b / 255}"></feFuncB></feComponentTransfer> </filter>`;
                 }
 
                 filterUrl = 'filter="url(#svg_image_duotone)"';
@@ -2940,9 +2879,9 @@ function getFillType(node) {
 
             fillUrl = PPTXXmlUtils.escapeHtml(fillUrl);
             if (sx !== undefined && sx != 0) {
-                ptrn += '<image  xlink:href="' + fillUrl + '" x="0" y="0" width="' + sx + '" height="' + sy + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
+                ptrn += `<image  xlink:href="${fillUrl}" x="0" y="0" width="${sx}" height="${sy}" ${imgOpacity} ${filterUrl}></image>`;
             } else {
-                ptrn += '<image  xlink:href="' + fillUrl + '" preserveAspectRatio="none" width="1" height="1" ' + imgOpacity + ' ' + filterUrl + '></image>';
+                ptrn += `<image  xlink:href="${fillUrl}" preserveAspectRatio="none" width="1" height="1" ${imgOpacity} ${filterUrl}></image>`;
             }
             ptrn += '</pattern>';
 
@@ -3146,7 +3085,7 @@ function getFillType(node) {
             // 首先检查slide本身的lstStyle（PPTX标准：段落样式继承顺序：pPr -> lstStyle -> layout -> master）
             let lstStyle = textBodyNode["a:lstStyle"];
             if (lstStyle !== undefined && (spcBefNode === undefined || spcAftNode === undefined || lnSpcNode === undefined)) {
-                let lvlKey = "a:lvl" + lvl + "pPr";
+                let lvlKey = `a:lvl${lvl}pPr`;
                 let lstLvlNode = lstStyle[lvlKey];
                 if (lstLvlNode !== undefined) {
                     if (spcBefNode === undefined) {
@@ -3224,7 +3163,7 @@ function getFillType(node) {
                 //slideMasterTextStyles
                 const slideMasterTextStyles = warpObj["slideMasterTextStyles"];
                 let dirLoc = "";
-                lvl = "a:lvl" + lvl + "pPr";
+                lvl = `a:lvl${lvl}pPr`;
                 switch (type) {
                     case "title":
                     case "ctrTitle":
@@ -3314,7 +3253,7 @@ function getFillType(node) {
                     if (lineHeight < 1.0) {
                         lineHeight = 1.3;
                     }
-                    marginTopBottomStr += "line-height: " + lineHeight + ";";
+                    marginTopBottomStr += `line-height: ${lineHeight};`;
                 } else if (lnSpcNodeType === "Pts") {
                     // 点数类型的行间距
                     spcLines = parseInt(lnSpcNode) / 100;
@@ -3325,7 +3264,7 @@ function getFillType(node) {
                         if (lineHeight < 1.0) {
                             lineHeight = 1.3;
                         }
-                        marginTopBottomStr += "line-height: " + lineHeight + ";";
+                        marginTopBottomStr += `line-height: ${lineHeight};`;
                     }
                 }
             } else if (type === "textBox") {
@@ -3362,7 +3301,7 @@ function getFillType(node) {
                 // 只有当间距大于0时才应用
                 if (marginTop > 0) {
                     marginTop = Math.round(marginTop * 100) / 100;
-                    marginTopBottomStr += "margin-top: " + marginTop + "px;";
+                    marginTopBottomStr += `margin-top: ${marginTop}px;`;
                 }
             }
 
@@ -3381,7 +3320,7 @@ function getFillType(node) {
                     marginBottom = spcAfter * 1.33;
                 }
                 marginBottom = Math.round(marginBottom * 100) / 100;
-                marginTopBottomStr += "margin-bottom: " + marginBottom + "px;";
+                marginTopBottomStr += `margin-bottom: ${marginBottom}px;`;
             }
 
             //return spcAft + spcBef;
@@ -3398,7 +3337,7 @@ function getFillType(node) {
                 if (lvlNode !== undefined) {
                     lvlIdx = parseInt(lvlNode) + 1;
                 }
-                let lvlStr = "a:lvl" + lvlIdx + "pPr";
+                let lvlStr = `a:lvl${lvlIdx}pPr`;
 
                 let lstStyle = textBodyNode["a:lstStyle"];
                 algn = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr, "attrs", "algn"]);
@@ -3499,7 +3438,7 @@ function getFillType(node) {
                     case "just":
                     case "dist":
                     default:
-                        return "h-" + algn;
+                        return `h-${algn}`;
                 }
             }
             //return algn === "ctr" ? "h-mid" : algn === "r" ? "h-right" : "h-left";
@@ -3516,7 +3455,7 @@ function getFillType(node) {
             }
             if (idx !== undefined) {
                 //slidelayout
-                pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", "a:lvl" + lvl + "pPr"]);
+                pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", `a:lvl${lvl}pPr`]);
                 if (pPrNodeLaout === undefined) {
                     pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", "a:pPr"]);
                     if (pPrNodeLaout === undefined) {
@@ -3526,7 +3465,7 @@ function getFillType(node) {
             }
             if (type !== undefined) {
                 //slidelayout
-                let lvlStr = "a:lvl" + lvl + "pPr";
+                let lvlStr = `a:lvl${lvl}pPr`;
                 if (pPrNodeLaout === undefined) {
                     pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
                 }
@@ -3661,10 +3600,10 @@ function getFillType(node) {
                         bulletSizeAdjustment = fontSize * 0.8;
                     }
                     maginVal = Math.max(0, maginVal - bulletSizeAdjustment);
-                    marLStr += maginVal + "px;";
+                    marLStr += `${maginVal}px;`;
                 } else {
                     maginVal = Math.abs(marginLeft + indent);
-                    marLStr += maginVal + "px;";
+                    marLStr += `${maginVal}px;`;
                 }
             }
 
@@ -3681,7 +3620,7 @@ function getFillType(node) {
                 let marginRight = parseInt(marRNode) * SLIDE_FACTOR;
                 // 无论 RTL 还是 LTR，marR 都转换为 padding-right（右边距）
                 marRStr = "padding-right: ";
-                marRStr += Math.abs(0 - indent) + "px;";
+                marRStr += `${Math.abs(0 - indent)}px;`;
             }
 
 
@@ -3733,7 +3672,7 @@ function extractChartTitleStyle(chartNode, warpObj) {
                     if (solidFill) {
                         let color = getColor(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
-                            color = '#' + color;
+                            color = `#${color}`;
                         }
                         style.color = color;
                     }
@@ -3780,7 +3719,7 @@ function extractChartTitleStyle(chartNode, warpObj) {
                         if (solidFill) {
                             let color = getColor(solidFill, undefined, undefined, warpObj);
                             if (color && !color.startsWith('#')) {
-                                color = '#' + color;
+                                color = `#${color}`;
                             }
                             style.color = color;
                         }
@@ -3815,7 +3754,7 @@ function extractChartAreaStyle(chartSpaceNode, warpObj) {
             if (solidFill) {
                 let fillColor = getSolidFill(solidFill, undefined, undefined, warpObj);
                 if (fillColor && !fillColor.startsWith('#')) {
-                    fillColor = '#' + fillColor;
+                    fillColor = `#${fillColor}`;
                 }
                 style.fillColor = fillColor;
             }
@@ -3833,7 +3772,7 @@ function extractChartAreaStyle(chartSpaceNode, warpObj) {
             if (solidFill) {
                 let borderColor = getSolidFill(solidFill, undefined, undefined, warpObj);
                 if (borderColor && !borderColor.startsWith('#')) {
-                    borderColor = '#' + borderColor;
+                    borderColor = `#${borderColor}`;
                 }
                 style.borderColor = borderColor;
             }
@@ -3877,7 +3816,7 @@ function extractChartLegendStyle(chartNode, warpObj) {
                     if (solidFill) {
                         let color = getSolidFill(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
-                            color = '#' + color;
+                            color = `#${color}`;
                         }
                         style.color = color;
                     }
@@ -3915,7 +3854,7 @@ function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
                     if (solidFill) {
                         let color = getSolidFill(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
-                            color = '#' + color;
+                            color = `#${color}`;
                         }
                         style.color = color;
                     }
@@ -3933,7 +3872,7 @@ function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
             if (solidFill) {
                 let lineColor = getSolidFill(solidFill, undefined, undefined, warpObj);
                 if (lineColor && !lineColor.startsWith('#')) {
-                    lineColor = '#' + lineColor;
+                    lineColor = `#${lineColor}`;
                 }
                 style.lineColor = lineColor;
             }
@@ -3955,7 +3894,7 @@ function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
                     if (solidFill) {
                         let gridlineColor = getSolidFill(solidFill, undefined, undefined, warpObj);
                         if (gridlineColor && !gridlineColor.startsWith('#')) {
-                            gridlineColor = '#' + gridlineColor;
+                            gridlineColor = `#${gridlineColor}`;
                         }
                         style.gridlineColor = gridlineColor;
                     }

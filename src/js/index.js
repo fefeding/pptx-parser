@@ -167,7 +167,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
  */
 async function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
     // Read relationship file of the slide
-    const resName = slideFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
+    const resName = `${slideFileName.replace("slides/slide", "slides/_rels/slide")}.rels`;
     const resContent = await PPTXXmlUtils.readXmlFile(zip, resName);
     const relationshipArray = resContent.Relationships.Relationship;
 
@@ -234,7 +234,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     }
 
     // Read slide master
-    const slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
+    const slideLayoutResFilename = `${layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout")}.rels`;
     const slideLayoutResContent = await PPTXXmlUtils.readXmlFile(zip, slideLayoutResFilename);
     const layoutRelArray = slideLayoutResContent.Relationships.Relationship;
 
@@ -265,7 +265,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     const slideMasterTables = PPTXNodeUtils.indexNodes(slideMasterContent);
 
     // Read slide master relationships
-    const slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
+    const slideMasterResFilename = `${masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster")}.rels`;
     const slideMasterResContent = await PPTXXmlUtils.readXmlFile(zip, slideMasterResFilename);
     const masterRelArray = slideMasterResContent.Relationships.Relationship;
 
@@ -296,7 +296,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
 
     if (themeFilename !== undefined) {
         const themeName = themeFilename.split("/").pop();
-        const themeResFileName = themeFilename.replace(themeName, `_rels/${themeName}`) + ".rels";
+        const themeResFileName = `${themeFilename.replace(themeName, `_rels/${themeName}`)}.rels`;
 
         themeContent = await PPTXXmlUtils.readXmlFile(zip, themeFilename);
         const themeResContent = await PPTXXmlUtils.readXmlFile(zip, themeResFileName);
@@ -327,7 +327,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
 
     if (diagramFilename !== undefined) {
         const diagramName = diagramFilename.split("/").pop();
-        const diagramResFileName = diagramFilename.replace(diagramName, `_rels/${diagramName}`) + ".rels";
+        const diagramResFileName = `${diagramFilename.replace(diagramName, `_rels/${diagramName}`)}.rels`;
 
         diagramContent = await PPTXXmlUtils.readXmlFile(zip, diagramFilename);
         if (diagramContent !== null && diagramContent !== undefined && diagramContent !== "") {
@@ -406,7 +406,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
  * @param {JSZip} zip - The JSZip instance
  * @returns {Promise<string>} Slide HTML
  */
-async function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
+async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slideNum) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -448,7 +448,8 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
         transitionClass = ` data-transition='${JSON.stringify(transitionData)}'`;
     }
 
-    let result = `<section class='slide'${transitionClass} style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
+    const slideIdAttr = slideNum ? ` id="slide-${slideNum}"` : "";
+    let result = `<section class='slide'${slideIdAttr}${transitionClass} style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
     result += bgResult;
 
     const nodes = slideData.slideContent["p:sld"]["p:cSld"]["p:spTree"];
@@ -536,7 +537,7 @@ async function pptxToHtml(fileData, options) {
 
         // Step 3: Process slides and convert to HTML
         for (const slideData of parsedData.slides) {
-            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum);
             result.slides.push({
                 html: slideHtml,
                 data: slideData.data,  // Keep structured data for potential reuse

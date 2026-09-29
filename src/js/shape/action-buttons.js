@@ -15,18 +15,9 @@ function renderBackPrevious(w, h, imgFillFlg, grndFillFlg, fillColor, border, sh
     const g11 = hc - dx2;
     const g12 = hc + dx2;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + g11 + "," + vc +
-        " L" + g12 + "," + g9 +
-        " L" + g12 + "," + g10 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${g11},${vc} L${g12},${g9} L${g12},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -46,23 +37,9 @@ function renderBeginning(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId
     const g16 = g11 + g14;
     const g17 = g11 + g15;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + g17 + "," + vc +
-        " L" + g12 + "," + g9 +
-        " L" + g12 + "," + g10 +
-        " z" +
-        "M" + g16 + "," + g9 +
-        " L" + g11 + "," + g9 +
-        " L" + g11 + "," + g10 +
-        " L" + g16 + "," + g10 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${g17},${vc} L${g12},${g9} L${g12},${g10} zM${g16},${g9} L${g11},${g9} L${g11},${g10} L${g16},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -81,24 +58,9 @@ function renderDocument(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId)
     const g14 = g12 - g13;
     const g15 = g9 + g13;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + g11 + "," + g9 +
-        " L" + g14 + "," + g9 +
-        " L" + g12 + "," + g15 +
-        " L" + g12 + "," + g10 +
-        " L" + g11 + "," + g10 +
-        " z" +
-        "M" + g14 + "," + g9 +
-        " L" + g14 + "," + g15 +
-        " L" + g12 + "," + g15 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${g11},${g9} L${g14},${g9} L${g12},${g15} L${g12},${g10} L${g11},${g10} zM${g14},${g9} L${g14},${g15} L${g12},${g15} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -118,23 +80,9 @@ function renderEnd(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
     const g16 = g11 + g14;
     const g17 = g11 + g15;
 
-    const d = "M" + 0 + "," + h +
-        " L" + w + "," + h +
-        " L" + w + "," + 0 +
-        " L" + 0 + "," + 0 +
-        " z" +
-        " M" + g17 + "," + g9 +
-        " L" + g12 + "," + g9 +
-        " L" + g12 + "," + g10 +
-        " L" + g17 + "," + g10 +
-        " z" +
-        " M" + g16 + "," + vc +
-        " L" + g11 + "," + g9 +
-        " L" + g11 + "," + g10 +
-        " z";
+    const d = `M${0},${h} L${w},${h} L${w},${0} L${0},${0} z M${g17},${g9} L${g12},${g9} L${g12},${g10} L${g17},${g10} z M${g16},${vc} L${g11},${g9} L${g11},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -149,18 +97,9 @@ function renderForwardNext(w, h, imgFillFlg, grndFillFlg, fillColor, border, shp
     const g11 = hc - dx2;
     const g12 = hc + dx2;
 
-    const d = "M" + 0 + "," + h +
-        " L" + w + "," + h +
-        " L" + w + "," + 0 +
-        " L" + 0 + "," + 0 +
-        " z" +
-        " M" + g12 + "," + vc +
-        " L" + g11 + "," + g9 +
-        " L" + g11 + "," + g10 +
-        " z";
+    const d = `M${0},${h} L${w},${h} L${w},${0} L${0},${0} z M${g12},${vc} L${g11},${g9} L${g11},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -195,28 +134,9 @@ function renderHelp(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, sha
     const cY3 = g31 + g42;
     const cX4 = (g37 + g36 + g16) / 2;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + g33 + "," + g27 +
-        shapeArcAlt(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
-        shapeArcAlt(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
-        shapeArcAlt(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
-        " L" + g37 + "," + g30 +
-        " L" + g36 + "," + g30 +
-        " L" + g36 + "," + g29 +
-        shapeArcAlt(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
-        shapeArcAlt(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
-        shapeArcAlt(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
-        " z" +
-        "M" + hc + "," + g31 +
-        shapeArcAlt(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${g33},${g27}${shapeArcAlt(cX1, g27, g16, g16, 180, 360, false).replace("M", "L")}${shapeArcAlt(cX4, g27, g14, g15, 0, 90, false).replace("M", "L")}${shapeArcAlt(cX4, g29, g41, g42, 270, 180, false).replace("M", "L")} L${g37},${g30} L${g36},${g30} L${g36},${g29}${shapeArcAlt(cX2, g29, g14, g15, 180, 270, false).replace("M", "L")}${shapeArcAlt(g37, g27, g41, g42, 90, 0, false).replace("M", "L")}${shapeArcAlt(cX1, g27, g14, g14, 0, -180, false).replace("M", "L")} zM${hc},${g31}${shapeArcAlt(hc, cY3, g42, g42, 270, 630, false).replace("M", "L")} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -252,31 +172,9 @@ function renderHome(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
     const g32 = g11 + g22;
     const g33 = g11 + g23;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        " M" + hc + "," + g9 +
-        " L" + g11 + "," + vc +
-        " L" + g28 + "," + vc +
-        " L" + g28 + "," + g10 +
-        " L" + g33 + "," + g10 +
-        " L" + g33 + "," + vc +
-        " L" + g12 + "," + vc +
-        " L" + g32 + "," + g26 +
-        " L" + g32 + "," + g24 +
-        " L" + g31 + "," + g24 +
-        " L" + g31 + "," + g25 +
-        " z" +
-        " M" + g29 + "," + g27 +
-        " L" + g30 + "," + g27 +
-        " L" + g30 + "," + g10 +
-        " L" + g29 + "," + g10 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${hc},${g9} L${g11},${vc} L${g28},${vc} L${g28},${g10} L${g33},${g10} L${g33},${vc} L${g12},${vc} L${g32},${g26} L${g32},${g24} L${g31},${g24} L${g31},${g25} z M${g29},${g27} L${g30},${g27} L${g30},${g10} L${g29},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -310,30 +208,9 @@ function renderInformation(w, h, imgFillFlg, grndFillFlg, fillColor, border, shp
     const cY1 = g9 + dx2;
     const cY2 = g25 + g38;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + hc + "," + g9 +
-        shapeArcAlt(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
-        " z" +
-        "M" + hc + "," + g25 +
-        shapeArcAlt(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
-        "M" + g32 + "," + g28 +
-        " L" + g35 + "," + g28 +
-        " L" + g35 + "," + g30 +
-        " L" + g37 + "," + g30 +
-        " L" + g37 + "," + g31 +
-        " L" + g32 + "," + g31 +
-        " L" + g32 + "," + g30 +
-        " L" + g34 + "," + g30 +
-        " L" + g34 + "," + g29 +
-        " L" + g32 + "," + g29 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${hc},${g9}${shapeArcAlt(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L")} zM${hc},${g25}${shapeArcAlt(hc, cY2, g38, g38, 270, 630, false).replace("M", "L")}M${g32},${g28} L${g35},${g28} L${g35},${g30} L${g37},${g30} L${g37},${g31} L${g32},${g31} L${g32},${g30} L${g34},${g30} L${g34},${g29} L${g32},${g29} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -383,34 +260,9 @@ function renderMovie(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
     const g47 = g9 + g30;
     const g48 = g9 + g31;
 
-    const d = "M" + 0 + "," + h +
-        " L" + w + "," + h +
-        " L" + w + "," + 0 +
-        " L" + 0 + "," + 0 +
-        " z" +
-        "M" + g11 + "," + g39 +
-        " L" + g11 + "," + g44 +
-        " L" + g31 + "," + g44 +
-        " L" + g32 + "," + g43 +
-        " L" + g33 + "," + g43 +
-        " L" + g33 + "," + g47 +
-        " L" + g35 + "," + g47 +
-        " L" + g35 + "," + g45 +
-        " L" + g36 + "," + g45 +
-        " L" + g38 + "," + g46 +
-        " L" + g12 + "," + g46 +
-        " L" + g12 + "," + g41 +
-        " L" + g38 + "," + g41 +
-        " L" + g37 + "," + g42 +
-        " L" + g35 + "," + g42 +
-        " L" + g35 + "," + g41 +
-        " L" + g34 + "," + g40 +
-        " L" + g32 + "," + g40 +
-        " L" + g31 + "," + g39 +
-        " z";
+    const d = `M${0},${h} L${w},${h} L${w},${0} L${0},${0} zM${g11},${g39} L${g11},${g44} L${g31},${g44} L${g32},${g43} L${g33},${g43} L${g33},${g47} L${g35},${g47} L${g35},${g45} L${g36},${g45} L${g38},${g46} L${g12},${g46} L${g12},${g41} L${g38},${g41} L${g37},${g42} L${g35},${g42} L${g35},${g41} L${g34},${g40} L${g32},${g40} L${g31},${g39} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -444,30 +296,9 @@ function renderReturn(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, s
     const cX3 = g11 + g17;
     const cY4 = g10 - g17;
 
-    const d = "M" + 0 + "," + h +
-        " L" + w + "," + h +
-        " L" + w + "," + 0 +
-        " L" + 0 + "," + 0 +
-        " z" +
-        " M" + g12 + "," + g21 +
-        " L" + g23 + "," + g9 +
-        " L" + hc + "," + g21 +
-        " L" + g24 + "," + g21 +
-        " L" + g24 + "," + g20 +
-        shapeArcAlt(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
-        " L" + g25 + "," + g19 +
-        shapeArcAlt(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
-        " L" + g26 + "," + g21 +
-        " L" + g11 + "," + g21 +
-        " L" + g11 + "," + g20 +
-        shapeArcAlt(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
-        " L" + hc + "," + g10 +
-        shapeArcAlt(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
-        " L" + g22 + "," + g21 +
-        " z";
+    const d = `M${0},${h} L${w},${h} L${w},${0} L${0},${0} z M${g12},${g21} L${g23},${g9} L${hc},${g21} L${g24},${g21} L${g24},${g20}${shapeArcAlt(cX1, g20, g27, g27, 0, 90, false).replace("M", "L")} L${g25},${g19}${shapeArcAlt(g25, cY2, g27, g27, 90, 180, false).replace("M", "L")} L${g26},${g21} L${g11},${g21} L${g11},${g20}${shapeArcAlt(cX3, g20, g17, g17, 180, 90, false).replace("M", "L")} L${hc},${g10}${shapeArcAlt(hc, cY4, g17, g17, 90, 0, false).replace("M", "L")} L${g22},${g21} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -496,27 +327,9 @@ function renderSound(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
     const g25 = g11 + g16;
     const g26 = g11 + g18;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        " M" + g11 + "," + g21 +
-        " L" + g24 + "," + g21 +
-        " L" + g25 + "," + g9 +
-        " L" + g25 + "," + g10 +
-        " L" + g24 + "," + g22 +
-        " L" + g11 + "," + g22 +
-        " z" +
-        " M" + g26 + "," + g21 +
-        " L" + g12 + "," + g20 +
-        " M" + g26 + "," + vc +
-        " L" + g12 + "," + vc +
-        " M" + g26 + "," + g22 +
-        " L" + g12 + "," + g23;
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${g11},${g21} L${g24},${g21} L${g25},${g9} L${g25},${g10} L${g24},${g22} L${g11},${g22} z M${g26},${g21} L${g12},${g20} M${g26},${vc} L${g12},${vc} M${g26},${g22} L${g12},${g23}`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**

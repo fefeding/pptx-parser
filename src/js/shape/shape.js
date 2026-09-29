@@ -267,10 +267,10 @@ export const PPTXShapeUtils = (function() {
 
 
 
-                const svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
+                const svgCssName = `_svg_css_${(Object.keys(warpObj.styleTable).length + 1)}_${Math.floor(Math.random() * 1001)}`;
 
                 let hasCssEffect = false; // Track if there's a CSS effect (like shadow)
-                const effectsClassName = svgCssName + "_effects";
+                const effectsClassName = `${svgCssName}_effects`;
 
                 // 对于连接器，当width或height为0时，需要设置最小尺寸
                 let svgSizeStyle = "";
@@ -282,17 +282,17 @@ export const PPTXShapeUtils = (function() {
                     // SVG容器的尺寸至少为minSize
                     const svgW = (w === 0 || w < minSize) ? minSize : w;
                     const svgH = (h === 0 || h < minSize) ? minSize : h;
-                    svgSizeStyle = "width:" + svgW + "px; height:" + svgH + "px; overflow: visible;";
+                    svgSizeStyle = `width:${svgW}px; height:${svgH}px; overflow: visible;`;
                     // 更新w和h为SVG容器尺寸，这样后续代码会使用正确的尺寸
                     w = svgW;
                     h = svgH;
 
                 } else {
-                    svgSizeStyle = PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) + " overflow: visible;";
+                    svgSizeStyle = `${PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined)} overflow: visible;`;
                 }
 
                 // 如果形状在组合中被缩放，SVG内容需要应用缩放
-                let svgTransform = "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";";
+                let svgTransform = `transform: rotate(${((rotate !== undefined) ? rotate : 0)}deg)${flip};`;
                 if (sType === 'group-abs' && warpObj.currentGroupScale) {
                     // 对于自定义形状，我们已经在 renderCustomShape 中使用了缩放后的尺寸
                     // 所以不需要在这里应用 SVG transform scale()
@@ -303,13 +303,7 @@ export const PPTXShapeUtils = (function() {
                     }
                 }
 
-                const svgTag = "<svg class='drawing " + svgCssName + "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
-                    "' style='" +
-                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, undefined, undefined, sType) +
-                    svgSizeStyle +
-                    " z-index: " + order + ";" +
-                    svgTransform +
-                    "'>";
+                const svgTag = `<svg class='drawing ${svgCssName}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}'' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, undefined, undefined, sType)}${svgSizeStyle} z-index: ${order};${svgTransform}'>`;
                 result += svgTag;
                 result += '<defs>'
                 // Fill Color
@@ -344,7 +338,7 @@ export const PPTXShapeUtils = (function() {
                 } else if (clrFillType == "PATTERN_FILL") {
                     let styleText = fillColor;
                     if (styleText in warpObj.styleTable) {
-                        styleText += "do-nothing: " + svgCssName +";";
+                        styleText += `do-nothing: ${svgCssName};`;
                     }
                     warpObj.styleTable[styleText] = {
                         "name": svgCssName,
@@ -518,10 +512,10 @@ export const PPTXShapeUtils = (function() {
                     //result += shadowFilterStr;
 
                     //css:
-                    let svg_css_shadow = "filter:drop-shadow(" + hx + "px " + vx + "px " + blurRad + "px #" + chdwClrNode + ");";
+                    let svg_css_shadow = `filter:drop-shadow(${hx}px ${vx}px ${blurRad}px #${chdwClrNode});`;
 
                     if (svg_css_shadow in warpObj.styleTable) {
-                        svg_css_shadow += "do-nothing: " + svgCssName + ";";
+                        svg_css_shadow += `do-nothing: ${svgCssName};`;
                     }
 
                     warpObj.styleTable[svg_css_shadow] = {
@@ -531,7 +525,7 @@ export const PPTXShapeUtils = (function() {
 
                     // Add effectsClassName to the SVG tag since we have a CSS shadow effect
                     hasCssEffect = true;
-                    result = result.replace("class='drawing " + svgCssName + "'", "class='drawing " + svgCssName + " " + effectsClassName + "'");
+                    result = result.replace(`class='drawing ${svgCssName}'`, `class='drawing ${svgCssName} ${effectsClassName}'`);
                 }
 
                 //////////////////////////////softEdge///////////////////////////////////////////
@@ -551,20 +545,19 @@ export const PPTXShapeUtils = (function() {
                     // softEdge effect according to Office Open XML specification:
                     // Applies a Gaussian blur to the edges of the shape
                     // The radius determines how far the blur extends from the edge
-                    const softEdgeId = "softedge_" + shpId;
-                    let softEdgeFilter = '<filter id="' + softEdgeId + '" x="-20%" y="-20%" width="140%" height="140%">';
+                    const softEdgeId = `softedge_${shpId}`;
+                    let softEdgeFilter = `<filter id="${softEdgeId}" x="-20%" y="-20%" width="140%" height="140%">`;
                     // Blur the source to create soft edge
-                    softEdgeFilter += '<feGaussianBlur in="SourceGraphic" stdDeviation="' + rad + '" />';
+                    softEdgeFilter += `<feGaussianBlur in="SourceGraphic" stdDeviation="${rad}" />`;
                     softEdgeFilter += '</filter>';
                     result += softEdgeFilter;
-                    softEdgeFilterStr = 'filter="url(#' + softEdgeId + ')"';
+                    softEdgeFilterStr = `filter="url(#${softEdgeId})"`;
                 } 
                 ////////////////////////////////////////////////////////////////////////////////////////
                 if ((headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) ||
                     (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow"))) {
                     // 箭头标记：refX=10 表示箭头尖端与线条端点对齐
-                    const triangleMarker = "<marker id='markerTriangle_" + shpId + "' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='5' markerHeight='5' stroke='" + border.color + "' fill='" + border.color +
-                        "' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>";
+                    const triangleMarker = `<marker id='markerTriangle_${shpId}' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='5' markerHeight='5' stroke='${border.color}' fill='${border.color}' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>`;
                     result += triangleMarker;
                 }
                 result += '</defs>'
@@ -577,25 +570,19 @@ export const PPTXShapeUtils = (function() {
                     case "flowChartPredefinedProcess":
                     case "flowChartInternalStorage":
                     case "actionButtonBlank": {
-                        result += "<rect x='0' y='0' width='" + w + "' height='" + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + "  />";
+                        result += `<rect x='0' y='0' width='${w}' height='${h}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr}  />`;
 
                         if (shapType == "flowChartPredefinedProcess") {
-                            result += "<rect x='" + w * (1 / 8) + "' y='0' width='" + w * (6 / 8) + "' height='" + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += `<rect x='${w * (1 / 8)}' y='0' width='${w * (6 / 8)}' height='${h}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         } else if (shapType == "flowChartInternalStorage") {
-                            result += " <polyline points='" + w * (1 / 8) + " 0," + w * (1 / 8) + " " + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                            result += " <polyline points='0 " + h * (1 / 8) + "," + w + " " + h * (1 / 8) + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += ` <polyline points='${w * (1 / 8)} 0,${w * (1 / 8)} ${h}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
+                            result += ` <polyline points='0 ${h * (1 / 8)},${w} ${h * (1 / 8)}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         }
                         break;
                     }
                     case "flowChartCollate": {
-                        var d = "M 0,0" +
-                            " L" + w + "," + 0 +
-                            " L" + 0 + "," + h +
-                            " L" + w + "," + h +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + " " + softEdgeFilterStr + " />";
+                        var d = `M 0,0 L${w},${0} L${0},${h} L${w},${h} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr} ${softEdgeFilterStr} />`;
 
                         break;
                     }
@@ -605,13 +592,8 @@ export const PPTXShapeUtils = (function() {
                         y1 = h * 17322 / 21600;
                         y2 = h * 20172 / 21600;
                         y3 = h * 23922 / 21600;
-                        var d = "M" + 0 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y1 +
-                            " C" + x1 + "," + y1 + " " + x1 + "," + y3 + " " + 0 + "," + y2 +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${0} L${w},${0} L${w},${y1} C${x1},${y1} ${x1},${y3} ${0},${y2} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartMultidocument": {
@@ -632,24 +614,9 @@ export const PPTXShapeUtils = (function() {
                         x5 = w * 18595 / 21600;
                         x6 = w * 2972 / 21600;
                         x7 = w * 20800 / 21600;
-                        var d = "M" + 0 + "," + y2 +
-                            " L" + x5 + "," + y2 +
-                            " L" + x5 + "," + y1 +
-                            " C" + x3 + "," + y1 + " " + x3 + "," + y3 + " " + 0 + "," + y8 +
-                            " z" +
-                            "M" + x1 + "," + y2 +
-                            " L" + x1 + "," + y4 +
-                            " L" + x2 + "," + y4 +
-                            " L" + x2 + "," + y5 +
-                            " C" + x4 + "," + y5 + " " + x5 + "," + y6 + " " + x5 + "," + y6 +
-                            "M" + x6 + "," + y4 +
-                            " L" + x6 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y7 +
-                            " C" + x7 + "," + y7 + " " + x2 + "," + y9 + " " + x2 + "," + y9;
+                        var d = `M${0},${y2} L${x5},${y2} L${x5},${y1} C${x3},${y1} ${x3},${y3} ${0},${y8} zM${x1},${y2} L${x1},${y4} L${x2},${y4} L${x2},${y5} C${x4},${y5} ${x5},${y6} ${x5},${y6}M${x6},${y4} L${x6},${0} L${w},${0} L${w},${y7} C${x7},${y7} ${x2},${y9} ${x2},${y9}`;
 
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "actionButtonBackPrevious":
@@ -669,64 +636,11 @@ export const PPTXShapeUtils = (function() {
                     case "irregularSeal1":
                     case "irregularSeal2": {
                         if (shapType == "irregularSeal1") {
-                            var d = "M" + w * 10800 / 21600 + "," + h * 5800 / 21600 +
-                                " L" + w * 14522 / 21600 + "," + 0 +
-                                " L" + w * 14155 / 21600 + "," + h * 5325 / 21600 +
-                                " L" + w * 18380 / 21600 + "," + h * 4457 / 21600 +
-                                " L" + w * 16702 / 21600 + "," + h * 7315 / 21600 +
-                                " L" + w * 21097 / 21600 + "," + h * 8137 / 21600 +
-                                " L" + w * 17607 / 21600 + "," + h * 10475 / 21600 +
-                                " L" + w + "," + h * 13290 / 21600 +
-                                " L" + w * 16837 / 21600 + "," + h * 12942 / 21600 +
-                                " L" + w * 18145 / 21600 + "," + h * 18095 / 21600 +
-                                " L" + w * 14020 / 21600 + "," + h * 14457 / 21600 +
-                                " L" + w * 13247 / 21600 + "," + h * 19737 / 21600 +
-                                " L" + w * 10532 / 21600 + "," + h * 14935 / 21600 +
-                                " L" + w * 8485 / 21600 + "," + h +
-                                " L" + w * 7715 / 21600 + "," + h * 15627 / 21600 +
-                                " L" + w * 4762 / 21600 + "," + h * 17617 / 21600 +
-                                " L" + w * 5667 / 21600 + "," + h * 13937 / 21600 +
-                                " L" + w * 135 / 21600 + "," + h * 14587 / 21600 +
-                                " L" + w * 3722 / 21600 + "," + h * 11775 / 21600 +
-                                " L" + 0 + "," + h * 8615 / 21600 +
-                                " L" + w * 4627 / 21600 + "," + h * 7617 / 21600 +
-                                " L" + w * 370 / 21600 + "," + h * 2295 / 21600 +
-                                " L" + w * 7312 / 21600 + "," + h * 6320 / 21600 +
-                                " L" + w * 8352 / 21600 + "," + h * 2295 / 21600 +
-                                " z";
+                            var d = `M${w * 10800 / 21600},${h * 5800 / 21600} L${w * 14522 / 21600},${0} L${w * 14155 / 21600},${h * 5325 / 21600} L${w * 18380 / 21600},${h * 4457 / 21600} L${w * 16702 / 21600},${h * 7315 / 21600} L${w * 21097 / 21600},${h * 8137 / 21600} L${w * 17607 / 21600},${h * 10475 / 21600} L${w},${h * 13290 / 21600} L${w * 16837 / 21600},${h * 12942 / 21600} L${w * 18145 / 21600},${h * 18095 / 21600} L${w * 14020 / 21600},${h * 14457 / 21600} L${w * 13247 / 21600},${h * 19737 / 21600} L${w * 10532 / 21600},${h * 14935 / 21600} L${w * 8485 / 21600},${h} L${w * 7715 / 21600},${h * 15627 / 21600} L${w * 4762 / 21600},${h * 17617 / 21600} L${w * 5667 / 21600},${h * 13937 / 21600} L${w * 135 / 21600},${h * 14587 / 21600} L${w * 3722 / 21600},${h * 11775 / 21600} L${0},${h * 8615 / 21600} L${w * 4627 / 21600},${h * 7617 / 21600} L${w * 370 / 21600},${h * 2295 / 21600} L${w * 7312 / 21600},${h * 6320 / 21600} L${w * 8352 / 21600},${h * 2295 / 21600} z`;
                         } else if (shapType == "irregularSeal2") {
-                            var d = "M" + w * 11462 / 21600 + "," + h * 4342 / 21600 +
-                                " L" + w * 14790 / 21600 + "," + 0 +
-                                " L" + w * 14525 / 21600 + "," + h * 5777 / 21600 +
-                                " L" + w * 18007 / 21600 + "," + h * 3172 / 21600 +
-                                " L" + w * 16380 / 21600 + "," + h * 6532 / 21600 +
-                                " L" + w + "," + h * 6645 / 21600 +
-                                " L" + w * 16985 / 21600 + "," + h * 9402 / 21600 +
-                                " L" + w * 18270 / 21600 + "," + h * 11290 / 21600 +
-                                " L" + w * 16380 / 21600 + "," + h * 12310 / 21600 +
-                                " L" + w * 18877 / 21600 + "," + h * 15632 / 21600 +
-                                " L" + w * 14640 / 21600 + "," + h * 14350 / 21600 +
-                                " L" + w * 14942 / 21600 + "," + h * 17370 / 21600 +
-                                " L" + w * 12180 / 21600 + "," + h * 15935 / 21600 +
-                                " L" + w * 11612 / 21600 + "," + h * 18842 / 21600 +
-                                " L" + w * 9872 / 21600 + "," + h * 17370 / 21600 +
-                                " L" + w * 8700 / 21600 + "," + h * 19712 / 21600 +
-                                " L" + w * 7527 / 21600 + "," + h * 18125 / 21600 +
-                                " L" + w * 4917 / 21600 + "," + h +
-                                " L" + w * 4805 / 21600 + "," + h * 18240 / 21600 +
-                                " L" + w * 1285 / 21600 + "," + h * 17825 / 21600 +
-                                " L" + w * 3330 / 21600 + "," + h * 15370 / 21600 +
-                                " L" + 0 + "," + h * 12877 / 21600 +
-                                " L" + w * 3935 / 21600 + "," + h * 11592 / 21600 +
-                                " L" + w * 1172 / 21600 + "," + h * 8270 / 21600 +
-                                " L" + w * 5372 / 21600 + "," + h * 7817 / 21600 +
-                                " L" + w * 4502 / 21600 + "," + h * 3625 / 21600 +
-                                " L" + w * 8550 / 21600 + "," + h * 6382 / 21600 +
-                                " L" + w * 9722 / 21600 + "," + h * 1887 / 21600 +
-                                " z";
+                            var d = `M${w * 11462 / 21600},${h * 4342 / 21600} L${w * 14790 / 21600},${0} L${w * 14525 / 21600},${h * 5777 / 21600} L${w * 18007 / 21600},${h * 3172 / 21600} L${w * 16380 / 21600},${h * 6532 / 21600} L${w},${h * 6645 / 21600} L${w * 16985 / 21600},${h * 9402 / 21600} L${w * 18270 / 21600},${h * 11290 / 21600} L${w * 16380 / 21600},${h * 12310 / 21600} L${w * 18877 / 21600},${h * 15632 / 21600} L${w * 14640 / 21600},${h * 14350 / 21600} L${w * 14942 / 21600},${h * 17370 / 21600} L${w * 12180 / 21600},${h * 15935 / 21600} L${w * 11612 / 21600},${h * 18842 / 21600} L${w * 9872 / 21600},${h * 17370 / 21600} L${w * 8700 / 21600},${h * 19712 / 21600} L${w * 7527 / 21600},${h * 18125 / 21600} L${w * 4917 / 21600},${h} L${w * 4805 / 21600},${h * 18240 / 21600} L${w * 1285 / 21600},${h * 17825 / 21600} L${w * 3330 / 21600},${h * 15370 / 21600} L${0},${h * 12877 / 21600} L${w * 3935 / 21600},${h * 11592 / 21600} L${w * 1172 / 21600},${h * 8270 / 21600} L${w * 5372 / 21600},${h * 7817 / 21600} L${w * 4502 / 21600},${h * 3625 / 21600} L${w * 8550 / 21600},${h * 6382 / 21600} L${w * 9722 / 21600},${h * 1887 / 21600} z`;
                         }
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartTerminator": {
@@ -735,14 +649,8 @@ export const PPTXShapeUtils = (function() {
                         x2 = w * 18125 / 21600;
                         y1 = h * 10800 / 21600;
                         //path attrs: w = 21600; h = 21600; 
-                        var d = "M" + x1 + "," + 0 +
-                            " L" + x2 + "," + 0 +
-                            PPTXShapeUtils.shapeArcAlt(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
-                            " L" + x1 + "," + h +
-                            PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${x1},${0} L${x2},${0}${PPTXShapeUtils.shapeArcAlt(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L")} L${x1},${h}${PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L")} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartPunchedTape": {
@@ -750,29 +658,16 @@ export const PPTXShapeUtils = (function() {
                         x1 = w * 5 / 20;
                         y1 = h * 2 / 20;
                         y2 = h * 18 / 20;
-                        var d = "M" + 0 + "," + y1 +
-                            PPTXShapeUtils.shapeArcAlt(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
-                            " L" + w + "," + y2 +
-                            PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${y1}${PPTXShapeUtils.shapeArcAlt(x1, y1, x1, y1, cd2, 0, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L")} L${w},${y2}${PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(x1, y2, x1, y1, 0, cd2, false).replace("M", "L")} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartOnlineStorage": {
                         var x1, y1, c3d4 = 270, cd4 = 90;
                         x1 = w * 1 / 6;
                         y1 = h * 3 / 6;
-                        var d = "M" + x1 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
-                            " L" + x1 + "," + h +
-                            PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${x1},${0} L${w},${0}${PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L")} L${x1},${h}${PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L")} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartDisplay": {
@@ -781,25 +676,14 @@ export const PPTXShapeUtils = (function() {
                         x2 = w * 5 / 6;
                         y1 = h * 3 / 6;
                         //path attrs: w = 6; h = 6; 
-                        var d = "M" + 0 + "," + y1 +
-                            " L" + x1 + "," + 0 +
-                            " L" + x2 + "," + 0 +
-                            PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
-                            " L" + x1 + "," + h +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${y1} L${x1},${0} L${x2},${0}${PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L")} L${x1},${h} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartDelay": {
                         var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
-                        var d = "M" + 0 + "," + 0 +
-                            " L" + wd2 + "," + 0 +
-                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
-                            " L" + 0 + "," + h +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${0} L${wd2},${0}${PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L")} L${0},${h} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartMagneticTape": {
@@ -809,27 +693,18 @@ export const PPTXShapeUtils = (function() {
                         ib = hd2 + idy;
                         ang1 = Math.atan(h / w);
                         const ang1Dg = ang1 * 180 / Math.PI;
-                        var d = "M" + wd2 + "," + h +
-                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L") +
-                            " L" + w + "," + ib +
-                            " L" + w + "," + h +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${wd2},${h}${PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L")} L${w},${ib} L${w},${h} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "ellipse":
                     case "flowChartConnector":
                     case "flowChartSummingJunction":
                     case "flowChartOr": {
-                        result += "<ellipse cx='" + (w / 2) + "' cy='" + (h / 2) + "' rx='" + (w / 2) + "' ry='" + (h / 2) + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<ellipse cx='${(w / 2)}' cy='${(h / 2)}' rx='${(w / 2)}' ry='${(h / 2)}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         if (shapType == "flowChartOr") {
-                            result += " <polyline points='" + w / 2 + " " + 0 + "," + w / 2 + " " + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                            result += " <polyline points='" + 0 + " " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += ` <polyline points='${w / 2} ${0},${w / 2} ${h}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
+                            result += ` <polyline points='${0} ${h / 2},${w} ${h / 2}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         } else if (shapType == "flowChartSummingJunction") {
                             var iDx, idy, il, ir, it, ib, hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                             const angVal = Math.PI / 4;
@@ -839,8 +714,8 @@ export const PPTXShapeUtils = (function() {
                             ir = hc + iDx;
                             it = vc - idy;
                             ib = vc + idy;
-                            result += " <polyline points='" + il + " " + it + "," + ir + " " + ib + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                            result += " <polyline points='" + ir + " " + it + "," + il + " " + ib + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += ` <polyline points='${il} ${it},${ir} ${ib}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
+                            result += ` <polyline points='${ir} ${it},${il} ${ib}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         }
                         break;
                     }
@@ -912,7 +787,7 @@ export const PPTXShapeUtils = (function() {
                                 if (sAdj1_val === undefined) sAdj1_val = 0.33334;
                                 sAdj2_val = 0;
                                 if (shapType == "flowChartPunchedCard") {
-                                    tranglRott = "transform='translate(" + w + ",0) scale(-1,1)'";
+                                    tranglRott = `transform='translate(${w},0) scale(-1,1)'`;
                                 }
                                 break;
                             }
@@ -932,8 +807,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         let d_val = PPTXShapeUtils.shapeSnipRoundRectAlt(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
-                        result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path ${tranglRott}  d='${d_val}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "snipRoundRect": {
@@ -969,18 +843,9 @@ export const PPTXShapeUtils = (function() {
                         const snipSize = Math.min(w, h) * sAdj2_val;   // 缺角大小
 
                         // 生成路径：从左下角开始，逆时针绘制
-                        let d_val = "M0," + (h - radius) +           // 左下角圆弧起点
-                            " Q0," + h + " " + radius + "," + h +   // 左下角圆弧（凸圆角）
-                            " L" + w + "," + h +                    // 沿底边到右下角
-                            " Q" + w + "," + h + " " + w + "," + (h - radius) + // 右下角圆弧（凸圆角）
-                            " L" + w + "," + snipSize +             // 沿右边向下到缺角位置
-                            " L" + (w - snipSize) + ",0" +          // 斜切到左上角缺角
-                            " L" + snipSize + ",0" +                // 沿上边向右到右上角缺角位置
-                            " L0," + (h - snipSize) +               // 斜切到左下角
-                            " z";
+                        let d_val = `M0,${(h - radius)} Q0,${h} ${radius},${h} L${w},${h} Q${w},${h} ${w},${(h - radius)} L${w},${snipSize} L${(w - snipSize)},0 L${snipSize},0 L0,${(h - snipSize)} z`;
 
-                        result += "<path   d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d_val}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "bentConnector2": {
@@ -989,21 +854,19 @@ export const PPTXShapeUtils = (function() {
                         const bendW = (drawW !== undefined) ? drawW : w;
                         const bendH = (drawH !== undefined) ? drawH : h;
                         // 路径方向（SVG容器会通过flip变换处理翻转）
-                        d = "M " + bendW + " 0 L " + bendW + " " + bendH + " L 0 " + bendH;
-                        result += "<path d='" + d + "' stroke='" + border.color +
-                            "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
+                        d = `M ${bendW} 0 L ${bendW} ${bendH} L 0 ${bendH}`;
+                        result += `<path d='${d}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' fill='none' `;
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-start='url(#markerTriangle_${shpId})' `;
                         }
                         if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-end='url(#markerTriangle_${shpId})' `;
                         }
                         result += "/>";
                         break;
                     }
                     case "rtTriangle": {
-                        result += " <polygon points='0 0,0 " + h + "," + w + " " + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='0 0,0 ${h},${w} ${h}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "triangle":
@@ -1017,19 +880,17 @@ export const PPTXShapeUtils = (function() {
                         }
                         let tranglRott = "";
                         if (shapType == "flowChartMerge") {
-                            tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
+                            tranglRott = `transform='rotate(180 ${w / 2},${h / 2})'`;
                         }
-                        result += " <polygon " + tranglRott + " points='" + (w * shapAdjst_val) + " 0,0 " + h + "," + w + " " + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon ${tranglRott} points='${(w * shapAdjst_val)} 0,0 ${h},${w} ${h}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "diamond":
                     case "flowChartDecision":
                     case "flowChartSort": {
-                        result += " <polygon points='" + (w / 2) + " 0,0 " + (h / 2) + "," + (w / 2) + " " + h + "," + w + " " + (h / 2) + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(w / 2)} 0,0 ${(h / 2)},${(w / 2)} ${h},${w} ${(h / 2)}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         if (shapType == "flowChartSort") {
-                            result += " <polyline points='0 " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += ` <polyline points='0 ${h / 2},${w} ${h / 2}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         }
                         break;
                     }
@@ -1047,14 +908,13 @@ export const PPTXShapeUtils = (function() {
                         var cnstVal = 0;
                         let tranglRott = "";
                         if (shapType == "flowChartManualOperation") {
-                            tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
+                            tranglRott = `transform='rotate(180 ${w / 2},${h / 2})'`;
                         }
                         if (shapType == "flowChartManualInput") {
                             adjst_val = 0;
                             cnstVal = h / 5;
                         }
-                        result += " <polygon " + tranglRott + " points='" + (w * adjst_val) + " " + cnstVal + ",0 " + h + "," + w + " " + h + "," + (1 - adjst_val) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon ${tranglRott} points='${(w * adjst_val)} ${cnstVal},0 ${h},${w} ${h},${(1 - adjst_val) * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "parallelogram":
@@ -1072,13 +932,11 @@ export const PPTXShapeUtils = (function() {
                             adjst_val = adjst / max_adj_const;
                             //console.log("w: "+w+"\nh: "+h+"\nadjst: "+adjst_val+"\nmax_adj_const: "+max_adj_const);
                         }
-                        result += " <polygon points='" + adjst_val * w + " 0,0 " + h + "," + (1 - adjst_val) * w + " " + h + "," + w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${adjst_val * w} 0,0 ${h},${(1 - adjst_val) * w} ${h},${w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "pentagon": {
-                        result += " <polygon points='" + (0.5 * w) + " 0,0 " + (0.375 * h) + "," + (0.15 * w) + " " + h + "," + 0.85 * w + " " + h + "," + w + " " + 0.375 * h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(0.5 * w)} 0,0 ${(0.375 * h)},${(0.15 * w)} ${h},${0.85 * w} ${h},${w} ${0.375 * h}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "hexagon":
@@ -1103,22 +961,13 @@ export const PPTXShapeUtils = (function() {
                         y1 = vc - dy1;
                         y2 = vc + dy1;
 
-                        var d = "M" + 0 + "," + vc +
-                            " L" + x1 + "," + y1 +
-                            " L" + x2 + "," + y1 +
-                            " L" + w + "," + vc +
-                            " L" + x2 + "," + y2 +
-                            " L" + x1 + "," + y2 +
-                            " z";
+                        var d = `M${0},${vc} L${x1},${y1} L${x2},${y1} L${w},${vc} L${x2},${y2} L${x1},${y2} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "heptagon": {
-                        result += " <polygon points='" + (0.5 * w) + " 0," + w / 8 + " " + h / 4 + ",0 " + (5 / 8) * h + "," + w / 4 + " " + h + "," + (3 / 4) * w + " " + h + "," +
-                            w + " " + (5 / 8) * h + "," + (7 / 8) * w + " " + h / 4 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(0.5 * w)} 0,${w / 8} ${h / 4},0 ${(5 / 8) * h},${w / 4} ${h},${(3 / 4) * w} ${h},${w} ${(5 / 8) * h},${(7 / 8) * w} ${h / 4}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "octagon": {
@@ -1130,22 +979,16 @@ export const PPTXShapeUtils = (function() {
                         }
                         let adj2 = (1 - adj1);
                         //console.log("adj1: "+adj1+"\nadj2: "+adj2);
-                        result += " <polygon points='" + adj1 * w + " 0,0 " + adj1 * h + ",0 " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," +
-                            w + " " + adj2 * h + "," + w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${adj1 * w} 0,0 ${adj1 * h},0 ${adj2 * h},${adj1 * w} ${h},${adj2 * w} ${h},${w} ${adj2 * h},${w} ${adj1 * h},${adj2 * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
                     case "decagon": {
-                        result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + h / 2 + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
-                            (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + h / 2 + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(3 / 8) * w} 0,${w / 8} ${h / 8},0 ${h / 2},${w / 8} ${(7 / 8) * h},${(3 / 8) * w} ${h},${(5 / 8) * w} ${h},${(7 / 8) * w} ${(7 / 8) * h},${w} ${h / 2},${(7 / 8) * w} ${h / 8},${(5 / 8) * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "dodecagon": {
-                        result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + (3 / 8) * h + ",0 " + (5 / 8) * h + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
-                            (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + (5 / 8) * h + "," + w + " " + (3 / 8) * h + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(3 / 8) * w} 0,${w / 8} ${h / 8},0 ${(3 / 8) * h},0 ${(5 / 8) * h},${w / 8} ${(7 / 8) * h},${(3 / 8) * w} ${h},${(5 / 8) * w} ${h},${(7 / 8) * w} ${(7 / 8) * h},${w} ${(5 / 8) * h},${w} ${(3 / 8) * h},${(7 / 8) * w} ${h / 8},${(5 / 8) * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "star4":
@@ -1185,18 +1028,8 @@ export const PPTXShapeUtils = (function() {
                         x1 = Math.min(w, h) * a1 / cnstVal2;
                         x4 = w - x1;
                         y4 = h - x1;
-                        var d = "M" + 0 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + h +
-                            " L" + 0 + "," + h +
-                            " z" +
-                            "M" + x1 + "," + x1 +
-                            " L" + x1 + "," + y4 +
-                            " L" + x4 + "," + y4 +
-                            " L" + x4 + "," + x1 +
-                            " z";
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${x1},${x1} L${x1},${y4} L${x4},${y4} L${x4},${x1} z`;
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "donut": {
@@ -1214,20 +1047,8 @@ export const PPTXShapeUtils = (function() {
                         dr = Math.min(w, h) * a / cnstVal2;
                         iwd2 = w / 2 - dr;
                         ihd2 = h / 2 - dr;
-                        var d = "M" + 0 + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
-                            " z" +
-                            "M" + dr + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
-                            " z";
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + " />";
+                        var d = `M${0},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L")} zM${dr},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L")} z`;
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr} />`;
                         break;
                     }
                     case "noSmoking": {
@@ -1284,21 +1105,9 @@ export const PPTXShapeUtils = (function() {
                         var x2 = w / 2 - dx1;
                         var y2 = h / 2 - dy1;
 
-                        var d = "M" + 0 + "," + h / 2 +
-                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
-                            " z" +
-                            "M" + x1 + "," + y1 +
-                            shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
-                            " z" +
-                            "M" + x2 + "," + y2 +
-                            shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
-                            " z";
+                        var d = `M${0},${h / 2}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L")}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L")}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L")}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L")} zM${x1},${y1}${shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L")} zM${x2},${y2}${shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L")} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "halfFrame": {
@@ -1336,15 +1145,9 @@ export const PPTXShapeUtils = (function() {
                         var x2 = w - dx2;
                         let dy2 = x1 * h / w;
                         var y2 = h - dy2;
-                        var d = "M0,0" +
-                            " L" + w + "," + 0 +
-                            " L" + x2 + "," + y1 +
-                            " L" + x1 + "," + y1 +
-                            " L" + x1 + "," + y2 +
-                            " L0," + h + " z";
+                        var d = `M0,0 L${w},${0} L${x2},${y1} L${x1},${y1} L${x1},${y2} L0,${h} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         //console.log("w: ",w,", h: ",h,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val,",maxAdj1: ",maxAdj1,",maxAdj2: ",maxAdj2)
                         break;
                     }
@@ -1371,12 +1174,8 @@ export const PPTXShapeUtils = (function() {
                         cd4 = 90;
 
                         let adj2 = (1 - adj) * w;
-                        var d = "M" + w + "," + h +
-                            PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
-                            " z";
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${w},${h}${PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L")} z`;
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "corner": {
@@ -1411,15 +1210,9 @@ export const PPTXShapeUtils = (function() {
                         dy1 = minWH * a1 / cnsVal;
                         y1 = h - dy1;
 
-                        var d = "M0,0" +
-                            " L" + x1 + "," + 0 +
-                            " L" + x1 + "," + y1 +
-                            " L" + w + "," + y1 +
-                            " L" + w + "," + h +
-                            " L0," + h + " z";
+                        var d = `M0,0 L${x1},${0} L${x1},${y1} L${w},${y1} L${w},${h} L0,${h} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "diagStripe": {
@@ -1435,13 +1228,9 @@ export const PPTXShapeUtils = (function() {
                         else a1 = sAdj1_val
                         x2 = w * a1 / cnsVal;
                         y2 = h * a1 / cnsVal;
-                        var d = "M" + 0 + "," + y2 +
-                            " L" + x2 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + 0 + "," + h + " z";
+                        var d = `M${0},${y2} L${x2},${0} L${w},${0} L${0},${h} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "gear6":
@@ -1453,8 +1242,7 @@ export const PPTXShapeUtils = (function() {
                         } else { //gearNum=="9"
                             d = shapeGear(w, h / 3.5, parseInt(gearNum));
                         }
-                        result += "<path   d='" + d + "' transform='rotate(20," + (3 / 7) * h + "," + (3 / 7) * h + ")' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}' transform='rotate(20,${(3 / 7) * h},${(3 / 7) * h})' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "bentConnector3": {
@@ -1466,13 +1254,12 @@ export const PPTXShapeUtils = (function() {
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
                             // 路径方向（SVG容器会通过flip变换处理翻转）
-                            result += " <polyline points='0 0," + (shapAdjst_val) * connectorW + " 0," + (shapAdjst_val) * connectorW + " " + connectorH + "," + connectorW + " " + connectorH + "' fill='transparent'" +
-                                "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
+                            result += ` <polyline points='0 0,${(shapAdjst_val) * connectorW} 0,${(shapAdjst_val) * connectorW} ${connectorH},${connectorW} ${connectorH}' fill='transparent'' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
                             if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                                result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                                result += `marker-start='url(#markerTriangle_${shpId})' `;
                             }
                             if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                                result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                                result += `marker-end='url(#markerTriangle_${shpId})' `;
                             }
                             result += "/>";
                         }
@@ -1486,10 +1273,7 @@ export const PPTXShapeUtils = (function() {
 
                         }
                         let adj2 = (1 - adj1);
-                        result += " <polygon points='" + adj1 * w + " 0," + adj1 * w + " " + adj1 * h + ",0 " + adj1 * h + ",0 " + adj2 * h + "," +
-                            adj1 * w + " " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," + adj2 * w + " " + adj2 * h + "," + w + " " + adj2 * h + "," +
-                            +w + " " + adj1 * h + "," + adj2 * w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${adj1 * w} 0,${adj1 * w} ${adj1 * h},0 ${adj1 * h},0 ${adj2 * h},${adj1 * w} ${adj2 * h},${adj1 * w} ${h},${adj2 * w} ${h},${adj2 * w} ${adj2 * h},${w} ${adj2 * h},${+w} ${adj1 * h},${adj2 * w} ${adj1 * h},${adj2 * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "teardrop": {
@@ -1517,13 +1301,8 @@ export const PPTXShapeUtils = (function() {
                         x2 = ((w / 2) + x1) / 2;
                         y2 = ((h / 2) + y1) / 2;
 
-                        let d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
-                            "Q " + x2 + ",0 " + x1 + "," + y1 +
-                            "Q " + w + "," + y2 + " " + w + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
-                        result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false)}Q ${x2},0 ${x1},${y1}Q ${w},${y2} ${w},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L")} z`;
+                        result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         // console.log("shapAdjst: ",shapAdjst,", adj1: ",adj1);
                         break;
@@ -1578,18 +1357,9 @@ export const PPTXShapeUtils = (function() {
                          * - 闭合: 回到起点
                          */
 
-                        let d_val = "M" + r + ",0" +
-                            "A" + r + " " + r + " 0 0 1 0," + r +
-                            "L0," + (h - r) +
-                            "A" + r + " " + r + " 0 0 1 " + r + "," + h +
-                            "L" + (w - r) + "," + h +
-                            "A" + r + " " + r + " 0 0 1 " + w + "," + (h - r) +
-                            "L" + w + "," + r +
-                            "A" + r + " " + r + " 0 0 1 " + (w - r) + ",0" +
-                            " z";
+                        let d_val = `M${r},0A${r} ${r} 0 0 1 0,${r}L0,${(h - r)}A${r} ${r} 0 0 1 ${r},${h}L${(w - r)},${h}A${r} ${r} 0 0 1 ${w},${(h - r)}L${w},${r}A${r} ${r} 0 0 1 ${(w - r)},0 z`;
 
-                        result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -1656,44 +1426,9 @@ export const PPTXShapeUtils = (function() {
                             y17 = h * g17 / cnstVa4,
                             y18 = h * g18 / cnstVa4;
 
-                        let d_val = "M" + w + "," + h / 2 +
-                            " L" + x15 + "," + y18 +
-                            " L" + x15 + "," + y14 +
-                            "z" +
-                            " M" + ox1 + "," + oy1 +
-                            " L" + x16 + "," + y17 +
-                            " L" + x13 + "," + y12 +
-                            "z" +
-                            " M" + w / 2 + "," + 0 +
-                            " L" + x18 + "," + y10 +
-                            " L" + x14 + "," + y10 +
-                            "z" +
-                            " M" + ox2 + "," + oy1 +
-                            " L" + x17 + "," + y12 +
-                            " L" + x12 + "," + y17 +
-                            "z" +
-                            " M" + 0 + "," + h / 2 +
-                            " L" + x10 + "," + y14 +
-                            " L" + x10 + "," + y18 +
-                            "z" +
-                            " M" + ox2 + "," + oy2 +
-                            " L" + x12 + "," + y13 +
-                            " L" + x17 + "," + y16 +
-                            "z" +
-                            " M" + w / 2 + "," + h +
-                            " L" + x14 + "," + y15 +
-                            " L" + x18 + "," + y15 +
-                            "z" +
-                            " M" + ox1 + "," + oy2 +
-                            " L" + x13 + "," + y16 +
-                            " L" + x16 + "," + y13 +
-                            " z" +
-                            " M" + x19 + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
-                            " z";
+                        let d_val = `M${w},${h / 2} L${x15},${y18} L${x15},${y14}z M${ox1},${oy1} L${x16},${y17} L${x13},${y12}z M${w / 2},${0} L${x18},${y10} L${x14},${y10}z M${ox2},${oy1} L${x17},${y12} L${x12},${y17}z M${0},${h / 2} L${x10},${y14} L${x10},${y18}z M${ox2},${oy2} L${x12},${y13} L${x17},${y16}z M${w / 2},${h} L${x14},${y15} L${x18},${y15}z M${ox1},${oy2} L${x13},${y16} L${x16},${y13} z M${x19},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L")} z`;
                         //console.log("adj1: ",adj1,d_val);
-                        result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
 
                         break;
@@ -1707,12 +1442,9 @@ export const PPTXShapeUtils = (function() {
                         x3 = w / 2 + dx2
                         x4 = w / 2 + dx1
                         y1 = -h / 3;
-                        let d_val = "M" + w / 2 + "," + h / 4 +
-                            "C" + x3 + "," + y1 + " " + x4 + "," + h / 4 + " " + w / 2 + "," + h +
-                            "C" + x1 + "," + h / 4 + " " + x2 + "," + y1 + " " + w / 2 + "," + h / 4 + " z";
+                        let d_val = `M${w / 2},${h / 4}C${x3},${y1} ${x4},${h / 4} ${w / 2},${h}C${x1},${h / 4} ${x2},${y1} ${w / 2},${h / 4} z`;
 
-                        result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -1740,20 +1472,9 @@ export const PPTXShapeUtils = (function() {
                             y10 = h * 14277 / 21600,
                             y11 = h * 14915 / 21600;
 
-                        let d_val = "M" + x3 + "," + 0 +
-                            " L" + x8 + "," + y2 +
-                            " L" + x2 + "," + y3 +
-                            " L" + x11 + "," + y7 +
-                            " L" + x6 + "," + y5 +
-                            " L" + w + "," + h +
-                            " L" + x5 + "," + y11 +
-                            " L" + x7 + "," + y8 +
-                            " L" + x1 + "," + y6 +
-                            " L" + x10 + "," + y9 +
-                            " L" + 0 + "," + y1 + " z";
+                        let d_val = `M${x3},${0} L${x8},${y2} L${x2},${y3} L${x11},${y7} L${x6},${y5} L${w},${h} L${x5},${y11} L${x7},${y8} L${x1},${y6} L${x10},${y9} L${0},${y1} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -1772,22 +1493,9 @@ export const PPTXShapeUtils = (function() {
                         y1 = ss * a / cnstVal2;
                         y4 = h - y1;
                         x4 = w - y1;
-                        d_val = "M" + 0 + "," + y1 +
-                            " L" + y1 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y4 +
-                            " L" + x4 + "," + h +
-                            " L" + 0 + "," + h +
-                            " z" +
-                            "M" + 0 + "," + y1 +
-                            " L" + x4 + "," + y1 +
-                            " M" + x4 + "," + y1 +
-                            " L" + w + "," + 0 +
-                            "M" + x4 + "," + y1 +
-                            " L" + x4 + "," + h;
+                        d_val = `M${0},${y1} L${y1},${0} L${w},${0} L${w},${y4} L${x4},${h} L${0},${h} zM${0},${y1} L${x4},${y1} M${x4},${y1} L${w},${0}M${x4},${y1} L${x4},${h}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -1807,27 +1515,9 @@ export const PPTXShapeUtils = (function() {
                         x1 = ss * a / cnstVal2;
                         x2 = w - x1;
                         y2 = h - x1;
-                        d_val = "M" + 0 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + h +
-                            " L" + 0 + "," + h +
-                            " z" +
-                            " M" + x1 + "," + x1 +
-                            " L" + x2 + "," + x1 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x1 + "," + y2 +
-                            " z" +
-                            " M" + 0 + "," + 0 +
-                            " L" + x1 + "," + x1 +
-                            " M" + 0 + "," + h +
-                            " L" + x1 + "," + y2 +
-                            " M" + w + "," + 0 +
-                            " L" + x2 + "," + x1 +
-                            " M" + w + "," + h +
-                            " L" + x2 + "," + y2;
+                        d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${x1} L${x2},${x1} L${x2},${y2} L${x1},${y2} z M${0},${0} L${x1},${x1} M${0},${h} L${x1},${y2} M${w},${0} L${x2},${x1} M${w},${h} L${x2},${y2}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -1850,17 +1540,9 @@ export const PPTXShapeUtils = (function() {
                         x2 = x1 + dy1;
                         y2 = h - dy2;
                         y1 = y2 + dy1;
-                        d_val = "M" + x1 + "," + h +
-                            " L" + x2 + "," + y1 +
-                            " L" + w + "," + y2 +
-                            " L" + x1 + "," + h +
-                            " L" + 0 + "," + h +
-                            " L" + 0 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y2;
+                        d_val = `M${x1},${h} L${x2},${y1} L${w},${y2} L${x1},${h} L${0},${h} L${0},${0} L${w},${0} L${w},${y2}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -1891,7 +1573,7 @@ export const PPTXShapeUtils = (function() {
                             return {
                                 start: { x: fmt(startX), y: fmt(startY) },
                                 end: { x: fmt(endX), y: fmt(endY) },
-                                path: "A " + fmt(rx) + " " + fmt(ry) + " 0 " + largeArc + " " + sweep + " " + fmt(endX) + " " + fmt(endY)
+                                path: `A ${fmt(rx)} ${fmt(ry)} 0 ${largeArc} ${sweep} ${fmt(endX)} ${fmt(endY)}`
                             };
                         }
 
@@ -1984,18 +1666,7 @@ export const PPTXShapeUtils = (function() {
                         const arc11 = ellipseArc(cX10, cY10, rX11, rY3, sA11, wA11);
 
                         // 构建完整路径
-                        let d1 = "M" + x0 + "," + y0 + " " +
-                            arc1.path + " " +
-                            arc2.path + " " +
-                            arc3.path + " " +
-                            arc4.path + " " +
-                            arc5.path + " " +
-                            arc6.path + " " +
-                            arc7.path + " " +
-                            arc8.path + " " +
-                            arc9.path + " " +
-                            arc10.path + " " +
-                            arc11.path + " z";
+                        let d1 = `M${x0},${y0} ${arc1.path} ${arc2.path} ${arc3.path} ${arc4.path} ${arc5.path} ${arc6.path} ${arc7.path} ${arc8.path} ${arc9.path} ${arc10.path} ${arc11.path} z`;
 
                         if (shapType == "cloudCallout") {
                             const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -2064,18 +1735,10 @@ export const PPTXShapeUtils = (function() {
                             x25 = g23 + g12;
 
                             d_val = //" M" + x23 + "," + yPos + 
-                                PPTXShapeUtils.shapeArc(x23 - g26, yPos, g26, g26, 0, 360, false) + //.replace("M","L") +
-                                " z" +
-                                " M" + x24 + "," + g17 +
-                                PPTXShapeUtils.shapeArc(x24 - g25, g17, g25, g25, 0, 360, false).replace("M", "L") +
-                                " z" +
-                                " M" + x25 + "," + g24 +
-                                PPTXShapeUtils.shapeArc(x25 - g12, g24, g12, g12, 0, 360, false).replace("M", "L") +
-                                " z";
+                                `${PPTXShapeUtils.shapeArc(x23 - g26, yPos, g26, g26, 0, 360, false)} z M${x24},${g17}${PPTXShapeUtils.shapeArc(x24 - g25, g17, g25, g25, 0, 360, false).replace("M", "L")} z M${x25},${g24}${PPTXShapeUtils.shapeArc(x25 - g12, g24, g12, g12, 0, 360, false).replace("M", "L")} z`;
                             d1 += d_val;
                         }
-                        result += "<path d='" + d1 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d1}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -2154,15 +1817,10 @@ export const PPTXShapeUtils = (function() {
                         var swAngDg = swAng*180/Math.PI;
                         var endAng = stAng1Dg + swAngDg;
                         */
-                        d_val = "M" + x1 + "," + y1 +
-                            " L" + xPos + "," + yPos +
-                            " L" + x2 + "," + y2 +
-                            //" z" +
-                            PPTXShapeUtils.shapeArcAlt(hc, vc, hc, vc, 0, 360, true);// +
+                        d_val = `M${x1},${y1} L${xPos},${yPos} L${x2},${y2}${PPTXShapeUtils.shapeArcAlt(hc, vc, hc, vc, 0, 360, true)}`;// +
                         //PPTXShapeUtils.shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
                         //" z";
-                        result += "<path d='" + d_val + "'" + cloudTransformAttr + " fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}'${cloudTransformAttr} fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -2223,26 +1881,9 @@ export const PPTXShapeUtils = (function() {
                         t8 = (dyPos > 0) ? yPos : h;
                         yb = (dz > 0) ? t8 : h;
 
-                        d_val = "M" + 0 + "," + 0 +
-                            " L" + x1 + "," + 0 +
-                            " L" + xt + "," + yt +
-                            " L" + x2 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y1 +
-                            " L" + xr + "," + yr +
-                            " L" + w + "," + y2 +
-                            " L" + w + "," + h +
-                            " L" + x2 + "," + h +
-                            " L" + xb + "," + yb +
-                            " L" + x1 + "," + h +
-                            " L" + 0 + "," + h +
-                            " L" + 0 + "," + y2 +
-                            " L" + xl + "," + yl +
-                            " L" + 0 + "," + y1 +
-                            " z";
+                        d_val = `M${0},${0} L${x1},${0} L${xt},${yt} L${x2},${0} L${w},${0} L${w},${y1} L${xr},${yr} L${w},${y2} L${w},${h} L${x2},${h} L${xb},${yb} L${x1},${h} L${0},${h} L${0},${y2} L${xl},${yl} L${0},${y1} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -2308,29 +1949,8 @@ export const PPTXShapeUtils = (function() {
                         u1 = ss * adj3 / cnstVal1;
                         u2 = w - u1;
                         v2 = h - u1;
-                        d_val = "M" + 0 + "," + u1 +
-                            PPTXShapeUtils.shapeArc(u1, u1, u1, u1, 180, 270, false).replace("M", "L") +
-                            " L" + x1 + "," + 0 +
-                            " L" + xt + "," + yt +
-                            " L" + x2 + "," + 0 +
-                            " L" + u2 + "," + 0 +
-                            PPTXShapeUtils.shapeArc(u2, u1, u1, u1, 270, 360, false).replace("M", "L") +
-                            " L" + w + "," + y1 +
-                            " L" + xr + "," + yr +
-                            " L" + w + "," + y2 +
-                            " L" + w + "," + v2 +
-                            PPTXShapeUtils.shapeArc(u2, v2, u1, u1, 0, 90, false).replace("M", "L") +
-                            " L" + x2 + "," + h +
-                            " L" + xb + "," + yb +
-                            " L" + x1 + "," + h +
-                            " L" + u1 + "," + h +
-                            PPTXShapeUtils.shapeArc(u1, v2, u1, u1, 90, 180, false).replace("M", "L") +
-                            " L" + 0 + "," + y2 +
-                            " L" + xl + "," + yl +
-                            " L" + 0 + "," + y1 +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        d_val = `M${0},${u1}${PPTXShapeUtils.shapeArc(u1, u1, u1, u1, 180, 270, false).replace("M", "L")} L${x1},${0} L${xt},${yt} L${x2},${0} L${u2},${0}${PPTXShapeUtils.shapeArc(u2, u1, u1, u1, 270, 360, false).replace("M", "L")} L${w},${y1} L${xr},${yr} L${w},${y2} L${w},${v2}${PPTXShapeUtils.shapeArc(u2, v2, u1, u1, 0, 90, false).replace("M", "L")} L${x2},${h} L${xb},${yb} L${x1},${h} L${u1},${h}${PPTXShapeUtils.shapeArc(u1, v2, u1, u1, 90, 180, false).replace("M", "L")} L${0},${y2} L${xl},${yl} L${0},${y1} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -2408,13 +2028,7 @@ export const PPTXShapeUtils = (function() {
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
                                 x2 = w * adj4 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2}`;
                                 break;
                             case "borderCallout2":
                             case "callout2":
@@ -2441,17 +2055,7 @@ export const PPTXShapeUtils = (function() {
 
                                 y3 = h * adj5 / cnstVal1;
                                 x3 = w * adj6 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x2 + "," + y2;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x2},${y2}`;
 
                                 break;
                             case "borderCallout3":
@@ -2485,20 +2089,7 @@ export const PPTXShapeUtils = (function() {
 
                                 y4 = h * adj7 / cnstVal1;
                                 x4 = w * adj8 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " L" + x3 + "," + y3 +
-
-                                    " L" + x4 + "," + y4 +
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x2 + "," + y2;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x4},${y4} L${x3},${y3} L${x2},${y2}`;
                                 break;
                             case "accentBorderCallout1":
                             case "accentCallout1":
@@ -2519,17 +2110,7 @@ export const PPTXShapeUtils = (function() {
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
                                 x2 = w * adj4 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " M" + x1 + "," + 0 +
-                                    " L" + x1 + "," + h;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} M${x1},${0} L${x1},${h}`;
                                 break;
                             case "accentBorderCallout2":
                             case "accentCallout2":
@@ -2554,19 +2135,7 @@ export const PPTXShapeUtils = (function() {
                                 x2 = w * adj4 / cnstVal1;
                                 y3 = h * adj5 / cnstVal1;
                                 x3 = w * adj6 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " M" + x1 + "," + 0 +
-                                    " L" + x1 + "," + h;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x2},${y2} M${x1},${0} L${x1},${h}`;
 
                                 break;
                             case "accentBorderCallout3":
@@ -2597,28 +2166,13 @@ export const PPTXShapeUtils = (function() {
                                 x3 = w * adj6 / cnstVal1;
                                 y4 = h * adj7 / cnstVal1;
                                 x4 = w * adj8 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x4 + "," + y4 +
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " M" + x1 + "," + 0 +
-                                    " L" + x1 + "," + h;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x4},${y4} L${x3},${y3} L${x2},${y2} M${x1},${0} L${x1},${h}`;
                                 break;
                         }
 
                         //console.log("shapType: ", shapType, ",isBorder:", isBorder)
                         //if(isBorder){
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         //}else{
                         //    result += "<path d='"+d_val+"' fill='" + (!imgFillFlg?(grndFillFlg?"url(#linGrd_"+shpId+")":fillColor):"url(#imgPtrn_"+shpId+")") + 
@@ -2681,30 +2235,9 @@ export const PPTXShapeUtils = (function() {
                         y1 = ly1 + hR;
                         y2 = ry2 - hR;
 
-                        d_val = "M" + 0 + "," + ly2 +
-                            "L" + x1 + "," + 0 +
-                            "L" + x1 + "," + ly1 +
-                            "L" + hc + "," + ly1 +
-                            PPTXShapeUtils.shapeArcAlt(hc, y1, wd32, hR, 270, 450, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(hc, y2, wd32, hR, 270, 90, false).replace("M", "L") +
-                            "L" + x4 + "," + ry2 +
-                            "L" + x4 + "," + ry1 +
-                            "L" + w + "," + ry3 +
-                            "L" + x4 + "," + h +
-                            "L" + x4 + "," + ry4 +
-                            "L" + hc + "," + ry4 +
-                            PPTXShapeUtils.shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L") +
-                            "L" + x2 + "," + ly3 +
-                            "L" + x1 + "," + ly3 +
-                            "L" + x1 + "," + ly4 +
-                            " z" +
-                            "M" + x3 + "," + y1 +
-                            "L" + x3 + "," + ry2 +
-                            "M" + x2 + "," + y2 +
-                            "L" + x2 + "," + ly3;
+                        d_val = `M${0},${ly2}L${x1},${0}L${x1},${ly1}L${hc},${ly1}${PPTXShapeUtils.shapeArcAlt(hc, y1, wd32, hR, 270, 450, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(hc, y2, wd32, hR, 270, 90, false).replace("M", "L")}L${x4},${ry2}L${x4},${ry1}L${w},${ry3}L${x4},${h}L${x4},${ry4}L${hc},${ry4}${PPTXShapeUtils.shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L")}L${x2},${ly3}L${x1},${ly3}L${x1},${ly4} zM${x3},${y1}L${x3},${ry2}M${x2},${y2}L${x2},${ly3}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -2758,36 +2291,7 @@ export const PPTXShapeUtils = (function() {
                             y6 = b - hR;///////////////////
                             y7 = y1 - hR;
 
-                            d_val = "M" + l + "," + b +
-                                " L" + wd8 + "," + y3 +
-                                " L" + l + "," + y4 +
-                                " L" + x2 + "," + y4 +
-                                " L" + x2 + "," + hR +
-                                PPTXShapeUtils.shapeArcAlt(x3, hR, wd32, hR, 180, 270, false).replace("M", "L") +
-                            " L" + x8 + "," + t +
-                            PPTXShapeUtils.shapeArcAlt(x8, hR, wd32, hR, 270, 360, false).replace("M", "L") +
-                                " L" + x9 + "," + y4 +
-                                " L" + x9 + "," + y4 +
-                                " L" + r + "," + y4 +
-                                " L" + x10 + "," + y3 +
-                                " L" + r + "," + b +
-                                " L" + x7 + "," + b +
-                                PPTXShapeUtils.shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L") +
-                                " L" + x8 + "," + y1 +
-                                PPTXShapeUtils.shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L") +
-                                " L" + x3 + "," + y2 +
-                                PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
-                                " L" + x4 + "," + y1 +
-                                PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
-                                " z" +
-                                " M" + x5 + "," + y2 +
-                                " L" + x5 + "," + y6 +
-                                "M" + x6 + "," + y6 +
-                                " L" + x6 + "," + y2 +
-                                "M" + x2 + "," + y7 +
-                                " L" + x2 + "," + y4 +
-                                "M" + x9 + "," + y4 +
-                                " L" + x9 + "," + y7;
+                            d_val = `M${l},${b} L${wd8},${y3} L${l},${y4} L${x2},${y4} L${x2},${hR}${PPTXShapeUtils.shapeArcAlt(x3, hR, wd32, hR, 180, 270, false).replace("M", "L")} L${x8},${t}${PPTXShapeUtils.shapeArcAlt(x8, hR, wd32, hR, 270, 360, false).replace("M", "L")} L${x9},${y4} L${x9},${y4} L${r},${y4} L${x10},${y3} L${r},${b} L${x7},${b}${PPTXShapeUtils.shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L")} L${x8},${y1}${PPTXShapeUtils.shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L")} L${x3},${y2}${PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L")} L${x4},${y1}${PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L")} z M${x5},${y2} L${x5},${y6}M${x6},${y6} L${x6},${y2}M${x2},${y7} L${x2},${y4}M${x9},${y4} L${x9},${y7}`;
                         } else if (shapType == "ribbon") {
                             let y5;
                             y1 = h * a1 / cnstVal5;
@@ -2796,38 +2300,9 @@ export const PPTXShapeUtils = (function() {
                             y3 = y4 / 2;
                             y5 = b - hR; ///////////////////////
                             y6 = y2 - hR;
-                            d_val = "M" + l + "," + t +
-                                " L" + x4 + "," + t +
-                                PPTXShapeUtils.shapeArcAlt(x4, hR, wd32, hR, 270, 450, false).replace("M", "L") +
-                                " L" + x3 + "," + y1 +
-                                PPTXShapeUtils.shapeArcAlt(x3, y6, wd32, hR, 270, 90, false).replace("M", "L") +
-                                " L" + x8 + "," + y2 +
-                                PPTXShapeUtils.shapeArcAlt(x8, y6, wd32, hR, 90, -90, false).replace("M", "L") +
-                                " L" + x7 + "," + y1 +
-                                PPTXShapeUtils.shapeArcAlt(x7, hR, wd32, hR, 90, 270, false).replace("M", "L") +
-                                " L" + r + "," + t +
-                                " L" + x10 + "," + y3 +
-                                " L" + r + "," + y4 +
-                                " L" + x9 + "," + y4 +
-                                " L" + x9 + "," + y5 +
-                                PPTXShapeUtils.shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L") +
-                                " L" + x3 + "," + b +
-                                PPTXShapeUtils.shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L") +
-                                " L" + x2 + "," + y4 +
-                                " L" + l + "," + y4 +
-                                " L" + wd8 + "," + y3 +
-                                " z" +
-                                " M" + x5 + "," + hR +
-                                " L" + x5 + "," + y2 +
-                                "M" + x6 + "," + y2 +
-                                " L" + x6 + "," + hR +
-                                "M" + x2 + "," + y4 +
-                                " L" + x2 + "," + y6 +
-                                "M" + x9 + "," + y6 +
-                                " L" + x9 + "," + y4;
+                            d_val = `M${l},${t} L${x4},${t}${PPTXShapeUtils.shapeArcAlt(x4, hR, wd32, hR, 270, 450, false).replace("M", "L")} L${x3},${y1}${PPTXShapeUtils.shapeArcAlt(x3, y6, wd32, hR, 270, 90, false).replace("M", "L")} L${x8},${y2}${PPTXShapeUtils.shapeArcAlt(x8, y6, wd32, hR, 90, -90, false).replace("M", "L")} L${x7},${y1}${PPTXShapeUtils.shapeArcAlt(x7, hR, wd32, hR, 90, 270, false).replace("M", "L")} L${r},${t} L${x10},${y3} L${r},${y4} L${x9},${y4} L${x9},${y5}${PPTXShapeUtils.shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L")} L${x3},${b}${PPTXShapeUtils.shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L")} L${x2},${y4} L${l},${y4} L${wd8},${y3} z M${x5},${hR} L${x5},${y2}M${x6},${y2} L${x6},${hR}M${x2},${y4} L${x2},${y6}M${x9},${y6} L${x9},${y4}`;
                         }
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -2885,13 +2360,7 @@ export const PPTXShapeUtils = (function() {
                             x13 = x12 + dx3;
                             x14 = (x13 + x15) / 2;
 
-                            d_val = "M" + x2 + "," + y1 +
-                                " C" + x3 + "," + y2 + " " + x4 + "," + y3 + " " + x5 + "," + y1 +
-                                " C" + x6 + "," + y2 + " " + x7 + "," + y3 + " " + x8 + "," + y1 +
-                                " L" + x15 + "," + y4 +
-                                " C" + x14 + "," + y6 + " " + x13 + "," + y5 + " " + x12 + "," + y4 +
-                                " C" + x11 + "," + y6 + " " + x10 + "," + y5 + " " + x9 + "," + y4 +
-                                " z";
+                            d_val = `M${x2},${y1} C${x3},${y2} ${x4},${y3} ${x5},${y1} C${x6},${y2} ${x7},${y3} ${x8},${y1} L${x15},${y4} C${x14},${y6} ${x13},${y5} ${x12},${y4} C${x11},${y6} ${x10},${y5} ${x9},${y4} z`;
                         } else if (shapType == "wave") {
                             const cnstVal5 = 20000 * SLIDE_FACTOR;
                             var a1, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx5, x5, dx3, x3, x4, x6, x10, x7, x8;
@@ -2917,14 +2386,9 @@ export const PPTXShapeUtils = (function() {
                             x7 = x6 + dx3;
                             x8 = (x7 + x10) / 2;
 
-                            d_val = "M" + x2 + "," + y1 +
-                                " C" + x3 + "," + y2 + " " + x4 + "," + y3 + " " + x5 + "," + y1 +
-                                " L" + x10 + "," + y4 +
-                                " C" + x8 + "," + y6 + " " + x7 + "," + y5 + " " + x6 + "," + y4 +
-                                " z";
+                            d_val = `M${x2},${y1} C${x3},${y2} ${x4},${y3} ${x5},${y1} L${x10},${y4} C${x8},${y6} ${x7},${y5} ${x6},${y4} z`;
                         }
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3004,29 +2468,7 @@ export const PPTXShapeUtils = (function() {
                             cy7 = q1 + q1 - y7;
                             y8 = b - dy1;
                             //
-                            d_val = "M" + l + "," + t +
-                                " Q" + cx1 + "," + cy1 + " " + x3 + "," + y1 +
-                                " L" + x2 + "," + y3 +
-                                " Q" + hc + "," + cy3 + " " + x5 + "," + y3 +
-                                " L" + x4 + "," + y1 +
-                                " Q" + cx2 + "," + cy1 + " " + r + "," + t +
-                                " L" + x6 + "," + y2 +
-                                " L" + r + "," + rh +
-                                " Q" + cx5 + "," + cy4 + " " + x5 + "," + y5 +
-                                " L" + x5 + "," + y6 +
-                                " Q" + hc + "," + cy6 + " " + x2 + "," + y6 +
-                                " L" + x2 + "," + y5 +
-                                " Q" + cx4 + "," + cy4 + " " + l + "," + rh +
-                                " L" + wd8 + "," + y2 +
-                                " z" +
-                                "M" + x2 + "," + y5 +
-                                " L" + x2 + "," + y3 +
-                                "M" + x5 + "," + y3 +
-                                " L" + x5 + "," + y5 +
-                                "M" + x3 + "," + y1 +
-                                " L" + x3 + "," + y7 +
-                                "M" + x4 + "," + y7 +
-                                " L" + x4 + "," + y1;
+                            d_val = `M${l},${t} Q${cx1},${cy1} ${x3},${y1} L${x2},${y3} Q${hc},${cy3} ${x5},${y3} L${x4},${y1} Q${cx2},${cy1} ${r},${t} L${x6},${y2} L${r},${rh} Q${cx5},${cy4} ${x5},${y5} L${x5},${y6} Q${hc},${cy6} ${x2},${y6} L${x2},${y5} Q${cx4},${cy4} ${l},${rh} L${wd8},${y2} zM${x2},${y5} L${x2},${y3}M${x5},${y3} L${x5},${y5}M${x3},${y1} L${x3},${y7}M${x4},${y7} L${x4},${y1}`;
                         } else if (shapType == "ellipseRibbon2") {
                             var u1, y1, cu1, cy1, q3, q5, u3, y3, q6, q7, cu3, cy3, rh, q8, u2, y2,
                                 u5, y5, u6, y6, cu4, cy4, cu6, cy6, u7, y7, cu7, cy7;
@@ -3055,33 +2497,9 @@ export const PPTXShapeUtils = (function() {
                             cu7 = q1 + q1 - u7;
                             cy7 = b - cu7;
                             //
-                            d_val = "M" + l + "," + b +
-                                " L" + wd8 + "," + y2 +
-                                " L" + l + "," + q1 +
-                                " Q" + cx4 + "," + cy4 + " " + x2 + "," + y5 +
-                                " L" + x2 + "," + y6 +
-                                " Q" + hc + "," + cy6 + " " + x5 + "," + y6 +
-                                " L" + x5 + "," + y5 +
-                                " Q" + cx5 + "," + cy4 + " " + r + "," + q1 +
-                                " L" + x6 + "," + y2 +
-                                " L" + r + "," + b +
-                                " Q" + cx2 + "," + cy1 + " " + x4 + "," + y1 +
-                                " L" + x5 + "," + y3 +
-                                " Q" + hc + "," + cy3 + " " + x2 + "," + y3 +
-                                " L" + x3 + "," + y1 +
-                                " Q" + cx1 + "," + cy1 + " " + l + "," + b +
-                                " z" +
-                                "M" + x2 + "," + y3 +
-                                " L" + x2 + "," + y5 +
-                                "M" + x5 + "," + y5 +
-                                " L" + x5 + "," + y3 +
-                                "M" + x3 + "," + y7 +
-                                " L" + x3 + "," + y1 +
-                                "M" + x4 + "," + y1 +
-                                " L" + x4 + "," + y7;
+                            d_val = `M${l},${b} L${wd8},${y2} L${l},${q1} Q${cx4},${cy4} ${x2},${y5} L${x2},${y6} Q${hc},${cy6} ${x5},${y6} L${x5},${y5} Q${cx5},${cy4} ${r},${q1} L${x6},${y2} L${r},${b} Q${cx2},${cy1} ${x4},${y1} L${x5},${y3} Q${hc},${cy3} ${x2},${y3} L${x3},${y1} Q${cx1},${cy1} ${l},${b} zM${x2},${y3} L${x2},${y5}M${x5},${y5} L${x5},${y3}M${x3},${y7} L${x3},${y1}M${x4},${y1} L${x4},${y7}`;
                         }
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3099,13 +2517,12 @@ export const PPTXShapeUtils = (function() {
                         // 根据flipH和flipV确定线条的起点和终点
                         var x1 = 0, y1 = 0, x2 = lineW, y2 = lineH;
                         
-                        result += "<line x1='" + x1 + "' y1='" + y1 + "' x2='" + x2 + "' y2='" + y2 + "' stroke='" + border.color +
-                            "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
+                        result += `<line x1='${x1}' y1='${y1}' x2='${x2}' y2='${y2}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-start='url(#markerTriangle_${shpId})' `;
                         }
                         if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-end='url(#markerTriangle_${shpId})' `;
                         }
                         result += "/>";
                         break;
@@ -3160,17 +2577,16 @@ export const PPTXShapeUtils = (function() {
                             cy2 = curveH;
                         }
                         // 正常路径
-                        pathD = "M 0,0 Q " + cx1 + "," + cy1 + " " + curveW/2 + "," + curveH/2 + " Q " + cx2 + "," + cy2 + " " + curveW + "," + curveH;
+                        pathD = `M 0,0 Q ${cx1},${cy1} ${curveW/2},${curveH/2} Q ${cx2},${cy2} ${curveW},${curveH}`;
 
                         // 使用 SVG 路径元素创建曲线
-                        result += "<path d='" + pathD + "' stroke='" + border.color +
-                            "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
+                        result += `<path d='${pathD}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' fill='none' `;
                         
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-start='url(#markerTriangle_${shpId})' `;
                         }
                         if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-end='url(#markerTriangle_${shpId})' `;
                         }
                         result += "/>";
                         break;
@@ -3236,33 +2652,9 @@ export const PPTXShapeUtils = (function() {
                         y3 = vc - dx3;
                         y4 = vc + dx3;
                         y6 = h - x1;
-                        let d_val = "M" + 0 + "," + vc +
-                            " L" + x1 + "," + y2 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x3 + "," + x1 +
-                            " L" + x2 + "," + x1 +
-                            " L" + hc + "," + 0 +
-                            " L" + x5 + "," + x1 +
-                            " L" + x4 + "," + x1 +
-                            " L" + x4 + "," + y3 +
-                            " L" + x6 + "," + y3 +
-                            " L" + x6 + "," + y2 +
-                            " L" + w + "," + vc +
-                            " L" + x6 + "," + y5 +
-                            " L" + x6 + "," + y4 +
-                            " L" + x4 + "," + y4 +
-                            " L" + x4 + "," + y6 +
-                            " L" + x5 + "," + y6 +
-                            " L" + hc + "," + h +
-                            " L" + x2 + "," + y6 +
-                            " L" + x3 + "," + y6 +
-                            " L" + x3 + "," + y4 +
-                            " L" + x1 + "," + y4 +
-                            " L" + x1 + "," + y5 + " z";
+                        let d_val = `M${0},${vc} L${x1},${y2} L${x1},${y3} L${x3},${y3} L${x3},${x1} L${x2},${x1} L${hc},${0} L${x5},${x1} L${x4},${x1} L${x4},${y3} L${x6},${y3} L${x6},${y2} L${w},${vc} L${x6},${y5} L${x6},${y4} L${x4},${y4} L${x4},${y6} L${x5},${y6} L${hc},${h} L${x2},${y6} L${x3},${y6} L${x3},${y4} L${x1},${y4} L${x1},${y5} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3316,26 +2708,9 @@ export const PPTXShapeUtils = (function() {
                         y4 = h - dx2;
                         y3 = y4 - dx3;
                         y5 = y4 + dx3;
-                        let d_val = "M" + 0 + "," + y4 +
-                            " L" + x1 + "," + y2 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x3 + "," + x1 +
-                            " L" + x2 + "," + x1 +
-                            " L" + hc + "," + 0 +
-                            " L" + x5 + "," + x1 +
-                            " L" + x4 + "," + x1 +
-                            " L" + x4 + "," + y3 +
-                            " L" + x6 + "," + y3 +
-                            " L" + x6 + "," + y2 +
-                            " L" + w + "," + y4 +
-                            " L" + x6 + "," + h +
-                            " L" + x6 + "," + y5 +
-                            " L" + x1 + "," + y5 +
-                            " L" + x1 + "," + h + " z";
+                        let d_val = `M${0},${y4} L${x1},${y2} L${x1},${y3} L${x3},${y3} L${x3},${x1} L${x2},${x1} L${hc},${0} L${x5},${x1} L${x4},${x1} L${x4},${y3} L${x6},${y3} L${x6},${y2} L${w},${y4} L${x6},${h} L${x6},${y5} L${x1},${y5} L${x1},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3387,21 +2762,9 @@ export const PPTXShapeUtils = (function() {
                         x5 = x4 + dx3;
                         y3 = y4 - dx3;
                         y5 = y4 + dx3;
-                        let d_val = "M" + 0 + "," + y4 +
-                            " L" + x1 + "," + y2 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x3 + "," + x1 +
-                            " L" + x2 + "," + x1 +
-                            " L" + x4 + "," + 0 +
-                            " L" + w + "," + x1 +
-                            " L" + x5 + "," + x1 +
-                            " L" + x5 + "," + y5 +
-                            " L" + x1 + "," + y5 +
-                            " L" + x1 + "," + h + " z";
+                        let d_val = `M${0},${y4} L${x1},${y2} L${x1},${y3} L${x3},${y3} L${x3},${x1} L${x2},${x1} L${x4},${0} L${w},${x1} L${x5},${x1} L${x5},${y5} L${x1},${y5} L${x1},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3449,18 +2812,9 @@ export const PPTXShapeUtils = (function() {
                         x4 = x3 + dx2;
                         dy2 = minWH * a1 / cnstVal2;
                         y2 = h - dy2;
-                        let d_val = "M" + 0 + "," + y2 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x2 + "," + y1 +
-                            " L" + x1 + "," + y1 +
-                            " L" + x3 + "," + 0 +
-                            " L" + w + "," + y1 +
-                            " L" + x4 + "," + y1 +
-                            " L" + x4 + "," + h +
-                            " L" + 0 + "," + h + " z";
+                        let d_val = `M${0},${y2} L${x2},${y2} L${x2},${y1} L${x1},${y1} L${x3},${0} L${w},${y1} L${x4},${y1} L${x4},${h} L${0},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3525,20 +2879,9 @@ export const PPTXShapeUtils = (function() {
                         y5 = dh2 + bd;
                         y6 = y3 + bd2;
 
-                        let d_val = "M" + 0 + "," + h +
-                            " L" + 0 + "," + y5 +
-                            PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
-                            " L" + x4 + "," + dh2 +
-                            " L" + x4 + "," + 0 +
-                            " L" + w + "," + aw2 +
-                            " L" + x4 + "," + y4 +
-                            " L" + x4 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
-                            " L" + th + "," + h + " z";
+                        let d_val = `M${0},${h} L${0},${y5}${PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L")} L${x4},${dh2} L${x4},${0} L${w},${aw2} L${x4},${y4} L${x4},${y3} L${x3},${y3}${PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L")} L${th},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3619,24 +2962,9 @@ export const PPTXShapeUtils = (function() {
                         x5 = x7 - bd2;
                         var cx = (th + x7) / 2
                         var cy = (y4 + th) / 2
-                        let d_val = "M" + 0 + "," + h +
-                            " L" + 0 + "," + bd +
-                            shapeArcAlt(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
-                            " L" + x4 + "," + 0 +
-                            shapeArcAlt(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
-                            " L" + x9 + "," + y4 +
-                            " L" + w + "," + y4 +
-                            " L" + x8 + "," + y5 +
-                            " L" + x6 + "," + y4 +
-                            " L" + x7 + "," + y4 +
-                            " L" + x7 + "," + x3 +
-                            shapeArcAlt(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
-                            " L" + x3 + "," + th +
-                            shapeArcAlt(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
-                            " L" + th + "," + h + " z";
+                        let d_val = `M${0},${h} L${0},${bd}${shapeArcAlt(bd, bd, bd, bd, 180, 270, false).replace("M", "L")} L${x4},${0}${shapeArcAlt(x4, bd, bd, bd, 270, 360, false).replace("M", "L")} L${x9},${y4} L${w},${y4} L${x8},${y5} L${x6},${y4} L${x7},${y4} L${x7},${x3}${shapeArcAlt(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L")} L${x3},${th}${shapeArcAlt(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L")} L${th},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3679,24 +3007,9 @@ export const PPTXShapeUtils = (function() {
                         const ssd8 = minWH / 8,
                             ssd16 = minWH / 16,
                             ssd32 = minWH / 32;
-                        let d_val = "M" + 0 + "," + y1 +
-                            " L" + ssd32 + "," + y1 +
-                            " L" + ssd32 + "," + y2 +
-                            " L" + 0 + "," + y2 + " z" +
-                            " M" + ssd16 + "," + y1 +
-                            " L" + ssd8 + "," + y1 +
-                            " L" + ssd8 + "," + y2 +
-                            " L" + ssd16 + "," + y2 + " z" +
-                            " M" + x4 + "," + y1 +
-                            " L" + x5 + "," + y1 +
-                            " L" + x5 + "," + 0 +
-                            " L" + w + "," + vc +
-                            " L" + x5 + "," + h +
-                            " L" + x5 + "," + y2 +
-                            " L" + x4 + "," + y2 + " z";
+                        let d_val = `M${0},${y1} L${ssd32},${y1} L${ssd32},${y2} L${0},${y2} z M${ssd16},${y1} L${ssd8},${y1} L${ssd8},${y2} L${ssd16},${y2} z M${x4},${y1} L${x5},${y1} L${x5},${0} L${w},${vc} L${x5},${h} L${x5},${y2} L${x4},${y2} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3733,17 +3046,9 @@ export const PPTXShapeUtils = (function() {
                         y1 = vc - dy1;
                         y2 = vc + dy1;
                         x1 = dy1 * dx2 / hd2;
-                        let d_val = "M" + 0 + "," + y1 +
-                            " L" + x2 + "," + y1 +
-                            " L" + x2 + "," + 0 +
-                            " L" + w + "," + vc +
-                            " L" + x2 + "," + h +
-                            " L" + x2 + "," + y2 +
-                            " L" + 0 + "," + y2 +
-                            " L" + x1 + "," + vc + " z";
+                        let d_val = `M${0},${y1} L${x2},${y1} L${x2},${0} L${w},${vc} L${x2},${h} L${x2},${y2} L${0},${y2} L${x1},${vc} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3762,14 +3067,9 @@ export const PPTXShapeUtils = (function() {
                         else a = adj
                         dx1 = minWH * a / cnstVal1;
                         x1 = w - dx1;
-                        let d_val = "M" + 0 + "," + 0 +
-                            " L" + x1 + "," + 0 +
-                            " L" + w + "," + vc +
-                            " L" + x1 + "," + h +
-                            " L" + 0 + "," + h + " z";
+                        let d_val = `M${0},${0} L${x1},${0} L${w},${vc} L${x1},${h} L${0},${h} z`;
 
-                        result += "<path  d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path  d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3788,15 +3088,9 @@ export const PPTXShapeUtils = (function() {
                         else a = adj
                         x1 = minWH * a / cnstVal1;
                         x2 = w - x1;
-                        let d_val = "M" + 0 + "," + 0 +
-                            " L" + x2 + "," + 0 +
-                            " L" + w + "," + vc +
-                            " L" + x2 + "," + h +
-                            " L" + 0 + "," + h +
-                            " L" + x1 + "," + vc + " z";
+                        let d_val = `M${0},${0} L${x2},${0} L${w},${vc} L${x2},${h} L${0},${h} L${x1},${vc} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
 
                         break;
@@ -3850,20 +3144,8 @@ export const PPTXShapeUtils = (function() {
                         x3 = r - dx3;
                         x2 = w * a4 / cnstVal2;
                         x1 = x2 / 2;
-                        let d_val = "M" + l + "," + t +
-                            " L" + x2 + "," + t +
-                            " L" + x2 + "," + y2 +
-                            " L" + x3 + "," + y2 +
-                            " L" + x3 + "," + y1 +
-                            " L" + r + "," + vc +
-                            " L" + x3 + "," + y4 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x2 + "," + y3 +
-                            " L" + x2 + "," + b +
-                            " L" + l + "," + b +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${t} L${x2},${t} L${x2},${y2} L${x3},${y2} L${x3},${y1} L${r},${vc} L${x3},${y4} L${x3},${y3} L${x2},${y3} L${x2},${b} L${l},${b} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3917,20 +3199,8 @@ export const PPTXShapeUtils = (function() {
                         y3 = b - dy3;
                         y2 = h * a4 / cnstVal2;
                         y1 = y2 / 2;
-                        let d_val = "M" + l + "," + t +
-                            " L" + r + "," + t +
-                            " L" + r + "," + y2 +
-                            " L" + x3 + "," + y2 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x4 + "," + y3 +
-                            " L" + hc + "," + b +
-                            " L" + x1 + "," + y3 +
-                            " L" + x2 + "," + y3 +
-                            " L" + x2 + "," + y2 +
-                            " L" + l + "," + y2 +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${t} L${r},${t} L${r},${y2} L${x3},${y2} L${x3},${y3} L${x4},${y3} L${hc},${b} L${x1},${y3} L${x2},${y3} L${x2},${y2} L${l},${y2} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -3984,20 +3254,8 @@ export const PPTXShapeUtils = (function() {
                         dx2 = w * a4 / cnstVal2;
                         x2 = r - dx2;
                         x3 = (x2 + r) / 2;
-                        let d_val = "M" + l + "," + vc +
-                            " L" + x1 + "," + y1 +
-                            " L" + x1 + "," + y2 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x2 + "," + t +
-                            " L" + r + "," + t +
-                            " L" + r + "," + b +
-                            " L" + x2 + "," + b +
-                            " L" + x2 + "," + y3 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x1 + "," + y4 +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${vc} L${x1},${y1} L${x1},${y2} L${x2},${y2} L${x2},${t} L${r},${t} L${r},${b} L${x2},${b} L${x2},${y3} L${x1},${y3} L${x1},${y4} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4051,20 +3309,8 @@ export const PPTXShapeUtils = (function() {
                         y2 = b - dy2;
                         y3 = (y2 + b) / 2;
 
-                        let d_val = "M" + l + "," + y2 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x2 + "," + y1 +
-                            " L" + x1 + "," + y1 +
-                            " L" + hc + "," + t +
-                            " L" + x4 + "," + y1 +
-                            " L" + x3 + "," + y1 +
-                            " L" + x3 + "," + y2 +
-                            " L" + r + "," + y2 +
-                            " L" + r + "," + b +
-                            " L" + l + "," + b +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${y2} L${x2},${y2} L${x2},${y1} L${x1},${y1} L${hc},${t} L${x4},${y1} L${x3},${y1} L${x3},${y2} L${r},${y2} L${r},${b} L${l},${b} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4118,27 +3364,8 @@ export const PPTXShapeUtils = (function() {
                         dx2 = w * a4 / cnstVal3;
                         x2 = hc - dx2;
                         x3 = hc + dx2;
-                        let d_val = "M" + l + "," + vc +
-                            " L" + x1 + "," + y1 +
-                            " L" + x1 + "," + y2 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x2 + "," + t +
-                            " L" + x3 + "," + t +
-                            " L" + x3 + "," + y2 +
-                            " L" + x4 + "," + y2 +
-                            " L" + x4 + "," + y1 +
-                            " L" + r + "," + vc +
-                            " L" + x4 + "," + y4 +
-                            " L" + x4 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x3 + "," + b +
-                            " L" + x2 + "," + b +
-                            " L" + x2 + "," + y3 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x1 + "," + y4 +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${vc} L${x1},${y1} L${x1},${y2} L${x2},${y2} L${x2},${t} L${x3},${t} L${x3},${y2} L${x4},${y2} L${x4},${y1} L${r},${vc} L${x4},${y4} L${x4},${y3} L${x3},${y3} L${x3},${b} L${x2},${b} L${x2},${y3} L${x1},${y3} L${x1},${y4} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4199,42 +3426,9 @@ export const PPTXShapeUtils = (function() {
                         y6 = vc + dx2;
                         y4 = vc - dx3;
                         y5 = vc + dx3;
-                        let d_val = "M" + l + "," + vc +
-                            " L" + ah + "," + y3 +
-                            " L" + ah + "," + y4 +
-                            " L" + x2 + "," + y4 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x4 + "," + y2 +
-                            " L" + x4 + "," + ah +
-                            " L" + x3 + "," + ah +
-                            " L" + hc + "," + t +
-                            " L" + x6 + "," + ah +
-                            " L" + x5 + "," + ah +
-                            " L" + x5 + "," + y2 +
-                            " L" + x7 + "," + y2 +
-                            " L" + x7 + "," + y4 +
-                            " L" + x8 + "," + y4 +
-                            " L" + x8 + "," + y3 +
-                            " L" + r + "," + vc +
-                            " L" + x8 + "," + y6 +
-                            " L" + x8 + "," + y5 +
-                            " L" + x7 + "," + y5 +
-                            " L" + x7 + "," + y7 +
-                            " L" + x5 + "," + y7 +
-                            " L" + x5 + "," + y8 +
-                            " L" + x6 + "," + y8 +
-                            " L" + hc + "," + b +
-                            " L" + x3 + "," + y8 +
-                            " L" + x4 + "," + y8 +
-                            " L" + x4 + "," + y7 +
-                            " L" + x2 + "," + y7 +
-                            " L" + x2 + "," + y5 +
-                            " L" + ah + "," + y5 +
-                            " L" + ah + "," + y6 +
-                            " z";
+                        let d_val = `M${l},${vc} L${ah},${y3} L${ah},${y4} L${x2},${y4} L${x2},${y2} L${x4},${y2} L${x4},${ah} L${x3},${ah} L${hc},${t} L${x6},${ah} L${x5},${ah} L${x5},${y2} L${x7},${y2} L${x7},${y4} L${x8},${y4} L${x8},${y3} L${r},${vc} L${x8},${y6} L${x8},${y5} L${x7},${y5} L${x7},${y7} L${x5},${y7} L${x5},${y8} L${x6},${y8} L${hc},${b} L${x3},${y8} L${x4},${y8} L${x4},${y7} L${x2},${y7} L${x2},${y5} L${ah},${y5} L${ah},${y6} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4332,21 +3526,9 @@ export const PPTXShapeUtils = (function() {
                         wR = fmt(wR);
                         ch = fmt(ch);
 
-                        let d_val = "M" + x6 + "," + b +
-                            " L" + x4 + "," + y1 +
-                            " L" + x5 + "," + y1 +
-                            PPTXShapeUtils.shapeArc(wR, ch, wR, ch, stAng, (stAng + mswAng), false).replace("M", "L") +
-                            " L" + x3 + "," + t +
-                            PPTXShapeUtils.shapeArc(x3, ch, wR, ch, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
-                            " L" + fmt(x5 + th) + "," + y1 +
-                            " L" + x8 + "," + y1 +
-                            " z" +
-                            "M" + x3 + "," + t +
-                            PPTXShapeUtils.shapeArc(x3, ch, wR, ch, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(wR, ch, wR, ch, cd2, (cd2 + swAng3), false).replace("M", "L");
+                        let d_val = `M${x6},${b} L${x4},${y1} L${x5},${y1}${PPTXShapeUtils.shapeArc(wR, ch, wR, ch, stAng, (stAng + mswAng), false).replace("M", "L")} L${x3},${t}${PPTXShapeUtils.shapeArc(x3, ch, wR, ch, c3d4, (c3d4 + swAngDeg), false).replace("M", "L")} L${fmt(x5 + th)},${y1} L${x8},${y1} zM${x3},${t}${PPTXShapeUtils.shapeArc(x3, ch, wR, ch, stAng2, (stAng2 + swAng2), false).replace("M", "L")}${PPTXShapeUtils.shapeArc(wR, ch, wR, ch, cd2, (cd2 + swAng3), false).replace("M", "L")}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4445,23 +3627,9 @@ export const PPTXShapeUtils = (function() {
                         y4 = fmt(y4);
                         y5 = fmt(y5);
 
-                        let d_val = "M" + r + "," + y3 +
-                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L") +
-                            " L" + l + "," + t +
-                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
-                            " L" + r + "," + y3 +
-                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, 0, swAngDg, false).replace("M", "L") +
-                            " L" + x1 + "," + y7 +
-                            " L" + x1 + "," + y8 +
-                            " L" + l + "," + y6 +
-                            " L" + x1 + "," + y4 +
-                            " L" + x1 + "," + y5 +
-                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
+                        let d_val = `M${r},${y3}${PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L")} L${l},${t}${PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L")} L${r},${y3}${PPTXShapeUtils.shapeArc(l, y3, cw, hR, 0, swAngDg, false).replace("M", "L")} L${x1},${y7} L${x1},${y8} L${l},${y6} L${x1},${y4} L${x1},${y5}${PPTXShapeUtils.shapeArc(l, hR, cw, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L")}${PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L")}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4564,22 +3732,9 @@ export const PPTXShapeUtils = (function() {
                          * 5. 画第三个圆弧（箭头部分）
                          * 6. 闭合
                          */
-                        let d_val = "M" + l + "," + hR +
-                            shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
-                            " L" + x1 + "," + y5 +
-                            " L" + x1 + "," + y4 +
-                            " L" + r + "," + y6 +
-                            " L" + x1 + "," + y8 +
-                            " L" + x1 + "," + y7 +
-                            shapeArcAlt(cw, y3, cw, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
-                            " L" + l + "," + hR +
-                            shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + cd4, false).replace("M", "L") +
-                            " L" + r + "," + th +
-                            shapeArcAlt(cw, y3, cw, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L") +
-                            " z";
+                        let d_val = `M${l},${hR}${shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + mswAngDg, false).replace("M", "L")} L${x1},${y5} L${x1},${y4} L${r},${y6} L${x1},${y8} L${x1},${y7}${shapeArcAlt(cw, y3, cw, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L")} L${l},${hR}${shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + cd4, false).replace("M", "L")} L${r},${th}${shapeArcAlt(cw, y3, cw, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4691,20 +3846,8 @@ export const PPTXShapeUtils = (function() {
                         t = fmt(t);
 
                         let d_val = //"M" + ix + "," +iy +
-                            fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, stAng2dg, stAng2dg + swAng2dg, false)) + //.replace("M","L") +
-                            " L" + x5 + "," + y1 +
-                            " L" + x4 + "," + y1 +
-                            " L" + x6 + "," + t +
-                            " L" + x8 + "," + y1 +
-                            " L" + x7 + "," + y1 +
-                            fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, stAng3dg, stAng3dg + swAngDg, false)).replace("M", "L") +
-                            " L" + wR + "," + b +
-                            fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, cd4, cd2, false)).replace("M", "L") +
-                            " L" + th + "," + t +
-                            fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, cd2, cd4, false)).replace("M", "L") +
-                            "";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            `${fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, stAng2dg, stAng2dg + swAng2dg, false))} L${x5},${y1} L${x4},${y1} L${x6},${t} L${x8},${y1} L${x7},${y1}${fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, stAng3dg, stAng3dg + swAngDg, false)).replace("M", "L")} L${wR},${b}${fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, cd4, cd2, false)).replace("M", "L")} L${th},${t}${fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, cd2, cd4, false)).replace("M", "L")}`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4743,18 +3886,13 @@ export const PPTXShapeUtils = (function() {
 
                         let tranglRott = "";
                         if (shapType == "flowChartMagneticDrum") {
-                            tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
+                            tranglRott = `transform='rotate(90 ${w / 2},${h / 2})'`;
                         }
 
                         // 使用 shapeArcAlt，参数是半径而非直径（参考 pptxjs.js）
-                        dVal = shapeArcAlt(wd2, y1, wd2, y1, 0, cd2, false) +
-                            shapeArcAlt(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
-                            " L" + w + "," + y3 +
-                            shapeArcAlt(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
-                            " L" + 0 + "," + y1;
+                        dVal = `${shapeArcAlt(wd2, y1, wd2, y1, 0, cd2, false)}${shapeArcAlt(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L")} L${w},${y3}${shapeArcAlt(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L")} L${0},${y1}`;
 
-                        result += "<path " + tranglRott + " d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path ${tranglRott} d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -4811,17 +3949,9 @@ export const PPTXShapeUtils = (function() {
                         yP2 = yF + dy5;
                         xP2 = w / 4;
 
-                        let dVal = "M" + 0 + "," + h +
-                            " Q" + xP1 + "," + yP1 + " " + xB + "," + yB +
-                            " L" + xC + "," + 0 +
-                            " L" + w + "," + yD +
-                            " L" + xE + "," + yE +
-                            " L" + xF + "," + yF +
-                            " Q" + xP2 + "," + yP2 + " " + 0 + "," + h +
-                            " z";
+                        let dVal = `M${0},${h} Q${xP1},${yP1} ${xB},${yB} L${xC},${0} L${w},${yD} L${xE},${yE} L${xF},${yF} Q${xP2},${yP2} ${0},${h} z`;
 
-                        result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -5075,15 +4205,8 @@ export const PPTXShapeUtils = (function() {
                         const swiAng = iswAng * 180 / Math.PI;
                         const ediAng = stiAng + swiAng;
 
-                        let d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
-                            " L" + xGp + "," + yGp +
-                            " L" + xA + "," + yA +
-                            " L" + xBp + "," + yBp +
-                            " L" + xC + "," + yC +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `${PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false)} L${xGp},${yGp} L${xA},${yA} L${xBp},${yBp} L${xC},${yC}${PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L")} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -5328,17 +4451,8 @@ export const PPTXShapeUtils = (function() {
                         const swiAng = iswAng * 180 / Math.PI;
                         const ediAng = stiAng + swiAng;
 
-                        let d_val = "M" + xE + "," + yE +
-                            " L" + xD + "," + yD +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
-                            " L" + xBp + "," + yBp +
-                            " L" + xA + "," + yA +
-                            " L" + xGp + "," + yGp +
-                            " L" + xF + "," + yF +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${xE},${yE} L${xD},${yD}${PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L")} L${xBp},${yBp} L${xA},${yA} L${xGp},${yGp} L${xF},${yF}${PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L")} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -5361,14 +4475,9 @@ export const PPTXShapeUtils = (function() {
                         // 漏斗底部宽度
                         const bottomW = w * a / cnstVal2;
                         
-                        var d = "M0,0" + // 左上角
-                            " L" + w + ",0" + // 右上角
-                            " L" + ((w + bottomW) / 2) + "," + h + // 右下角
-                            " L" + ((w - bottomW) / 2) + "," + h + // 左下角
-                            " z";
+                        var d = `M0,0 L${w},0 L${((w + bottomW) / 2)},${h} L${((w - bottomW) / 2)},${h} z`;
                         
-                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "leftRightCircularArrow": {
@@ -5382,19 +4491,9 @@ export const PPTXShapeUtils = (function() {
                         let hd2 = h / 2;
                         let r = Math.min(wd2, hd2);
                         
-                        var d = "M" + (wd2 - r) + "," + hd2 +
-                            PPTXShapeUtils.shapeArc(wd2, hd2, r, r, 180, 360, false).replace("M", "L") +
-                            // 左箭头
-                            " M" + (wd2 - r - r * 0.3) + "," + (hd2 - r * 0.2) +
-                            " L" + (wd2 - r) + "," + hd2 +
-                            " L" + (wd2 - r - r * 0.3) + "," + (hd2 + r * 0.2) +
-                            // 右箭头
-                            " M" + (wd2 + r + r * 0.3) + "," + (hd2 - r * 0.2) +
-                            " L" + (wd2 + r) + "," + hd2 +
-                            " L" + (wd2 + r + r * 0.3) + "," + (hd2 + r * 0.2);
+                        var d = `M${(wd2 - r)},${hd2}${PPTXShapeUtils.shapeArc(wd2, hd2, r, r, 180, 360, false).replace("M", "L")} M${(wd2 - r - r * 0.3)},${(hd2 - r * 0.2)} L${(wd2 - r)},${hd2} L${(wd2 - r - r * 0.3)},${(hd2 + r * 0.2)} M${(wd2 + r + r * 0.3)},${(hd2 - r * 0.2)} L${(wd2 + r)},${hd2} L${(wd2 + r + r * 0.3)},${(hd2 + r * 0.2)}`;
                         
-                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartOfflineStorage": {
@@ -5404,16 +4503,9 @@ export const PPTXShapeUtils = (function() {
                          * 形状说明：
                          * - 底部有三个向下的尖角（代表存储）
                          */
-                        var d = "M0,0" +
-                            " L" + w + ",0" +
-                            " L" + w + "," + (h * 0.7) +
-                            " L" + (w * 0.66) + "," + h +
-                            " L" + (w * 0.34) + "," + h +
-                            " L0," + (h * 0.7) +
-                            " z";
+                        var d = `M0,0 L${w},0 L${w},${(h * 0.7)} L${(w * 0.66)},${h} L${(w * 0.34)},${h} L0,${(h * 0.7)} z`;
                         
-                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "chartPlus":
@@ -5445,15 +4537,7 @@ export const PPTXShapeUtils = (function() {
                     animationAttrs = ` data-animation='${JSON.stringify(animationData)}'`;
                 }
 
-                result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
-                    " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
-                    "' style='" +
-                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
-                    PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    transform3dStyle +
-                    " z-index: " + order + ";" +
-                    "'" + dataAttrs1 + animationAttrs + ">";
+                result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${transform3dStyle} z-index: ${order};'${dataAttrs1}${animationAttrs}>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -5483,14 +4567,7 @@ export const PPTXShapeUtils = (function() {
                     animationAttrs2 = ` data-animation='${JSON.stringify(animationData2)}'`;
                 }
 
-                result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
-                    " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
-                    "' style='" +
-                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
-                    PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    " z-index: " + order + ";" +
-                    "'" + dataAttrs2 + animationAttrs2 + ">";
+                result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)} z-index: ${order};'${dataAttrs2}${animationAttrs2}>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -5523,16 +4600,7 @@ export const PPTXShapeUtils = (function() {
                     animationAttrs3 = ` data-animation='${JSON.stringify(animationData3)}'`;
                 }
 
-                result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content 
-                    " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
-                    "' style='" +
-                    PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
-                    PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    PPTXStyleUtils.getBorder(node, pNode, false, "shape", warpObj) +
-                    await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source) +
-                    " z-index: " + order + ";" +
-                    "'" + dataAttrs3 + ">";
+                result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${PPTXStyleUtils.getBorder(node, pNode, false, "shape", warpObj)}${await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source)} z-index: ${order};'${dataAttrs3}>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {

@@ -312,10 +312,10 @@ export const PPTXXmlUtils = (function() {
         // 处理路径中的../
         if (mediaPath.startsWith('../')) {
             // 移除../并构建相对于ppt/的路径
-            resolvedPath = 'ppt/' + mediaPath.substring(3);
+            resolvedPath = `ppt/${mediaPath.substring(3)}`;
         } else if (!mediaPath.includes('/')) {
             // 如果没有路径分隔符，可能是直接在media目录下的文件
-            resolvedPath = 'ppt/media/' + mediaPath;
+            resolvedPath = `ppt/media/${mediaPath}`;
         } else {
             // 其他相对路径，拼接基础目录
             resolvedPath = baseDir + mediaPath;
@@ -361,8 +361,8 @@ export const PPTXXmlUtils = (function() {
         if (originalPath.includes('media/') || !originalPath.includes('/')) {
             const fileName = originalPath.split('/').pop();
             alternativePaths.push(
-                'ppt/media/' + fileName,
-                'media/' + fileName,
+                `ppt/media/${fileName}`,
+                `media/${fileName}`,
                 fileName
             );
         }
@@ -371,8 +371,8 @@ export const PPTXXmlUtils = (function() {
         if (originalPath.includes('embeddings/')) {
             const fileName = originalPath.split('/').pop();
             alternativePaths.push(
-                'ppt/embeddings/' + fileName,
-                'embeddings/' + fileName
+                `ppt/embeddings/${fileName}`,
+                `embeddings/${fileName}`
             );
         }
             
@@ -431,10 +431,10 @@ export const PPTXXmlUtils = (function() {
 
         if (byteRemainder === 1) {
             const chunk = bytes[mainLength];
-            parts.push(encodings[(chunk & 252) >> 2] + encodings[(chunk & 3) << 4] + '==');
+            parts.push(`${encodings[(chunk & 252) >> 2]}${encodings[(chunk & 3) << 4]}==`);
         } else if (byteRemainder === 2) {
             const chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
-            parts.push(encodings[(chunk & 64512) >> 10] + encodings[(chunk & 1008) >> 4] + encodings[(chunk & 15) << 2] + '=');
+            parts.push(`${encodings[(chunk & 64512) >> 10]}${encodings[(chunk & 1008) >> 4]}${encodings[(chunk & 15) << 2]}=`);
         }
 
         return parts.join('');
@@ -559,7 +559,7 @@ export const PPTXXmlUtils = (function() {
                 // 当元素在组合内时，减去chOff得到相对于组合的位置
                 let finalX = Math.round((x - offX) * 100) / 100;
                 let finalY = Math.round((y - offY) * 100) / 100;
-                return (isNaN(finalX) || isNaN(finalY)) ? "" : "top:" + finalY + "px; left:" + finalX + "px;";
+                return (isNaN(finalX) || isNaN(finalY)) ? "" : `top:${finalY}px; left:${finalX}px;`;
             }
 
         }
@@ -583,7 +583,7 @@ export const PPTXXmlUtils = (function() {
                 h = parseInt(ext["cy"]) * SLIDE_FACTOR;
                 w = Math.round(w * 100) / 100;
                 h = Math.round(h * 100) / 100;
-                return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
+                return (isNaN(w) || isNaN(h)) ? "" : `width:${w}px; height:${h}px;`;
             }
 
         }

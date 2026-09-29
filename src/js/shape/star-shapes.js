@@ -19,7 +19,7 @@ const SLIDE_FACTOR = 0.0001;
 export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt, node) {
     let result = '';
     const hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
-    const fill = !imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")";
+    const fill = !imgFillFlg ? (grndFillFlg ? `url(#linGrd_${shpId})` : fillColor) : `url(#imgPtrn_${shpId})`;
 
     switch (shapType) {
         case "star4": {
@@ -35,17 +35,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy1 = vc - sdy;
             const sy2 = vc + sdy;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx2 + "," + sy1 +
-                " L" + w + "," + vc +
-                " L" + sx2 + "," + sy2 +
-                " L" + hc + "," + h +
-                " L" + sx1 + "," + sy2 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy1} L${hc},0 L${sx2},${sy1} L${w},${vc} L${sx2},${sy2} L${hc},${h} L${sx1},${sy2} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star5": {
@@ -82,19 +74,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy2 = svc - sdy2;
             const sy3 = svc + ihd2;
 
-            const d = "M" + x1 + "," + y1 +
-                " L" + sx2 + "," + sy1 +
-                " L" + hc + "," + 0 +
-                " L" + sx3 + "," + sy1 +
-                " L" + x4 + "," + y1 +
-                " L" + sx4 + "," + sy2 +
-                " L" + x3 + "," + y2 +
-                " L" + hc + "," + sy3 +
-                " L" + x2 + "," + y2 +
-                " L" + sx1 + "," + sy2 +
-                " z";
+            const d = `M${x1},${y1} L${sx2},${sy1} L${hc},${0} L${sx3},${sy1} L${x4},${y1} L${sx4},${sy2} L${x3},${y2} L${hc},${sy3} L${x2},${y2} L${sx1},${sy2} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star6": {
@@ -120,21 +102,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy1 = vc - sdy1;
             const sy2 = vc + sdy1;
 
-            const d = "M" + x1 + "," + hd4 +
-                " L" + sx2 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx3 + "," + sy1 +
-                " L" + x2 + "," + hd4 +
-                " L" + sx4 + "," + vc +
-                " L" + x2 + "," + y2 +
-                " L" + sx3 + "," + sy2 +
-                " L" + hc + "," + h +
-                " L" + sx2 + "," + sy2 +
-                " L" + x1 + "," + y2 +
-                " L" + sx1 + "," + vc +
-                " z";
+            const d = `M${x1},${hd4} L${sx2},${sy1} L${hc},0 L${sx3},${sy1} L${x2},${hd4} L${sx4},${vc} L${x2},${y2} L${sx3},${sy2} L${hc},${h} L${sx2},${sy2} L${x1},${y2} L${sx1},${vc} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star7": {
@@ -181,23 +151,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy3 = svc + sdy3;
             const sy4 = svc + ihd2;
 
-            const d = "M" + x1 + "," + y2 +
-                " L" + sx1 + "," + sy2 +
-                " L" + x2 + "," + y1 +
-                " L" + sx3 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx4 + "," + sy1 +
-                " L" + x5 + "," + y1 +
-                " L" + sx6 + "," + sy2 +
-                " L" + x6 + "," + y2 +
-                " L" + sx5 + "," + sy3 +
-                " L" + x4 + "," + y3 +
-                " L" + hc + "," + sy4 +
-                " L" + x3 + "," + y3 +
-                " L" + sx2 + "," + sy3 +
-                " z";
+            const d = `M${x1},${y2} L${sx1},${sy2} L${x2},${y1} L${sx3},${sy1} L${hc},0 L${sx4},${sy1} L${x5},${y1} L${sx6},${sy2} L${x6},${y2} L${sx5},${sy3} L${x4},${y3} L${hc},${sy4} L${x3},${y3} L${sx2},${sy3} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star8": {
@@ -226,25 +182,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy3 = vc + sdy2;
             const sy4 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy2 +
-                " L" + x1 + "," + y1 +
-                " L" + sx2 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx3 + "," + sy1 +
-                " L" + x2 + "," + y1 +
-                " L" + sx4 + "," + sy2 +
-                " L" + w + "," + vc +
-                " L" + sx4 + "," + sy3 +
-                " L" + x2 + "," + y2 +
-                " L" + sx3 + "," + sy4 +
-                " L" + hc + "," + h +
-                " L" + sx2 + "," + sy4 +
-                " L" + x1 + "," + y2 +
-                " L" + sx1 + "," + sy3 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy2} L${x1},${y1} L${sx2},${sy1} L${hc},0 L${sx3},${sy1} L${x2},${y1} L${sx4},${sy2} L${w},${vc} L${sx4},${sy3} L${x2},${y2} L${sx3},${sy4} L${hc},${h} L${sx2},${sy4} L${x1},${y2} L${sx1},${sy3} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star10": {
@@ -283,29 +223,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy3 = vc + sdy2;
             const sy4 = vc + sdy1;
 
-            const d = "M" + x1 + "," + y2 +
-                " L" + sx2 + "," + sy2 +
-                " L" + x2 + "," + y1 +
-                " L" + sx3 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx4 + "," + sy1 +
-                " L" + x3 + "," + y1 +
-                " L" + sx5 + "," + sy2 +
-                " L" + x4 + "," + y2 +
-                " L" + sx6 + "," + vc +
-                " L" + x4 + "," + y3 +
-                " L" + sx5 + "," + sy3 +
-                " L" + x3 + "," + y4 +
-                " L" + sx4 + "," + sy4 +
-                " L" + hc + "," + h +
-                " L" + sx3 + "," + sy4 +
-                " L" + x2 + "," + y4 +
-                " L" + sx2 + "," + sy3 +
-                " L" + x1 + "," + y3 +
-                " L" + sx1 + "," + vc +
-                " z";
+            const d = `M${x1},${y2} L${sx2},${sy2} L${x2},${y1} L${sx3},${sy1} L${hc},0 L${sx4},${sy1} L${x3},${y1} L${sx5},${sy2} L${x4},${y2} L${sx6},${vc} L${x4},${y3} L${sx5},${sy3} L${x3},${y4} L${sx4},${sy4} L${hc},${h} L${sx3},${sy4} L${x2},${y4} L${sx2},${sy3} L${x1},${y3} L${sx1},${vc} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star12": {
@@ -343,33 +263,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy5 = vc + sdy2;
             const sy6 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy3 +
-                " L" + x1 + "," + hd4 +
-                " L" + sx2 + "," + sy2 +
-                " L" + wd4 + "," + y1 +
-                " L" + sx3 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx4 + "," + sy1 +
-                " L" + x3 + "," + y1 +
-                " L" + sx5 + "," + sy2 +
-                " L" + x4 + "," + hd4 +
-                " L" + sx6 + "," + sy3 +
-                " L" + w + "," + vc +
-                " L" + sx6 + "," + sy4 +
-                " L" + x4 + "," + y3 +
-                " L" + sx5 + "," + sy5 +
-                " L" + x3 + "," + y4 +
-                " L" + sx4 + "," + sy6 +
-                " L" + hc + "," + h +
-                " L" + sx3 + "," + sy6 +
-                " L" + wd4 + "," + y4 +
-                " L" + sx2 + "," + sy5 +
-                " L" + x1 + "," + y3 +
-                " L" + sx1 + "," + sy4 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy3} L${x1},${hd4} L${sx2},${sy2} L${wd4},${y1} L${sx3},${sy1} L${hc},0 L${sx4},${sy1} L${x3},${y1} L${sx5},${sy2} L${x4},${hd4} L${sx6},${sy3} L${w},${vc} L${sx6},${sy4} L${x4},${y3} L${sx5},${sy5} L${x3},${y4} L${sx4},${sy6} L${hc},${h} L${sx3},${sy6} L${wd4},${y4} L${sx2},${sy5} L${x1},${y3} L${sx1},${sy4} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star16": {
@@ -421,41 +317,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy7 = vc + sdy2;
             const sy8 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy4 +
-                " L" + x1 + "," + y3 +
-                " L" + sx2 + "," + sy3 +
-                " L" + x2 + "," + y2 +
-                " L" + sx3 + "," + sy2 +
-                " L" + x3 + "," + y1 +
-                " L" + sx4 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx5 + "," + sy1 +
-                " L" + x4 + "," + y1 +
-                " L" + sx6 + "," + sy2 +
-                " L" + x5 + "," + y2 +
-                " L" + sx7 + "," + sy3 +
-                " L" + x6 + "," + y3 +
-                " L" + sx8 + "," + sy4 +
-                " L" + w + "," + vc +
-                " L" + sx8 + "," + sy5 +
-                " L" + x6 + "," + y4 +
-                " L" + sx7 + "," + sy6 +
-                " L" + x5 + "," + y5 +
-                " L" + sx6 + "," + sy7 +
-                " L" + x4 + "," + y6 +
-                " L" + sx5 + "," + sy8 +
-                " L" + hc + "," + h +
-                " L" + sx4 + "," + sy8 +
-                " L" + x3 + "," + y6 +
-                " L" + sx3 + "," + sy7 +
-                " L" + x2 + "," + y5 +
-                " L" + sx2 + "," + sy6 +
-                " L" + x1 + "," + y4 +
-                " L" + sx1 + "," + sy5 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy4} L${x1},${y3} L${sx2},${sy3} L${x2},${y2} L${sx3},${sy2} L${x3},${y1} L${sx4},${sy1} L${hc},0 L${sx5},${sy1} L${x4},${y1} L${sx6},${sy2} L${x5},${y2} L${sx7},${sy3} L${x6},${y3} L${sx8},${sy4} L${w},${vc} L${sx8},${sy5} L${x6},${y4} L${sx7},${sy6} L${x5},${y5} L${sx6},${sy7} L${x4},${y6} L${sx5},${sy8} L${hc},${h} L${sx4},${sy8} L${x3},${y6} L${sx3},${sy7} L${x2},${y5} L${sx2},${sy6} L${x1},${y4} L${sx1},${sy5} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star24": {
@@ -533,57 +397,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy11 = vc + sdy2;
             const sy12 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy6 +
-                " L" + x1 + "," + y5 +
-                " L" + sx2 + "," + sy5 +
-                " L" + x2 + "," + y4 +
-                " L" + sx3 + "," + sy4 +
-                " L" + x3 + "," + y3 +
-                " L" + sx4 + "," + sy3 +
-                " L" + x4 + "," + y2 +
-                " L" + sx5 + "," + sy2 +
-                " L" + x5 + "," + y1 +
-                " L" + sx6 + "," + sy1 +
-                " L" + hc + "," + 0 +
-                " L" + sx7 + "," + sy1 +
-                " L" + x6 + "," + y1 +
-                " L" + sx8 + "," + sy2 +
-                " L" + x7 + "," + y2 +
-                " L" + sx9 + "," + sy3 +
-                " L" + x8 + "," + y3 +
-                " L" + sx10 + "," + sy4 +
-                " L" + x9 + "," + y4 +
-                " L" + sx11 + "," + sy5 +
-                " L" + x10 + "," + y5 +
-                " L" + sx12 + "," + sy6 +
-                " L" + w + "," + vc +
-                " L" + sx12 + "," + sy7 +
-                " L" + x10 + "," + y6 +
-                " L" + sx11 + "," + sy8 +
-                " L" + x9 + "," + y7 +
-                " L" + sx10 + "," + sy9 +
-                " L" + x8 + "," + y8 +
-                " L" + sx9 + "," + sy10 +
-                " L" + x7 + "," + y9 +
-                " L" + sx8 + "," + sy11 +
-                " L" + x6 + "," + y10 +
-                " L" + sx7 + "," + sy12 +
-                " L" + hc + "," + h +
-                " L" + sx6 + "," + sy12 +
-                " L" + x5 + "," + y10 +
-                " L" + sx5 + "," + sy11 +
-                " L" + x4 + "," + y9 +
-                " L" + sx4 + "," + sy10 +
-                " L" + x3 + "," + y8 +
-                " L" + sx3 + "," + sy9 +
-                " L" + x2 + "," + y7 +
-                " L" + sx2 + "," + sy8 +
-                " L" + x1 + "," + y6 +
-                " L" + sx1 + "," + sy7 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy6} L${x1},${y5} L${sx2},${sy5} L${x2},${y4} L${sx3},${sy4} L${x3},${y3} L${sx4},${sy3} L${x4},${y2} L${sx5},${sy2} L${x5},${y1} L${sx6},${sy1} L${hc},${0} L${sx7},${sy1} L${x6},${y1} L${sx8},${sy2} L${x7},${y2} L${sx9},${sy3} L${x8},${y3} L${sx10},${sy4} L${x9},${y4} L${sx11},${sy5} L${x10},${y5} L${sx12},${sy6} L${w},${vc} L${sx12},${sy7} L${x10},${y6} L${sx11},${sy8} L${x9},${y7} L${sx10},${sy9} L${x8},${y8} L${sx9},${sy10} L${x7},${y9} L${sx8},${sy11} L${x6},${y10} L${sx7},${sy12} L${hc},${h} L${sx6},${sy12} L${x5},${y10} L${sx5},${sy11} L${x4},${y9} L${sx4},${sy10} L${x3},${y8} L${sx3},${sy9} L${x2},${y7} L${sx2},${sy8} L${x1},${y6} L${sx1},${sy7} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star32": {
@@ -685,73 +501,9 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             const sy15 = vc + sdy2;
             const sy16 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy8 +
-                " L" + x1 + "," + y7 +
-                " L" + sx2 + "," + sy7 +
-                " L" + x2 + "," + y6 +
-                " L" + sx3 + "," + sy6 +
-                " L" + x3 + "," + y5 +
-                " L" + sx4 + "," + sy5 +
-                " L" + x4 + "," + y4 +
-                " L" + sx5 + "," + sy4 +
-                " L" + x5 + "," + y3 +
-                " L" + sx6 + "," + sy3 +
-                " L" + x6 + "," + y2 +
-                " L" + sx7 + "," + sy2 +
-                " L" + x7 + "," + y1 +
-                " L" + sx8 + "," + sy1 +
-                " L" + hc + "," + 0 +
-                " L" + sx9 + "," + sy1 +
-                " L" + x8 + "," + y1 +
-                " L" + sx10 + "," + sy2 +
-                " L" + x9 + "," + y2 +
-                " L" + sx11 + "," + sy3 +
-                " L" + x10 + "," + y3 +
-                " L" + sx12 + "," + sy4 +
-                " L" + x11 + "," + y4 +
-                " L" + sx13 + "," + sy5 +
-                " L" + x12 + "," + y5 +
-                " L" + sx14 + "," + sy6 +
-                " L" + x13 + "," + y6 +
-                " L" + sx15 + "," + sy7 +
-                " L" + x14 + "," + y7 +
-                " L" + sx16 + "," + sy8 +
-                " L" + w + "," + vc +
-                " L" + sx16 + "," + sy9 +
-                " L" + x14 + "," + y8 +
-                " L" + sx15 + "," + sy10 +
-                " L" + x13 + "," + y9 +
-                " L" + sx14 + "," + sy11 +
-                " L" + x12 + "," + y10 +
-                " L" + sx13 + "," + sy12 +
-                " L" + x11 + "," + y11 +
-                " L" + sx12 + "," + sy13 +
-                " L" + x10 + "," + y12 +
-                " L" + sx11 + "," + sy14 +
-                " L" + x9 + "," + y13 +
-                " L" + sx10 + "," + sy15 +
-                " L" + x8 + "," + y14 +
-                " L" + sx9 + "," + sy16 +
-                " L" + hc + "," + h +
-                " L" + sx8 + "," + sy16 +
-                " L" + x7 + "," + y14 +
-                " L" + sx7 + "," + sy15 +
-                " L" + x6 + "," + y13 +
-                " L" + sx6 + "," + sy14 +
-                " L" + x5 + "," + y12 +
-                " L" + sx5 + "," + sy13 +
-                " L" + x4 + "," + y11 +
-                " L" + sx4 + "," + sy12 +
-                " L" + x3 + "," + y10 +
-                " L" + sx3 + "," + sy11 +
-                " L" + x2 + "," + y9 +
-                " L" + sx2 + "," + sy10 +
-                " L" + x1 + "," + y8 +
-                " L" + sx1 + "," + sy9 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy8} L${x1},${y7} L${sx2},${sy7} L${x2},${y6} L${sx3},${sy6} L${x3},${y5} L${sx4},${sy5} L${x4},${y4} L${sx5},${sy4} L${x5},${y3} L${sx6},${sy3} L${x6},${y2} L${sx7},${sy2} L${x7},${y1} L${sx8},${sy1} L${hc},${0} L${sx9},${sy1} L${x8},${y1} L${sx10},${sy2} L${x9},${y2} L${sx11},${sy3} L${x10},${y3} L${sx12},${sy4} L${x11},${y4} L${sx13},${sy5} L${x12},${y5} L${sx14},${sy6} L${x13},${y6} L${sx15},${sy7} L${x14},${y7} L${sx16},${sy8} L${w},${vc} L${sx16},${sy9} L${x14},${y8} L${sx15},${sy10} L${x13},${y9} L${sx14},${sy11} L${x12},${y10} L${sx13},${sy12} L${x11},${y11} L${sx12},${sy13} L${x10},${y12} L${sx11},${sy14} L${x9},${y13} L${sx10},${sy15} L${x8},${y14} L${sx9},${sy16} L${hc},${h} L${sx8},${sy16} L${x7},${y14} L${sx7},${sy15} L${x6},${y13} L${sx6},${sy14} L${x5},${y12} L${sx5},${sy13} L${x4},${y11} L${sx4},${sy12} L${x3},${y10} L${sx3},${sy11} L${x2},${y9} L${sx2},${sy10} L${x1},${y8} L${sx1},${sy9} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
     }

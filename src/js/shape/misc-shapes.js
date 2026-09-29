@@ -56,16 +56,7 @@ export function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillCol
         const cY1 = y1 - hR * Math.sin(Math.PI);
         const cX2 = x3 - wR * Math.cos(Math.PI);
         dVal = //eyes
-            shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
-            shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
-            //mouth
-            " M" + x1 + "," + y2 +
-            " Q" + wd2 + "," + y5 + " " + x4 + "," + y2 +
-            " Q" + wd2 + "," + y5 + " " + x1 + "," + y2 +
-            //head
-            " M" + 0 + "," + hd2 +
-            shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
-            " z";
+            `${shapeArc(cX1, cY1, wR, hR, 180, 540, false)}${shapeArc(cX2, cY1, wR, hR, 180, 540, false)} M${x1},${y2} Q${wd2},${y5} ${x4},${y2} Q${wd2},${y5} ${x1},${y2} M${0},${hd2}${shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L")} z`;
     }
     else if (shapType === "verticalScroll" || shapType === "horizontalScroll") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -93,29 +84,7 @@ export function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillCol
             y3 = b - ch;
             y4 = b - ch2;
 
-            dVal = "M" + ch + "," + y3 +
-                " L" + ch + "," + ch2 +
-                shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L") +
-                " L" + x7 + "," + t +
-                shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
-                " L" + x6 + "," + ch +
-                " L" + x6 + "," + y4 +
-                shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
-                " L" + ch2 + "," + b +
-                shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
-                " z" +
-                " M" + x3 + "," + t +
-                shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
-                shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
-                " L" + x4 + "," + ch2 +
-                " M" + x6 + "," + ch +
-                " L" + x3 + "," + ch +
-                " M" + ch + "," + y4 +
-                shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
-                shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
-                " z" +
-                " M" + ch + "," + y4 +
-                " L" + ch + "," + y3;
+            dVal = `M${ch},${y3} L${ch},${ch2}${shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L")} L${x7},${t}${shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L")} L${x6},${ch} L${x6},${y4}${shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L")} L${ch2},${b}${shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L")} z M${x3},${t}${shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L")}${shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L")} L${x4},${ch2} M${x6},${ch} L${x3},${ch} M${ch},${y4}${shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L")}${shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L")} z M${ch},${y4} L${ch},${y3}`;
         } else if (shapType === "horizontalScroll") {
             let y3, y4, y6, y7, y5, x3, x4;
             y3 = ch + ch2;
@@ -126,34 +95,11 @@ export function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillCol
             x3 = r - ch;
             x4 = r - ch2;
 
-            dVal = "M" + l + "," + y3 +
-                shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L") +
-                " L" + x3 + "," + ch +
-                " L" + x3 + "," + ch2 +
-                shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L") +
-                " L" + r + "," + y5 +
-                shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L") +
-                " L" + ch + "," + y6 +
-                " L" + ch + "," + y7 +
-                shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
-                " z" +
-                "M" + x4 + "," + ch +
-                shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
-                shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
-                " z" +
-                " M" + x4 + "," + ch +
-                " L" + x3 + "," + ch +
-                " M" + ch2 + "," + y4 +
-                " L" + ch2 + "," + y3 +
-                shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L") +
-                shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L") +
-                " M" + ch + "," + y3 +
-                " L" + ch + "," + y6;
+            dVal = `M${l},${y3}${shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L")} L${x3},${ch} L${x3},${ch2}${shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L")} L${r},${y5}${shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L")} L${ch},${y6} L${ch},${y7}${shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L")} zM${x4},${ch}${shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L")}${shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L")} z M${x4},${ch} L${x3},${ch} M${ch2},${y4} L${ch2},${y3}${shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L")}${shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L")} M${ch},${y3} L${ch},${y6}`;
         }
     }
 
-    result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
     return result;
 }

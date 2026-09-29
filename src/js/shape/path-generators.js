@@ -75,9 +75,9 @@ export function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
             const x = cX + Math.cos(radians) * rX;
             const y = cY + Math.sin(radians) * rY;
             if (angle == stAng) {
-                dData = " M" + fmt(x) + " " + fmt(y);
+                dData = ` M${fmt(x)} ${fmt(y)}`;
             }
-            dData += " L" + fmt(x) + " " + fmt(y);
+            dData += ` L${fmt(x)} ${fmt(y)}`;
             angle++;
         }
     } else {
@@ -86,9 +86,9 @@ export function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
             const x = cX + Math.cos(radians) * rX;
             const y = cY + Math.sin(radians) * rY;
             if (angle == stAng) {
-                dData = " M " + fmt(x) + " " + fmt(y);
+                dData = ` M ${fmt(x)} ${fmt(y)}`;
             }
-            dData += " L " + fmt(x) + " " + fmt(y);
+            dData += ` L ${fmt(x)} ${fmt(y)}`;
             angle--;
         }
     }
@@ -114,26 +114,26 @@ export function shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp) {
     if (shpTyp == "round") {
         sAdj1 = w * sAdj1_val;
         if (adjTyp == "cornrAll") {
-            d = "M0," + sAdj1 + " Q0,0 " + sAdj1 + ",0 L" + (w - sAdj1) + ",0 Q" + w + ",0 " + w + "," + sAdj1 + " L" + w + "," + (h - sAdj1) + " Q" + w + "," + h + " " + (w - sAdj1) + "," + h + " L" + sAdj1 + "," + h + " Q0," + h + " 0," + (h - sAdj1) + " z";
+            d = `M0,${sAdj1} Q0,0 ${sAdj1},0 L${(w - sAdj1)},0 Q${w},0 ${w},${sAdj1} L${w},${(h - sAdj1)} Q${w},${h} ${(w - sAdj1)},${h} L${sAdj1},${h} Q0,${h} 0,${(h - sAdj1)} z`;
         } else if (adjTyp == "cornr1") {
-            d = "M0,0 L" + (w - sAdj1) + ",0 Q" + w + ",0 " + w + "," + sAdj1 + " L" + w + "," + h + " L0," + h + " z";
+            d = `M0,0 L${(w - sAdj1)},0 Q${w},0 ${w},${sAdj1} L${w},${h} L0,${h} z`;
         } else if (adjTyp == "diag") {
             sAdj2 = h * sAdj2_val;
-            d = "M0,0 L" + (w - sAdj1) + ",0 Q" + w + ",0 " + w + "," + sAdj1 + " L" + w + "," + (h - sAdj2) + " Q" + w + "," + h + " " + (w - sAdj2) + "," + h + " L" + sAdj1 + "," + h + " Q0," + h + " 0," + (h - sAdj1) + " L0," + sAdj2 + " Q0,0 " + sAdj2 + ",0 z";
+            d = `M0,0 L${(w - sAdj1)},0 Q${w},0 ${w},${sAdj1} L${w},${(h - sAdj2)} Q${w},${h} ${(w - sAdj2)},${h} L${sAdj1},${h} Q0,${h} 0,${(h - sAdj1)} L0,${sAdj2} Q0,0 ${sAdj2},0 z`;
         } else if (adjTyp == "cornr2") {
             sAdj2 = w * sAdj2_val;
-            d = "M0,0 L" + (w - sAdj1) + ",0 Q" + w + ",0 " + w + "," + sAdj1 + " L" + w + "," + (h - sAdj2) + " Q" + w + "," + h + " " + (w - sAdj2) + "," + h + " L0," + h + " z";
+            d = `M0,0 L${(w - sAdj1)},0 Q${w},0 ${w},${sAdj1} L${w},${(h - sAdj2)} Q${w},${h} ${(w - sAdj2)},${h} L0,${h} z`;
         }
     } else if (shpTyp == "snip") {
         sAdj1 = w * sAdj1_val;
         if (adjTyp == "cornr1") {
-            d = "M" + sAdj1 + ",0 L" + w + ",0 L" + w + "," + h + " L0," + h + " L0," + sAdj1 + " z";
+            d = `M${sAdj1},0 L${w},0 L${w},${h} L0,${h} L0,${sAdj1} z`;
         } else if (adjTyp == "diag") {
             sAdj2 = h * sAdj2_val;
-            d = "M" + sAdj1 + ",0 L" + w + ",0 L" + w + "," + (h - sAdj2) + " L" + sAdj2 + "," + h + " L0," + h + " L0," + sAdj1 + " z";
+            d = `M${sAdj1},0 L${w},0 L${w},${(h - sAdj2)} L${sAdj2},${h} L0,${h} L0,${sAdj1} z`;
         } else if (adjTyp == "cornr2") {
             sAdj2 = w * sAdj2_val;
-            d = "M" + sAdj1 + ",0 L" + w + ",0 L" + w + "," + (h - sAdj2) + " L" + (w - sAdj2) + "," + h + " L0," + h + " z";
+            d = `M${sAdj1},0 L${w},0 L${w},${(h - sAdj2)} L${(w - sAdj2)},${h} L0,${h} z`;
         }
     }
 
@@ -176,14 +176,9 @@ export function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
 
     let d;
     if (shapeType == "round") {
-        d = "M0" + "," + (h / 2 + (1 - adjB) * (h / 2)) + " Q" + 0 + "," + h + " " + adjB * (w / 2) + "," + h + " L" + (w / 2 + (1 - adjC) * (w / 2)) + "," + h +
-            " Q" + w + "," + h + " " + w + "," + (h / 2 + (h / 2) * (1 - adjC)) + "L" + w + "," + (h / 2) * adjD +
-            " Q" + w + "," + 0 + " " + (w / 2 + (w / 2) * (1 - adjD)) + ",0 L" + (w / 2) * adjA + ",0" +
-            " Q" + 0 + "," + 0 + " 0," + (h / 2) * (adjA) + " z";
+        d = `M0,${(h / 2 + (1 - adjB) * (h / 2))} Q${0},${h} ${adjB * (w / 2)},${h} L${(w / 2 + (1 - adjC) * (w / 2))},${h} Q${w},${h} ${w},${(h / 2 + (h / 2) * (1 - adjC))}L${w},${(h / 2) * adjD} Q${w},${0} ${(w / 2 + (w / 2) * (1 - adjD))},0 L${(w / 2) * adjA},0 Q${0},${0} 0,${(h / 2) * (adjA)} z`;
     } else if (shapeType == "snip") {
-        d = "M0" + "," + adjA * (h / 2) + " L0" + "," + (h / 2 + (h / 2) * (1 - adjB)) + "L" + adjB * (w / 2) + "," + h +
-            " L" + (w / 2 + (w / 2) * (1 - adjC)) + "," + h + "L" + w + "," + (h / 2 + (h / 2) * (1 - adjC)) +
-            " L" + w + "," + adjD * (h / 2) + "L" + (w / 2 + (w / 2) * (1 - adjD)) + ",0 L" + ((w / 2) * adjA) + ",0 z";
+        d = `M0,${adjA * (h / 2)} L0,${(h / 2 + (h / 2) * (1 - adjB))}L${adjB * (w / 2)},${h} L${(w / 2 + (w / 2) * (1 - adjC))},${h}L${w},${(h / 2 + (h / 2) * (1 - adjC))} L${w},${adjD * (h / 2)}L${(w / 2 + (w / 2) * (1 - adjD))},0 L${((w / 2) * adjA)},0 z`;
     }
     return d;
 }
@@ -214,14 +209,14 @@ export function shapePie(H, w, adj1, adj2, isClose) {
     let longArc, d, rot;
     if (isClose) {
         longArc = (value <= 180) ? 0 : 1;
-        d = "M" + radius + "," + radius + " L" + radius + "," + 0 + " A" + radius + "," + radius + " 0 " + longArc + ",1 " + (radius + y * radius) + "," + (radius - x * radius) + " z";
-        rot = "rotate(" + (piAngle - 270) + ", " + radius + ", " + radius + ")";
+        d = `M${radius},${radius} L${radius},${0} A${radius},${radius} 0 ${longArc},1 ${(radius + y * radius)},${(radius - x * radius)} z`;
+        rot = `rotate(${(piAngle - 270)}, ${radius}, ${radius})`;
     } else {
         longArc = (value <= 180) ? 0 : 1;
         const radius1 = radius;
         const radius2 = w / 2;
-        d = "M" + radius1 + "," + 0 + " A" + radius2 + "," + radius1 + " 0 " + longArc + ",1 " + (radius2 + y * radius2) + "," + (radius1 - x * radius1);
-        rot = "rotate(" + (piAngle + 90) + ", " + radius + ", " + radius + ")";
+        d = `M${radius1},${0} A${radius2},${radius1} 0 ${longArc},1 ${(radius2 + y * radius2)},${(radius1 - x * radius1)}`;
+        rot = `rotate(${(piAngle + 90)}, ${radius}, ${radius})`;
     }
 
     return [d, rot];
@@ -251,15 +246,15 @@ export function shapeGear(w, h, points) {
     let a = angle;
     let toggle = false;
 
-    let d = " M" + (cx + radiusO * Math.cos(taperAO)) + " " + (cy + radiusO * Math.sin(taperAO));
+    let d = ` M${(cx + radiusO * Math.cos(taperAO))} ${(cy + radiusO * Math.sin(taperAO))}`;
 
     for (; a <= pi2 + angle; a += angle) {
         if (toggle) {
-            d += " L" + (cx + radiusI * Math.cos(a - taperAI)) + "," + (cy + radiusI * Math.sin(a - taperAI));
-            d += " L" + (cx + radiusO * Math.cos(a + taperAO)) + "," + (cy + radiusO * Math.sin(a + taperAO));
+            d += ` L${(cx + radiusI * Math.cos(a - taperAI))},${(cy + radiusI * Math.sin(a - taperAI))}`;
+            d += ` L${(cx + radiusO * Math.cos(a + taperAO))},${(cy + radiusO * Math.sin(a + taperAO))}`;
         } else {
-            d += " L" + (cx + radiusO * Math.cos(a - taperAO)) + "," + (cy + radiusO * Math.sin(a - taperAO));
-            d += " L" + (cx + radiusI * Math.cos(a + taperAI)) + "," + (cy + radiusI * Math.sin(a + taperAI));
+            d += ` L${(cx + radiusO * Math.cos(a - taperAO))},${(cy + radiusO * Math.sin(a - taperAO))}`;
+            d += ` L${(cx + radiusI * Math.cos(a + taperAI))},${(cy + radiusI * Math.sin(a + taperAI))}`;
         }
         toggle = !toggle;
     }

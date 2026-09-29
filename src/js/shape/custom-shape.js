@@ -205,7 +205,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                 if (isNaN(cY)) cY = 0;
                 var spX = xVal * cX;
                 var spY = yVal * cY;
-                d += " M" + spX + "," + spY;
+                d += ` M${spX},${spY}`;
             } else if (multiSapeAry[k].type == "lnto") {
                 const xVal = parseInt(multiSapeAry[k].x) || 0;
                 const yVal = parseInt(multiSapeAry[k].y) || 0;
@@ -213,7 +213,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                 if (isNaN(cY)) cY = 0;
                 const Lx = xVal * cX;
                 const Ly = yVal * cY;
-                d += " L" + Lx + "," + Ly;
+                d += ` L${Lx},${Ly}`;
             } else if (multiSapeAry[k].type == "cubicBezTo") {
                 if (isNaN(cX)) cX = 0;
                 if (isNaN(cY)) cY = 0;
@@ -223,7 +223,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                 const Cy2 = (parseInt(multiSapeAry[k].cubBzPt[1].y) || 0) * cY;
                 const Cx3 = (parseInt(multiSapeAry[k].cubBzPt[2].x) || 0) * cX;
                 const Cy3 = (parseInt(multiSapeAry[k].cubBzPt[2].y) || 0) * cY;
-                d += " C" + Cx1 + "," + Cy1 + " " + Cx2 + "," + Cy2 + " " + Cx3 + "," + Cy3;
+                d += ` C${Cx1},${Cy1} ${Cx2},${Cy2} ${Cx3},${Cy3}`;
             } else if (multiSapeAry[k].type == "arcTo") {
                 if (isNaN(cX)) cX = 0;
                 if (isNaN(cY)) cY = 0;
@@ -248,7 +248,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                     const ctrlY = quadBzPt[0].y * cY;
                     const endX = quadBzPt[1].x * cX;
                     const endY = quadBzPt[1].y * cY;
-                    d += "Q" + ctrlX + "," + ctrlY + " " + endX + "," + endY;
+                    d += `Q${ctrlX},${ctrlY} ${endX},${endY}`;
                 }
             } else if (multiSapeAry[k].type == "close") {
                 d += "z";
@@ -256,8 +256,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
             k++;
         }
 
-        return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + ((border === undefined) ? "" : border.color) + "' stroke-width='" + ((border === undefined) ? "" : border.width) + "' stroke-dasharray='" + ((border === undefined) ? "" : border.strokeDasharray) + "' />";
+        return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${((border === undefined) ? "" : border.color)}' stroke-width='${((border === undefined) ? "" : border.width)}' stroke-dasharray='${((border === undefined) ? "" : border.strokeDasharray)}' />`;
     }
 
     return "";

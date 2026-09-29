@@ -496,10 +496,7 @@ function buildChartXml(el) {
     // 坐标轴（饼图除外）
     let axes = '';
     if (!isPie) {
-        axes = '<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling>' +
-            '<c:delete val="0"/><c:axPos val="b"/><c:crossAx val="112"/></c:catAx>' +
-            '<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling>' +
-            '<c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111"/><c:majorGridlines/></c:valAx>';
+        axes = `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:crossAx val="112"/></c:catAx><c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111"/><c:majorGridlines/></c:valAx>`;
     }
 
     const titleXml = el.title

@@ -215,7 +215,7 @@ function tXml(xml, options) {
      * @returns {number} 属性位置索引
      */
     function findAttributePosition() {
-        const pattern = new RegExp('\\s' + options.attrName + '\\s*=[\'"]' + options.attrValue + '[\'"]');
+        const pattern = new RegExp(`\\s${options.attrName}\\s*=[\'"]${options.attrValue}[\'"]`);
         const match = pattern.exec(xml);
         return match ? match.index : -1;
     }
@@ -409,22 +409,22 @@ tXml.stringify = (nodes) => {
         }
     }
     function processNode(node) {
-        xmlString += '<' + node.tagName;
+        xmlString += `<${node.tagName}`;
         for (const attr in node.attributes) {
             const value = node.attributes[attr];
             if (value === null) {
-                xmlString += ' ' + attr;
+                xmlString += ` ${attr}`;
             }
             else if (value.indexOf('"') === -1) {
-                xmlString += ' ' + attr + '="' + value.trim() + '"';
+                xmlString += ` ${attr}="${value.trim()}"`;
             }
             else {
-                xmlString += ' ' + attr + "='" + value.trim() + "'";
+                xmlString += ` ${attr}='${value.trim()}'`;
             }
         }
         xmlString += '>';
         processNodes(node.children);
-        xmlString += '</' + node.tagName + '>';
+        xmlString += `</${node.tagName}>`;
     }
     processNodes(nodes);
     return xmlString;
@@ -439,7 +439,7 @@ tXml.toContentString = (node) => {
     if (Array.isArray(node)) {
         let text = '';
         node.forEach((child) => {
-    text += ' ' + tXml.toContentString(child);
+    text += ` ${tXml.toContentString(child)}`;
     text = text.trim();
 });
         return text;
@@ -447,7 +447,7 @@ tXml.toContentString = (node) => {
     if (typeof node === 'object') {
         return tXml.toContentString(node.children);
     }
-    return ' ' + node;
+    return ` ${node}`;
 };
 
 /**
@@ -475,7 +475,7 @@ tXml.getElementById = (xml, id, simplify) => {
 tXml.getElementsByClassName = (xml, className, simplify) => {
     return tXml(xml, {
         attrName: 'class',
-        attrValue: '[a-zA-Z0-9-s ]*' + className + '[a-zA-Z0-9-s ]*',
+        attrValue: `[a-zA-Z0-9-s ]*${className}[a-zA-Z0-9-s ]*`,
         simplify: simplify
     });
 };
@@ -833,10 +833,10 @@ const PPTXXmlUtils = (function() {
         // 处理路径中的../
         if (mediaPath.startsWith('../')) {
             // 移除../并构建相对于ppt/的路径
-            resolvedPath = 'ppt/' + mediaPath.substring(3);
+            resolvedPath = `ppt/${mediaPath.substring(3)}`;
         } else if (!mediaPath.includes('/')) {
             // 如果没有路径分隔符，可能是直接在media目录下的文件
-            resolvedPath = 'ppt/media/' + mediaPath;
+            resolvedPath = `ppt/media/${mediaPath}`;
         } else {
             // 其他相对路径，拼接基础目录
             resolvedPath = baseDir + mediaPath;
@@ -882,8 +882,8 @@ const PPTXXmlUtils = (function() {
         if (originalPath.includes('media/') || !originalPath.includes('/')) {
             const fileName = originalPath.split('/').pop();
             alternativePaths.push(
-                'ppt/media/' + fileName,
-                'media/' + fileName,
+                `ppt/media/${fileName}`,
+                `media/${fileName}`,
                 fileName
             );
         }
@@ -892,8 +892,8 @@ const PPTXXmlUtils = (function() {
         if (originalPath.includes('embeddings/')) {
             const fileName = originalPath.split('/').pop();
             alternativePaths.push(
-                'ppt/embeddings/' + fileName,
-                'embeddings/' + fileName
+                `ppt/embeddings/${fileName}`,
+                `embeddings/${fileName}`
             );
         }
             
@@ -952,10 +952,10 @@ const PPTXXmlUtils = (function() {
 
         if (byteRemainder === 1) {
             const chunk = bytes[mainLength];
-            parts.push(encodings[(chunk & 252) >> 2] + encodings[(chunk & 3) << 4] + '==');
+            parts.push(`${encodings[(chunk & 252) >> 2]}${encodings[(chunk & 3) << 4]}==`);
         } else if (byteRemainder === 2) {
             const chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
-            parts.push(encodings[(chunk & 64512) >> 10] + encodings[(chunk & 1008) >> 4] + encodings[(chunk & 15) << 2] + '=');
+            parts.push(`${encodings[(chunk & 64512) >> 10]}${encodings[(chunk & 1008) >> 4]}${encodings[(chunk & 15) << 2]}=`);
         }
 
         return parts.join('');
@@ -1080,7 +1080,7 @@ const PPTXXmlUtils = (function() {
                 // 当元素在组合内时，减去chOff得到相对于组合的位置
                 let finalX = Math.round((x - offX) * 100) / 100;
                 let finalY = Math.round((y - offY) * 100) / 100;
-                return (isNaN(finalX) || isNaN(finalY)) ? "" : "top:" + finalY + "px; left:" + finalX + "px;";
+                return (isNaN(finalX) || isNaN(finalY)) ? "" : `top:${finalY}px; left:${finalX}px;`;
             }
 
         }
@@ -1104,7 +1104,7 @@ const PPTXXmlUtils = (function() {
                 h = parseInt(ext["cy"]) * SLIDE_FACTOR$1;
                 w = Math.round(w * 100) / 100;
                 h = Math.round(h * 100) / 100;
-                return (isNaN(w) || isNaN(h)) ? "" : "width:" + w + "px; height:" + h + "px;";
+                return (isNaN(w) || isNaN(h)) ? "" : `width:${w}px; height:${h}px;`;
             }
 
         }
@@ -1370,9 +1370,9 @@ function getFillType(node) {
                         let bgcolor = `background: linear-gradient(${rot}deg,`;
                         for (let i = 0; i < colorAry.length; i++) {
                             if (i == colorAry.length - 1) {
-                                bgcolor += "#" + colorAry[i] + ");";
+                                bgcolor += `#${colorAry[i]});`;
                             } else {
-                                bgcolor += "#" + colorAry[i] + ", ";
+                                bgcolor += `#${colorAry[i]}, `;
                             }
 
                         }
@@ -1404,12 +1404,12 @@ function getFillType(node) {
                     let bgPtrn = "", bgSize = "", bgPos = "";
                     bgPtrn = fillColor[0];
                     if (fillColor[1] !== null && fillColor[1] !== undefined && fillColor[1] != "") {
-                        bgSize = " background-size:" + fillColor[1] + ";";
+                        bgSize = ` background-size:${fillColor[1]};`;
                     }
                     if (fillColor[2] !== null && fillColor[2] !== undefined && fillColor[2] != "") {
-                        bgPos = " background-position:" + fillColor[2] + ";";
+                        bgPos = ` background-position:${fillColor[2]};`;
                     }
-                    return "background: " + bgPtrn + ";" + bgSize + bgPos;
+                    return `background: ${bgPtrn};${bgSize}${bgPos}`;
                     //}
                 } else {
                     if (isSvgMode) {
@@ -1451,7 +1451,7 @@ function getFillType(node) {
                         fontIdx = "minor";
                     }
                 }
-                fontGrup = "a:" + fontIdx + "Font";
+                fontGrup = `a:${fontIdx}Font`;
                 typeface = PPTXXmlUtils.getTextByPathList(fontSchemeNode, [fontGrup, "a:latin", "attrs", "typeface"]);
             }
 
@@ -1493,9 +1493,9 @@ function getFillType(node) {
                     colorType = "gradient";
                 } 
             }
-            if (color === undefined && PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]) !== undefined) {
+            if (color === undefined && PPTXXmlUtils.getTextByPathList(lstStyle, [`a:lvl${lvl}pPr`, "a:defRPr"]) !== undefined) {
                 //lstStyle
-                let lstStyledefRPr = PPTXXmlUtils.getTextByPathList(lstStyle, ["a:lvl" + lvl + "pPr", "a:defRPr"]);
+                let lstStyledefRPr = PPTXXmlUtils.getTextByPathList(lstStyle, [`a:lvl${lvl}pPr`, "a:defRPr"]);
                 filTyp = getFillType(lstStyledefRPr);
                 if (filTyp == "SOLID_FILL") {
                     let solidFillNode = lstStyledefRPr["a:solidFill"];// PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
@@ -1582,7 +1582,7 @@ function getFillType(node) {
                 let txBrd = getBorder(node, pNode, false, "text", warpObj);
                 let txBrdAry = txBrd.split(" ");
                 //let brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("pt")))) + "px";
-                let brdSize = (parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("px")))) + "px";
+                let brdSize = `${(parseInt(txBrdAry[0].substring(0, txBrdAry[0].indexOf("px"))))}px`;
                 let brdClr = txBrdAry[2];
                 //let brdTyp = txBrdAry[1]; //not in use
                 //console.log("getFontColorPr txBrdAry:", txBrdAry)
@@ -1596,7 +1596,7 @@ function getFillType(node) {
                     txtEffects.push(textBordr);
                 } else {
                     //textBordr = brdSize + " " + brdClr;
-                    txtEffObj.border = brdSize + " " + brdClr;
+                    txtEffObj.border = `${brdSize} ${brdClr}`;
                 }
             }
             // else {
@@ -1612,13 +1612,7 @@ function getFillType(node) {
             if (txtGlowNode !== undefined) {
                 let glowClr = getSolidFill(txtGlowNode, undefined, undefined, warpObj);
                 let rad = (txtGlowNode["attrs"]["rad"]) ? (txtGlowNode["attrs"]["rad"] * SLIDE_FACTOR$1) : 0;
-                oGlowStr = "0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr +
-                    ", 0 0 " + rad + "px #" + glowClr;
+                oGlowStr = `0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}, 0 0 ${rad}px #${glowClr}`;
                 if (colorType == "solid") {
                     txtEffects.push(oGlowStr);
                 } else {
@@ -1627,9 +1621,7 @@ function getFillType(node) {
                     //     color: glowClr
                     // } 
                     txtEffects.push(
-                        "drop-shadow(0 0 " + rad / 3 + "px #" + glowClr + ") " +
-                        "drop-shadow(0 0 " + rad * 2 / 3 + "px #" + glowClr + ") " +
-                        "drop-shadow(0 0 " + rad + "px #" + glowClr + ")"
+                        `drop-shadow(0 0 ${rad / 3}px #${glowClr}) drop-shadow(0 0 ${rad * 2 / 3}px #${glowClr}) drop-shadow(0 0 ${rad}px #${glowClr})`
                     );
                 }
             }
@@ -1697,7 +1689,7 @@ function getFillType(node) {
                 let dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
                 let dist = parseInt(outerShdwAttrs["dist"]) * SLIDE_FACTOR$1;//(px) //* (3 / 4); //(pt)
                 outerShdwAttrs["rotWithShape"];
-                let blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR$1 + "px") : "";
+                let blurRad = (outerShdwAttrs["blurRad"]) ? (`${parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR$1}px`) : "";
                 (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
                 (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
                 let vx = dist * Math.sin(dir * Math.PI / 180);
@@ -1706,7 +1698,7 @@ function getFillType(node) {
                 //console.log("getFontColorPr outerShdwAttrs:", outerShdwAttrs, ", shadowClr:", shadowClr, ", algn: ", algn, ",dir: ", dir, ", dist: ", dist, ",rotWithShape: ", rotWithShape, ", color: ", color)
 
                 if (!isNaN(vx) && !isNaN(hx)) {
-                    oShadowStr = hx + "px " + vx + "px " + blurRad + " #" + shadowClr;// + ";";
+                    oShadowStr = `${hx}px ${vx}px ${blurRad} #${shadowClr}`;// + ";";
                     if (colorType == "solid") {
                         txtEffects.push(oShadowStr);
                     } else {
@@ -1720,7 +1712,7 @@ function getFillType(node) {
 
                         //txtEffObj.oShadow = hx + "px " + vx + "px " + blurRad + " #" + shadowClr;
 
-                        txtEffects.push("drop-shadow(" + hx + "px " + vx + "px " + blurRad + " #" + shadowClr + ")");
+                        txtEffects.push(`drop-shadow(${hx}px ${vx}px ${blurRad} #${shadowClr})`);
                     }
                 }
                 //console.log("getFontColorPr vx:", vx, ", hx: ", hx, ", sx: ", sx, ", sy: ", sy, ",oShadowStr: ", oShadowStr)
@@ -1736,7 +1728,7 @@ function getFillType(node) {
                 if (txtEffects.length > 0) {
                     text_effcts = txtEffects.join(",");
                 }
-                txt_effects = text_effcts + ";";
+                txt_effects = `${text_effcts};`;
             } else {
                 if (txtEffects.length > 0) {
                     text_effcts = txtEffects.join(" ");
@@ -1753,7 +1745,7 @@ function getFillType(node) {
             // if(type == "sldNum")
             //console.log("getFontSize node:", node, "lstStyle", lstStyle, "lvl:", lvl, 'type:', type, "warpObj:", warpObj)
             let lstStyle = (textBodyNode !== undefined)? textBodyNode["a:lstStyle"] : undefined;
-            let lvlpPr = "a:lvl" + lvl + "pPr";
+            let lvlpPr = `a:lvl${lvl}pPr`;
             let fontSize = undefined;
             let sz, kern;
             if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] && node["a:rPr"]["attrs"]["sz"] !== undefined) {
@@ -1854,7 +1846,7 @@ function getFillType(node) {
                 }
             }
 
-            return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (fontSize * FONT_SIZE_FACTOR + "px");// + "pt");
+            return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (`${fontSize * FONT_SIZE_FACTOR}px`);// + "pt");
         }
 
         function getFontBold(node, type, slideMasterTextStyles) {
@@ -1905,7 +1897,7 @@ function getFillType(node) {
                     if (lvlNode !== undefined) {
                         lvlIdx = parseInt(lvlNode) + 1;
                     }
-                    let lvlStr = "a:lvl" + lvlIdx + "pPr";
+                    let lvlStr = `a:lvl${lvlIdx}pPr`;
                     getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
                     if (getAlgn === undefined) {
                         getAlgn = PPTXXmlUtils.getTextByPathList(warpObj, ["slideMasterTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr, "attrs", "algn"]);
@@ -1951,7 +1943,7 @@ function getFillType(node) {
         /////////////////////////////////////////////////////////////////////
         function getTextVerticalAlign(node, type, slideMasterTextStyles) {
             let baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
-            return baseline === undefined ? "baseline" : (parseInt(baseline) / 1000) + "%";
+            return baseline === undefined ? "baseline" : `${(parseInt(baseline) / 1000)}%`;
         }
 
         function getTableBorders(node, warpObj) {
@@ -2054,9 +2046,9 @@ function getFillType(node) {
                 let w = PPTXXmlUtils.getTextByPathList(lineNode, ["attrs", "w"]);
                 borderWidth = (w !== undefined) ? parseInt(w) / 12700 : (4/3);
                 if (isNaN(borderWidth) || borderWidth < 1) {
-                    cssText += (4/3) + "px ";//"1pt ";
+                    cssText += `${(4/3)}px `;//"1pt ";
                 } else {
-                    cssText += borderWidth + "px ";// + "pt ";
+                    cssText += `${borderWidth}px `;// + "pt ";
                 }
                 // Border type
                 borderType = PPTXXmlUtils.getTextByPathList(lineNode, ["a:prstDash", "attrs", "val"]);
@@ -2176,17 +2168,17 @@ function getFillType(node) {
                 if (borderColor && typeof borderColor === 'string') {
                     // 如果不是以#开头的十六进制颜色，添加#前缀
                     if (!borderColor.startsWith('#') && !borderColor.startsWith('rgb') && !borderColor.startsWith('hsl') && borderColor !== 'none' && borderColor !== 'hidden') {
-                        borderColor = "#" + borderColor;
+                        borderColor = `#${borderColor}`;
                     }
                 }
             }
-            cssText += " " + borderColor + " ";
+            cssText += ` ${borderColor} `;
 
             if (isSvgMode) {
                 let result = { "color": borderColor, "width": borderWidth, "type": borderType, "strokeDasharray": strokeDasharray };
                 return result;
             } else {
-                return cssText + ";";
+                return `${cssText};`;
             }
             // } else {
             //     if (isSvgMode) {
@@ -2506,11 +2498,11 @@ function getFillType(node) {
                     let lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
                     const pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"]);
                     if (pos !== undefined) {
-                        pos_ary[i] = pos / 1000 + "%";
+                        pos_ary[i] = `${pos / 1000}%`;
                     } else {
                         pos_ary[i] = "";
                     }
-                    color_ary[i] = "#" + lo_color;
+                    color_ary[i] = `#${lo_color}`;
                     //tint_ary[i] = (lo_tint !== undefined) ? parseInt(lo_tint) / 100000 : 1;
                 }
                 //get rot
@@ -2525,7 +2517,7 @@ function getFillType(node) {
                     if (i == gsLst.length - 1) {
                         //if (phClr === undefined) {
                         //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ");";
-                        bgcolor += color_ary[i] + " " + pos_ary[i] + ");";
+                        bgcolor += `${color_ary[i]} ${pos_ary[i]});`;
                         //} else {
                         //bgcolor += "rgba(" + hexToRgbNew(phClr) + "," + tint_ary[i] + ")" + ");";
                         // bgcolor += "" + phClr + ";";;
@@ -2533,7 +2525,7 @@ function getFillType(node) {
                     } else {
                         //if (phClr === undefined) {
                         //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ", ";
-                        bgcolor += color_ary[i] + " " + pos_ary[i] + ", ";                        //} else {
+                        bgcolor += `${color_ary[i]} ${pos_ary[i]}, `;                        //} else {
                         //bgcolor += "rgba(" + hexToRgbNew(phClr) + "," + tint_ary[i] + ")" + ", ";
                         // bgcolor += phClr + ", ";
                         //}
@@ -2543,7 +2535,7 @@ function getFillType(node) {
                 if (phClr !== undefined) {
                     //bgcolor = "rgba(" + hexToRgbNew(phClr) + ",0);";
                     //bgcolor = phClr + ");";
-                    bgcolor = "background: #" + phClr + ";";
+                    bgcolor = `background: #${phClr};`;
                 }
             }
             return bgcolor;
@@ -2629,23 +2621,23 @@ function getFillType(node) {
             if (aphaModFixNode !== undefined && aphaModFixNode["amt"] !== undefined && aphaModFixNode["amt"] != "") {
                 const amt = parseInt(aphaModFixNode["amt"]) / 100000;
                 //let opacity = amt;
-                imgOpacity = "opacity:" + amt + ";";
+                imgOpacity = `opacity:${amt};`;
 
             }
             // 使用getPicFill函数返回的填充模式信息
             let prop_style = "";
             if (typeof picFillResult === 'object') {
                 if (picFillResult.backgroundSize) {
-                    prop_style += "background-size: " + picFillResult.backgroundSize + ";";
+                    prop_style += `background-size: ${picFillResult.backgroundSize};`;
                 }
                 if (picFillResult.backgroundPosition) {
-                    prop_style += "background-position: " + picFillResult.backgroundPosition + ";";
+                    prop_style += `background-position: ${picFillResult.backgroundPosition};`;
                 }
                 if (picFillResult.backgroundRepeat) {
-                    prop_style += "background-repeat: " + picFillResult.backgroundRepeat + ";";
+                    prop_style += `background-repeat: ${picFillResult.backgroundRepeat};`;
                 }
             }
-            bgcolor = "background: url(" + picFillBase64 + ");  z-index: " + ordr + ";" + prop_style + imgOpacity;
+            bgcolor = `background: url(${picFillBase64});  z-index: ${ordr};${prop_style}${imgOpacity}`;
 
             return bgcolor;
         }
@@ -2712,7 +2704,7 @@ function getFillType(node) {
                 }
                 let imgArrayBuffer = await imgFile.async("arraybuffer");
                 let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
-                img = "data:" + imgMimeType + ";base64," + PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer);
+                img = `data:${imgMimeType};base64,${PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer)}`;
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
                 setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
             }
@@ -2735,7 +2727,7 @@ function getFillType(node) {
                 if (sx && sy) {
                     let widthPercent = parseInt(sx) / 100000 * 100;
                     let heightPercent = parseInt(sy) / 100000 * 100;
-                    backgroundSize = widthPercent + "% " + heightPercent + "%";
+                    backgroundSize = `${widthPercent}% ${heightPercent}%`;
                 }
                 
                 // 处理平铺偏移
@@ -2744,7 +2736,7 @@ function getFillType(node) {
                 if (tx && ty) {
                     let xPercent = parseInt(tx) / 100000 * 100;
                     let yPercent = parseInt(ty) / 100000 * 100;
-                    backgroundPosition = xPercent + "% " + yPercent + "%";
+                    backgroundPosition = `${xPercent}% ${yPercent}%`;
                 }
             } else if (stretchNode) {
                 // 拉伸模式
@@ -2844,39 +2836,36 @@ function getFillType(node) {
             // vert(Vertical)
             switch (prst) {
                 case "smGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1px)  #" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(to right,  #${fgColor} -1px, transparent 1px ), linear-gradient(to bottom,  #${fgColor} -1px, transparent 1px)  #${bgColor};`, "4px 4px"];
                 case "dotGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1px)  #" + bgColor + ";", "8px 8px"];
+                    return [`linear-gradient(to right,  #${fgColor} -1px, transparent 1px ), linear-gradient(to bottom,  #${fgColor} -1px, transparent 1px)  #${bgColor};`, "8px 8px"];
                 case "lgGrid":
-                    return ["linear-gradient(to right,  #" + fgColor + " -1px, transparent 1.5px ), " +
-                        "linear-gradient(to bottom,  #" + fgColor + " -1px, transparent 1.5px)  #" + bgColor + ";", "8px 8px"];
+                    return [`linear-gradient(to right,  #${fgColor} -1px, transparent 1.5px ), linear-gradient(to bottom,  #${fgColor} -1px, transparent 1.5px)  #${bgColor};`, "8px 8px"];
                 case "wdUpDiag":
                     //return ["repeating-linear-gradient(-45deg,  #" + bgColor + ", #" + bgColor + " 1px,#" + fgColor + " 5px);"];
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , transparent 4px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(-45deg, transparent 1px , transparent 4px, #${fgColor} 7px)#${bgColor};`];
                 case "dkUpDiag":
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , #" + bgColor + " 5px)" + "#" + fgColor + ";"];
+                    return [`repeating-linear-gradient(-45deg, transparent 1px , #${bgColor} 5px)#${fgColor};`];
                 case "ltUpDiag":
-                    return ["repeating-linear-gradient(-45deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(-45deg, transparent 1px , transparent 2px, #${fgColor} 4px)#${bgColor};`];
                 case "wdDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , transparent 4px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(45deg, transparent 1px , transparent 4px, #${fgColor} 7px)#${bgColor};`];
                 case "dkDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , #" + bgColor + " 5px)" + "#" + fgColor + ";"];
+                    return [`repeating-linear-gradient(45deg, transparent 1px , #${bgColor} 5px)#${fgColor};`];
                 case "ltDnDiag":
-                    return ["repeating-linear-gradient(45deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(45deg, transparent 1px , transparent 2px, #${fgColor} 4px)#${bgColor};`];
                 case "dkHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #" + bgColor + " 7px)" + "#" + fgColor + ";"];
+                    return [`repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #${bgColor} 7px)#${fgColor};`];
                 case "ltHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 5px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(0deg, transparent 1px , transparent 5px, #${fgColor} 7px)#${bgColor};`];
                 case "narHorz":
-                    return ["repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(0deg, transparent 1px , transparent 2px, #${fgColor} 4px)#${bgColor};`];
                 case "dkVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #" + bgColor + " 7px)" + "#" + fgColor + ";"];
+                    return [`repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #${bgColor} 7px)#${fgColor};`];
                 case "ltVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 5px, #" + fgColor + " 7px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(90deg, transparent 1px , transparent 5px, #${fgColor} 7px)#${bgColor};`];
                 case "narVert":
-                    return ["repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #" + fgColor + " 4px)" + "#" + bgColor + ";"];
+                    return [`repeating-linear-gradient(90deg, transparent 1px , transparent 2px, #${fgColor} 4px)#${bgColor};`];
                 case "lgCheck":
                 case "smCheck":
                     var size = "";
@@ -2888,9 +2877,7 @@ function getFillType(node) {
                         size = "4px 4px";
                         pos = "0 0, 2px 2px, 2px 2px, 4px 4px";
                     }
-                    return ["linear-gradient(45deg,  #" + fgColor + " 25%, transparent 0, transparent 75%,  #" + fgColor + " 0), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 0, transparent 75%,  #" + fgColor + " 0) " +
-                        "#" + bgColor + ";", size, pos];
+                    return [`linear-gradient(45deg,  #${fgColor} 25%, transparent 0, transparent 75%,  #${fgColor} 0), linear-gradient(45deg,  #${fgColor} 25%, transparent 0, transparent 75%,  #${fgColor} 0) #${bgColor};`, size, pos];
                 // case "smCheck":
                 //     return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%), " +
                 //         "linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%)  " +
@@ -2898,66 +2885,37 @@ function getFillType(node) {
                 //     break 
 
                 case "dashUpDiag":
-                    return ["repeating-linear-gradient(152deg, #" + fgColor + ", #" + fgColor + " 5% , transparent 0, transparent 70%)" +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`repeating-linear-gradient(152deg, #${fgColor}, #${fgColor} 5% , transparent 0, transparent 70%)#${bgColor};`, "4px 4px"];
                 case "dashDnDiag":
-                    return ["repeating-linear-gradient(45deg, #" + fgColor + ", #" + fgColor + " 5% , transparent 0, transparent 70%)" +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`repeating-linear-gradient(45deg, #${fgColor}, #${fgColor} 5% , transparent 0, transparent 70%)#${bgColor};`, "4px 4px"];
                 case "diagBrick":
-                    return ["linear-gradient(45deg, transparent 15%,  #" + fgColor + " 30%, transparent 30%), " +
-                        "linear-gradient(-45deg, transparent 15%,  #" + fgColor + " 30%, transparent 30%), " +
-                        "linear-gradient(-45deg, transparent 65%,  #" + fgColor + " 80%, transparent 0) " +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(45deg, transparent 15%,  #${fgColor} 30%, transparent 30%), linear-gradient(-45deg, transparent 15%,  #${fgColor} 30%, transparent 30%), linear-gradient(-45deg, transparent 65%,  #${fgColor} 80%, transparent 0) #${bgColor};`, "4px 4px"];
                 case "horzBrick":
-                    return ["linear-gradient(335deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(155deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(335deg, #" + bgColor + " 1.6px, transparent 1.6px), " +
-                        "linear-gradient(155deg, #" + bgColor + " 1.6px, transparent 1.6px) " +
-                        "#" + fgColor + ";", "4px 4px", "0 0.15px, 0.3px 2.5px, 2px 2.15px, 2.35px 0.4px"];
+                    return [`linear-gradient(335deg, #${bgColor} 1.6px, transparent 1.6px), linear-gradient(155deg, #${bgColor} 1.6px, transparent 1.6px), linear-gradient(335deg, #${bgColor} 1.6px, transparent 1.6px), linear-gradient(155deg, #${bgColor} 1.6px, transparent 1.6px) #${fgColor};`, "4px 4px", "0 0.15px, 0.3px 2.5px, 2px 2.15px, 2.35px 0.4px"];
 
                 case "dashVert":
-                    return ["linear-gradient(0deg,  #" + bgColor + " 30%, transparent 30%)," +
-                        "linear-gradient(90deg,transparent, transparent 40%, #" + fgColor + " 40%, #" + fgColor + " 60% , transparent 60%)" +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(0deg,  #${bgColor} 30%, transparent 30%),linear-gradient(90deg,transparent, transparent 40%, #${fgColor} 40%, #${fgColor} 60% , transparent 60%)#${bgColor};`, "4px 4px"];
                 case "dashHorz":
-                    return ["linear-gradient(90deg,  #" + bgColor + " 30%, transparent 30%)," +
-                        "linear-gradient(0deg,transparent, transparent 40%, #" + fgColor + " 40%, #" + fgColor + " 60% , transparent 60%)" +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(90deg,  #${bgColor} 30%, transparent 30%),linear-gradient(0deg,transparent, transparent 40%, #${fgColor} 40%, #${fgColor} 60% , transparent 60%)#${bgColor};`, "4px 4px"];
                 case "solidDmnd":
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", "8px 8px"];
+                    return [`linear-gradient(135deg,  #${fgColor} 25%, transparent 25%), linear-gradient(225deg,  #${fgColor} 25%, transparent 25%), linear-gradient(315deg,  #${fgColor} 25%, transparent 25%), linear-gradient(45deg,  #${fgColor} 25%, transparent 25%) #${bgColor};`, "8px 8px"];
                 case "openDmnd":
-                    return ["linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%), " +
-                        "linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #" + fgColor + " 50%, transparent calc(50% + 0.5px),  transparent 100%) " +
-                        "#" + bgColor + ";", "8px 8px"];
+                    return [`linear-gradient(45deg, transparent 0%, transparent calc(50% - 0.5px),  #${fgColor} 50%, transparent calc(50% + 0.5px),  transparent 100%), linear-gradient(-45deg, transparent 0%, transparent calc(50% - 0.5px) , #${fgColor} 50%, transparent calc(50% + 0.5px),  transparent 100%) #${bgColor};`, "8px 8px"];
 
                 case "dotDmnd":
-                    return ["radial-gradient(#" + fgColor + " 15%, transparent 0), " +
-                        "radial-gradient(#" + fgColor + " 15%, transparent 0) " +
-                        "#" + bgColor + ";", "4px 4px", "0 0, 2px 2px"];
+                    return [`radial-gradient(#${fgColor} 15%, transparent 0), radial-gradient(#${fgColor} 15%, transparent 0) #${bgColor};`, "4px 4px", "0 0, 2px 2px"];
                 case "zigZag":
                 case "wave":
                     var size = "";
                     if (prst == "zigZag") size = "0";
                     else size = "1px";
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%) 50px " + size + ", " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%) 50px " + size + ", " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(135deg,  #${fgColor} 25%, transparent 25%) 50px ${size}, linear-gradient(225deg,  #${fgColor} 25%, transparent 25%) 50px ${size}, linear-gradient(315deg,  #${fgColor} 25%, transparent 25%), linear-gradient(45deg,  #${fgColor} 25%, transparent 25%) #${bgColor};`, "4px 4px"];
                 case "lgConfetti":
                 case "smConfetti":
                     var size = "";
                     if (prst == "lgConfetti") size = "4px 4px";
                     else size = "2px 2px";
-                    return ["linear-gradient(135deg,  #" + fgColor + " 25%, transparent 25%) 50px 1px, " +
-                        "linear-gradient(225deg,  #" + fgColor + " 25%, transparent 25%), " +
-                        "linear-gradient(315deg,  #" + fgColor + " 25%, transparent 25%) 50px 1px , " +
-                        "linear-gradient(45deg,  #" + fgColor + " 25%, transparent 25%) " +
-                        "#" + bgColor + ";", size];
+                    return [`linear-gradient(135deg,  #${fgColor} 25%, transparent 25%) 50px 1px, linear-gradient(225deg,  #${fgColor} 25%, transparent 25%), linear-gradient(315deg,  #${fgColor} 25%, transparent 25%) 50px 1px , linear-gradient(45deg,  #${fgColor} 25%, transparent 25%) #${bgColor};`, size];
                 // case "weave":
                 //     return ["linear-gradient(45deg,  #" + bgColor + " 5%, transparent 25%) 50px 0, " +
                 //         "linear-gradient(135deg,  #" + bgColor + " 25%, transparent 25%) 50px 0, " +
@@ -2970,17 +2928,12 @@ function getFillType(node) {
                 //     break;
 
                 case "plaid":
-                    return ["linear-gradient(0deg, transparent, transparent 25%, #" + fgColor + "33 25%, #" + fgColor + "33 50%)," +
-                        "linear-gradient(90deg, transparent, transparent 25%, #" + fgColor + "66 25%, #" + fgColor + "66 50%) " +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`linear-gradient(0deg, transparent, transparent 25%, #${fgColor}33 25%, #${fgColor}33 50%),linear-gradient(90deg, transparent, transparent 25%, #${fgColor}66 25%, #${fgColor}66 50%) #${bgColor};`, "4px 4px"];
                 case "sphere":
-                    return ["radial-gradient(#" + fgColor + " 50%, transparent 50%)," +
-                        "#" + bgColor + ";", "4px 4px"];
+                    return [`radial-gradient(#${fgColor} 50%, transparent 50%),#${bgColor};`, "4px 4px"];
                 case "weave":
                 case "shingle":
-                    return ["linear-gradient(45deg, #" + bgColor + " 1.31px , #" + fgColor + " 1.4px, #" + fgColor + " 1.5px, transparent 1.5px, transparent 4.2px, #" + fgColor + " 4.2px, #" + fgColor + " 4.3px, transparent 4.31px), " +
-                        "linear-gradient(-45deg,  #" + bgColor + " 1.31px , #" + fgColor + " 1.4px, #" + fgColor + " 1.5px, transparent 1.5px, transparent 4.2px, #" + fgColor + " 4.2px, #" + fgColor + " 4.3px, transparent 4.31px) 0 4px, " +
-                        "#" + bgColor + ";", "4px 8px"];
+                    return [`linear-gradient(45deg, #${bgColor} 1.31px , #${fgColor} 1.4px, #${fgColor} 1.5px, transparent 1.5px, transparent 4.2px, #${fgColor} 4.2px, #${fgColor} 4.3px, transparent 4.31px), linear-gradient(-45deg,  #${bgColor} 1.31px , #${fgColor} 1.4px, #${fgColor} 1.5px, transparent 1.5px, transparent 4.2px, #${fgColor} 4.2px, #${fgColor} 4.3px, transparent 4.31px) 0 4px, #${bgColor};`, "4px 8px"];
                 //background:
                 //linear-gradient(45deg, #708090 1.31px, #d9ecff 1.4px, #d9ecff 1.5px, transparent 1.5px, transparent 4.2px, #d9ecff 4.2px, #d9ecff 4.3px, transparent 4.31px),
                 //linear-gradient(-45deg, #708090 1.31px, #d9ecff 1.4px, #d9ecff 1.5px, transparent 1.5px, transparent 4.2px, #d9ecff 4.2px, #d9ecff 4.3px, transparent 4.31px)0 4px;
@@ -3045,8 +2998,7 @@ function getFillType(node) {
                             px_pr_ary = ["1px", "100%", "2px 2px"];
                             break
                     }
-                    return ["radial-gradient(#" + fgColor + " " + px_pr_ary[0] + ", transparent " + px_pr_ary[1] + ")," +
-                        "#" + bgColor + ";", px_pr_ary[2]];
+                    return [`radial-gradient(#${fgColor} ${px_pr_ary[0]}, transparent ${px_pr_ary[1]}),#${bgColor};`, px_pr_ary[2]];
                 default:
                     return [0, 0];
             }
@@ -3066,7 +3018,7 @@ function getFillType(node) {
             } else if (node["a:schemeClr"] !== undefined) { //a:schemeClr
                 clrNode = node["a:schemeClr"];
                 let schemeClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]);
-                color = getSchemeColorFromTheme("a:" + schemeClr, clrMap, phClr, warpObj);
+                color = getSchemeColorFromTheme(`a:${schemeClr}`, clrMap, phClr, warpObj);
             } else if (node["a:scrgbClr"] !== undefined) {
                 clrNode = node["a:scrgbClr"];
                 //<a:scrgbClr r="50%" g="50%" b="50%"/>  //Need to test/////////////////////////////////////////////
@@ -3450,7 +3402,7 @@ function getFillType(node) {
         }
         function toHex(n) {
             let hex = n.toString(16);
-            while (hex.length < 2) { hex = "0" + hex; }
+            while (hex.length < 2) { hex = `0${hex}`; }
             return hex;
         }
         function hslToRgb(hue, sat, light) {
@@ -3517,7 +3469,7 @@ function getFillType(node) {
                         case "tx2":
                         case "bg1":
                         case "bg2":
-                            schemeClr = "a:" + slideLayoutClrOvride[schmClrName];
+                            schemeClr = `a:${slideLayoutClrOvride[schmClrName]}`;
                             break;
                     }
                 } else {
@@ -3639,7 +3591,7 @@ function getFillType(node) {
             let fillColor = getSolidFill(fillNode, undefined, undefined, warpObj);
             if (fillColor !== undefined) {
                 if (fillColor && !fillColor.startsWith('#')) {
-                    fillColor = '#' + fillColor;
+                    fillColor = `#${fillColor}`;
                 }
                 seriesStyle.fillColor = fillColor;
             }
@@ -3662,7 +3614,7 @@ function getFillType(node) {
             let lineColor = getSolidFill(lineNode["a:solidFill"], undefined, undefined, warpObj);
             if (lineColor !== undefined) {
                 if (lineColor && !lineColor.startsWith('#')) {
-                    lineColor = '#' + lineColor;
+                    lineColor = `#${lineColor}`;
                 }
                 seriesStyle.lineColor = lineColor;
             }
@@ -3912,18 +3864,18 @@ function getFillType(node) {
 
             let sal = stopsArray.length,
                 sr = sal < 20 ? 100 : 1000;
-            svgAngle = ' gradientUnits="userSpaceOnUse" x1="' + x1 + '%" y1="' + y1 + '%" x2="' + x2 + '%" y2="' + y2 + '%"';
-            svgAngle = '<linearGradient id="linGrd_' + shpId + '"' + svgAngle + '>\n';
+            svgAngle = ` gradientUnits="userSpaceOnUse" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%"`;
+            svgAngle = `<linearGradient id="linGrd_${shpId}"${svgAngle}>\n`;
             svg += svgAngle;
 
             for (let i = 0; i < sal; i++) {
-                const tinClr = tinycolor$1("#" + color_arry[i]);
+                const tinClr = tinycolor$1(`#${color_arry[i]}`);
                 let alpha = tinClr.getAlpha();
-                svg += '<stop offset="' + Math.round(parseFloat(stopsArray[i]) / 100 * sr) / sr + '" style="stop-color:' + tinClr.toHexString() + '; stop-opacity:' + (alpha) + ';"';
+                svg += `<stop offset="${Math.round(parseFloat(stopsArray[i]) / 100 * sr) / sr}" style="stop-color:${tinClr.toHexString()}; stop-opacity:${(alpha)};"`;
                 svg += '/>\n';
             }
 
-            svg += '</linearGradient>\n' + '';
+            svg += `</linearGradient>\n`;
 
             return svg
         }
@@ -3935,7 +3887,7 @@ function getFillType(node) {
                 let i = s;
                 while (i--) {
                     let middleStop = 100 - ((100 / (s + 1)) * (i + 1)), // AM: Ex - For 3 middle stops, progression will be 25%, 50%, and 75%, plus 0% and 100% at the ends.
-                        middleStopString = middleStop + "%";
+                        middleStopString = `${middleStop}%`;
                     sArry.splice(-1, 0, middleStopString);
                 } // AM: add into stopsArray before 100%
             }
@@ -4030,9 +3982,9 @@ function getFillType(node) {
             }
             let ptrn = '';
             if (sx !== undefined && sx != 0) {
-                ptrn = '<pattern id="imgPtrn_' + shpId + '" x="0" y="0"  width="' + sx + '" height="' + sy + '" patternUnits="userSpaceOnUse">';
+                ptrn = `<pattern id="imgPtrn_${shpId}" x="0" y="0"  width="${sx}" height="${sy}" patternUnits="userSpaceOnUse">`;
             } else {
-                ptrn = '<pattern id="imgPtrn_' + shpId + '"  patternContentUnits="objectBoundingBox"  width="1" height="1">';
+                ptrn = `<pattern id="imgPtrn_${shpId}"  patternContentUnits="objectBoundingBox"  width="1" height="1">`;
             }
             let duotoneNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:duotone"]);
             let fillterNode = "";
@@ -4048,7 +4000,7 @@ function getFillType(node) {
                         let hexClr = getSolidFill(obj, undefined, undefined, warpObj);
                         //clr_ary.push();
 
-                        let color = tinycolor$1("#" + hexClr);
+                        let color = tinycolor$1(`#${hexClr}`);
                         clr_ary.push(color.toRgb()); // { r: 255, g: 0, b: 0, a: 1 }
                     }
                     // })
@@ -4056,20 +4008,7 @@ function getFillType(node) {
 
                 if (clr_ary.length == 2) {
 
-                    fillterNode = '<filter id="svg_image_duotone"> ' +
-                        '<feColorMatrix type="matrix" values=".33 .33 .33 0 0' +
-                        '.33 .33 .33 0 0' +
-                        '.33 .33 .33 0 0' +
-                        '0 0 0 1 0">' +
-                        '</feColorMatrix>' +
-                        '<feComponentTransfer color-interpolation-filters="sRGB">' +
-                        //clr_ary.forEach(function(clr){
-                        '<feFuncR type="table" tableValues="' + clr_ary[0].r / 255 + ' ' + clr_ary[1].r / 255 + '"></feFuncR>' +
-                        '<feFuncG type="table" tableValues="' + clr_ary[0].g / 255 + ' ' + clr_ary[1].g / 255 + '"></feFuncG>' +
-                        '<feFuncB type="table" tableValues="' + clr_ary[0].b / 255 + ' ' + clr_ary[1].b / 255 + '"></feFuncB>' +
-                        //});
-                        '</feComponentTransfer>' +
-                        ' </filter>';
+                    fillterNode = `<filter id="svg_image_duotone"> <feColorMatrix type="matrix" values=".33 .33 .33 0 0.33 .33 .33 0 0.33 .33 .33 0 00 0 0 1 0"></feColorMatrix><feComponentTransfer color-interpolation-filters="sRGB"><feFuncR type="table" tableValues="${clr_ary[0].r / 255} ${clr_ary[1].r / 255}"></feFuncR><feFuncG type="table" tableValues="${clr_ary[0].g / 255} ${clr_ary[1].g / 255}"></feFuncG><feFuncB type="table" tableValues="${clr_ary[0].b / 255} ${clr_ary[1].b / 255}"></feFuncB></feComponentTransfer> </filter>`;
                 }
 
                 filterUrl = 'filter="url(#svg_image_duotone)"';
@@ -4079,9 +4018,9 @@ function getFillType(node) {
 
             fillUrl = PPTXXmlUtils.escapeHtml(fillUrl);
             if (sx !== undefined && sx != 0) {
-                ptrn += '<image  xlink:href="' + fillUrl + '" x="0" y="0" width="' + sx + '" height="' + sy + '" ' + imgOpacity + ' ' + filterUrl + '></image>';
+                ptrn += `<image  xlink:href="${fillUrl}" x="0" y="0" width="${sx}" height="${sy}" ${imgOpacity} ${filterUrl}></image>`;
             } else {
-                ptrn += '<image  xlink:href="' + fillUrl + '" preserveAspectRatio="none" width="1" height="1" ' + imgOpacity + ' ' + filterUrl + '></image>';
+                ptrn += `<image  xlink:href="${fillUrl}" preserveAspectRatio="none" width="1" height="1" ${imgOpacity} ${filterUrl}></image>`;
             }
             ptrn += '</pattern>';
 
@@ -4224,7 +4163,7 @@ function getFillType(node) {
             // 首先检查slide本身的lstStyle（PPTX标准：段落样式继承顺序：pPr -> lstStyle -> layout -> master）
             let lstStyle = textBodyNode["a:lstStyle"];
             if (lstStyle !== undefined && (spcBefNode === undefined || spcAftNode === undefined || lnSpcNode === undefined)) {
-                let lvlKey = "a:lvl" + lvl + "pPr";
+                let lvlKey = `a:lvl${lvl}pPr`;
                 let lstLvlNode = lstStyle[lvlKey];
                 if (lstLvlNode !== undefined) {
                     if (spcBefNode === undefined) {
@@ -4302,7 +4241,7 @@ function getFillType(node) {
                 //slideMasterTextStyles
                 const slideMasterTextStyles = warpObj["slideMasterTextStyles"];
                 let dirLoc = "";
-                lvl = "a:lvl" + lvl + "pPr";
+                lvl = `a:lvl${lvl}pPr`;
                 switch (type) {
                     case "title":
                     case "ctrTitle":
@@ -4392,7 +4331,7 @@ function getFillType(node) {
                     if (lineHeight < 1.0) {
                         lineHeight = 1.3;
                     }
-                    marginTopBottomStr += "line-height: " + lineHeight + ";";
+                    marginTopBottomStr += `line-height: ${lineHeight};`;
                 } else if (lnSpcNodeType === "Pts") {
                     // 点数类型的行间距
                     spcLines = parseInt(lnSpcNode) / 100;
@@ -4403,7 +4342,7 @@ function getFillType(node) {
                         if (lineHeight < 1.0) {
                             lineHeight = 1.3;
                         }
-                        marginTopBottomStr += "line-height: " + lineHeight + ";";
+                        marginTopBottomStr += `line-height: ${lineHeight};`;
                     }
                 }
             } else if (type === "textBox") {
@@ -4440,7 +4379,7 @@ function getFillType(node) {
                 // 只有当间距大于0时才应用
                 if (marginTop > 0) {
                     marginTop = Math.round(marginTop * 100) / 100;
-                    marginTopBottomStr += "margin-top: " + marginTop + "px;";
+                    marginTopBottomStr += `margin-top: ${marginTop}px;`;
                 }
             }
 
@@ -4459,7 +4398,7 @@ function getFillType(node) {
                     marginBottom = spcAfter * 1.33;
                 }
                 marginBottom = Math.round(marginBottom * 100) / 100;
-                marginTopBottomStr += "margin-bottom: " + marginBottom + "px;";
+                marginTopBottomStr += `margin-bottom: ${marginBottom}px;`;
             }
 
             //return spcAft + spcBef;
@@ -4476,7 +4415,7 @@ function getFillType(node) {
                 if (lvlNode !== undefined) {
                     lvlIdx = parseInt(lvlNode) + 1;
                 }
-                let lvlStr = "a:lvl" + lvlIdx + "pPr";
+                let lvlStr = `a:lvl${lvlIdx}pPr`;
 
                 let lstStyle = textBodyNode["a:lstStyle"];
                 algn = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlStr, "attrs", "algn"]);
@@ -4574,7 +4513,7 @@ function getFillType(node) {
                     case "just":
                     case "dist":
                     default:
-                        return "h-" + algn;
+                        return `h-${algn}`;
                 }
             }
             //return algn === "ctr" ? "h-mid" : algn === "r" ? "h-right" : "h-left";
@@ -4591,7 +4530,7 @@ function getFillType(node) {
             }
             if (idx !== undefined) {
                 //slidelayout
-                pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", "a:lvl" + lvl + "pPr"]);
+                pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:lstStyle", `a:lvl${lvl}pPr`]);
                 if (pPrNodeLaout === undefined) {
                     pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"]["idxTable"][idx], ["p:txBody", "a:p", "a:pPr"]);
                     if (pPrNodeLaout === undefined) {
@@ -4601,7 +4540,7 @@ function getFillType(node) {
             }
             if (type !== undefined) {
                 //slidelayout
-                let lvlStr = "a:lvl" + lvl + "pPr";
+                let lvlStr = `a:lvl${lvl}pPr`;
                 if (pPrNodeLaout === undefined) {
                     pPrNodeLaout = PPTXXmlUtils.getTextByPathList(warpObj, ["slideLayoutTables", "typeTable", type, "p:txBody", "a:lstStyle", lvlStr]);
                 }
@@ -4732,10 +4671,10 @@ function getFillType(node) {
                         bulletSizeAdjustment = fontSize * 0.8;
                     }
                     maginVal = Math.max(0, maginVal - bulletSizeAdjustment);
-                    marLStr += maginVal + "px;";
+                    marLStr += `${maginVal}px;`;
                 } else {
                     maginVal = Math.abs(marginLeft + indent);
-                    marLStr += maginVal + "px;";
+                    marLStr += `${maginVal}px;`;
                 }
             }
 
@@ -4798,7 +4737,7 @@ function extractChartTitleStyle(chartNode, warpObj) {
                     if (solidFill) {
                         let color = getColor(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
-                            color = '#' + color;
+                            color = `#${color}`;
                         }
                         style.color = color;
                     }
@@ -4845,7 +4784,7 @@ function extractChartTitleStyle(chartNode, warpObj) {
                         if (solidFill) {
                             let color = getColor(solidFill, undefined, undefined, warpObj);
                             if (color && !color.startsWith('#')) {
-                                color = '#' + color;
+                                color = `#${color}`;
                             }
                             style.color = color;
                         }
@@ -4880,7 +4819,7 @@ function extractChartAreaStyle(chartSpaceNode, warpObj) {
             if (solidFill) {
                 let fillColor = getSolidFill(solidFill, undefined, undefined, warpObj);
                 if (fillColor && !fillColor.startsWith('#')) {
-                    fillColor = '#' + fillColor;
+                    fillColor = `#${fillColor}`;
                 }
                 style.fillColor = fillColor;
             }
@@ -4898,7 +4837,7 @@ function extractChartAreaStyle(chartSpaceNode, warpObj) {
             if (solidFill) {
                 let borderColor = getSolidFill(solidFill, undefined, undefined, warpObj);
                 if (borderColor && !borderColor.startsWith('#')) {
-                    borderColor = '#' + borderColor;
+                    borderColor = `#${borderColor}`;
                 }
                 style.borderColor = borderColor;
             }
@@ -4942,7 +4881,7 @@ function extractChartLegendStyle(chartNode, warpObj) {
                     if (solidFill) {
                         let color = getSolidFill(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
-                            color = '#' + color;
+                            color = `#${color}`;
                         }
                         style.color = color;
                     }
@@ -4980,7 +4919,7 @@ function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
                     if (solidFill) {
                         let color = getSolidFill(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
-                            color = '#' + color;
+                            color = `#${color}`;
                         }
                         style.color = color;
                     }
@@ -4998,7 +4937,7 @@ function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
             if (solidFill) {
                 let lineColor = getSolidFill(solidFill, undefined, undefined, warpObj);
                 if (lineColor && !lineColor.startsWith('#')) {
-                    lineColor = '#' + lineColor;
+                    lineColor = `#${lineColor}`;
                 }
                 style.lineColor = lineColor;
             }
@@ -5020,7 +4959,7 @@ function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
                     if (solidFill) {
                         let gridlineColor = getSolidFill(solidFill, undefined, undefined, warpObj);
                         if (gridlineColor && !gridlineColor.startsWith('#')) {
-                            gridlineColor = '#' + gridlineColor;
+                            gridlineColor = `#${gridlineColor}`;
                         }
                         style.gridlineColor = gridlineColor;
                     }
@@ -5166,8 +5105,7 @@ async function genChart(node, warpObj, parentNode) {
     // 生成 data- 属性
     const dataAttrs = ` data-node-type="chart" data-off-x="${offX}" data-off-y="${offY}" data-ext-cx="${extCx}" data-ext-cy="${extCy}"`;
 
-    const result = "<div id='chart" + warpObj.chartId.value + "' class='block content' style='" +
-        PPTXXmlUtils.getPosition(workingXfrmNode, parentNode || node, undefined, undefined) + PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) +
+    const result = `<div id='chart${warpObj.chartId.value}' class='block content' style='${PPTXXmlUtils.getPosition(workingXfrmNode, parentNode || node, undefined, undefined)}${PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined)}` +
         ` z-index: ${order};'${dataAttrs}></div>`;
 
     const rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
@@ -5257,7 +5195,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "lineChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -5270,7 +5208,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "barChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -5283,7 +5221,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "pieChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -5296,7 +5234,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "pie3DChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -5309,7 +5247,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "areaChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -5322,7 +5260,7 @@ async function genChart(node, warpObj, parentNode) {
                 chartData = {
                     "type": "createChart",
                     "data": {
-                        "chartId": "chart" + warpObj.chartId.value++,
+                        "chartId": `chart${warpObj.chartId.value++}`,
                         "chartType": "scatterChart",
                         "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
                         "style": chartStyle,
@@ -5486,7 +5424,7 @@ function getTextWidth(html) {
                 if (styleText in warpObj.styleTable) {
                     cssName = warpObj.styleTable[styleText]["name"];
                 } else {
-                    cssName = "_css_" + (Object.keys(warpObj.styleTable).length + 1);
+                    cssName = `_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
                     warpObj.styleTable[styleText] = {
                         "name": cssName,
                         "text": styleText
@@ -5552,7 +5490,7 @@ function getTextWidth(html) {
                         availableWidth = availableWidth * 0.95;
                     }
                                 
-                    sld_prg_width = "width:" + Math.max(0, Math.round(availableWidth * 100) / 100) + "px;";
+                    sld_prg_width = `width:${Math.max(0, Math.round(availableWidth * 100) / 100)}px;`;
                 } else if (sld_prg_width_val === null) {
                     sld_prg_width = "width:inherit;";
                 }
@@ -5577,7 +5515,7 @@ function getTextWidth(html) {
                         outerFlexStyle = "justify-content: flex-start;";
                     }
                 }
-                text += "<div style='display: flex;" + sld_prg_width + sld_prg_height + outerFlexStyle + directionStyle + "' class='slide-prgrph " + horizontalAlign + ` ${prg_dir} ` + cssName + "' >";
+                text += `<div style='display: flex;${sld_prg_width}${sld_prg_height}${outerFlexStyle}${directionStyle}' class='slide-prgrph ${horizontalAlign}` + ` ${prg_dir} ` + cssName + "' >";
                 let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? (Number(buText_ary[1]) + Number(buText_ary[2])) : 0;
@@ -5655,7 +5593,7 @@ function getTextWidth(html) {
                     if (isCircularShape) {
                         availableWidthForTextContainer = availableWidthForTextContainer * 0.95;
                     }
-                    textContainerWidth = "width:" + Math.max(0, Math.round(availableWidthForTextContainer * 100) / 100) + "px;";
+                    textContainerWidth = `width:${Math.max(0, Math.round(availableWidthForTextContainer * 100) / 100)}px;`;
                 }
                 if (isRTL && isBullate) {
                     // RTL 模式下有项目符号时，文本容器不设宽度，让内容自适应
@@ -5699,13 +5637,13 @@ function getTextWidth(html) {
                         flexStyle = "justify-content: flex-start;";
                     }
                 }
-                text += "<div style='display: flex;" + flexStyle + textContainerWidth + directionStyle + "'>";
+                text += `<div style='display: flex;${flexStyle}${textContainerWidth}${directionStyle}'>`;
                 // 在 RTL 模式下，项目符号应该和文本在同一个容器中
                 if (isRTL && isBullate && buText_ary[0] !== undefined) {
                     // 先添加项目符号，再添加文本（在 RTL 容器中，第一个子元素显示在最右边）
                     text += buText_ary[0];
                 }
-                text += "<div style='" + styleText + directionStyle + whiteSpaceStyle + margin + textAlignStyle + "'>";
+                text += `<div style='${styleText}${directionStyle}${whiteSpaceStyle}${margin}${textAlignStyle}'>`;
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";
@@ -5849,10 +5787,10 @@ function getTextWidth(html) {
                     //dfltBultSize = XXpt
                     //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
                     let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                    bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
+                    bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
                 }
             } else {
-                bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
+                bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
             }
 
             //get definde bullet COLOR
@@ -5980,7 +5918,7 @@ function getTextWidth(html) {
                     marLStr = "padding-left:";//"margin-left: ";
                 }
                 margin_val = ((marginLeft + indent < 0) ? 0 : (marginLeft + indent));
-                marLStr += margin_val + "px;";
+                marLStr += `${margin_val}px;`;
             }
             
             //marR?
@@ -5999,7 +5937,7 @@ function getTextWidth(html) {
                 } else {
                     marLStr = "padding-left:";//"margin-left: ";
                 }
-                marRStr += ((marginRight + indent < 0) ? 0 : (marginRight + indent)) + "px;";
+                marRStr += `${((marginRight + indent < 0) ? 0 : (marginRight + indent))}px;`;
             }
 
             //get definde bullet COLOR
@@ -6034,10 +5972,10 @@ function getTextWidth(html) {
                         let prcnt = parseInt(buFontSize) / 100000;
                         //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
                         let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                        bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
+                        bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
                     }
                 }else {
-                    bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
+                    bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
                 }
             }
             if (buFontSize === undefined) {
@@ -6049,10 +5987,10 @@ function getTextWidth(html) {
                         //dfltBultSize = XXpt
                         //let dfltBultSizeNoPt = dfltBultSize.substr(0, dfltBultSize.length - 2);
                         let dfltBultSizeNoPt = parseInt(dfltBultSize, "px");
-                        bultSize = prcnt * (parseInt(dfltBultSizeNoPt)) + "px";// + "pt";
+                        bultSize = `${prcnt * (parseInt(dfltBultSizeNoPt))}px`;// + "pt";
                     }
                 } else {
-                    bultSize = (parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR + "px";
+                    bultSize = `${(parseInt(buFontSize) / 100) * FONT_SIZE_FACTOR}px`;
                 }
             }
             if (buFontSize === undefined) {
@@ -6066,7 +6004,7 @@ function getTextWidth(html) {
                 let isWingdingsFont = false;
                 if (typefaceNode !== undefined) {
                     isWingdingsFont = (typefaceNode == "Wingdings" || typefaceNode == "Wingdings 2" || typefaceNode == "Wingdings 3" || typefaceNode == "Webdings");
-                    typeface = "font-family: " + typefaceNode;
+                    typeface = `font-family: ${typefaceNode}`;
                 }
                 // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(marLNode)) * SLIDE_FACTOR;
                 // let marginRight = parseInt (PPTXXmlUtils.getTextByPathList(marRNode)) * SLIDE_FACTOR;
@@ -6090,12 +6028,12 @@ function getTextWidth(html) {
                             let colorObj = tinycolor(bulletColorValue);
                             bulletColorValue = colorObj.toRgbString();
                         } else {
-                            bulletColorValue = "#" + bulletColorValue;
+                            bulletColorValue = `#${bulletColorValue}`;
                         }
-                        bullet += "color:" + bulletColorValue + "; ";
+                        bullet += `color:${bulletColorValue}; `;
                     }
                     if (bultColor[1] !== undefined && bultColor[1] != "" && bultColor[1] != ";") {
-                        bullet += "text-shadow:" + bultColor[1] + ";";
+                        bullet += `text-shadow:${bultColor[1]};`;
                     }
                     //no highlight/background-color to bullet
                     // if (bultColor[3] !== undefined && bultColor[3] != "") {
@@ -6103,12 +6041,12 @@ function getTextWidth(html) {
                     // }
                 } else if (color_tye == "pattern" || color_tye == "pic" || color_tye == "gradient") {
                     if (color_tye == "pattern") {
-                        bullet += "background:" + bultColor[0][0] + ";";
+                        bullet += `background:${bultColor[0][0]};`;
                         if (bultColor[0][1] !== null && bultColor[0][1] !== undefined && bultColor[0][1] != "") {
-                            bullet += "background-size:" + bultColor[0][1] + ";";//" 2px 2px;" +
+                            bullet += `background-size:${bultColor[0][1]};`;//" 2px 2px;" +
                         }
                         if (bultColor[0][2] !== null && bultColor[0][2] !== undefined && bultColor[0][2] != "") {
-                            bullet += "background-position:" + bultColor[0][2] + ";";//" 2px 2px;" +
+                            bullet += `background-position:${bultColor[0][2]};`;//" 2px 2px;" +
                         }
                         // bullet += "-webkit-background-clip: text;" +
                         //     "background-clip: text;" +
@@ -6116,7 +6054,7 @@ function getTextWidth(html) {
                         //     "-webkit-text-stroke: " + bultColor[1].border + ";" +
                         //     "filter: " + bultColor[1].effcts + ";";
                     } else if (color_tye == "pic") {
-                        bullet += bultColor[0] + ";";
+                        bullet += `${bultColor[0]};`;
                         // bullet += "-webkit-background-clip: text;" +
                         //     "background-clip: text;" +
                         //     "color: transparent;" +
@@ -6130,9 +6068,9 @@ function getTextWidth(html) {
                         bullet += `background: linear-gradient(${rot}deg,`;
                         for (let i = 0; i < colorAry.length; i++) {
                             if (i == colorAry.length - 1) {
-                                bullet += "#" + colorAry[i] + ");";
+                                bullet += `#${colorAry[i]});`;
                             } else {
-                                bullet += "#" + colorAry[i] + ", ";
+                                bullet += `#${colorAry[i]}, `;
                             }
                         }
                         // bullet += "color: transparent;" +
@@ -6140,14 +6078,12 @@ function getTextWidth(html) {
                         //     "background-clip: text;" +
                         //     "-webkit-text-stroke: " + bultColor[1].border + ";";
                     }
-                    bullet += "-webkit-background-clip: text;" +
-                        "background-clip: text;" +
-                        "color: transparent;";
+                    bullet += `-webkit-background-clip: text;background-clip: text;color: transparent;`;
                     if (bultColor[1].border !== undefined && bultColor[1].border !== "") {
-                        bullet += "-webkit-text-stroke: " + bultColor[1].border + ";";
+                        bullet += `-webkit-text-stroke: ${bultColor[1].border};`;
                     }
                     if (bultColor[1].effcts !== undefined && bultColor[1].effcts !== "") {
-                        bullet += "filter: " + bultColor[1].effcts + ";";
+                        bullet += `filter: ${bultColor[1].effcts};`;
                     }
                 }
 
@@ -6172,7 +6108,7 @@ function getTextWidth(html) {
                     bullet = bullet.replace(/font-family:\s*(Wingdings|Wingdings\s*2|Wingdings\s*3|Webdings)\s*/gi, "font-family: Arial, sans-serif");
                 }
                 
-                bullet += "display: flex; align-items: center;'><div>" + htmlBu + "</div></div>";
+                bullet += `display: flex; align-items: center;'><div>${htmlBu}</div></div>`;
                 //} 
                 // else {
                 //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
@@ -6204,16 +6140,16 @@ function getTextWidth(html) {
                 const bulletIndex = warpObj.bulletCounter[bulletKey].index;
                 const bulletText = getNumTypeNum(buNum, bulletIndex);
 
-                bullet = "<div style='" + marLStr + marRStr;
+                bullet = `<div style='${marLStr}${marRStr}`;
                 if (bultColor && bultColor[0] !== undefined && bultColor[0] != "") {
                     let bulletNumColorValue = bultColor[0];
                     if (bulletNumColorValue.length === 8) {
                         let colorObj = tinycolor(bulletNumColorValue);
                         bulletNumColorValue = colorObj.toRgbString();
                     } else {
-                        bulletNumColorValue = "#" + bulletNumColorValue;
+                        bulletNumColorValue = `#${bulletNumColorValue}`;
                     }
-                    bullet += "color:" + bulletNumColorValue + ";";
+                    bullet += `color:${bulletNumColorValue};`;
                 }
                 bullet += `font-size:${bultSize};`;
                 if (isRTL) {
@@ -6265,7 +6201,7 @@ function getTextWidth(html) {
                 if (buPicId === undefined) {
                     buImg = "&#8227;";
                 }
-                bullet = "<div style='" + marLStr + marRStr +
+                bullet = `<div style='${marLStr}${marRStr}` +
                     `width:${bultSize};display: flex; align-items: center;`;// +
                 //"line-height: 0px;";
                 if (isRTL) {
@@ -6399,7 +6335,7 @@ function getTextWidth(html) {
                             return `&#${wingCharCode};`;
                         }
                     }
-                    return "&#" + (buChar.charCodeAt(0)) + ";";
+                    return `&#${(buChar.charCodeAt(0))};`;
             }
         }
         function getDingbatToUnicode(typefaceNode, buChar){
@@ -6551,34 +6487,34 @@ function getTextWidth(html) {
         let rtrnNum = "";
         switch (numTyp) {
             case "arabicPeriod":
-                rtrnNum = num + ". ";
+                rtrnNum = `${num}. `;
                 break;
             case "arabicParenR":
-                rtrnNum = num + ") ";
+                rtrnNum = `${num}) `;
                 break;
             case "alphaLcParenR":
-                rtrnNum = alphaNumeric(num, "lowerCase") + ") ";
+                rtrnNum = `${alphaNumeric(num, "lowerCase")}) `;
                 break;
             case "alphaLcPeriod":
-                rtrnNum = alphaNumeric(num, "lowerCase") + ". ";
+                rtrnNum = `${alphaNumeric(num, "lowerCase")}. `;
                 break;
 
             case "alphaUcParenR":
-                rtrnNum = alphaNumeric(num, "upperCase") + ") ";
+                rtrnNum = `${alphaNumeric(num, "upperCase")}) `;
                 break;
             case "alphaUcPeriod":
-                rtrnNum = alphaNumeric(num, "upperCase") + ". ";
+                rtrnNum = `${alphaNumeric(num, "upperCase")}. `;
                 break;
 
             case "romanUcPeriod":
-                rtrnNum = romanize(num) + ". ";
+                rtrnNum = `${romanize(num)}. `;
                 break;
             case "romanLcParenR":
-                rtrnNum = romanize(num) + ") ";
+                rtrnNum = `${romanize(num)}) `;
                 break;
             case "hebrew2Minus":
                 // 希伯来字母编号：使用现代希伯来字母（א, ב, ג, ד, ...）类似英文字母编号
-                rtrnNum = hebrewAlphaNumeric(num) + "-";
+                rtrnNum = `${hebrewAlphaNumeric(num)}-`;
                 break;
             default:
                 rtrnNum = num;
@@ -6700,16 +6636,16 @@ function getTextWidth(html) {
                         let colorObj = tinycolor(colorValue);
                         colorValue = colorObj.toRgbString();
                     } else {
-                        colorValue = "#" + colorValue;
+                        colorValue = `#${colorValue}`;
                     }
-                    styleText += "color: " + colorValue + ";";
+                    styleText += `color: ${colorValue};`;
                 }
                 else if (linkID !== undefined && defLinkClr !== undefined) {
                     styleText += `color: #${defLinkClr};`;
                 }
 
                 if (fontClrPr[1] !== undefined && fontClrPr[1] != "" && fontClrPr[1] != ";") {
-                    styleText += "text-shadow:" + fontClrPr[1] + ";";
+                    styleText += `text-shadow:${fontClrPr[1]};`;
                 }
                 if (fontClrPr[3] !== undefined && fontClrPr[3] != "") {
                     let highlightColorValue = fontClrPr[3];
@@ -6717,18 +6653,18 @@ function getTextWidth(html) {
                         let colorObj = tinycolor(highlightColorValue);
                         highlightColorValue = colorObj.toRgbString();
                     } else {
-                        highlightColorValue = "#" + highlightColorValue;
+                        highlightColorValue = `#${highlightColorValue}`;
                     }
-                    styleText += "background-color: " + highlightColorValue + ";";
+                    styleText += `background-color: ${highlightColorValue};`;
                 }
             } else if (fontClrType == "pattern" || fontClrType == "pic" || fontClrType == "gradient") {
                 if (fontClrType == "pattern") {
-                    styleText += "background:" + fontClrPr[0][0] + ";";
+                    styleText += `background:${fontClrPr[0][0]};`;
                     if (fontClrPr[0][1] !== null && fontClrPr[0][1] !== undefined && fontClrPr[0][1] != "") {
-                        styleText += "background-size:" + fontClrPr[0][1] + ";";//" 2px 2px;" +
+                        styleText += `background-size:${fontClrPr[0][1]};`;//" 2px 2px;" +
                     }
                     if (fontClrPr[0][2] !== null && fontClrPr[0][2] !== undefined && fontClrPr[0][2] != "") {
-                        styleText += "background-position:" + fontClrPr[0][2] + ";";//" 2px 2px;" +
+                        styleText += `background-position:${fontClrPr[0][2]};`;//" 2px 2px;" +
                     }
                     // styleText += "-webkit-background-clip: text;" +
                     //     "background-clip: text;" +
@@ -6736,7 +6672,7 @@ function getTextWidth(html) {
                     //     "-webkit-text-stroke: " + fontClrPr[1].border + ";" +
                     //     "filter: " + fontClrPr[1].effcts + ";";
                 } else if (fontClrType == "pic") {
-                    styleText += fontClrPr[0] + ";";
+                    styleText += `${fontClrPr[0]};`;
                     // styleText += "-webkit-background-clip: text;" +
                     //     "background-clip: text;" +
                     //     "color: transparent;" +
@@ -6749,9 +6685,9 @@ function getTextWidth(html) {
                     styleText += `background: linear-gradient(${rot}deg,`;
                     for (let i = 0; i < colorAry.length; i++) {
                         if (i == colorAry.length - 1) {
-                            styleText += "#" + colorAry[i] + ");";
+                            styleText += `#${colorAry[i]});`;
                         } else {
-                            styleText += "#" + colorAry[i] + ", ";
+                            styleText += `#${colorAry[i]}, `;
                         }
                     }
                     // styleText += "-webkit-background-clip: text;" +
@@ -6760,14 +6696,12 @@ function getTextWidth(html) {
                     //     "-webkit-text-stroke: " + fontClrPr[1].border + ";";
 
                 }
-                styleText += "-webkit-background-clip: text;" +
-                    "background-clip: text;" +
-                    "color: transparent;";
+                styleText += `-webkit-background-clip: text;background-clip: text;color: transparent;`;
                 if (fontClrPr[1].border !== undefined && fontClrPr[1].border !== "") {
-                    styleText += "-webkit-text-stroke: " + fontClrPr[1].border + ";";
+                    styleText += `-webkit-text-stroke: ${fontClrPr[1].border};`;
                 }
                 if (fontClrPr[1].effcts !== undefined && fontClrPr[1].effcts !== "") {
-                    styleText += "filter: " + fontClrPr[1].effcts + ";";
+                    styleText += `filter: ${fontClrPr[1].effcts};`;
                 }
             }
             let font_size = PPTXStyleUtils.getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj);
@@ -6826,9 +6760,9 @@ function getTextWidth(html) {
                         let colorObj = tinycolor(highlightColor);
                         highlightColor = colorObj.toRgbString();
                     } else {
-                        highlightColor = "#" + highlightColor;
+                        highlightColor = `#${highlightColor}`;
                     }
-                    styleText += "background-color:" + highlightColor + ";";
+                    styleText += `background-color:${highlightColor};`;
                 }
                 //styleText += "Opacity:" + getColorOpacity(highlight) + ";";
             }
@@ -6865,7 +6799,7 @@ function getTextWidth(html) {
             if (styleText in warpObj.styleTable) {
                 cssName = warpObj.styleTable[styleText]["name"];
             } else {
-                cssName = "_css_" + (Object.keys(warpObj.styleTable).length + 1);
+                cssName = `_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
                 warpObj.styleTable[styleText] = {
                     "name": cssName,
                     "text": styleText
@@ -7018,7 +6952,7 @@ function getTextWidth(html) {
                     let colorObj = tinycolor(tbl_bgcolor);
                     tbl_bgcolor = colorObj.toRgbString();
                 } else {
-                    tbl_bgcolor = "#" + tbl_bgcolor;
+                    tbl_bgcolor = `#${tbl_bgcolor}`;
                 }
                 tbl_bgcolor = `background-color: ${tbl_bgcolor};`;
             }
@@ -7204,7 +7138,7 @@ function getTextWidth(html) {
                             let colorObj = tinycolor(tableColorValue);
                             tableColorValue = colorObj.toRgbString();
                         } else {
-                            tableColorValue = "#" + tableColorValue;
+                            tableColorValue = `#${tableColorValue}`;
                         }
                         rowsStyl += ` color: ${tableColorValue};`;
                     }
@@ -7214,7 +7148,7 @@ function getTextWidth(html) {
                             let colorObj = tinycolor(fillColor);
                             fillColor = colorObj.toRgbString();
                         } else {
-                            fillColor = "#" + fillColor;
+                            fillColor = `#${fillColor}`;
                         }
                         //rowsStyl += "background-color: rgba(" + hexToRgbNew(fillColor) + `,${colorOpacity});`;
                         rowsStyl += `background-color: ${fillColor};`;
@@ -7513,7 +7447,7 @@ function getTextWidth(html) {
                 if (celFillColor in warpObj.styleTable) {
                     cssName = warpObj.styleTable[celFillColor]["name"];
                 } else {
-                    cssName = "_tbl_cell_css_" + (Object.keys(warpObj.styleTable).length + 1);
+                    cssName = `_tbl_cell_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
                     warpObj.styleTable[celFillColor] = {
                         "name": cssName,
                         "text": celFillColor
@@ -7654,9 +7588,9 @@ function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
             const x = cX + Math.cos(radians) * rX;
             const y = cY + Math.sin(radians) * rY;
             if (angle == stAng) {
-                dData = " M" + fmt(x) + " " + fmt(y);
+                dData = ` M${fmt(x)} ${fmt(y)}`;
             }
-            dData += " L" + fmt(x) + " " + fmt(y);
+            dData += ` L${fmt(x)} ${fmt(y)}`;
             angle++;
         }
     } else {
@@ -7665,9 +7599,9 @@ function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
             const x = cX + Math.cos(radians) * rX;
             const y = cY + Math.sin(radians) * rY;
             if (angle == stAng) {
-                dData = " M " + fmt(x) + " " + fmt(y);
+                dData = ` M ${fmt(x)} ${fmt(y)}`;
             }
-            dData += " L " + fmt(x) + " " + fmt(y);
+            dData += ` L ${fmt(x)} ${fmt(y)}`;
             angle--;
         }
     }
@@ -7693,26 +7627,26 @@ function shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp) {
     if (shpTyp == "round") {
         sAdj1 = w * sAdj1_val;
         if (adjTyp == "cornrAll") {
-            d = "M0," + sAdj1 + " Q0,0 " + sAdj1 + ",0 L" + (w - sAdj1) + ",0 Q" + w + ",0 " + w + "," + sAdj1 + " L" + w + "," + (h - sAdj1) + " Q" + w + "," + h + " " + (w - sAdj1) + "," + h + " L" + sAdj1 + "," + h + " Q0," + h + " 0," + (h - sAdj1) + " z";
+            d = `M0,${sAdj1} Q0,0 ${sAdj1},0 L${(w - sAdj1)},0 Q${w},0 ${w},${sAdj1} L${w},${(h - sAdj1)} Q${w},${h} ${(w - sAdj1)},${h} L${sAdj1},${h} Q0,${h} 0,${(h - sAdj1)} z`;
         } else if (adjTyp == "cornr1") {
-            d = "M0,0 L" + (w - sAdj1) + ",0 Q" + w + ",0 " + w + "," + sAdj1 + " L" + w + "," + h + " L0," + h + " z";
+            d = `M0,0 L${(w - sAdj1)},0 Q${w},0 ${w},${sAdj1} L${w},${h} L0,${h} z`;
         } else if (adjTyp == "diag") {
             sAdj2 = h * sAdj2_val;
-            d = "M0,0 L" + (w - sAdj1) + ",0 Q" + w + ",0 " + w + "," + sAdj1 + " L" + w + "," + (h - sAdj2) + " Q" + w + "," + h + " " + (w - sAdj2) + "," + h + " L" + sAdj1 + "," + h + " Q0," + h + " 0," + (h - sAdj1) + " L0," + sAdj2 + " Q0,0 " + sAdj2 + ",0 z";
+            d = `M0,0 L${(w - sAdj1)},0 Q${w},0 ${w},${sAdj1} L${w},${(h - sAdj2)} Q${w},${h} ${(w - sAdj2)},${h} L${sAdj1},${h} Q0,${h} 0,${(h - sAdj1)} L0,${sAdj2} Q0,0 ${sAdj2},0 z`;
         } else if (adjTyp == "cornr2") {
             sAdj2 = w * sAdj2_val;
-            d = "M0,0 L" + (w - sAdj1) + ",0 Q" + w + ",0 " + w + "," + sAdj1 + " L" + w + "," + (h - sAdj2) + " Q" + w + "," + h + " " + (w - sAdj2) + "," + h + " L0," + h + " z";
+            d = `M0,0 L${(w - sAdj1)},0 Q${w},0 ${w},${sAdj1} L${w},${(h - sAdj2)} Q${w},${h} ${(w - sAdj2)},${h} L0,${h} z`;
         }
     } else if (shpTyp == "snip") {
         sAdj1 = w * sAdj1_val;
         if (adjTyp == "cornr1") {
-            d = "M" + sAdj1 + ",0 L" + w + ",0 L" + w + "," + h + " L0," + h + " L0," + sAdj1 + " z";
+            d = `M${sAdj1},0 L${w},0 L${w},${h} L0,${h} L0,${sAdj1} z`;
         } else if (adjTyp == "diag") {
             sAdj2 = h * sAdj2_val;
-            d = "M" + sAdj1 + ",0 L" + w + ",0 L" + w + "," + (h - sAdj2) + " L" + sAdj2 + "," + h + " L0," + h + " L0," + sAdj1 + " z";
+            d = `M${sAdj1},0 L${w},0 L${w},${(h - sAdj2)} L${sAdj2},${h} L0,${h} L0,${sAdj1} z`;
         } else if (adjTyp == "cornr2") {
             sAdj2 = w * sAdj2_val;
-            d = "M" + sAdj1 + ",0 L" + w + ",0 L" + w + "," + (h - sAdj2) + " L" + (w - sAdj2) + "," + h + " L0," + h + " z";
+            d = `M${sAdj1},0 L${w},0 L${w},${(h - sAdj2)} L${(w - sAdj2)},${h} L0,${h} z`;
         }
     }
 
@@ -7755,14 +7689,9 @@ function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
 
     let d;
     if (shapeType == "round") {
-        d = "M0" + "," + (h / 2 + (1 - adjB) * (h / 2)) + " Q" + 0 + "," + h + " " + adjB * (w / 2) + "," + h + " L" + (w / 2 + (1 - adjC) * (w / 2)) + "," + h +
-            " Q" + w + "," + h + " " + w + "," + (h / 2 + (h / 2) * (1 - adjC)) + "L" + w + "," + (h / 2) * adjD +
-            " Q" + w + "," + 0 + " " + (w / 2 + (w / 2) * (1 - adjD)) + ",0 L" + (w / 2) * adjA + ",0" +
-            " Q" + 0 + "," + 0 + " 0," + (h / 2) * (adjA) + " z";
+        d = `M0,${(h / 2 + (1 - adjB) * (h / 2))} Q${0},${h} ${adjB * (w / 2)},${h} L${(w / 2 + (1 - adjC) * (w / 2))},${h} Q${w},${h} ${w},${(h / 2 + (h / 2) * (1 - adjC))}L${w},${(h / 2) * adjD} Q${w},${0} ${(w / 2 + (w / 2) * (1 - adjD))},0 L${(w / 2) * adjA},0 Q${0},${0} 0,${(h / 2) * (adjA)} z`;
     } else if (shapeType == "snip") {
-        d = "M0" + "," + adjA * (h / 2) + " L0" + "," + (h / 2 + (h / 2) * (1 - adjB)) + "L" + adjB * (w / 2) + "," + h +
-            " L" + (w / 2 + (w / 2) * (1 - adjC)) + "," + h + "L" + w + "," + (h / 2 + (h / 2) * (1 - adjC)) +
-            " L" + w + "," + adjD * (h / 2) + "L" + (w / 2 + (w / 2) * (1 - adjD)) + ",0 L" + ((w / 2) * adjA) + ",0 z";
+        d = `M0,${adjA * (h / 2)} L0,${(h / 2 + (h / 2) * (1 - adjB))}L${adjB * (w / 2)},${h} L${(w / 2 + (w / 2) * (1 - adjC))},${h}L${w},${(h / 2 + (h / 2) * (1 - adjC))} L${w},${adjD * (h / 2)}L${(w / 2 + (w / 2) * (1 - adjD))},0 L${((w / 2) * adjA)},0 z`;
     }
     return d;
 }
@@ -7793,14 +7722,14 @@ function shapePie(H, w, adj1, adj2, isClose) {
     let longArc, d, rot;
     if (isClose) {
         longArc = (value <= 180) ? 0 : 1;
-        d = "M" + radius + "," + radius + " L" + radius + "," + 0 + " A" + radius + "," + radius + " 0 " + longArc + ",1 " + (radius + y * radius) + "," + (radius - x * radius) + " z";
-        rot = "rotate(" + (piAngle - 270) + ", " + radius + ", " + radius + ")";
+        d = `M${radius},${radius} L${radius},${0} A${radius},${radius} 0 ${longArc},1 ${(radius + y * radius)},${(radius - x * radius)} z`;
+        rot = `rotate(${(piAngle - 270)}, ${radius}, ${radius})`;
     } else {
         longArc = (value <= 180) ? 0 : 1;
         const radius1 = radius;
         const radius2 = w / 2;
-        d = "M" + radius1 + "," + 0 + " A" + radius2 + "," + radius1 + " 0 " + longArc + ",1 " + (radius2 + y * radius2) + "," + (radius1 - x * radius1);
-        rot = "rotate(" + (piAngle + 90) + ", " + radius + ", " + radius + ")";
+        d = `M${radius1},${0} A${radius2},${radius1} 0 ${longArc},1 ${(radius2 + y * radius2)},${(radius1 - x * radius1)}`;
+        rot = `rotate(${(piAngle + 90)}, ${radius}, ${radius})`;
     }
 
     return [d, rot];
@@ -7830,15 +7759,15 @@ function shapeGear(w, h, points) {
     let a = angle;
     let toggle = false;
 
-    let d = " M" + (cx + radiusO * Math.cos(taperAO)) + " " + (cy + radiusO * Math.sin(taperAO));
+    let d = ` M${(cx + radiusO * Math.cos(taperAO))} ${(cy + radiusO * Math.sin(taperAO))}`;
 
     for (; a <= pi2 + angle; a += angle) {
         if (toggle) {
-            d += " L" + (cx + radiusI * Math.cos(a - taperAI)) + "," + (cy + radiusI * Math.sin(a - taperAI));
-            d += " L" + (cx + radiusO * Math.cos(a + taperAO)) + "," + (cy + radiusO * Math.sin(a + taperAO));
+            d += ` L${(cx + radiusI * Math.cos(a - taperAI))},${(cy + radiusI * Math.sin(a - taperAI))}`;
+            d += ` L${(cx + radiusO * Math.cos(a + taperAO))},${(cy + radiusO * Math.sin(a + taperAO))}`;
         } else {
-            d += " L" + (cx + radiusO * Math.cos(a - taperAO)) + "," + (cy + radiusO * Math.sin(a - taperAO));
-            d += " L" + (cx + radiusI * Math.cos(a + taperAI)) + "," + (cy + radiusI * Math.sin(a + taperAI));
+            d += ` L${(cx + radiusO * Math.cos(a - taperAO))},${(cy + radiusO * Math.sin(a - taperAO))}`;
+            d += ` L${(cx + radiusI * Math.cos(a + taperAI))},${(cy + radiusI * Math.sin(a + taperAI))}`;
         }
         toggle = !toggle;
     }
@@ -8052,7 +7981,7 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 if (isNaN(cY)) cY = 0;
                 var spX = xVal * cX;
                 var spY = yVal * cY;
-                d += " M" + spX + "," + spY;
+                d += ` M${spX},${spY}`;
             } else if (multiSapeAry[k].type == "lnto") {
                 const xVal = parseInt(multiSapeAry[k].x) || 0;
                 const yVal = parseInt(multiSapeAry[k].y) || 0;
@@ -8060,7 +7989,7 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 if (isNaN(cY)) cY = 0;
                 const Lx = xVal * cX;
                 const Ly = yVal * cY;
-                d += " L" + Lx + "," + Ly;
+                d += ` L${Lx},${Ly}`;
             } else if (multiSapeAry[k].type == "cubicBezTo") {
                 if (isNaN(cX)) cX = 0;
                 if (isNaN(cY)) cY = 0;
@@ -8070,7 +7999,7 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 const Cy2 = (parseInt(multiSapeAry[k].cubBzPt[1].y) || 0) * cY;
                 const Cx3 = (parseInt(multiSapeAry[k].cubBzPt[2].x) || 0) * cX;
                 const Cy3 = (parseInt(multiSapeAry[k].cubBzPt[2].y) || 0) * cY;
-                d += " C" + Cx1 + "," + Cy1 + " " + Cx2 + "," + Cy2 + " " + Cx3 + "," + Cy3;
+                d += ` C${Cx1},${Cy1} ${Cx2},${Cy2} ${Cx3},${Cy3}`;
             } else if (multiSapeAry[k].type == "arcTo") {
                 if (isNaN(cX)) cX = 0;
                 if (isNaN(cY)) cY = 0;
@@ -8095,7 +8024,7 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                     const ctrlY = quadBzPt[0].y * cY;
                     const endX = quadBzPt[1].x * cX;
                     const endY = quadBzPt[1].y * cY;
-                    d += "Q" + ctrlX + "," + ctrlY + " " + endX + "," + endY;
+                    d += `Q${ctrlX},${ctrlY} ${endX},${endY}`;
                 }
             } else if (multiSapeAry[k].type == "close") {
                 d += "z";
@@ -8103,8 +8032,7 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
             k++;
         }
 
-        return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + ((border === undefined) ? "" : border.color) + "' stroke-width='" + ((border === undefined) ? "" : border.width) + "' stroke-dasharray='" + ((border === undefined) ? "" : border.strokeDasharray) + "' />";
+        return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${((border === undefined) ? "" : border.color)}' stroke-width='${((border === undefined) ? "" : border.width)}' stroke-dasharray='${((border === undefined) ? "" : border.strokeDasharray)}' />`;
     }
 
     return "";
@@ -8129,7 +8057,7 @@ const SLIDE_FACTOR = 0.0001;
 function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt, node) {
     let result = '';
     const hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
-    const fill = !imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")";
+    const fill = !imgFillFlg ? (grndFillFlg ? `url(#linGrd_${shpId})` : fillColor) : `url(#imgPtrn_${shpId})`;
 
     switch (shapType) {
         case "star4": {
@@ -8145,17 +8073,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy1 = vc - sdy;
             const sy2 = vc + sdy;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx2 + "," + sy1 +
-                " L" + w + "," + vc +
-                " L" + sx2 + "," + sy2 +
-                " L" + hc + "," + h +
-                " L" + sx1 + "," + sy2 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy1} L${hc},0 L${sx2},${sy1} L${w},${vc} L${sx2},${sy2} L${hc},${h} L${sx1},${sy2} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star5": {
@@ -8192,19 +8112,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy2 = svc - sdy2;
             const sy3 = svc + ihd2;
 
-            const d = "M" + x1 + "," + y1 +
-                " L" + sx2 + "," + sy1 +
-                " L" + hc + "," + 0 +
-                " L" + sx3 + "," + sy1 +
-                " L" + x4 + "," + y1 +
-                " L" + sx4 + "," + sy2 +
-                " L" + x3 + "," + y2 +
-                " L" + hc + "," + sy3 +
-                " L" + x2 + "," + y2 +
-                " L" + sx1 + "," + sy2 +
-                " z";
+            const d = `M${x1},${y1} L${sx2},${sy1} L${hc},${0} L${sx3},${sy1} L${x4},${y1} L${sx4},${sy2} L${x3},${y2} L${hc},${sy3} L${x2},${y2} L${sx1},${sy2} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star6": {
@@ -8230,21 +8140,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy1 = vc - sdy1;
             const sy2 = vc + sdy1;
 
-            const d = "M" + x1 + "," + hd4 +
-                " L" + sx2 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx3 + "," + sy1 +
-                " L" + x2 + "," + hd4 +
-                " L" + sx4 + "," + vc +
-                " L" + x2 + "," + y2 +
-                " L" + sx3 + "," + sy2 +
-                " L" + hc + "," + h +
-                " L" + sx2 + "," + sy2 +
-                " L" + x1 + "," + y2 +
-                " L" + sx1 + "," + vc +
-                " z";
+            const d = `M${x1},${hd4} L${sx2},${sy1} L${hc},0 L${sx3},${sy1} L${x2},${hd4} L${sx4},${vc} L${x2},${y2} L${sx3},${sy2} L${hc},${h} L${sx2},${sy2} L${x1},${y2} L${sx1},${vc} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star7": {
@@ -8291,23 +8189,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy3 = svc + sdy3;
             const sy4 = svc + ihd2;
 
-            const d = "M" + x1 + "," + y2 +
-                " L" + sx1 + "," + sy2 +
-                " L" + x2 + "," + y1 +
-                " L" + sx3 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx4 + "," + sy1 +
-                " L" + x5 + "," + y1 +
-                " L" + sx6 + "," + sy2 +
-                " L" + x6 + "," + y2 +
-                " L" + sx5 + "," + sy3 +
-                " L" + x4 + "," + y3 +
-                " L" + hc + "," + sy4 +
-                " L" + x3 + "," + y3 +
-                " L" + sx2 + "," + sy3 +
-                " z";
+            const d = `M${x1},${y2} L${sx1},${sy2} L${x2},${y1} L${sx3},${sy1} L${hc},0 L${sx4},${sy1} L${x5},${y1} L${sx6},${sy2} L${x6},${y2} L${sx5},${sy3} L${x4},${y3} L${hc},${sy4} L${x3},${y3} L${sx2},${sy3} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star8": {
@@ -8335,25 +8219,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy3 = vc + sdy2;
             const sy4 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy2 +
-                " L" + x1 + "," + y1 +
-                " L" + sx2 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx3 + "," + sy1 +
-                " L" + x2 + "," + y1 +
-                " L" + sx4 + "," + sy2 +
-                " L" + w + "," + vc +
-                " L" + sx4 + "," + sy3 +
-                " L" + x2 + "," + y2 +
-                " L" + sx3 + "," + sy4 +
-                " L" + hc + "," + h +
-                " L" + sx2 + "," + sy4 +
-                " L" + x1 + "," + y2 +
-                " L" + sx1 + "," + sy3 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy2} L${x1},${y1} L${sx2},${sy1} L${hc},0 L${sx3},${sy1} L${x2},${y1} L${sx4},${sy2} L${w},${vc} L${sx4},${sy3} L${x2},${y2} L${sx3},${sy4} L${hc},${h} L${sx2},${sy4} L${x1},${y2} L${sx1},${sy3} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star10": {
@@ -8392,29 +8260,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy3 = vc + sdy2;
             const sy4 = vc + sdy1;
 
-            const d = "M" + x1 + "," + y2 +
-                " L" + sx2 + "," + sy2 +
-                " L" + x2 + "," + y1 +
-                " L" + sx3 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx4 + "," + sy1 +
-                " L" + x3 + "," + y1 +
-                " L" + sx5 + "," + sy2 +
-                " L" + x4 + "," + y2 +
-                " L" + sx6 + "," + vc +
-                " L" + x4 + "," + y3 +
-                " L" + sx5 + "," + sy3 +
-                " L" + x3 + "," + y4 +
-                " L" + sx4 + "," + sy4 +
-                " L" + hc + "," + h +
-                " L" + sx3 + "," + sy4 +
-                " L" + x2 + "," + y4 +
-                " L" + sx2 + "," + sy3 +
-                " L" + x1 + "," + y3 +
-                " L" + sx1 + "," + vc +
-                " z";
+            const d = `M${x1},${y2} L${sx2},${sy2} L${x2},${y1} L${sx3},${sy1} L${hc},0 L${sx4},${sy1} L${x3},${y1} L${sx5},${sy2} L${x4},${y2} L${sx6},${vc} L${x4},${y3} L${sx5},${sy3} L${x3},${y4} L${sx4},${sy4} L${hc},${h} L${sx3},${sy4} L${x2},${y4} L${sx2},${sy3} L${x1},${y3} L${sx1},${vc} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star12": {
@@ -8452,33 +8300,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy5 = vc + sdy2;
             const sy6 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy3 +
-                " L" + x1 + "," + hd4 +
-                " L" + sx2 + "," + sy2 +
-                " L" + wd4 + "," + y1 +
-                " L" + sx3 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx4 + "," + sy1 +
-                " L" + x3 + "," + y1 +
-                " L" + sx5 + "," + sy2 +
-                " L" + x4 + "," + hd4 +
-                " L" + sx6 + "," + sy3 +
-                " L" + w + "," + vc +
-                " L" + sx6 + "," + sy4 +
-                " L" + x4 + "," + y3 +
-                " L" + sx5 + "," + sy5 +
-                " L" + x3 + "," + y4 +
-                " L" + sx4 + "," + sy6 +
-                " L" + hc + "," + h +
-                " L" + sx3 + "," + sy6 +
-                " L" + wd4 + "," + y4 +
-                " L" + sx2 + "," + sy5 +
-                " L" + x1 + "," + y3 +
-                " L" + sx1 + "," + sy4 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy3} L${x1},${hd4} L${sx2},${sy2} L${wd4},${y1} L${sx3},${sy1} L${hc},0 L${sx4},${sy1} L${x3},${y1} L${sx5},${sy2} L${x4},${hd4} L${sx6},${sy3} L${w},${vc} L${sx6},${sy4} L${x4},${y3} L${sx5},${sy5} L${x3},${y4} L${sx4},${sy6} L${hc},${h} L${sx3},${sy6} L${wd4},${y4} L${sx2},${sy5} L${x1},${y3} L${sx1},${sy4} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star16": {
@@ -8530,41 +8354,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy7 = vc + sdy2;
             const sy8 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy4 +
-                " L" + x1 + "," + y3 +
-                " L" + sx2 + "," + sy3 +
-                " L" + x2 + "," + y2 +
-                " L" + sx3 + "," + sy2 +
-                " L" + x3 + "," + y1 +
-                " L" + sx4 + "," + sy1 +
-                " L" + hc + ",0" +
-                " L" + sx5 + "," + sy1 +
-                " L" + x4 + "," + y1 +
-                " L" + sx6 + "," + sy2 +
-                " L" + x5 + "," + y2 +
-                " L" + sx7 + "," + sy3 +
-                " L" + x6 + "," + y3 +
-                " L" + sx8 + "," + sy4 +
-                " L" + w + "," + vc +
-                " L" + sx8 + "," + sy5 +
-                " L" + x6 + "," + y4 +
-                " L" + sx7 + "," + sy6 +
-                " L" + x5 + "," + y5 +
-                " L" + sx6 + "," + sy7 +
-                " L" + x4 + "," + y6 +
-                " L" + sx5 + "," + sy8 +
-                " L" + hc + "," + h +
-                " L" + sx4 + "," + sy8 +
-                " L" + x3 + "," + y6 +
-                " L" + sx3 + "," + sy7 +
-                " L" + x2 + "," + y5 +
-                " L" + sx2 + "," + sy6 +
-                " L" + x1 + "," + y4 +
-                " L" + sx1 + "," + sy5 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy4} L${x1},${y3} L${sx2},${sy3} L${x2},${y2} L${sx3},${sy2} L${x3},${y1} L${sx4},${sy1} L${hc},0 L${sx5},${sy1} L${x4},${y1} L${sx6},${sy2} L${x5},${y2} L${sx7},${sy3} L${x6},${y3} L${sx8},${sy4} L${w},${vc} L${sx8},${sy5} L${x6},${y4} L${sx7},${sy6} L${x5},${y5} L${sx6},${sy7} L${x4},${y6} L${sx5},${sy8} L${hc},${h} L${sx4},${sy8} L${x3},${y6} L${sx3},${sy7} L${x2},${y5} L${sx2},${sy6} L${x1},${y4} L${sx1},${sy5} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star24": {
@@ -8642,57 +8434,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy11 = vc + sdy2;
             const sy12 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy6 +
-                " L" + x1 + "," + y5 +
-                " L" + sx2 + "," + sy5 +
-                " L" + x2 + "," + y4 +
-                " L" + sx3 + "," + sy4 +
-                " L" + x3 + "," + y3 +
-                " L" + sx4 + "," + sy3 +
-                " L" + x4 + "," + y2 +
-                " L" + sx5 + "," + sy2 +
-                " L" + x5 + "," + y1 +
-                " L" + sx6 + "," + sy1 +
-                " L" + hc + "," + 0 +
-                " L" + sx7 + "," + sy1 +
-                " L" + x6 + "," + y1 +
-                " L" + sx8 + "," + sy2 +
-                " L" + x7 + "," + y2 +
-                " L" + sx9 + "," + sy3 +
-                " L" + x8 + "," + y3 +
-                " L" + sx10 + "," + sy4 +
-                " L" + x9 + "," + y4 +
-                " L" + sx11 + "," + sy5 +
-                " L" + x10 + "," + y5 +
-                " L" + sx12 + "," + sy6 +
-                " L" + w + "," + vc +
-                " L" + sx12 + "," + sy7 +
-                " L" + x10 + "," + y6 +
-                " L" + sx11 + "," + sy8 +
-                " L" + x9 + "," + y7 +
-                " L" + sx10 + "," + sy9 +
-                " L" + x8 + "," + y8 +
-                " L" + sx9 + "," + sy10 +
-                " L" + x7 + "," + y9 +
-                " L" + sx8 + "," + sy11 +
-                " L" + x6 + "," + y10 +
-                " L" + sx7 + "," + sy12 +
-                " L" + hc + "," + h +
-                " L" + sx6 + "," + sy12 +
-                " L" + x5 + "," + y10 +
-                " L" + sx5 + "," + sy11 +
-                " L" + x4 + "," + y9 +
-                " L" + sx4 + "," + sy10 +
-                " L" + x3 + "," + y8 +
-                " L" + sx3 + "," + sy9 +
-                " L" + x2 + "," + y7 +
-                " L" + sx2 + "," + sy8 +
-                " L" + x1 + "," + y6 +
-                " L" + sx1 + "," + sy7 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy6} L${x1},${y5} L${sx2},${sy5} L${x2},${y4} L${sx3},${sy4} L${x3},${y3} L${sx4},${sy3} L${x4},${y2} L${sx5},${sy2} L${x5},${y1} L${sx6},${sy1} L${hc},${0} L${sx7},${sy1} L${x6},${y1} L${sx8},${sy2} L${x7},${y2} L${sx9},${sy3} L${x8},${y3} L${sx10},${sy4} L${x9},${y4} L${sx11},${sy5} L${x10},${y5} L${sx12},${sy6} L${w},${vc} L${sx12},${sy7} L${x10},${y6} L${sx11},${sy8} L${x9},${y7} L${sx10},${sy9} L${x8},${y8} L${sx9},${sy10} L${x7},${y9} L${sx8},${sy11} L${x6},${y10} L${sx7},${sy12} L${hc},${h} L${sx6},${sy12} L${x5},${y10} L${sx5},${sy11} L${x4},${y9} L${sx4},${sy10} L${x3},${y8} L${sx3},${sy9} L${x2},${y7} L${sx2},${sy8} L${x1},${y6} L${sx1},${sy7} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
         case "star32": {
@@ -8792,73 +8536,9 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const sy15 = vc + sdy2;
             const sy16 = vc + sdy1;
 
-            const d = "M0" + "," + vc +
-                " L" + sx1 + "," + sy8 +
-                " L" + x1 + "," + y7 +
-                " L" + sx2 + "," + sy7 +
-                " L" + x2 + "," + y6 +
-                " L" + sx3 + "," + sy6 +
-                " L" + x3 + "," + y5 +
-                " L" + sx4 + "," + sy5 +
-                " L" + x4 + "," + y4 +
-                " L" + sx5 + "," + sy4 +
-                " L" + x5 + "," + y3 +
-                " L" + sx6 + "," + sy3 +
-                " L" + x6 + "," + y2 +
-                " L" + sx7 + "," + sy2 +
-                " L" + x7 + "," + y1 +
-                " L" + sx8 + "," + sy1 +
-                " L" + hc + "," + 0 +
-                " L" + sx9 + "," + sy1 +
-                " L" + x8 + "," + y1 +
-                " L" + sx10 + "," + sy2 +
-                " L" + x9 + "," + y2 +
-                " L" + sx11 + "," + sy3 +
-                " L" + x10 + "," + y3 +
-                " L" + sx12 + "," + sy4 +
-                " L" + x11 + "," + y4 +
-                " L" + sx13 + "," + sy5 +
-                " L" + x12 + "," + y5 +
-                " L" + sx14 + "," + sy6 +
-                " L" + x13 + "," + y6 +
-                " L" + sx15 + "," + sy7 +
-                " L" + x14 + "," + y7 +
-                " L" + sx16 + "," + sy8 +
-                " L" + w + "," + vc +
-                " L" + sx16 + "," + sy9 +
-                " L" + x14 + "," + y8 +
-                " L" + sx15 + "," + sy10 +
-                " L" + x13 + "," + y9 +
-                " L" + sx14 + "," + sy11 +
-                " L" + x12 + "," + y10 +
-                " L" + sx13 + "," + sy12 +
-                " L" + x11 + "," + y11 +
-                " L" + sx12 + "," + sy13 +
-                " L" + x10 + "," + y12 +
-                " L" + sx11 + "," + sy14 +
-                " L" + x9 + "," + y13 +
-                " L" + sx10 + "," + sy15 +
-                " L" + x8 + "," + y14 +
-                " L" + sx9 + "," + sy16 +
-                " L" + hc + "," + h +
-                " L" + sx8 + "," + sy16 +
-                " L" + x7 + "," + y14 +
-                " L" + sx7 + "," + sy15 +
-                " L" + x6 + "," + y13 +
-                " L" + sx6 + "," + sy14 +
-                " L" + x5 + "," + y12 +
-                " L" + sx5 + "," + sy13 +
-                " L" + x4 + "," + y11 +
-                " L" + sx4 + "," + sy12 +
-                " L" + x3 + "," + y10 +
-                " L" + sx3 + "," + sy11 +
-                " L" + x2 + "," + y9 +
-                " L" + sx2 + "," + sy10 +
-                " L" + x1 + "," + y8 +
-                " L" + sx1 + "," + sy9 +
-                " z";
+            const d = `M0,${vc} L${sx1},${sy8} L${x1},${y7} L${sx2},${sy7} L${x2},${y6} L${sx3},${sy6} L${x3},${y5} L${sx4},${sy5} L${x4},${y4} L${sx5},${sy4} L${x5},${y3} L${sx6},${sy3} L${x6},${y2} L${sx7},${sy2} L${x7},${y1} L${sx8},${sy1} L${hc},${0} L${sx9},${sy1} L${x8},${y1} L${sx10},${sy2} L${x9},${y2} L${sx11},${sy3} L${x10},${y3} L${sx12},${sy4} L${x11},${y4} L${sx13},${sy5} L${x12},${y5} L${sx14},${sy6} L${x13},${y6} L${sx15},${sy7} L${x14},${y7} L${sx16},${sy8} L${w},${vc} L${sx16},${sy9} L${x14},${y8} L${sx15},${sy10} L${x13},${y9} L${sx14},${sy11} L${x12},${y10} L${sx13},${sy12} L${x11},${y11} L${sx12},${sy13} L${x10},${y12} L${sx11},${sy14} L${x9},${y13} L${sx10},${sy15} L${x8},${y14} L${sx9},${sy16} L${hc},${h} L${sx8},${sy16} L${x7},${y14} L${sx7},${sy15} L${x6},${y13} L${sx6},${sy14} L${x5},${y12} L${sx5},${sy13} L${x4},${y11} L${sx4},${sy12} L${x3},${y10} L${sx3},${sy11} L${x2},${y9} L${sx2},${sy10} L${x1},${y8} L${sx1},${sy9} z`;
 
-            result += "<path d='" + d + "' fill='" + fill + "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+            result += `<path d='${d}' fill='${fill}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
             break;
         }
     }
@@ -9007,27 +8687,7 @@ function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         dly = h - ry;
         dry = h - ly;
 
-        dVal = "M" + x1 + "," + y1 +
-            " L" + x6 + "," + y1 +
-            " L" + lx + "," + ly +
-            " L" + rx + "," + ry +
-            " L" + rx6 + "," + y1 +
-            " L" + x8 + "," + y1 +
-            " L" + x8 + "," + y2 +
-            " L" + rx5 + "," + y2 +
-            " L" + rx4 + "," + y3 +
-            " L" + x8 + "," + y3 +
-            " L" + x8 + "," + y4 +
-            " L" + rx3 + "," + y4 +
-            " L" + drx + "," + dry +
-            " L" + dlx + "," + dly +
-            " L" + x3 + "," + y4 +
-            " L" + x1 + "," + y4 +
-            " L" + x1 + "," + y3 +
-            " L" + x4 + "," + y3 +
-            " L" + x5 + "," + y2 +
-            " L" + x1 + "," + y2 +
-            " z";
+        dVal = `M${x1},${y1} L${x6},${y1} L${lx},${ly} L${rx},${ry} L${rx6},${y1} L${x8},${y1} L${x8},${y2} L${rx5},${y2} L${rx4},${y3} L${x8},${y3} L${x8},${y4} L${rx3},${y4} L${drx},${dry} L${dlx},${dly} L${x3},${y4} L${x1},${y4} L${x1},${y3} L${x4},${y3} L${x5},${y2} L${x1},${y2} z`;
     } 
     // mathDivide (除号)
     else if (shapType == "mathDivide") {
@@ -9071,17 +8731,7 @@ function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         const cY1 = y1 - Math.sin(c3d4 * Math.PI / 180) * rad;
         const cX2 = hc - Math.cos(Math.PI / 2) * rad;
         const cY2 = y5 - Math.sin(Math.PI / 2) * rad;
-            dVal = "M" + hc + "," + y1 +
-                shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
-                " z" +
-                " M" + hc + "," + y5 +
-                shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L") +
-                " z" +
-            " M" + x1 + "," + y3 +
-            " L" + x3 + "," + y3 +
-            " L" + x3 + "," + y4 +
-            " L" + x1 + "," + y4 +
-            " z";
+            dVal = `M${hc},${y1}${shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L")} z M${hc},${y5}${shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L")} z M${x1},${y3} L${x3},${y3} L${x3},${y4} L${x1},${y4} z`;
     } 
     // mathEqual (等号)
     else if (shapType == "mathEqual") {
@@ -9109,16 +8759,7 @@ function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         y4 = y3 + dy1;
         x1 = hc - dx1;
         x2 = hc + dx1;
-        dVal = "M" + x1 + "," + y1 +
-            " L" + x2 + "," + y1 +
-            " L" + x2 + "," + y2 +
-            " L" + x1 + "," + y2 +
-            " z" +
-            "M" + x1 + "," + y3 +
-            " L" + x2 + "," + y3 +
-            " L" + x2 + "," + y4 +
-            " L" + x1 + "," + y4 +
-            " z";
+        dVal = `M${x1},${y1} L${x2},${y1} L${x2},${y2} L${x1},${y2} zM${x1},${y3} L${x2},${y3} L${x2},${y4} L${x1},${y4} z`;
     } 
     // mathMinus (减号)
     else if (shapType == "mathMinus") {
@@ -9137,11 +8778,7 @@ function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         x1 = hc - dx1;
         x2 = hc + dx1;
 
-        dVal = "M" + x1 + "," + y1 +
-            " L" + x2 + "," + y1 +
-            " L" + x2 + "," + y2 +
-            " L" + x1 + "," + y2 +
-            " z";
+        dVal = `M${x1},${y1} L${x2},${y1} L${x2},${y2} L${x1},${y2} z`;
     } 
     // mathMultiply (乘号)
     else if (shapType == "mathMultiply") {
@@ -9184,19 +8821,7 @@ function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         yH = h - yB;
         yI = h - yC;
 
-        dVal = "M" + xA + "," + yA +
-            " L" + xB + "," + yB +
-            " L" + hc + "," + yC +
-            " L" + xD + "," + yB +
-            " L" + xE + "," + yA +
-            " L" + xF + "," + vc +
-            " L" + xE + "," + yG +
-            " L" + xD + "," + yH +
-            " L" + hc + "," + yI +
-            " L" + xB + "," + yH +
-            " L" + xA + "," + yG +
-            " L" + xL + "," + vc +
-            " z";
+        dVal = `M${xA},${yA} L${xB},${yB} L${hc},${yC} L${xD},${yB} L${xE},${yA} L${xF},${vc} L${xE},${yG} L${xD},${yH} L${hc},${yI} L${xB},${yH} L${xA},${yG} L${xL},${vc} z`;
     } 
     // mathPlus (加号)
     else if (shapType == "mathPlus") {
@@ -9222,23 +8847,10 @@ function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         y3 = vc + dx2;
         y4 = vc + dy1;
 
-        dVal = "M" + x1 + "," + y2 +
-            " L" + x2 + "," + y2 +
-            " L" + x2 + "," + y1 +
-            " L" + x3 + "," + y1 +
-            " L" + x3 + "," + y2 +
-            " L" + x4 + "," + y2 +
-            " L" + x4 + "," + y3 +
-            " L" + x3 + "," + y3 +
-            " L" + x3 + "," + y4 +
-            " L" + x2 + "," + y4 +
-            " L" + x2 + "," + y3 +
-            " L" + x1 + "," + y3 +
-            " z";
+        dVal = `M${x1},${y2} L${x2},${y2} L${x2},${y1} L${x3},${y1} L${x3},${y2} L${x4},${y2} L${x4},${y3} L${x3},${y3} L${x3},${y4} L${x2},${y4} L${x2},${y3} L${x1},${y3} z`;
     }
 
-    result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
     return result;
 }
@@ -9277,20 +8889,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y2 = vc - x1;
         y3 = vc + x1;
         y4 = h - x1;
-        dVal = "M" + x2 + "," + h +
-            shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L") +
-            " L" + x1 + "," + y3 +
-            shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L") +
-            shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L") +
-            " L" + x1 + "," + x1 +
-            shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L") +
-            " M" + x3 + "," + 0 +
-            shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L") +
-            " L" + x4 + "," + y2 +
-            shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-            shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L") +
-            " L" + x4 + "," + y4 +
-            shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
+        dVal = `M${x2},${h}${shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L")} L${x1},${y3}${shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L")}${shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L")} L${x1},${x1}${shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L")} M${x3},${0}${shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L")} L${x4},${y2}${shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L")}${shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L")} L${x4},${y4}${shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L")}`;
     }
     else if (shapType === "leftBrace") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -9326,13 +8925,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y3 = h * a2 / cnstVal2;
         y2 = y3 - y1;
         y4 = y3 + y1;
-        dVal = "M" + w + "," + h +
-            shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L") +
-            " L" + w / 2 + "," + y4 +
-            shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L") +
-            shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L") +
-            " L" + w / 2 + "," + y1 +
-            shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
+        dVal = `M${w},${h}${shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L")} L${w / 2},${y4}${shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L")}${shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L")} L${w / 2},${y1}${shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L")}`;
     }
     else if (shapType === "rightBrace") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -9368,13 +8961,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y3 = h * a2 / cnstVal2;
         y2 = y3 - y1;
         y4 = h - y1;
-        dVal = "M" + 0 + "," + 0 +
-            shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L") +
-            " L" + w / 2 + "," + y2 +
-            shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L") +
-            shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L") +
-            " L" + w / 2 + "," + y4 +
-            shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
+        dVal = `M${0},${0}${shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L")} L${w / 2},${y2}${shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L")}${shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L")} L${w / 2},${y4}${shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L")}`;
     }
     else if (shapType === "bracketPair") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -9412,11 +8999,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y1 = Math.min(w, h) * a / cnstVal2;
         if (y1 > w) y1 = w;
         y2 = b - y1;
-        dVal = "M" + r + "," + b +
-            shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L") +
-            " L" + 0 + "," + y1 +
-            shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L") +
-            " L" + r + "," + 0;
+        dVal = `M${r},${b}${shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L")} L${0},${y1}${shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L")} L${r},${0}`;
     }
     else if (shapType === "rightBracket") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -9434,15 +9017,10 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y1 = Math.min(w, h) * a / cnstVal2;
         y2 = h - y1;
         y3 = w - y1;
-        dVal = "M" + 0 + "," + h +
-            shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L") +
-            " L" + w + "," + h / 2 +
-            shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L") +
-            " L" + 0 + "," + 0;
+        dVal = `M${0},${h}${shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L")} L${w},${h / 2}${shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L")} L${0},${0}`;
     }
 
-    result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
     return result;
 }
@@ -9491,16 +9069,7 @@ function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bor
         const cY1 = y1 - hR * Math.sin(Math.PI);
         const cX2 = x3 - wR * Math.cos(Math.PI);
         dVal = //eyes
-            shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
-            shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
-            //mouth
-            " M" + x1 + "," + y2 +
-            " Q" + wd2 + "," + y5 + " " + x4 + "," + y2 +
-            " Q" + wd2 + "," + y5 + " " + x1 + "," + y2 +
-            //head
-            " M" + 0 + "," + hd2 +
-            shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L") +
-            " z";
+            `${shapeArc(cX1, cY1, wR, hR, 180, 540, false)}${shapeArc(cX2, cY1, wR, hR, 180, 540, false)} M${x1},${y2} Q${wd2},${y5} ${x4},${y2} Q${wd2},${y5} ${x1},${y2} M${0},${hd2}${shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L")} z`;
     }
     else if (shapType === "verticalScroll" || shapType === "horizontalScroll") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -9528,29 +9097,7 @@ function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bor
             y3 = b - ch;
             y4 = b - ch2;
 
-            dVal = "M" + ch + "," + y3 +
-                " L" + ch + "," + ch2 +
-                shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L") +
-                " L" + x7 + "," + t +
-                shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
-                " L" + x6 + "," + ch +
-                " L" + x6 + "," + y4 +
-                shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L") +
-                " L" + ch2 + "," + b +
-                shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L") +
-                " z" +
-                " M" + x3 + "," + t +
-                shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L") +
-                shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L") +
-                " L" + x4 + "," + ch2 +
-                " M" + x6 + "," + ch +
-                " L" + x3 + "," + ch +
-                " M" + ch + "," + y4 +
-                shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L") +
-                shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L") +
-                " z" +
-                " M" + ch + "," + y4 +
-                " L" + ch + "," + y3;
+            dVal = `M${ch},${y3} L${ch},${ch2}${shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L")} L${x7},${t}${shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L")} L${x6},${ch} L${x6},${y4}${shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L")} L${ch2},${b}${shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L")} z M${x3},${t}${shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L")}${shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L")} L${x4},${ch2} M${x6},${ch} L${x3},${ch} M${ch},${y4}${shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L")}${shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L")} z M${ch},${y4} L${ch},${y3}`;
         } else if (shapType === "horizontalScroll") {
             let y3, y4, y6, y7, y5, x3, x4;
             y3 = ch + ch2;
@@ -9561,34 +9108,11 @@ function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bor
             x3 = r - ch;
             x4 = r - ch2;
 
-            dVal = "M" + l + "," + y3 +
-                shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L") +
-                " L" + x3 + "," + ch +
-                " L" + x3 + "," + ch2 +
-                shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L") +
-                " L" + r + "," + y5 +
-                shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L") +
-                " L" + ch + "," + y6 +
-                " L" + ch + "," + y7 +
-                shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L") +
-                " z" +
-                "M" + x4 + "," + ch +
-                shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L") +
-                shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L") +
-                " z" +
-                " M" + x4 + "," + ch +
-                " L" + x3 + "," + ch +
-                " M" + ch2 + "," + y4 +
-                " L" + ch2 + "," + y3 +
-                shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L") +
-                shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L") +
-                " M" + ch + "," + y3 +
-                " L" + ch + "," + y6;
+            dVal = `M${l},${y3}${shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L")} L${x3},${ch} L${x3},${ch2}${shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L")} L${r},${y5}${shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L")} L${ch},${y6} L${ch},${y7}${shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L")} zM${x4},${ch}${shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L")}${shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L")} z M${x4},${ch} L${x3},${ch} M${ch2},${y4} L${ch2},${y3}${shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L")}${shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L")} M${ch},${y3} L${ch},${y6}`;
         }
     }
 
-    result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
     return result;
 }
@@ -9640,8 +9164,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
             }
         }
         const pieVals = shapePie(H, w, adj1, adj2, isClose);
-        result += "<path d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
+        result += `<path d='${pieVals[0]}' transform='${pieVals[1]}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
     else if (shapType === "chord") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -9662,8 +9185,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
         const hR = h / 2;
         const wR = w / 2;
         dVal = shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
-        result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
+        result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
     else if (shapType === "blockArc") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -9756,13 +9278,8 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
             x2 = hc - dx2;
             y2 = vc - dy2;
         }
-        dVal = "M" + x1 + "," + y1 +
-            shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L") +
-            " L" + x2 + "," + y2 +
-            shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L") +
-            " z";
-        result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
+        dVal = `M${x1},${y1}${shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L")} L${x2},${y2}${shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L")} z`;
+        result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
 
     return result;
@@ -10013,18 +9530,9 @@ function renderBackPrevious(w, h, imgFillFlg, grndFillFlg, fillColor, border, sh
     const g11 = hc - dx2;
     const g12 = hc + dx2;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + g11 + "," + vc +
-        " L" + g12 + "," + g9 +
-        " L" + g12 + "," + g10 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${g11},${vc} L${g12},${g9} L${g12},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10044,23 +9552,9 @@ function renderBeginning(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId
     const g16 = g11 + g14;
     const g17 = g11 + g15;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + g17 + "," + vc +
-        " L" + g12 + "," + g9 +
-        " L" + g12 + "," + g10 +
-        " z" +
-        "M" + g16 + "," + g9 +
-        " L" + g11 + "," + g9 +
-        " L" + g11 + "," + g10 +
-        " L" + g16 + "," + g10 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${g17},${vc} L${g12},${g9} L${g12},${g10} zM${g16},${g9} L${g11},${g9} L${g11},${g10} L${g16},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10079,24 +9573,9 @@ function renderDocument(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId)
     const g14 = g12 - g13;
     const g15 = g9 + g13;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + g11 + "," + g9 +
-        " L" + g14 + "," + g9 +
-        " L" + g12 + "," + g15 +
-        " L" + g12 + "," + g10 +
-        " L" + g11 + "," + g10 +
-        " z" +
-        "M" + g14 + "," + g9 +
-        " L" + g14 + "," + g15 +
-        " L" + g12 + "," + g15 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${g11},${g9} L${g14},${g9} L${g12},${g15} L${g12},${g10} L${g11},${g10} zM${g14},${g9} L${g14},${g15} L${g12},${g15} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10116,23 +9595,9 @@ function renderEnd(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
     const g16 = g11 + g14;
     const g17 = g11 + g15;
 
-    const d = "M" + 0 + "," + h +
-        " L" + w + "," + h +
-        " L" + w + "," + 0 +
-        " L" + 0 + "," + 0 +
-        " z" +
-        " M" + g17 + "," + g9 +
-        " L" + g12 + "," + g9 +
-        " L" + g12 + "," + g10 +
-        " L" + g17 + "," + g10 +
-        " z" +
-        " M" + g16 + "," + vc +
-        " L" + g11 + "," + g9 +
-        " L" + g11 + "," + g10 +
-        " z";
+    const d = `M${0},${h} L${w},${h} L${w},${0} L${0},${0} z M${g17},${g9} L${g12},${g9} L${g12},${g10} L${g17},${g10} z M${g16},${vc} L${g11},${g9} L${g11},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10147,18 +9612,9 @@ function renderForwardNext(w, h, imgFillFlg, grndFillFlg, fillColor, border, shp
     const g11 = hc - dx2;
     const g12 = hc + dx2;
 
-    const d = "M" + 0 + "," + h +
-        " L" + w + "," + h +
-        " L" + w + "," + 0 +
-        " L" + 0 + "," + 0 +
-        " z" +
-        " M" + g12 + "," + vc +
-        " L" + g11 + "," + g9 +
-        " L" + g11 + "," + g10 +
-        " z";
+    const d = `M${0},${h} L${w},${h} L${w},${0} L${0},${0} z M${g12},${vc} L${g11},${g9} L${g11},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10193,28 +9649,9 @@ function renderHelp(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, sha
     const cY3 = g31 + g42;
     const cX4 = (g37 + g36 + g16) / 2;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + g33 + "," + g27 +
-        shapeArcAlt(cX1, g27, g16, g16, 180, 360, false).replace("M", "L") +
-        shapeArcAlt(cX4, g27, g14, g15, 0, 90, false).replace("M", "L") +
-        shapeArcAlt(cX4, g29, g41, g42, 270, 180, false).replace("M", "L") +
-        " L" + g37 + "," + g30 +
-        " L" + g36 + "," + g30 +
-        " L" + g36 + "," + g29 +
-        shapeArcAlt(cX2, g29, g14, g15, 180, 270, false).replace("M", "L") +
-        shapeArcAlt(g37, g27, g41, g42, 90, 0, false).replace("M", "L") +
-        shapeArcAlt(cX1, g27, g14, g14, 0, -180, false).replace("M", "L") +
-        " z" +
-        "M" + hc + "," + g31 +
-        shapeArcAlt(hc, cY3, g42, g42, 270, 630, false).replace("M", "L") +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${g33},${g27}${shapeArcAlt(cX1, g27, g16, g16, 180, 360, false).replace("M", "L")}${shapeArcAlt(cX4, g27, g14, g15, 0, 90, false).replace("M", "L")}${shapeArcAlt(cX4, g29, g41, g42, 270, 180, false).replace("M", "L")} L${g37},${g30} L${g36},${g30} L${g36},${g29}${shapeArcAlt(cX2, g29, g14, g15, 180, 270, false).replace("M", "L")}${shapeArcAlt(g37, g27, g41, g42, 90, 0, false).replace("M", "L")}${shapeArcAlt(cX1, g27, g14, g14, 0, -180, false).replace("M", "L")} zM${hc},${g31}${shapeArcAlt(hc, cY3, g42, g42, 270, 630, false).replace("M", "L")} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10250,31 +9687,9 @@ function renderHome(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
     const g32 = g11 + g22;
     const g33 = g11 + g23;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        " M" + hc + "," + g9 +
-        " L" + g11 + "," + vc +
-        " L" + g28 + "," + vc +
-        " L" + g28 + "," + g10 +
-        " L" + g33 + "," + g10 +
-        " L" + g33 + "," + vc +
-        " L" + g12 + "," + vc +
-        " L" + g32 + "," + g26 +
-        " L" + g32 + "," + g24 +
-        " L" + g31 + "," + g24 +
-        " L" + g31 + "," + g25 +
-        " z" +
-        " M" + g29 + "," + g27 +
-        " L" + g30 + "," + g27 +
-        " L" + g30 + "," + g10 +
-        " L" + g29 + "," + g10 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${hc},${g9} L${g11},${vc} L${g28},${vc} L${g28},${g10} L${g33},${g10} L${g33},${vc} L${g12},${vc} L${g32},${g26} L${g32},${g24} L${g31},${g24} L${g31},${g25} z M${g29},${g27} L${g30},${g27} L${g30},${g10} L${g29},${g10} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10308,30 +9723,9 @@ function renderInformation(w, h, imgFillFlg, grndFillFlg, fillColor, border, shp
     const cY1 = g9 + dx2;
     const cY2 = g25 + g38;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        "M" + hc + "," + g9 +
-        shapeArcAlt(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L") +
-        " z" +
-        "M" + hc + "," + g25 +
-        shapeArcAlt(hc, cY2, g38, g38, 270, 630, false).replace("M", "L") +
-        "M" + g32 + "," + g28 +
-        " L" + g35 + "," + g28 +
-        " L" + g35 + "," + g30 +
-        " L" + g37 + "," + g30 +
-        " L" + g37 + "," + g31 +
-        " L" + g32 + "," + g31 +
-        " L" + g32 + "," + g30 +
-        " L" + g34 + "," + g30 +
-        " L" + g34 + "," + g29 +
-        " L" + g32 + "," + g29 +
-        " z";
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${hc},${g9}${shapeArcAlt(hc, cY1, dx2, dx2, 270, 630, false).replace("M", "L")} zM${hc},${g25}${shapeArcAlt(hc, cY2, g38, g38, 270, 630, false).replace("M", "L")}M${g32},${g28} L${g35},${g28} L${g35},${g30} L${g37},${g30} L${g37},${g31} L${g32},${g31} L${g32},${g30} L${g34},${g30} L${g34},${g29} L${g32},${g29} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10380,34 +9774,9 @@ function renderMovie(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
     const g46 = g9 + g29;
     const g47 = g9 + g30;
 
-    const d = "M" + 0 + "," + h +
-        " L" + w + "," + h +
-        " L" + w + "," + 0 +
-        " L" + 0 + "," + 0 +
-        " z" +
-        "M" + g11 + "," + g39 +
-        " L" + g11 + "," + g44 +
-        " L" + g31 + "," + g44 +
-        " L" + g32 + "," + g43 +
-        " L" + g33 + "," + g43 +
-        " L" + g33 + "," + g47 +
-        " L" + g35 + "," + g47 +
-        " L" + g35 + "," + g45 +
-        " L" + g36 + "," + g45 +
-        " L" + g38 + "," + g46 +
-        " L" + g12 + "," + g46 +
-        " L" + g12 + "," + g41 +
-        " L" + g38 + "," + g41 +
-        " L" + g37 + "," + g42 +
-        " L" + g35 + "," + g42 +
-        " L" + g35 + "," + g41 +
-        " L" + g34 + "," + g40 +
-        " L" + g32 + "," + g40 +
-        " L" + g31 + "," + g39 +
-        " z";
+    const d = `M${0},${h} L${w},${h} L${w},${0} L${0},${0} zM${g11},${g39} L${g11},${g44} L${g31},${g44} L${g32},${g43} L${g33},${g43} L${g33},${g47} L${g35},${g47} L${g35},${g45} L${g36},${g45} L${g38},${g46} L${g12},${g46} L${g12},${g41} L${g38},${g41} L${g37},${g42} L${g35},${g42} L${g35},${g41} L${g34},${g40} L${g32},${g40} L${g31},${g39} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10441,30 +9810,9 @@ function renderReturn(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, s
     const cX3 = g11 + g17;
     const cY4 = g10 - g17;
 
-    const d = "M" + 0 + "," + h +
-        " L" + w + "," + h +
-        " L" + w + "," + 0 +
-        " L" + 0 + "," + 0 +
-        " z" +
-        " M" + g12 + "," + g21 +
-        " L" + g23 + "," + g9 +
-        " L" + hc + "," + g21 +
-        " L" + g24 + "," + g21 +
-        " L" + g24 + "," + g20 +
-        shapeArcAlt(cX1, g20, g27, g27, 0, 90, false).replace("M", "L") +
-        " L" + g25 + "," + g19 +
-        shapeArcAlt(g25, cY2, g27, g27, 90, 180, false).replace("M", "L") +
-        " L" + g26 + "," + g21 +
-        " L" + g11 + "," + g21 +
-        " L" + g11 + "," + g20 +
-        shapeArcAlt(cX3, g20, g17, g17, 180, 90, false).replace("M", "L") +
-        " L" + hc + "," + g10 +
-        shapeArcAlt(hc, cY4, g17, g17, 90, 0, false).replace("M", "L") +
-        " L" + g22 + "," + g21 +
-        " z";
+    const d = `M${0},${h} L${w},${h} L${w},${0} L${0},${0} z M${g12},${g21} L${g23},${g9} L${hc},${g21} L${g24},${g21} L${g24},${g20}${shapeArcAlt(cX1, g20, g27, g27, 0, 90, false).replace("M", "L")} L${g25},${g19}${shapeArcAlt(g25, cY2, g27, g27, 90, 180, false).replace("M", "L")} L${g26},${g21} L${g11},${g21} L${g11},${g20}${shapeArcAlt(cX3, g20, g17, g17, 180, 90, false).replace("M", "L")} L${hc},${g10}${shapeArcAlt(hc, cY4, g17, g17, 90, 0, false).replace("M", "L")} L${g22},${g21} z`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10493,27 +9841,9 @@ function renderSound(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
     const g25 = g11 + g16;
     const g26 = g11 + g18;
 
-    const d = "M" + 0 + "," + 0 +
-        " L" + w + "," + 0 +
-        " L" + w + "," + h +
-        " L" + 0 + "," + h +
-        " z" +
-        " M" + g11 + "," + g21 +
-        " L" + g24 + "," + g21 +
-        " L" + g25 + "," + g9 +
-        " L" + g25 + "," + g10 +
-        " L" + g24 + "," + g22 +
-        " L" + g11 + "," + g22 +
-        " z" +
-        " M" + g26 + "," + g21 +
-        " L" + g12 + "," + g20 +
-        " M" + g26 + "," + vc +
-        " L" + g12 + "," + vc +
-        " M" + g26 + "," + g22 +
-        " L" + g12 + "," + g23;
+    const d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${g11},${g21} L${g24},${g21} L${g25},${g9} L${g25},${g10} L${g24},${g22} L${g11},${g22} z M${g26},${g21} L${g12},${g20} M${g26},${vc} L${g12},${vc} M${g26},${g22} L${g12},${g23}`;
 
-    return "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-        "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+    return `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 }
 
 /**
@@ -10767,8 +10097,8 @@ const PPTXShapeUtils = (function() {
 
 
 
-                const svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
-                const effectsClassName = svgCssName + "_effects";
+                const svgCssName = `_svg_css_${(Object.keys(warpObj.styleTable).length + 1)}_${Math.floor(Math.random() * 1001)}`;
+                const effectsClassName = `${svgCssName}_effects`;
 
                 // 对于连接器，当width或height为0时，需要设置最小尺寸
                 let svgSizeStyle = "";
@@ -10780,17 +10110,17 @@ const PPTXShapeUtils = (function() {
                     // SVG容器的尺寸至少为minSize
                     const svgW = (w === 0 || w < minSize) ? minSize : w;
                     const svgH = (h === 0 || h < minSize) ? minSize : h;
-                    svgSizeStyle = "width:" + svgW + "px; height:" + svgH + "px; overflow: visible;";
+                    svgSizeStyle = `width:${svgW}px; height:${svgH}px; overflow: visible;`;
                     // 更新w和h为SVG容器尺寸，这样后续代码会使用正确的尺寸
                     w = svgW;
                     h = svgH;
 
                 } else {
-                    svgSizeStyle = PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) + " overflow: visible;";
+                    svgSizeStyle = `${PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined)} overflow: visible;`;
                 }
 
                 // 如果形状在组合中被缩放，SVG内容需要应用缩放
-                let svgTransform = "transform: rotate(" + ((rotate !== undefined) ? rotate : 0) + "deg)" + flip + ";";
+                let svgTransform = `transform: rotate(${((rotate !== undefined) ? rotate : 0)}deg)${flip};`;
                 if (sType === 'group-abs' && warpObj.currentGroupScale) {
                     // 对于自定义形状，我们已经在 renderCustomShape 中使用了缩放后的尺寸
                     // 所以不需要在这里应用 SVG transform scale()
@@ -10801,13 +10131,7 @@ const PPTXShapeUtils = (function() {
                     }
                 }
 
-                const svgTag = "<svg class='drawing " + svgCssName + "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name + "'" +
-                    "' style='" +
-                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, undefined, undefined, sType) +
-                    svgSizeStyle +
-                    " z-index: " + order + ";" +
-                    svgTransform +
-                    "'>";
+                const svgTag = `<svg class='drawing ${svgCssName}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}'' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, undefined, undefined, sType)}${svgSizeStyle} z-index: ${order};${svgTransform}'>`;
                 result += svgTag;
                 result += '<defs>';
                 // Fill Color
@@ -10842,7 +10166,7 @@ const PPTXShapeUtils = (function() {
                 } else if (clrFillType == "PATTERN_FILL") {
                     let styleText = fillColor;
                     if (styleText in warpObj.styleTable) {
-                        styleText += "do-nothing: " + svgCssName +";";
+                        styleText += `do-nothing: ${svgCssName};`;
                     }
                     warpObj.styleTable[styleText] = {
                         "name": svgCssName,
@@ -11016,17 +10340,17 @@ const PPTXShapeUtils = (function() {
                     //result += shadowFilterStr;
 
                     //css:
-                    let svg_css_shadow = "filter:drop-shadow(" + hx + "px " + vx + "px " + blurRad + "px #" + chdwClrNode + ");";
+                    let svg_css_shadow = `filter:drop-shadow(${hx}px ${vx}px ${blurRad}px #${chdwClrNode});`;
 
                     if (svg_css_shadow in warpObj.styleTable) {
-                        svg_css_shadow += "do-nothing: " + svgCssName + ";";
+                        svg_css_shadow += `do-nothing: ${svgCssName};`;
                     }
 
                     warpObj.styleTable[svg_css_shadow] = {
                         "name": effectsClassName,
                         "text": svg_css_shadow
                     };
-                    result = result.replace("class='drawing " + svgCssName + "'", "class='drawing " + svgCssName + " " + effectsClassName + "'");
+                    result = result.replace(`class='drawing ${svgCssName}'`, `class='drawing ${svgCssName} ${effectsClassName}'`);
                 }
 
                 //////////////////////////////softEdge///////////////////////////////////////////
@@ -11046,20 +10370,19 @@ const PPTXShapeUtils = (function() {
                     // softEdge effect according to Office Open XML specification:
                     // Applies a Gaussian blur to the edges of the shape
                     // The radius determines how far the blur extends from the edge
-                    const softEdgeId = "softedge_" + shpId;
-                    let softEdgeFilter = '<filter id="' + softEdgeId + '" x="-20%" y="-20%" width="140%" height="140%">';
+                    const softEdgeId = `softedge_${shpId}`;
+                    let softEdgeFilter = `<filter id="${softEdgeId}" x="-20%" y="-20%" width="140%" height="140%">`;
                     // Blur the source to create soft edge
-                    softEdgeFilter += '<feGaussianBlur in="SourceGraphic" stdDeviation="' + rad + '" />';
+                    softEdgeFilter += `<feGaussianBlur in="SourceGraphic" stdDeviation="${rad}" />`;
                     softEdgeFilter += '</filter>';
                     result += softEdgeFilter;
-                    softEdgeFilterStr = 'filter="url(#' + softEdgeId + ')"';
+                    softEdgeFilterStr = `filter="url(#${softEdgeId})"`;
                 } 
                 ////////////////////////////////////////////////////////////////////////////////////////
                 if ((headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) ||
                     (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow"))) {
                     // 箭头标记：refX=10 表示箭头尖端与线条端点对齐
-                    const triangleMarker = "<marker id='markerTriangle_" + shpId + "' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='5' markerHeight='5' stroke='" + border.color + "' fill='" + border.color +
-                        "' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>";
+                    const triangleMarker = `<marker id='markerTriangle_${shpId}' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='5' markerHeight='5' stroke='${border.color}' fill='${border.color}' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>`;
                     result += triangleMarker;
                 }
                 result += '</defs>';
@@ -11072,25 +10395,19 @@ const PPTXShapeUtils = (function() {
                     case "flowChartPredefinedProcess":
                     case "flowChartInternalStorage":
                     case "actionButtonBlank": {
-                        result += "<rect x='0' y='0' width='" + w + "' height='" + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + "  />";
+                        result += `<rect x='0' y='0' width='${w}' height='${h}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr}  />`;
 
                         if (shapType == "flowChartPredefinedProcess") {
-                            result += "<rect x='" + w * (1 / 8) + "' y='0' width='" + w * (6 / 8) + "' height='" + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += `<rect x='${w * (1 / 8)}' y='0' width='${w * (6 / 8)}' height='${h}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         } else if (shapType == "flowChartInternalStorage") {
-                            result += " <polyline points='" + w * (1 / 8) + " 0," + w * (1 / 8) + " " + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                            result += " <polyline points='0 " + h * (1 / 8) + "," + w + " " + h * (1 / 8) + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += ` <polyline points='${w * (1 / 8)} 0,${w * (1 / 8)} ${h}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
+                            result += ` <polyline points='0 ${h * (1 / 8)},${w} ${h * (1 / 8)}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         }
                         break;
                     }
                     case "flowChartCollate": {
-                        var d = "M 0,0" +
-                            " L" + w + "," + 0 +
-                            " L" + 0 + "," + h +
-                            " L" + w + "," + h +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + " " + softEdgeFilterStr + " />";
+                        var d = `M 0,0 L${w},${0} L${0},${h} L${w},${h} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr} ${softEdgeFilterStr} />`;
 
                         break;
                     }
@@ -11100,13 +10417,8 @@ const PPTXShapeUtils = (function() {
                         y1 = h * 17322 / 21600;
                         y2 = h * 20172 / 21600;
                         y3 = h * 23922 / 21600;
-                        var d = "M" + 0 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y1 +
-                            " C" + x1 + "," + y1 + " " + x1 + "," + y3 + " " + 0 + "," + y2 +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${0} L${w},${0} L${w},${y1} C${x1},${y1} ${x1},${y3} ${0},${y2} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartMultidocument": {
@@ -11127,24 +10439,9 @@ const PPTXShapeUtils = (function() {
                         x5 = w * 18595 / 21600;
                         x6 = w * 2972 / 21600;
                         x7 = w * 20800 / 21600;
-                        var d = "M" + 0 + "," + y2 +
-                            " L" + x5 + "," + y2 +
-                            " L" + x5 + "," + y1 +
-                            " C" + x3 + "," + y1 + " " + x3 + "," + y3 + " " + 0 + "," + y8 +
-                            " z" +
-                            "M" + x1 + "," + y2 +
-                            " L" + x1 + "," + y4 +
-                            " L" + x2 + "," + y4 +
-                            " L" + x2 + "," + y5 +
-                            " C" + x4 + "," + y5 + " " + x5 + "," + y6 + " " + x5 + "," + y6 +
-                            "M" + x6 + "," + y4 +
-                            " L" + x6 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y7 +
-                            " C" + x7 + "," + y7 + " " + x2 + "," + y9 + " " + x2 + "," + y9;
+                        var d = `M${0},${y2} L${x5},${y2} L${x5},${y1} C${x3},${y1} ${x3},${y3} ${0},${y8} zM${x1},${y2} L${x1},${y4} L${x2},${y4} L${x2},${y5} C${x4},${y5} ${x5},${y6} ${x5},${y6}M${x6},${y4} L${x6},${0} L${w},${0} L${w},${y7} C${x7},${y7} ${x2},${y9} ${x2},${y9}`;
 
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "actionButtonBackPrevious":
@@ -11164,64 +10461,11 @@ const PPTXShapeUtils = (function() {
                     case "irregularSeal1":
                     case "irregularSeal2": {
                         if (shapType == "irregularSeal1") {
-                            var d = "M" + w * 10800 / 21600 + "," + h * 5800 / 21600 +
-                                " L" + w * 14522 / 21600 + "," + 0 +
-                                " L" + w * 14155 / 21600 + "," + h * 5325 / 21600 +
-                                " L" + w * 18380 / 21600 + "," + h * 4457 / 21600 +
-                                " L" + w * 16702 / 21600 + "," + h * 7315 / 21600 +
-                                " L" + w * 21097 / 21600 + "," + h * 8137 / 21600 +
-                                " L" + w * 17607 / 21600 + "," + h * 10475 / 21600 +
-                                " L" + w + "," + h * 13290 / 21600 +
-                                " L" + w * 16837 / 21600 + "," + h * 12942 / 21600 +
-                                " L" + w * 18145 / 21600 + "," + h * 18095 / 21600 +
-                                " L" + w * 14020 / 21600 + "," + h * 14457 / 21600 +
-                                " L" + w * 13247 / 21600 + "," + h * 19737 / 21600 +
-                                " L" + w * 10532 / 21600 + "," + h * 14935 / 21600 +
-                                " L" + w * 8485 / 21600 + "," + h +
-                                " L" + w * 7715 / 21600 + "," + h * 15627 / 21600 +
-                                " L" + w * 4762 / 21600 + "," + h * 17617 / 21600 +
-                                " L" + w * 5667 / 21600 + "," + h * 13937 / 21600 +
-                                " L" + w * 135 / 21600 + "," + h * 14587 / 21600 +
-                                " L" + w * 3722 / 21600 + "," + h * 11775 / 21600 +
-                                " L" + 0 + "," + h * 8615 / 21600 +
-                                " L" + w * 4627 / 21600 + "," + h * 7617 / 21600 +
-                                " L" + w * 370 / 21600 + "," + h * 2295 / 21600 +
-                                " L" + w * 7312 / 21600 + "," + h * 6320 / 21600 +
-                                " L" + w * 8352 / 21600 + "," + h * 2295 / 21600 +
-                                " z";
+                            var d = `M${w * 10800 / 21600},${h * 5800 / 21600} L${w * 14522 / 21600},${0} L${w * 14155 / 21600},${h * 5325 / 21600} L${w * 18380 / 21600},${h * 4457 / 21600} L${w * 16702 / 21600},${h * 7315 / 21600} L${w * 21097 / 21600},${h * 8137 / 21600} L${w * 17607 / 21600},${h * 10475 / 21600} L${w},${h * 13290 / 21600} L${w * 16837 / 21600},${h * 12942 / 21600} L${w * 18145 / 21600},${h * 18095 / 21600} L${w * 14020 / 21600},${h * 14457 / 21600} L${w * 13247 / 21600},${h * 19737 / 21600} L${w * 10532 / 21600},${h * 14935 / 21600} L${w * 8485 / 21600},${h} L${w * 7715 / 21600},${h * 15627 / 21600} L${w * 4762 / 21600},${h * 17617 / 21600} L${w * 5667 / 21600},${h * 13937 / 21600} L${w * 135 / 21600},${h * 14587 / 21600} L${w * 3722 / 21600},${h * 11775 / 21600} L${0},${h * 8615 / 21600} L${w * 4627 / 21600},${h * 7617 / 21600} L${w * 370 / 21600},${h * 2295 / 21600} L${w * 7312 / 21600},${h * 6320 / 21600} L${w * 8352 / 21600},${h * 2295 / 21600} z`;
                         } else if (shapType == "irregularSeal2") {
-                            var d = "M" + w * 11462 / 21600 + "," + h * 4342 / 21600 +
-                                " L" + w * 14790 / 21600 + "," + 0 +
-                                " L" + w * 14525 / 21600 + "," + h * 5777 / 21600 +
-                                " L" + w * 18007 / 21600 + "," + h * 3172 / 21600 +
-                                " L" + w * 16380 / 21600 + "," + h * 6532 / 21600 +
-                                " L" + w + "," + h * 6645 / 21600 +
-                                " L" + w * 16985 / 21600 + "," + h * 9402 / 21600 +
-                                " L" + w * 18270 / 21600 + "," + h * 11290 / 21600 +
-                                " L" + w * 16380 / 21600 + "," + h * 12310 / 21600 +
-                                " L" + w * 18877 / 21600 + "," + h * 15632 / 21600 +
-                                " L" + w * 14640 / 21600 + "," + h * 14350 / 21600 +
-                                " L" + w * 14942 / 21600 + "," + h * 17370 / 21600 +
-                                " L" + w * 12180 / 21600 + "," + h * 15935 / 21600 +
-                                " L" + w * 11612 / 21600 + "," + h * 18842 / 21600 +
-                                " L" + w * 9872 / 21600 + "," + h * 17370 / 21600 +
-                                " L" + w * 8700 / 21600 + "," + h * 19712 / 21600 +
-                                " L" + w * 7527 / 21600 + "," + h * 18125 / 21600 +
-                                " L" + w * 4917 / 21600 + "," + h +
-                                " L" + w * 4805 / 21600 + "," + h * 18240 / 21600 +
-                                " L" + w * 1285 / 21600 + "," + h * 17825 / 21600 +
-                                " L" + w * 3330 / 21600 + "," + h * 15370 / 21600 +
-                                " L" + 0 + "," + h * 12877 / 21600 +
-                                " L" + w * 3935 / 21600 + "," + h * 11592 / 21600 +
-                                " L" + w * 1172 / 21600 + "," + h * 8270 / 21600 +
-                                " L" + w * 5372 / 21600 + "," + h * 7817 / 21600 +
-                                " L" + w * 4502 / 21600 + "," + h * 3625 / 21600 +
-                                " L" + w * 8550 / 21600 + "," + h * 6382 / 21600 +
-                                " L" + w * 9722 / 21600 + "," + h * 1887 / 21600 +
-                                " z";
+                            var d = `M${w * 11462 / 21600},${h * 4342 / 21600} L${w * 14790 / 21600},${0} L${w * 14525 / 21600},${h * 5777 / 21600} L${w * 18007 / 21600},${h * 3172 / 21600} L${w * 16380 / 21600},${h * 6532 / 21600} L${w},${h * 6645 / 21600} L${w * 16985 / 21600},${h * 9402 / 21600} L${w * 18270 / 21600},${h * 11290 / 21600} L${w * 16380 / 21600},${h * 12310 / 21600} L${w * 18877 / 21600},${h * 15632 / 21600} L${w * 14640 / 21600},${h * 14350 / 21600} L${w * 14942 / 21600},${h * 17370 / 21600} L${w * 12180 / 21600},${h * 15935 / 21600} L${w * 11612 / 21600},${h * 18842 / 21600} L${w * 9872 / 21600},${h * 17370 / 21600} L${w * 8700 / 21600},${h * 19712 / 21600} L${w * 7527 / 21600},${h * 18125 / 21600} L${w * 4917 / 21600},${h} L${w * 4805 / 21600},${h * 18240 / 21600} L${w * 1285 / 21600},${h * 17825 / 21600} L${w * 3330 / 21600},${h * 15370 / 21600} L${0},${h * 12877 / 21600} L${w * 3935 / 21600},${h * 11592 / 21600} L${w * 1172 / 21600},${h * 8270 / 21600} L${w * 5372 / 21600},${h * 7817 / 21600} L${w * 4502 / 21600},${h * 3625 / 21600} L${w * 8550 / 21600},${h * 6382 / 21600} L${w * 9722 / 21600},${h * 1887 / 21600} z`;
                         }
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartTerminator": {
@@ -11230,14 +10474,8 @@ const PPTXShapeUtils = (function() {
                         x2 = w * 18125 / 21600;
                         y1 = h * 10800 / 21600;
                         //path attrs: w = 21600; h = 21600; 
-                        var d = "M" + x1 + "," + 0 +
-                            " L" + x2 + "," + 0 +
-                            PPTXShapeUtils.shapeArcAlt(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
-                            " L" + x1 + "," + h +
-                            PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${x1},${0} L${x2},${0}${PPTXShapeUtils.shapeArcAlt(x2, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L")} L${x1},${h}${PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, cd4 + cd2, false).replace("M", "L")} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartPunchedTape": {
@@ -11245,29 +10483,16 @@ const PPTXShapeUtils = (function() {
                         x1 = w * 5 / 20;
                         y1 = h * 2 / 20;
                         y2 = h * 18 / 20;
-                        var d = "M" + 0 + "," + y1 +
-                            PPTXShapeUtils.shapeArcAlt(x1, y1, x1, y1, cd2, 0, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L") +
-                            " L" + w + "," + y2 +
-                            PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(x1, y2, x1, y1, 0, cd2, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${y1}${PPTXShapeUtils.shapeArcAlt(x1, y1, x1, y1, cd2, 0, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y1, x1, y1, cd2, 360, false).replace("M", "L")} L${w},${y2}${PPTXShapeUtils.shapeArcAlt(w * (3 / 4), y2, x1, y1, 0, -cd2, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(x1, y2, x1, y1, 0, cd2, false).replace("M", "L")} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartOnlineStorage": {
                         var x1, y1, c3d4 = 270, cd4 = 90;
                         x1 = w * 1 / 6;
                         y1 = h * 3 / 6;
-                        var d = "M" + x1 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L") +
-                            " L" + x1 + "," + h +
-                            PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${x1},${0} L${w},${0}${PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, 90, false).replace("M", "L")} L${x1},${h}${PPTXShapeUtils.shapeArcAlt(x1, h / 2, x1, y1, cd4, 270, false).replace("M", "L")} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartDisplay": {
@@ -11276,25 +10501,14 @@ const PPTXShapeUtils = (function() {
                         x2 = w * 5 / 6;
                         y1 = h * 3 / 6;
                         //path attrs: w = 6; h = 6; 
-                        var d = "M" + 0 + "," + y1 +
-                            " L" + x1 + "," + 0 +
-                            " L" + x2 + "," + 0 +
-                            PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L") +
-                            " L" + x1 + "," + h +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${y1} L${x1},${0} L${x2},${0}${PPTXShapeUtils.shapeArcAlt(w, h / 2, x1, y1, c3d4, c3d4 + cd2, false).replace("M", "L")} L${x1},${h} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartDelay": {
                         var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
-                        var d = "M" + 0 + "," + 0 +
-                            " L" + wd2 + "," + 0 +
-                            PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L") +
-                            " L" + 0 + "," + h +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${0} L${wd2},${0}${PPTXShapeUtils.shapeArc(wd2, hd2, wd2, hd2, c3d4, c3d4 + cd2, false).replace("M", "L")} L${0},${h} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartMagneticTape": {
@@ -11304,27 +10518,18 @@ const PPTXShapeUtils = (function() {
                         ib = hd2 + idy;
                         ang1 = Math.atan(h / w);
                         const ang1Dg = ang1 * 180 / Math.PI;
-                        var d = "M" + wd2 + "," + h +
-                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L") +
-                            " L" + w + "," + ib +
-                            " L" + w + "," + h +
-                            " z";
-                        result += "<path d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${wd2},${h}${PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, c3d4, 360, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, 0, ang1Dg, false).replace("M", "L")} L${w},${ib} L${w},${h} z`;
+                        result += `<path d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "ellipse":
                     case "flowChartConnector":
                     case "flowChartSummingJunction":
                     case "flowChartOr": {
-                        result += "<ellipse cx='" + (w / 2) + "' cy='" + (h / 2) + "' rx='" + (w / 2) + "' ry='" + (h / 2) + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<ellipse cx='${(w / 2)}' cy='${(h / 2)}' rx='${(w / 2)}' ry='${(h / 2)}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         if (shapType == "flowChartOr") {
-                            result += " <polyline points='" + w / 2 + " " + 0 + "," + w / 2 + " " + h + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                            result += " <polyline points='" + 0 + " " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += ` <polyline points='${w / 2} ${0},${w / 2} ${h}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
+                            result += ` <polyline points='${0} ${h / 2},${w} ${h / 2}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         } else if (shapType == "flowChartSummingJunction") {
                             var iDx, idy, il, ir, it, ib, hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
                             const angVal = Math.PI / 4;
@@ -11334,8 +10539,8 @@ const PPTXShapeUtils = (function() {
                             ir = hc + iDx;
                             it = vc - idy;
                             ib = vc + idy;
-                            result += " <polyline points='" + il + " " + it + "," + ir + " " + ib + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
-                            result += " <polyline points='" + ir + " " + it + "," + il + " " + ib + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += ` <polyline points='${il} ${it},${ir} ${ib}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
+                            result += ` <polyline points='${ir} ${it},${il} ${ib}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         }
                         break;
                     }
@@ -11407,7 +10612,7 @@ const PPTXShapeUtils = (function() {
                                 if (sAdj1_val === undefined) sAdj1_val = 0.33334;
                                 sAdj2_val = 0;
                                 if (shapType == "flowChartPunchedCard") {
-                                    tranglRott = "transform='translate(" + w + ",0) scale(-1,1)'";
+                                    tranglRott = `transform='translate(${w},0) scale(-1,1)'`;
                                 }
                                 break;
                             }
@@ -11427,8 +10632,7 @@ const PPTXShapeUtils = (function() {
                             }
                         }
                         let d_val = PPTXShapeUtils.shapeSnipRoundRectAlt(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
-                        result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path ${tranglRott}  d='${d_val}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "snipRoundRect": {
@@ -11464,18 +10668,9 @@ const PPTXShapeUtils = (function() {
                         const snipSize = Math.min(w, h) * sAdj2_val;   // 缺角大小
 
                         // 生成路径：从左下角开始，逆时针绘制
-                        let d_val = "M0," + (h - radius) +           // 左下角圆弧起点
-                            " Q0," + h + " " + radius + "," + h +   // 左下角圆弧（凸圆角）
-                            " L" + w + "," + h +                    // 沿底边到右下角
-                            " Q" + w + "," + h + " " + w + "," + (h - radius) + // 右下角圆弧（凸圆角）
-                            " L" + w + "," + snipSize +             // 沿右边向下到缺角位置
-                            " L" + (w - snipSize) + ",0" +          // 斜切到左上角缺角
-                            " L" + snipSize + ",0" +                // 沿上边向右到右上角缺角位置
-                            " L0," + (h - snipSize) +               // 斜切到左下角
-                            " z";
+                        let d_val = `M0,${(h - radius)} Q0,${h} ${radius},${h} L${w},${h} Q${w},${h} ${w},${(h - radius)} L${w},${snipSize} L${(w - snipSize)},0 L${snipSize},0 L0,${(h - snipSize)} z`;
 
-                        result += "<path   d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d_val}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "bentConnector2": {
@@ -11484,21 +10679,19 @@ const PPTXShapeUtils = (function() {
                         const bendW = (drawW !== undefined) ? drawW : w;
                         const bendH = (drawH !== undefined) ? drawH : h;
                         // 路径方向（SVG容器会通过flip变换处理翻转）
-                        d = "M " + bendW + " 0 L " + bendW + " " + bendH + " L 0 " + bendH;
-                        result += "<path d='" + d + "' stroke='" + border.color +
-                            "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
+                        d = `M ${bendW} 0 L ${bendW} ${bendH} L 0 ${bendH}`;
+                        result += `<path d='${d}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' fill='none' `;
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-start='url(#markerTriangle_${shpId})' `;
                         }
                         if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-end='url(#markerTriangle_${shpId})' `;
                         }
                         result += "/>";
                         break;
                     }
                     case "rtTriangle": {
-                        result += " <polygon points='0 0,0 " + h + "," + w + " " + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='0 0,0 ${h},${w} ${h}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "triangle":
@@ -11512,19 +10705,17 @@ const PPTXShapeUtils = (function() {
                         }
                         let tranglRott = "";
                         if (shapType == "flowChartMerge") {
-                            tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
+                            tranglRott = `transform='rotate(180 ${w / 2},${h / 2})'`;
                         }
-                        result += " <polygon " + tranglRott + " points='" + (w * shapAdjst_val) + " 0,0 " + h + "," + w + " " + h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon ${tranglRott} points='${(w * shapAdjst_val)} 0,0 ${h},${w} ${h}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "diamond":
                     case "flowChartDecision":
                     case "flowChartSort": {
-                        result += " <polygon points='" + (w / 2) + " 0,0 " + (h / 2) + "," + (w / 2) + " " + h + "," + w + " " + (h / 2) + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(w / 2)} 0,0 ${(h / 2)},${(w / 2)} ${h},${w} ${(h / 2)}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         if (shapType == "flowChartSort") {
-                            result += " <polyline points='0 " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            result += ` <polyline points='0 ${h / 2},${w} ${h / 2}' fill='none' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         }
                         break;
                     }
@@ -11542,14 +10733,13 @@ const PPTXShapeUtils = (function() {
                         var cnstVal = 0;
                         let tranglRott = "";
                         if (shapType == "flowChartManualOperation") {
-                            tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
+                            tranglRott = `transform='rotate(180 ${w / 2},${h / 2})'`;
                         }
                         if (shapType == "flowChartManualInput") {
                             adjst_val = 0;
                             cnstVal = h / 5;
                         }
-                        result += " <polygon " + tranglRott + " points='" + (w * adjst_val) + " " + cnstVal + ",0 " + h + "," + w + " " + h + "," + (1 - adjst_val) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon ${tranglRott} points='${(w * adjst_val)} ${cnstVal},0 ${h},${w} ${h},${(1 - adjst_val) * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "parallelogram":
@@ -11567,13 +10757,11 @@ const PPTXShapeUtils = (function() {
                             adjst_val = adjst / max_adj_const;
                             //console.log("w: "+w+"\nh: "+h+"\nadjst: "+adjst_val+"\nmax_adj_const: "+max_adj_const);
                         }
-                        result += " <polygon points='" + adjst_val * w + " 0,0 " + h + "," + (1 - adjst_val) * w + " " + h + "," + w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${adjst_val * w} 0,0 ${h},${(1 - adjst_val) * w} ${h},${w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "pentagon": {
-                        result += " <polygon points='" + (0.5 * w) + " 0,0 " + (0.375 * h) + "," + (0.15 * w) + " " + h + "," + 0.85 * w + " " + h + "," + w + " " + 0.375 * h + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(0.5 * w)} 0,0 ${(0.375 * h)},${(0.15 * w)} ${h},${0.85 * w} ${h},${w} ${0.375 * h}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "hexagon":
@@ -11597,22 +10785,13 @@ const PPTXShapeUtils = (function() {
                         y1 = vc - dy1;
                         y2 = vc + dy1;
 
-                        var d = "M" + 0 + "," + vc +
-                            " L" + x1 + "," + y1 +
-                            " L" + x2 + "," + y1 +
-                            " L" + w + "," + vc +
-                            " L" + x2 + "," + y2 +
-                            " L" + x1 + "," + y2 +
-                            " z";
+                        var d = `M${0},${vc} L${x1},${y1} L${x2},${y1} L${w},${vc} L${x2},${y2} L${x1},${y2} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "heptagon": {
-                        result += " <polygon points='" + (0.5 * w) + " 0," + w / 8 + " " + h / 4 + ",0 " + (5 / 8) * h + "," + w / 4 + " " + h + "," + (3 / 4) * w + " " + h + "," +
-                            w + " " + (5 / 8) * h + "," + (7 / 8) * w + " " + h / 4 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(0.5 * w)} 0,${w / 8} ${h / 4},0 ${(5 / 8) * h},${w / 4} ${h},${(3 / 4) * w} ${h},${w} ${(5 / 8) * h},${(7 / 8) * w} ${h / 4}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "octagon": {
@@ -11624,22 +10803,16 @@ const PPTXShapeUtils = (function() {
                         }
                         let adj2 = (1 - adj1);
                         //console.log("adj1: "+adj1+"\nadj2: "+adj2);
-                        result += " <polygon points='" + adj1 * w + " 0,0 " + adj1 * h + ",0 " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," +
-                            w + " " + adj2 * h + "," + w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${adj1 * w} 0,0 ${adj1 * h},0 ${adj2 * h},${adj1 * w} ${h},${adj2 * w} ${h},${w} ${adj2 * h},${w} ${adj1 * h},${adj2 * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
                     case "decagon": {
-                        result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + h / 2 + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
-                            (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + h / 2 + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(3 / 8) * w} 0,${w / 8} ${h / 8},0 ${h / 2},${w / 8} ${(7 / 8) * h},${(3 / 8) * w} ${h},${(5 / 8) * w} ${h},${(7 / 8) * w} ${(7 / 8) * h},${w} ${h / 2},${(7 / 8) * w} ${h / 8},${(5 / 8) * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "dodecagon": {
-                        result += " <polygon points='" + (3 / 8) * w + " 0," + w / 8 + " " + h / 8 + ",0 " + (3 / 8) * h + ",0 " + (5 / 8) * h + "," + w / 8 + " " + (7 / 8) * h + "," + (3 / 8) * w + " " + h + "," +
-                            (5 / 8) * w + " " + h + "," + (7 / 8) * w + " " + (7 / 8) * h + "," + w + " " + (5 / 8) * h + "," + w + " " + (3 / 8) * h + "," + (7 / 8) * w + " " + h / 8 + "," + (5 / 8) * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${(3 / 8) * w} 0,${w / 8} ${h / 8},0 ${(3 / 8) * h},0 ${(5 / 8) * h},${w / 8} ${(7 / 8) * h},${(3 / 8) * w} ${h},${(5 / 8) * w} ${h},${(7 / 8) * w} ${(7 / 8) * h},${w} ${(5 / 8) * h},${w} ${(3 / 8) * h},${(7 / 8) * w} ${h / 8},${(5 / 8) * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "star4":
@@ -11679,18 +10852,8 @@ const PPTXShapeUtils = (function() {
                         x1 = Math.min(w, h) * a1 / cnstVal2;
                         x4 = w - x1;
                         y4 = h - x1;
-                        var d = "M" + 0 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + h +
-                            " L" + 0 + "," + h +
-                            " z" +
-                            "M" + x1 + "," + x1 +
-                            " L" + x1 + "," + y4 +
-                            " L" + x4 + "," + y4 +
-                            " L" + x4 + "," + x1 +
-                            " z";
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} zM${x1},${x1} L${x1},${y4} L${x4},${y4} L${x4},${x1} z`;
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "donut": {
@@ -11708,20 +10871,8 @@ const PPTXShapeUtils = (function() {
                         dr = Math.min(w, h) * a / cnstVal2;
                         iwd2 = w / 2 - dr;
                         ihd2 = h / 2 - dr;
-                        var d = "M" + 0 + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
-                            " z" +
-                            "M" + dr + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L") +
-                            " z";
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + oShadowSvgUrlStr + " />";
+                        var d = `M${0},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L")} zM${dr},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L")} z`;
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr} />`;
                         break;
                     }
                     case "noSmoking": {
@@ -11778,21 +10929,9 @@ const PPTXShapeUtils = (function() {
                         var x2 = w / 2 - dx1;
                         var y2 = h / 2 - dy1;
 
-                        var d = "M" + 0 + "," + h / 2 +
-                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L") +
-                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L") +
-                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") +
-                            " z" +
-                            "M" + x1 + "," + y1 +
-                            shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L") +
-                            " z" +
-                            "M" + x2 + "," + y2 +
-                            shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L") +
-                            " z";
+                        var d = `M${0},${h / 2}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L")}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L")}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L")}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L")} zM${x1},${y1}${shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng1deg, (stAng1deg + swAng2deg), false).replace("M", "L")} zM${x2},${y2}${shapeArcAlt(w / 2, h / 2, iwd2, ihd2, stAng2deg, (stAng2deg + swAng2deg), false).replace("M", "L")} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "halfFrame": {
@@ -11830,15 +10969,9 @@ const PPTXShapeUtils = (function() {
                         var x2 = w - dx2;
                         let dy2 = x1 * h / w;
                         var y2 = h - dy2;
-                        var d = "M0,0" +
-                            " L" + w + "," + 0 +
-                            " L" + x2 + "," + y1 +
-                            " L" + x1 + "," + y1 +
-                            " L" + x1 + "," + y2 +
-                            " L0," + h + " z";
+                        var d = `M0,0 L${w},${0} L${x2},${y1} L${x1},${y1} L${x1},${y2} L0,${h} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         //console.log("w: ",w,", h: ",h,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val,",maxAdj1: ",maxAdj1,",maxAdj2: ",maxAdj2)
                         break;
                     }
@@ -11865,12 +10998,8 @@ const PPTXShapeUtils = (function() {
                         cd4 = 90;
 
                         let adj2 = (1 - adj) * w;
-                        var d = "M" + w + "," + h +
-                            PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
-                            " z";
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        var d = `M${w},${h}${PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L")} z`;
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "corner": {
@@ -11905,15 +11034,9 @@ const PPTXShapeUtils = (function() {
                         dy1 = minWH * a1 / cnsVal;
                         y1 = h - dy1;
 
-                        var d = "M0,0" +
-                            " L" + x1 + "," + 0 +
-                            " L" + x1 + "," + y1 +
-                            " L" + w + "," + y1 +
-                            " L" + w + "," + h +
-                            " L0," + h + " z";
+                        var d = `M0,0 L${x1},${0} L${x1},${y1} L${w},${y1} L${w},${h} L0,${h} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "diagStripe": {
@@ -11929,13 +11052,9 @@ const PPTXShapeUtils = (function() {
                         else a1 = sAdj1_val;
                         x2 = w * a1 / cnsVal;
                         y2 = h * a1 / cnsVal;
-                        var d = "M" + 0 + "," + y2 +
-                            " L" + x2 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + 0 + "," + h + " z";
+                        var d = `M${0},${y2} L${x2},${0} L${w},${0} L${0},${h} z`;
 
-                        result += "<path   d='" + d + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "gear6":
@@ -11946,8 +11065,7 @@ const PPTXShapeUtils = (function() {
                         } else { //gearNum=="9"
                             d = shapeGear(w, h / 3.5, parseInt(gearNum));
                         }
-                        result += "<path   d='" + d + "' transform='rotate(20," + (3 / 7) * h + "," + (3 / 7) * h + ")' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d}' transform='rotate(20,${(3 / 7) * h},${(3 / 7) * h})' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "bentConnector3": {
@@ -11959,13 +11077,12 @@ const PPTXShapeUtils = (function() {
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
                             // 路径方向（SVG容器会通过flip变换处理翻转）
-                            result += " <polyline points='0 0," + (shapAdjst_val) * connectorW + " 0," + (shapAdjst_val) * connectorW + " " + connectorH + "," + connectorW + " " + connectorH + "' fill='transparent'" +
-                                "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
+                            result += ` <polyline points='0 0,${(shapAdjst_val) * connectorW} 0,${(shapAdjst_val) * connectorW} ${connectorH},${connectorW} ${connectorH}' fill='transparent'' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
                             if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                                result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                                result += `marker-start='url(#markerTriangle_${shpId})' `;
                             }
                             if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                                result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                                result += `marker-end='url(#markerTriangle_${shpId})' `;
                             }
                             result += "/>";
                         }
@@ -11979,10 +11096,7 @@ const PPTXShapeUtils = (function() {
 
                         }
                         let adj2 = (1 - adj1);
-                        result += " <polygon points='" + adj1 * w + " 0," + adj1 * w + " " + adj1 * h + ",0 " + adj1 * h + ",0 " + adj2 * h + "," +
-                            adj1 * w + " " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," + adj2 * w + " " + adj2 * h + "," + w + " " + adj2 * h + "," +
-                            +w + " " + adj1 * h + "," + adj2 * w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += ` <polygon points='${adj1 * w} 0,${adj1 * w} ${adj1 * h},0 ${adj1 * h},0 ${adj2 * h},${adj1 * w} ${adj2 * h},${adj1 * w} ${h},${adj2 * w} ${h},${adj2 * w} ${adj2 * h},${w} ${adj2 * h},${+w} ${adj1 * h},${adj2 * w} ${adj1 * h},${adj2 * w} 0' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "teardrop": {
@@ -12010,13 +11124,8 @@ const PPTXShapeUtils = (function() {
                         x2 = ((w / 2) + x1) / 2;
                         y2 = ((h / 2) + y1) / 2;
 
-                        let d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
-                            "Q " + x2 + ",0 " + x1 + "," + y1 +
-                            "Q " + w + "," + y2 + " " + w + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L") + " z";
-                        result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false)}Q ${x2},0 ${x1},${y1}Q ${w},${y2} ${w},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L")} z`;
+                        result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         // console.log("shapAdjst: ",shapAdjst,", adj1: ",adj1);
                         break;
@@ -12071,18 +11180,9 @@ const PPTXShapeUtils = (function() {
                          * - 闭合: 回到起点
                          */
 
-                        let d_val = "M" + r + ",0" +
-                            "A" + r + " " + r + " 0 0 1 0," + r +
-                            "L0," + (h - r) +
-                            "A" + r + " " + r + " 0 0 1 " + r + "," + h +
-                            "L" + (w - r) + "," + h +
-                            "A" + r + " " + r + " 0 0 1 " + w + "," + (h - r) +
-                            "L" + w + "," + r +
-                            "A" + r + " " + r + " 0 0 1 " + (w - r) + ",0" +
-                            " z";
+                        let d_val = `M${r},0A${r} ${r} 0 0 1 0,${r}L0,${(h - r)}A${r} ${r} 0 0 1 ${r},${h}L${(w - r)},${h}A${r} ${r} 0 0 1 ${w},${(h - r)}L${w},${r}A${r} ${r} 0 0 1 ${(w - r)},0 z`;
 
-                        result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12140,44 +11240,9 @@ const PPTXShapeUtils = (function() {
                             y17 = h * g17 / cnstVa4,
                             y18 = h * g18 / cnstVa4;
 
-                        let d_val = "M" + w + "," + h / 2 +
-                            " L" + x15 + "," + y18 +
-                            " L" + x15 + "," + y14 +
-                            "z" +
-                            " M" + ox1 + "," + oy1 +
-                            " L" + x16 + "," + y17 +
-                            " L" + x13 + "," + y12 +
-                            "z" +
-                            " M" + w / 2 + "," + 0 +
-                            " L" + x18 + "," + y10 +
-                            " L" + x14 + "," + y10 +
-                            "z" +
-                            " M" + ox2 + "," + oy1 +
-                            " L" + x17 + "," + y12 +
-                            " L" + x12 + "," + y17 +
-                            "z" +
-                            " M" + 0 + "," + h / 2 +
-                            " L" + x10 + "," + y14 +
-                            " L" + x10 + "," + y18 +
-                            "z" +
-                            " M" + ox2 + "," + oy2 +
-                            " L" + x12 + "," + y13 +
-                            " L" + x17 + "," + y16 +
-                            "z" +
-                            " M" + w / 2 + "," + h +
-                            " L" + x14 + "," + y15 +
-                            " L" + x18 + "," + y15 +
-                            "z" +
-                            " M" + ox1 + "," + oy2 +
-                            " L" + x13 + "," + y16 +
-                            " L" + x16 + "," + y13 +
-                            " z" +
-                            " M" + x19 + "," + h / 2 +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L") +
-                            " z";
+                        let d_val = `M${w},${h / 2} L${x15},${y18} L${x15},${y14}z M${ox1},${oy1} L${x16},${y17} L${x13},${y12}z M${w / 2},${0} L${x18},${y10} L${x14},${y10}z M${ox2},${oy1} L${x17},${y12} L${x12},${y17}z M${0},${h / 2} L${x10},${y14} L${x10},${y18}z M${ox2},${oy2} L${x12},${y13} L${x17},${y16}z M${w / 2},${h} L${x14},${y15} L${x18},${y15}z M${ox1},${oy2} L${x13},${y16} L${x16},${y13} z M${x19},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L")} z`;
                         //console.log("adj1: ",adj1,d_val);
-                        result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
 
                         break;
@@ -12191,12 +11256,9 @@ const PPTXShapeUtils = (function() {
                         x3 = w / 2 + dx2;
                         x4 = w / 2 + dx1;
                         y1 = -h / 3;
-                        let d_val = "M" + w / 2 + "," + h / 4 +
-                            "C" + x3 + "," + y1 + " " + x4 + "," + h / 4 + " " + w / 2 + "," + h +
-                            "C" + x1 + "," + h / 4 + " " + x2 + "," + y1 + " " + w / 2 + "," + h / 4 + " z";
+                        let d_val = `M${w / 2},${h / 4}C${x3},${y1} ${x4},${h / 4} ${w / 2},${h}C${x1},${h / 4} ${x2},${y1} ${w / 2},${h / 4} z`;
 
-                        result += "<path   d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12223,20 +11285,9 @@ const PPTXShapeUtils = (function() {
                             y9 = h * 8382 / 21600,
                             y11 = h * 14915 / 21600;
 
-                        let d_val = "M" + x3 + "," + 0 +
-                            " L" + x8 + "," + y2 +
-                            " L" + x2 + "," + y3 +
-                            " L" + x11 + "," + y7 +
-                            " L" + x6 + "," + y5 +
-                            " L" + w + "," + h +
-                            " L" + x5 + "," + y11 +
-                            " L" + x7 + "," + y8 +
-                            " L" + x1 + "," + y6 +
-                            " L" + x10 + "," + y9 +
-                            " L" + 0 + "," + y1 + " z";
+                        let d_val = `M${x3},${0} L${x8},${y2} L${x2},${y3} L${x11},${y7} L${x6},${y5} L${w},${h} L${x5},${y11} L${x7},${y8} L${x1},${y6} L${x10},${y9} L${0},${y1} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12255,22 +11306,9 @@ const PPTXShapeUtils = (function() {
                         y1 = ss * a / cnstVal2;
                         y4 = h - y1;
                         x4 = w - y1;
-                        d_val = "M" + 0 + "," + y1 +
-                            " L" + y1 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y4 +
-                            " L" + x4 + "," + h +
-                            " L" + 0 + "," + h +
-                            " z" +
-                            "M" + 0 + "," + y1 +
-                            " L" + x4 + "," + y1 +
-                            " M" + x4 + "," + y1 +
-                            " L" + w + "," + 0 +
-                            "M" + x4 + "," + y1 +
-                            " L" + x4 + "," + h;
+                        d_val = `M${0},${y1} L${y1},${0} L${w},${0} L${w},${y4} L${x4},${h} L${0},${h} zM${0},${y1} L${x4},${y1} M${x4},${y1} L${w},${0}M${x4},${y1} L${x4},${h}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12290,27 +11328,9 @@ const PPTXShapeUtils = (function() {
                         x1 = ss * a / cnstVal2;
                         x2 = w - x1;
                         y2 = h - x1;
-                        d_val = "M" + 0 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + h +
-                            " L" + 0 + "," + h +
-                            " z" +
-                            " M" + x1 + "," + x1 +
-                            " L" + x2 + "," + x1 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x1 + "," + y2 +
-                            " z" +
-                            " M" + 0 + "," + 0 +
-                            " L" + x1 + "," + x1 +
-                            " M" + 0 + "," + h +
-                            " L" + x1 + "," + y2 +
-                            " M" + w + "," + 0 +
-                            " L" + x2 + "," + x1 +
-                            " M" + w + "," + h +
-                            " L" + x2 + "," + y2;
+                        d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${x1} L${x2},${x1} L${x2},${y2} L${x1},${y2} z M${0},${0} L${x1},${x1} M${0},${h} L${x1},${y2} M${w},${0} L${x2},${x1} M${w},${h} L${x2},${y2}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12333,17 +11353,9 @@ const PPTXShapeUtils = (function() {
                         x2 = x1 + dy1;
                         y2 = h - dy2;
                         y1 = y2 + dy1;
-                        d_val = "M" + x1 + "," + h +
-                            " L" + x2 + "," + y1 +
-                            " L" + w + "," + y2 +
-                            " L" + x1 + "," + h +
-                            " L" + 0 + "," + h +
-                            " L" + 0 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y2;
+                        d_val = `M${x1},${h} L${x2},${y1} L${w},${y2} L${x1},${h} L${0},${h} L${0},${0} L${w},${0} L${w},${y2}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12374,7 +11386,7 @@ const PPTXShapeUtils = (function() {
                             return {
                                 start: { x: fmt(startX), y: fmt(startY) },
                                 end: { x: fmt(endX), y: fmt(endY) },
-                                path: "A " + fmt(rx) + " " + fmt(ry) + " 0 " + largeArc + " " + sweep + " " + fmt(endX) + " " + fmt(endY)
+                                path: `A ${fmt(rx)} ${fmt(ry)} 0 ${largeArc} ${sweep} ${fmt(endX)} ${fmt(endY)}`
                             };
                         }
 
@@ -12467,18 +11479,7 @@ const PPTXShapeUtils = (function() {
                         const arc11 = ellipseArc(cX10, cY10, rX11, rY3, sA11, wA11);
 
                         // 构建完整路径
-                        let d1 = "M" + x0 + "," + y0 + " " +
-                            arc1.path + " " +
-                            arc2.path + " " +
-                            arc3.path + " " +
-                            arc4.path + " " +
-                            arc5.path + " " +
-                            arc6.path + " " +
-                            arc7.path + " " +
-                            arc8.path + " " +
-                            arc9.path + " " +
-                            arc10.path + " " +
-                            arc11.path + " z";
+                        let d1 = `M${x0},${y0} ${arc1.path} ${arc2.path} ${arc3.path} ${arc4.path} ${arc5.path} ${arc6.path} ${arc7.path} ${arc8.path} ${arc9.path} ${arc10.path} ${arc11.path} z`;
 
                         if (shapType == "cloudCallout") {
                             const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -12547,18 +11548,10 @@ const PPTXShapeUtils = (function() {
                             x25 = g23 + g12;
 
                             d_val = //" M" + x23 + "," + yPos + 
-                                PPTXShapeUtils.shapeArc(x23 - g26, yPos, g26, g26, 0, 360, false) + //.replace("M","L") +
-                                " z" +
-                                " M" + x24 + "," + g17 +
-                                PPTXShapeUtils.shapeArc(x24 - g25, g17, g25, g25, 0, 360, false).replace("M", "L") +
-                                " z" +
-                                " M" + x25 + "," + g24 +
-                                PPTXShapeUtils.shapeArc(x25 - g12, g24, g12, g12, 0, 360, false).replace("M", "L") +
-                                " z";
+                                `${PPTXShapeUtils.shapeArc(x23 - g26, yPos, g26, g26, 0, 360, false)} z M${x24},${g17}${PPTXShapeUtils.shapeArc(x24 - g25, g17, g25, g25, 0, 360, false).replace("M", "L")} z M${x25},${g24}${PPTXShapeUtils.shapeArc(x25 - g12, g24, g12, g12, 0, 360, false).replace("M", "L")} z`;
                             d1 += d_val;
                         }
-                        result += "<path d='" + d1 + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d1}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12636,15 +11629,10 @@ const PPTXShapeUtils = (function() {
                         var swAngDg = swAng*180/Math.PI;
                         var endAng = stAng1Dg + swAngDg;
                         */
-                        d_val = "M" + x1 + "," + y1 +
-                            " L" + xPos + "," + yPos +
-                            " L" + x2 + "," + y2 +
-                            //" z" +
-                            PPTXShapeUtils.shapeArcAlt(hc, vc, hc, vc, 0, 360, true);// +
+                        d_val = `M${x1},${y1} L${xPos},${yPos} L${x2},${y2}${PPTXShapeUtils.shapeArcAlt(hc, vc, hc, vc, 0, 360, true)}`;// +
                         //PPTXShapeUtils.shapeArc(hc,vc,hc,vc,stAng1Dg,stAng1Dg+swAngDg,false).replace("M","L") +
                         //" z";
-                        result += "<path d='" + d_val + "'" + cloudTransformAttr + " fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}'${cloudTransformAttr} fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12705,26 +11693,9 @@ const PPTXShapeUtils = (function() {
                         t8 = (dyPos > 0) ? yPos : h;
                         yb = (dz > 0) ? t8 : h;
 
-                        d_val = "M" + 0 + "," + 0 +
-                            " L" + x1 + "," + 0 +
-                            " L" + xt + "," + yt +
-                            " L" + x2 + "," + 0 +
-                            " L" + w + "," + 0 +
-                            " L" + w + "," + y1 +
-                            " L" + xr + "," + yr +
-                            " L" + w + "," + y2 +
-                            " L" + w + "," + h +
-                            " L" + x2 + "," + h +
-                            " L" + xb + "," + yb +
-                            " L" + x1 + "," + h +
-                            " L" + 0 + "," + h +
-                            " L" + 0 + "," + y2 +
-                            " L" + xl + "," + yl +
-                            " L" + 0 + "," + y1 +
-                            " z";
+                        d_val = `M${0},${0} L${x1},${0} L${xt},${yt} L${x2},${0} L${w},${0} L${w},${y1} L${xr},${yr} L${w},${y2} L${w},${h} L${x2},${h} L${xb},${yb} L${x1},${h} L${0},${h} L${0},${y2} L${xl},${yl} L${0},${y1} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12790,29 +11761,8 @@ const PPTXShapeUtils = (function() {
                         u1 = ss * adj3 / cnstVal1;
                         u2 = w - u1;
                         v2 = h - u1;
-                        d_val = "M" + 0 + "," + u1 +
-                            PPTXShapeUtils.shapeArc(u1, u1, u1, u1, 180, 270, false).replace("M", "L") +
-                            " L" + x1 + "," + 0 +
-                            " L" + xt + "," + yt +
-                            " L" + x2 + "," + 0 +
-                            " L" + u2 + "," + 0 +
-                            PPTXShapeUtils.shapeArc(u2, u1, u1, u1, 270, 360, false).replace("M", "L") +
-                            " L" + w + "," + y1 +
-                            " L" + xr + "," + yr +
-                            " L" + w + "," + y2 +
-                            " L" + w + "," + v2 +
-                            PPTXShapeUtils.shapeArc(u2, v2, u1, u1, 0, 90, false).replace("M", "L") +
-                            " L" + x2 + "," + h +
-                            " L" + xb + "," + yb +
-                            " L" + x1 + "," + h +
-                            " L" + u1 + "," + h +
-                            PPTXShapeUtils.shapeArc(u1, v2, u1, u1, 90, 180, false).replace("M", "L") +
-                            " L" + 0 + "," + y2 +
-                            " L" + xl + "," + yl +
-                            " L" + 0 + "," + y1 +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        d_val = `M${0},${u1}${PPTXShapeUtils.shapeArc(u1, u1, u1, u1, 180, 270, false).replace("M", "L")} L${x1},${0} L${xt},${yt} L${x2},${0} L${u2},${0}${PPTXShapeUtils.shapeArc(u2, u1, u1, u1, 270, 360, false).replace("M", "L")} L${w},${y1} L${xr},${yr} L${w},${y2} L${w},${v2}${PPTXShapeUtils.shapeArc(u2, v2, u1, u1, 0, 90, false).replace("M", "L")} L${x2},${h} L${xb},${yb} L${x1},${h} L${u1},${h}${PPTXShapeUtils.shapeArc(u1, v2, u1, u1, 90, 180, false).replace("M", "L")} L${0},${y2} L${xl},${yl} L${0},${y1} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -12884,13 +11834,7 @@ const PPTXShapeUtils = (function() {
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
                                 x2 = w * adj4 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2}`;
                                 break;
                             case "borderCallout2":
                             case "callout2":
@@ -12912,17 +11856,7 @@ const PPTXShapeUtils = (function() {
 
                                 y3 = h * adj5 / cnstVal1;
                                 x3 = w * adj6 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x2 + "," + y2;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x2},${y2}`;
 
                                 break;
                             case "borderCallout3":
@@ -12951,20 +11885,7 @@ const PPTXShapeUtils = (function() {
 
                                 y4 = h * adj7 / cnstVal1;
                                 x4 = w * adj8 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " L" + x3 + "," + y3 +
-
-                                    " L" + x4 + "," + y4 +
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x2 + "," + y2;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x4},${y4} L${x3},${y3} L${x2},${y2}`;
                                 break;
                             case "accentBorderCallout1":
                             case "accentCallout1":
@@ -12980,17 +11901,7 @@ const PPTXShapeUtils = (function() {
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
                                 x2 = w * adj4 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " M" + x1 + "," + 0 +
-                                    " L" + x1 + "," + h;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} M${x1},${0} L${x1},${h}`;
                                 break;
                             case "accentBorderCallout2":
                             case "accentCallout2":
@@ -13010,19 +11921,7 @@ const PPTXShapeUtils = (function() {
                                 x2 = w * adj4 / cnstVal1;
                                 y3 = h * adj5 / cnstVal1;
                                 x3 = w * adj6 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " M" + x1 + "," + 0 +
-                                    " L" + x1 + "," + h;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x2},${y2} M${x1},${0} L${x1},${h}`;
 
                                 break;
                             case "accentBorderCallout3":
@@ -13047,28 +11946,13 @@ const PPTXShapeUtils = (function() {
                                 x3 = w * adj6 / cnstVal1;
                                 y4 = h * adj7 / cnstVal1;
                                 x4 = w * adj8 / cnstVal1;
-                                d_val = "M" + 0 + "," + 0 +
-                                    " L" + w + "," + 0 +
-                                    " L" + w + "," + h +
-                                    " L" + 0 + "," + h +
-                                    " z" +
-
-                                    " M" + x1 + "," + y1 +
-                                    " L" + x2 + "," + y2 +
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x4 + "," + y4 +
-                                    " L" + x3 + "," + y3 +
-                                    " L" + x2 + "," + y2 +
-
-                                    " M" + x1 + "," + 0 +
-                                    " L" + x1 + "," + h;
+                                d_val = `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x4},${y4} L${x3},${y3} L${x2},${y2} M${x1},${0} L${x1},${h}`;
                                 break;
                         }
 
                         //console.log("shapType: ", shapType, ",isBorder:", isBorder)
                         //if(isBorder){
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         //}else{
                         //    result += "<path d='"+d_val+"' fill='" + (!imgFillFlg?(grndFillFlg?"url(#linGrd_"+shpId+")":fillColor):"url(#imgPtrn_"+shpId+")") + 
@@ -13131,30 +12015,9 @@ const PPTXShapeUtils = (function() {
                         y1 = ly1 + hR;
                         y2 = ry2 - hR;
 
-                        d_val = "M" + 0 + "," + ly2 +
-                            "L" + x1 + "," + 0 +
-                            "L" + x1 + "," + ly1 +
-                            "L" + hc + "," + ly1 +
-                            PPTXShapeUtils.shapeArcAlt(hc, y1, wd32, hR, 270, 450, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArcAlt(hc, y2, wd32, hR, 270, 90, false).replace("M", "L") +
-                            "L" + x4 + "," + ry2 +
-                            "L" + x4 + "," + ry1 +
-                            "L" + w + "," + ry3 +
-                            "L" + x4 + "," + h +
-                            "L" + x4 + "," + ry4 +
-                            "L" + hc + "," + ry4 +
-                            PPTXShapeUtils.shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L") +
-                            "L" + x2 + "," + ly3 +
-                            "L" + x1 + "," + ly3 +
-                            "L" + x1 + "," + ly4 +
-                            " z" +
-                            "M" + x3 + "," + y1 +
-                            "L" + x3 + "," + ry2 +
-                            "M" + x2 + "," + y2 +
-                            "L" + x2 + "," + ly3;
+                        d_val = `M${0},${ly2}L${x1},${0}L${x1},${ly1}L${hc},${ly1}${PPTXShapeUtils.shapeArcAlt(hc, y1, wd32, hR, 270, 450, false).replace("M", "L")}${PPTXShapeUtils.shapeArcAlt(hc, y2, wd32, hR, 270, 90, false).replace("M", "L")}L${x4},${ry2}L${x4},${ry1}L${w},${ry3}L${x4},${h}L${x4},${ry4}L${hc},${ry4}${PPTXShapeUtils.shapeArc(hc, ry4 - hR, wd32, hR, 90, 180, false).replace("M", "L")}L${x2},${ly3}L${x1},${ly3}L${x1},${ly4} zM${x3},${y1}L${x3},${ry2}M${x2},${y2}L${x2},${ly3}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -13208,36 +12071,7 @@ const PPTXShapeUtils = (function() {
                             y6 = b - hR;///////////////////
                             y7 = y1 - hR;
 
-                            d_val = "M" + l + "," + b +
-                                " L" + wd8 + "," + y3 +
-                                " L" + l + "," + y4 +
-                                " L" + x2 + "," + y4 +
-                                " L" + x2 + "," + hR +
-                                PPTXShapeUtils.shapeArcAlt(x3, hR, wd32, hR, 180, 270, false).replace("M", "L") +
-                            " L" + x8 + "," + t +
-                            PPTXShapeUtils.shapeArcAlt(x8, hR, wd32, hR, 270, 360, false).replace("M", "L") +
-                                " L" + x9 + "," + y4 +
-                                " L" + x9 + "," + y4 +
-                                " L" + r + "," + y4 +
-                                " L" + x10 + "," + y3 +
-                                " L" + r + "," + b +
-                                " L" + x7 + "," + b +
-                                PPTXShapeUtils.shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L") +
-                                " L" + x8 + "," + y1 +
-                                PPTXShapeUtils.shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L") +
-                                " L" + x3 + "," + y2 +
-                                PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L") +
-                                " L" + x4 + "," + y1 +
-                                PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L") +
-                                " z" +
-                                " M" + x5 + "," + y2 +
-                                " L" + x5 + "," + y6 +
-                                "M" + x6 + "," + y6 +
-                                " L" + x6 + "," + y2 +
-                                "M" + x2 + "," + y7 +
-                                " L" + x2 + "," + y4 +
-                                "M" + x9 + "," + y4 +
-                                " L" + x9 + "," + y7;
+                            d_val = `M${l},${b} L${wd8},${y3} L${l},${y4} L${x2},${y4} L${x2},${hR}${PPTXShapeUtils.shapeArcAlt(x3, hR, wd32, hR, 180, 270, false).replace("M", "L")} L${x8},${t}${PPTXShapeUtils.shapeArcAlt(x8, hR, wd32, hR, 270, 360, false).replace("M", "L")} L${x9},${y4} L${x9},${y4} L${r},${y4} L${x10},${y3} L${r},${b} L${x7},${b}${PPTXShapeUtils.shapeArc(x7, y6, wd32, hR, 90, 270, false).replace("M", "L")} L${x8},${y1}${PPTXShapeUtils.shapeArc(x8, y7, wd32, hR, 90, -90, false).replace("M", "L")} L${x3},${y2}${PPTXShapeUtils.shapeArc(x3, y7, wd32, hR, 270, 90, false).replace("M", "L")} L${x4},${y1}${PPTXShapeUtils.shapeArc(x4, y6, wd32, hR, 270, 450, false).replace("M", "L")} z M${x5},${y2} L${x5},${y6}M${x6},${y6} L${x6},${y2}M${x2},${y7} L${x2},${y4}M${x9},${y4} L${x9},${y7}`;
                         } else if (shapType == "ribbon") {
                             let y5;
                             y1 = h * a1 / cnstVal5;
@@ -13246,38 +12080,9 @@ const PPTXShapeUtils = (function() {
                             y3 = y4 / 2;
                             y5 = b - hR; ///////////////////////
                             y6 = y2 - hR;
-                            d_val = "M" + l + "," + t +
-                                " L" + x4 + "," + t +
-                                PPTXShapeUtils.shapeArcAlt(x4, hR, wd32, hR, 270, 450, false).replace("M", "L") +
-                                " L" + x3 + "," + y1 +
-                                PPTXShapeUtils.shapeArcAlt(x3, y6, wd32, hR, 270, 90, false).replace("M", "L") +
-                                " L" + x8 + "," + y2 +
-                                PPTXShapeUtils.shapeArcAlt(x8, y6, wd32, hR, 90, -90, false).replace("M", "L") +
-                                " L" + x7 + "," + y1 +
-                                PPTXShapeUtils.shapeArcAlt(x7, hR, wd32, hR, 90, 270, false).replace("M", "L") +
-                                " L" + r + "," + t +
-                                " L" + x10 + "," + y3 +
-                                " L" + r + "," + y4 +
-                                " L" + x9 + "," + y4 +
-                                " L" + x9 + "," + y5 +
-                                PPTXShapeUtils.shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L") +
-                                " L" + x3 + "," + b +
-                                PPTXShapeUtils.shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L") +
-                                " L" + x2 + "," + y4 +
-                                " L" + l + "," + y4 +
-                                " L" + wd8 + "," + y3 +
-                                " z" +
-                                " M" + x5 + "," + hR +
-                                " L" + x5 + "," + y2 +
-                                "M" + x6 + "," + y2 +
-                                " L" + x6 + "," + hR +
-                                "M" + x2 + "," + y4 +
-                                " L" + x2 + "," + y6 +
-                                "M" + x9 + "," + y6 +
-                                " L" + x9 + "," + y4;
+                            d_val = `M${l},${t} L${x4},${t}${PPTXShapeUtils.shapeArcAlt(x4, hR, wd32, hR, 270, 450, false).replace("M", "L")} L${x3},${y1}${PPTXShapeUtils.shapeArcAlt(x3, y6, wd32, hR, 270, 90, false).replace("M", "L")} L${x8},${y2}${PPTXShapeUtils.shapeArcAlt(x8, y6, wd32, hR, 90, -90, false).replace("M", "L")} L${x7},${y1}${PPTXShapeUtils.shapeArcAlt(x7, hR, wd32, hR, 90, 270, false).replace("M", "L")} L${r},${t} L${x10},${y3} L${r},${y4} L${x9},${y4} L${x9},${y5}${PPTXShapeUtils.shapeArc(x8, y5, wd32, hR, 0, 90, false).replace("M", "L")} L${x3},${b}${PPTXShapeUtils.shapeArc(x3, y5, wd32, hR, 90, 180, false).replace("M", "L")} L${x2},${y4} L${l},${y4} L${wd8},${y3} z M${x5},${hR} L${x5},${y2}M${x6},${y2} L${x6},${hR}M${x2},${y4} L${x2},${y6}M${x9},${y6} L${x9},${y4}`;
                         }
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -13335,13 +12140,7 @@ const PPTXShapeUtils = (function() {
                             x13 = x12 + dx3;
                             x14 = (x13 + x15) / 2;
 
-                            d_val = "M" + x2 + "," + y1 +
-                                " C" + x3 + "," + y2 + " " + x4 + "," + y3 + " " + x5 + "," + y1 +
-                                " C" + x6 + "," + y2 + " " + x7 + "," + y3 + " " + x8 + "," + y1 +
-                                " L" + x15 + "," + y4 +
-                                " C" + x14 + "," + y6 + " " + x13 + "," + y5 + " " + x12 + "," + y4 +
-                                " C" + x11 + "," + y6 + " " + x10 + "," + y5 + " " + x9 + "," + y4 +
-                                " z";
+                            d_val = `M${x2},${y1} C${x3},${y2} ${x4},${y3} ${x5},${y1} C${x6},${y2} ${x7},${y3} ${x8},${y1} L${x15},${y4} C${x14},${y6} ${x13},${y5} ${x12},${y4} C${x11},${y6} ${x10},${y5} ${x9},${y4} z`;
                         } else if (shapType == "wave") {
                             const cnstVal5 = 20000 * SLIDE_FACTOR$1;
                             var a1, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx5, x5, dx3, x3, x4, x6, x10, x7, x8;
@@ -13367,14 +12166,9 @@ const PPTXShapeUtils = (function() {
                             x7 = x6 + dx3;
                             x8 = (x7 + x10) / 2;
 
-                            d_val = "M" + x2 + "," + y1 +
-                                " C" + x3 + "," + y2 + " " + x4 + "," + y3 + " " + x5 + "," + y1 +
-                                " L" + x10 + "," + y4 +
-                                " C" + x8 + "," + y6 + " " + x7 + "," + y5 + " " + x6 + "," + y4 +
-                                " z";
+                            d_val = `M${x2},${y1} C${x3},${y2} ${x4},${y3} ${x5},${y1} L${x10},${y4} C${x8},${y6} ${x7},${y5} ${x6},${y4} z`;
                         }
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -13453,29 +12247,7 @@ const PPTXShapeUtils = (function() {
                             y7 = y1 + dy3;
                             y8 = b - dy1;
                             //
-                            d_val = "M" + l + "," + t +
-                                " Q" + cx1 + "," + cy1 + " " + x3 + "," + y1 +
-                                " L" + x2 + "," + y3 +
-                                " Q" + hc + "," + cy3 + " " + x5 + "," + y3 +
-                                " L" + x4 + "," + y1 +
-                                " Q" + cx2 + "," + cy1 + " " + r + "," + t +
-                                " L" + x6 + "," + y2 +
-                                " L" + r + "," + rh +
-                                " Q" + cx5 + "," + cy4 + " " + x5 + "," + y5 +
-                                " L" + x5 + "," + y6 +
-                                " Q" + hc + "," + cy6 + " " + x2 + "," + y6 +
-                                " L" + x2 + "," + y5 +
-                                " Q" + cx4 + "," + cy4 + " " + l + "," + rh +
-                                " L" + wd8 + "," + y2 +
-                                " z" +
-                                "M" + x2 + "," + y5 +
-                                " L" + x2 + "," + y3 +
-                                "M" + x5 + "," + y3 +
-                                " L" + x5 + "," + y5 +
-                                "M" + x3 + "," + y1 +
-                                " L" + x3 + "," + y7 +
-                                "M" + x4 + "," + y7 +
-                                " L" + x4 + "," + y1;
+                            d_val = `M${l},${t} Q${cx1},${cy1} ${x3},${y1} L${x2},${y3} Q${hc},${cy3} ${x5},${y3} L${x4},${y1} Q${cx2},${cy1} ${r},${t} L${x6},${y2} L${r},${rh} Q${cx5},${cy4} ${x5},${y5} L${x5},${y6} Q${hc},${cy6} ${x2},${y6} L${x2},${y5} Q${cx4},${cy4} ${l},${rh} L${wd8},${y2} zM${x2},${y5} L${x2},${y3}M${x5},${y3} L${x5},${y5}M${x3},${y1} L${x3},${y7}M${x4},${y7} L${x4},${y1}`;
                         } else if (shapType == "ellipseRibbon2") {
                             var u1, y1, cu1, cy1, q3, q5, u3, y3, q6, q7, cu3, cy3, rh, q8, u2, y2,
                                 u5, y5, u6, y6, cu4, cy4, cu6, cy6, u7, y7;
@@ -13502,33 +12274,9 @@ const PPTXShapeUtils = (function() {
                             u7 = u1 + dy3;
                             y7 = b - u7;
                             //
-                            d_val = "M" + l + "," + b +
-                                " L" + wd8 + "," + y2 +
-                                " L" + l + "," + q1 +
-                                " Q" + cx4 + "," + cy4 + " " + x2 + "," + y5 +
-                                " L" + x2 + "," + y6 +
-                                " Q" + hc + "," + cy6 + " " + x5 + "," + y6 +
-                                " L" + x5 + "," + y5 +
-                                " Q" + cx5 + "," + cy4 + " " + r + "," + q1 +
-                                " L" + x6 + "," + y2 +
-                                " L" + r + "," + b +
-                                " Q" + cx2 + "," + cy1 + " " + x4 + "," + y1 +
-                                " L" + x5 + "," + y3 +
-                                " Q" + hc + "," + cy3 + " " + x2 + "," + y3 +
-                                " L" + x3 + "," + y1 +
-                                " Q" + cx1 + "," + cy1 + " " + l + "," + b +
-                                " z" +
-                                "M" + x2 + "," + y3 +
-                                " L" + x2 + "," + y5 +
-                                "M" + x5 + "," + y5 +
-                                " L" + x5 + "," + y3 +
-                                "M" + x3 + "," + y7 +
-                                " L" + x3 + "," + y1 +
-                                "M" + x4 + "," + y1 +
-                                " L" + x4 + "," + y7;
+                            d_val = `M${l},${b} L${wd8},${y2} L${l},${q1} Q${cx4},${cy4} ${x2},${y5} L${x2},${y6} Q${hc},${cy6} ${x5},${y6} L${x5},${y5} Q${cx5},${cy4} ${r},${q1} L${x6},${y2} L${r},${b} Q${cx2},${cy1} ${x4},${y1} L${x5},${y3} Q${hc},${cy3} ${x2},${y3} L${x3},${y1} Q${cx1},${cy1} ${l},${b} zM${x2},${y3} L${x2},${y5}M${x5},${y5} L${x5},${y3}M${x3},${y7} L${x3},${y1}M${x4},${y1} L${x4},${y7}`;
                         }
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -13546,13 +12294,12 @@ const PPTXShapeUtils = (function() {
                         // 根据flipH和flipV确定线条的起点和终点
                         var x1 = 0, y1 = 0, x2 = lineW, y2 = lineH;
                         
-                        result += "<line x1='" + x1 + "' y1='" + y1 + "' x2='" + x2 + "' y2='" + y2 + "' stroke='" + border.color +
-                            "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' ";
+                        result += `<line x1='${x1}' y1='${y1}' x2='${x2}' y2='${y2}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-start='url(#markerTriangle_${shpId})' `;
                         }
                         if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-end='url(#markerTriangle_${shpId})' `;
                         }
                         result += "/>";
                         break;
@@ -13607,17 +12354,16 @@ const PPTXShapeUtils = (function() {
                             cy2 = curveH;
                         }
                         // 正常路径
-                        pathD = "M 0,0 Q " + cx1 + "," + cy1 + " " + curveW/2 + "," + curveH/2 + " Q " + cx2 + "," + cy2 + " " + curveW + "," + curveH;
+                        pathD = `M 0,0 Q ${cx1},${cy1} ${curveW/2},${curveH/2} Q ${cx2},${cy2} ${curveW},${curveH}`;
 
                         // 使用 SVG 路径元素创建曲线
-                        result += "<path d='" + pathD + "' stroke='" + border.color +
-                            "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' fill='none' ";
+                        result += `<path d='${pathD}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' fill='none' `;
                         
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-start='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-start='url(#markerTriangle_${shpId})' `;
                         }
                         if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += "marker-end='url(#markerTriangle_" + shpId + ")' ";
+                            result += `marker-end='url(#markerTriangle_${shpId})' `;
                         }
                         result += "/>";
                         break;
@@ -13683,33 +12429,9 @@ const PPTXShapeUtils = (function() {
                         y3 = vc - dx3;
                         y4 = vc + dx3;
                         y6 = h - x1;
-                        let d_val = "M" + 0 + "," + vc +
-                            " L" + x1 + "," + y2 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x3 + "," + x1 +
-                            " L" + x2 + "," + x1 +
-                            " L" + hc + "," + 0 +
-                            " L" + x5 + "," + x1 +
-                            " L" + x4 + "," + x1 +
-                            " L" + x4 + "," + y3 +
-                            " L" + x6 + "," + y3 +
-                            " L" + x6 + "," + y2 +
-                            " L" + w + "," + vc +
-                            " L" + x6 + "," + y5 +
-                            " L" + x6 + "," + y4 +
-                            " L" + x4 + "," + y4 +
-                            " L" + x4 + "," + y6 +
-                            " L" + x5 + "," + y6 +
-                            " L" + hc + "," + h +
-                            " L" + x2 + "," + y6 +
-                            " L" + x3 + "," + y6 +
-                            " L" + x3 + "," + y4 +
-                            " L" + x1 + "," + y4 +
-                            " L" + x1 + "," + y5 + " z";
+                        let d_val = `M${0},${vc} L${x1},${y2} L${x1},${y3} L${x3},${y3} L${x3},${x1} L${x2},${x1} L${hc},${0} L${x5},${x1} L${x4},${x1} L${x4},${y3} L${x6},${y3} L${x6},${y2} L${w},${vc} L${x6},${y5} L${x6},${y4} L${x4},${y4} L${x4},${y6} L${x5},${y6} L${hc},${h} L${x2},${y6} L${x3},${y6} L${x3},${y4} L${x1},${y4} L${x1},${y5} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -13763,26 +12485,9 @@ const PPTXShapeUtils = (function() {
                         y4 = h - dx2;
                         y3 = y4 - dx3;
                         y5 = y4 + dx3;
-                        let d_val = "M" + 0 + "," + y4 +
-                            " L" + x1 + "," + y2 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x3 + "," + x1 +
-                            " L" + x2 + "," + x1 +
-                            " L" + hc + "," + 0 +
-                            " L" + x5 + "," + x1 +
-                            " L" + x4 + "," + x1 +
-                            " L" + x4 + "," + y3 +
-                            " L" + x6 + "," + y3 +
-                            " L" + x6 + "," + y2 +
-                            " L" + w + "," + y4 +
-                            " L" + x6 + "," + h +
-                            " L" + x6 + "," + y5 +
-                            " L" + x1 + "," + y5 +
-                            " L" + x1 + "," + h + " z";
+                        let d_val = `M${0},${y4} L${x1},${y2} L${x1},${y3} L${x3},${y3} L${x3},${x1} L${x2},${x1} L${hc},${0} L${x5},${x1} L${x4},${x1} L${x4},${y3} L${x6},${y3} L${x6},${y2} L${w},${y4} L${x6},${h} L${x6},${y5} L${x1},${y5} L${x1},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -13834,21 +12539,9 @@ const PPTXShapeUtils = (function() {
                         x5 = x4 + dx3;
                         y3 = y4 - dx3;
                         y5 = y4 + dx3;
-                        let d_val = "M" + 0 + "," + y4 +
-                            " L" + x1 + "," + y2 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x3 + "," + x1 +
-                            " L" + x2 + "," + x1 +
-                            " L" + x4 + "," + 0 +
-                            " L" + w + "," + x1 +
-                            " L" + x5 + "," + x1 +
-                            " L" + x5 + "," + y5 +
-                            " L" + x1 + "," + y5 +
-                            " L" + x1 + "," + h + " z";
+                        let d_val = `M${0},${y4} L${x1},${y2} L${x1},${y3} L${x3},${y3} L${x3},${x1} L${x2},${x1} L${x4},${0} L${w},${x1} L${x5},${x1} L${x5},${y5} L${x1},${y5} L${x1},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -13896,18 +12589,9 @@ const PPTXShapeUtils = (function() {
                         x4 = x3 + dx2;
                         dy2 = minWH * a1 / cnstVal2;
                         y2 = h - dy2;
-                        let d_val = "M" + 0 + "," + y2 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x2 + "," + y1 +
-                            " L" + x1 + "," + y1 +
-                            " L" + x3 + "," + 0 +
-                            " L" + w + "," + y1 +
-                            " L" + x4 + "," + y1 +
-                            " L" + x4 + "," + h +
-                            " L" + 0 + "," + h + " z";
+                        let d_val = `M${0},${y2} L${x2},${y2} L${x2},${y1} L${x1},${y1} L${x3},${0} L${w},${y1} L${x4},${y1} L${x4},${h} L${0},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -13972,20 +12656,9 @@ const PPTXShapeUtils = (function() {
                         y5 = dh2 + bd;
                         y6 = y3 + bd2;
 
-                        let d_val = "M" + 0 + "," + h +
-                            " L" + 0 + "," + y5 +
-                            PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
-                            " L" + x4 + "," + dh2 +
-                            " L" + x4 + "," + 0 +
-                            " L" + w + "," + aw2 +
-                            " L" + x4 + "," + y4 +
-                            " L" + x4 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L") +
-                            " L" + th + "," + h + " z";
+                        let d_val = `M${0},${h} L${0},${y5}${PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L")} L${x4},${dh2} L${x4},${0} L${w},${aw2} L${x4},${y4} L${x4},${y3} L${x3},${y3}${PPTXShapeUtils.shapeArc(x3, y6, bd2, bd2, 270, 180, false).replace("M", "L")} L${th},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14064,24 +12737,9 @@ const PPTXShapeUtils = (function() {
                         x7 = x6 + dh2;
                         x4 = x9 - bd;
                         x5 = x7 - bd2;
-                        let d_val = "M" + 0 + "," + h +
-                            " L" + 0 + "," + bd +
-                            shapeArcAlt(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
-                            " L" + x4 + "," + 0 +
-                            shapeArcAlt(x4, bd, bd, bd, 270, 360, false).replace("M", "L") +
-                            " L" + x9 + "," + y4 +
-                            " L" + w + "," + y4 +
-                            " L" + x8 + "," + y5 +
-                            " L" + x6 + "," + y4 +
-                            " L" + x7 + "," + y4 +
-                            " L" + x7 + "," + x3 +
-                            shapeArcAlt(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L") +
-                            " L" + x3 + "," + th +
-                            shapeArcAlt(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L") +
-                            " L" + th + "," + h + " z";
+                        let d_val = `M${0},${h} L${0},${bd}${shapeArcAlt(bd, bd, bd, bd, 180, 270, false).replace("M", "L")} L${x4},${0}${shapeArcAlt(x4, bd, bd, bd, 270, 360, false).replace("M", "L")} L${x9},${y4} L${w},${y4} L${x8},${y5} L${x6},${y4} L${x7},${y4} L${x7},${x3}${shapeArcAlt(x5, x3, bd2, bd2, 0, -90, false).replace("M", "L")} L${x3},${th}${shapeArcAlt(x3, x3, bd2, bd2, 270, 180, false).replace("M", "L")} L${th},${h} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14124,24 +12782,9 @@ const PPTXShapeUtils = (function() {
                         const ssd8 = minWH / 8,
                             ssd16 = minWH / 16,
                             ssd32 = minWH / 32;
-                        let d_val = "M" + 0 + "," + y1 +
-                            " L" + ssd32 + "," + y1 +
-                            " L" + ssd32 + "," + y2 +
-                            " L" + 0 + "," + y2 + " z" +
-                            " M" + ssd16 + "," + y1 +
-                            " L" + ssd8 + "," + y1 +
-                            " L" + ssd8 + "," + y2 +
-                            " L" + ssd16 + "," + y2 + " z" +
-                            " M" + x4 + "," + y1 +
-                            " L" + x5 + "," + y1 +
-                            " L" + x5 + "," + 0 +
-                            " L" + w + "," + vc +
-                            " L" + x5 + "," + h +
-                            " L" + x5 + "," + y2 +
-                            " L" + x4 + "," + y2 + " z";
+                        let d_val = `M${0},${y1} L${ssd32},${y1} L${ssd32},${y2} L${0},${y2} z M${ssd16},${y1} L${ssd8},${y1} L${ssd8},${y2} L${ssd16},${y2} z M${x4},${y1} L${x5},${y1} L${x5},${0} L${w},${vc} L${x5},${h} L${x5},${y2} L${x4},${y2} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14178,17 +12821,9 @@ const PPTXShapeUtils = (function() {
                         y1 = vc - dy1;
                         y2 = vc + dy1;
                         x1 = dy1 * dx2 / hd2;
-                        let d_val = "M" + 0 + "," + y1 +
-                            " L" + x2 + "," + y1 +
-                            " L" + x2 + "," + 0 +
-                            " L" + w + "," + vc +
-                            " L" + x2 + "," + h +
-                            " L" + x2 + "," + y2 +
-                            " L" + 0 + "," + y2 +
-                            " L" + x1 + "," + vc + " z";
+                        let d_val = `M${0},${y1} L${x2},${y1} L${x2},${0} L${w},${vc} L${x2},${h} L${x2},${y2} L${0},${y2} L${x1},${vc} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14207,14 +12842,9 @@ const PPTXShapeUtils = (function() {
                         else a = adj;
                         dx1 = minWH * a / cnstVal1;
                         x1 = w - dx1;
-                        let d_val = "M" + 0 + "," + 0 +
-                            " L" + x1 + "," + 0 +
-                            " L" + w + "," + vc +
-                            " L" + x1 + "," + h +
-                            " L" + 0 + "," + h + " z";
+                        let d_val = `M${0},${0} L${x1},${0} L${w},${vc} L${x1},${h} L${0},${h} z`;
 
-                        result += "<path  d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path  d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14233,15 +12863,9 @@ const PPTXShapeUtils = (function() {
                         else a = adj;
                         x1 = minWH * a / cnstVal1;
                         x2 = w - x1;
-                        let d_val = "M" + 0 + "," + 0 +
-                            " L" + x2 + "," + 0 +
-                            " L" + w + "," + vc +
-                            " L" + x2 + "," + h +
-                            " L" + 0 + "," + h +
-                            " L" + x1 + "," + vc + " z";
+                        let d_val = `M${0},${0} L${x2},${0} L${w},${vc} L${x2},${h} L${0},${h} L${x1},${vc} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
 
                         break;
@@ -14295,20 +12919,8 @@ const PPTXShapeUtils = (function() {
                         x3 = r - dx3;
                         x2 = w * a4 / cnstVal2;
                         x1 = x2 / 2;
-                        let d_val = "M" + l + "," + t +
-                            " L" + x2 + "," + t +
-                            " L" + x2 + "," + y2 +
-                            " L" + x3 + "," + y2 +
-                            " L" + x3 + "," + y1 +
-                            " L" + r + "," + vc +
-                            " L" + x3 + "," + y4 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x2 + "," + y3 +
-                            " L" + x2 + "," + b +
-                            " L" + l + "," + b +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${t} L${x2},${t} L${x2},${y2} L${x3},${y2} L${x3},${y1} L${r},${vc} L${x3},${y4} L${x3},${y3} L${x2},${y3} L${x2},${b} L${l},${b} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14362,20 +12974,8 @@ const PPTXShapeUtils = (function() {
                         y3 = b - dy3;
                         y2 = h * a4 / cnstVal2;
                         y1 = y2 / 2;
-                        let d_val = "M" + l + "," + t +
-                            " L" + r + "," + t +
-                            " L" + r + "," + y2 +
-                            " L" + x3 + "," + y2 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x4 + "," + y3 +
-                            " L" + hc + "," + b +
-                            " L" + x1 + "," + y3 +
-                            " L" + x2 + "," + y3 +
-                            " L" + x2 + "," + y2 +
-                            " L" + l + "," + y2 +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${t} L${r},${t} L${r},${y2} L${x3},${y2} L${x3},${y3} L${x4},${y3} L${hc},${b} L${x1},${y3} L${x2},${y3} L${x2},${y2} L${l},${y2} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14429,20 +13029,8 @@ const PPTXShapeUtils = (function() {
                         dx2 = w * a4 / cnstVal2;
                         x2 = r - dx2;
                         x3 = (x2 + r) / 2;
-                        let d_val = "M" + l + "," + vc +
-                            " L" + x1 + "," + y1 +
-                            " L" + x1 + "," + y2 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x2 + "," + t +
-                            " L" + r + "," + t +
-                            " L" + r + "," + b +
-                            " L" + x2 + "," + b +
-                            " L" + x2 + "," + y3 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x1 + "," + y4 +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${vc} L${x1},${y1} L${x1},${y2} L${x2},${y2} L${x2},${t} L${r},${t} L${r},${b} L${x2},${b} L${x2},${y3} L${x1},${y3} L${x1},${y4} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14496,20 +13084,8 @@ const PPTXShapeUtils = (function() {
                         y2 = b - dy2;
                         y3 = (y2 + b) / 2;
 
-                        let d_val = "M" + l + "," + y2 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x2 + "," + y1 +
-                            " L" + x1 + "," + y1 +
-                            " L" + hc + "," + t +
-                            " L" + x4 + "," + y1 +
-                            " L" + x3 + "," + y1 +
-                            " L" + x3 + "," + y2 +
-                            " L" + r + "," + y2 +
-                            " L" + r + "," + b +
-                            " L" + l + "," + b +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${y2} L${x2},${y2} L${x2},${y1} L${x1},${y1} L${hc},${t} L${x4},${y1} L${x3},${y1} L${x3},${y2} L${r},${y2} L${r},${b} L${l},${b} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14563,27 +13139,8 @@ const PPTXShapeUtils = (function() {
                         dx2 = w * a4 / cnstVal3;
                         x2 = hc - dx2;
                         x3 = hc + dx2;
-                        let d_val = "M" + l + "," + vc +
-                            " L" + x1 + "," + y1 +
-                            " L" + x1 + "," + y2 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x2 + "," + t +
-                            " L" + x3 + "," + t +
-                            " L" + x3 + "," + y2 +
-                            " L" + x4 + "," + y2 +
-                            " L" + x4 + "," + y1 +
-                            " L" + r + "," + vc +
-                            " L" + x4 + "," + y4 +
-                            " L" + x4 + "," + y3 +
-                            " L" + x3 + "," + y3 +
-                            " L" + x3 + "," + b +
-                            " L" + x2 + "," + b +
-                            " L" + x2 + "," + y3 +
-                            " L" + x1 + "," + y3 +
-                            " L" + x1 + "," + y4 +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${l},${vc} L${x1},${y1} L${x1},${y2} L${x2},${y2} L${x2},${t} L${x3},${t} L${x3},${y2} L${x4},${y2} L${x4},${y1} L${r},${vc} L${x4},${y4} L${x4},${y3} L${x3},${y3} L${x3},${b} L${x2},${b} L${x2},${y3} L${x1},${y3} L${x1},${y4} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14644,42 +13201,9 @@ const PPTXShapeUtils = (function() {
                         y6 = vc + dx2;
                         y4 = vc - dx3;
                         y5 = vc + dx3;
-                        let d_val = "M" + l + "," + vc +
-                            " L" + ah + "," + y3 +
-                            " L" + ah + "," + y4 +
-                            " L" + x2 + "," + y4 +
-                            " L" + x2 + "," + y2 +
-                            " L" + x4 + "," + y2 +
-                            " L" + x4 + "," + ah +
-                            " L" + x3 + "," + ah +
-                            " L" + hc + "," + t +
-                            " L" + x6 + "," + ah +
-                            " L" + x5 + "," + ah +
-                            " L" + x5 + "," + y2 +
-                            " L" + x7 + "," + y2 +
-                            " L" + x7 + "," + y4 +
-                            " L" + x8 + "," + y4 +
-                            " L" + x8 + "," + y3 +
-                            " L" + r + "," + vc +
-                            " L" + x8 + "," + y6 +
-                            " L" + x8 + "," + y5 +
-                            " L" + x7 + "," + y5 +
-                            " L" + x7 + "," + y7 +
-                            " L" + x5 + "," + y7 +
-                            " L" + x5 + "," + y8 +
-                            " L" + x6 + "," + y8 +
-                            " L" + hc + "," + b +
-                            " L" + x3 + "," + y8 +
-                            " L" + x4 + "," + y8 +
-                            " L" + x4 + "," + y7 +
-                            " L" + x2 + "," + y7 +
-                            " L" + x2 + "," + y5 +
-                            " L" + ah + "," + y5 +
-                            " L" + ah + "," + y6 +
-                            " z";
+                        let d_val = `M${l},${vc} L${ah},${y3} L${ah},${y4} L${x2},${y4} L${x2},${y2} L${x4},${y2} L${x4},${ah} L${x3},${ah} L${hc},${t} L${x6},${ah} L${x5},${ah} L${x5},${y2} L${x7},${y2} L${x7},${y4} L${x8},${y4} L${x8},${y3} L${r},${vc} L${x8},${y6} L${x8},${y5} L${x7},${y5} L${x7},${y7} L${x5},${y7} L${x5},${y8} L${x6},${y8} L${hc},${b} L${x3},${y8} L${x4},${y8} L${x4},${y7} L${x2},${y7} L${x2},${y5} L${ah},${y5} L${ah},${y6} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14775,21 +13299,9 @@ const PPTXShapeUtils = (function() {
                         wR = fmt(wR);
                         ch = fmt(ch);
 
-                        let d_val = "M" + x6 + "," + b +
-                            " L" + x4 + "," + y1 +
-                            " L" + x5 + "," + y1 +
-                            PPTXShapeUtils.shapeArc(wR, ch, wR, ch, stAng, (stAng + mswAng), false).replace("M", "L") +
-                            " L" + x3 + "," + t +
-                            PPTXShapeUtils.shapeArc(x3, ch, wR, ch, c3d4, (c3d4 + swAngDeg), false).replace("M", "L") +
-                            " L" + fmt(x5 + th) + "," + y1 +
-                            " L" + x8 + "," + y1 +
-                            " z" +
-                            "M" + x3 + "," + t +
-                            PPTXShapeUtils.shapeArc(x3, ch, wR, ch, stAng2, (stAng2 + swAng2), false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(wR, ch, wR, ch, cd2, (cd2 + swAng3), false).replace("M", "L");
+                        let d_val = `M${x6},${b} L${x4},${y1} L${x5},${y1}${PPTXShapeUtils.shapeArc(wR, ch, wR, ch, stAng, (stAng + mswAng), false).replace("M", "L")} L${x3},${t}${PPTXShapeUtils.shapeArc(x3, ch, wR, ch, c3d4, (c3d4 + swAngDeg), false).replace("M", "L")} L${fmt(x5 + th)},${y1} L${x8},${y1} zM${x3},${t}${PPTXShapeUtils.shapeArc(x3, ch, wR, ch, stAng2, (stAng2 + swAng2), false).replace("M", "L")}${PPTXShapeUtils.shapeArc(wR, ch, wR, ch, cd2, (cd2 + swAng3), false).replace("M", "L")}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -14885,23 +13397,9 @@ const PPTXShapeUtils = (function() {
                         y4 = fmt(y4);
                         y5 = fmt(y5);
 
-                        let d_val = "M" + r + "," + y3 +
-                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L") +
-                            " L" + l + "," + t +
-                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
-                            " L" + r + "," + y3 +
-                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, 0, swAngDg, false).replace("M", "L") +
-                            " L" + x1 + "," + y7 +
-                            " L" + x1 + "," + y8 +
-                            " L" + l + "," + y6 +
-                            " L" + x1 + "," + y4 +
-                            " L" + x1 + "," + y5 +
-                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L") +
-                            PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L");
+                        let d_val = `M${r},${y3}${PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L")} L${l},${t}${PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L")} L${r},${y3}${PPTXShapeUtils.shapeArc(l, y3, cw, hR, 0, swAngDg, false).replace("M", "L")} L${x1},${y7} L${x1},${y8} L${l},${y6} L${x1},${y4} L${x1},${y5}${PPTXShapeUtils.shapeArc(l, hR, cw, hR, swAngDg, (swAngDg + swAng2Dg), false).replace("M", "L")}${PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L")}`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -15002,22 +13500,9 @@ const PPTXShapeUtils = (function() {
                          * 5. 画第三个圆弧（箭头部分）
                          * 6. 闭合
                          */
-                        let d_val = "M" + l + "," + hR +
-                            shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
-                            " L" + x1 + "," + y5 +
-                            " L" + x1 + "," + y4 +
-                            " L" + r + "," + y6 +
-                            " L" + x1 + "," + y8 +
-                            " L" + x1 + "," + y7 +
-                            shapeArcAlt(cw, y3, cw, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L") +
-                            " L" + l + "," + hR +
-                            shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + cd4, false).replace("M", "L") +
-                            " L" + r + "," + th +
-                            shapeArcAlt(cw, y3, cw, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L") +
-                            " z";
+                        let d_val = `M${l},${hR}${shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + mswAngDg, false).replace("M", "L")} L${x1},${y5} L${x1},${y4} L${r},${y6} L${x1},${y8} L${x1},${y7}${shapeArcAlt(cw, y3, cw, hR, stAngDg, stAngDg + swAngDg, false).replace("M", "L")} L${l},${hR}${shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + cd4, false).replace("M", "L")} L${r},${th}${shapeArcAlt(cw, y3, cw, hR, c3d4, c3d4 + swAng2dg, false).replace("M", "L")} z`;
 
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -15126,20 +13611,8 @@ const PPTXShapeUtils = (function() {
                         t = fmt(t);
 
                         let d_val = //"M" + ix + "," +iy +
-                            fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, stAng2dg, stAng2dg + swAng2dg, false)) + //.replace("M","L") +
-                            " L" + x5 + "," + y1 +
-                            " L" + x4 + "," + y1 +
-                            " L" + x6 + "," + t +
-                            " L" + x8 + "," + y1 +
-                            " L" + x7 + "," + y1 +
-                            fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, stAng3dg, stAng3dg + swAngDg, false)).replace("M", "L") +
-                            " L" + wR + "," + b +
-                            fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, cd4, cd2, false)).replace("M", "L") +
-                            " L" + th + "," + t +
-                            fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, cd2, cd4, false)).replace("M", "L") +
-                            "";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                            `${fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, stAng2dg, stAng2dg + swAng2dg, false))} L${x5},${y1} L${x4},${y1} L${x6},${t} L${x8},${y1} L${x7},${y1}${fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, stAng3dg, stAng3dg + swAngDg, false)).replace("M", "L")} L${wR},${b}${fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, cd4, cd2, false)).replace("M", "L")} L${th},${t}${fmtArc(PPTXShapeUtils.shapeArc(x3, 0, wR, ch, cd2, cd4, false)).replace("M", "L")}`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -15178,18 +13651,13 @@ const PPTXShapeUtils = (function() {
 
                         let tranglRott = "";
                         if (shapType == "flowChartMagneticDrum") {
-                            tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
+                            tranglRott = `transform='rotate(90 ${w / 2},${h / 2})'`;
                         }
 
                         // 使用 shapeArcAlt，参数是半径而非直径（参考 pptxjs.js）
-                        dVal = shapeArcAlt(wd2, y1, wd2, y1, 0, cd2, false) +
-                            shapeArcAlt(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L") +
-                            " L" + w + "," + y3 +
-                            shapeArcAlt(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L") +
-                            " L" + 0 + "," + y1;
+                        dVal = `${shapeArcAlt(wd2, y1, wd2, y1, 0, cd2, false)}${shapeArcAlt(wd2, y1, wd2, y1, cd2, cd2 + cd2, false).replace("M", "L")} L${w},${y3}${shapeArcAlt(wd2, y3, wd2, y1, 0, cd2, false).replace("M", "L")} L${0},${y1}`;
 
-                        result += "<path " + tranglRott + " d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path ${tranglRott} d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -15246,17 +13714,9 @@ const PPTXShapeUtils = (function() {
                         yP2 = yF + dy5;
                         xP2 = w / 4;
 
-                        let dVal = "M" + 0 + "," + h +
-                            " Q" + xP1 + "," + yP1 + " " + xB + "," + yB +
-                            " L" + xC + "," + 0 +
-                            " L" + w + "," + yD +
-                            " L" + xE + "," + yE +
-                            " L" + xF + "," + yF +
-                            " Q" + xP2 + "," + yP2 + " " + 0 + "," + h +
-                            " z";
+                        let dVal = `M${0},${h} Q${xP1},${yP1} ${xB},${yB} L${xC},${0} L${w},${yD} L${xE},${yE} L${xF},${yF} Q${xP2},${yP2} ${0},${h} z`;
 
-                        result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -15510,15 +13970,8 @@ const PPTXShapeUtils = (function() {
                         const swiAng = iswAng * 180 / Math.PI;
                         const ediAng = stiAng + swiAng;
 
-                        let d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
-                            " L" + xGp + "," + yGp +
-                            " L" + xA + "," + yA +
-                            " L" + xBp + "," + yBp +
-                            " L" + xC + "," + yC +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `${PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false)} L${xGp},${yGp} L${xA},${yA} L${xBp},${yBp} L${xC},${yC}${PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L")} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -15763,17 +14216,8 @@ const PPTXShapeUtils = (function() {
                         const swiAng = iswAng * 180 / Math.PI;
                         const ediAng = stiAng + swiAng;
 
-                        let d_val = "M" + xE + "," + yE +
-                            " L" + xD + "," + yD +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
-                            " L" + xBp + "," + yBp +
-                            " L" + xA + "," + yA +
-                            " L" + xGp + "," + yGp +
-                            " L" + xF + "," + yF +
-                            PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L") +
-                            " z";
-                        result += "<path d='" + d_val + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        let d_val = `M${xE},${yE} L${xD},${yD}${PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L")} L${xBp},${yBp} L${xA},${yA} L${xGp},${yGp} L${xF},${yF}${PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false).replace("M", "L")} z`;
+                        result += `<path d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
 
                         break;
                     }
@@ -15796,14 +14240,9 @@ const PPTXShapeUtils = (function() {
                         // 漏斗底部宽度
                         const bottomW = w * a / cnstVal2;
                         
-                        var d = "M0,0" + // 左上角
-                            " L" + w + ",0" + // 右上角
-                            " L" + ((w + bottomW) / 2) + "," + h + // 右下角
-                            " L" + ((w - bottomW) / 2) + "," + h + // 左下角
-                            " z";
+                        var d = `M0,0 L${w},0 L${((w + bottomW) / 2)},${h} L${((w - bottomW) / 2)},${h} z`;
                         
-                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "leftRightCircularArrow": {
@@ -15817,19 +14256,9 @@ const PPTXShapeUtils = (function() {
                         let hd2 = h / 2;
                         let r = Math.min(wd2, hd2);
                         
-                        var d = "M" + (wd2 - r) + "," + hd2 +
-                            PPTXShapeUtils.shapeArc(wd2, hd2, r, r, 180, 360, false).replace("M", "L") +
-                            // 左箭头
-                            " M" + (wd2 - r - r * 0.3) + "," + (hd2 - r * 0.2) +
-                            " L" + (wd2 - r) + "," + hd2 +
-                            " L" + (wd2 - r - r * 0.3) + "," + (hd2 + r * 0.2) +
-                            // 右箭头
-                            " M" + (wd2 + r + r * 0.3) + "," + (hd2 - r * 0.2) +
-                            " L" + (wd2 + r) + "," + hd2 +
-                            " L" + (wd2 + r + r * 0.3) + "," + (hd2 + r * 0.2);
+                        var d = `M${(wd2 - r)},${hd2}${PPTXShapeUtils.shapeArc(wd2, hd2, r, r, 180, 360, false).replace("M", "L")} M${(wd2 - r - r * 0.3)},${(hd2 - r * 0.2)} L${(wd2 - r)},${hd2} L${(wd2 - r - r * 0.3)},${(hd2 + r * 0.2)} M${(wd2 + r + r * 0.3)},${(hd2 - r * 0.2)} L${(wd2 + r)},${hd2} L${(wd2 + r + r * 0.3)},${(hd2 + r * 0.2)}`;
                         
-                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                     case "flowChartOfflineStorage": {
@@ -15839,16 +14268,9 @@ const PPTXShapeUtils = (function() {
                          * 形状说明：
                          * - 底部有三个向下的尖角（代表存储）
                          */
-                        var d = "M0,0" +
-                            " L" + w + ",0" +
-                            " L" + w + "," + (h * 0.7) +
-                            " L" + (w * 0.66) + "," + h +
-                            " L" + (w * 0.34) + "," + h +
-                            " L0," + (h * 0.7) +
-                            " z";
+                        var d = `M0,0 L${w},0 L${w},${(h * 0.7)} L${(w * 0.66)},${h} L${(w * 0.34)},${h} L0,${(h * 0.7)} z`;
                         
-                        result += "<path d='" + d + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
-                            "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
+                        result += `<path d='${d}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
                 }
@@ -15865,15 +14287,7 @@ const PPTXShapeUtils = (function() {
                     animationAttrs = ` data-animation='${JSON.stringify(animationData)}'`;
                 }
 
-                result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
-                    " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
-                    "' style='" +
-                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
-                    PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    transform3dStyle +
-                    " z-index: " + order + ";" +
-                    "'" + dataAttrs1 + animationAttrs + ">";
+                result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${transform3dStyle} z-index: ${order};'${dataAttrs1}${animationAttrs}>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -15903,14 +14317,7 @@ const PPTXShapeUtils = (function() {
                     animationAttrs2 = ` data-animation='${JSON.stringify(animationData2)}'`;
                 }
 
-                result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) + //block content
-                    " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
-                    "' style='" +
-                    PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
-                    PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    " z-index: " + order + ";" +
-                    "'" + dataAttrs2 + animationAttrs2 + ">";
+                result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)} z-index: ${order};'${dataAttrs2}${animationAttrs2}>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -15942,16 +14349,7 @@ const PPTXShapeUtils = (function() {
                     ` data-animation='${JSON.stringify(animationData3)}'`;
                 }
 
-                result += "<div class='block " + PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) +//block content 
-                    " " + PPTXStyleUtils.getContentDir(node, type, warpObj) +
-                    "' _id='" + id + "' _idx='" + idx + "' _type='" + type + "' _name='" + name +
-                    "' style='" +
-                    PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType) +
-                    PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode) +
-                    PPTXStyleUtils.getBorder(node, pNode, false, "shape", warpObj) +
-                    await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source) +
-                    " z-index: " + order + ";" +
-                    "'" + dataAttrs3 + ">";
+                result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${PPTXStyleUtils.getBorder(node, pNode, false, "shape", warpObj)}${await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source)} z-index: ${order};'${dataAttrs3}>`;
 
                 // TextBody
                 if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
@@ -17843,10 +16241,7 @@ function buildChartXml(el) {
     // 坐标轴（饼图除外）
     let axes = '';
     if (!isPie) {
-        axes = '<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling>' +
-            '<c:delete val="0"/><c:axPos val="b"/><c:crossAx val="112"/></c:catAx>' +
-            '<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling>' +
-            '<c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111"/><c:majorGridlines/></c:valAx>';
+        axes = `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:crossAx val="112"/></c:catAx><c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111"/><c:majorGridlines/></c:valAx>`;
     }
 
     const titleXml = el.title
@@ -18070,7 +16465,7 @@ async function jsonToPptx(presentation, options = {}) {
     // 图表部件 Content-Types 覆盖
     for (const chartName of allChartNames) {
         const override = `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`;
-        contentTypeXml = contentTypeXml.replace('</Types>', override + '</Types>');
+        contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
     }
     zip.file('[Content_Types].xml', contentTypeXml);
 
@@ -18261,13 +16656,13 @@ async function editPptx(fileData) {
             zip.file('ppt/_rels/presentation.xml.rels', relsText.replace(relRe, ''));
 
             // 3. 找到并移除 notesSlide（通过 slide 的 rels）
-            const slideRelsText = await readText(slidePath.replace('slides/', 'slides/_rels/') + '.rels');
+            const slideRelsText = await readText(`${slidePath.replace('slides/', 'slides/_rels/')}.rels`);
             if (slideRelsText) {
                 for (const rel of parseRelationships(slideRelsText)) {
                     if (rel.Type && rel.Type.endsWith('/notesSlide')) {
                         const notesPath = rel.Target.replace('../', 'ppt/');
                         zip.remove(notesPath);
-                        zip.remove(notesPath.replace('notesSlides/', 'notesSlides/_rels/') + '.rels');
+                        zip.remove(`${notesPath.replace('notesSlides/', 'notesSlides/_rels/')}.rels`);
                         await removeContentTypeOverride(notesPath);
                     }
                 }
@@ -18275,7 +16670,7 @@ async function editPptx(fileData) {
 
             // 4. 移除 slide 部件与关系文件
             zip.remove(slidePath);
-            zip.remove(slidePath.replace('slides/', 'slides/_rels/') + '.rels');
+            zip.remove(`${slidePath.replace('slides/', 'slides/_rels/')}.rels`);
 
             // 5. 移除 Content-Types 覆盖项
             await removeContentTypeOverride(slidePath);
@@ -18360,12 +16755,12 @@ async function editPptx(fileData) {
                 const rootRels = await readText('_rels/.rels');
                 if (rootRels && !rootRels.includes('core-properties')) {
                     const newRel = '<Relationship Id="rIdCore" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>';
-                    zip.file('_rels/.rels', rootRels.replace('</Relationships>', newRel + '</Relationships>'));
+                    zip.file('_rels/.rels', rootRels.replace('</Relationships>', `${newRel}</Relationships>`));
                 }
                 const ctText = await readText('[Content_Types].xml');
                 if (ctText && !ctText.includes('core-properties')) {
                     const override = '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>';
-                    zip.file('[Content_Types].xml', ctText.replace('</Types>', override + '</Types>'));
+                    zip.file('[Content_Types].xml', ctText.replace('</Types>', `${override}</Types>`));
                 }
             }
         },
@@ -18420,13 +16815,13 @@ async function editPptx(fileData) {
             // presentation.xml.rels 追加关系
             const relsText = await readText('ppt/_rels/presentation.xml.rels');
             const newRel = `<Relationship Id="${newRelId}" Type="${REL_TYPES.slide}" Target="slides/slide${nextNum}.xml"/>`;
-            zip.file('ppt/_rels/presentation.xml.rels', relsText.replace('</Relationships>', newRel + '</Relationships>'));
+            zip.file('ppt/_rels/presentation.xml.rels', relsText.replace('</Relationships>', `${newRel}</Relationships>`));
 
             // Content-Types 追加
             const ctText = await readText('[Content_Types].xml');
             let newCt = ctText;
             const override = `<Override PartName="/ppt/slides/slide${nextNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
-            newCt = newCt.replace('</Types>', override + '</Types>');
+            newCt = newCt.replace('</Types>', `${override}</Types>`);
             const MIME_MAP = { png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml' };
             for (const ext of mediaExts) {
                 if (!newCt.includes(`Extension="${ext}"`)) {
@@ -18856,7 +17251,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
  */
 async function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
     // Read relationship file of the slide
-    const resName = slideFileName.replace("slides/slide", "slides/_rels/slide") + ".rels";
+    const resName = `${slideFileName.replace("slides/slide", "slides/_rels/slide")}.rels`;
     const resContent = await PPTXXmlUtils.readXmlFile(zip, resName);
     const relationshipArray = resContent.Relationships.Relationship;
 
@@ -18921,7 +17316,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     }
 
     // Read slide master
-    const slideLayoutResFilename = layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout") + ".rels";
+    const slideLayoutResFilename = `${layoutFilename.replace("slideLayouts/slideLayout", "slideLayouts/_rels/slideLayout")}.rels`;
     const slideLayoutResContent = await PPTXXmlUtils.readXmlFile(zip, slideLayoutResFilename);
     const layoutRelArray = slideLayoutResContent.Relationships.Relationship;
 
@@ -18952,7 +17347,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     const slideMasterTables = PPTXNodeUtils.indexNodes(slideMasterContent);
 
     // Read slide master relationships
-    const slideMasterResFilename = masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster") + ".rels";
+    const slideMasterResFilename = `${masterFilename.replace("slideMasters/slideMaster", "slideMasters/_rels/slideMaster")}.rels`;
     const slideMasterResContent = await PPTXXmlUtils.readXmlFile(zip, slideMasterResFilename);
     const masterRelArray = slideMasterResContent.Relationships.Relationship;
 
@@ -18983,7 +17378,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
 
     if (themeFilename !== undefined) {
         const themeName = themeFilename.split("/").pop();
-        const themeResFileName = themeFilename.replace(themeName, `_rels/${themeName}`) + ".rels";
+        const themeResFileName = `${themeFilename.replace(themeName, `_rels/${themeName}`)}.rels`;
 
         themeContent = await PPTXXmlUtils.readXmlFile(zip, themeFilename);
         const themeResContent = await PPTXXmlUtils.readXmlFile(zip, themeResFileName);
@@ -19014,7 +17409,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
 
     if (diagramFilename !== undefined) {
         const diagramName = diagramFilename.split("/").pop();
-        const diagramResFileName = diagramFilename.replace(diagramName, `_rels/${diagramName}`) + ".rels";
+        const diagramResFileName = `${diagramFilename.replace(diagramName, `_rels/${diagramName}`)}.rels`;
 
         diagramContent = await PPTXXmlUtils.readXmlFile(zip, diagramFilename);
         if (diagramContent !== null && diagramContent !== undefined && diagramContent !== "") {
