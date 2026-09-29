@@ -10,7 +10,7 @@
   "exports": {
     ".": {
       "import": "./dist/ppt-parser.esm.js",
-      "require": "./dist/ppt-parser.cjs.js",
+      "require": "./dist/ppt-parser.cjs",
       "browser": "./dist/ppt-parser.browser.js",
       "types": "./index.d.ts"
     }

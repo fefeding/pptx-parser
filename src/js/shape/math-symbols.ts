@@ -3,14 +3,14 @@
  * 提供数学符号（加减乘除等）的生成和渲染功能
  */
 
-import { PPTXXmlUtils } from '../utils/xml.js';
-import { shapeArc } from './path-generators.js';
-import { SLIDE_FACTOR } from '../core/constants.js';
+import { PPTXXmlUtils } from '../utils/xml';
+import { shapeArc } from './path-generators';
+import { SLIDE_FACTOR } from '../core/constants';
 
 /**
  * 检查形状是否为数学符号形状
  */
-export function isMathSymbol(shapType) {
+export function isMathSymbol(shapType: any) {
     const mathSymbols = [
         'mathDivide', 'mathEqual', 'mathMinus', 'mathMultiply', 'mathNotEqual', 'mathPlus'
     ];
@@ -20,7 +20,7 @@ export function isMathSymbol(shapType) {
 /**
  * 渲染数学符号形状
  */
-export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node) {
+export function renderMathSymbol(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
     let result = "";
 
     // 获取形状调整参数

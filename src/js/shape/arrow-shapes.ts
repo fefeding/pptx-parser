@@ -9,7 +9,7 @@
  * - 标注箭头: xxxArrowCallout
  */
 
-import { PPTXXmlUtils } from '../utils/xml.js';
+import { PPTXXmlUtils } from '../utils/xml';
 
 // ==================== 导出函数 ====================
 
@@ -18,7 +18,7 @@ import { PPTXXmlUtils } from '../utils/xml.js';
  * @param {string} shapType - 形状类型
  * @returns {boolean} 是否为箭头形状
  */
-export function isArrow(shapType) {
+export function isArrow(shapType: any) {
     const arrowShapes = [
         // 基础箭头
         "rightArrow", "leftArrow", "upArrow", "downArrow",
@@ -55,7 +55,7 @@ export function isArrow(shapType) {
  * @param {Object} node - 形状节点
  * @returns {string} SVG 字符串
  */
-export function renderArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node) {
+export function renderArrow(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
     // 基础箭头形状（rightArrow, leftArrow, upArrow, downArrow）
     if (["rightArrow", "leftArrow", "upArrow", "downArrow"].includes(shapType)) {
         return renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
@@ -77,7 +77,7 @@ export function renderArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, 
  * @param {Object} node - 形状节点
  * @returns {Object} 包含 adj1, adj2 值的对象
  */
-function readAdjustmentParams(node, w, h) {
+function readAdjustmentParams(node: any, w: any, h: any) {
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
     let sAdj1, sAdj1_val = 0.25;
     let sAdj2, sAdj2_val = 0.5;
@@ -113,7 +113,7 @@ function readAdjustmentParams(node, w, h) {
  * @param {Object} node - 形状节点
  * @returns {string} SVG 字符串
  */
-function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node) {
+function renderBasicArrow(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
     let { sAdj1_val, sAdj2_val } = readAdjustmentParams(node, w, h);
     const max_sAdj2_const = w / h;
     
@@ -190,7 +190,7 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
  * @param {Object} node - 形状节点
  * @returns {string} SVG 字符串
  */
-function renderDoubleArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node) {
+function renderDoubleArrow(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
     let sAdj1_val = 0.25;
     let sAdj2_val = 0.5;
     const max_sAdj2_const = w / h;
@@ -250,7 +250,7 @@ function renderDoubleArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
  * @param {string} shpId - 形状ID
  * @returns {string} SVG 字符串
  */
-function buildPolygon(points, imgFillFlg, grndFillFlg, fillColor, border, shpId) {
+function buildPolygon(points: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
     const fillUrl = !imgFillFlg 
         ? (grndFillFlg ? `url(#linGrd_${shpId})` : fillColor) 
         : `url(#imgPtrn_${shpId})`;

@@ -1,4 +1,4 @@
-import { PPTXXmlUtils } from '../utils/xml.js';
+import { PPTXXmlUtils } from '../utils/xml';
 
 const SLIDE_FACTOR = 0.0001;
 
@@ -16,7 +16,7 @@ const SLIDE_FACTOR = 0.0001;
  * @param {object} node - XML node for shape adjustments
  * @returns {string} SVG string
  */
-export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt, node) {
+export function renderStar(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, shapeArcAlt: any, node: any) {
     let result = '';
     const hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
     const fill = !imgFillFlg ? (grndFillFlg ? `url(#linGrd_${shpId})` : fillColor) : `url(#imgPtrn_${shpId})`;
@@ -516,7 +516,7 @@ export function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
  * @param {string} shapType - Shape type
  * @returns {boolean}
  */
-export function isStar(shapType) {
+export function isStar(shapType: any) {
     return ["star4", "star5", "star6", "star7", "star8", "star10", "star12", "star16", "star24", "star32"].includes(shapType);
 }
 
@@ -527,13 +527,13 @@ export function isStar(shapType) {
  * @param {number} defaultValue - Default value
  * @returns {number}
  */
-function getAdjValue(node, name, defaultValue) {
+function getAdjValue(node: any, name: any, defaultValue: any) {
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
     if (shapAdjst !== undefined) {
         if (Array.isArray(shapAdjst)) {
             for (let key of Object.keys(shapAdjst)) {
-                if (shapAdjst[key] && shapAdjst[key]["attrs"] && shapAdjst[key]["attrs"]["name"] === name) {
-                    return parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * SLIDE_FACTOR;
+                if ((shapAdjst as any)[key] && (shapAdjst as any)[key]["attrs"] && (shapAdjst as any)[key]["attrs"]["name"] === name) {
+                    return parseInt((shapAdjst as any)[key]["attrs"]["fmla"].substr(4)) * SLIDE_FACTOR;
                 }
             }
         } else if (shapAdjst["attrs"] && shapAdjst["attrs"]["name"] === name) {
@@ -550,6 +550,6 @@ function getAdjValue(node, name, defaultValue) {
  * @param {number} max - Maximum value
  * @returns {number}
  */
-function clamp(value, min, max) {
+function clamp(value: any, min: any, max: any) {
     return value < min ? min : value > max ? max : value;
 }

@@ -23,10 +23,10 @@
  * @module shape/shape
  */
 
-import { PPTXXmlUtils } from '../utils/xml.js';
-import { PPTXStyleUtils } from '../utils/style.js';
-import { PPTXTextUtils } from '../utils/text.js';
-import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from '../core/constants.js';
+import { PPTXXmlUtils } from '../utils/xml';
+import { PPTXStyleUtils } from '../utils/style';
+import { PPTXTextUtils } from '../utils/text';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from '../core/constants';
 import {
     polarToCartesian,
     shapeArc,
@@ -35,14 +35,14 @@ import {
     shapeSnipRoundRectAlt,
     shapePie,
     shapeGear
-} from './path-generators.js';
-import { renderCustomShape } from './custom-shape.js';
-import { renderStar, isStar } from './star-shapes.js';
-import { renderMathSymbol, isMathSymbol } from './math-symbols.js';
-import { renderBracket, isBracket } from './bracket-shapes.js';
-import { renderMiscShape, isMiscShape } from './misc-shapes.js';
-import { renderPieShape, isPieShape } from './pie-shapes.js';
-import { renderArrow, isArrow } from './arrow-shapes.js';
+} from './path-generators';
+import { renderCustomShape } from './custom-shape';
+import { renderStar, isStar } from './star-shapes';
+import { renderMathSymbol, isMathSymbol } from './math-symbols';
+import { renderBracket, isBracket } from './bracket-shapes';
+import { renderMiscShape, isMiscShape } from './misc-shapes';
+import { renderPieShape, isPieShape } from './pie-shapes';
+import { renderArrow, isArrow } from './arrow-shapes';
 import {
     RECT_SHAPES,
     ROUND_RECT_SHAPES,
@@ -57,8 +57,8 @@ import {
     SPECIAL_SHAPES,
     getShapeCategory,
     isComplexShape
-} from './shape-categories.js';
-import { renderActionButton, isActionButton } from './action-buttons.js';
+} from './shape-categories';
+import { renderActionButton, isActionButton } from './action-buttons';
 
 export const PPTXShapeUtils = (function() {
     /**
@@ -73,7 +73,7 @@ export const PPTXShapeUtils = (function() {
      * @param {string} sType - 形状类型
      * @returns {string} data- 属性字符串
      */
-    function genShapeDataAttributes(node, slideXfrmNode, id, name, idx, type, rotate, sType) {
+    function genShapeDataAttributes(node: any, slideXfrmNode: any, id: any, name: any, idx: any, type: any, rotate: any, sType: any) {
         let dataAttrs = '';
         
         // 提取位置和尺寸信息
@@ -117,7 +117,7 @@ export const PPTXShapeUtils = (function() {
         return dataAttrs;
     }
 
-    async function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, settings) {
+    async function genShape(node: any, pNode: any, slideLayoutSpNode: any, slideMasterSpNode: any, id: any, name: any, idx: any, type: any, order: any, warpObj: any, isUserDrawnBg: any, sType: any, source: any, settings: any) {
             //var dltX = 0;
             //var dltY = 0;
             const xfrmList = ["p:spPr", "a:xfrm"];
@@ -586,7 +586,7 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "flowChartDocument": {
-                        var y1, y2, y3, x1;
+                        var y1, y2: any, y3, x1;
                         x1 = w * 10800 / 21600;
                         y1 = h * 17322 / 21600;
                         y2 = h * 20172 / 21600;
@@ -596,7 +596,7 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "flowChartMultidocument": {
-                        var y1, y2, y3, y4, y5, y6, y7, y8, y9, x1, x2, x3, x4, x5, x6, x7;
+                        var y1, y2: any, y3, y4, y5, y6, y7, y8, y9, x1, x2: any, x3, x4, x5, x6, x7;
                         y1 = h * 18022 / 21600;
                         y2 = h * 3675 / 21600;
                         y3 = h * 23542 / 21600;
@@ -643,7 +643,7 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "flowChartTerminator": {
-                        var x1, x2, y1, cd2: any = 180, cd4: any = 90, c3d4 = 270;
+                        var x1, x2: any, y1, cd2: any = 180, cd4: any = 90, c3d4 = 270;
                         x1 = w * 3475 / 21600;
                         x2 = w * 18125 / 21600;
                         y1 = h * 10800 / 21600;
@@ -653,7 +653,7 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "flowChartPunchedTape": {
-                        var x1, x1, y1, y2, cd2: any = 180;
+                        var x1, x1, y1, y2: any, cd2: any = 180;
                         x1 = w * 5 / 20;
                         y1 = h * 2 / 20;
                         y2 = h * 18 / 20;
@@ -670,7 +670,7 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "flowChartDisplay": {
-                        var x1, x2, y1, c3d4 = 270, cd2: any = 180;
+                        var x1, x2: any, y1, c3d4 = 270, cd2: any = 180;
                         x1 = w * 1 / 6;
                         x2 = w * 5 / 6;
                         y1 = h * 3 / 6;
@@ -949,7 +949,7 @@ export const PPTXShapeUtils = (function() {
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        var maxAdj, a, shd2, x1, x2, dy1, y1, y2, vc = h / 2, hd2: any = h / 2;
+                        var maxAdj, a, shd2, x1, x2: any, dy1, y1, y2: any, vc = h / 2, hd2: any = h / 2;
                         const ss = Math.min(w, h);
                         maxAdj = cnstVal1 * w / ss;
                         a = (adj < 0) ? 0 : (adj > maxAdj) ? maxAdj : adj;
@@ -1221,7 +1221,7 @@ export const PPTXShapeUtils = (function() {
                         if (shapAdjst !== undefined) {
                             sAdj1_val = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        var a1, x2, y2;
+                        var a1, x2: any, y2: any;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > cnsVal) a1 = cnsVal
                         else a1 = sAdj1_val
@@ -1283,7 +1283,7 @@ export const PPTXShapeUtils = (function() {
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        var a1, r2, tw, th, sw, sh, dx1, dy1, x1, y1, x2, y2, rd45;
+                        var a1, r2, tw, th, sw, sh, dx1, dy1, x1, y1, x2: any, y2: any, rd45;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnsVal2) a1 = cnsVal2
                         else a1 = adj1
@@ -1333,7 +1333,7 @@ export const PPTXShapeUtils = (function() {
                         else if (adjVal > 50000) adjVal = 50000;
 
                         // 计算圆弧半径：adj/100000 * min(w, h)
-                        let r = (adjVal / 100000) * Math.min(w, h);
+                        let r: any = (adjVal / 100000) * Math.min(w, h);
 
                         /**
                          * 路径绘制顺序（逆时针从左上角圆弧开始）：
@@ -1433,7 +1433,7 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "heart": {
-                        var dx1, dx2: any, x1, x2, x3, x4, y1;
+                        var dx1, dx2: any, x1, x2: any, x3, x4, y1;
                         dx1 = w * 49 / 48;
                         dx2 = w * 10 / 48
                         x1 = w / 2 - dx1
@@ -1509,7 +1509,7 @@ export const PPTXShapeUtils = (function() {
                         const cnstVal1 = 50000 * refr;
                         const cnstVal2 = 100000 * refr;
                         const ss = Math.min(w, h);
-                        var a, x1, x2, y2;
+                        var a, x1, x2: any, y2: any;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         x1 = ss * a / cnstVal2;
                         x2 = w - x1;
@@ -1531,7 +1531,7 @@ export const PPTXShapeUtils = (function() {
                         const cnstVal1 = 50000 * refr;
                         const cnstVal2 = 100000 * refr;
                         const ss = Math.min(w, h);
-                        var a, dy2, dy1, x1, x2, y2, y1;
+                        var a, dy2, dy1, x1, x2: any, y2: any, y1;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         dy2 = ss * a / cnstVal2;
                         dy1 = dy2 / 5;
@@ -1551,13 +1551,13 @@ export const PPTXShapeUtils = (function() {
                         // 根据 Office Open XML 规范，X坐标使用w缩放，Y坐标使用h缩放
 
                         // 辅助函数：格式化数字为2位小数
-                        function fmt(num) {
+                        function fmt(num: any) {
                             return parseFloat(num.toFixed(2));
                         }
 
                         // 生成椭圆弧路径的辅助函数（使用SVG A命令）
                         // 参数：中心点(cx,cy)，半径(rx,ry)，起始角度startAngle，扫描角度sweepAngle
-                        function ellipseArc(cx, cy, rx, ry, startAngle, sweepAngle) {
+                        function ellipseArc(cx: any, cy: any, rx: any, ry: any, startAngle: any, sweepAngle: any) {
                             const endAngle = startAngle + sweepAngle;
                             // 计算起点和终点
                             const startX = cx + rx * Math.cos(startAngle * Math.PI / 180);
@@ -1770,7 +1770,7 @@ export const PPTXShapeUtils = (function() {
                         const angVal1 = 11 * Math.PI / 180;
                         const ss = Math.min(w, h);
                         var dxPos, dyPos, xPos, yPos, sdx, sdy, pang, stAng, enAng, dx1, dy1, x1, y1, dx2: any, dy2,
-                            x2, y2, stAng1, enAng1, swAng1, swAng2, swAng,
+                            x2: any, y2: any, stAng1, enAng1, swAng1, swAng2, swAng,
                             vc = h / 2, hc = w / 2;
                         dxPos = w * adj1 / cnstVal1;
                         dyPos = h * adj2 / cnstVal1;
@@ -1843,8 +1843,8 @@ export const PPTXShapeUtils = (function() {
                         }
                         let d_val;
                         const cnstVal1 = 100000 * SLIDE_FACTOR;
-                        var dxPos, dyPos, xPos, yPos, dx, dy, dq, ady, adq, dz, xg1, xg2, x1, x2,
-                            yg1, yg2, y1, y2, t1, xl, t2, xt, t3, xr, t4, xb, t5, yl, t6, yt, t7, yr, t8, yb,
+                        var dxPos, dyPos, xPos, yPos, dx, dy, dq, ady, adq, dz, xg1, xg2, x1, x2: any,
+                            yg1, yg2, y1, y2: any, t1, xl, t2, xt, t3, xr, t4, xb, t5, yl, t6, yt, t7, yr, t8, yb,
                             vc = h / 2, hc = w / 2;
                         dxPos = w * adj1 / cnstVal1;
                         dyPos = h * adj2 / cnstVal1;
@@ -1911,7 +1911,7 @@ export const PPTXShapeUtils = (function() {
                         let d_val;
                         const cnstVal1 = 100000 * SLIDE_FACTOR;
                         const ss = Math.min(w, h);
-                        var dxPos, dyPos, xPos, yPos, dq, ady, adq, dz, xg1, xg2, x1, x2, yg1, yg2, y1, y2,
+                        var dxPos, dyPos, xPos, yPos, dq, ady, adq, dz, xg1, xg2, x1, x2: any, yg1, yg2, y1, y2: any,
                             t1, xl, t2, xt, t3, xr, t4, xb, t5, yl, t6, yt, t7, yr, t8, yb, u1, u2, v2,
                             vc = h / 2, hc = w / 2;
                         dxPos = w * adj1 / cnstVal1;
@@ -2023,7 +2023,7 @@ export const PPTXShapeUtils = (function() {
                                     adj3 = 112500 * refr;
                                     adj4 = -38333 * refr;
                                 }
-                                var y1, x1, y2, x2;
+                                var y1, x1, y2: any, x2: any;
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
@@ -2046,7 +2046,7 @@ export const PPTXShapeUtils = (function() {
                                     adj5 = 112500 * refr;
                                     adj6 = -46667 * refr;
                                 }
-                                var y1, x1, y2, x2, y3, x3;
+                                var y1, x1, y2: any, x2: any, y3, x3;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2077,7 +2077,7 @@ export const PPTXShapeUtils = (function() {
                                     adj7 = 112963 * refr;
                                     adj8 = -8333 * refr;
                                 }
-                                var y1, x1, y2, x2, y3, x3, y4, x4;
+                                var y1, x1, y2: any, x2: any, y3, x3, y4, x4;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2105,7 +2105,7 @@ export const PPTXShapeUtils = (function() {
                                     adj3 = 112500 * refr;
                                     adj4 = -38333 * refr;
                                 }
-                                var y1, x1, y2, x2;
+                                var y1, x1, y2: any, x2: any;
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
                                 y2 = h * adj3 / cnstVal1;
@@ -2127,7 +2127,7 @@ export const PPTXShapeUtils = (function() {
                                     adj5 = 112500 * refr;
                                     adj6 = -46667 * refr;
                                 }
-                                var y1, x1, y2, x2, y3, x3;
+                                var y1, x1, y2: any, x2: any, y3, x3;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2156,7 +2156,7 @@ export const PPTXShapeUtils = (function() {
                                     adj7 = 112963 * refr;
                                     adj8 = -8333 * refr;
                                 }
-                                var y1, x1, y2, x2, y3, x3, y4, x4;
+                                var y1, x1, y2: any, x2: any, y3, x3, y4, x4;
 
                                 y1 = h * adj1 / cnstVal1;
                                 x1 = w * adj2 / cnstVal1;
@@ -2209,7 +2209,7 @@ export const PPTXShapeUtils = (function() {
                         const cnstVal4 = 400000 * refr;
                         const ss = Math.min(w, h);
                         var a3, maxAdj1, a1, w1, maxAdj2, a2, x1, x4, dy1, dy2, ly1, ry4, ly2, ry3, ly4, ry1,
-                            ly3, ry2, hR, x2, x3, y1, y2, wd32 = w / 32, vc = h / 2, hc = w / 2;
+                            ly3, ry2, hR, x2: any, x3, y1, y2: any, wd32 = w / 32, vc = h / 2, hc = w / 2;
 
                         a3 = (adj3 < 0) ? 0 : (adj3 > cnstVal1) ? cnstVal1 : adj3;
                         maxAdj1 = cnstVal2 - a3;
@@ -2265,8 +2265,8 @@ export const PPTXShapeUtils = (function() {
                         const cnstVal4 = 100000 * SLIDE_FACTOR;
                         const cnstVal5 = 200000 * SLIDE_FACTOR;
                         const cnstVal6 = 400000 * SLIDE_FACTOR;
-                        let hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
-                        var a1, a2, x10: any, dx2: any, x2, x9: any, x3, x8: any, x5, x6, x4, x7, y1, y2, y4, y3, hR, y6;
+                        let hc = w / 2, t = 0, l = 0, b: any = h, r: any = w, wd8 = w / 8, wd32 = w / 32;
+                        var a1, a2, x10: any, dx2: any, x2: any, x9: any, x3, x8: any, x5, x6, x4, x7, y1, y2: any, y4, y3, hR, y6;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal2) ? cnstVal2 : adj1;
                         a2 = (adj2 < cnstVal1) ? cnstVal1 : (adj2 > cnstVal3) ? cnstVal3 : adj2;
                         x10 = r - wd8;
@@ -2327,10 +2327,10 @@ export const PPTXShapeUtils = (function() {
                         const cnstVal2 = -10000 * SLIDE_FACTOR;
                         const cnstVal3 = 50000 * SLIDE_FACTOR;
                         const cnstVal4 = 100000 * SLIDE_FACTOR;
-                        let hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
+                        let hc = w / 2, t = 0, l = 0, b: any = h, r: any = w, wd8 = w / 8, wd32 = w / 32;
                         if (shapType == "doubleWave") {
                             const cnstVal1 = 12500 * SLIDE_FACTOR;
-                            var a1, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2: any, x2, dx8, x8: any, dx3, x3, dx4, x4, x5, x6, x7, x9: any, x15, x10: any, x11: any, x12, x13, x14;
+                            var a1, a2, y1, dy2, y2: any, y3, y4, y5, y6, of2, dx2: any, x2: any, dx8, x8: any, dx3, x3, dx4, x4, x5, x6, x7, x9: any, x15, x10: any, x11: any, x12, x13, x14;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal1) ? cnstVal1 : adj1;
                             a2 = (adj2 < cnstVal2) ? cnstVal2 : (adj2 > cnstVal4) ? cnstVal4 : adj2;
                             y1 = h * a1 / cnstVal4;
@@ -2363,7 +2363,7 @@ export const PPTXShapeUtils = (function() {
                             d_val = `M${x2},${y1} C${x3},${y2} ${x4},${y3} ${x5},${y1} C${x6},${y2} ${x7},${y3} ${x8},${y1} L${x15},${y4} C${x14},${y6} ${x13},${y5} ${x12},${y4} C${x11},${y6} ${x10},${y5} ${x9},${y4} z`;
                         } else if (shapType == "wave") {
                             const cnstVal5 = 20000 * SLIDE_FACTOR;
-                            var a1, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2: any, x2, dx5, x5, dx3, x3, x4, x6, x10: any, x7, x8: any;
+                            var a1, a2, y1, dy2, y2: any, y3, y4, y5, y6, of2, dx2: any, x2: any, dx5, x5, dx3, x3, x4, x6, x10: any, x7, x8: any;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
                             a2 = (adj2 < cnstVal2) ? cnstVal2 : (adj2 > cnstVal4) ? cnstVal4 : adj2;
                             y1 = h * a1 / cnstVal4;
@@ -2418,8 +2418,8 @@ export const PPTXShapeUtils = (function() {
                         const cnstVal3 = 75000 * SLIDE_FACTOR;
                         const cnstVal4 = 100000 * SLIDE_FACTOR;
                         const cnstVal5 = 200000 * SLIDE_FACTOR;
-                        let hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8;
-                        var a1, a2, q10, q11, q12, minAdj3, a3, dx2: any, x2, x3, x4, x5, x6, dy1, f1, q1, q2,
+                        let hc = w / 2, t = 0, l = 0, b: any = h, r: any = w, wd8 = w / 8;
+                        var a1, a2, q10, q11, q12, minAdj3, a3, dx2: any, x2: any, x3, x4, x5, x6, dy1, f1, q1, q2,
                             cx1, cx2, q1, dy3, q3, q4, q5, rh, q8, cx4, q9, cx5;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal4) ? cnstVal4 : adj1;
                         a2 = (adj2 < cnstVal1) ? cnstVal1 : (adj2 > cnstVal3) ? cnstVal3 : adj2;
@@ -2451,7 +2451,7 @@ export const PPTXShapeUtils = (function() {
                         q9 = f1 * cx4;
                         cx5 = r - cx4;
                         if (shapType == "ellipseRibbon") {
-                            var y1, cy1, y3, q6, q7, cy3, y2, y5, y6,
+                            var y1, cy1, y3, q6, q7, cy3, y2: any, y5, y6,
                                 cy4, cy6, y7, cy7, y8;
                             y1 = f1 * q2;
                             cy1 = f1 * cx1;
@@ -2470,7 +2470,7 @@ export const PPTXShapeUtils = (function() {
                             //
                             d_val = `M${l},${t} Q${cx1},${cy1} ${x3},${y1} L${x2},${y3} Q${hc},${cy3} ${x5},${y3} L${x4},${y1} Q${cx2},${cy1} ${r},${t} L${x6},${y2} L${r},${rh} Q${cx5},${cy4} ${x5},${y5} L${x5},${y6} Q${hc},${cy6} ${x2},${y6} L${x2},${y5} Q${cx4},${cy4} ${l},${rh} L${wd8},${y2} zM${x2},${y5} L${x2},${y3}M${x5},${y3} L${x5},${y5}M${x3},${y1} L${x3},${y7}M${x4},${y7} L${x4},${y1}`;
                         } else if (shapType == "ellipseRibbon2") {
-                            var u1, y1, cu1, cy1, q3, q5, u3, y3, q6, q7, cu3, cy3, rh, q8, u2, y2,
+                            var u1, y1, cu1, cy1, q3, q5, u3, y3, q6, q7, cu3, cy3, rh, q8, u2, y2: any,
                                 u5, y5, u6, y6, cu4, cy4, cu6, cy6, u7, y7, cu7, cy7;
                             u1 = f1 * q2;
                             y1 = b - u1;
@@ -2515,7 +2515,7 @@ export const PPTXShapeUtils = (function() {
                         if (lineH === undefined) lineH = h;
                         
                         // 根据flipH和flipV确定线条的起点和终点
-                        var x1: any = 0, y1: any = 0, x2 = lineW, y2 = lineH;
+                        var x1: any = 0, y1: any = 0, x2: any = lineW, y2: any = lineH;
                         
                         result += `<line x1='${x1}' y1='${y1}' x2='${x2}' y2='${y2}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
                         if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
@@ -2625,7 +2625,7 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2: any, x3, dx3, x4, x5, x6, y2, y3, y4, y5, y6, maxAdj1, maxAdj3;
+                        var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2: any, dx2: any, x3, dx3, x4, x5, x6, y2: any, y3, y4, y5, y6, maxAdj1, maxAdj3;
                         const minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
@@ -2681,7 +2681,7 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2: any, x3, dx3, x4, x5, x6, y2, dy2, y3, y4, y5, maxAdj1, maxAdj3;
+                        var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2: any, dx2: any, x3, dx3, x4, x5, x6, y2: any, dy2, y3, y4, y5, maxAdj1, maxAdj3;
                         const minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
@@ -2737,7 +2737,7 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, a1, a2, a3, x1, x2, dx4, dx3, x3, x4, x5, y2, y3, y4, y5, maxAdj1, maxAdj3;
+                        var vc = h / 2, hc = w / 2, a1, a2, a3, x1, x2: any, dx4, dx3, x3, x4, x5, y2: any, y3, y4, y5, maxAdj1, maxAdj3;
                         const minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
@@ -2791,7 +2791,7 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, a1, a2, a3, dx1, x1, dx2: any, x2, dx3, x3, x4, y1, y2, dy2;
+                        var vc = h / 2, hc = w / 2, a1, a2, a3, dx1, x1, dx2: any, x2: any, dx3, x3, x4, y1, y2: any, dy2;
                         const minWH = Math.min(w, h);
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
@@ -2800,7 +2800,7 @@ export const PPTXShapeUtils = (function() {
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
                         if (adj3 < 0) a3 = 0
-                        else if (adj3 > maxAdj3) a3 = maxAdj3
+                        else if (adj3 > (maxAdj3 as any)) a3 = maxAdj3
                         else a3 = adj3
                         y1 = minWH * a3 / cnstVal2;
                         dx1 = minWH * a2 / cnstVal1;
@@ -2987,7 +2987,7 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var a1, a2, x4, x5, dx5, x6, dx6, y1, dy1, y2, maxAdj2, vc = h / 2;
+                        var a1, a2, x4, x5, dx5, x6, dx6, y1, dy1, y2: any, maxAdj2, vc = h / 2;
                         const minWH = Math.min(w, h);
                         maxAdj2 = cnstVal3 * w / minWH;
                         if (adj1 < 0) a1 = 0
@@ -3031,7 +3031,7 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var a1, a2, x1, x2, dx2: any, y1, dy1, y2, maxAdj2, vc = h / 2, hd2: any = vc;
+                        var a1, a2, x1, x2: any, dx2: any, y1, dy1, y2: any, maxAdj2, vc = h / 2, hd2: any = vc;
                         const minWH = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / minWH;
                         if (adj1 < 0) a1 = 0
@@ -3080,7 +3080,7 @@ export const PPTXShapeUtils = (function() {
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        var a, x1, dx1, x2, maxAdj, vc = h / 2;
+                        var a, x1, dx1, x2: any, maxAdj, vc = h / 2;
                         const minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
                         if (adj < 0) a = 0
@@ -3122,8 +3122,8 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, dx3, x3, x2, x1;
-                        let vc = h / 2, r = w, b = h, l = 0, t = 0;
+                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2: any, y3, y4, dx3, x3, x2: any, x1;
+                        let vc = h / 2, r: any = w, b: any = h, l = 0, t = 0;
                         const ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3176,8 +3176,8 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2: any, x1, x2, x3, x4, dy3, y3, y2, y1;
-                        let hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2: any, x1, x2: any, x3, x4, dy3, y3, y2: any, y1;
+                        let hc = w / 2, r: any = w, b: any = h, l = 0, t = 0;
                         const ss = Math.min(w, h);
 
                         maxAdj2 = cnstVal1 * w / ss;
@@ -3231,8 +3231,8 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, dx2: any, x2, x3;
-                        let vc = h / 2, r = w, b = h, l = 0, t = 0;
+                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2: any, y3, y4, x1, dx2: any, x2: any, x3;
+                        let vc = h / 2, r: any = w, b: any = h, l = 0, t = 0;
                         const ss = Math.min(w, h);
 
                         maxAdj2 = cnstVal1 * h / ss;
@@ -3286,8 +3286,8 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2: any, x1, x2, x3, x4, y1, dy2, y2, y3;
-                        let hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2: any, x1, x2: any, x3, x4, y1, dy2, y2: any, y3;
+                        let hc = w / 2, r: any = w, b: any = h, l = 0, t = 0;
                         const ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3341,8 +3341,8 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, x4, dx2: any, x2, x3;
-                        let vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2: any, y3, y4, x1, x4, dx2: any, x2: any, x3;
+                        let vc = h / 2, hc = w / 2, r: any = w, b: any = h, l = 0, t = 0;
                         const ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3396,9 +3396,9 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        let vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        let vc = h / 2, hc = w / 2, r: any = w, b: any = h, l = 0, t = 0;
                         const ss = Math.min(w, h);
-                        var a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx2: any, dx3, ah, dx1, dy1, x8: any, x2, x7, x3, x6, x4, x5, y8, y2, y7, y3, y6, y4, y5;
+                        var a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx2: any, dx3, ah, dx1, dy1, x8: any, x2: any, x7, x3, x6, x4, x5, y8, y2: any, y7, y3, y6, y4, y5;
                         a2 = (adj2 < 0) ? 0 : (adj2 > cnstVal1) ? cnstVal1 : adj2;
                         maxAdj1 = a2 * 2;
                         a1 = (adj1 < 0) ? 0 : (adj1 > maxAdj1) ? maxAdj1 : adj1;
@@ -3458,12 +3458,12 @@ export const PPTXShapeUtils = (function() {
                         // 使用drawW和drawH进行形状计算
                         let cw = (drawW !== undefined) ? drawW : w;
                         let ch = (drawH !== undefined) ? drawH : h;
-                        var vc = ch / 2, hc = cw / 2, wd2 = cw / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2: any = 180, cd4: any = 90;
+                        var vc = ch / 2, hc = cw / 2, wd2 = cw / 2, r: any = cw, b: any = ch, l = 0, t = 0, c3d4 = 270, cd2: any = 180, cd4: any = 90;
                         const ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8: any, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, stAng, stAng2, swAng2, swAng3;
 
                         // 辅助函数：格式化数字为2位小数
-                        function fmt(num) {
+                        function fmt(num: any) {
                             return parseFloat(num.toFixed(2));
                         }
 
@@ -3558,12 +3558,12 @@ export const PPTXShapeUtils = (function() {
                         // 使用drawW和drawH进行形状计算
                         let cw = (drawW !== undefined) ? drawW : w;
                         let ch = (drawH !== undefined) ? drawH : h;
-                        var vc = ch / 2, hc = cw / 2, hd2: any = ch / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2: any = 180, cd4: any = 90;
+                        var vc = ch / 2, hc = cw / 2, hd2: any = ch / 2, r: any = cw, b: any = ch, l = 0, t = 0, c3d4 = 270, cd2: any = 180, cd4: any = 90;
                         const ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
 
                         // 辅助函数：格式化数字为2位小数
-                        function fmt(num) {
+                        function fmt(num: any) {
                             return parseFloat(num.toFixed(2));
                         }
 
@@ -3670,7 +3670,7 @@ export const PPTXShapeUtils = (function() {
                         // 使用drawW和drawH进行形状计算
                         let cw = (drawW !== undefined) ? drawW : w;
                         let ch = (drawH !== undefined) ? drawH : h;
-                        var vc = ch / 2, hc = cw / 2, hd2: any = ch / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2: any = 180, cd4: any = 90;
+                        var vc = ch / 2, hc = cw / 2, hd2: any = ch / 2, r: any = cw, b: any = ch, l = 0, t = 0, c3d4 = 270, cd2: any = 180, cd4: any = 90;
                         const ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy,
                             y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, stAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
@@ -3765,18 +3765,18 @@ export const PPTXShapeUtils = (function() {
                         // 使用drawW和drawH进行形状计算
                         let cw = (drawW !== undefined) ? drawW : w;
                         let ch = (drawH !== undefined) ? drawH : h;
-                        var vc = ch / 2, hc = cw / 2, wd2 = cw / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2: any = 180, cd4: any = 90;
+                        var vc = ch / 2, hc = cw / 2, wd2 = cw / 2, r: any = cw, b: any = ch, l = 0, t = 0, c3d4 = 270, cd2: any = 180, cd4: any = 90;
                         const ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8: any, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, swAng2, mswAng2, stAng3, swAng3, stAng2;
 
                         // 辅助函数：格式化数字为2位小数
-                        function fmt(num) {
+                        function fmt(num: any) {
                             return parseFloat(num.toFixed(2));
                         }
 
                         // 辅助函数：格式化弧线路径中的所有坐标
-                        function fmtArc(arcStr) {
-                            return arcStr.replace(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g, (match) => {
+                        function fmtArc(arcStr: any) {
+                            return arcStr.replace(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g, (match: any) => {
     return fmt(parseFloat(match)).toString();
 });
                         }
@@ -3873,7 +3873,7 @@ export const PPTXShapeUtils = (function() {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
                         const ss = Math.min(w, h);
-                        var maxAdj, a, y1, y2, y3, dVal;
+                        var maxAdj, a, y1, y2: any, y3, dVal;
                         if (shapType == "flowChartMagneticDisk" || shapType == "flowChartMagneticDrum") {
                             adj = 50000 * SLIDE_FACTOR;
                         }
@@ -4489,7 +4489,7 @@ export const PPTXShapeUtils = (function() {
                          */
                         var wd2 = w / 2;
                         let hd2: any = h / 2;
-                        let r = Math.min(wd2, hd2);
+                        let r: any = Math.min(wd2, hd2);
                         
                         var d: any = `M${(wd2 - r)},${hd2}${PPTXShapeUtils.shapeArc(wd2, hd2, r, r, 180, 360, false).replace("M", "L")} M${(wd2 - r - r * 0.3)},${(hd2 - r * 0.2)} L${(wd2 - r)},${hd2} L${(wd2 - r - r * 0.3)},${(hd2 + r * 0.2)} M${(wd2 + r + r * 0.3)},${(hd2 - r * 0.2)} L${(wd2 + r)},${hd2} L${(wd2 + r + r * 0.3)},${(hd2 + r * 0.2)}`;
                         
@@ -4631,7 +4631,7 @@ export const PPTXShapeUtils = (function() {
  * @param {Object} warpObj - 包装对象
  * @returns {Object|null} 动画数据或null
  */
-function extractAnimationData(node, warpObj) {
+function extractAnimationData(node: any, warpObj: any) {
     // 检查形状是否有动画引用
     const nvSpPr = PPTXXmlUtils.getTextByPathList(node, ["p:nvSpPr"]);
     if (!nvSpPr) return null;
@@ -4663,7 +4663,7 @@ function extractAnimationData(node, warpObj) {
  * @param {Object} animLst - 动画列表
  * @returns {Object} 解析后的动画数据
  */
-function parseAnimationList(animLst) {
+function parseAnimationList(animLst: any) {
     // 处理单个动画或动画数组
     const animArray = Array.isArray(animLst["p:par"]) ? animLst["p:par"] : 
                      (animLst["p:par"] ? [animLst["p:par"]] : []);
@@ -4692,7 +4692,7 @@ function parseAnimationList(animLst) {
  * @param {Object} cTn - 动画时间节点
  * @returns {string} 动画类型
  */
-function getAnimationType(cTn) {
+function getAnimationType(cTn: any) {
     // 检查子动画类型
     if (cTn["p:childTnLst"]) {
         const childTnLst = cTn["p:childTnLst"];
@@ -4724,7 +4724,7 @@ function getAnimationType(cTn) {
  * @param {Object} sp3d - 形状3D数据
  * @returns {string} CSS 3D变换样式
  */
-function process3DEffects(scene3d, sp3d) {
+function process3DEffects(scene3d: any, sp3d: any) {
     let transform = "";
     
     // 处理相机设置

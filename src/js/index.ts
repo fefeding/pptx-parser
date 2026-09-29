@@ -1,13 +1,13 @@
 import JSZip from 'jszip';
-import { PPTXNodeUtils } from './utils/node.js';
-import { PPTXXmlUtils } from './utils/xml.js';
-import { PPTXStyleUtils } from './utils/style.js';
-import { PPTXTextUtils } from './utils/text.js';
-import { PPTXShapeUtils } from './shape/shape.js';
-import { processMsgQueue, processSingleMsg } from './utils/chart.js';
-import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants.js';
-import { jsonToPptx, editPptx } from './serializer/json-to-pptx.js';
-import { PPTXComposer } from './serializer/composer.js';
+import { PPTXNodeUtils } from './utils/node';
+import { PPTXXmlUtils } from './utils/xml';
+import { PPTXStyleUtils } from './utils/style';
+import { PPTXTextUtils } from './utils/text';
+import { PPTXShapeUtils } from './shape/shape';
+import { processMsgQueue, processSingleMsg } from './utils/chart';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants';
+import { jsonToPptx, editPptx } from './serializer/json-to-pptx';
+import { PPTXComposer } from './serializer/composer';
 
 /**
  * Parse PPTX file to structured JSON data (internal function)
@@ -19,7 +19,7 @@ import { PPTXComposer } from './serializer/composer.js';
  * @param {*} defaultTextStyle - Default text style
  * @returns {Promise<Object>} Parsed result with structured data
  */
-async function processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle) {
+async function processToJson(file: any, settings: any, callbacks: any, chartId: any, styleTable: any, defaultTextStyle: any) {
     if (file.byteLength < 10) {
         if (callbacks.onError) {
             callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
@@ -27,7 +27,7 @@ async function processToJson(file, settings, callbacks, chartId, styleTable, def
         throw new Error("Invalid file: file too small");
     }
 
-    const msgQueue = [];
+    const msgQueue: any = [];
     const zip = JSZip.loadAsync ? await JSZip.loadAsync(file) : (new JSZip() as any).load(file);
 
     // Parse PPTX to structured data
@@ -55,7 +55,7 @@ async function processToJson(file, settings, callbacks, chartId, styleTable, def
  * @param {*} defaultTextStyle - Default text style
  * @returns {Promise<Object>} Structured PPTX data
  */
-async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
+async function parsePPTXInternal(zip: any, msgQueue: any, settings: any, chartId: any, styleTable: any, defaultTextStyle: any) {
     const postArray = [];
     const dateBefore = new Date();
 
@@ -165,7 +165,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
  * @param {*} defaultTextStyle - Default text style
  * @returns {Promise<Object>} Structured slide data
  */
-async function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
+async function processSingleSlideStructured(zip: any, slideFileName: any, index: any, slideSize: any, msgQueue: any, settings: any, chartId: any, styleTable: any, defaultTextStyle: any) {
     // Read relationship file of the slide
     const resName = `${slideFileName.replace("slides/slide", "slides/_rels/slide")}.rels`;
     const resContent = await PPTXXmlUtils.readXmlFile(zip, resName);
@@ -406,7 +406,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
  * @param {JSZip} zip - The JSZip instance
  * @returns {Promise<string>} Slide HTML
  */
-async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slideNum) {
+async function convertSlideDataToHtml(slideData: any, slideSize: any, settings: any, zip: any, slideNum: any) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -433,7 +433,7 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slide
     const processFullTheme = settings.themeProcess;
     let bgResult = "";
     if (processFullTheme === true) {
-        bgResult = await PPTXNodeUtils.getBackground(warpObj, slideSize, slideData.index, settings, PPTXStyleUtils);
+        bgResult = await PPTXNodeUtils.getBackground(warpObj, slideSize, slideData.index, settings);
     }
 
     let bgColor = "";
@@ -471,7 +471,7 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slide
  * @param {Object} styleTable - Style table
  * @returns {string} CSS text
  */
-function genGlobalCSS(styleTable) {
+function genGlobalCSS(styleTable: any) {
     let cssText = "";
     for (const key in styleTable) {
         const suffix = styleTable[key].suffix || "";
@@ -486,7 +486,7 @@ function genGlobalCSS(styleTable) {
  * @param {Object} options - Conversion options
  * @returns {Promise<Object>} Parsed result
  */
-async function pptxToHtml(fileData, options) {
+async function pptxToHtml(fileData: any, options: any) {
     // Merge default settings with user options
     const settings = {
         mediaProcess: true,
@@ -503,7 +503,7 @@ async function pptxToHtml(fileData, options) {
     const callbacks = settings.callbacks || {};
 
     // State variables
-    let defaultTextStyle = null;
+    let defaultTextStyle: any = null;
     const chartId = { value: 0 };
     const styleTable = settings.styleTable;
     let isDone = false;
@@ -518,21 +518,21 @@ async function pptxToHtml(fileData, options) {
      * @param {ArrayBuffer} file - The PPTX file data
      * @returns {Promise<Object>} Parsed result
      */
-    async function convertToHtml(file) {
+    async function convertToHtml(file: any) {
         // Step 1: Parse PPTX to structured JSON data
         const { parsedData, msgQueue, zip, slideSize, thumbnail, metadata, executionTime } = 
             await processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle);
 
         // Step 2: Convert structured data to HTML result
         const result = {
-            slides: [],
+            slides: ([] as any),
             slideSize,
             thumbnail,
             styles: {
                 global: ""
             },
             metadata,
-            charts: []
+            charts: ([] as any)
         };
 
         // Step 3: Process slides and convert to HTML
@@ -599,7 +599,7 @@ async function pptxToHtml(fileData, options) {
  * @param {Object} options - Conversion options
  * @returns {Promise<Object>} Parsed result
  */
-async function pptxToJson(fileData, options) {
+async function pptxToJson(fileData: any, options: any) {
     // Merge default settings with user options
     const settings = {
         mediaProcess: true,
@@ -616,7 +616,7 @@ async function pptxToJson(fileData, options) {
     const callbacks = settings.callbacks || {};
 
     // State variables
-    let defaultTextStyle = null;
+    let defaultTextStyle: any = null;
     const chartId = { value: 0 };
     const styleTable = settings.styleTable;
     let isDone = false;
@@ -631,21 +631,21 @@ async function pptxToJson(fileData, options) {
      * @param {ArrayBuffer} file - The PPTX file data
      * @returns {Promise<Object>} Parsed result
      */
-    async function convertToJson(file) {
+    async function convertToJson(file: any) {
         // Step 1: Parse PPTX to structured JSON data
         const { parsedData, msgQueue, slideSize, thumbnail, metadata, executionTime } = 
             await processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle);
 
         // Step 2: Convert structured data to JSON result
         const result = {
-            slides: [],
+            slides: ([] as any),
             slideSize,
             thumbnail,
             styles: {
                 global: genGlobalCSS(styleTable)
             },
             metadata,
-            charts: []
+            charts: ([] as any)
         };
 
         // Step 3: Process slides and keep as structured data
@@ -706,7 +706,7 @@ async function pptxToJson(fileData, options) {
  * @param {ArrayBuffer} fileData - The PPTX file data
  * @returns {Promise<Object>} File index and content result
  */
-async function pptxToFiles(fileData) {
+async function pptxToFiles(fileData: any) {
     if (fileData.byteLength < 10) {
         throw new Error("Invalid file: file too small");
     }
@@ -714,13 +714,13 @@ async function pptxToFiles(fileData) {
     const zip = JSZip.loadAsync ? await JSZip.loadAsync(fileData) : (new JSZip() as any).load(fileData);
 
     const result = {
-        files: [],
+        files: ([] as any),
         content: {}
     };
 
     // Iterate through all files in the zip
-    const promises = [];
-    zip.forEach((relativePath, zipEntry) => {
+    const promises: any = [];
+    zip.forEach((relativePath: any, zipEntry: any) => {
         result.files.push({
             name: relativePath,
             dir: zipEntry.dir,
@@ -739,7 +739,7 @@ async function pptxToFiles(fileData) {
                 // For XML files, read as text
                 if (ext === 'xml' || ext === 'rels') {
                     const content = await zipEntry.async('text');
-                    result.content[relativePath] = {
+                    (result.content as any)[relativePath] = {
                         type: 'text',
                         content: content
                     };
@@ -747,7 +747,7 @@ async function pptxToFiles(fileData) {
                 // For image files, read as base64
                 else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'].includes(ext)) {
                     const base64 = await zipEntry.async('base64');
-                    result.content[relativePath] = {
+                    (result.content as any)[relativePath] = {
                         type: 'image',
                         format: ext,
                         base64: base64,
@@ -757,13 +757,13 @@ async function pptxToFiles(fileData) {
                 // For other binary files, read as base64
                 else {
                     const base64 = await zipEntry.async('base64');
-                    result.content[relativePath] = {
+                    (result.content as any)[relativePath] = {
                         type: 'binary',
                         base64: base64
                     };
                 }
             } catch (error) {
-                result.content[relativePath] = {
+                (result.content as any)[relativePath] = {
                     type: 'error',
                     error: error.message
                 };
@@ -784,7 +784,7 @@ async function pptxToFiles(fileData) {
  * @param {Object} slideContent - 幻灯片内容
  * @returns {Object|null} 过渡效果数据或null
  */
-function extractSlideTransition(slideContent) {
+function extractSlideTransition(slideContent: any) {
     // 检查slide中是否有transition元素
     const sld = slideContent["p:sld"];
     if (!sld) return null;
@@ -814,7 +814,7 @@ function extractSlideTransition(slideContent) {
     if (transition.attrs && transition.attrs["spd"]) {
         // spd值: slow=3, med=2, fast=1
         const speedMap = { "1": 500, "2": 1000, "3": 2000 };
-        duration = speedMap[transition.attrs["spd"]] || 1000;
+        duration = (speedMap as any)[transition.attrs["spd"]] || 1000;
     }
     
     return {

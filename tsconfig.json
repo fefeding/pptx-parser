@@ -17,7 +17,7 @@
     "declarationMap": false,
     "sourceMap": true,
     "removeComments": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true, // ✅ 已开启：全部隐式 any 已显式标注（strict 仍待后续收紧）
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "allowJs": false,

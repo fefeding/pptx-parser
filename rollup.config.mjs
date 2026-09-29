@@ -27,7 +27,7 @@ export default [
         exports: 'named'
       },
       {
-        file: './dist/ppt-parser.cjs.js',
+        file: './dist/ppt-parser.cjs',
         format: 'cjs',
         banner,
         sourcemap: true,
@@ -35,7 +35,7 @@ export default [
       }
     ],
     plugins: [
-      nodeResolve(),
+      nodeResolve({ extensions: ['.ts', '.js', '.json'] }),
       commonjs(),
       typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } })
     ],
@@ -54,7 +54,8 @@ export default [
     plugins: [
       nodeResolve({
         browser: true,
-        preferBuiltins: false
+        preferBuiltins: false,
+        extensions: ['.ts', '.js', '.json']
       }),
       commonjs({
         // 将 CJS 模块转换为 ESM

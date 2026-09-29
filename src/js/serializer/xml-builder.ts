@@ -38,7 +38,7 @@ export const NS = {
  * @param {string} str - 原始文本
  * @returns {string} 转义后的文本
  */
-export function escapeXml(str) {
+export function escapeXml(str: any) {
     if (str === undefined || str === null) return '';
     return String(str)
         .replace(/&/g, '&amp;')
@@ -53,7 +53,7 @@ export function escapeXml(str) {
  * @param {number} px - 像素值
  * @returns {number} EMU 值（取整）
  */
-export function pxToEmu(px) {
+export function pxToEmu(px: any) {
     return Math.round((Number(px) || 0) * PX_TO_EMU);
 }
 
@@ -62,7 +62,7 @@ export function pxToEmu(px) {
  * @param {number} pt - 磅值
  * @returns {number} EMU 值（取整）
  */
-export function ptToEmu(pt) {
+export function ptToEmu(pt: any) {
     return Math.round((Number(pt) || 0) * PT_TO_EMU);
 }
 
@@ -71,7 +71,7 @@ export function ptToEmu(pt) {
  * @param {number} pt - 磅值
  * @returns {number} sz 值
  */
-export function ptToSz(pt) {
+export function ptToSz(pt: any) {
     return Math.round((Number(pt) || 0) * 100);
 }
 
@@ -80,7 +80,7 @@ export function ptToSz(pt) {
  * @param {number} deg - 角度
  * @returns {number} OOXML 旋转值
  */
-export function degToRot(deg) {
+export function degToRot(deg: any) {
     return Math.round((Number(deg) || 0) * 60000);
 }
 
@@ -89,7 +89,7 @@ export function degToRot(deg) {
  * @param {string} color - 颜色值（#hex / rgb() / 颜色名）
  * @returns {string} 6 位 HEX 字符串，无法解析时返回 '000000'
  */
-export function colorToHex(color) {
+export function colorToHex(color: any) {
     if (color === undefined || color === null || color === '') return '000000';
     const c = new TinyColor(String(color));
     if (!c.isValid()) return '000000';
@@ -103,7 +103,7 @@ export function colorToHex(color) {
  * @param {...(string|Object)} children - 子内容：字符串或其他节点对象
  * @returns {Object} 节点对象 { tagName, attrs, children }
  */
-export function xmlNode(tagName, attrs?, ...children) {
+export function xmlNode(tagName: any, attrs?: any, ...children: any[]) {
     // 容错：第二参数误传节点对象时（如 xmlNode('a:solidFill', xmlNode(...))），
     // 自动将其视为子节点，避免节点属性被当成属性表序列化
     if (attrs && typeof attrs === 'object' && !Array.isArray(attrs) && typeof attrs.tagName === 'string') {
@@ -132,7 +132,7 @@ export function xmlNode(tagName, attrs?, ...children) {
  * @param {string} [indent=''] - 缩进（内部递归使用）
  * @returns {string} XML 字符串
  */
-export function nodeToString(node, indent = '') {
+export function nodeToString(node: any, indent = '') {
     if (typeof node === 'string') {
         return escapeXml(node);
     }
@@ -146,11 +146,11 @@ export function nodeToString(node, indent = '') {
     }
 
     const inner = node.children
-        .map(child => nodeToString(child))
+        .map((child: any) => nodeToString(child))
         .join('');
 
     // 纯文本子节点直接内联，避免多余空白
-    if (node.children.every(c => typeof c === 'string')) {
+    if (node.children.every((c: any) => typeof c === 'string')) {
         return `<${node.tagName}${attrs}>${inner}</${node.tagName}>`;
     }
 
@@ -162,6 +162,6 @@ export function nodeToString(node, indent = '') {
  * @param {Object} rootNode - 根节点对象
  * @returns {string} XML 文档字符串
  */
-export function toXmlDocument(rootNode) {
+export function toXmlDocument(rootNode: any) {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n${nodeToString(rootNode)}`;
 }

@@ -190,7 +190,7 @@ export const SPECIAL_SHAPES = [
  * @param {string} shapeType - 形状类型
  * @returns {string} 分类名称
  */
-export function getShapeCategory(shapeType) {
+export function getShapeCategory(shapeType: any) {
     if (RECT_SHAPES.includes(shapeType)) return 'rect';
     if (ROUND_RECT_SHAPES.includes(shapeType)) return 'roundRect';
     if (SNIP_RECT_SHAPES.includes(shapeType)) return 'snipRect';
@@ -210,7 +210,7 @@ export function getShapeCategory(shapeType) {
  * @param {string} shapeType - 形状类型
  * @returns {boolean}
  */
-export function isComplexShape(shapeType) {
+export function isComplexShape(shapeType: any) {
     return [
         ...ACTION_BUTTONS,
         'flowChartMultidocument',

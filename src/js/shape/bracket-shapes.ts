@@ -3,14 +3,14 @@
  * 提供各种括号形状（大括号、方括号等）的生成和渲染功能
  */
 
-import { PPTXXmlUtils } from '../utils/xml.js';
-import { shapeArc } from './path-generators.js';
-import { SLIDE_FACTOR } from '../core/constants.js';
+import { PPTXXmlUtils } from '../utils/xml';
+import { shapeArc } from './path-generators';
+import { SLIDE_FACTOR } from '../core/constants';
 
 /**
  * 检查形状是否为括号形状
  */
-export function isBracket(shapType) {
+export function isBracket(shapType: any) {
     const bracketShapes = [
         'bracePair', 'bracketPair', 'leftBrace', 'leftBracket', 'rightBrace', 'rightBracket'
     ];
@@ -20,7 +20,7 @@ export function isBracket(shapType) {
 /**
  * 渲染括号形状
  */
-export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node) {
+export function renderBracket(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
     let result = "";
     let dVal = "";
 

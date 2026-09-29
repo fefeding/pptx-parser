@@ -15,8 +15,8 @@
  * @module serializer/element-builders
  */
 
-import { xmlNode, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml } from './xml-builder.js';
-import { REL_TYPES } from './templates.js';
+import { xmlNode, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml } from './xml-builder';
+import { REL_TYPES } from './templates';
 
 /**
  * 创建元素构建上下文
@@ -27,9 +27,9 @@ import { REL_TYPES } from './templates.js';
 export function createElementContext(options: any = {}) {
     return {
         /** 关系列表 {relId, type, target, external} */
-        rels: [],
+        rels: ([] as any),
         /** 媒体文件列表 {name, base64} */
-        media: [],
+        media: ([] as any),
         /** 幻灯片内元素自增 id（1 被 spTree 根占用） */
         nextElementId: 2,
         /** 关系自增 id（rId1 固定为版式引用） */
@@ -37,7 +37,7 @@ export function createElementContext(options: any = {}) {
         /** 媒体文件自增编号 */
         mediaIndex: options.startMediaIndex || 0,
         /** 图表部件列表 {name, xml}（生成后由上层写入 ppt/charts/） */
-        charts: [],
+        charts: ([] as any),
         /** 图表自增编号 */
         chartIndex: 0
     };
@@ -51,7 +51,7 @@ export function createElementContext(options: any = {}) {
  * @param {boolean} [external=false] - 是否为外部链接
  * @returns {string} 关系 id（如 rId3）
  */
-function addRelationship(ctx, type, target, external?) {
+function addRelationship(ctx: any, type: any, target: any, external?: any) {
     const relId = `rId${ctx.nextRelId++}`;
     ctx.rels.push({ relId, type, target, external: !!external });
     return relId;
@@ -62,7 +62,7 @@ function addRelationship(ctx, type, target, external?) {
  * @param {Object} el - 图片元素
  * @returns {Promise<{base64: string, ext: string}>} 图片数据
  */
-async function resolveImageData(el) {
+async function resolveImageData(el: any) {
     if (el.data) {
         const str = String(el.data);
         const dataUrlMatch = str.match(/^data:image\/([a-z0-9.+-]+);base64,(.+)$/i);
@@ -101,7 +101,7 @@ async function resolveImageData(el) {
  * @param {string} url - 图片 URL
  * @returns {string|null} 扩展名
  */
-function guessExtFromUrl(url) {
+function guessExtFromUrl(url: any) {
     const match = String(url).split('?')[0].match(/\.([a-z0-9]+)$/i);
     return match ? match[1].toLowerCase() : null;
 }
@@ -111,7 +111,7 @@ function guessExtFromUrl(url) {
  * @param {ArrayBuffer} buffer - 二进制数据
  * @returns {string} base64 字符串
  */
-function arrayBufferToBase64(buffer) {
+function arrayBufferToBase64(buffer: any) {
     const bytes = new Uint8Array(buffer);
     let binary = '';
     const chunk = 0x8000;
@@ -129,7 +129,7 @@ function arrayBufferToBase64(buffer) {
  * @param {Object} el - 含 x/y/width/height/rotation 的元素
  * @returns {Object} a:xfrm 节点
  */
-function buildXfrm(el) {
+function buildXfrm(el: any) {
     return xmlNode('a:xfrm',
         { rot: el.rotation ? degToRot(el.rotation) : null },
         xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
@@ -143,7 +143,7 @@ function buildXfrm(el) {
  * @param {string} href - 链接（http(s):// 外部；'#N' 内部跳转到第 N 页）
  * @returns {Object|null} a:hlinkClick 节点
  */
-function buildHyperlink(ctx, href) {
+function buildHyperlink(ctx: any, href: any) {
     if (!href) return null;
     const internalMatch = String(href).match(/^#(\d+)$/);
     if (internalMatch) {
@@ -162,7 +162,7 @@ function buildHyperlink(ctx, href) {
  * @param {Object} opts - 运行选项（fontSize/color/bold/italic/underline/fontFace/href）
  * @returns {Object} a:r 节点
  */
-function buildTextRun(ctx, text, opts: any = {}) {
+function buildTextRun(ctx: any, text: any, opts: any = {}) {
     const rPrChildren = [];
 
     if (opts.color) {
@@ -198,7 +198,7 @@ function buildTextRun(ctx, text, opts: any = {}) {
  * @param {Object} defaults - 元素级默认运行选项
  * @returns {Object} a:p 节点
  */
-function buildParagraph(ctx, paragraph, defaults) {
+function buildParagraph(ctx: any, paragraph: any, defaults: any) {
     const alignMap = { left: 'l', center: 'ctr', right: 'r', justify: 'just' };
     const p = paragraph || {};
 
@@ -211,14 +211,14 @@ function buildParagraph(ctx, paragraph, defaults) {
         pPrChildren.push(xmlNode('a:buNone'));
     }
     const pPr = xmlNode('a:pPr',
-        { algn: alignMap[p.align || defaults.align] || null },
+        { algn: (alignMap as any)[p.align || defaults.align] || null },
         ...pPrChildren
     );
 
     // 运行列表：显式 runs 优先，否则用 text + 元素级默认样式
     let runs;
     if (Array.isArray(p.runs) && p.runs.length > 0) {
-        runs = p.runs.map(r => {
+        runs = p.runs.map((r: any) => {
             // 兼容两种格式：{ text, options: {...} }（规范）与 { text, color, ... }（扁平简写）
             const { text, options, ...flat } = r;
             return buildTextRun(ctx, text, { ...defaults, ...(options || {}), ...flat });
@@ -235,7 +235,7 @@ function buildParagraph(ctx, paragraph, defaults) {
  * @param {Object} el - 文本元素
  * @returns {Array<Object>} 段落列表
  */
-function normalizeParagraphs(el) {
+function normalizeParagraphs(el: any) {
     if (Array.isArray(el.paragraphs) && el.paragraphs.length > 0) {
         return el.paragraphs;
     }
@@ -254,9 +254,9 @@ function normalizeParagraphs(el) {
  * @param {Object} el - 文本元素 JSON
  * @returns {Object} p:sp 节点
  */
-function buildTextElement(ctx, el) {
+function buildTextElement(ctx: any, el: any) {
     const id = ctx.nextElementId++;
-    const anchorMap = { top: null, middle: 'ctr', bottom: 'b' };
+    const anchorMap = { top: (null as any), middle: 'ctr', bottom: 'b' };
     const defaults = {
         align: el.align,
         fontSize: el.fontSize,
@@ -285,10 +285,10 @@ function buildTextElement(ctx, el) {
         xmlNode('p:txBody',
             null,
             xmlNode('a:bodyPr',
-                { wrap: 'square', rtlCol: 0, anchor: anchorMap[el.valign] || null }
+                { wrap: 'square', rtlCol: 0, anchor: (anchorMap as any)[el.valign] || null }
             ),
             xmlNode('a:lstStyle'),
-            ...normalizeParagraphs(el).map(p => buildParagraph(ctx, p, defaults))
+            ...normalizeParagraphs(el).map((p: any) => buildParagraph(ctx, p, defaults))
         )
     );
 }
@@ -299,7 +299,7 @@ function buildTextElement(ctx, el) {
  * @param {Object} el - 形状元素 JSON
  * @returns {Object} p:sp 节点
  */
-function buildShapeElement(ctx, el) {
+function buildShapeElement(ctx: any, el: any) {
     const id = ctx.nextElementId++;
 
     // 填充
@@ -351,7 +351,7 @@ function buildShapeElement(ctx, el) {
  * @param {Object} el - 图片元素 JSON
  * @returns {Promise<Object>} p:pic 节点
  */
-async function buildImageElement(ctx, el) {
+async function buildImageElement(ctx: any, el: any) {
     const id = ctx.nextElementId++;
     const { base64, ext } = await resolveImageData(el);
 
@@ -405,7 +405,7 @@ async function buildImageElement(ctx, el) {
  * @param {Object} el - 图表元素 JSON
  * @returns {Object} p:graphicFrame 节点
  */
-function buildChartElement(ctx, el) {
+function buildChartElement(ctx: any, el: any) {
     const id = ctx.nextElementId++;
     ctx.chartIndex++;
     const chartNum = ctx.chartIndex;
@@ -434,7 +434,7 @@ function buildChartElement(ctx, el) {
 }
 
 /** 构造 c:strRef（类别标签缓存） */
-function strRefXml(values, col) {
+function strRefXml(values: any, col: any) {
     const n = values.length;
     let pts = '';
     for (let i = 0; i < n; i++) {
@@ -446,7 +446,7 @@ function strRefXml(values, col) {
 }
 
 /** 构造 c:numRef（数值缓存） */
-function numRefXml(values, col) {
+function numRefXml(values: any, col: any) {
     const n = values.length;
     let pts = '';
     for (let i = 0; i < n; i++) {
@@ -462,7 +462,7 @@ function numRefXml(values, col) {
  * @param {Object} el - 图表元素 JSON
  * @returns {string} chart 部件 XML
  */
-function buildChartXml(el) {
+function buildChartXml(el: any) {
     const type = el.chartType || 'barChart';
     const isPie = /pie/i.test(type);
     const isScatter = type === 'scatterChart';
@@ -470,7 +470,7 @@ function buildChartXml(el) {
     const series = el.series || [];
     const varyColors = el.varyColors !== undefined ? (el.varyColors ? 1 : 0) : (isPie ? 1 : 0);
 
-    const serXml = series.map((s, i) => {
+    const serXml = series.map((s: any, i: any) => {
         const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
             `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
         let data;
@@ -524,7 +524,7 @@ function buildChartXml(el) {
  * @param {Object} el - 元素 JSON
  * @returns {Promise<Object|null>} 元素节点，不支持的类型返回 null
  */
-export async function buildElement(ctx, el) {
+export async function buildElement(ctx: any, el: any) {
     if (!el || typeof el !== 'object') return null;
     switch (el.type) {
         case 'text':
@@ -546,7 +546,7 @@ export async function buildElement(ctx, el) {
  * @param {Object} slide - 幻灯片 JSON { background, elements }
  * @returns {Promise<Object>} p:sld 根节点
  */
-export async function buildSlideRoot(ctx, slide) {
+export async function buildSlideRoot(ctx: any, slide: any) {
     const elementNodes = [];
     for (const el of (slide && slide.elements) || []) {
         const node = await buildElement(ctx, el);

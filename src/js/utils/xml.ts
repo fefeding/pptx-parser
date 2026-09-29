@@ -11,8 +11,8 @@
  * @module utils/xml
  */
 
-import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from '../core/constants.js';
-import tXml from '../core/tXml.js';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from '../core/constants';
+import tXml from '../core/tXml';
 
 export const PPTXXmlUtils = (function() {
 
@@ -22,7 +22,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string} pathStr - 路径字符串（空格分隔）
      * @returns {*} 获取的值
      */
-    function getTextByPathStr(node, pathStr) {
+    function getTextByPathStr(node: any, pathStr: any) {
         return getTextByPathList(node, pathStr.trim().split(/\s+/));
     }
 
@@ -32,7 +32,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string[]} path - 路径数组
      * @returns {*} 获取的值
      */
-    function getTextByPathList(node, path) {
+    function getTextByPathList(node: any, path: any) {
         if (path.constructor !== Array) {
             throw Error("Error of path type! path is not array.");
         }
@@ -58,7 +58,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string[]} path - 路径数组
      * @param {*} value - 要设置的值
      */
-    function setTextByPathList(node, path, value) {
+    function setTextByPathList(node: any, path: any, value: any) {
         if (path.constructor !== Array) {
             throw Error("Error of path type! path is not array.");
         }
@@ -89,7 +89,7 @@ export const PPTXXmlUtils = (function() {
      * @param {Function} doFunction - 对每个节点执行的函数
      * @returns {string} 所有函数返回值的拼接
      */
-    function eachElement(node, doFunction) {
+    function eachElement(node: any, doFunction: any) {
         if (node === undefined) {
             return;
         }
@@ -110,7 +110,7 @@ export const PPTXXmlUtils = (function() {
      * @param {number} angle - 角度值（EMU单位）
      * @returns {number} 转换后的度数
      */
-    function angleToDegrees(angle) {
+    function angleToDegrees(angle: any) {
         if (angle == "" || angle == null) {
             return 0;
         }
@@ -122,7 +122,7 @@ export const PPTXXmlUtils = (function() {
      * @param {number} degrees - 度数
      * @returns {number} 弧度
      */
-    function degreesToRadians(degrees) {
+    function degreesToRadians(degrees: any) {
         if (degrees == "" || degrees == null || degrees == undefined) {
             return 0;
         }
@@ -134,7 +134,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string} text - 原始文本
      * @returns {string} 转义后的文本
      */
-    function escapeHtml(text) {
+    function escapeHtml(text: any) {
         let map = {
             '&': '&amp;',
             '<': '&lt;',
@@ -142,7 +142,7 @@ export const PPTXXmlUtils = (function() {
             '"': '&quot;',
             "'": '&#039;'
         };
-        return text.replace(/[&<>"']/g, (m) => map[m]);
+        return text.replace(/[&<>"']/g, (m: any) => (map as any)[m]);
     }
 
     /**
@@ -153,7 +153,7 @@ export const PPTXXmlUtils = (function() {
      * @param {number} appVersion - 应用版本
      * @returns {Promise<Object>} 解析后的XML对象
      */
-    async function readXmlFile(zip, filename, isSlideContent?, appVersion?) {
+    async function readXmlFile(zip: any, filename: any, isSlideContent?: any, appVersion?: any) {
         try {
             const zipFile = zip.file(filename);
             if (!zipFile) return null;
@@ -181,7 +181,7 @@ export const PPTXXmlUtils = (function() {
      * @param {number} appVersion - Office版本
      * @returns {Promise<Object>} 包含slides和slideLayouts的对象
      */
-    async function getContentTypes(zip, appVersion?) {
+    async function getContentTypes(zip: any, appVersion?: any) {
         let ContentTypesJson = await PPTXXmlUtils.readXmlFile(zip, "[Content_Types].xml", false, appVersion);
         
         let subObj = ContentTypesJson["Types"]["Override"];
@@ -211,7 +211,7 @@ export const PPTXXmlUtils = (function() {
      * @param {number} SLIDE_FACTOR - 尺寸转换因子
      * @returns {Promise<Object>} 包含width和height的对象
      */
-    async function getSlideSizeAndSetDefaultTextStyle(zip, settings) {
+    async function getSlideSizeAndSetDefaultTextStyle(zip: any, settings: any) {
         //get app version
         let app = await PPTXXmlUtils.readXmlFile(zip, "docProps/app.xml");
         let app_verssion_str = app["Properties"]["AppVersion"]
@@ -280,7 +280,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string} basePath - 基础路径（通常是当前XML文件所在目录）
      * @returns {string} 解析后的完整路径
      */
-    function resolveMediaPath(mediaPath, context, basePath) {
+    function resolveMediaPath(mediaPath: any, context: any, basePath: any) {
         // 如果已经是绝对路径（以ppt/开头），直接返回
         if (mediaPath.startsWith('ppt/')) {
             return mediaPath;
@@ -340,7 +340,7 @@ export const PPTXXmlUtils = (function() {
      * @param {string} basePath - 基础路径
      * @returns {Object|null} 找到的文件对象或null
      */
-    function findMediaFile(zip, originalPath, context, basePath) {
+    function findMediaFile(zip: any, originalPath: any, context: any, basePath: any) {
         // 首先尝试原始路径
         let file = zip.file(originalPath);
         if (file) {
@@ -393,7 +393,7 @@ export const PPTXXmlUtils = (function() {
      * @param {ArrayBuffer} arrayBuffer - 要转换的ArrayBuffer
      * @returns {string} Base64字符串
      */
-    function base64ArrayBuffer(arrayBuffer) {
+    function base64ArrayBuffer(arrayBuffer: any) {
         // Node.js: use Buffer (fastest)
         if (typeof Buffer !== 'undefined' && Buffer.from) {
             return Buffer.from(arrayBuffer).toString('base64');
@@ -440,10 +440,10 @@ export const PPTXXmlUtils = (function() {
         return parts.join('');
     }
 
-    function extractFileExtension(filename) {
+    function extractFileExtension(filename: any) {
             return filename.substr((~-filename.lastIndexOf(".") >>> 0) + 2);
         }
-    function getMimeType(imgFileExt) {
+    function getMimeType(imgFileExt: any) {
             let mimeType = "";
             //console.log(imgFileExt)
             switch (imgFileExt.toLowerCase()) {
@@ -505,7 +505,7 @@ export const PPTXXmlUtils = (function() {
         }
 
     
-        function getPosition(slideSpNode, pNode, slideLayoutSpNode, slideMasterSpNode, sType?) {
+        function getPosition(slideSpNode: any, pNode: any, slideLayoutSpNode: any, slideMasterSpNode: any, sType?: any) {
             let off;
             let x = -1, y = -1;
 
@@ -564,7 +564,7 @@ export const PPTXXmlUtils = (function() {
 
         }
 
-        function getSize(slideSpNode, slideLayoutSpNode, slideMasterSpNode) {
+        function getSize(slideSpNode: any, slideLayoutSpNode: any, slideMasterSpNode: any) {
             let ext = undefined;
             let w = -1, h = -1;
 
@@ -588,7 +588,7 @@ export const PPTXXmlUtils = (function() {
 
         }
 
-    function IsVideoLink(vdoFile) {
+    function IsVideoLink(vdoFile: any) {
             /*
             var ext = PPTXXmlUtils.extractFileExtension(vdoFile);
             if (ext.length == 3){
@@ -613,7 +613,7 @@ export const PPTXXmlUtils = (function() {
          * @param {string} videoUrl - 原始视频URL
          * @returns {string} 转换后的embed URL
          */
-        function convertYouTubeUrl(videoUrl) {
+        function convertYouTubeUrl(videoUrl: any) {
             if (!videoUrl) return videoUrl;
             
             // YouTube视频ID正则表达式
@@ -658,7 +658,7 @@ export const PPTXXmlUtils = (function() {
          * @param {string} videoUrl - 原始视频URL
          * @returns {string} 转换后的embed URL
          */
-        function convertVimeoUrl(videoUrl) {
+        function convertVimeoUrl(videoUrl: any) {
             if (!videoUrl) return videoUrl;
             
             // 检查是否是Vimeo链接
@@ -683,7 +683,7 @@ export const PPTXXmlUtils = (function() {
          * @param {string} videoUrl - 原始视频URL
          * @returns {string} 转换后的embed URL
          */
-        function convertVideoToEmbed(videoUrl) {
+        function convertVideoToEmbed(videoUrl: any) {
             if (!videoUrl) return videoUrl;
             
             // 优先处理YouTube

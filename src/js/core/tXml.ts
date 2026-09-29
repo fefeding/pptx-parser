@@ -18,7 +18,7 @@ let order = 1;
  * @param {Function} [options.filter] - 过滤函数
  * @returns {Array|Object} 解析结果
  */
-function tXml(xml, options: any = {}) {
+function tXml(xml: any, options: any = {}) {
     const POS = options.pos || 0;
 
     // 字符常量
@@ -255,7 +255,7 @@ function tXml(xml, options: any = {}) {
  * @param {Array} nodes - 节点数组
  * @returns {Object|string} 简化后的对象
  */
-tXml.simplify = (nodes) => {
+tXml.simplify = (nodes: any) => {
     const result: any = {};
     if (nodes === undefined) {
         return {};
@@ -263,7 +263,7 @@ tXml.simplify = (nodes) => {
     if (nodes.length === 1 && typeof nodes[0] === 'string') {
         return nodes[0];
     }
-    nodes.forEach((node) => {
+    nodes.forEach((node: any) => {
     if (typeof node !== 'object') {
         return;
     }
@@ -301,9 +301,9 @@ tXml.simplify = (nodes) => {
  * @param {Function} filterFn - 过滤函数
  * @returns {Array} 过滤后的节点
  */
-tXml.filter = (nodes, filterFn) => {
-    const result = [];
-    nodes.forEach((node) => {
+tXml.filter = (nodes: any, filterFn: any) => {
+    const result: any = [];
+    nodes.forEach((node: any) => {
     if (typeof node === 'object' && filterFn(node)) {
         result.push(node);
     }
@@ -320,9 +320,9 @@ tXml.filter = (nodes, filterFn) => {
  * @param {Array} nodes - 节点数组
  * @returns {string} XML 字符串
  */
-tXml.stringify = (nodes) => {
+tXml.stringify = (nodes: any) => {
     let xmlString = '';
-    function processNodes(nodes) {
+    function processNodes(nodes: any) {
         if (!nodes)
             return;
         for (const item of nodes){
@@ -334,7 +334,7 @@ tXml.stringify = (nodes) => {
             }
         }
     }
-    function processNode(node) {
+    function processNode(node: any) {
         xmlString += `<${node.tagName}`;
         for (const attr in node.attributes) {
             const value = node.attributes[attr];
@@ -361,7 +361,7 @@ tXml.stringify = (nodes) => {
  * @param {Array|Object|string} node - 节点
  * @returns {string} 文本内容
  */
-tXml.toContentString = (node) => {
+tXml.toContentString = (node: any): any => {
     if (Array.isArray(node)) {
         let text = '';
         node.forEach((child) => {
@@ -383,7 +383,7 @@ tXml.toContentString = (node) => {
  * @param {boolean} simplify - 是否简化结果
  * @returns {Object} 元素对象
  */
-tXml.getElementById = (xml, id, simplify) => {
+tXml.getElementById = (xml: any, id: any, simplify: any) => {
     const result = tXml(xml, {
         attrValue: id,
         simplify: simplify
@@ -398,7 +398,7 @@ tXml.getElementById = (xml, id, simplify) => {
  * @param {boolean} simplify - 是否简化结果
  * @returns {Array} 元素数组
  */
-tXml.getElementsByClassName = (xml, className, simplify) => {
+tXml.getElementsByClassName = (xml: any, className: any, simplify: any) => {
     return tXml(xml, {
         attrName: 'class',
         attrValue: `[a-zA-Z0-9-s ]*${className}[a-zA-Z0-9-s ]*`,
@@ -412,7 +412,7 @@ tXml.getElementsByClassName = (xml, className, simplify) => {
  * @param {number|Function} chunkSize - 块大小或回调函数
  * @returns {EventEmitter} 事件发射器
  */
-tXml.parseStream = (source, chunkSize) => {
+tXml.parseStream = (source: any, chunkSize: any) => {
     let callback;
     if (typeof chunkSize === 'function') {
         callback = chunkSize;
@@ -430,7 +430,7 @@ tXml.parseStream = (source, chunkSize) => {
     let pos = chunkSize;
     let buffer = '';
     let chunkIndex = 0;
-    source.on('data', (chunk) => {
+    source.on('data', (chunk: any) => {
     chunkIndex++;
     buffer += chunk;
     let lastPos = 0;

@@ -4,7 +4,7 @@
  * 参考: http://officeopenxml.com/drwSp-custGeom.php
  */
 
-import { PPTXXmlUtils } from '../utils/xml.js';
+import { PPTXXmlUtils } from '../utils/xml';
 
 /**
  * 渲染自定义形状
@@ -19,7 +19,7 @@ import { PPTXXmlUtils } from '../utils/xml.js';
  * @param {Function} shapeArcFn - 圆弧路径生成函数
  * @returns {string} SVG路径元素
  */
-export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcFn) {
+export function renderCustomShape(custShapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, shapeArcFn: any) {
     const pathLstNode = PPTXXmlUtils.getTextByPathList(custShapType, ["a:pathLst"]);
     const pathNodes = PPTXXmlUtils.getTextByPathList(pathLstNode, ["a:path"]);
 
@@ -98,7 +98,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
 
         // a:cubicBezTo
         if (cubicBezToNodes !== undefined) {
-            const cubicBezToPtNodesAry = [];
+            const cubicBezToPtNodesAry: any = [];
             if (!Array.isArray(cubicBezToNodes)) {
                 cubicBezToNodes = [cubicBezToNodes];
             }
@@ -106,12 +106,12 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
     cubicBezToPtNodesAry.push(cubicBezToNodes[key]["a:pt"]);
 });
 
-            cubicBezToPtNodesAry.forEach((key2) => {
+            cubicBezToPtNodesAry.forEach((key2: any) => {
     var nodeObj: any = {};
     nodeObj.type = "cubicBezTo";
     nodeObj.order = key2[0]["attrs"]["order"];
-    var pts_ary = [];
-    key2.forEach((pt) => {
+    var pts_ary: any = [];
+    key2.forEach((pt: any) => {
     var pt_obj = {
         x: pt["attrs"]["x"],
         y: pt["attrs"]["y"]
@@ -126,7 +126,7 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
         // a:quadBezTo
         let quadBezToNodes = pathNodes["a:quadBezTo"];
         if (quadBezToNodes !== undefined) {
-            const quadBezToPtNodesAry = [];
+            const quadBezToPtNodesAry: any = [];
             if (!Array.isArray(quadBezToNodes)) {
                 quadBezToNodes = [quadBezToNodes];
             }
@@ -134,12 +134,12 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
     quadBezToPtNodesAry.push(quadBezToNodes[key]["a:pt"]);
 });
 
-            quadBezToPtNodesAry.forEach((key2) => {
+            quadBezToPtNodesAry.forEach((key2: any) => {
     var nodeObj: any = {};
     nodeObj.type = "quadBezTo";
     nodeObj.order = key2[0]["attrs"]["order"];
-    var pts_ary = [];
-    key2.forEach((pt) => {
+    var pts_ary: any = [];
+    key2.forEach((pt: any) => {
     var pt_obj = {
         x: pt["attrs"]["x"],
         y: pt["attrs"]["y"]

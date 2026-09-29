@@ -11,8 +11,8 @@
  * @module utils/style
  */
 
-import { PPTXXmlUtils } from './xml.js';
-import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constants.js';
+import { PPTXXmlUtils } from './xml';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constants';
 import TinyColor from 'tinycolor2';
 
 // 创建 tinycolor 工厂函数以保持向后兼容
@@ -20,7 +20,7 @@ const tinycolor = (color: any, opts?: any) => new TinyColor(color, opts);
 
 
 
-function getFillType(node) {
+function getFillType(node: any) {
             //Need to test/////////////////////////////////////////////
             //SOLID_FILL
             //PIC_FILL
@@ -60,7 +60,7 @@ function getFillType(node) {
         //     let arrByte = new Uint8Array(arrBuff);
         //     return arrByte[1] + "," + arrByte[2] + "," + arrByte[3];
         // }
-        async function getShapeFill(node, pNode, isSvgMode, warpObj, source) {
+        async function getShapeFill(node: any, pNode: any, isSvgMode: any, warpObj: any, source: any) {
 
             // 1. presentationML
             // p:spPr/ [a:noFill, solidFill, gradFill, blipFill, pattFill, grpFill]
@@ -69,7 +69,7 @@ function getFillType(node) {
 
             let fillType = getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
             //let noFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:noFill"]);
-            let fillColor;
+            let fillColor: any;
             if (fillType === "NO_FILL") {
                 return isSvgMode ? "none" : "";
             } else if (fillType === "SOLID_FILL") {
@@ -161,12 +161,12 @@ function getFillType(node) {
                     //     return fillColor;
                     // } else {
                     let bgPtrn = "", bgSize = "", bgPos = "";
-                    bgPtrn = fillColor[0];
-                    if (fillColor[1] !== null && fillColor[1] !== undefined && fillColor[1] != "") {
-                        bgSize = ` background-size:${fillColor[1]};`;
+                    bgPtrn = (fillColor as any)[0];
+                    if ((fillColor as any)[1] !== null && (fillColor as any)[1] !== undefined && (fillColor as any)[1] != "") {
+                        bgSize = ` background-size:${(fillColor as any)[1]};`;
                     }
-                    if (fillColor[2] !== null && fillColor[2] !== undefined && fillColor[2] != "") {
-                        bgPos = ` background-position:${fillColor[2]};`;
+                    if ((fillColor as any)[2] !== null && (fillColor as any)[2] !== undefined && (fillColor as any)[2] != "") {
+                        bgPos = ` background-position:${(fillColor as any)[2]};`;
                     }
                     return `background: ${bgPtrn};${bgSize}${bgPos}`;
                     //}
@@ -193,7 +193,7 @@ function getFillType(node) {
         }
 
         
-        function getFontType(node, type, warpObj, pFontStyle) {
+        function getFontType(node: any, type: any, warpObj: any, pFontStyle: any) {
             let typeface = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:latin", "attrs", "typeface"]);
 
             if (typeface === undefined) {
@@ -217,7 +217,7 @@ function getFillType(node) {
             return (typeface === undefined) ? "inherit" : typeface;
         }
 
-        async function getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj) {
+        async function getFontColorPr(node: any, pNode: any, lstStyle: any, pFontStyle: any, lvl: any, idx: any, type: any, warpObj: any) {
             //text border using: text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
             //{getFontColor(..) return color} -> getFontColorPr(..) return array[color,textBordr/shadow]
             //https://stackoverflow.com/questions/2570972/css-font-border
@@ -514,7 +514,7 @@ function getFillType(node) {
             //return [color, textBordr, colorType];
             return [color, txt_effects, colorType, highlightColor];
         }
-        function getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
+        function getFontSize(node: any, textBodyNode: any, pFontStyle: any, lvl: any, type: any, warpObj: any) {
             // if(type == "sldNum")
             //console.log("getFontSize node:", node, "lstStyle", lstStyle, "lvl:", lvl, 'type:', type, "warpObj:", warpObj)
             let lstStyle = (textBodyNode !== undefined)? textBodyNode["a:lstStyle"] : undefined;
@@ -642,7 +642,7 @@ function getFillType(node) {
             return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (`${fontSize * FONT_SIZE_FACTOR}px`);// + "pt");
         }
 
-        function getFontBold(node, type, slideMasterTextStyles) {
+        function getFontBold(node: any, type: any, slideMasterTextStyles: any) {
             if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] !== undefined) {
                 const boldAttr = node["a:rPr"]["attrs"]["b"];
                 return (boldAttr === "1" || boldAttr === "true" || boldAttr === "on") ? "bold" : "inherit";
@@ -650,11 +650,11 @@ function getFillType(node) {
             return "inherit";
         }
 
-        function getFontItalic(node, type, slideMasterTextStyles) {
+        function getFontItalic(node: any, type: any, slideMasterTextStyles: any) {
             return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["i"] === "1") ? "italic" : "inherit";
         }
 
-        function getFontDecoration(node, type, slideMasterTextStyles) {
+        function getFontDecoration(node: any, type: any, slideMasterTextStyles: any) {
             ///////////////////////////////Amir///////////////////////////////
             if (node["a:rPr"] !== undefined) {
                 let underLine = node["a:rPr"]["attrs"]["u"] !== undefined ? node["a:rPr"]["attrs"]["u"] : "none";
@@ -677,7 +677,7 @@ function getFillType(node) {
             //return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["u"] === "sng") ? "underline" : "inherit";
         }
         ////////////////////////////////////Amir/////////////////////////////////////
-        function getTextHorizontalAlign(node, pNode, type, warpObj) {
+        function getTextHorizontalAlign(node: any, pNode: any, type: any, warpObj: any) {
             //console.log("getTextHorizontalAlign: type: ", type, ", node: ", node)
             let getAlgn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (getAlgn === undefined) {
@@ -734,12 +734,12 @@ function getFillType(node) {
             return align;
         }
         /////////////////////////////////////////////////////////////////////
-        function getTextVerticalAlign(node, type, slideMasterTextStyles) {
+        function getTextVerticalAlign(node: any, type: any, slideMasterTextStyles: any) {
             let baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
             return baseline === undefined ? "baseline" : `${(parseInt(baseline) / 1000)}%`;
         }
 
-        function getTableBorders(node, warpObj) {
+        function getTableBorders(node: any, warpObj: any) {
             let borderStyle = "";
             if (node["a:bottom"] !== undefined) {
                 let obj = {
@@ -981,7 +981,7 @@ function getFillType(node) {
             //     }
             // }
         }
-        async function getSlideBackgroundFill(warpObj, index) {
+        async function getSlideBackgroundFill(warpObj: any, index: any) {
             let slideContent = warpObj["slideContent"];
             let slideLayoutContent = warpObj["slideLayoutContent"];
             let slideMasterContent = warpObj["slideMasterContent"];
@@ -1063,7 +1063,7 @@ function getFillType(node) {
                     let trueIdx = idx - 1000;
                     // themeContent["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
                     let bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
-                    let sortblAry = [];
+                    let sortblAry: any = [];
                     Object.keys(bgFillLst).forEach(key => {
                         let bgFillLstTyp = bgFillLst[key];
                         if (key != "attrs") {
@@ -1089,7 +1089,7 @@ function getFillType(node) {
                         }
                     });
                     let sortByOrder = sortblAry.slice(0);
-                    sortByOrder.sort((a, b) => {
+                    sortByOrder.sort((a: any, b: any) => {
                         return a.idex - b.idex;
                     });
                     let bgFillLstIdx = sortByOrder[trueIdx - 1];
@@ -1152,7 +1152,7 @@ function getFillType(node) {
                         //themeContent["a:fmtScheme"]["a:bgFillStyleLst"]
                         let trueIdx = idx - 1000;
                         let bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
-                        let sortblAry = [];
+                        let sortblAry: any = [];
                         Object.keys(bgFillLst).forEach(key => {
                             //console.log("cubicBezTo[" + key + "]:");
                             let bgFillLstTyp = bgFillLst[key];
@@ -1179,7 +1179,7 @@ function getFillType(node) {
                             }
                         });
                         let sortByOrder = sortblAry.slice(0);
-                        sortByOrder.sort((a, b) => {
+                        sortByOrder.sort((a: any, b: any) => {
                             return a.idex - b.idex;
                         });
                         let bgFillLstIdx = sortByOrder[trueIdx - 1];
@@ -1247,7 +1247,7 @@ function getFillType(node) {
                             //themeContent["a:fmtScheme"]["a:bgFillStyleLst"]
                             let trueIdx = idx - 1000;
                             let bgFillLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:bgFillStyleLst"];
-                            let sortblAry = [];
+                            let sortblAry: any = [];
                             Object.keys(bgFillLst).forEach(key => {
                                 //console.log("cubicBezTo[" + key + "]:");
                                 let bgFillLstTyp = bgFillLst[key];
@@ -1274,7 +1274,7 @@ function getFillType(node) {
                                 }
                             });
                             let sortByOrder = sortblAry.slice(0);
-                            sortByOrder.sort((a, b) => {
+                            sortByOrder.sort((a: any, b: any) => {
                                 return a.idex - b.idex;
                             });
                             let bgFillLstIdx = sortByOrder[trueIdx - 1];
@@ -1299,11 +1299,15 @@ function getFillType(node) {
 
             return bgcolor;
         }
-        function getBgGradientFill(bgPr, phClr, slideMasterContent, warpObj) {
+        function getBgGradientFill(bgPr: any, phClr: any, slideMasterContent: any, warpObj: any) {
             let bgcolor = "";
             if (bgPr !== undefined) {
                 let grdFill = bgPr["a:gradFill"];
                 let gsLst = grdFill["a:gsLst"]["a:gs"];
+                // 归一化：单个 <a:gs> 时解析器返回对象而非数组（原索引循环静默跳过，.keys() 会报错）
+                if (!Array.isArray(gsLst)) {
+                    gsLst = gsLst ? [gsLst] : [];
+                }
                 //var startColorNode, endColorNode;
                 let color_ary = [];
                 const pos_ary = [];
@@ -1356,7 +1360,7 @@ function getFillType(node) {
             }
             return bgcolor;
         }
-        async function getBgPicFill(bgPr, sorce, warpObj, phClr, index) {
+        async function getBgPicFill(bgPr: any, sorce: any, warpObj: any, phClr: any, index: any) {
             let bgcolor;
             let picFillResult = await getPicFill(sorce, bgPr["a:blipFill"], warpObj);
             let picFillBase64 = picFillResult;
@@ -1459,9 +1463,13 @@ function getFillType(node) {
         }
       
         
-        function getGradientFill(node, warpObj) {
+        function getGradientFill(node: any, warpObj: any) {
             //console.log("getGradientFill: node", node)
             let gsLst = node["a:gsLst"]["a:gs"];
+            // 归一化：单个 <a:gs> 时解析器返回对象而非数组
+            if (!Array.isArray(gsLst)) {
+                gsLst = gsLst ? [gsLst] : [];
+            }
             //get start color
             let color_ary = [];
             let tint_ary = [];
@@ -1481,7 +1489,7 @@ function getFillType(node) {
                 "rot": rot
             }
         }
-        async function getPicFill(type, node, warpObj) {
+        async function getPicFill(type: any, node: any, warpObj: any) {
             //Need to test/////////////////////////////////////////////
             //rId
             let img;
@@ -1575,7 +1583,7 @@ function getFillType(node) {
                 "backgroundRepeat": backgroundRepeat
             };
         }
-        function getPatternFill(node, warpObj) {
+        function getPatternFill(node: any, warpObj: any) {
             //https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Images/Using_CSS_gradients
             //https://cssgradient.io/blog/css-gradient-text/
             //https://css-tricks.com/background-patterns-simplified-by-conic-gradients/
@@ -1597,7 +1605,7 @@ function getFillType(node) {
             return linear_gradient;
         }
 
-        function getLinerGrandient(prst, bgColor, fgColor) {
+        function getLinerGrandient(prst: any, bgColor: any, fgColor: any) {
             // dashDnDiag (Dashed Downward Diagonal)-V
             // dashHorz (Dashed Horizontal)-V
             // dashUpDiag(Dashed Upward DIagonal)-V
@@ -1861,7 +1869,7 @@ function getFillType(node) {
             }
         }
 
-        function getSolidFill(node, clrMap, phClr, warpObj) {
+        function getSolidFill(node: any, clrMap: any, phClr: any, warpObj: any) {
 
             if (node === undefined) {
                 return undefined;
@@ -2257,12 +2265,12 @@ function getFillType(node) {
             }
             return color;
         }
-        function toHex(n) {
+        function toHex(n: any) {
             let hex = n.toString(16);
             while (hex.length < 2) { hex = `0${hex}`; }
             return hex;
         }
-        function hslToRgb(hue, sat, light) {
+        function hslToRgb(hue: any, sat: any, light: any) {
             let t1, t2, r, g, b;
             hue = hue / 60;
             if (light <= 0.5) {
@@ -2276,7 +2284,7 @@ function getFillType(node) {
             b = hueToRgb(t1, t2, hue - 2) * 255;
             return { r: r, g: g, b: b };
         }
-        function hueToRgb(t1, t2, hue) {
+        function hueToRgb(t1: any, t2: any, hue: any) {
             if (hue < 0) hue += 6;
             if (hue >= 6) hue -= 6;
             if (hue < 1) return (t2 - t1) * hue + t1;
@@ -2284,7 +2292,7 @@ function getFillType(node) {
             else if (hue < 4) return (t2 - t1) * (4 - hue) + t1;
             else return t1;
         }
-        function getColorName2Hex(name) {
+        function getColorName2Hex(name: any) {
             let hex;
             let colorName = ['white', 'AliceBlue', 'AntiqueWhite', 'Aqua', 'Aquamarine', 'Azure', 'Beige', 'Bisque', 'black', 'BlanchedAlmond', 'Blue', 'BlueViolet', 'Brown', 'BurlyWood', 'CadetBlue', 'Chartreuse', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan', 'DarkBlue', 'DarkCyan', 'DarkGoldenRod', 'DarkGray', 'DarkGrey', 'DarkGreen', 'DarkKhaki', 'DarkMagenta', 'DarkOliveGreen', 'DarkOrange', 'DarkOrchid', 'DarkRed', 'DarkSalmon', 'DarkSeaGreen', 'DarkSlateBlue', 'DarkSlateGray', 'DarkSlateGrey', 'DarkTurquoise', 'DarkViolet', 'DeepPink', 'DeepSkyBlue', 'DimGray', 'DimGrey', 'DodgerBlue', 'FireBrick', 'FloralWhite', 'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'Gold', 'GoldenRod', 'Gray', 'Grey', 'Green', 'GreenYellow', 'HoneyDew', 'HotPink', 'IndianRed', 'Indigo', 'Ivory', 'Khaki', 'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue', 'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey', 'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue', 'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime', 'LimeGreen', 'Linen', 'Magenta', 'Maroon', 'MediumAquaMarine', 'MediumBlue', 'MediumOrchid', 'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen', 'MediumTurquoise', 'MediumVioletRed', 'MidnightBlue', 'MintCream', 'MistyRose', 'Moccasin', 'NavajoWhite', 'Navy', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed', 'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed', 'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple', 'RebeccaPurple', 'Red', 'RosyBrown', 'RoyalBlue', 'SaddleBrown', 'Salmon', 'SandyBrown', 'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue', 'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'Tan', 'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White', 'WhiteSmoke', 'Yellow', 'YellowGreen'];
             let colorHex = ['ffffff', 'f0f8ff', 'faebd7', '00ffff', '7fffd4', 'f0ffff', 'f5f5dc', 'ffe4c4', '000000', 'ffebcd', '0000ff', '8a2be2', 'a52a2a', 'deb887', '5f9ea0', '7fff00', 'd2691e', 'ff7f50', '6495ed', 'fff8dc', 'dc143c', '00ffff', '00008b', '008b8b', 'b8860b', 'a9a9a9', 'a9a9a9', '006400', 'bdb76b', '8b008b', '556b2f', 'ff8c00', '9932cc', '8b0000', 'e9967a', '8fbc8f', '483d8b', '2f4f4f', '2f4f4f', '00ced1', '9400d3', 'ff1493', '00bfff', '696969', '696969', '1e90ff', 'b22222', 'fffaf0', '228b22', 'ff00ff', 'dcdcdc', 'f8f8ff', 'ffd700', 'daa520', '808080', '808080', '008000', 'adff2f', 'f0fff0', 'ff69b4', 'cd5c5c', '4b0082', 'fffff0', 'f0e68c', 'e6e6fa', 'fff0f5', '7cfc00', 'fffacd', 'add8e6', 'f08080', 'e0ffff', 'fafad2', 'd3d3d3', 'd3d3d3', '90ee90', 'ffb6c1', 'ffa07a', '20b2aa', '87cefa', '778899', '778899', 'b0c4de', 'ffffe0', '00ff00', '32cd32', 'faf0e6', 'ff00ff', '800000', '66cdaa', '0000cd', 'ba55d3', '9370db', '3cb371', '7b68ee', '00fa9a', '48d1cc', 'c71585', '191970', 'f5fffa', 'ffe4e1', 'ffe4b5', 'ffdead', '000080', 'fdf5e6', '808000', '6b8e23', 'ffa500', 'ff4500', 'da70d6', 'eee8aa', '98fb98', 'afeeee', 'db7093', 'ffefd5', 'ffdab9', 'cd853f', 'ffc0cb', 'dda0dd', 'b0e0e6', '800080', '663399', 'ff0000', 'bc8f8f', '4169e1', '8b4513', 'fa8072', 'f4a460', '2e8b57', 'fff5ee', 'a0522d', 'c0c0c0', '87ceeb', '6a5acd', '708090', '708090', 'fffafa', '00ff7f', '4682b4', 'd2b48c', '008080', 'd8bfd8', 'ff6347', '40e0d0', 'ee82ee', 'f5deb3', 'ffffff', 'f5f5f5', 'ffff00', '9acd32'];
@@ -2294,7 +2302,7 @@ function getFillType(node) {
             }
             return hex;
         }
-        function getSchemeColorFromTheme(schemeClr, clrMap, phClr, warpObj) {
+        function getSchemeColorFromTheme(schemeClr: any, clrMap: any, phClr: any, warpObj: any) {
             //<p:clrMap ...> in slide master
             // e.g. tx2="dk2" bg2="lt2" tx1="dk1" bg1="lt1" slideLayoutClrOvride
             let color = '';
@@ -2355,7 +2363,7 @@ function getFillType(node) {
             return color;
         }
 
-        function extractChartData(serNode, warpObj) {
+        function extractChartData(serNode: any, warpObj: any) {
 
             let dataMat = new Array();
 
@@ -2365,19 +2373,19 @@ function getFillType(node) {
 
             if (serNode["c:xVal"] !== undefined) {
                 var dataRow = new Array();
-                eachElement(serNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode, index) => {
+                eachElement(serNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode: any, index: any) => {
     dataRow.push(parseFloat(innerNode["c:v"]));
     return "";
 });
                 dataMat.push(dataRow);
                 dataRow = new Array();
-                eachElement(serNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode, index) => {
+                eachElement(serNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode: any, index: any) => {
     dataRow.push(parseFloat(innerNode["c:v"]));
     return "";
 });
                 dataMat.push(dataRow);
             } else {
-                eachElement(serNode, (innerNode, index) => {
+                eachElement(serNode, (innerNode: any, index: any) => {
     var dataRow = new Array();
     // 提取系列名称（从c:tx中）
     let colName;
@@ -2404,13 +2412,13 @@ function getFillType(node) {
     // Category (string or number)
     let rowNames: any = {};
     if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], (innerNode, index) => {
+        eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], (innerNode: any, index: any) => {
     rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
     return "";
 });
     }
     else if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode, index) => {
+        eachElement(innerNode["c:cat"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode: any, index: any) => {
     rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
     return "";
 });
@@ -2424,7 +2432,7 @@ function getFillType(node) {
             const firstLvl = Array.isArray(lvl) ? lvl[0] : lvl;
             const pts = PPTXXmlUtils.getTextByPathList(firstLvl, ["c:pt"]);
             if (pts) {
-                eachElement(pts, (pt, index) => {
+                eachElement(pts, (pt: any, index: any) => {
     rowNames[pt["attrs"]["idx"]] = pt["c:v"];
     return "";
 });
@@ -2433,7 +2441,7 @@ function getFillType(node) {
     }
     // Value
     if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:val", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
-        eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode, index) => {
+        eachElement(innerNode["c:val"]["c:numRef"]["c:numCache"]["c:pt"], (innerNode: any, index: any) => {
     dataRow.push({ x: innerNode["attrs"]["idx"], y: parseFloat(innerNode["c:v"]) });
     return "";
 });
@@ -2499,7 +2507,7 @@ function getFillType(node) {
          * @param {string Array} path
          * @param {string} value
          */
-        function setTextByPathList(node, path, value) {
+        function setTextByPathList(node: any, path: any, value: any): any {
 
             if (path.constructor !== Array) {
                 throw Error("Error of path type! path is not array.");
@@ -2509,7 +2517,7 @@ function getFillType(node) {
                 return undefined;
             }
 
-            function setObjectPath(obj, parts, value) {
+            function setObjectPath(obj: any, parts: any, value: any) {
                 if(!parts) return obj;
                 //var parts = prop.split('.');
                 let current = obj;
@@ -2536,7 +2544,7 @@ function getFillType(node) {
          * @param {Object} node
          * @param {function} doFunction
          */
-        function eachElement(node, doFunction) {
+        function eachElement(node: any, doFunction: any) {
             if (node === undefined) {
                 return;
             }
@@ -2558,7 +2566,7 @@ function getFillType(node) {
          * @param {string} rgbStr
          * @param {number} shadeValue
          */
-        function applyShade(rgbStr, shadeValue, isAlpha) {
+        function applyShade(rgbStr: any, shadeValue: any, isAlpha: any) {
             let color = tinycolor(rgbStr).toHsl();
             // 确保shadeValue在0-1之间
             shadeValue = Math.max(0, Math.min(1, shadeValue));
@@ -2574,7 +2582,7 @@ function getFillType(node) {
          * @param {string} rgbStr
          * @param {number} tintValue
          */
-        function applyTint(rgbStr, tintValue, isAlpha) {
+        function applyTint(rgbStr: any, tintValue: any, isAlpha: any) {
             let color = tinycolor(rgbStr).toHsl();
             // 确保tintValue在0-1之间
             tintValue = Math.max(0, Math.min(1, tintValue));
@@ -2590,7 +2598,7 @@ function getFillType(node) {
          * @param {string} rgbStr
          * @param {number} offset
          */
-        function applyLumOff(rgbStr, offset, isAlpha) {
+        function applyLumOff(rgbStr: any, offset: any, isAlpha: any) {
             let color = tinycolor(rgbStr).toHsl();
             let lum = offset + color.l;
             if (lum >= 1) {
@@ -2608,7 +2616,7 @@ function getFillType(node) {
          * @param {string} rgbStr
          * @param {number} multiplier
          */
-        function applyLumMod(rgbStr, multiplier, isAlpha) {
+        function applyLumMod(rgbStr: any, multiplier: any, isAlpha: any) {
             let color = tinycolor(rgbStr).toHsl();
             let cacl_l = color.l * multiplier;
             if (cacl_l >= 1) {
@@ -2625,7 +2633,7 @@ function getFillType(node) {
         //  * @param {string} rgbStr
         //  * @param {number} multiplier
         //  */
-        function applyHueMod(rgbStr, multiplier, isAlpha) {
+        function applyHueMod(rgbStr: any, multiplier: any, isAlpha: any) {
             let color = tinycolor(rgbStr).toHsl();
             let cacl_h = color.h * multiplier;
             if (cacl_h >= 360) {
@@ -2659,7 +2667,7 @@ function getFillType(node) {
         //  * @param {string} rgbStr
         //  * @param {number} multiplier
         //  */
-        function applySatMod(rgbStr, multiplier, isAlpha) {
+        function applySatMod(rgbStr: any, multiplier: any, isAlpha: any) {
             let color = tinycolor(rgbStr).toHsl();
             let cacl_s = color.s * multiplier;
             if (cacl_s >= 1) {
@@ -2678,7 +2686,7 @@ function getFillType(node) {
          * rgba2hex
          * @param {string} rgbaStr
          */
-        function rgba2hex(rgbaStr) {
+        function rgba2hex(rgbaStr: any) {
             let a,
                 rgb = rgbaStr.replace(/\s/g, '').match(/^rgba?\((\d+),(\d+),(\d+),?([^,\s)]+)?/i),
                 alpha = (rgb && rgb[4] || "").trim(),
@@ -2706,7 +2714,7 @@ function getFillType(node) {
         //     return degrees * (Math.PI / 180);
         // }
         
-        function getSvgGradient(w, h, angl, color_arry, shpId) {
+        function getSvgGradient(w: any, h: any, angl: any, color_arry: any, shpId: any) {
             const stopsArray = getMiddleStops(color_arry - 2);
 
             let svgAngle = '',
@@ -2736,7 +2744,7 @@ function getFillType(node) {
 
             return svg
         }
-        function getMiddleStops(s) {
+        function getMiddleStops(s: any) {
             let sArry = ['0%', '100%'];
             if (s == 0) {
                 return sArry;
@@ -2750,7 +2758,7 @@ function getFillType(node) {
             }
             return sArry
         }
-        function SVGangle(deg, svgHeight, svgWidth) {
+        function SVGangle(deg: any, svgHeight: any, svgWidth: any) {
             let w = parseFloat(svgWidth),
                 h = parseFloat(svgHeight),
                 ang = parseFloat(deg),
@@ -2812,7 +2820,7 @@ function getFillType(node) {
                 y2 = Math.round(ty1 / h * 100 * 100) / 100;
             return [x1, y1, x2, y2];
         }
-        function getSvgImagePattern(node, fill, shpId, warpObj) {
+        function getSvgImagePattern(node: any, fill: any, shpId: any, warpObj: any) {
             // 处理 fill 参数是对象的情况
             let fillUrl = fill;
             if (typeof fill === 'object' && fill.img) {
@@ -2849,7 +2857,7 @@ function getFillType(node) {
             let fillterNode = "";
             let filterUrl = "";
             if (duotoneNode !== undefined) {
-                const clr_ary = [];
+                const clr_ary: any = [];
                 Object.keys(duotoneNode).forEach(clr_type => {
                     //Object.keys(duotoneNode[clr_type]).forEach(clr => {
                     //console.log("blip pic duotone clr: ", duotoneNode[clr_type][clr], clr)
@@ -2886,7 +2894,7 @@ function getFillType(node) {
             return ptrn;
         }
 
-        function getBase64ImageDimensions(imgSrc) {
+        function getBase64ImageDimensions(imgSrc: any) {
             let image = new Image();
             let w, h;
             image.onload = () => {
@@ -2904,7 +2912,7 @@ function getFillType(node) {
             //return [w, h];
         }
 
-        function getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type) {
+        function getVerticalAlign(node: any, slideLayoutSpNode: any, slideMasterSpNode: any, type: any) {
 
             //X, <a:bodyPr anchor="ctr">, <a:bodyPr anchor="b">
             let anchor = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
@@ -2933,7 +2941,7 @@ function getFillType(node) {
             return (anchor === "ctr")?"v-mid" : ((anchor === "b") ? "v-down" : "v-up");
         }
 
-    function getContentDir(node, type, warpObj) {
+    function getContentDir(node: any, type: any, warpObj: any) {
             return "content";
             let defRtl = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "a:defPPr", "attrs", "rtl"]);
             if (defRtl !== undefined) {
@@ -2998,7 +3006,7 @@ function getFillType(node) {
             //console.log("getContentDir() type:", type, "slideMasterTextStyles:", slideMasterTextStyles,"dirNode:",dirVal)
         }
 
-        function getVerticalMargins(pNode, textBodyNode, type, idx, warpObj, totalParagraphs, paragraphIndex, anchor) {
+        function getVerticalMargins(pNode: any, textBodyNode: any, type: any, idx: any, warpObj: any, totalParagraphs: any, paragraphIndex: any, anchor: any) {
             //margin-top ;
             //a:pPr => a:spcBef => a:spcPts (/100) | a:spcPct (/?)
             //margin-bottom
@@ -3324,7 +3332,7 @@ function getFillType(node) {
             //return spcAft + spcBef;
             return marginTopBottomStr;
         }
-        function getHorizontalAlign(node, textBodyNode, idx, type, prg_dir, warpObj, spNode?) {
+        function getHorizontalAlign(node: any, textBodyNode: any, idx: any, type: any, prg_dir: any, warpObj: any, spNode?: any) {
             let algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
@@ -3441,7 +3449,7 @@ function getFillType(node) {
             //return algn === "ctr" ? "h-mid" : algn === "r" ? "h-right" : "h-left";
         }
 
-        function getLayoutAndMasterNode(node, idx, type, warpObj) {
+        function getLayoutAndMasterNode(node: any, idx: any, type: any, warpObj: any) {
             let pPrNodeLaout, pPrNodeMaster;
             const pPrNode = node["a:pPr"];
             //lvl
@@ -3484,7 +3492,7 @@ function getFillType(node) {
                 "nodeMaster": pPrNodeMaster
             };
         }
-    function getPregraphDir(node, textBodyNode, idx, type, warpObj) {
+    function getPregraphDir(node: any, textBodyNode: any, idx: any, type: any, warpObj: any) {
             let rtl = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "rtl"]);
 
             if (rtl === undefined) {
@@ -3521,7 +3529,7 @@ function getFillType(node) {
             // }
             // return "";
         }
-    function getPregraphMargn(pNode, idx, type, isBullate, warpObj, fontSize){
+    function getPregraphMargn(pNode: any, idx: any, type: any, isBullate: any, warpObj: any, fontSize: any){
             if (!isBullate){
                 return ["",0];
             }
@@ -3622,7 +3630,7 @@ function getFillType(node) {
             return [marLStr, maginVal];
         }
 // 提取图表标题样式
-function extractChartTitleStyle(chartNode, warpObj) {
+function extractChartTitleStyle(chartNode: any, warpObj: any) {
     const titleNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:title"]);
     if (!titleNode) return { text: "", style: {} };
     
@@ -3736,7 +3744,7 @@ function extractChartTitleStyle(chartNode, warpObj) {
 }
 
 // 提取图表区域样式
-function extractChartAreaStyle(chartSpaceNode, warpObj) {
+function extractChartAreaStyle(chartSpaceNode: any, warpObj: any) {
     const style: any = {};
     
     // 提取图表区域填充
@@ -3781,7 +3789,7 @@ function extractChartAreaStyle(chartSpaceNode, warpObj) {
 }
 
 // 提取图表图例样式
-function extractChartLegendStyle(chartNode, warpObj) {
+function extractChartLegendStyle(chartNode: any, warpObj: any) {
     const legendNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:legend"]);
     if (!legendNode) return {};
     
@@ -3824,7 +3832,7 @@ function extractChartLegendStyle(chartNode, warpObj) {
 }
 
 // 提取图表轴样式
-function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
+function extractChartAxisStyle(plotAreaNode: any, axisType: any, warpObj: any) {
     const axisNode = PPTXXmlUtils.getTextByPathList(plotAreaNode, [axisType]);
     if (!axisNode) return {};
     
@@ -3905,7 +3913,7 @@ function extractChartAxisStyle(plotAreaNode, axisType, warpObj) {
 }
 
 // 辅助函数：获取颜色
-function getColor(node, clrMap, phClr, warpObj) {
+function getColor(node: any, clrMap: any, phClr: any, warpObj: any) {
     if (node["a:solidFill"]) {
         return getSolidFill(node["a:solidFill"], clrMap, phClr, warpObj);
     }

@@ -3,14 +3,14 @@
  * 包含 smileyFace、scroll 等独立形状
  */
 
-import { PPTXXmlUtils } from '../utils/xml.js';
-import { shapeArc, shapeArcAlt } from './path-generators.js';
-import { SLIDE_FACTOR } from '../core/constants.js';
+import { PPTXXmlUtils } from '../utils/xml';
+import { shapeArc, shapeArcAlt } from './path-generators';
+import { SLIDE_FACTOR } from '../core/constants';
 
 /**
  * 检查形状是否为杂项形状
  */
-export function isMiscShape(shapType) {
+export function isMiscShape(shapType: any) {
     const miscShapes = [
         'smileyFace', 'verticalScroll', 'horizontalScroll'
     ];
@@ -20,7 +20,7 @@ export function isMiscShape(shapType) {
 /**
  * 渲染杂项形状
  */
-export function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node) {
+export function renderMiscShape(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
     let result = "";
     let dVal = "";
 

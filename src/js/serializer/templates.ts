@@ -9,7 +9,7 @@
  * @module serializer/templates
  */
 
-import { NS, escapeXml, pxToEmu } from './xml-builder.js';
+import { NS, escapeXml, pxToEmu } from './xml-builder';
 
 /** DrawingML 常用命名空间声明串 */
 const DRAWING_NS = `xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}"`;
@@ -70,9 +70,9 @@ export function buildTableStylesXml() {
  * @param {Array<{relId: string}>} slides - 幻灯片引用列表
  * @returns {string} presentation.xml 内容
  */
-export function buildPresentationXml(slideSize, slides) {
+export function buildPresentationXml(slideSize: any, slides: any) {
     const slideEntries = slides
-        .map((s, i) => `<p:sldId id="${256 + i}" r:id="${escapeXml(s.relId)}"/>`)
+        .map((s: any, i: any) => `<p:sldId id="${256 + i}" r:id="${escapeXml(s.relId)}"/>`)
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slideEntries}</p:sldIdLst><p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="914400"/><p:defaultTextStyle/></p:presentation>`;
 }
@@ -82,9 +82,9 @@ export function buildPresentationXml(slideSize, slides) {
  * @param {Array<{relId: string, target: string, type: string, external?: boolean}>} rels - 关系列表
  * @returns {string} presentation.xml.rels 内容
  */
-export function buildRelationshipsXml(rels) {
+export function buildRelationshipsXml(rels: any) {
     const entries = rels
-        .map(r => `<Relationship Id="${escapeXml(r.relId)}" Type="${escapeXml(r.type)}" Target="${escapeXml(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`)
+        .map((r: any) => `<Relationship Id="${escapeXml(r.relId)}" Type="${escapeXml(r.type)}" Target="${escapeXml(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`)
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="${NS.rel}">${entries}</Relationships>`;
 }
@@ -95,7 +95,7 @@ export function buildRelationshipsXml(rels) {
  * @param {number} slideCount - 幻灯片数量
  * @returns {string} [Content_Types].xml 内容
  */
-export function buildContentTypesXml(mediaExts, slideCount) {
+export function buildContentTypesXml(mediaExts: any, slideCount: any) {
     const MIME_MAP = {
         png: 'image/png',
         jpeg: 'image/jpeg',
@@ -112,7 +112,7 @@ export function buildContentTypesXml(mediaExts, slideCount) {
         .map(ext => `<Default Extension="${ext}" ContentType="${ext === 'rels' ? 'application/vnd.openxmlformats-package.relationships+xml' : 'application/xml'}"/>`)
         .join('');
     const mediaDefaults = [...new Set(mediaExts)]
-        .map(ext => `<Default Extension="${escapeXml(ext)}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/>`)
+        .map(ext => `<Default Extension="${escapeXml(ext)}" ContentType="${(MIME_MAP as any)[String(ext).toLowerCase()] || 'application/octet-stream'}"/>`)
         .join('');
     const slideOverrides = Array.from({ length: slideCount }, (_, i) =>
         `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`
@@ -125,7 +125,7 @@ export function buildContentTypesXml(mediaExts, slideCount) {
  * @param {Object} metadata - 元数据（title/author/subject/keywords/description/lastModifiedBy/category/status）
  * @returns {string} core.xml 内容
  */
-export function buildCorePropsXml(metadata) {
+export function buildCorePropsXml(metadata: any) {
     const md = metadata || {};
     const now = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
     const created = md.created || now;
@@ -151,7 +151,7 @@ export function buildCorePropsXml(metadata) {
  * @param {number} slideCount - 幻灯片数量
  * @returns {string} app.xml 内容
  */
-export function buildAppPropsXml(slideCount) {
+export function buildAppPropsXml(slideCount: any) {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Properties xmlns="${NS.ext}" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Microsoft Office PowerPoint</Application><Slides>${slideCount}</Slides><AppVersion>16.0000</AppVersion></Properties>`;
 }
 

@@ -3,9 +3,9 @@
  * Handles chart generation and data processing
  */
 
-import { PPTXXmlUtils } from './xml.js';
-import { PPTXStyleUtils } from './style.js';
-import { SLIDE_FACTOR } from '../core/constants.js';
+import { PPTXXmlUtils } from './xml';
+import { PPTXStyleUtils } from './style';
+import { SLIDE_FACTOR } from '../core/constants';
 
 /**
  * Generate chart HTML and data
@@ -14,7 +14,7 @@ import { SLIDE_FACTOR } from '../core/constants.js';
  * @param {Object} parentNode - Parent node (for group elements coordinate calculation)
  * @returns {Promise<string>} Chart HTML
  */
-async function genChart(node, warpObj, parentNode) {
+async function genChart(node: any, warpObj: any, parentNode: any) {
     const order = node["attrs"]["order"];
     // graphicFrame 的变换元素标准是 <a:xfrm>（ECMA-376），
     // 但部分生成工具（旧版/某些导出器）会写成 <p:xfrm>，需兼容两种写法
@@ -100,7 +100,7 @@ async function genChart(node, warpObj, parentNode) {
     const varyColors = chartType ? PPTXXmlUtils.getTextByPathList(plotArea[chartType], ["c:varyColors", "attrs", "val"]) : undefined;
 
     // 提取系列数据点的样式（dPt）和爆炸效果（explosion）
-    let dataPointStyles = [];
+    let dataPointStyles: any = [];
     if (chartType && plotArea[chartType]["c:ser"]) {
         const serArray = Array.isArray(plotArea[chartType]["c:ser"]) 
             ? plotArea[chartType]["c:ser"] 
@@ -248,7 +248,7 @@ async function genChart(node, warpObj, parentNode) {
  * @param {Array} queue - Message queue
  * @param {Object} result - Result object to store chart data
  */
-function processMsgQueue(queue, result) {
+function processMsgQueue(queue: any, result: any) {
     for (const msg of queue) {
         if (msg.type === "chart" || msg.type === "createChart") {
             const chartObj = msg.data;
@@ -268,7 +268,7 @@ function processMsgQueue(queue, result) {
  * @param {Object} data - Chart data
  * @param {Object} callbacks - Callback functions
  */
-function processSingleMsg(data, callbacks) {
+function processSingleMsg(data: any, callbacks: any) {
     const { chartId, chartType, chartData } = data;
     let chartDataArray = [];
     let chart = null;
@@ -283,7 +283,7 @@ function processSingleMsg(data, callbacks) {
             // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart = nv.models.lineChart().useInteractiveGuideline(true);
             if (chartData[0]?.xlabels) {
-                chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
+                chart.xAxis.tickFormat((d: any) => chartData[0].xlabels[d] || d);
             }
             break;
 
@@ -292,7 +292,7 @@ function processSingleMsg(data, callbacks) {
             // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
             chart = nv.models.multiBarChart();
             if (chartData[0]?.xlabels) {
-                chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
+                chart.xAxis.tickFormat((d: any) => chartData[0].xlabels[d] || d);
             }
             break;
 
@@ -310,7 +310,7 @@ function processSingleMsg(data, callbacks) {
                 .clipEdge(true)
                 .useInteractiveGuideline(true);
             if (chartData[0]?.xlabels) {
-                chart.xAxis.tickFormat(d => chartData[0].xlabels[d] || d);
+                chart.xAxis.tickFormat((d: any) => chartData[0].xlabels[d] || d);
             }
             break;
 

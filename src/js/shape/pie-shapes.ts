@@ -3,14 +3,14 @@
  * 提供饼图、弧形、扇形、弦形等形状的生成和渲染功能
  */
 
-import { PPTXXmlUtils } from '../utils/xml.js';
-import { shapePie, shapeArc } from './path-generators.js';
-import { SLIDE_FACTOR } from '../core/constants.js';
+import { PPTXXmlUtils } from '../utils/xml';
+import { shapePie, shapeArc } from './path-generators';
+import { SLIDE_FACTOR } from '../core/constants';
 
 /**
  * 检查形状是否为饼图/弧形形状
  */
-export function isPieShape(shapType) {
+export function isPieShape(shapType: any) {
     const pieShapes = [
         'pie', 'pieWedge', 'arc', 'chord', 'blockArc'
     ];
@@ -20,7 +20,7 @@ export function isPieShape(shapType) {
 /**
  * 渲染饼图/弧形形状
  */
-export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, node, oShadowSvgUrlStr) {
+export function renderPieShape(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any, oShadowSvgUrlStr: any) {
     let result = "";
     let dVal = "";
 

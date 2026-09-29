@@ -19,7 +19,7 @@
  * @module serializer/composer
  */
 
-import { jsonToPptx } from './json-to-pptx.js';
+import { jsonToPptx } from './json-to-pptx';
 
 /** 默认 16:9 幻灯片尺寸（px，与解析端 SLIDE_FACTOR 换算一致：12192000EMU x 6858000EMU） */
 const DEFAULT_SLIDE_SIZE = { width: 1280, height: 720 };
@@ -30,10 +30,10 @@ const DEFAULT_SLIDE_SIZE = { width: 1280, height: 720 };
  * @param {string[]} keys - 属性名列表
  * @returns {Object} 构建器（每个 key 对应一个 setter，返回构建器自身以支持链式调用）
  */
-function makeFluent(el, keys) {
+function makeFluent(el: any, keys: any) {
     const builder: any = {};
     for (const key of keys) {
-        builder[key] = (value) => {
+        builder[key] = (value: any) => {
     el[key] = value === undefined ? true : value;
     return builder;
 };
@@ -46,7 +46,7 @@ function makeFluent(el, keys) {
  * @param {Object} element - 元素对象
  * @param {Function|Object} config - 回调函数或配置对象
  */
-function applyConfig(element, config) {
+function applyConfig(element: any, config: any) {
     if (typeof config === 'function') {
         config(element);
     } else if (config && typeof config === 'object') {
@@ -69,7 +69,7 @@ class SlideComposer {
      * @param {string} color - 颜色值
      * @returns {SlideComposer} this
      */
-    background(color) {
+    background(color: any) {
         this.slide.background = color;
         return this;
     }
@@ -79,14 +79,14 @@ class SlideComposer {
      * @param {Function|Object} config - 回调（接收流式构建器）或配置对象
      * @returns {SlideComposer} this
      */
-    addText(config) {
+    addText(config: any) {
         const el: any = { type: 'text', x: 0, y: 0, width: 300, height: 60 };
         if (typeof config === 'function') {
             const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'align', 'valign',
                 'fontSize', 'color', 'bold', 'italic', 'underline', 'fontFace', 'href', 'lang', 'name']);
-            builder.value = (text) => { el.text = text; return builder; };
-            builder.runs = (runs) => { el.runs = runs; return builder; };
-            builder.paragraphs = (paragraphs) => { el.paragraphs = paragraphs; return builder; };
+            builder.value = (text: any) => { el.text = text; return builder; };
+            builder.runs = (runs: any) => { el.runs = runs; return builder; };
+            builder.paragraphs = (paragraphs: any) => { el.paragraphs = paragraphs; return builder; };
             config(builder);
         } else {
             applyConfig(el, config);
@@ -100,13 +100,13 @@ class SlideComposer {
      * @param {Function|Object} config - 回调（接收流式构建器）或配置对象
      * @returns {SlideComposer} this
      */
-    addShape(config) {
+    addShape(config: any) {
         const el: any = { type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 200, height: 120 };
         if (typeof config === 'function') {
             const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'rotation', 'name']);
-            builder.shapeType = (type) => { el.shapeType = type; return builder; };
-            builder.fill = (fill) => { el.fill = fill; return builder; };
-            builder.line = (line) => { el.line = line; return builder; };
+            builder.shapeType = (type: any) => { el.shapeType = type; return builder; };
+            builder.fill = (fill: any) => { el.fill = fill; return builder; };
+            builder.line = (line: any) => { el.line = line; return builder; };
             config(builder);
         } else {
             applyConfig(el, config);
@@ -120,12 +120,12 @@ class SlideComposer {
      * @param {Function|Object} config - 回调（接收流式构建器）或配置对象
      * @returns {SlideComposer} this
      */
-    addImage(config) {
+    addImage(config: any) {
         const el: any = { type: 'image', x: 0, y: 0, width: 300, height: 200 };
         if (typeof config === 'function') {
             const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'extension', 'href', 'name']);
-            builder.data = (data) => { el.data = data; return builder; };
-            builder.src = (src) => { el.src = src; return builder; };
+            builder.data = (data: any) => { el.data = data; return builder; };
+            builder.src = (src: any) => { el.src = src; return builder; };
             config(builder);
         } else {
             applyConfig(el, config);
@@ -143,7 +143,7 @@ class SlideComposer {
      * @param {Function|Object} config - 回调（接收配置对象，可直接赋值字段）或配置对象
      * @returns {SlideComposer} this
      */
-    addChart(config) {
+    addChart(config: any) {
         const el: any = { type: 'chart', chartType: 'barChart', x: 0, y: 0, width: 600, height: 400 };
         if (typeof config === 'function') {
             config(el);
@@ -175,7 +175,7 @@ class PPTXComposer {
      * @param {number} [height] - 高
      * @returns {PPTXComposer} this
      */
-    slideSize(width, height) {
+    slideSize(width: any, height: any) {
         if (width && typeof width === 'object') {
             this.presentation.slideSize = {
                 width: width.width,
@@ -192,32 +192,32 @@ class PPTXComposer {
      * @param {Object} metadata - 元数据
      * @returns {PPTXComposer} this
      */
-    metadata(metadata) {
+    metadata(metadata: any) {
         this.presentation.metadata = { ...this.presentation.metadata, ...metadata };
         return this;
     }
 
     /** 元数据便捷方法：标题 */
-    title(value) { return this.metadata({ title: value }); }
+    title(value: any) { return this.metadata({ title: value }); }
 
     /** 元数据便捷方法：作者 */
-    author(value) { return this.metadata({ author: value }); }
+    author(value: any) { return this.metadata({ author: value }); }
 
     /** 元数据便捷方法：主题 */
-    subject(value) { return this.metadata({ subject: value }); }
+    subject(value: any) { return this.metadata({ subject: value }); }
 
     /** 元数据便捷方法：关键词 */
-    keywords(value) { return this.metadata({ keywords: value }); }
+    keywords(value: any) { return this.metadata({ keywords: value }); }
 
     /** 元数据便捷方法：描述 */
-    description(value) { return this.metadata({ description: value }); }
+    description(value: any) { return this.metadata({ description: value }); }
 
     /**
      * 添加幻灯片
      * @param {Function|Object} config - 回调（接收 SlideComposer）或幻灯片配置对象
      * @returns {PPTXComposer} this
      */
-    addSlide(config) {
+    addSlide(config: any) {
         const slideComposer = new SlideComposer();
         if (typeof config === 'function') {
             config(slideComposer);
@@ -241,7 +241,7 @@ class PPTXComposer {
      * @param {Object} [options] - 序列化选项（同 jsonToPptx options）
      * @returns {Promise<Uint8Array>} PPTX 文件二进制数据
      */
-    save(options) {
+    save(options: any) {
         return jsonToPptx(this.toJSON(), options);
     }
 }

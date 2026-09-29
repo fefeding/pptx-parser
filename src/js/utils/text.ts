@@ -12,10 +12,10 @@
  * @module utils/text
  */
 
-import { PPTXXmlUtils } from './xml.js';
-import { PPTXStyleUtils } from './style.js';
-import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY, DINGBAT_UNICODE } from '../core/constants.js';
-import { genChart } from './chart.js';
+import { PPTXXmlUtils } from './xml';
+import { PPTXStyleUtils } from './style';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY, DINGBAT_UNICODE } from '../core/constants';
+import { genChart } from './chart';
 import TinyColor from 'tinycolor2';
 
 // 创建 tinycolor 工厂函数以保持向后兼容
@@ -24,7 +24,7 @@ let is_first_br = false;
 
 
 
-function getTextWidth(html) {
+function getTextWidth(html: any) {
         let div = document.createElement('div');
         div.style.position = 'absolute';
         div.style.float = 'left';
@@ -37,7 +37,7 @@ function getTextWidth(html) {
         return width;
     }
 
-    async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj, tbl_col_width?) {
+    async function genTextBody(textBodyNode: any, spNode: any, slideLayoutSpNode: any, slideMasterSpNode: any, type: any, idx: any, warpObj: any, tbl_col_width?: any) {
             let text = "";
             let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
@@ -106,14 +106,14 @@ function getTextWidth(html) {
                 if (rNode !== undefined && brNode !== undefined) {
                     is_first_br = true;
                     brNode = (brNode.constructor === Array) ? brNode : [brNode];
-                    brNode.forEach((item, indx) => {
+                    brNode.forEach((item: any, indx: any) => {
                         item.type = "br";
                     });
                     if (brNode.length > 1) {
                         brNode.shift();
                     }
                     rNode = rNode.concat(brNode)
-                    rNode.sort((a, b) => {
+                    rNode.sort((a: any, b: any) => {
                         return a.attrs.order - b.attrs.order;
                     });
                 }
@@ -388,7 +388,7 @@ function getTextWidth(html) {
      * @param {string} anchor - 垂直对齐方式（t=顶部, ctr=居中, b=底部）
      * @returns {string} CSS padding字符串
      */
-    function getBodyPrPadding(textBodyNode, type, anchor) {
+    function getBodyPrPadding(textBodyNode: any, type: any, anchor: any) {
         let paddingStyle = "";
 
         // 获取bodyPr的各个内边距属性
@@ -444,7 +444,7 @@ function getTextWidth(html) {
         return paddingStyle;
     }
         
-        async function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj) {
+        async function genBuChar(node: any, i: any, spNode: any, textBodyNode: any, pFontStyle: any, idx: any, type: any, warpObj: any) {
 
             ///////////////////////////////////////Amir///////////////////////////////
             let sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
@@ -788,6 +788,10 @@ function getTextWidth(html) {
                     } else if (color_tye == "gradient") {
 
                         let colorAry = bultColor[0].color;
+                        // 归一化：非数组时（单个值/undefined）避免 .keys() 报错
+                        if (!Array.isArray(colorAry)) {
+                            colorAry = colorAry ? [colorAry] : [];
+                        }
                         let rot = bultColor[0].rot;
 
                         bullet += `background: linear-gradient(${rot}deg,`;
@@ -943,7 +947,7 @@ function getTextWidth(html) {
 
             return [bullet, margin_val, font_val];//$(bullet).outerWidth()];
         }
-        function getHtmlBullet(typefaceNode, buChar) {
+        function getHtmlBullet(typefaceNode: any, buChar: any) {
             //http://www.alanwood.net/demos/wingdings.html
             //not work for IE11
             //console.log("genBuChar typefaceNode:", typefaceNode, " buChar:", buChar, "charCodeAt:", buChar.charCodeAt(0))
@@ -1117,19 +1121,18 @@ function getTextWidth(html) {
                     return `&#${(buChar.charCodeAt(0))};`;
             }
         }
-        function getDingbatToUnicode(typefaceNode, buChar){
-            // @ts-ignore 历史遗留拼写问题：此处应为已导入的 DINGBAT_UNICODE，现保留运行时行为未改
-            if (dingbatUnicode){
+        function getDingbatToUnicode(typefaceNode: any, buChar: any){
+            // 原为 dingbatUnicode（未定义，运行时 ReferenceError），修正为已导入的 DINGBAT_UNICODE
+            if (DINGBAT_UNICODE){
                 let dingbat_code = buChar.codePointAt(0) & 0xFFF;
                 let char_unicode = null;
-                // @ts-ignore 同上：DINGBAT_UNICODE 拼写问题
-                let len = dingbatUnicode.length;
+                let len = DINGBAT_UNICODE.length;
                 let i = 0;
                 while (len--) {
                     // blah blah
-                    // @ts-ignore  历史遗留问题(保留运行时行为), 待后续修复
-                    let item = dingbatUnicode[i];
-                    if (item.f == typefaceNode && item.code == dingbat_code) {
+                    let item = DINGBAT_UNICODE[i];
+                    // code 为字符串、dingbat_code 为数值，此处依赖 == 的类型转换语义
+                    if (item.f == typefaceNode && (item.code as any) == dingbat_code) {
                         char_unicode = item.unicode;
                         break;
                     }
@@ -1145,7 +1148,7 @@ function getTextWidth(html) {
      * @param {string} upperLower - 大小写选项（upperCase或lowerCase）
      * @returns {string} 字母数字格式的字符串
      */
-    function alphaNumeric(num, upperLower) {
+    function alphaNumeric(num: any, upperLower: any) {
         num = Number(num) - 1;
         let aNum = "";
         if (upperLower == "upperCase") {
@@ -1161,7 +1164,7 @@ function getTextWidth(html) {
      * @param {number} num - 数字
      * @returns {string} 希伯来字母编号字符串
      */
-    function hebrewAlphaNumeric(num) {
+    function hebrewAlphaNumeric(num: any) {
         num = Number(num) - 1;
         // 希伯来字母表（22个字母）
         const hebrewLetters = [
@@ -1194,10 +1197,10 @@ function getTextWidth(html) {
      * @param {Array} arr - 数字映射数组
      * @returns {Object} 包含format方法的对象
      */
-    function archaicNumbers(arr) {
-        let arrParse = arr.slice().sort((a, b) => { return b[1].length - a[1].length });
+    function archaicNumbers(arr: any) {
+        let arrParse = arr.slice().sort((a: any, b: any) => { return b[1].length - a[1].length });
         return {
-            format: (n) => {
+            format: (n: any) => {
                 let ret = '';
                 for (const item of arr){
                     let num = item[0];
@@ -1217,7 +1220,7 @@ function getTextWidth(html) {
      * @param {number} num - 数字
      * @returns {string} 罗马数字字符串
      */
-    function romanize(num) {
+    function romanize(num: any) {
         if (!+num)
             return false;
         let digits = String(+num).split(""),
@@ -1265,7 +1268,7 @@ function getTextWidth(html) {
      * @param {number} num - 数字
      * @returns {string} 格式化的数字字符串
      */
-    function getNumTypeNum(numTyp, num) {
+    function getNumTypeNum(numTyp: any, num: any) {
         let rtrnNum = "";
         switch (numTyp) {
             case "arabicPeriod":
@@ -1304,7 +1307,7 @@ function getTextWidth(html) {
         return rtrnNum;
     }
 
-    async function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, slideLayoutSpNode, idx, type, rNodeLength, warpObj, isBullate) {
+    async function genSpanElement(node: any, rIndex: any, pNode: any, textBodyNode: any, pFontStyle: any, slideLayoutSpNode: any, idx: any, type: any, rNodeLength: any, warpObj: any, isBullate: any) {
             //https://codepen.io/imdunn/pen/GRgwaye ?
             let text_style = "";
             let lstStyle = textBodyNode["a:lstStyle"];
@@ -1471,6 +1474,10 @@ function getTextWidth(html) {
                 } else if (fontClrType == "gradient") {
 
                     let colorAry = fontClrPr[0].color;
+                    // 归一化：非数组时（单个值/undefined）避免 .keys() 报错
+                    if (!Array.isArray(colorAry)) {
+                        colorAry = colorAry ? [colorAry] : [];
+                    }
                     let rot = fontClrPr[0].rot;
 
                     styleText += `background: linear-gradient(${rot}deg,`;
@@ -1626,11 +1633,11 @@ function getTextWidth(html) {
                 let processedText = text
                     .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')  // 制表符转4个空格
                     .replace(/\n/g, "<br>")                      // 换行符转<br>
-                    .replace(/  +/g, (spaces) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
+                    .replace(/  +/g, (spaces: any) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
 
                 // 在 rtlCol 模式下，每个单词单独一行
                 if (isRTLCol) {
-                    processedText = processedText.split(/\s+/).filter(word => word.length > 0).join("<br>");
+                    processedText = processedText.split(/\s+/).filter((word: any) => word.length > 0).join("<br>");
                 }
 
                 return openElemnt + ` class='text-block ${cssName}' style='` + text_style + `'><a href='${linkURL}' ` + linkColorSyle + `  ${linkTooltip}${linkTargetAttr}>` +
@@ -1640,11 +1647,11 @@ function getTextWidth(html) {
                 let processedText = text
                     .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')  // 制表符转4个空格
                     .replace(/\n/g, "<br>")                      // 换行符转<br>
-                    .replace(/  +/g, (spaces) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
+                    .replace(/  +/g, (spaces: any) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
 
                 // 在 rtlCol 模式下，每个单词单独一行
                 if (isRTLCol) {
-                    processedText = processedText.split(/\s+/).filter(word => word.length > 0).join("<br>");
+                    processedText = processedText.split(/\s+/).filter((word: any) => word.length > 0).join("<br>");
                 }
 
                 return openElemnt + ` class='text-block ${cssName}' style='` + text_style + "'>" + processedText + closeElemnt;//"</bdi>";
@@ -1653,7 +1660,7 @@ function getTextWidth(html) {
         }
 
 
-        async function genTable(node, warpObj, shapeType) {
+        async function genTable(node: any, warpObj: any, shapeType: any) {
             let order = node["attrs"]["order"];
             let tableNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
             let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
@@ -2099,7 +2106,7 @@ function getTextWidth(html) {
             return tableHtml;
         }
         
-        async function getTableCellParams(tcNodes, getColsGrid , row_idx , col_idx , thisTblStyle, cellSource, warpObj) {
+        async function getTableCellParams(tcNodes: any, getColsGrid: any , row_idx: any , col_idx: any , thisTblStyle: any, cellSource: any, warpObj: any) {
             //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
             //text, cell-width, cell-borders, 
             //let text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
