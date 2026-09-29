@@ -124,8 +124,7 @@ function getFillType(node) {
     
                         return fillColor;
                     } else {
-                        let colorAry = fillColor.color;
-                        let rot = fillColor.rot;
+                        let { color: colorAry, rot } = fillColor;
 
                         let bgcolor = `background: linear-gradient(${rot}deg,`;
                         for (let i = 0; i < colorAry.length; i++) {
@@ -305,8 +304,7 @@ function getFillType(node) {
 
             if (color === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
-                let pPrNodeLaout = layoutMasterNode.nodeLaout;
-                let pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
 
                 if (pPrNodeLaout !== undefined) {
                     let defRpRLaout = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:solidFill"]);
@@ -3330,8 +3328,7 @@ function getFillType(node) {
             let algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
-                let pPrNodeLaout = layoutMasterNode.nodeLaout;
-                let pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
                 let lvlIdx = 1;
                 let lvlNode = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
                 if (lvlNode !== undefined) {
@@ -3492,8 +3489,7 @@ function getFillType(node) {
 
             if (rtl === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
-                let pPrNodeLaout = layoutMasterNode.nodeLaout;
-                let pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
                 rtl = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (rtl === undefined && type != "shape") {
                     rtl = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
@@ -3532,8 +3528,7 @@ function getFillType(node) {
             let marLStr = "", marRStr = "" , maginVal = 0;
             let pPrNode = pNode["a:pPr"];
             let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
-            let pPrNodeLaout = layoutMasterNode.nodeLaout;
-            let pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
 
             // 在 RTL 模式下，margin 和 indent 的语义保持不变
             // - marL (margin-left): 左边距（在 RTL 中是文本结束边的距离）

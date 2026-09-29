@@ -458,8 +458,7 @@ export const PPTXShapeUtils = (function() {
                         var attrs = outerShdwNode.attrs;
                         // A valid outerShdw node should have an attrs object with shadow properties
                         if (attrs && typeof attrs === 'object') {
-                            const distVal = attrs.dist;
-                            const blurRadVal = attrs.blurRad;
+                            const { dist: distVal, blurRad: blurRadVal } = attrs;
                             // Only consider it a valid shadow if dist is defined and non-zero
                             // Also check if at least one of the required shadow attributes is present
                             const hasShadowAttrs = (distVal !== undefined || blurRadVal !== undefined ||

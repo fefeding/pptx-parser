@@ -1364,8 +1364,7 @@ function getFillType(node) {
     
                         return fillColor;
                     } else {
-                        let colorAry = fillColor.color;
-                        let rot = fillColor.rot;
+                        let { color: colorAry, rot } = fillColor;
 
                         let bgcolor = `background: linear-gradient(${rot}deg,`;
                         for (let i = 0; i < colorAry.length; i++) {
@@ -1545,8 +1544,7 @@ function getFillType(node) {
 
             if (color === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
-                let pPrNodeLaout = layoutMasterNode.nodeLaout;
-                let pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
 
                 if (pPrNodeLaout !== undefined) {
                     let defRpRLaout = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["a:defRPr", "a:solidFill"]);
@@ -4408,8 +4406,7 @@ function getFillType(node) {
             let algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
-                let pPrNodeLaout = layoutMasterNode.nodeLaout;
-                let pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
                 let lvlIdx = 1;
                 let lvlNode = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "lvl"]);
                 if (lvlNode !== undefined) {
@@ -4567,8 +4564,7 @@ function getFillType(node) {
 
             if (rtl === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
-                let pPrNodeLaout = layoutMasterNode.nodeLaout;
-                let pPrNodeMaster = layoutMasterNode.nodeMaster;
+                let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
                 rtl = PPTXXmlUtils.getTextByPathList(pPrNodeLaout, ["attrs", "rtl"]);
                 if (rtl === undefined && type != "shape") {
                     rtl = PPTXXmlUtils.getTextByPathList(pPrNodeMaster, ["attrs", "rtl"]);
@@ -4607,8 +4603,7 @@ function getFillType(node) {
             let marLStr = "", maginVal = 0;
             let pPrNode = pNode["a:pPr"];
             let layoutMasterNode = getLayoutAndMasterNode(pNode, idx, type, warpObj);
-            let pPrNodeLaout = layoutMasterNode.nodeLaout;
-            let pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
 
             // 在 RTL 模式下，margin 和 indent 的语义保持不变
             // - marL (margin-left): 左边距（在 RTL 中是文本结束边的距离）
@@ -5763,8 +5758,7 @@ function getTextWidth(html) {
             let buType = "TYPE_NONE";
 
             let layoutMasterNode = PPTXStyleUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
-            let pPrNodeLaout = layoutMasterNode.nodeLaout;
-            let pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
 
             let buChar = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buChar", "attrs", "char"]);
             let buNum = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buAutoNum", "attrs", "type"]);
@@ -6576,8 +6570,7 @@ function getTextWidth(html) {
             }
             //console.log("genSpanElement node: ", node, "rIndex: ", rIndex, ", pNode: ", pNode, ",pPrNode: ", pPrNode, "pFontStyle:", pFontStyle, ", idx: ", idx, "type:", type, warpObj);
             let layoutMasterNode = PPTXStyleUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
-            let pPrNodeLaout = layoutMasterNode.nodeLaout;
-            let pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
 
             //Language
             let lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
@@ -6595,18 +6588,18 @@ function getTextWidth(html) {
             let linkTooltip = "";
             let defLinkClr;
             if (linkID !== undefined) {
-                linkTooltip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "tooltip"]);
-                if (linkTooltip !== undefined) {
-                    linkTooltip = `title='${linkTooltip}'`;
+                const tip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkClick", "attrs", "tooltip"]);
+                if (tip !== undefined) {
+                    linkTooltip = `title='${tip}'`;
                 }
                 defLinkClr = PPTXStyleUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
             } else {
                 // Fallback to hover hyperlink (a:hlinkHover)
                 linkID = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkHover", "attrs", "r:id"]);
                 if (linkID !== undefined) {
-                    linkTooltip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkHover", "attrs", "tooltip"]);
-                    if (linkTooltip !== undefined) {
-                        linkTooltip = `title='${linkTooltip}'`;
+                    const tip = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:hlinkHover", "attrs", "tooltip"]);
+                    if (tip !== undefined) {
+                        linkTooltip = `title='${tip}'`;
                     }
                     defLinkClr = PPTXStyleUtils.getSchemeColorFromTheme("a:hlink", undefined, undefined, warpObj);
                 }
@@ -6814,7 +6807,22 @@ function getTextWidth(html) {
             }
 
             if (linkID !== undefined && linkID != "") {
-                let linkURL = warpObj["slideResObj"][linkID]["target"];
+                const linkRes = warpObj["slideResObj"][linkID];
+                let linkURL = linkRes && linkRes.target ? linkRes.target : "";
+                const linkType = linkRes && linkRes.type ? linkRes.type : "";
+
+                // 内部幻灯片跳转（如 PPT 中“跳到第 N 页”）：关系类型为 slide，
+                // target 指向 slideX.xml。渲染为同页锚点跳转到对应幻灯片（id="slide-N"），
+                // 而非打开不存在的原始 xml 文件；因此不设置 target='_blank'。
+                let linkTargetAttr = " target='_blank'";
+                if (linkType === "slide") {
+                    const m = linkURL.match(/slide(\d+)\.xml$/i);
+                    if (m) {
+                        linkURL = `#slide-${m[1]}`;
+                        linkTargetAttr = "";
+                    }
+                }
+
                 linkURL = PPTXXmlUtils.escapeHtml(linkURL);
                 // 处理文本：制表符、换行符、多个连续空格
                 let processedText = text
@@ -6827,7 +6835,7 @@ function getTextWidth(html) {
                     processedText = processedText.split(/\s+/).filter(word => word.length > 0).join("<br>");
                 }
 
-                return openElemnt + ` class='text-block ${cssName}' style='` + text_style + `'><a href='${linkURL}' ` + linkColorSyle + `  ${linkTooltip} target='_blank'>` +
+                return openElemnt + ` class='text-block ${cssName}' style='` + text_style + `'><a href='${linkURL}' ` + linkColorSyle + `  ${linkTooltip}${linkTargetAttr}>` +
                         processedText + "</a>" + closeElemnt;
             } else {
                 // 处理文本：制表符、换行符、多个连续空格
@@ -10286,8 +10294,7 @@ const PPTXShapeUtils = (function() {
                         var attrs = outerShdwNode.attrs;
                         // A valid outerShdw node should have an attrs object with shadow properties
                         if (attrs && typeof attrs === 'object') {
-                            const distVal = attrs.dist;
-                            const blurRadVal = attrs.blurRad;
+                            const { dist: distVal, blurRad: blurRadVal } = attrs;
                             // Only consider it a valid shadow if dist is defined and non-zero
                             // Also check if at least one of the required shadow attributes is present
                             const hasShadowAttrs = (distVal !== undefined || blurRadVal !== undefined ||
@@ -15330,9 +15337,7 @@ function processSpPrNode(node, wrapObj) {
  * @returns {Promise<string>} 背景HTML
  */
 async function getBackground(wrapObj, slideSize, index, settings) {
-    wrapObj.slideContent;
-    const slideLayoutContent = wrapObj.slideLayoutContent;
-    const slideMasterContent = wrapObj.slideMasterContent;
+    const { slideContent, slideLayoutContent, slideMasterContent } = wrapObj;
 
     const nodesSldLayout = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ['p:sldLayout', 'p:cSld', 'p:spTree']);
     const nodesSldMaster = PPTXXmlUtils.getTextByPathList(slideMasterContent, ['p:sldMaster', 'p:cSld', 'p:spTree']);
@@ -17488,7 +17493,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
  * @param {JSZip} zip - The JSZip instance
  * @returns {Promise<string>} Slide HTML
  */
-async function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
+async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slideNum) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -17530,7 +17535,8 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip) {
         transitionClass = ` data-transition='${JSON.stringify(transitionData)}'`;
     }
 
-    let result = `<section class='slide'${transitionClass} style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
+    const slideIdAttr = slideNum ? ` id="slide-${slideNum}"` : "";
+    let result = `<section class='slide'${slideIdAttr}${transitionClass} style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
     result += bgResult;
 
     const nodes = slideData.slideContent["p:sld"]["p:cSld"]["p:spTree"];
@@ -17617,7 +17623,7 @@ async function pptxToHtml(fileData, options) {
 
         // Step 3: Process slides and convert to HTML
         for (const slideData of parsedData.slides) {
-            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum);
             result.slides.push({
                 html: slideHtml,
                 data: slideData.data,  // Keep structured data for potential reuse

@@ -656,43 +656,11 @@ export class ChartRenderer {
     getLegendConfig(chartInfo) {
         const legendPosition = this.getLegendPosition(chartInfo);
         const legendStyle = chartInfo.style?.legend || {};
-        const chartData = chartInfo.data;
-        const isPieChart = chartInfo.type === 'pieChart' || chartInfo.type === 'pie3DChart';
-        const is3DPie = chartInfo.type === 'pie3DChart';
-
-        // 提取图例数据
-        const legendData = [];
-        if (isPieChart && Array.isArray(chartData) && chartData.length > 0) {
-            // 饼图：使用数据项名称（xlabels）作为图例
-            const series = chartData[0];
-
-            // 对于 3D 饼图，不显式设置 legend.data，让 ECharts 自动从数据中提取
-            // 因为 3D 饼图有多层系列，显式设置会导致警告
-            if (!is3DPie) {
-                // 对于 2D 饼图，如果已经存储了数据名称，使用它
-                if (chartInfo.style?._pieDataNames) {
-                    legendData.push(...chartInfo.style._pieDataNames);
-                } else if (series.xlabels && Array.isArray(series.xlabels)) {
-                    legendData.push(...series.xlabels);
-                } else if (series.values && Array.isArray(series.values)) {
-                    // 如果没有 xlabels，使用值的索引
-                    series.values.forEach((v, i) => {
-                        legendData.push(`Item ${i + 1}`);
-                    });
-                }
-            }
-        } else if (Array.isArray(chartData)) {
-            // 其他图表：使用系列名称
-            chartData.forEach((series, index) => {
-                legendData.push(series.key || `Series ${index + 1}`);
-            });
-        }
 
         const legendConfig = {};
-        // 只有在有数据的情况下才设置 legend.data
-        if (legendData.length > 0) {
-            legendConfig.data = legendData;
-        }
+
+        // 不手动设置 legend.data：交由 ECharts 依据 series 名称 / 饼图数据名
+        // 自动生成图例，避免「Legend data should be same with series name」不匹配告警。
 
         // 设置图例位置
         switch (legendPosition) {

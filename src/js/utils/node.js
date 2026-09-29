@@ -813,9 +813,7 @@ function processSpPrNode(node, wrapObj) {
  * @returns {Promise<string>} 背景HTML
  */
 async function getBackground(wrapObj, slideSize, index, settings) {
-    const slideContent = wrapObj.slideContent;
-    const slideLayoutContent = wrapObj.slideLayoutContent;
-    const slideMasterContent = wrapObj.slideMasterContent;
+    const { slideContent, slideLayoutContent, slideMasterContent } = wrapObj;
 
     const nodesSldLayout = PPTXXmlUtils.getTextByPathList(slideLayoutContent, ['p:sldLayout', 'p:cSld', 'p:spTree']);
     const nodesSldMaster = PPTXXmlUtils.getTextByPathList(slideMasterContent, ['p:sldMaster', 'p:cSld', 'p:spTree']);

@@ -485,8 +485,7 @@ function getTextWidth(html) {
             let buType = "TYPE_NONE";
 
             let layoutMasterNode = PPTXStyleUtils.getLayoutAndMasterNode(node, idx, type, warpObj);
-            let pPrNodeLaout = layoutMasterNode.nodeLaout;
-            let pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
 
             let buChar = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buChar", "attrs", "char"]);
             let buNum = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buAutoNum", "attrs", "type"]);
@@ -1360,8 +1359,7 @@ function getTextWidth(html) {
             }
             //console.log("genSpanElement node: ", node, "rIndex: ", rIndex, ", pNode: ", pNode, ",pPrNode: ", pPrNode, "pFontStyle:", pFontStyle, ", idx: ", idx, "type:", type, warpObj);
             let layoutMasterNode = PPTXStyleUtils.getLayoutAndMasterNode(pNode, idx, type, warpObj);
-            let pPrNodeLaout = layoutMasterNode.nodeLaout;
-            let pPrNodeMaster = layoutMasterNode.nodeMaster;
+            let { nodeLaout: pPrNodeLaout, nodeMaster: pPrNodeMaster } = layoutMasterNode;
 
             //Language
             let lang = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "lang"]);
