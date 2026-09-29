@@ -25,19 +25,19 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
     let dVal = "";
 
     if (shapType === "bracePair") {
-        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-        var adj = 8333 * SLIDE_FACTOR;
-        var cnstVal1 = 25000 * SLIDE_FACTOR;
-        var cnstVal2 = 50000 * SLIDE_FACTOR;
-        var cnstVal3 = 100000 * SLIDE_FACTOR;
+        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+        let adj = 8333 * SLIDE_FACTOR;
+        const cnstVal1 = 25000 * SLIDE_FACTOR;
+        const cnstVal2 = 50000 * SLIDE_FACTOR;
+        const cnstVal3 = 100000 * SLIDE_FACTOR;
         if (shapAdjst !== undefined) {
             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
         }
-        var vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, x3, x4, y2, y3, y4;
+        let vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, x3, x4, y2, y3, y4;
         if (adj < 0) a = 0
         else if (adj > cnstVal1) a = cnstVal1
         else a = adj
-        var minWH = Math.min(w, h);
+        const minWH = Math.min(w, h);
         x1 = minWH * a / cnstVal3;
         x2 = minWH * a / cnstVal2;
         x3 = w - x2;
@@ -61,13 +61,13 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
             shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L");
     }
     else if (shapType === "leftBrace") {
-        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, adj1 = 8333 * SLIDE_FACTOR;
-        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-        var cnstVal2 = 100000 * SLIDE_FACTOR;
+        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, adj1 = 8333 * SLIDE_FACTOR;
+        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+        const cnstVal2 = 100000 * SLIDE_FACTOR;
         if (shapAdjst_ary !== undefined) {
             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -77,16 +77,16 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
                 }
             }
         }
-        var vc = h / 2, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
+        let vc = h / 2, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
         if (adj2 < 0) a2 = 0
         else if (adj2 > cnstVal2) a2 = cnstVal2
         else a2 = adj2
-        var minWH = Math.min(w, h);
+        const minWH = Math.min(w, h);
         q1 = cnstVal2 - a2;
         if (q1 < a2) q2 = q1
         else q2 = a2
         q3 = q2 / 2;
-        var maxAdj1 = q3 * h / minWH;
+        const maxAdj1 = q3 * h / minWH;
         if (adj1 < 0) a1 = 0
         else if (adj1 > maxAdj1) a1 = maxAdj1
         else a1 = adj1
@@ -103,13 +103,13 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
             shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L");
     }
     else if (shapType === "rightBrace") {
-        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, adj1 = 8333 * SLIDE_FACTOR;
-        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-        var cnstVal2 = 100000 * SLIDE_FACTOR;
+        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, adj1 = 8333 * SLIDE_FACTOR;
+        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+        const cnstVal2 = 100000 * SLIDE_FACTOR;
         if (shapAdjst_ary !== undefined) {
             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -119,16 +119,16 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
                 }
             }
         }
-        var vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
+        let vc = h / 2, cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a1, a2, q1, q2, q3, y1, y2, y3, y4;
         if (adj2 < 0) a2 = 0
         else if (adj2 > cnstVal2) a2 = cnstVal2
         else a2 = adj2
-        var minWH = Math.min(w, h);
+        const minWH = Math.min(w, h);
         q1 = cnstVal2 - a2;
         if (q1 < a2) q2 = q1
         else q2 = a2
         q3 = q2 / 2;
-        var maxAdj1 = q3 * h / minWH;
+        const maxAdj1 = q3 * h / minWH;
         if (adj1 < 0) a1 = 0
         else if (adj1 > maxAdj1) a1 = maxAdj1
         else a1 = adj1
@@ -145,14 +145,14 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
             shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L");
     }
     else if (shapType === "bracketPair") {
-        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-        var adj = 16667 * SLIDE_FACTOR;
-        var cnstVal1 = 50000 * SLIDE_FACTOR;
-        var cnstVal2 = 100000 * SLIDE_FACTOR;
+        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+        let adj = 16667 * SLIDE_FACTOR;
+        const cnstVal1 = 50000 * SLIDE_FACTOR;
+        const cnstVal2 = 100000 * SLIDE_FACTOR;
         if (shapAdjst !== undefined) {
             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
         }
-        var r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, y2;
+        let r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, x1, x2, y2;
         if (adj < 0) a = 0
         else if (adj > cnstVal1) a = cnstVal1
         else a = adj
@@ -165,15 +165,15 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
             shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
     }
     else if (shapType === "leftBracket") {
-        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-        var adj = 8333 * SLIDE_FACTOR;
-        var cnstVal1 = 50000 * SLIDE_FACTOR;
-        var cnstVal2 = 100000 * SLIDE_FACTOR;
-        var maxAdj = cnstVal1 * h / Math.min(w, h);
+        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+        let adj = 8333 * SLIDE_FACTOR;
+        const cnstVal1 = 50000 * SLIDE_FACTOR;
+        const cnstVal2 = 100000 * SLIDE_FACTOR;
+        const maxAdj = cnstVal1 * h / Math.min(w, h);
         if (shapAdjst !== undefined) {
             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
         }
-        var r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2;
+        let r = w, b = h, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2;
         if (adj < 0) a = 0
         else if (adj > maxAdj) a = maxAdj
         else a = adj
@@ -187,15 +187,15 @@ export function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor
             " L" + r + "," + 0;
     }
     else if (shapType === "rightBracket") {
-        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-        var adj = 8333 * SLIDE_FACTOR;
-        var cnstVal1 = 50000 * SLIDE_FACTOR;
-        var cnstVal2 = 100000 * SLIDE_FACTOR;
-        var maxAdj = cnstVal1 * h / Math.min(w, h);
+        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+        let adj = 8333 * SLIDE_FACTOR;
+        const cnstVal1 = 50000 * SLIDE_FACTOR;
+        const cnstVal2 = 100000 * SLIDE_FACTOR;
+        const maxAdj = cnstVal1 * h / Math.min(w, h);
         if (shapAdjst !== undefined) {
             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
         }
-        var cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2, y3;
+        let cd = 360, cd2 = 180, cd4 = 90, c3d4 = 270, a, y1, y2, y3;
         if (adj < 0) a = 0
         else if (adj > maxAdj) a = maxAdj
         else a = adj

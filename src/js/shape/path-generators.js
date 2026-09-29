@@ -14,7 +14,7 @@
  * @returns {Object} 笛卡尔坐标对象 {x, y}
  */
 export function polarToCartesian(cx, cy, w, h, angleInDegrees) {
-    var angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
     // 格式化数字为2位小数
     function fmt(num) {
         return parseFloat(num.toFixed(2));
@@ -37,14 +37,14 @@ export function polarToCartesian(cx, cy, w, h, angleInDegrees) {
  * @returns {string} SVG路径字符串
  */
 export function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
-    var start = polarToCartesian(cx, cy, w, h, endAngle);
-    var end = polarToCartesian(cx, cy, w, h, startAngle);
-    var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    const start = polarToCartesian(cx, cy, w, h, endAngle);
+    const end = polarToCartesian(cx, cy, w, h, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
     // 格式化数字为2位小数
     function fmt(num) {
         return parseFloat(num.toFixed(2));
     }
-    var d = [
+    const d = [
         "M", start.x, start.y,
         "A", fmt(w), fmt(h), 0, largeArcFlag, clockwise ? "0" : "1", end.x, end.y
     ].join(" ");
@@ -63,17 +63,17 @@ export function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
  * @returns {string} SVG路径字符串
  */
 export function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
-    var dData;
-    var angle = stAng;
+    let dData;
+    let angle = stAng;
     // 辅助函数：格式化数字为2位小数
     function fmt(num) {
         return parseFloat(num.toFixed(2));
     }
     if (endAng >= stAng) {
         while (angle <= endAng) {
-            var radians = angle * (Math.PI / 180);
-            var x = cX + Math.cos(radians) * rX;
-            var y = cY + Math.sin(radians) * rY;
+            const radians = angle * (Math.PI / 180);
+            const x = cX + Math.cos(radians) * rX;
+            const y = cY + Math.sin(radians) * rY;
             if (angle == stAng) {
                 dData = " M" + fmt(x) + " " + fmt(y);
             }
@@ -82,9 +82,9 @@ export function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
         }
     } else {
         while (angle > endAng) {
-            var radians = angle * (Math.PI / 180);
-            var x = cX + Math.cos(radians) * rX;
-            var y = cY + Math.sin(radians) * rY;
+            const radians = angle * (Math.PI / 180);
+            const x = cX + Math.cos(radians) * rX;
+            const y = cY + Math.sin(radians) * rY;
             if (angle == stAng) {
                 dData = " M " + fmt(x) + " " + fmt(y);
             }
@@ -107,9 +107,9 @@ export function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
  * @returns {string} SVG路径字符串
  */
 export function shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp) {
-    var d = "";
-    var sAdj1 = 0;
-    var sAdj2 = 0;
+    let d = "";
+    let sAdj1 = 0;
+    let sAdj2 = 0;
 
     if (shpTyp == "round") {
         sAdj1 = w * sAdj1_val;
@@ -151,7 +151,7 @@ export function shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp) {
  * @returns {string} SVG路径字符串
  */
 export function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
-    var adjA, adjB, adjC, adjD;
+    let adjA, adjB, adjC, adjD;
     if (adjType == "cornr1") {
         adjA = 0;
         adjB = 0;
@@ -174,7 +174,7 @@ export function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
         adjD = adj2;
     }
 
-    var d;
+    let d;
     if (shapeType == "round") {
         d = "M0" + "," + (h / 2 + (1 - adjB) * (h / 2)) + " Q" + 0 + "," + h + " " + adjB * (w / 2) + "," + h + " L" + (w / 2 + (1 - adjC) * (w / 2)) + "," + h +
             " Q" + w + "," + h + " " + w + "," + (h / 2 + (h / 2) * (1 - adjC)) + "L" + w + "," + (h / 2) * adjD +
@@ -198,9 +198,9 @@ export function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
  * @returns {Array} [路径字符串, 旋转字符串]
  */
 export function shapePie(H, w, adj1, adj2, isClose) {
-    var pieVal = parseInt(adj2);
-    var piAngle = parseInt(adj1);
-    var size = parseInt(H),
+    const pieVal = parseInt(adj2);
+    const piAngle = parseInt(adj1);
+    let size = parseInt(H),
         radius = (size / 2),
         value = pieVal - piAngle;
     if (value < 0) {
@@ -208,18 +208,18 @@ export function shapePie(H, w, adj1, adj2, isClose) {
     }
     value = Math.min(Math.max(value, 0), 360);
 
-    var x = Math.cos((2 * Math.PI) / (360 / value));
-    var y = Math.sin((2 * Math.PI) / (360 / value));
+    const x = Math.cos((2 * Math.PI) / (360 / value));
+    const y = Math.sin((2 * Math.PI) / (360 / value));
 
-    var longArc, d, rot;
+    let longArc, d, rot;
     if (isClose) {
         longArc = (value <= 180) ? 0 : 1;
         d = "M" + radius + "," + radius + " L" + radius + "," + 0 + " A" + radius + "," + radius + " 0 " + longArc + ",1 " + (radius + y * radius) + "," + (radius - x * radius) + " z";
         rot = "rotate(" + (piAngle - 270) + ", " + radius + ", " + radius + ")";
     } else {
         longArc = (value <= 180) ? 0 : 1;
-        var radius1 = radius;
-        var radius2 = w / 2;
+        const radius1 = radius;
+        const radius2 = w / 2;
         d = "M" + radius1 + "," + 0 + " A" + radius2 + "," + radius1 + " 0 " + longArc + ",1 " + (radius2 + y * radius2) + "," + (radius1 - x * radius1);
         rot = "rotate(" + (piAngle + 90) + ", " + radius + ", " + radius + ")";
     }
@@ -235,23 +235,23 @@ export function shapePie(H, w, adj1, adj2, isClose) {
  * @returns {string} SVG路径字符串
  */
 export function shapeGear(w, h, points) {
-    var innerRadius = h;
-    var outerRadius = 1.5 * innerRadius;
-    var cx = outerRadius;
-    var cy = outerRadius;
-    var notches = points;
-    var radiusO = outerRadius;
-    var radiusI = innerRadius;
-    var taperO = 50;
-    var taperI = 35;
-    var pi2 = 2 * Math.PI;
-    var angle = pi2 / (notches * 2);
-    var taperAI = angle * taperI * 0.005;
-    var taperAO = angle * taperO * 0.005;
-    var a = angle;
-    var toggle = false;
+    const innerRadius = h;
+    const outerRadius = 1.5 * innerRadius;
+    const cx = outerRadius;
+    const cy = outerRadius;
+    const notches = points;
+    const radiusO = outerRadius;
+    const radiusI = innerRadius;
+    const taperO = 50;
+    const taperI = 35;
+    const pi2 = 2 * Math.PI;
+    const angle = pi2 / (notches * 2);
+    const taperAI = angle * taperI * 0.005;
+    const taperAO = angle * taperO * 0.005;
+    let a = angle;
+    let toggle = false;
 
-    var d = " M" + (cx + radiusO * Math.cos(taperAO)) + " " + (cy + radiusO * Math.sin(taperAO));
+    let d = " M" + (cx + radiusO * Math.cos(taperAO)) + " " + (cy + radiusO * Math.sin(taperAO));
 
     for (; a <= pi2 + angle; a += angle) {
         if (toggle) {

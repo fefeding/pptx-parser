@@ -33,10 +33,10 @@ const DEFAULT_SLIDE_SIZE = { width: 1280, height: 720 };
 function makeFluent(el, keys) {
     const builder = {};
     for (const key of keys) {
-        builder[key] = function (value) {
-            el[key] = value === undefined ? true : value;
-            return builder;
-        };
+        builder[key] = (value) => {
+    el[key] = value === undefined ? true : value;
+    return builder;
+};
     }
     return builder;
 }

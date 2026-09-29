@@ -1053,16 +1053,16 @@ function renderSmartArtNode(node, allNodes, layout, colors, styles, depth) {
  */
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>'"]/g, function(tag) {
-        const charsToReplace = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        };
-        return charsToReplace[tag] || tag;
-    });
+    return str.replace(/[&<>'"]/g, (tag) => {
+    const charsToReplace = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+    };
+    return charsToReplace[tag] || tag;
+});
 }
 
 export { PPTXNodeUtils };

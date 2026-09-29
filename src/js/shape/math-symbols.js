@@ -24,14 +24,14 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
     let result = "";
 
     // 获取形状调整参数
-    var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-    var sAdj1, adj1;
-    var sAdj2, adj2;
-    var sAdj3, adj3;
+    const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+    let sAdj1, adj1;
+    let sAdj2, adj2;
+    let sAdj3, adj3;
     if (shapAdjst_ary !== undefined) {
         if (shapAdjst_ary.constructor === Array) {
             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4));
@@ -48,11 +48,11 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
             adj1 = parseInt(sAdj1.substr(4));
         }
     }
-    var cnstVal1 = 50000 * SLIDE_FACTOR;
-    var cnstVal2 = 100000 * SLIDE_FACTOR;
-    var cnstVal3 = 200000 * SLIDE_FACTOR;
-    var dVal;
-    var hc = w / 2, vc = h / 2, hd2 = h / 2;
+    const cnstVal1 = 50000 * SLIDE_FACTOR;
+    const cnstVal2 = 100000 * SLIDE_FACTOR;
+    const cnstVal3 = 200000 * SLIDE_FACTOR;
+    let dVal;
+    const hc = w / 2, vc = h / 2, hd2 = h / 2;
 
     // mathNotEqual (不等于符号)
     if (shapType == "mathNotEqual") {
@@ -65,12 +65,12 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
             adj2 = (adj2 / 60000) * Math.PI / 180;
             adj3 = adj3 * SLIDE_FACTOR;
         }
-        var a1, crAng, a2a1, maxAdj3, a3, dy1, dy2, dx1, x1, x8, y2, y3, y1, y4,
+        let a1, crAng, a2a1, maxAdj3, a3, dy1, dy2, dx1, x1, x8, y2, y3, y1, y4,
             cadj2, xadj2, len, bhw, bhw2, x7, dx67, x6, dx57, x5, dx47, x4, dx37,
             x3, dx27, x2, rx7, rx6, rx5, rx4, rx3, rx2, dx7, rxt, lxt, rx, lx,
             dy3, dy4, ry, ly, dlx, drx, dly, dry, xC1, xC2, yC1, yC2, yC3, yC4;
-        var angVal1 = 70 * Math.PI / 180, angVal2 = 110 * Math.PI / 180;
-        var cnstVal4 = 73490 * SLIDE_FACTOR;
+        const angVal1 = 70 * Math.PI / 180, angVal2 = 110 * Math.PI / 180;
+        const cnstVal4 = 73490 * SLIDE_FACTOR;
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal1) ? cnstVal1 : adj1;
         crAng = (adj2 < angVal1) ? angVal1 : (adj2 > angVal2) ? angVal2 : adj2;
         a2a1 = a1 * 2;
@@ -160,11 +160,11 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
             adj2 = adj2 * SLIDE_FACTOR;
             adj3 = adj3 * SLIDE_FACTOR;
         }
-        var a1, ma1, ma3h, ma3w, maxAdj3, a3, m4a3, maxAdj2, a2, dy1, yg, rad, dx1,
+        let a1, ma1, ma3h, ma3w, maxAdj3, a3, m4a3, maxAdj2, a2, dy1, yg, rad, dx1,
             y3, y4, a, y2, y1, y5, x1, x3, x2;
-        var cnstVal4 = 1000 * SLIDE_FACTOR;
-        var cnstVal5 = 36745 * SLIDE_FACTOR;
-        var cnstVal6 = 73490 * SLIDE_FACTOR;
+        const cnstVal4 = 1000 * SLIDE_FACTOR;
+        const cnstVal5 = 36745 * SLIDE_FACTOR;
+        const cnstVal6 = 73490 * SLIDE_FACTOR;
         a1 = (adj1 < cnstVal4) ? cnstVal4 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
         ma1 = -a1;
         ma3h = (cnstVal6 + ma1) / 4;
@@ -187,11 +187,11 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         x1 = hc - dx1;
         x3 = hc + dx1;
         x2 = hc - rad;
-        var cd4 = 90, c3d4 = 270;
-        var cX1 = hc - Math.cos(c3d4 * Math.PI / 180) * rad;
-        var cY1 = y1 - Math.sin(c3d4 * Math.PI / 180) * rad;
-        var cX2 = hc - Math.cos(Math.PI / 2) * rad;
-        var cY2 = y5 - Math.sin(Math.PI / 2) * rad;
+        const cd4 = 90, c3d4 = 270;
+        const cX1 = hc - Math.cos(c3d4 * Math.PI / 180) * rad;
+        const cY1 = y1 - Math.sin(c3d4 * Math.PI / 180) * rad;
+        const cX2 = hc - Math.cos(Math.PI / 2) * rad;
+        const cY2 = y5 - Math.sin(Math.PI / 2) * rad;
             dVal = "M" + hc + "," + y1 +
                 shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L") +
                 " z" +
@@ -213,9 +213,9 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
             adj1 = adj1 * SLIDE_FACTOR;
             adj2 = adj2 * SLIDE_FACTOR;
         }
-        var cnstVal5 = 36745 * SLIDE_FACTOR;
-        var cnstVal6 = 73490 * SLIDE_FACTOR;
-        var a1, a2a1, mAdj2, a2, dy1, dy2, dx1, y2, y3, y1, y4, x1, x2, yC1, yC2;
+        const cnstVal5 = 36745 * SLIDE_FACTOR;
+        const cnstVal6 = 73490 * SLIDE_FACTOR;
+        let a1, a2a1, mAdj2, a2, dy1, dy2, dx1, y2, y3, y1, y4, x1, x2, yC1, yC2;
 
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
         a2a1 = a1 * 2;
@@ -250,8 +250,8 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         } else {
             adj1 = adj1 * SLIDE_FACTOR;
         }
-        var cnstVal6 = 73490 * SLIDE_FACTOR;
-        var a1, dy1, dx1, y1, y2, x1, x2;
+        const cnstVal6 = 73490 * SLIDE_FACTOR;
+        let a1, dy1, dx1, y1, y2, x1, x2;
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal2) ? cnstVal2 : adj1;
         dy1 = h * a1 / cnstVal3;
         dx1 = w * cnstVal6 / cnstVal3;
@@ -273,10 +273,10 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         } else {
             adj1 = adj1 * SLIDE_FACTOR;
         }
-        var cnstVal6 = 51965 * SLIDE_FACTOR;
-        var a1, th, a, sa, ca, ta, dl, rw, lM, xM, yM, dxAM, dyAM,
+        const cnstVal6 = 51965 * SLIDE_FACTOR;
+        let a1, th, a, sa, ca, ta, dl, rw, lM, xM, yM, dxAM, dyAM,
             xA, yA, xB, yB, xBC, yBC, yC, xD, xE, yFE, xFE, xF, xL, yG, yH, yI, xC2, yC3;
-        var ss = Math.min(w, h);
+        const ss = Math.min(w, h);
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal6) ? cnstVal6 : adj1;
         th = ss * a1 / cnstVal2;
         a = Math.atan(h / w);
@@ -330,9 +330,9 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
         } else {
             adj1 = adj1 * SLIDE_FACTOR;
         }
-        var cnstVal6 = 73490 * SLIDE_FACTOR;
-        var ss = Math.min(w, h);
-        var a1, dx1, dy1, dx2, x1, x2, x3, x4, y1, y2, y3, y4;
+        const cnstVal6 = 73490 * SLIDE_FACTOR;
+        const ss = Math.min(w, h);
+        let a1, dx1, dy1, dx2, x1, x2, x3, x4, y1, y2, y3, y4;
 
         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal6) ? cnstVal6 : adj1;
         dx1 = w * cnstVal6 / cnstVal3;

@@ -521,7 +521,7 @@ export const PPTXXmlUtils = (function() {
             let offX = 0, offY = 0;
             // 计算子元素的偏移量
             if (sType == "group" && pNode !== undefined) {
-                var grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
+                const grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
                 if (grpXfrmNode !== undefined && grpXfrmNode["a:chOff"] !== undefined && grpXfrmNode["a:chOff"]["attrs"] !== undefined) {
                     offX = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
                     offY = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
@@ -531,7 +531,7 @@ export const PPTXXmlUtils = (function() {
             } else if (sType == "group-abs" && pNode !== undefined) {
                 // 当容器扩展时，子元素使用相对chOff的绝对定位
                 // 但相对于新的容器位置(minY, minX)
-                var grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
+                const grpXfrmNode = PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:xfrm"]);
                 if (grpXfrmNode !== undefined && grpXfrmNode["a:chOff"] !== undefined && grpXfrmNode["a:chOff"]["attrs"] !== undefined) {
                     offX = parseInt(grpXfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
                     offY = parseInt(grpXfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
@@ -540,11 +540,11 @@ export const PPTXXmlUtils = (function() {
                 }
             }
             if (sType == "group-rotate" && pNode["p:grpSpPr"] !== undefined) {
-                var xfrmNode = pNode["p:grpSpPr"]["a:xfrm"];
+                const xfrmNode = pNode["p:grpSpPr"]["a:xfrm"];
                 // var ox = parseInt(xfrmNode["a:off"]["attrs"]["x"]) * SLIDE_FACTOR;
                 // var oy = parseInt(xfrmNode["a:off"]["attrs"]["y"]) * SLIDE_FACTOR;
-                var chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
-                var chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
+                const chx = parseInt(xfrmNode["a:chOff"]["attrs"]["x"]) * SLIDE_FACTOR;
+                const chy = parseInt(xfrmNode["a:chOff"]["attrs"]["y"]) * SLIDE_FACTOR;
 
                 offX = Math.round(chx * 100) / 100;
                 offY = Math.round(chy * 100) / 100;

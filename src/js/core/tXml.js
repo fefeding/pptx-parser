@@ -259,29 +259,23 @@ function tXml(xml, options) {
  * @param {Array} nodes - 节点数组
  * @returns {Object|string} 简化后的对象
  */
-tXml.simplify = function(nodes) {
+tXml.simplify = (nodes) => {
     const result = {};
-
     if (nodes === undefined) {
         return {};
     }
-
     if (nodes.length === 1 && typeof nodes[0] === 'string') {
         return nodes[0];
     }
-
-    nodes.forEach(function(node) {
+    nodes.forEach(function (node) {
         if (typeof node !== 'object') {
             return;
         }
-
         if (!result[node.tagName]) {
             result[node.tagName] = [];
         }
-
         const simplified = tXml.simplify(node.children || []);
         result[node.tagName].push(simplified);
-
         // 只在对象是对象类型时设置属性
         if (typeof simplified === 'object' && simplified !== null) {
             if (node.attributes) {
@@ -289,20 +283,19 @@ tXml.simplify = function(nodes) {
             }
             if (simplified.attrs === undefined) {
                 simplified.attrs = { order: order };
-            } else {
+            }
+            else {
                 simplified.attrs.order = order;
             }
             order++;
         }
     });
-
     // 如果数组只有一个元素，直接返回该元素
     for (const key in result) {
         if (result[key].length === 1) {
             result[key] = result[key][0];
         }
     }
-
     return result;
 };
 
@@ -312,10 +305,9 @@ tXml.simplify = function(nodes) {
  * @param {Function} filterFn - 过滤函数
  * @returns {Array} 过滤后的节点
  */
-tXml.filter = function(nodes, filterFn) {
+tXml.filter = (nodes, filterFn) => {
     const result = [];
-
-    nodes.forEach(function(node) {
+    nodes.forEach(function (node) {
         if (typeof node === 'object' && filterFn(node)) {
             result.push(node);
         }
@@ -324,7 +316,6 @@ tXml.filter = function(nodes, filterFn) {
             result.push(...filtered);
         }
     });
-
     return result;
 };
 
@@ -333,29 +324,31 @@ tXml.filter = function(nodes, filterFn) {
  * @param {Array} nodes - 节点数组
  * @returns {string} XML 字符串
  */
-tXml.stringify = function(nodes) {
+tXml.stringify = (nodes) => {
     let xmlString = '';
-
     function processNodes(nodes) {
-        if (!nodes) return;
+        if (!nodes)
+            return;
         for (let i = 0; i < nodes.length; i++) {
             if (typeof nodes[i] === 'string') {
                 xmlString += nodes[i].trim();
-            } else {
+            }
+            else {
                 processNode(nodes[i]);
             }
         }
     }
-
     function processNode(node) {
         xmlString += '<' + node.tagName;
         for (const attr in node.attributes) {
             const value = node.attributes[attr];
             if (value === null) {
                 xmlString += ' ' + attr;
-            } else if (value.indexOf('"') === -1) {
+            }
+            else if (value.indexOf('"') === -1) {
                 xmlString += ' ' + attr + '="' + value.trim() + '"';
-            } else {
+            }
+            else {
                 xmlString += ' ' + attr + "='" + value.trim() + "'";
             }
         }
@@ -363,7 +356,6 @@ tXml.stringify = function(nodes) {
         processNodes(node.children);
         xmlString += '</' + node.tagName + '>';
     }
-
     processNodes(nodes);
     return xmlString;
 };
@@ -373,20 +365,18 @@ tXml.stringify = function(nodes) {
  * @param {Array|Object|string} node - 节点
  * @returns {string} 文本内容
  */
-tXml.toContentString = function(node) {
+tXml.toContentString = (node) => {
     if (Array.isArray(node)) {
         let text = '';
-        node.forEach(function(child) {
+        node.forEach(function (child) {
             text += ' ' + tXml.toContentString(child);
             text = text.trim();
         });
         return text;
     }
-
     if (typeof node === 'object') {
         return tXml.toContentString(node.children);
     }
-
     return ' ' + node;
 };
 
@@ -397,7 +387,7 @@ tXml.toContentString = function(node) {
  * @param {boolean} simplify - 是否简化结果
  * @returns {Object} 元素对象
  */
-tXml.getElementById = function(xml, id, simplify) {
+tXml.getElementById = (xml, id, simplify) => {
     const result = tXml(xml, {
         attrValue: id,
         simplify: simplify
@@ -412,7 +402,7 @@ tXml.getElementById = function(xml, id, simplify) {
  * @param {boolean} simplify - 是否简化结果
  * @returns {Array} 元素数组
  */
-tXml.getElementsByClassName = function(xml, className, simplify) {
+tXml.getElementsByClassName = (xml, className, simplify) => {
     return tXml(xml, {
         attrName: 'class',
         attrValue: '[a-zA-Z0-9-s ]*' + className + '[a-zA-Z0-9-s ]*',
@@ -426,40 +416,32 @@ tXml.getElementsByClassName = function(xml, className, simplify) {
  * @param {number|Function} chunkSize - 块大小或回调函数
  * @returns {EventEmitter} 事件发射器
  */
-tXml.parseStream = function(source, chunkSize) {
+tXml.parseStream = (source, chunkSize) => {
     let callback;
-
     if (typeof chunkSize === 'function') {
         callback = chunkSize;
         chunkSize = 0;
     }
-
     if (typeof chunkSize === 'string') {
         chunkSize = chunkSize.length + 2;
     }
-
     // Node.js 流处理
     if (typeof source === 'string') {
         const fs = require('fs');
         source = fs.createReadStream(source, { start: chunkSize });
         chunkSize = 0;
     }
-
     let pos = chunkSize;
     let buffer = '';
     let chunkIndex = 0;
-
-    source.on('data', function(chunk) {
+    source.on('data', function (chunk) {
         chunkIndex++;
         buffer += chunk;
-
         let lastPos = 0;
-
         while (true) {
             pos = buffer.indexOf('<', pos) + 1;
             const node = tXml(buffer, { pos: pos, parseNode: true });
             pos = node.pos;
-
             if (pos > buffer.length - 1 || lastPos > pos) {
                 if (lastPos) {
                     buffer = buffer.slice(lastPos);
@@ -468,12 +450,10 @@ tXml.parseStream = function(source, chunkSize) {
                 }
                 return;
             }
-
             source.emit('xml', node);
             lastPos = pos;
         }
     });
-
     return source;
 };
 

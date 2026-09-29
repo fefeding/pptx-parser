@@ -20,12 +20,12 @@ import { PPTXXmlUtils } from '../utils/xml.js';
  * @returns {string} SVG路径元素
  */
 export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcFn) {
-    var pathLstNode = PPTXXmlUtils.getTextByPathList(custShapType, ["a:pathLst"]);
-    var pathNodes = PPTXXmlUtils.getTextByPathList(pathLstNode, ["a:path"]);
+    const pathLstNode = PPTXXmlUtils.getTextByPathList(custShapType, ["a:pathLst"]);
+    const pathNodes = PPTXXmlUtils.getTextByPathList(pathLstNode, ["a:path"]);
 
     // 验证 maxX 和 maxY 防止 NaN
-    var maxX = 0;
-    var maxY = 0;
+    let maxX = 0;
+    let maxY = 0;
     if (pathNodes && pathNodes["attrs"]) {
         maxX = parseInt(pathNodes["attrs"]["w"]) || 0;
         maxY = parseInt(pathNodes["attrs"]["h"]) || 0;
@@ -33,129 +33,129 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
     // 确保 maxX 和 maxY 为正数以避免除零
     if (maxX <= 0) maxX = 1;
     if (maxY <= 0) maxY = 1;
-    var cX = (1 / maxX) * w;
-    var cY = (1 / maxY) * h;
+    let cX = (1 / maxX) * w;
+    let cY = (1 / maxY) * h;
 
-    var moveToNode = PPTXXmlUtils.getTextByPathList(pathNodes, ["a:moveTo"]);
-    var total_shapes = moveToNode.length;
+    let moveToNode = PPTXXmlUtils.getTextByPathList(pathNodes, ["a:moveTo"]);
+    const total_shapes = moveToNode.length;
 
-    var lnToNodes = pathNodes["a:lnTo"];
-    var cubicBezToNodes = pathNodes["a:cubicBezTo"];
-    var arcToNodes = pathNodes["a:arcTo"];
-    var closeNode = PPTXXmlUtils.getTextByPathList(pathNodes, ["a:close"]);
+    const lnToNodes = pathNodes["a:lnTo"];
+    let cubicBezToNodes = pathNodes["a:cubicBezTo"];
+    const arcToNodes = pathNodes["a:arcTo"];
+    let closeNode = PPTXXmlUtils.getTextByPathList(pathNodes, ["a:close"]);
 
     if (!Array.isArray(moveToNode)) {
         moveToNode = [moveToNode];
     }
 
-    var multiSapeAry = [];
+    const multiSapeAry = [];
     if (moveToNode.length > 0) {
         // a:moveTo
-        Object.keys(moveToNode).forEach(function (key) {
-            var moveToPtNode = moveToNode[key]["a:pt"];
-            if (moveToPtNode !== undefined) {
-                Object.keys(moveToPtNode).forEach(function (key2) {
-                    var ptObj = {};
-                    var moveToNoPt = moveToPtNode[key2];
-                    var spX = moveToNoPt["attrs", "x"];
-                    var spY = moveToNoPt["attrs", "y"];
-                    var ptOrdr = moveToNoPt["attrs", "order"];
-                    ptObj.type = "movto";
-                    ptObj.order = ptOrdr;
-                    ptObj.x = spX;
-                    ptObj.y = spY;
-                    multiSapeAry.push(ptObj);
-                });
-            }
+        Object.keys(moveToNode).forEach((key) => {
+    var moveToPtNode = moveToNode[key]["a:pt"];
+    if (moveToPtNode !== undefined) {
+        Object.keys(moveToPtNode).forEach(function (key2) {
+            var ptObj = {};
+            var moveToNoPt = moveToPtNode[key2];
+            var spX = moveToNoPt["attrs", "x"];
+            var spY = moveToNoPt["attrs", "y"];
+            var ptOrdr = moveToNoPt["attrs", "order"];
+            ptObj.type = "movto";
+            ptObj.order = ptOrdr;
+            ptObj.x = spX;
+            ptObj.y = spY;
+            multiSapeAry.push(ptObj);
         });
+    }
+});
 
         // a:lnTo
         if (lnToNodes !== undefined) {
-            Object.keys(lnToNodes).forEach(function (key) {
-                var lnToPtNode = lnToNodes[key]["a:pt"];
-                if (lnToPtNode !== undefined) {
-                    Object.keys(lnToPtNode).forEach(function (key2) {
-                        var ptObj = {};
-                        var lnToNoPt = lnToPtNode[key2];
-                        var ptX = lnToNoPt["attrs", "x"];
-                        var ptY = lnToNoPt["attrs", "y"];
-                        var ptOrdr = lnToNoPt["attrs", "order"];
-                        ptObj.type = "lnto";
-                        ptObj.order = ptOrdr;
-                        ptObj.x = ptX;
-                        ptObj.y = ptY;
-                        multiSapeAry.push(ptObj);
-                    });
-                }
-            });
+            Object.keys(lnToNodes).forEach((key) => {
+    var lnToPtNode = lnToNodes[key]["a:pt"];
+    if (lnToPtNode !== undefined) {
+        Object.keys(lnToPtNode).forEach(function (key2) {
+            var ptObj = {};
+            var lnToNoPt = lnToPtNode[key2];
+            var ptX = lnToNoPt["attrs", "x"];
+            var ptY = lnToNoPt["attrs", "y"];
+            var ptOrdr = lnToNoPt["attrs", "order"];
+            ptObj.type = "lnto";
+            ptObj.order = ptOrdr;
+            ptObj.x = ptX;
+            ptObj.y = ptY;
+            multiSapeAry.push(ptObj);
+        });
+    }
+});
         }
 
         // a:cubicBezTo
         if (cubicBezToNodes !== undefined) {
-            var cubicBezToPtNodesAry = [];
+            const cubicBezToPtNodesAry = [];
             if (!Array.isArray(cubicBezToNodes)) {
                 cubicBezToNodes = [cubicBezToNodes];
             }
-            Object.keys(cubicBezToNodes).forEach(function (key) {
-                cubicBezToPtNodesAry.push(cubicBezToNodes[key]["a:pt"]);
-            });
+            Object.keys(cubicBezToNodes).forEach((key) => {
+    cubicBezToPtNodesAry.push(cubicBezToNodes[key]["a:pt"]);
+});
 
-            cubicBezToPtNodesAry.forEach(function (key2) {
-                var nodeObj = {};
-                nodeObj.type = "cubicBezTo";
-                nodeObj.order = key2[0]["attrs"]["order"];
-                var pts_ary = [];
-                key2.forEach(function (pt) {
-                    var pt_obj = {
-                        x: pt["attrs"]["x"],
-                        y: pt["attrs"]["y"]
-                    };
-                    pts_ary.push(pt_obj);
-                });
-                nodeObj.cubBzPt = pts_ary;
-                multiSapeAry.push(nodeObj);
-            });
+            cubicBezToPtNodesAry.forEach((key2) => {
+    var nodeObj = {};
+    nodeObj.type = "cubicBezTo";
+    nodeObj.order = key2[0]["attrs"]["order"];
+    var pts_ary = [];
+    key2.forEach(function (pt) {
+        var pt_obj = {
+            x: pt["attrs"]["x"],
+            y: pt["attrs"]["y"]
+        };
+        pts_ary.push(pt_obj);
+    });
+    nodeObj.cubBzPt = pts_ary;
+    multiSapeAry.push(nodeObj);
+});
         }
 
         // a:quadBezTo
-        var quadBezToNodes = pathNodes["a:quadBezTo"];
+        let quadBezToNodes = pathNodes["a:quadBezTo"];
         if (quadBezToNodes !== undefined) {
-            var quadBezToPtNodesAry = [];
+            const quadBezToPtNodesAry = [];
             if (!Array.isArray(quadBezToNodes)) {
                 quadBezToNodes = [quadBezToNodes];
             }
-            Object.keys(quadBezToNodes).forEach(function (key) {
-                quadBezToPtNodesAry.push(quadBezToNodes[key]["a:pt"]);
-            });
+            Object.keys(quadBezToNodes).forEach((key) => {
+    quadBezToPtNodesAry.push(quadBezToNodes[key]["a:pt"]);
+});
 
-            quadBezToPtNodesAry.forEach(function (key2) {
-                var nodeObj = {};
-                nodeObj.type = "quadBezTo";
-                nodeObj.order = key2[0]["attrs"]["order"];
-                var pts_ary = [];
-                key2.forEach(function (pt) {
-                    var pt_obj = {
-                        x: pt["attrs"]["x"],
-                        y: pt["attrs"]["y"]
-                    };
-                    pts_ary.push(pt_obj);
-                });
-                nodeObj.quadBzPt = pts_ary;
-                multiSapeAry.push(nodeObj);
-            });
+            quadBezToPtNodesAry.forEach((key2) => {
+    var nodeObj = {};
+    nodeObj.type = "quadBezTo";
+    nodeObj.order = key2[0]["attrs"]["order"];
+    var pts_ary = [];
+    key2.forEach(function (pt) {
+        var pt_obj = {
+            x: pt["attrs"]["x"],
+            y: pt["attrs"]["y"]
+        };
+        pts_ary.push(pt_obj);
+    });
+    nodeObj.quadBzPt = pts_ary;
+    multiSapeAry.push(nodeObj);
+});
         }
 
         // a:arcTo
         if (arcToNodes !== undefined) {
-            var arcToNodesAttrs = arcToNodes["attrs"];
-            var arcOrder = arcToNodesAttrs["order"];
-            var hR = arcToNodesAttrs["hR"];
-            var wR = arcToNodesAttrs["wR"];
-            var stAng = arcToNodesAttrs["stAng"];
-            var swAng = arcToNodesAttrs["swAng"];
-            var shftX = 0;
-            var shftY = 0;
-            var arcToPtNode = PPTXXmlUtils.getTextByPathList(arcToNodes, ["a:pt", "attrs"]);
+            const arcToNodesAttrs = arcToNodes["attrs"];
+            const arcOrder = arcToNodesAttrs["order"];
+            const hR = arcToNodesAttrs["hR"];
+            const wR = arcToNodesAttrs["wR"];
+            let stAng = arcToNodesAttrs["stAng"];
+            let swAng = arcToNodesAttrs["swAng"];
+            let shftX = 0;
+            let shftY = 0;
+            const arcToPtNode = PPTXXmlUtils.getTextByPathList(arcToNodes, ["a:pt", "attrs"]);
             if (arcToPtNode !== undefined) {
                 shftX = arcToPtNode["x"];
                 shftY = arcToPtNode["y"];
@@ -177,63 +177,63 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
             if (!Array.isArray(closeNode)) {
                 closeNode = [closeNode];
             }
-            Object.keys(closeNode).forEach(function (key) {
-                var clsAttrs = closeNode[key]["attrs"];
-                var clsOrder = clsAttrs["order"];
-                var ptObj = {};
-                ptObj.type = "close";
-                ptObj.order = clsOrder;
-                multiSapeAry.push(ptObj);
-            });
+            Object.keys(closeNode).forEach((key) => {
+    var clsAttrs = closeNode[key]["attrs"];
+    var clsOrder = clsAttrs["order"];
+    var ptObj = {};
+    ptObj.type = "close";
+    ptObj.order = clsOrder;
+    multiSapeAry.push(ptObj);
+});
         }
 
         // 按 order 排序
-        multiSapeAry.sort(function (a, b) {
-            return a.order - b.order;
-        });
+        multiSapeAry.sort((a, b) => {
+    return a.order - b.order;
+});
 
         // 生成路径字符串
-        var k = 0;
+        let k = 0;
         if (isNaN(cX)) cX = 0;
         if (isNaN(cY)) cY = 0;
-        var d = "";
+        let d = "";
         while (k < multiSapeAry.length) {
             if (multiSapeAry[k].type == "movto") {
-                var xVal = parseInt(multiSapeAry[k].x) || 0;
-                var yVal = parseInt(multiSapeAry[k].y) || 0;
+                const xVal = parseInt(multiSapeAry[k].x) || 0;
+                const yVal = parseInt(multiSapeAry[k].y) || 0;
                 if (isNaN(cX)) cX = 0;
                 if (isNaN(cY)) cY = 0;
                 var spX = xVal * cX;
                 var spY = yVal * cY;
                 d += " M" + spX + "," + spY;
             } else if (multiSapeAry[k].type == "lnto") {
-                var xVal = parseInt(multiSapeAry[k].x) || 0;
-                var yVal = parseInt(multiSapeAry[k].y) || 0;
+                const xVal = parseInt(multiSapeAry[k].x) || 0;
+                const yVal = parseInt(multiSapeAry[k].y) || 0;
                 if (isNaN(cX)) cX = 0;
                 if (isNaN(cY)) cY = 0;
-                var Lx = xVal * cX;
-                var Ly = yVal * cY;
+                const Lx = xVal * cX;
+                const Ly = yVal * cY;
                 d += " L" + Lx + "," + Ly;
             } else if (multiSapeAry[k].type == "cubicBezTo") {
                 if (isNaN(cX)) cX = 0;
                 if (isNaN(cY)) cY = 0;
-                var Cx1 = (parseInt(multiSapeAry[k].cubBzPt[0].x) || 0) * cX;
-                var Cy1 = (parseInt(multiSapeAry[k].cubBzPt[0].y) || 0) * cY;
-                var Cx2 = (parseInt(multiSapeAry[k].cubBzPt[1].x) || 0) * cX;
-                var Cy2 = (parseInt(multiSapeAry[k].cubBzPt[1].y) || 0) * cY;
-                var Cx3 = (parseInt(multiSapeAry[k].cubBzPt[2].x) || 0) * cX;
-                var Cy3 = (parseInt(multiSapeAry[k].cubBzPt[2].y) || 0) * cY;
+                const Cx1 = (parseInt(multiSapeAry[k].cubBzPt[0].x) || 0) * cX;
+                const Cy1 = (parseInt(multiSapeAry[k].cubBzPt[0].y) || 0) * cY;
+                const Cx2 = (parseInt(multiSapeAry[k].cubBzPt[1].x) || 0) * cX;
+                const Cy2 = (parseInt(multiSapeAry[k].cubBzPt[1].y) || 0) * cY;
+                const Cx3 = (parseInt(multiSapeAry[k].cubBzPt[2].x) || 0) * cX;
+                const Cy3 = (parseInt(multiSapeAry[k].cubBzPt[2].y) || 0) * cY;
                 d += " C" + Cx1 + "," + Cy1 + " " + Cx2 + "," + Cy2 + " " + Cx3 + "," + Cy3;
             } else if (multiSapeAry[k].type == "arcTo") {
                 if (isNaN(cX)) cX = 0;
                 if (isNaN(cY)) cY = 0;
-                var hR = (parseInt(multiSapeAry[k].hR) || 0) * cX;
-                var wR = (parseInt(multiSapeAry[k].wR) || 0) * cY;
-                var stAng = (parseInt(multiSapeAry[k].stAng) || 0) / 60000;
-                var swAng = (parseInt(multiSapeAry[k].swAng) || 0) / 60000;
+                const hR = (parseInt(multiSapeAry[k].hR) || 0) * cX;
+                const wR = (parseInt(multiSapeAry[k].wR) || 0) * cY;
+                let stAng = (parseInt(multiSapeAry[k].stAng) || 0) / 60000;
+                let swAng = (parseInt(multiSapeAry[k].swAng) || 0) / 60000;
                 if (isNaN(stAng)) stAng = 0;
                 if (isNaN(swAng)) swAng = 0;
-                var endAng = stAng + swAng;
+                const endAng = stAng + swAng;
 
                 if (!isNaN(hR) && !isNaN(wR) && !isNaN(stAng) && !isNaN(swAng)) {
                     d += shapeArcFn(wR, hR, wR, hR, stAng, endAng, false);
@@ -244,10 +244,10 @@ export function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, f
                 // The start point is the previous point in the path
                 var quadBzPt = multiSapeAry[k].quadBzPt;
                 if (quadBzPt && quadBzPt.length >= 2) {
-                    var ctrlX = quadBzPt[0].x * cX;
-                    var ctrlY = quadBzPt[0].y * cY;
-                    var endX = quadBzPt[1].x * cX;
-                    var endY = quadBzPt[1].y * cY;
+                    const ctrlX = quadBzPt[0].x * cX;
+                    const ctrlY = quadBzPt[0].y * cY;
+                    const endX = quadBzPt[1].x * cX;
+                    const endY = quadBzPt[1].y * cY;
                     d += "Q" + ctrlX + "," + ctrlY + " " + endX + "," + endY;
                 }
             } else if (multiSapeAry[k].type == "close") {

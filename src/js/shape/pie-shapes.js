@@ -25,8 +25,8 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
     let dVal = "";
 
     if (shapType === "pie" || shapType === "pieWedge" || shapType === "arc") {
-        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
+        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
         if (shapType === "pie") {
             adj1 = 0;
             adj2 = 270;
@@ -57,17 +57,17 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 adj2 = parseInt(shapAdjst2.substr(4)) / 60000;
             }
         }
-        var pieVals = shapePie(H, w, adj1, adj2, isClose);
+        const pieVals = shapePie(H, w, adj1, adj2, isClose);
         result += "<path d='" + pieVals[0] + "' transform='" + pieVals[1] + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
     }
     else if (shapType === "chord") {
-        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, sAdj1_val = 45;
-        var sAdj2, sAdj2_val = 270;
+        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, sAdj1_val = 45;
+        let sAdj2, sAdj2_val = 270;
         if (shapAdjst_ary !== undefined) {
             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
@@ -77,22 +77,22 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 }
             }
         }
-        var hR = h / 2;
-        var wR = w / 2;
+        const hR = h / 2;
+        const wR = w / 2;
         dVal = shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
         result += "<path d='" + dVal + "' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' " + (oShadowSvgUrlStr || "") + " />";
     }
     else if (shapType === "blockArc") {
-        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        var sAdj1, adj1 = 180;
-        var sAdj2, adj2 = 0;
-        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-        var cnstVal1 = 50000 * SLIDE_FACTOR;
-        var cnstVal2 = 100000 * SLIDE_FACTOR;
+        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+        let sAdj1, adj1 = 180;
+        let sAdj2, adj2 = 0;
+        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+        const cnstVal1 = 50000 * SLIDE_FACTOR;
+        const cnstVal2 = 100000 * SLIDE_FACTOR;
         if (shapAdjst_ary !== undefined) {
             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4)) / 60000;
@@ -106,8 +106,8 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
             }
         }
 
-        var stAng, istAng, a3, sw11, sw12, swAng, iswAng;
-        var cd1 = 360;
+        let stAng, istAng, a3, sw11, sw12, swAng, iswAng;
+        const cd1 = 360;
         if (adj1 < 0) stAng = 0;
         else if (adj1 > cd1) stAng = cd1;
         else stAng = adj1;
@@ -125,10 +125,10 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
         swAng = (sw11 > 0) ? sw11 : sw12;
         iswAng = -swAng;
 
-        var endAng = stAng + swAng;
-        var iendAng = istAng + iswAng;
+        const endAng = stAng + swAng;
+        const iendAng = istAng + iswAng;
 
-        var wt1, ht1, dx1, dy1, x1, y1, stRd, istRd, wd2, hd2, hc, vc;
+        let wt1, ht1, dx1, dy1, x1, y1, stRd, istRd, wd2, hd2, hc, vc;
         stRd = stAng * (Math.PI) / 180;
         istRd = istAng * (Math.PI) / 180;
         wd2 = w / 2;
@@ -154,7 +154,7 @@ export function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColo
             x1 = hc + dx1;
             y1 = vc + dy1;
         }
-        var dr, iwd2, ihd2, wt2, ht2, dx2, dy2, x2, y2;
+        let dr, iwd2, ihd2, wt2, ht2, dx2, dy2, x2, y2;
         dr = Math.min(w, h) * a3 / cnstVal2;
         iwd2 = wd2 - dr;
         ihd2 = hd2 - dr;

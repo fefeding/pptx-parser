@@ -120,25 +120,25 @@ export const PPTXShapeUtils = (function() {
     async function genShape(node, pNode, slideLayoutSpNode, slideMasterSpNode, id, name, idx, type, order, warpObj, isUserDrawnBg, sType, source, settings) {
             //var dltX = 0;
             //var dltY = 0;
-            var xfrmList = ["p:spPr", "a:xfrm"];
-            var slideXfrmNode = PPTXXmlUtils.getTextByPathList(node, xfrmList);
-            var slideLayoutXfrmNode = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, xfrmList);
-            var slideMasterXfrmNode = PPTXXmlUtils.getTextByPathList(slideMasterSpNode, xfrmList);
+            const xfrmList = ["p:spPr", "a:xfrm"];
+            const slideXfrmNode = PPTXXmlUtils.getTextByPathList(node, xfrmList);
+            const slideLayoutXfrmNode = PPTXXmlUtils.getTextByPathList(slideLayoutSpNode, xfrmList);
+            const slideMasterXfrmNode = PPTXXmlUtils.getTextByPathList(slideMasterSpNode, xfrmList);
 
-            var result = "";
-            var shpId = PPTXXmlUtils.getTextByPathList(node, ["attrs", "order"]);
-            var shapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
+            let result = "";
+            const shpId = PPTXXmlUtils.getTextByPathList(node, ["attrs", "order"]);
+            const shapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "attrs", "prst"]);
 
             // 初始化3D变换样式
             let transform3dStyle = "";
             //custGeom - Amir
-            var custShapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:custGeom"]);
+            const custShapType = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:custGeom"]);
 
-            var isFlipV = false;
-            var isFlipH = false;
-            var flip = "";
-            var flipVAttr = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipV"]);
-            var flipHAttr = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipH"]);
+            let isFlipV = false;
+            let isFlipH = false;
+            let flip = "";
+            const flipVAttr = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipV"]);
+            const flipHAttr = PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "flipH"]);
             if (flipVAttr === "1" || flipVAttr === "true") {
                 isFlipV = true;
             }
@@ -154,13 +154,13 @@ export const PPTXShapeUtils = (function() {
             }
             /////////////////////////Amir////////////////////////
             //rotate
-            var rotate = PPTXXmlUtils.angleToDegrees(PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
+            const rotate = PPTXXmlUtils.angleToDegrees(PPTXXmlUtils.getTextByPathList(slideXfrmNode, ["attrs", "rot"]));
 
 
-            var txtRotate;
-            var txtXframeNode = PPTXXmlUtils.getTextByPathList(node, ["p:txXfrm"]);
+            let txtRotate;
+            const txtXframeNode = PPTXXmlUtils.getTextByPathList(node, ["p:txXfrm"]);
             if (txtXframeNode !== undefined) {
-                var txtXframeRot = PPTXXmlUtils.getTextByPathList(txtXframeNode, ["attrs", "rot"]);
+                const txtXframeRot = PPTXXmlUtils.getTextByPathList(txtXframeNode, ["attrs", "rot"]);
                 if (txtXframeRot !== undefined) {
                     txtRotate = PPTXXmlUtils.angleToDegrees(txtXframeRot) + 90;
                 }
@@ -169,7 +169,7 @@ export const PPTXShapeUtils = (function() {
             }
             
             // Adjust text rotation to compensate for shape flip
-            var txtFlip = "";
+            let txtFlip = "";
             if (isFlipV) {
                 txtFlip = " scale(1,-1)";
             }
@@ -232,11 +232,11 @@ export const PPTXShapeUtils = (function() {
 
             if (shapType !== undefined || custShapType !== undefined /*&& slideXfrmNode !== undefined*/) {
                 // 使用 workingXfrmNode 而不是 slideXfrmNode，以正确处理 group-abs 情况
-                var off = PPTXXmlUtils.getTextByPathList(workingXfrmNode, ["a:off", "attrs"]);
+                const off = PPTXXmlUtils.getTextByPathList(workingXfrmNode, ["a:off", "attrs"]);
                 var x = (off !== undefined) ? parseInt(off["x"]) * SLIDE_FACTOR : 0;
                 var y = (off !== undefined) ? parseInt(off["y"]) * SLIDE_FACTOR : 0;
 
-                var ext = PPTXXmlUtils.getTextByPathList(workingXfrmNode, ["a:ext", "attrs"]);
+                let ext = PPTXXmlUtils.getTextByPathList(workingXfrmNode, ["a:ext", "attrs"]);
 
                 // Fallback to slideLayoutXfrmNode if workingXfrmNode is undefined or ext is undefined
                 if (ext === undefined && slideLayoutXfrmNode !== undefined) {
@@ -257,7 +257,7 @@ export const PPTXShapeUtils = (function() {
                 if (drawH === undefined) drawH = h;
 
                 // 对于连接器类型，需要特殊处理
-                var isConnector = (shapType === 'straightConnector1' || shapType === 'bentConnector2' ||
+                const isConnector = (shapType === 'straightConnector1' || shapType === 'bentConnector2' ||
                                    shapType === 'bentConnector3' || shapType === 'bentConnector4' ||
                                    shapType === 'bentConnector5' || shapType === 'curvedConnector2' ||
                                    shapType === 'curvedConnector3' || shapType === 'curvedConnector4' ||
@@ -267,21 +267,21 @@ export const PPTXShapeUtils = (function() {
 
 
 
-                var svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
+                const svgCssName = "_svg_css_" + (Object.keys(warpObj.styleTable).length + 1) + "_"  + Math.floor(Math.random() * 1001);
 
-                var hasCssEffect = false; // Track if there's a CSS effect (like shadow)
-                var effectsClassName = svgCssName + "_effects";
+                let hasCssEffect = false; // Track if there's a CSS effect (like shadow)
+                const effectsClassName = svgCssName + "_effects";
 
                 // 对于连接器，当width或height为0时，需要设置最小尺寸
-                var svgSizeStyle = "";
+                let svgSizeStyle = "";
 
                 if (isConnector && (w === 0 || h === 0)) {
                     // 设置最小尺寸为strokeWidth的2倍（或至少4px），确保线条可见
-                    var strokeWidth = 1.5; // 默认stroke-width，实际可以从border获取
-                    var minSize = Math.max(strokeWidth * 2, 4);
+                    const strokeWidth = 1.5; // 默认stroke-width，实际可以从border获取
+                    const minSize = Math.max(strokeWidth * 2, 4);
                     // SVG容器的尺寸至少为minSize
-                    var svgW = (w === 0 || w < minSize) ? minSize : w;
-                    var svgH = (h === 0 || h < minSize) ? minSize : h;
+                    const svgW = (w === 0 || w < minSize) ? minSize : w;
+                    const svgH = (h === 0 || h < minSize) ? minSize : h;
                     svgSizeStyle = "width:" + svgW + "px; height:" + svgH + "px; overflow: visible;";
                     // 更新w和h为SVG容器尺寸，这样后续代码会使用正确的尺寸
                     w = svgW;
@@ -317,7 +317,7 @@ export const PPTXShapeUtils = (function() {
 
                 var grndFillFlg = false;
                 var imgFillFlg = false;
-                var clrFillType = PPTXStyleUtils.getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
+                let clrFillType = PPTXStyleUtils.getFillType (PPTXXmlUtils.getTextByPathList(node, ["p:spPr"]));
                 if (clrFillType == "GROUP_FILL") {
                     clrFillType = PPTXStyleUtils.getFillType (PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr"]));
                 }
@@ -328,21 +328,21 @@ export const PPTXShapeUtils = (function() {
                 /////////////////////////////////////////                    
                 if (clrFillType == "GRADIENT_FILL") {
                     grndFillFlg = true;
-                    var color_arry = fillColor.color;
-                    var angl = fillColor.rot + 90;
-                    var svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId);
+                    const color_arry = fillColor.color;
+                    const angl = fillColor.rot + 90;
+                    const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId);
                     //fill="url(#linGrd)"
                     //console.log("genShape: svgGrdnt: ", svgGrdnt)
                     result += svgGrdnt;
 
                 } else if (clrFillType == "PIC_FILL") {
                     imgFillFlg = true;
-                    var svgBgImg = PPTXStyleUtils.getSvgImagePattern(node, fillColor, shpId, warpObj);
+                    const svgBgImg = PPTXStyleUtils.getSvgImagePattern(node, fillColor, shpId, warpObj);
                     //fill="url(#imgPtrn)"
                     //console.log(svgBgImg)
                     result += svgBgImg;
                 } else if (clrFillType == "PATTERN_FILL") {
-                    var styleText = fillColor;
+                    let styleText = fillColor;
                     if (styleText in warpObj.styleTable) {
                         styleText += "do-nothing: " + svgCssName +";";
                     }
@@ -401,14 +401,14 @@ export const PPTXShapeUtils = (function() {
                     transform3dStyle = process3DEffects(scene3d, sp3d);
                 }
                 // Check if there's an effectRef in p:style
-                var effectRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:effectRef"]);
-                var effectStyleNode = undefined;
+                const effectRefNode = PPTXXmlUtils.getTextByPathList(node, ["p:style", "a:effectRef"]);
+                let effectStyleNode = undefined;
                 
                 if (effectRefNode !== undefined) {
-                    var effectIdx = PPTXXmlUtils.getTextByPathList(effectRefNode, ["attrs", "idx"]);
+                    const effectIdx = PPTXXmlUtils.getTextByPathList(effectRefNode, ["attrs", "idx"]);
                     if (effectIdx !== undefined && warpObj["themeContent"] !== undefined) {
                         // Access the effect style from the theme
-                        var effectStyleLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:effectStyleLst"]["a:effectStyle"];
+                        let effectStyleLst = warpObj["themeContent"]["a:theme"]["a:themeElements"]["a:fmtScheme"]["a:effectStyleLst"]["a:effectStyle"];
                         if (effectStyleLst !== undefined) {
                             // Ensure effectStyleLst is an array
                             if (!Array.isArray(effectStyleLst)) {
@@ -425,8 +425,8 @@ export const PPTXShapeUtils = (function() {
                                     // When idx is out of range, try to find an effectStyle with shadow
                                     // Start from the end of the list and work backwards
                                     for (var i = effectStyleLst.length - 1; i >= 0; i--) {
-                                        var testEffectStyle = effectStyleLst[i];
-                                        var hasShadow = PPTXXmlUtils.getTextByPathList(testEffectStyle, ["a:effectLst", "a:outerShdw"]);
+                                        const testEffectStyle = effectStyleLst[i];
+                                        const hasShadow = PPTXXmlUtils.getTextByPathList(testEffectStyle, ["a:effectLst", "a:outerShdw"]);
                                         if (hasShadow !== undefined) {
                                             effectStyleNode = testEffectStyle;
                                             break;
@@ -446,7 +446,7 @@ export const PPTXShapeUtils = (function() {
                 
                 //////////////////////////////outerShdw///////////////////////////////////////////
                 //not support sizing the shadow
-                var outerShdwNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
+                let outerShdwNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:outerShdw"]);
                 
                 // If no direct outerShdw, check from effectStyle
                 if (outerShdwNode === undefined && effectStyleNode !== undefined) {
@@ -456,19 +456,19 @@ export const PPTXShapeUtils = (function() {
                 var oShadowSvgUrlStr = ""
                 // Check if outerShdwNode exists and has valid shadow attributes
                 // A valid shadow should have at least dist defined with a non-zero value
-                var hasOuterShadow = false;
+                let hasOuterShadow = false;
                 if (outerShdwNode && typeof outerShdwNode === 'object' && !Array.isArray(outerShdwNode)) {
                     // Check that outerShdwNode is not empty and is actually a valid outerShdw node
-                    var nodeKeys = Object.keys(outerShdwNode);
+                    const nodeKeys = Object.keys(outerShdwNode);
                     if (nodeKeys.length > 0) {
                         var attrs = outerShdwNode.attrs;
                         // A valid outerShdw node should have an attrs object with shadow properties
                         if (attrs && typeof attrs === 'object') {
-                            var distVal = attrs.dist;
-                            var blurRadVal = attrs.blurRad;
+                            const distVal = attrs.dist;
+                            const blurRadVal = attrs.blurRad;
                             // Only consider it a valid shadow if dist is defined and non-zero
                             // Also check if at least one of the required shadow attributes is present
-                            var hasShadowAttrs = (distVal !== undefined || blurRadVal !== undefined ||
+                            const hasShadowAttrs = (distVal !== undefined || blurRadVal !== undefined ||
                                                  attrs.dir !== undefined || attrs.sx !== undefined ||
                                                  attrs.sy !== undefined || attrs.algn !== undefined);
                             hasOuterShadow = hasShadowAttrs && (distVal !== undefined && distVal !== "" && distVal !== "0" && distVal !== 0);
@@ -479,10 +479,10 @@ export const PPTXShapeUtils = (function() {
                 // Check if shape has 3D effects (sp3d or scene3d)
                 // Only disable shadow if 3D effects are defined directly on the shape (p:spPr)
                 // 3D effects from effectStyle (via effectRef) should not disable the shadow
-                var sp3dNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:sp3d"]);
-                var scene3dNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:scene3d"]);
+                const sp3dNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:sp3d"]);
+                const scene3dNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:scene3d"]);
                 // Check if outerShdw is from effectStyle
-                var shadowFromEffectStyle = (outerShdwNode !== undefined && effectStyleNode !== undefined);
+                const shadowFromEffectStyle = (outerShdwNode !== undefined && effectStyleNode !== undefined);
                 if ((sp3dNode !== undefined || scene3dNode !== undefined) && !shadowFromEffectStyle) {
                     // Disable shadow when 3D effects are present on the shape itself
                     hasOuterShadow = false;
@@ -490,8 +490,8 @@ export const PPTXShapeUtils = (function() {
 
 
                 if (hasOuterShadow) {
-                    var chdwClrNode = PPTXStyleUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
-                    var outerShdwAttrs = outerShdwNode["attrs"];
+                    const chdwClrNode = PPTXStyleUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
+                    const outerShdwAttrs = outerShdwNode["attrs"];
 
                     //var algn = outerShdwAttrs["algn"];
                     var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
@@ -500,8 +500,8 @@ export const PPTXShapeUtils = (function() {
                     var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR) : ""; //+ "px"
                     //var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
                     //var sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
-                    var vx = dist * Math.sin(dir * Math.PI / 180);
-                    var hx = dist * Math.cos(dir * Math.PI / 180);
+                    const vx = dist * Math.sin(dir * Math.PI / 180);
+                    const hx = dist * Math.cos(dir * Math.PI / 180);
                     //SVG
                     //var oShadowId = "outerhadow_" + shpId;
                     //oShadowSvgUrlStr = "filter='url(#" + oShadowId+")'";
@@ -518,7 +518,7 @@ export const PPTXShapeUtils = (function() {
                     //result += shadowFilterStr;
 
                     //css:
-                    var svg_css_shadow = "filter:drop-shadow(" + hx + "px " + vx + "px " + blurRad + "px #" + chdwClrNode + ");";
+                    let svg_css_shadow = "filter:drop-shadow(" + hx + "px " + vx + "px " + blurRad + "px #" + chdwClrNode + ");";
 
                     if (svg_css_shadow in warpObj.styleTable) {
                         svg_css_shadow += "do-nothing: " + svgCssName + ";";
@@ -536,7 +536,7 @@ export const PPTXShapeUtils = (function() {
 
                 //////////////////////////////softEdge///////////////////////////////////////////
                 // Soft edge effect - creates a blurred/feathered edge
-                var softEdgeNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:softEdge"]);
+                let softEdgeNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:softEdge"]);
                 
                 // If no direct softEdge, check from effectStyle
                 if (softEdgeNode === undefined && effectStyleNode !== undefined) {
@@ -545,14 +545,14 @@ export const PPTXShapeUtils = (function() {
                 
                 var softEdgeFilterStr = ""
                 if (softEdgeNode !== undefined) {
-                    var softEdgeAttrs = softEdgeNode["attrs"];
-                    var rad = (softEdgeAttrs["rad"]) ? (parseInt(softEdgeAttrs["rad"]) * SLIDE_FACTOR) : 0;
+                    const softEdgeAttrs = softEdgeNode["attrs"];
+                    const rad = (softEdgeAttrs["rad"]) ? (parseInt(softEdgeAttrs["rad"]) * SLIDE_FACTOR) : 0;
                     
                     // softEdge effect according to Office Open XML specification:
                     // Applies a Gaussian blur to the edges of the shape
                     // The radius determines how far the blur extends from the edge
-                    var softEdgeId = "softedge_" + shpId;
-                    var softEdgeFilter = '<filter id="' + softEdgeId + '" x="-20%" y="-20%" width="140%" height="140%">';
+                    const softEdgeId = "softedge_" + shpId;
+                    let softEdgeFilter = '<filter id="' + softEdgeId + '" x="-20%" y="-20%" width="140%" height="140%">';
                     // Blur the source to create soft edge
                     softEdgeFilter += '<feGaussianBlur in="SourceGraphic" stdDeviation="' + rad + '" />';
                     softEdgeFilter += '</filter>';
@@ -563,7 +563,7 @@ export const PPTXShapeUtils = (function() {
                 if ((headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) ||
                     (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow"))) {
                     // 箭头标记：refX=10 表示箭头尖端与线条端点对齐
-                    var triangleMarker = "<marker id='markerTriangle_" + shpId + "' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='5' markerHeight='5' stroke='" + border.color + "' fill='" + border.color +
+                    const triangleMarker = "<marker id='markerTriangle_" + shpId + "' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='5' markerHeight='5' stroke='" + border.color + "' fill='" + border.color +
                         "' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>";
                     result += triangleMarker;
                 }
@@ -804,11 +804,11 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "flowChartMagneticTape": {
                         var wd2 = w / 2, hd2 = h / 2, cd2 = 180, c3d4 = 270, cd4 = 90;
-                        var idy, ib, ang1;
+                        let idy, ib, ang1;
                         idy = hd2 * Math.sin(Math.PI / 4);
                         ib = hd2 + idy;
                         ang1 = Math.atan(h / w);
-                        var ang1Dg = ang1 * 180 / Math.PI;
+                        const ang1Dg = ang1 * 180 / Math.PI;
                         var d = "M" + wd2 + "," + h +
                             PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd4, cd2, false).replace("M", "L") +
                             PPTXShapeUtils.shapeArcAlt(wd2, hd2, wd2, hd2, cd2, c3d4, false).replace("M", "L") +
@@ -832,7 +832,7 @@ export const PPTXShapeUtils = (function() {
                             result += " <polyline points='" + 0 + " " + h / 2 + "," + w + " " + h / 2 + "' fill='none' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         } else if (shapType == "flowChartSummingJunction") {
                             var iDx, idy, il, ir, it, ib, hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
-                            var angVal = Math.PI / 4;
+                            const angVal = Math.PI / 4;
                             iDx = wd2 * Math.cos(angVal);
                             idy = hd2 * Math.sin(angVal);
                             il = hc - iDx;
@@ -853,13 +853,13 @@ export const PPTXShapeUtils = (function() {
                     case "snip2SameRect":
                     case "flowChartAlternateProcess":
                     case "flowChartPunchedCard": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val;// = 0.33334;
-                        var sAdj2, sAdj2_val;// = 0.33334;
-                        var shpTyp, adjTyp;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, sAdj1_val;// = 0.33334;
+                        let sAdj2, sAdj2_val;// = 0.33334;
+                        let shpTyp, adjTyp;
                         if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor === Array) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
@@ -869,12 +869,12 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         } else if (shapAdjst_ary !== undefined && shapAdjst_ary.constructor !== Array) {
-                            var sAdj = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
+                            const sAdj = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
                             sAdj1_val = parseInt(sAdj.substr(4)) / 50000;
                             sAdj2_val = 0;
                         }
                         //console.log("shapType: ",shapType,",node: ",node )
-                        var tranglRott = "";
+                        let tranglRott = "";
                         switch (shapType) {
                             case "roundRect":
                             case "flowChartAlternateProcess": {
@@ -931,18 +931,18 @@ export const PPTXShapeUtils = (function() {
                                 break;
                             }
                         }
-                        var d_val = PPTXShapeUtils.shapeSnipRoundRectAlt(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
+                        let d_val = PPTXShapeUtils.shapeSnipRoundRectAlt(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
                         result += "<path " + tranglRott + "  d='" + d_val + "'  fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
                             "' stroke='" + border.color + "' stroke-width='" + border.width + "' stroke-dasharray='" + border.strokeDasharray + "' />";
                         break;
                     }
                     case "snipRoundRect": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 0.33334;
-                        var sAdj2, sAdj2_val = 0.33334;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, sAdj1_val = 0.33334;
+                        let sAdj2, sAdj2_val = 0.33334;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) / 50000;
@@ -965,11 +965,11 @@ export const PPTXShapeUtils = (function() {
                          * - adj1: 控制圆角的半径（用于右下角和左下角）
                          * - adj2: 控制缺角的大小（用于左上角和右上角）
                          */
-                        var radius = Math.min(w, h) * sAdj1_val;     // 圆角半径
-                        var snipSize = Math.min(w, h) * sAdj2_val;   // 缺角大小
+                        const radius = Math.min(w, h) * sAdj1_val;     // 圆角半径
+                        const snipSize = Math.min(w, h) * sAdj2_val;   // 缺角大小
 
                         // 生成路径：从左下角开始，逆时针绘制
-                        var d_val = "M0," + (h - radius) +           // 左下角圆弧起点
+                        let d_val = "M0," + (h - radius) +           // 左下角圆弧起点
                             " Q0," + h + " " + radius + "," + h +   // 左下角圆弧（凸圆角）
                             " L" + w + "," + h +                    // 沿底边到右下角
                             " Q" + w + "," + h + " " + w + "," + (h - radius) + // 右下角圆弧（凸圆角）
@@ -986,8 +986,8 @@ export const PPTXShapeUtils = (function() {
                     case "bentConnector2": {
                         var d = "";
                         // 使用drawW和drawH（原始尺寸）
-                        var bendW = (drawW !== undefined) ? drawW : w;
-                        var bendH = (drawH !== undefined) ? drawH : h;
+                        const bendW = (drawW !== undefined) ? drawW : w;
+                        const bendH = (drawH !== undefined) ? drawH : h;
                         // 路径方向（SVG容器会通过flip变换处理翻转）
                         d = "M " + bendW + " 0 L " + bendW + " " + bendH + " L 0 " + bendH;
                         result += "<path d='" + d + "' stroke='" + border.color +
@@ -1009,13 +1009,13 @@ export const PPTXShapeUtils = (function() {
                     case "triangle":
                     case "flowChartExtract":
                     case "flowChartMerge": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var shapAdjst_val = 0.5;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let shapAdjst_val = 0.5;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                             //console.log("w: "+w+"\nh: "+h+"\nshapAdjst: "+shapAdjst+"\nshapAdjst_val: "+shapAdjst_val);
                         }
-                        var tranglRott = "";
+                        let tranglRott = "";
                         if (shapType == "flowChartMerge") {
                             tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
                         }
@@ -1036,16 +1036,16 @@ export const PPTXShapeUtils = (function() {
                     case "trapezoid":
                     case "flowChartManualOperation":
                     case "flowChartManualInput": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adjst_val = 0.2;
-                        var max_adj_const = 0.7407;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adjst_val = 0.2;
+                        let max_adj_const = 0.7407;
                         if (shapAdjst !== undefined) {
-                            var adjst = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
+                            const adjst = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                             adjst_val = (adjst * 0.5) / max_adj_const;
                             // console.log("w: "+w+"\nh: "+h+"\nshapAdjst: "+shapAdjst+"\nadjst_val: "+adjst_val);
                         }
                         var cnstVal = 0;
-                        var tranglRott = "";
+                        let tranglRott = "";
                         if (shapType == "flowChartManualOperation") {
                             tranglRott = "transform='rotate(180 " + w / 2 + "," + h / 2 + ")'";
                         }
@@ -1059,16 +1059,16 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "parallelogram":
                     case "flowChartInputOutput": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adjst_val = 0.25;
-                        var max_adj_const;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adjst_val = 0.25;
+                        let max_adj_const;
                         if (w > h) {
                             max_adj_const = w / h;
                         } else {
                             max_adj_const = h / w;
                         }
                         if (shapAdjst !== undefined) {
-                            var adjst = parseInt(shapAdjst.substr(4)) / 100000;
+                            const adjst = parseInt(shapAdjst.substr(4)) / 100000;
                             adjst_val = adjst / max_adj_const;
                             //console.log("w: "+w+"\nh: "+h+"\nadjst: "+adjst_val+"\nmax_adj_const: "+max_adj_const);
                         }
@@ -1083,17 +1083,17 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "hexagon":
                     case "flowChartPreparation": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 25000 * SLIDE_FACTOR;
-                        var vf = 115470 * SLIDE_FACTOR;;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var angVal1 = 60 * Math.PI / 180;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj = 25000 * SLIDE_FACTOR;
+                        const vf = 115470 * SLIDE_FACTOR;;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const angVal1 = 60 * Math.PI / 180;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
                         var maxAdj, a, shd2, x1, x2, dy1, y1, y2, vc = h / 2, hd2 = h / 2;
-                        var ss = Math.min(w, h);
+                        const ss = Math.min(w, h);
                         maxAdj = cnstVal1 * w / ss;
                         a = (adj < 0) ? 0 : (adj > maxAdj) ? maxAdj : adj;
                         shd2 = hd2 * vf / cnstVal2;
@@ -1122,13 +1122,13 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "octagon": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 0.25;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
 
                         }
-                        var adj2 = (1 - adj1);
+                        let adj2 = (1 - adj1);
                         //console.log("adj1: "+adj1+"\nadj2: "+adj2);
                         result += " <polygon points='" + adj1 * w + " 0,0 " + adj1 * h + ",0 " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," +
                             w + " " + adj2 * h + "," + w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -1171,10 +1171,10 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "frame": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 12500 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj1 = 12500 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
@@ -1200,14 +1200,14 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "donut": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        var a, dr, iwd2, ihd2;
+                        let a, dr, iwd2, ihd2;
                         if (adj < 0) a = 0
                         else if (adj > cnstVal1) a = cnstVal1
                         else a = adj
@@ -1242,16 +1242,16 @@ export const PPTXShapeUtils = (function() {
                          * 参数说明：
                          * - adj: 控制斜杠的粗细 (范围: 0-50000)
                          */
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 18750 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj = 18750 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
 
                         // 计算调整值
-                        var a, dr, iwd2, ihd2, ang, ct, st, m, n;
+                        let a, dr, iwd2, ihd2, ang, ct, st, m, n;
                         if (adj < 0) a = 0;
                         else if (adj > cnstVal1) a = cnstVal1;
                         else a = adj;
@@ -1265,20 +1265,20 @@ export const PPTXShapeUtils = (function() {
                         st = iwd2 * Math.sin(ang);
                         m = Math.sqrt(ct * ct + st * st);
                         n = iwd2 * ihd2 / m;
-                        var drd2 = dr / 2;
-                        var dang = Math.atan(drd2 / n);
-                        var dang2 = dang * 2;
-                        var swAng = -Math.PI + dang2;
+                        const drd2 = dr / 2;
+                        const dang = Math.atan(drd2 / n);
+                        let dang2 = dang * 2;
+                        let swAng = -Math.PI + dang2;
 
                         // 绘制路径（参考 pptxjs.js 使用圆弧方式）
-                        var stAng1 = ang - dang;
-                        var stAng2 = stAng1 - Math.PI;
-                        var stAng1deg = stAng1 * 180 / Math.PI;
-                        var stAng2deg = stAng2 * 180 / Math.PI;
-                        var swAng2deg = swAng * 180 / Math.PI;
+                        const stAng1 = ang - dang;
+                        let stAng2 = stAng1 - Math.PI;
+                        const stAng1deg = stAng1 * 180 / Math.PI;
+                        const stAng2deg = stAng2 * 180 / Math.PI;
+                        const swAng2deg = swAng * 180 / Math.PI;
 
-                        var dx1 = n * Math.cos(stAng1);
-                        var dy1 = n * Math.sin(stAng1);
+                        let dx1 = n * Math.cos(stAng1);
+                        let dy1 = n * Math.sin(stAng1);
                         var x1 = w / 2 + dx1;
                         var y1 = h / 2 + dy1;
                         var x2 = w / 2 - dx1;
@@ -1302,13 +1302,13 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "halfFrame": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 3.5;
-                        var sAdj2, sAdj2_val = 3.5;
-                        var cnsVal = 100000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, sAdj1_val = 3.5;
+                        let sAdj2, sAdj2_val = 3.5;
+                        const cnsVal = 100000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -1318,23 +1318,23 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var minWH = Math.min(w, h);
-                        var maxAdj2 = (cnsVal * w) / minWH;
-                        var a1, a2;
+                        const minWH = Math.min(w, h);
+                        let maxAdj2 = (cnsVal * w) / minWH;
+                        let a1, a2;
                         if (sAdj2_val < 0) a2 = 0
                         else if (sAdj2_val > maxAdj2) a2 = maxAdj2
                         else a2 = sAdj2_val
                         var x1 = (minWH * a2) / cnsVal;
-                        var g1 = h * x1 / w;
-                        var g2 = h - g1;
-                        var maxAdj1 = (cnsVal * g2) / minWH;
+                        const g1 = h * x1 / w;
+                        let g2 = h - g1;
+                        let maxAdj1 = (cnsVal * g2) / minWH;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > maxAdj1) a1 = maxAdj1
                         else a1 = sAdj1_val
                         var y1 = minWH * a1 / cnsVal;
                         var dx2 = y1 * w / h;
                         var x2 = w - dx2;
-                        var dy2 = x1 * h / w;
+                        let dy2 = x1 * h / w;
                         var y2 = h - dy2;
                         var d = "M0,0" +
                             " L" + w + "," + 0 +
@@ -1359,8 +1359,8 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "moon": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 0.5;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj = 0.5;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) / 100000;//*96/914400;;
                         }
@@ -1370,7 +1370,7 @@ export const PPTXShapeUtils = (function() {
                         cd2 = 180;
                         cd4 = 90;
 
-                        var adj2 = (1 - adj) * w;
+                        let adj2 = (1 - adj) * w;
                         var d = "M" + w + "," + h +
                             PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L") +
                             PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L") +
@@ -1380,13 +1380,13 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "corner": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, sAdj1_val = 50000 * SLIDE_FACTOR;
-                        var sAdj2, sAdj2_val = 50000 * SLIDE_FACTOR;
-                        var cnsVal = 100000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, sAdj1_val = 50000 * SLIDE_FACTOR;
+                        let sAdj2, sAdj2_val = 50000 * SLIDE_FACTOR;
+                        const cnsVal = 100000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     sAdj1_val = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -1396,9 +1396,9 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var minWH = Math.min(w, h);
-                        var maxAdj1 = cnsVal * h / minWH;
-                        var maxAdj2 = cnsVal * w / minWH;
+                        const minWH = Math.min(w, h);
+                        let maxAdj1 = cnsVal * h / minWH;
+                        let maxAdj2 = cnsVal * w / minWH;
                         var a1, a2, x1, dy1, y1;
                         if (sAdj1_val < 0) a1 = 0
                         else if (sAdj1_val > maxAdj1) a1 = maxAdj1
@@ -1423,9 +1423,9 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "diagStripe": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var sAdj1_val = 50000 * SLIDE_FACTOR;
-                        var cnsVal = 100000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let sAdj1_val = 50000 * SLIDE_FACTOR;
+                        const cnsVal = 100000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             sAdj1_val = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
@@ -1458,11 +1458,11 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "bentConnector3": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var shapAdjst_val = 0.5;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let shapAdjst_val = 0.5;
                         // 使用drawW和drawH（原始尺寸）
-                        var connectorW = (drawW !== undefined) ? drawW : w;
-                        var connectorH = (drawH !== undefined) ? drawH : h;
+                        const connectorW = (drawW !== undefined) ? drawW : w;
+                        const connectorH = (drawH !== undefined) ? drawH : h;
                         if (shapAdjst !== undefined) {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
                             // 路径方向（SVG容器会通过flip变换处理翻转）
@@ -1479,13 +1479,13 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "plus": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 0.25;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj1 = 0.25;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) / 100000;
 
                         }
-                        var adj2 = (1 - adj1);
+                        let adj2 = (1 - adj1);
                         result += " <polygon points='" + adj1 * w + " 0," + adj1 * w + " " + adj1 * h + ",0 " + adj1 * h + ",0 " + adj2 * h + "," +
                             adj1 * w + " " + adj2 * h + "," + adj1 * w + " " + h + "," + adj2 * w + " " + h + "," + adj2 * w + " " + adj2 * h + "," + w + " " + adj2 * h + "," +
                             +w + " " + adj1 * h + "," + adj2 * w + " " + adj1 * h + "," + adj2 * w + " 0' fill='" + (!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")") +
@@ -1493,10 +1493,10 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "teardrop": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj1 = 100000 * SLIDE_FACTOR;
-                        var cnsVal1 = adj1;
-                        var cnsVal2 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj1 = 100000 * SLIDE_FACTOR;
+                        const cnsVal1 = adj1;
+                        const cnsVal2 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
@@ -1517,7 +1517,7 @@ export const PPTXShapeUtils = (function() {
                         x2 = ((w / 2) + x1) / 2;
                         y2 = ((h / 2) + y1) / 2;
 
-                        var d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
+                        let d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false) +
                             "Q " + x2 + ",0 " + x1 + "," + y1 +
                             "Q " + w + "," + y2 + " " + w + "," + h / 2 +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L") +
@@ -1545,8 +1545,8 @@ export const PPTXShapeUtils = (function() {
                          * - 四个角向外延伸出1/4圆弧
                          */
 
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adjVal = 25000; // 默认值
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adjVal = 25000; // 默认值
                         if (shapAdjst !== undefined) {
                             adjVal = parseInt(shapAdjst.substr(4));
                         }
@@ -1555,7 +1555,7 @@ export const PPTXShapeUtils = (function() {
                         else if (adjVal > 50000) adjVal = 50000;
 
                         // 计算圆弧半径：adj/100000 * min(w, h)
-                        var r = (adjVal / 100000) * Math.min(w, h);
+                        let r = (adjVal / 100000) * Math.min(w, h);
 
                         /**
                          * 路径绘制顺序（逆时针从左上角圆弧开始）：
@@ -1578,7 +1578,7 @@ export const PPTXShapeUtils = (function() {
                          * - 闭合: 回到起点
                          */
 
-                        var d_val = "M" + r + ",0" +
+                        let d_val = "M" + r + ",0" +
                             "A" + r + " " + r + " 0 0 1 0," + r +
                             "L0," + (h - r) +
                             "A" + r + " " + r + " 0 0 1 " + r + "," + h +
@@ -1594,22 +1594,22 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "sun": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = SLIDE_FACTOR;
-                        var adj1 = 25000 * refr;
-                        var cnstVal1 = 12500 * refr;
-                        var cnstVal2 = 46875 * refr;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        const refr = SLIDE_FACTOR;
+                        let adj1 = 25000 * refr;
+                        const cnstVal1 = 12500 * refr;
+                        const cnstVal2 = 46875 * refr;
                         if (shapAdjst !== undefined) {
                             adj1 = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var a1;
+                        let a1;
                         if (adj1 < cnstVal1) a1 = cnstVal1
                         else if (adj1 > cnstVal2) a1 = cnstVal2
                         else a1 = adj1
 
-                        var cnstVa3 = 50000 * refr;
-                        var cnstVa4 = 100000 * refr;
-                        var g0 = cnstVa3 - a1,
+                        const cnstVa3 = 50000 * refr;
+                        const cnstVa4 = 100000 * refr;
+                        let g0 = cnstVa3 - a1,
                             g1 = g0 * (30274 * refr) / (32768 * refr),
                             g2 = g0 * (12540 * refr) / (32768 * refr),
                             g3 = g1 + cnstVa3,
@@ -1656,7 +1656,7 @@ export const PPTXShapeUtils = (function() {
                             y17 = h * g17 / cnstVa4,
                             y18 = h * g18 / cnstVa4;
 
-                        var d_val = "M" + w + "," + h / 2 +
+                        let d_val = "M" + w + "," + h / 2 +
                             " L" + x15 + "," + y18 +
                             " L" + x15 + "," + y14 +
                             "z" +
@@ -1707,7 +1707,7 @@ export const PPTXShapeUtils = (function() {
                         x3 = w / 2 + dx2
                         x4 = w / 2 + dx1
                         y1 = -h / 3;
-                        var d_val = "M" + w / 2 + "," + h / 4 +
+                        let d_val = "M" + w / 2 + "," + h / 4 +
                             "C" + x3 + "," + y1 + " " + x4 + "," + h / 4 + " " + w / 2 + "," + h +
                             "C" + x1 + "," + h / 4 + " " + x2 + "," + y1 + " " + w / 2 + "," + h / 4 + " z";
 
@@ -1740,7 +1740,7 @@ export const PPTXShapeUtils = (function() {
                             y10 = h * 14277 / 21600,
                             y11 = h * 14915 / 21600;
 
-                        var d_val = "M" + x3 + "," + 0 +
+                        let d_val = "M" + x3 + "," + 0 +
                             " L" + x8 + "," + y2 +
                             " L" + x2 + "," + y3 +
                             " L" + x11 + "," + y7 +
@@ -1758,15 +1758,15 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "cube": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = SLIDE_FACTOR;
-                        var adj = 25000 * refr;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        const refr = SLIDE_FACTOR;
+                        let adj = 25000 * refr;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var d_val;
-                        var cnstVal2 = 100000 * refr;
-                        var ss = Math.min(w, h);
+                        let d_val;
+                        const cnstVal2 = 100000 * refr;
+                        const ss = Math.min(w, h);
                         var a, y1, y4, x4;
                         a = (adj < 0) ? 0 : (adj > cnstVal2) ? cnstVal2 : adj;
                         y1 = ss * a / cnstVal2;
@@ -1792,16 +1792,16 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "bevel": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = SLIDE_FACTOR;
-                        var adj = 12500 * refr;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        const refr = SLIDE_FACTOR;
+                        let adj = 12500 * refr;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var d_val;
-                        var cnstVal1 = 50000 * refr;
-                        var cnstVal2 = 100000 * refr;
-                        var ss = Math.min(w, h);
+                        let d_val;
+                        const cnstVal1 = 50000 * refr;
+                        const cnstVal2 = 100000 * refr;
+                        const ss = Math.min(w, h);
                         var a, x1, x2, y2;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         x1 = ss * a / cnstVal2;
@@ -1832,16 +1832,16 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "foldedCorner": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var refr = SLIDE_FACTOR;
-                        var adj = 16667 * refr;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        const refr = SLIDE_FACTOR;
+                        let adj = 16667 * refr;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * refr;
                         }
-                        var d_val;
-                        var cnstVal1 = 50000 * refr;
-                        var cnstVal2 = 100000 * refr;
-                        var ss = Math.min(w, h);
+                        let d_val;
+                        const cnstVal1 = 50000 * refr;
+                        const cnstVal2 = 100000 * refr;
+                        const ss = Math.min(w, h);
                         var a, dy2, dy1, x1, x2, y2, y1;
                         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
                         dy2 = ss * a / cnstVal2;
@@ -1877,16 +1877,16 @@ export const PPTXShapeUtils = (function() {
                         // 生成椭圆弧路径的辅助函数（使用SVG A命令）
                         // 参数：中心点(cx,cy)，半径(rx,ry)，起始角度startAngle，扫描角度sweepAngle
                         function ellipseArc(cx, cy, rx, ry, startAngle, sweepAngle) {
-                            var endAngle = startAngle + sweepAngle;
+                            const endAngle = startAngle + sweepAngle;
                             // 计算起点和终点
-                            var startX = cx + rx * Math.cos(startAngle * Math.PI / 180);
-                            var startY = cy + ry * Math.sin(startAngle * Math.PI / 180);
-                            var endX = cx + rx * Math.cos(endAngle * Math.PI / 180);
-                            var endY = cy + ry * Math.sin(endAngle * Math.PI / 180);
+                            const startX = cx + rx * Math.cos(startAngle * Math.PI / 180);
+                            const startY = cy + ry * Math.sin(startAngle * Math.PI / 180);
+                            const endX = cx + rx * Math.cos(endAngle * Math.PI / 180);
+                            const endY = cy + ry * Math.sin(endAngle * Math.PI / 180);
                             
                             // 确定large-arc-flag和sweep-flag
-                            var largeArc = Math.abs(sweepAngle) > 180 ? 1 : 0;
-                            var sweep = sweepAngle > 0 ? 1 : 0;
+                            const largeArc = Math.abs(sweepAngle) > 180 ? 1 : 0;
+                            const sweep = sweepAngle > 0 ? 1 : 0;
                             
                             return {
                                 start: { x: fmt(startX), y: fmt(startY) },
@@ -1896,95 +1896,95 @@ export const PPTXShapeUtils = (function() {
                         }
 
                         // X坐标使用 w 缩放，Y坐标使用 h 缩放
-                        var x0 = fmt(w * 3900 / 43200);
-                        var y0 = fmt(h * 14370 / 43200);
+                        const x0 = fmt(w * 3900 / 43200);
+                        const y0 = fmt(h * 14370 / 43200);
                         
                         // 半径：RX使用 w 缩放，RY使用 h 缩放
-                        var rX1 = fmt(w * 6753 / 43200), rY1 = fmt(h * 9190 / 43200);
-                        var rX2 = fmt(w * 5333 / 43200), rY2 = fmt(h * 7267 / 43200);
-                        var rX3 = fmt(w * 4365 / 43200), rY3 = fmt(h * 5945 / 43200);
-                        var rX4 = fmt(w * 4857 / 43200), rY4 = fmt(h * 6595 / 43200);
-                        var rY5 = fmt(h * 7273 / 43200);
-                        var rX6 = fmt(w * 6775 / 43200), rY6 = fmt(h * 9220 / 43200);
-                        var rX7 = fmt(w * 5785 / 43200), rY7 = fmt(h * 7867 / 43200);
-                        var rX8 = fmt(w * 6752 / 43200), rY8 = fmt(h * 9215 / 43200);
-                        var rX9 = fmt(w * 7720 / 43200), rY9 = fmt(h * 10543 / 43200);
-                        var rX10 = fmt(w * 4360 / 43200), rY10 = fmt(h * 5918 / 43200);
-                        var rX11 = fmt(w * 4345 / 43200);
+                        const rX1 = fmt(w * 6753 / 43200), rY1 = fmt(h * 9190 / 43200);
+                        const rX2 = fmt(w * 5333 / 43200), rY2 = fmt(h * 7267 / 43200);
+                        const rX3 = fmt(w * 4365 / 43200), rY3 = fmt(h * 5945 / 43200);
+                        const rX4 = fmt(w * 4857 / 43200), rY4 = fmt(h * 6595 / 43200);
+                        const rY5 = fmt(h * 7273 / 43200);
+                        const rX6 = fmt(w * 6775 / 43200), rY6 = fmt(h * 9220 / 43200);
+                        const rX7 = fmt(w * 5785 / 43200), rY7 = fmt(h * 7867 / 43200);
+                        const rX8 = fmt(w * 6752 / 43200), rY8 = fmt(h * 9215 / 43200);
+                        const rX9 = fmt(w * 7720 / 43200), rY9 = fmt(h * 10543 / 43200);
+                        const rX10 = fmt(w * 4360 / 43200), rY10 = fmt(h * 5918 / 43200);
+                        const rX11 = fmt(w * 4345 / 43200);
 
                         // 角度（以度为单位）
-                        var sA1 = -11429249 / 60000, wA1 = 7426832 / 60000;
-                        var sA2 = -8646143 / 60000, wA2 = 5396714 / 60000;
-                        var sA3 = -8748475 / 60000, wA3 = 5983381 / 60000;
-                        var sA4 = -7859164 / 60000, wA4 = 7034504 / 60000;
-                        var sA5 = -4722533 / 60000, wA5 = 6541615 / 60000;
-                        var sA6 = -2776035 / 60000, wA6 = 7816140 / 60000;
-                        var sA7 = 37501 / 60000, wA7 = 6842000 / 60000;
-                        var sA8 = 1347096 / 60000, wA8 = 6910353 / 60000;
-                        var sA9 = 3974558 / 60000, wA9 = 4542661 / 60000;
-                        var sA10 = -16496525 / 60000, wA10 = 8804134 / 60000;
-                        var sA11 = -14809710 / 60000, wA11 = 9151131 / 60000;
+                        const sA1 = -11429249 / 60000, wA1 = 7426832 / 60000;
+                        const sA2 = -8646143 / 60000, wA2 = 5396714 / 60000;
+                        const sA3 = -8748475 / 60000, wA3 = 5983381 / 60000;
+                        const sA4 = -7859164 / 60000, wA4 = 7034504 / 60000;
+                        const sA5 = -4722533 / 60000, wA5 = 6541615 / 60000;
+                        const sA6 = -2776035 / 60000, wA6 = 7816140 / 60000;
+                        const sA7 = 37501 / 60000, wA7 = 6842000 / 60000;
+                        const sA8 = 1347096 / 60000, wA8 = 6910353 / 60000;
+                        const sA9 = 3974558 / 60000, wA9 = 4542661 / 60000;
+                        const sA10 = -16496525 / 60000, wA10 = 8804134 / 60000;
+                        const sA11 = -14809710 / 60000, wA11 = 9151131 / 60000;
 
                         // 计算各弧线的中心点
                         // 弧线中心点 = 起点 - 半径 * cos/sin(起始角度)
-                        var cX0 = fmt(x0 - rX1 * Math.cos(sA1 * Math.PI / 180));
-                        var cY0 = fmt(y0 - rY1 * Math.sin(sA1 * Math.PI / 180));
+                        const cX0 = fmt(x0 - rX1 * Math.cos(sA1 * Math.PI / 180));
+                        const cY0 = fmt(y0 - rY1 * Math.sin(sA1 * Math.PI / 180));
 
                         // 生成弧线1
-                        var arc1 = ellipseArc(cX0, cY0, rX1, rY1, sA1, wA1);
+                        const arc1 = ellipseArc(cX0, cY0, rX1, rY1, sA1, wA1);
                         
                         // 计算弧线2的中心点（基于弧线1的终点）
-                        var cX1 = fmt(arc1.end.x - rX2 * Math.cos(sA2 * Math.PI / 180));
-                        var cY1 = fmt(arc1.end.y - rY2 * Math.sin(sA2 * Math.PI / 180));
-                        var arc2 = ellipseArc(cX1, cY1, rX2, rY2, sA2, wA2);
+                        const cX1 = fmt(arc1.end.x - rX2 * Math.cos(sA2 * Math.PI / 180));
+                        const cY1 = fmt(arc1.end.y - rY2 * Math.sin(sA2 * Math.PI / 180));
+                        const arc2 = ellipseArc(cX1, cY1, rX2, rY2, sA2, wA2);
                         
                         // 弧线3
-                        var cX2 = fmt(arc2.end.x - rX3 * Math.cos(sA3 * Math.PI / 180));
-                        var cY2 = fmt(arc2.end.y - rY3 * Math.sin(sA3 * Math.PI / 180));
-                        var arc3 = ellipseArc(cX2, cY2, rX3, rY3, sA3, wA3);
+                        const cX2 = fmt(arc2.end.x - rX3 * Math.cos(sA3 * Math.PI / 180));
+                        const cY2 = fmt(arc2.end.y - rY3 * Math.sin(sA3 * Math.PI / 180));
+                        const arc3 = ellipseArc(cX2, cY2, rX3, rY3, sA3, wA3);
                         
                         // 弧线4
-                        var cX3 = fmt(arc3.end.x - rX4 * Math.cos(sA4 * Math.PI / 180));
-                        var cY3 = fmt(arc3.end.y - rY4 * Math.sin(sA4 * Math.PI / 180));
-                        var arc4 = ellipseArc(cX3, cY3, rX4, rY4, sA4, wA4);
+                        const cX3 = fmt(arc3.end.x - rX4 * Math.cos(sA4 * Math.PI / 180));
+                        const cY3 = fmt(arc3.end.y - rY4 * Math.sin(sA4 * Math.PI / 180));
+                        const arc4 = ellipseArc(cX3, cY3, rX4, rY4, sA4, wA4);
                         
                         // 弧线5
-                        var cX4 = fmt(arc4.end.x - rX2 * Math.cos(sA5 * Math.PI / 180));
-                        var cY4 = fmt(arc4.end.y - rY5 * Math.sin(sA5 * Math.PI / 180));
-                        var arc5 = ellipseArc(cX4, cY4, rX2, rY5, sA5, wA5);
+                        const cX4 = fmt(arc4.end.x - rX2 * Math.cos(sA5 * Math.PI / 180));
+                        const cY4 = fmt(arc4.end.y - rY5 * Math.sin(sA5 * Math.PI / 180));
+                        const arc5 = ellipseArc(cX4, cY4, rX2, rY5, sA5, wA5);
                         
                         // 弧线6
-                        var cX5 = fmt(arc5.end.x - rX6 * Math.cos(sA6 * Math.PI / 180));
-                        var cY5 = fmt(arc5.end.y - rY6 * Math.sin(sA6 * Math.PI / 180));
-                        var arc6 = ellipseArc(cX5, cY5, rX6, rY6, sA6, wA6);
+                        const cX5 = fmt(arc5.end.x - rX6 * Math.cos(sA6 * Math.PI / 180));
+                        const cY5 = fmt(arc5.end.y - rY6 * Math.sin(sA6 * Math.PI / 180));
+                        const arc6 = ellipseArc(cX5, cY5, rX6, rY6, sA6, wA6);
                         
                         // 弧线7
-                        var cX6 = fmt(arc6.end.x - rX7 * Math.cos(sA7 * Math.PI / 180));
-                        var cY6 = fmt(arc6.end.y - rY7 * Math.sin(sA7 * Math.PI / 180));
-                        var arc7 = ellipseArc(cX6, cY6, rX7, rY7, sA7, wA7);
+                        const cX6 = fmt(arc6.end.x - rX7 * Math.cos(sA7 * Math.PI / 180));
+                        const cY6 = fmt(arc6.end.y - rY7 * Math.sin(sA7 * Math.PI / 180));
+                        const arc7 = ellipseArc(cX6, cY6, rX7, rY7, sA7, wA7);
                         
                         // 弧线8
-                        var cX7 = fmt(arc7.end.x - rX8 * Math.cos(sA8 * Math.PI / 180));
-                        var cY7 = fmt(arc7.end.y - rY8 * Math.sin(sA8 * Math.PI / 180));
-                        var arc8 = ellipseArc(cX7, cY7, rX8, rY8, sA8, wA8);
+                        const cX7 = fmt(arc7.end.x - rX8 * Math.cos(sA8 * Math.PI / 180));
+                        const cY7 = fmt(arc7.end.y - rY8 * Math.sin(sA8 * Math.PI / 180));
+                        const arc8 = ellipseArc(cX7, cY7, rX8, rY8, sA8, wA8);
                         
                         // 弧线9
-                        var cX8 = fmt(arc8.end.x - rX9 * Math.cos(sA9 * Math.PI / 180));
-                        var cY8 = fmt(arc8.end.y - rY9 * Math.sin(sA9 * Math.PI / 180));
-                        var arc9 = ellipseArc(cX8, cY8, rX9, rY9, sA9, wA9);
+                        const cX8 = fmt(arc8.end.x - rX9 * Math.cos(sA9 * Math.PI / 180));
+                        const cY8 = fmt(arc8.end.y - rY9 * Math.sin(sA9 * Math.PI / 180));
+                        const arc9 = ellipseArc(cX8, cY8, rX9, rY9, sA9, wA9);
                         
                         // 弧线10
-                        var cX9 = fmt(arc9.end.x - rX10 * Math.cos(sA10 * Math.PI / 180));
-                        var cY9 = fmt(arc9.end.y - rY10 * Math.sin(sA10 * Math.PI / 180));
-                        var arc10 = ellipseArc(cX9, cY9, rX10, rY10, sA10, wA10);
+                        const cX9 = fmt(arc9.end.x - rX10 * Math.cos(sA10 * Math.PI / 180));
+                        const cY9 = fmt(arc9.end.y - rY10 * Math.sin(sA10 * Math.PI / 180));
+                        const arc10 = ellipseArc(cX9, cY9, rX10, rY10, sA10, wA10);
                         
                         // 弧线11
-                        var cX10 = fmt(arc10.end.x - rX11 * Math.cos(sA11 * Math.PI / 180));
-                        var cY10 = fmt(arc10.end.y - rY3 * Math.sin(sA11 * Math.PI / 180));
-                        var arc11 = ellipseArc(cX10, cY10, rX11, rY3, sA11, wA11);
+                        const cX10 = fmt(arc10.end.x - rX11 * Math.cos(sA11 * Math.PI / 180));
+                        const cY10 = fmt(arc10.end.y - rY3 * Math.sin(sA11 * Math.PI / 180));
+                        const arc11 = ellipseArc(cX10, cY10, rX11, rY3, sA11, wA11);
 
                         // 构建完整路径
-                        var d1 = "M" + x0 + "," + y0 + " " +
+                        let d1 = "M" + x0 + "," + y0 + " " +
                             arc1.path + " " +
                             arc2.path + " " +
                             arc3.path + " " +
@@ -1998,13 +1998,13 @@ export const PPTXShapeUtils = (function() {
                             arc11.path + " z";
 
                         if (shapType == "cloudCallout") {
-                            var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                            var refr = SLIDE_FACTOR;
-                            var sAdj1, adj1 = -20833 * refr;
-                            var sAdj2, adj2 = 62500 * refr;
+                            const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                            const refr = SLIDE_FACTOR;
+                            let sAdj1, adj1 = -20833 * refr;
+                            let sAdj2, adj2 = 62500 * refr;
                             if (shapAdjst_ary !== undefined) {
                                 for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                    var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                    const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
                                         sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2014,12 +2014,12 @@ export const PPTXShapeUtils = (function() {
                                     }
                                 }
                             }
-                            var d_val;
-                            var cnstVal2 = 100000 * refr;
-                            var ss = Math.min(w, h);
+                            let d_val;
+                            const cnstVal2 = 100000 * refr;
+                            const ss = Math.min(w, h);
                             var wd2 = w / 2, hd2 = h / 2;
 
-                            var dxPos, dyPos, xPos, yPos, ht, wt, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15, g16,
+                            let dxPos, dyPos, xPos, yPos, ht, wt, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15, g16,
                                 g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, x23, x24, x25;
 
                             dxPos = w * adj1 / cnstVal2;
@@ -2087,13 +2087,13 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "wedgeEllipseCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = SLIDE_FACTOR;
-                        var sAdj1, adj1 = -20833 * refr;
-                        var sAdj2, adj2 = 62500 * refr;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        const refr = SLIDE_FACTOR;
+                        let sAdj1, adj1 = -20833 * refr;
+                        let sAdj2, adj2 = 62500 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2103,10 +2103,10 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 100000 * SLIDE_FACTOR;
-                        var angVal1 = 11 * Math.PI / 180;
-                        var ss = Math.min(w, h);
+                        let d_val;
+                        const cnstVal1 = 100000 * SLIDE_FACTOR;
+                        const angVal1 = 11 * Math.PI / 180;
+                        const ss = Math.min(w, h);
                         var dxPos, dyPos, xPos, yPos, sdx, sdy, pang, stAng, enAng, dx1, dy1, x1, y1, dx2, dy2,
                             x2, y2, stAng1, enAng1, swAng1, swAng2, swAng,
                             vc = h / 2, hc = w / 2;
@@ -2167,13 +2167,13 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "wedgeRectCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = SLIDE_FACTOR;
-                        var sAdj1, adj1 = -20833 * refr;
-                        var sAdj2, adj2 = 62500 * refr;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        const refr = SLIDE_FACTOR;
+                        let sAdj1, adj1 = -20833 * refr;
+                        let sAdj2, adj2 = 62500 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2183,8 +2183,8 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 100000 * SLIDE_FACTOR;
+                        let d_val;
+                        const cnstVal1 = 100000 * SLIDE_FACTOR;
                         var dxPos, dyPos, xPos, yPos, dx, dy, dq, ady, adq, dz, xg1, xg2, x1, x2,
                             yg1, yg2, y1, y2, t1, xl, t2, xt, t3, xr, t4, xb, t5, yl, t6, yt, t7, yr, t8, yb,
                             vc = h / 2, hc = w / 2;
@@ -2247,14 +2247,14 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "wedgeRoundRectCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = SLIDE_FACTOR;
-                        var sAdj1, adj1 = -20833 * refr;
-                        var sAdj2, adj2 = 62500 * refr;
-                        var sAdj3, adj3 = 16667 * refr;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        const refr = SLIDE_FACTOR;
+                        let sAdj1, adj1 = -20833 * refr;
+                        let sAdj2, adj2 = 62500 * refr;
+                        let sAdj3, adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2267,9 +2267,9 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 100000 * SLIDE_FACTOR;
-                        var ss = Math.min(w, h);
+                        let d_val;
+                        const cnstVal1 = 100000 * SLIDE_FACTOR;
+                        const ss = Math.min(w, h);
                         var dxPos, dyPos, xPos, yPos, dq, ady, adq, dz, xg1, xg2, x1, x2, yg1, yg2, y1, y2,
                             t1, xl, t2, xt, t3, xr, t4, xb, t5, yl, t6, yt, t7, yr, t8, yb, u1, u2, v2,
                             vc = h / 2, hc = w / 2;
@@ -2346,19 +2346,19 @@ export const PPTXShapeUtils = (function() {
                     case "callout1":
                     case "callout2":
                     case "callout3": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = SLIDE_FACTOR;
-                        var sAdj1, adj1 = 18750 * refr;
-                        var sAdj2, adj2 = -8333 * refr;
-                        var sAdj3, adj3 = 18750 * refr;
-                        var sAdj4, adj4 = -16667 * refr;
-                        var sAdj5, adj5 = 100000 * refr;
-                        var sAdj6, adj6 = -16667 * refr;
-                        var sAdj7, adj7 = 112963 * refr;
-                        var sAdj8, adj8 = -8333 * refr;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        const refr = SLIDE_FACTOR;
+                        let sAdj1, adj1 = 18750 * refr;
+                        let sAdj2, adj2 = -8333 * refr;
+                        let sAdj3, adj3 = 18750 * refr;
+                        let sAdj4, adj4 = -16667 * refr;
+                        let sAdj5, adj5 = 100000 * refr;
+                        let sAdj6, adj6 = -16667 * refr;
+                        let sAdj7, adj7 = 112963 * refr;
+                        let sAdj8, adj8 = -8333 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2386,9 +2386,9 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 100000 * refr;
-                        var isBorder = true;
+                        let d_val;
+                        const cnstVal1 = 100000 * refr;
+                        let isBorder = true;
                         switch (shapType) {
                             case "borderCallout1":
                             case "callout1":
@@ -2628,14 +2628,14 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "leftRightRibbon": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = SLIDE_FACTOR;
-                        var sAdj1, adj1 = 50000 * refr;
-                        var sAdj2, adj2 = 50000 * refr;
-                        var sAdj3, adj3 = 16667 * refr;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        const refr = SLIDE_FACTOR;
+                        let sAdj1, adj1 = 50000 * refr;
+                        let sAdj2, adj2 = 50000 * refr;
+                        let sAdj3, adj3 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -2648,12 +2648,12 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 33333 * refr;
-                        var cnstVal2 = 100000 * refr;
-                        var cnstVal3 = 200000 * refr;
-                        var cnstVal4 = 400000 * refr;
-                        var ss = Math.min(w, h);
+                        let d_val;
+                        const cnstVal1 = 33333 * refr;
+                        const cnstVal2 = 100000 * refr;
+                        const cnstVal3 = 200000 * refr;
+                        const cnstVal4 = 400000 * refr;
+                        const ss = Math.min(w, h);
                         var a3, maxAdj1, a1, w1, maxAdj2, a2, x1, x4, dy1, dy2, ly1, ry4, ly2, ry3, ly4, ry1,
                             ly3, ry2, hR, x2, x3, y1, y2, wd32 = w / 32, vc = h / 2, hc = w / 2;
 
@@ -2710,12 +2710,12 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "ribbon":
                     case "ribbon2": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 16667 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 16667 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -2725,14 +2725,14 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 25000 * SLIDE_FACTOR;
-                        var cnstVal2 = 33333 * SLIDE_FACTOR;
-                        var cnstVal3 = 75000 * SLIDE_FACTOR;
-                        var cnstVal4 = 100000 * SLIDE_FACTOR;
-                        var cnstVal5 = 200000 * SLIDE_FACTOR;
-                        var cnstVal6 = 400000 * SLIDE_FACTOR;
-                        var hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
+                        let d_val;
+                        const cnstVal1 = 25000 * SLIDE_FACTOR;
+                        const cnstVal2 = 33333 * SLIDE_FACTOR;
+                        const cnstVal3 = 75000 * SLIDE_FACTOR;
+                        const cnstVal4 = 100000 * SLIDE_FACTOR;
+                        const cnstVal5 = 200000 * SLIDE_FACTOR;
+                        const cnstVal6 = 400000 * SLIDE_FACTOR;
+                        let hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
                         var a1, a2, x10, dx2, x2, x9, x3, x8, x5, x6, x4, x7, y1, y2, y4, y3, hR, y6;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal2) ? cnstVal2 : adj1;
                         a2 = (adj2 < cnstVal1) ? cnstVal1 : (adj2 > cnstVal3) ? cnstVal3 : adj2;
@@ -2748,7 +2748,7 @@ export const PPTXShapeUtils = (function() {
                         x7 = x6 + wd32;
                         hR = h * a1 / cnstVal6;
                         if (shapType == "ribbon2") {
-                            var dy1, dy2, y7;
+                            let dy1, dy2, y7;
                             dy1 = h * a1 / cnstVal5;
                             y1 = b - dy1;
                             dy2 = h * a1 / cnstVal4;
@@ -2789,7 +2789,7 @@ export const PPTXShapeUtils = (function() {
                                 "M" + x9 + "," + y4 +
                                 " L" + x9 + "," + y7;
                         } else if (shapType == "ribbon") {
-                            var y5;
+                            let y5;
                             y1 = h * a1 / cnstVal5;
                             y2 = h * a1 / cnstVal4;
                             y4 = b - y2;
@@ -2833,12 +2833,12 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "doubleWave":
                     case "wave": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = (shapType == "doubleWave") ? 6250 * SLIDE_FACTOR : 12500 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 0;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = (shapType == "doubleWave") ? 6250 * SLIDE_FACTOR : 12500 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 0;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -2848,13 +2848,13 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal2 = -10000 * SLIDE_FACTOR;
-                        var cnstVal3 = 50000 * SLIDE_FACTOR;
-                        var cnstVal4 = 100000 * SLIDE_FACTOR;
-                        var hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
+                        let d_val;
+                        const cnstVal2 = -10000 * SLIDE_FACTOR;
+                        const cnstVal3 = 50000 * SLIDE_FACTOR;
+                        const cnstVal4 = 100000 * SLIDE_FACTOR;
+                        let hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8, wd32 = w / 32;
                         if (shapType == "doubleWave") {
-                            var cnstVal1 = 12500 * SLIDE_FACTOR;
+                            const cnstVal1 = 12500 * SLIDE_FACTOR;
                             var a1, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx8, x8, dx3, x3, dx4, x4, x5, x6, x7, x9, x15, x10, x11, x12, x13, x14;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal1) ? cnstVal1 : adj1;
                             a2 = (adj2 < cnstVal2) ? cnstVal2 : (adj2 > cnstVal4) ? cnstVal4 : adj2;
@@ -2893,7 +2893,7 @@ export const PPTXShapeUtils = (function() {
                                 " C" + x11 + "," + y6 + " " + x10 + "," + y5 + " " + x9 + "," + y4 +
                                 " z";
                         } else if (shapType == "wave") {
-                            var cnstVal5 = 20000 * SLIDE_FACTOR;
+                            const cnstVal5 = 20000 * SLIDE_FACTOR;
                             var a1, a2, y1, dy2, y2, y3, y4, y5, y6, of2, dx2, x2, dx5, x5, dx3, x3, x4, x6, x10, x7, x8;
                             a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal5) ? cnstVal5 : adj1;
                             a2 = (adj2 < cnstVal2) ? cnstVal2 : (adj2 > cnstVal4) ? cnstVal4 : adj2;
@@ -2930,13 +2930,13 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "ellipseRibbon":
                     case "ellipseRibbon2": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 12500 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 12500 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -2949,12 +2949,12 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var d_val;
-                        var cnstVal1 = 25000 * SLIDE_FACTOR;
-                        var cnstVal3 = 75000 * SLIDE_FACTOR;
-                        var cnstVal4 = 100000 * SLIDE_FACTOR;
-                        var cnstVal5 = 200000 * SLIDE_FACTOR;
-                        var hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8;
+                        let d_val;
+                        const cnstVal1 = 25000 * SLIDE_FACTOR;
+                        const cnstVal3 = 75000 * SLIDE_FACTOR;
+                        const cnstVal4 = 100000 * SLIDE_FACTOR;
+                        const cnstVal5 = 200000 * SLIDE_FACTOR;
+                        let hc = w / 2, t = 0, l = 0, b = h, r = w, wd8 = w / 8;
                         var a1, a2, q10, q11, q12, minAdj3, a3, dx2, x2, x3, x4, x5, x6, dy1, f1, q1, q2,
                             cx1, cx2, q1, dy3, q3, q4, q5, rh, q8, cx4, q9, cx5;
                         a1 = (adj1 < 0) ? 0 : (adj1 > cnstVal4) ? cnstVal4 : adj1;
@@ -3090,8 +3090,8 @@ export const PPTXShapeUtils = (function() {
                     case "bentConnector4":
                     case "bentConnector5": {
                         // 使用drawW和drawH（原始尺寸）而不是w和h（可能被调整的SVG容器尺寸）
-                        var lineW = drawW;
-                        var lineH = drawH;
+                        let lineW = drawW;
+                        let lineH = drawH;
                         // 如果drawW或drawH未定义（非连接器情况），回退到w和h
                         if (lineW === undefined) lineW = w;
                         if (lineH === undefined) lineH = h;
@@ -3115,39 +3115,39 @@ export const PPTXShapeUtils = (function() {
                     case "curvedConnector4":
                     case "curvedConnector5": {
                         // 获取调整值
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var adj1 = 50000; // 默认值
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let adj1 = 50000; // 默认值
                         if (shapAdjst_ary !== undefined) {
                             if (Array.isArray(shapAdjst_ary)) {
                                 for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                    var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                    const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                     if (sAdj_name == "adj1") {
-                                        var sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                        let sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                         adj1 = parseInt(sAdj1.substr(4));
                                         break;
                                     }
                                 }
                             } else {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
-                                    var sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
+                                    let sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary, ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4));
                                 }
                             }
                         }
 
                         // 使用drawW和drawH（原始尺寸）
-                        var curveW = (drawW !== undefined) ? drawW : w;
-                        var curveH = (drawH !== undefined) ? drawH : h;
+                        const curveW = (drawW !== undefined) ? drawW : w;
+                        const curveH = (drawH !== undefined) ? drawH : h;
 
                         // 计算曲线控制点
-                        var cx1, cy1, cx2, cy2;
-                        var pathD;
+                        let cx1, cy1, cx2, cy2;
+                        let pathD;
                         
                         // 路径方向（SVG容器会通过flip变换处理翻转）
                         if (shapType === "curvedConnector2" || shapType === "curvedConnector3") {
                             // 对于 curvedConnector2 和 curvedConnector3，使用简单的二次贝塞尔曲线
-                            var controlPointRatio = adj1 / 100000;
+                            const controlPointRatio = adj1 / 100000;
                             cx1 = curveW * controlPointRatio;
                             cy1 = 0;
                             cx2 = curveW * (1 - controlPointRatio);
@@ -3187,16 +3187,16 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "quadArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 22500 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 22500 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 22500 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 22500 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 22500 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 22500 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3210,7 +3210,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2, x3, dx3, x4, x5, x6, y2, y3, y4, y5, y6, maxAdj1, maxAdj3;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -3236,7 +3236,7 @@ export const PPTXShapeUtils = (function() {
                         y3 = vc - dx3;
                         y4 = vc + dx3;
                         y6 = h - x1;
-                        var d_val = "M" + 0 + "," + vc +
+                        let d_val = "M" + 0 + "," + vc +
                             " L" + x1 + "," + y2 +
                             " L" + x1 + "," + y3 +
                             " L" + x3 + "," + y3 +
@@ -3267,16 +3267,16 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "leftRightUpArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3290,7 +3290,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var vc = h / 2, hc = w / 2, a1, a2, a3, q1, x1, x2, dx2, x3, dx3, x4, x5, x6, y2, dy2, y3, y4, y5, maxAdj1, maxAdj3;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -3316,7 +3316,7 @@ export const PPTXShapeUtils = (function() {
                         y4 = h - dx2;
                         y3 = y4 - dx3;
                         y5 = y4 + dx3;
-                        var d_val = "M" + 0 + "," + y4 +
+                        let d_val = "M" + 0 + "," + y4 +
                             " L" + x1 + "," + y2 +
                             " L" + x1 + "," + y3 +
                             " L" + x3 + "," + y3 +
@@ -3340,16 +3340,16 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "leftUpArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3363,7 +3363,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var vc = h / 2, hc = w / 2, a1, a2, a3, x1, x2, dx4, dx3, x3, x4, x5, y2, y3, y4, y5, maxAdj1, maxAdj3;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -3387,7 +3387,7 @@ export const PPTXShapeUtils = (function() {
                         x5 = x4 + dx3;
                         y3 = y4 - dx3;
                         y5 = y4 + dx3;
-                        var d_val = "M" + 0 + "," + y4 +
+                        let d_val = "M" + 0 + "," + y4 +
                             " L" + x1 + "," + y2 +
                             " L" + x1 + "," + y3 +
                             " L" + x3 + "," + y3 +
@@ -3406,16 +3406,16 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "bentUpArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3429,7 +3429,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var vc = h / 2, hc = w / 2, a1, a2, a3, dx1, x1, dx2, x2, dx3, x3, x4, y1, y2, dy2;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
                         else a1 = adj1
@@ -3449,7 +3449,7 @@ export const PPTXShapeUtils = (function() {
                         x4 = x3 + dx2;
                         dy2 = minWH * a1 / cnstVal2;
                         y2 = h - dy2;
-                        var d_val = "M" + 0 + "," + y2 +
+                        let d_val = "M" + 0 + "," + y2 +
                             " L" + x2 + "," + y2 +
                             " L" + x2 + "," + y1 +
                             " L" + x1 + "," + y1 +
@@ -3465,16 +3465,16 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "bentArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var sAdj4, adj4 = 43750 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        let sAdj4, adj4 = 43750 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3491,7 +3491,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var a1, a2, a3, a4, x3, x4, y3, y4, y5, y6, maxAdj1, maxAdj4;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -3525,7 +3525,7 @@ export const PPTXShapeUtils = (function() {
                         y5 = dh2 + bd;
                         y6 = y3 + bd2;
 
-                        var d_val = "M" + 0 + "," + h +
+                        let d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + y5 +
                             PPTXShapeUtils.shapeArc(bd, y5, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + dh2 +
@@ -3543,17 +3543,17 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "uturnArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var sAdj4, adj4 = 43750 * SLIDE_FACTOR;
-                        var sAdj5, adj5 = 75000 * SLIDE_FACTOR;
-                        var cnstVal1 = 25000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        let sAdj4, adj4 = 43750 * SLIDE_FACTOR;
+                        let sAdj5, adj5 = 75000 * SLIDE_FACTOR;
+                        const cnstVal1 = 25000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3573,7 +3573,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var a1, a2, a3, a4, a5, q1, q2, q3, x3, x4, x5, x6, x7, x8, x9, y4, y5, minAdj5, maxAdj1, maxAdj3, maxAdj4;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         if (adj2 < 0) a2 = 0
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
@@ -3619,7 +3619,7 @@ export const PPTXShapeUtils = (function() {
                         x5 = x7 - bd2;
                         var cx = (th + x7) / 2
                         var cy = (y4 + th) / 2
-                        var d_val = "M" + 0 + "," + h +
+                        let d_val = "M" + 0 + "," + h +
                             " L" + 0 + "," + bd +
                             shapeArcAlt(bd, bd, bd, bd, 180, 270, false).replace("M", "L") +
                             " L" + x4 + "," + 0 +
@@ -3641,15 +3641,15 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "stripedRightArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 50000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-                        var cnstVal1 = 100000 * SLIDE_FACTOR;
-                        var cnstVal2 = 200000 * SLIDE_FACTOR;
-                        var cnstVal3 = 84375 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 50000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+                        const cnstVal1 = 100000 * SLIDE_FACTOR;
+                        const cnstVal2 = 200000 * SLIDE_FACTOR;
+                        const cnstVal3 = 84375 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3660,7 +3660,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var a1, a2, x4, x5, dx5, x6, dx6, y1, dy1, y2, maxAdj2, vc = h / 2;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         maxAdj2 = cnstVal3 * w / minWH;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
@@ -3676,10 +3676,10 @@ export const PPTXShapeUtils = (function() {
                         y2 = vc + dy1;
                         //dx6 = dy1*dx5/hd2;
                         //x6 = w-dx6;
-                        var ssd8 = minWH / 8,
+                        const ssd8 = minWH / 8,
                             ssd16 = minWH / 16,
                             ssd32 = minWH / 32;
-                        var d_val = "M" + 0 + "," + y1 +
+                        let d_val = "M" + 0 + "," + y1 +
                             " L" + ssd32 + "," + y1 +
                             " L" + ssd32 + "," + y2 +
                             " L" + 0 + "," + y2 + " z" +
@@ -3701,14 +3701,14 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "notchedRightArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 50000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-                        var cnstVal1 = 100000 * SLIDE_FACTOR;
-                        var cnstVal2 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 50000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+                        const cnstVal1 = 100000 * SLIDE_FACTOR;
+                        const cnstVal2 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3719,7 +3719,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var a1, a2, x1, x2, dx2, y1, dy1, y2, maxAdj2, vc = h / 2, hd2 = vc;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / minWH;
                         if (adj1 < 0) a1 = 0
                         else if (adj1 > cnstVal1) a1 = cnstVal1
@@ -3733,7 +3733,7 @@ export const PPTXShapeUtils = (function() {
                         y1 = vc - dy1;
                         y2 = vc + dy1;
                         x1 = dy1 * dx2 / hd2;
-                        var d_val = "M" + 0 + "," + y1 +
+                        let d_val = "M" + 0 + "," + y1 +
                             " L" + x2 + "," + y1 +
                             " L" + x2 + "," + 0 +
                             " L" + w + "," + vc +
@@ -3748,21 +3748,21 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "homePlate": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 50000 * SLIDE_FACTOR;
-                        var cnstVal1 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj = 50000 * SLIDE_FACTOR;
+                        const cnstVal1 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
                         var a, x1, dx1, maxAdj, vc = h / 2;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
                         if (adj < 0) a = 0
                         else if (adj > maxAdj) a = maxAdj
                         else a = adj
                         dx1 = minWH * a / cnstVal1;
                         x1 = w - dx1;
-                        var d_val = "M" + 0 + "," + 0 +
+                        let d_val = "M" + 0 + "," + 0 +
                             " L" + x1 + "," + 0 +
                             " L" + w + "," + vc +
                             " L" + x1 + "," + h +
@@ -3774,21 +3774,21 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "chevron": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 50000 * SLIDE_FACTOR;
-                        var cnstVal1 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj = 50000 * SLIDE_FACTOR;
+                        const cnstVal1 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
                         var a, x1, dx1, x2, maxAdj, vc = h / 2;
-                        var minWH = Math.min(w, h);
+                        const minWH = Math.min(w, h);
                         maxAdj = cnstVal1 * w / minWH;
                         if (adj < 0) a = 0
                         else if (adj > maxAdj) a = maxAdj
                         else a = adj
                         x1 = minWH * a / cnstVal1;
                         x2 = w - x1;
-                        var d_val = "M" + 0 + "," + 0 +
+                        let d_val = "M" + 0 + "," + 0 +
                             " L" + x2 + "," + 0 +
                             " L" + w + "," + vc +
                             " L" + x2 + "," + h +
@@ -3802,17 +3802,17 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "rightArrowCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var sAdj4, adj4 = 64977 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        let sAdj4, adj4 = 64977 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3829,8 +3829,8 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, dx3, x3, x2, x1;
-                        var vc = h / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        let vc = h / 2, r = w, b = h, l = 0, t = 0;
+                        const ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         maxAdj1 = a2 * 2;
@@ -3850,7 +3850,7 @@ export const PPTXShapeUtils = (function() {
                         x3 = r - dx3;
                         x2 = w * a4 / cnstVal2;
                         x1 = x2 / 2;
-                        var d_val = "M" + l + "," + t +
+                        let d_val = "M" + l + "," + t +
                             " L" + x2 + "," + t +
                             " L" + x2 + "," + y2 +
                             " L" + x3 + "," + y2 +
@@ -3868,17 +3868,17 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "downArrowCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var sAdj4, adj4 = 64977 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        let sAdj4, adj4 = 64977 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3895,8 +3895,8 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, dy3, y3, y2, y1;
-                        var hc = w / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        let hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        const ss = Math.min(w, h);
 
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3917,7 +3917,7 @@ export const PPTXShapeUtils = (function() {
                         y3 = b - dy3;
                         y2 = h * a4 / cnstVal2;
                         y1 = y2 / 2;
-                        var d_val = "M" + l + "," + t +
+                        let d_val = "M" + l + "," + t +
                             " L" + r + "," + t +
                             " L" + r + "," + y2 +
                             " L" + x3 + "," + y2 +
@@ -3935,17 +3935,17 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "leftArrowCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var sAdj4, adj4 = 64977 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        let sAdj4, adj4 = 64977 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -3962,8 +3962,8 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, dx2, x2, x3;
-                        var vc = h / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        let vc = h / 2, r = w, b = h, l = 0, t = 0;
+                        const ss = Math.min(w, h);
 
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
@@ -3984,7 +3984,7 @@ export const PPTXShapeUtils = (function() {
                         dx2 = w * a4 / cnstVal2;
                         x2 = r - dx2;
                         x3 = (x2 + r) / 2;
-                        var d_val = "M" + l + "," + vc +
+                        let d_val = "M" + l + "," + vc +
                             " L" + x1 + "," + y1 +
                             " L" + x1 + "," + y2 +
                             " L" + x2 + "," + y2 +
@@ -4002,17 +4002,17 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "upArrowCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var sAdj4, adj4 = 64977 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        let sAdj4, adj4 = 64977 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -4029,8 +4029,8 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx1, dx2, x1, x2, x3, x4, y1, dy2, y2, y3;
-                        var hc = w / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        let hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        const ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * w / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         maxAdj1 = a2 * 2;
@@ -4051,7 +4051,7 @@ export const PPTXShapeUtils = (function() {
                         y2 = b - dy2;
                         y3 = (y2 + b) / 2;
 
-                        var d_val = "M" + l + "," + y2 +
+                        let d_val = "M" + l + "," + y2 +
                             " L" + x2 + "," + y2 +
                             " L" + x2 + "," + y1 +
                             " L" + x1 + "," + y1 +
@@ -4069,17 +4069,17 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "leftRightArrowCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 25000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var sAdj4, adj4 = 48123 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 25000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        let sAdj4, adj4 = 48123 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -4096,8 +4096,8 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var maxAdj2, a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dy1, dy2, y1, y2, y3, y4, x1, x4, dx2, x2, x3;
-                        var vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        let vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        const ss = Math.min(w, h);
                         maxAdj2 = cnstVal1 * h / ss;
                         a2 = (adj2 < 0) ? 0 : (adj2 > maxAdj2) ? maxAdj2 : adj2;
                         maxAdj1 = a2 * 2;
@@ -4118,7 +4118,7 @@ export const PPTXShapeUtils = (function() {
                         dx2 = w * a4 / cnstVal3;
                         x2 = hc - dx2;
                         x3 = hc + dx2;
-                        var d_val = "M" + l + "," + vc +
+                        let d_val = "M" + l + "," + vc +
                             " L" + x1 + "," + y1 +
                             " L" + x1 + "," + y2 +
                             " L" + x2 + "," + y2 +
@@ -4143,17 +4143,17 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "quadArrowCallout": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 18515 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 18515 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 18515 * SLIDE_FACTOR;
-                        var sAdj4, adj4 = 48123 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var cnstVal3 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 18515 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 18515 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 18515 * SLIDE_FACTOR;
+                        let sAdj4, adj4 = 48123 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const cnstVal3 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -4169,8 +4169,8 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
-                        var ss = Math.min(w, h);
+                        let vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0;
+                        const ss = Math.min(w, h);
                         var a2, maxAdj1, a1, maxAdj3, a3, q2, maxAdj4, a4, dx2, dx3, ah, dx1, dy1, x8, x2, x7, x3, x6, x4, x5, y8, y2, y7, y3, y6, y4, y5;
                         a2 = (adj2 < 0) ? 0 : (adj2 > cnstVal1) ? cnstVal1 : adj2;
                         maxAdj1 = a2 * 2;
@@ -4199,7 +4199,7 @@ export const PPTXShapeUtils = (function() {
                         y6 = vc + dx2;
                         y4 = vc - dx3;
                         y5 = vc + dx3;
-                        var d_val = "M" + l + "," + vc +
+                        let d_val = "M" + l + "," + vc +
                             " L" + ah + "," + y3 +
                             " L" + ah + "," + y4 +
                             " L" + x2 + "," + y4 +
@@ -4240,15 +4240,15 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "curvedDownArrow": {
                         // 下弧形箭头使用drawW和drawH（原始尺寸）进行形状计算
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -4262,10 +4262,10 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         // 使用drawW和drawH进行形状计算
-                        var cw = (drawW !== undefined) ? drawW : w;
-                        var ch = (drawH !== undefined) ? drawH : h;
+                        let cw = (drawW !== undefined) ? drawW : w;
+                        let ch = (drawH !== undefined) ? drawH : h;
                         var vc = ch / 2, hc = cw / 2, wd2 = cw / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(cw, ch);
+                        const ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, stAng, stAng2, swAng2, swAng3;
 
                         // 辅助函数：格式化数字为2位小数
@@ -4305,13 +4305,13 @@ export const PPTXShapeUtils = (function() {
                         x6 = r - aw2;
                         y1 = b - ah;
                         swAng = Math.atan(dx / ah);
-                        var swAngDeg = swAng * 180 / Math.PI;
+                        const swAngDeg = swAng * 180 / Math.PI;
                         mswAng = -swAngDeg;
                         iy = b - idy;
                         ix = (wR + x3) / 2;
                         q12 = th / 2;
                         dang2 = Math.atan(q12 / idy);
-                        var dang2Deg = dang2 * 180 / Math.PI;
+                        const dang2Deg = dang2 * 180 / Math.PI;
                         stAng = c3d4 + swAngDeg;
                         stAng2 = c3d4 - dang2Deg;
                         swAng2 = dang2Deg - cd4;
@@ -4332,7 +4332,7 @@ export const PPTXShapeUtils = (function() {
                         wR = fmt(wR);
                         ch = fmt(ch);
 
-                        var d_val = "M" + x6 + "," + b +
+                        let d_val = "M" + x6 + "," + b +
                             " L" + x4 + "," + y1 +
                             " L" + x5 + "," + y1 +
                             PPTXShapeUtils.shapeArc(wR, ch, wR, ch, stAng, (stAng + mswAng), false).replace("M", "L") +
@@ -4352,15 +4352,15 @@ export const PPTXShapeUtils = (function() {
                     }
                     case "curvedLeftArrow": {
                         // 左弧形箭头使用drawW和drawH（原始尺寸）进行形状计算
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -4374,10 +4374,10 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         // 使用drawW和drawH进行形状计算
-                        var cw = (drawW !== undefined) ? drawW : w;
-                        var ch = (drawH !== undefined) ? drawH : h;
+                        let cw = (drawW !== undefined) ? drawW : w;
+                        let ch = (drawH !== undefined) ? drawH : h;
                         var vc = ch / 2, hc = cw / 2, hd2 = ch / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(cw, ch);
+                        const ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy, y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
 
                         // 辅助函数：格式化数字为2位小数
@@ -4445,7 +4445,7 @@ export const PPTXShapeUtils = (function() {
                         y4 = fmt(y4);
                         y5 = fmt(y5);
 
-                        var d_val = "M" + r + "," + y3 +
+                        let d_val = "M" + r + "," + y3 +
                             PPTXShapeUtils.shapeArc(l, hR, cw, hR, 0, -cd4, false).replace("M", "L") +
                             " L" + l + "," + t +
                             PPTXShapeUtils.shapeArc(l, y3, cw, hR, c3d4, (c3d4 + cd4), false).replace("M", "L") +
@@ -4478,15 +4478,15 @@ export const PPTXShapeUtils = (function() {
                          * - adj2: 控制箭头宽度
                          * - adj3: 控制弯曲程度（箭头宽度）
                          */
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -4500,10 +4500,10 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         // 使用drawW和drawH进行形状计算
-                        var cw = (drawW !== undefined) ? drawW : w;
-                        var ch = (drawH !== undefined) ? drawH : h;
+                        let cw = (drawW !== undefined) ? drawW : w;
+                        let ch = (drawH !== undefined) ? drawH : h;
                         var vc = ch / 2, hc = cw / 2, hd2 = ch / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(cw, ch);
+                        const ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, hR, q7, q8, q9, q10, q11, iDx, maxAdj3, a3, ah, y3, q2, q3, q4, q5, dy,
                             y5, y7, q6, dh, y4, y8, aw2, y6, x1, swAng, stAng, mswAng, ix, iy, q12, dang2, swAng2, swAng3, stAng3;
 
@@ -4564,7 +4564,7 @@ export const PPTXShapeUtils = (function() {
                          * 5. 画第三个圆弧（箭头部分）
                          * 6. 闭合
                          */
-                        var d_val = "M" + l + "," + hR +
+                        let d_val = "M" + l + "," + hR +
                             shapeArcAlt(cw, hR, cw, hR, cd2, cd2 + mswAngDg, false).replace("M", "L") +
                             " L" + x1 + "," + y5 +
                             " L" + x1 + "," + y4 +
@@ -4586,15 +4586,15 @@ export const PPTXShapeUtils = (function() {
                     case "curvedUpArrow": {
                         // 上弧形箭头使用drawW和drawH（原始尺寸）进行形状计算
                         // 这样在group-abs类型组合中不会被缩放影响
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 25000 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = 50000 * SLIDE_FACTOR;
-                        var sAdj3, adj3 = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 25000 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = 50000 * SLIDE_FACTOR;
+                        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -4608,10 +4608,10 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         // 使用drawW和drawH进行形状计算
-                        var cw = (drawW !== undefined) ? drawW : w;
-                        var ch = (drawH !== undefined) ? drawH : h;
+                        let cw = (drawW !== undefined) ? drawW : w;
+                        let ch = (drawH !== undefined) ? drawH : h;
                         var vc = ch / 2, hc = cw / 2, wd2 = cw / 2, r = cw, b = ch, l = 0, t = 0, c3d4 = 270, cd2 = 180, cd4 = 90;
-                        var ss = Math.min(cw, ch);
+                        const ss = Math.min(cw, ch);
                         var maxAdj2, a2, a1, th, aw, q1, wR, q7, q8, q9, q10, q11, idy, maxAdj3, a3, ah, x3, q2, q3, q4, q5, dx, x5, x7, q6, dh, x4, x8, aw2, x6, y1, swAng, mswAng, iy, ix, q12, dang2, swAng2, mswAng2, stAng3, swAng3, stAng2;
 
                         // 辅助函数：格式化数字为2位小数
@@ -4621,9 +4621,9 @@ export const PPTXShapeUtils = (function() {
 
                         // 辅助函数：格式化弧线路径中的所有坐标
                         function fmtArc(arcStr) {
-                            return arcStr.replace(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g, function(match) {
-                                return fmt(parseFloat(match)).toString();
-                            });
+                            return arcStr.replace(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g, (match) => {
+    return fmt(parseFloat(match)).toString();
+});
                         }
 
                         maxAdj2 = cnstVal1 * cw / ss;
@@ -4690,7 +4690,7 @@ export const PPTXShapeUtils = (function() {
                         th = fmt(th);
                         t = fmt(t);
 
-                        var d_val = //"M" + ix + "," +iy +
+                        let d_val = //"M" + ix + "," +iy +
                             fmtArc(PPTXShapeUtils.shapeArc(wR, 0, wR, ch, stAng2dg, stAng2dg + swAng2dg, false)) + //.replace("M","L") +
                             " L" + x5 + "," + y1 +
                             " L" + x4 + "," + y1 +
@@ -4722,14 +4722,14 @@ export const PPTXShapeUtils = (function() {
                     case "can":
                     case "flowChartMagneticDisk":
                     case "flowChartMagneticDrum": {
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 25000 * SLIDE_FACTOR;
-                        var cnstVal1 = 50000 * SLIDE_FACTOR;
-                        var cnstVal2 = 200000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj = 25000 * SLIDE_FACTOR;
+                        const cnstVal1 = 50000 * SLIDE_FACTOR;
+                        const cnstVal2 = 200000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        var ss = Math.min(w, h);
+                        const ss = Math.min(w, h);
                         var maxAdj, a, y1, y2, y3, dVal;
                         if (shapType == "flowChartMagneticDisk" || shapType == "flowChartMagneticDrum") {
                             adj = 50000 * SLIDE_FACTOR;
@@ -4741,7 +4741,7 @@ export const PPTXShapeUtils = (function() {
                         y3 = h - y1;
                         var cd2 = 180, wd2 = w / 2;
 
-                        var tranglRott = "";
+                        let tranglRott = "";
                         if (shapType == "flowChartMagneticDrum") {
                             tranglRott = "transform='rotate(90 " + w / 2 + "," + h / 2 + ")'";
                         }
@@ -4759,13 +4759,13 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "swooshArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var refr = SLIDE_FACTOR;
-                        var sAdj1, adj1 = 25000 * refr;
-                        var sAdj2, adj2 = 16667 * refr;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        const refr = SLIDE_FACTOR;
+                        let sAdj1, adj1 = 25000 * refr;
+                        let sAdj2, adj2 = 16667 * refr;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * refr;
@@ -4775,15 +4775,15 @@ export const PPTXShapeUtils = (function() {
                                 }
                             }
                         }
-                        var cnstVal1 = 1 * refr;
-                        var cnstVal2 = 70000 * refr;
-                        var cnstVal3 = 75000 * refr;
-                        var cnstVal4 = 100000 * refr;
-                        var ss = Math.min(w, h);
-                        var ssd8 = ss / 8;
-                        var hd6 = h / 6;
+                        const cnstVal1 = 1 * refr;
+                        const cnstVal2 = 70000 * refr;
+                        const cnstVal3 = 75000 * refr;
+                        const cnstVal4 = 100000 * refr;
+                        const ss = Math.min(w, h);
+                        const ssd8 = ss / 8;
+                        const hd6 = h / 6;
 
-                        var a1, maxAdj2, a2, ad1, ad2, xB, yB, alfa, dx0, xC, dx1, yF, xF, xE, yE, dy2, dy22, dy3, yD, dy4, yP1, xP1, dy5, yP2, xP2;
+                        let a1, maxAdj2, a2, ad1, ad2, xB, yB, alfa, dx0, xC, dx1, yF, xF, xE, yE, dy2, dy22, dy3, yD, dy4, yP1, xP1, dy5, yP2, xP2;
 
                         a1 = (adj1 < cnstVal1) ? cnstVal1 : (adj1 > cnstVal3) ? cnstVal3 : adj1;
                         maxAdj2 = cnstVal2 * w / ss;
@@ -4811,7 +4811,7 @@ export const PPTXShapeUtils = (function() {
                         yP2 = yF + dy5;
                         xP2 = w / 4;
 
-                        var dVal = "M" + 0 + "," + h +
+                        let dVal = "M" + 0 + "," + h +
                             " Q" + xP1 + "," + yP1 + " " + xB + "," + yB +
                             " L" + xC + "," + 0 +
                             " L" + w + "," + yD +
@@ -4826,15 +4826,15 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "circularArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 12500 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = (1142319 / 60000) * Math.PI / 180;
-                        var sAdj3, adj3 = (20457681 / 60000) * Math.PI / 180;
-                        var sAdj4, adj4 = (10800000 / 60000) * Math.PI / 180;
-                        var sAdj5, adj5 = 12500 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 12500 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = (1142319 / 60000) * Math.PI / 180;
+                        let sAdj3, adj3 = (20457681 / 60000) * Math.PI / 180;
+                        let sAdj4, adj4 = (10800000 / 60000) * Math.PI / 180;
+                        let sAdj5, adj5 = 12500 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -4854,7 +4854,7 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0, wd2 = w / 2, hd2 = h / 2;
-                        var ss = Math.min(w, h);
+                        const ss = Math.min(w, h);
                         var a5, maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH,
                             dyH, xH, yH, rI, u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12, u13, u14, u15, u16, u17,
                             u18, u19, u20, u21, maxAng, aAng, ptAng, wtA, htA, dxA, dyA, xA, yA, wtE, htE, dxE, dyE, xE, yE,
@@ -4865,11 +4865,11 @@ export const PPTXShapeUtils = (function() {
                             dxC1, v12, dxC2, adyI, v13, v14, dyC1, v15, dyC2, v16, v17, v18, v19, v20, v21, v22, dxC, dyC,
                             sdxC, sdyC, xC, yC, ist0, ist1, istAng, isw1, isw2, iswAng, p1, p2, p3, p4, p5, xGp, yGp,
                             xBp, yBp, en0, en1, en2, sw0, sw1, swAng;
-                        var cnstVal1 = 25000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var rdAngVal1 = (1 / 60000) * Math.PI / 180;
-                        var rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
-                        var rdAngVal3 = 2 * Math.PI;
+                        const cnstVal1 = 25000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const rdAngVal1 = (1 / 60000) * Math.PI / 180;
+                        const rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
+                        const rdAngVal3 = 2 * Math.PI;
 
                         a5 = (adj5 < 0) ? 0 : (adj5 > cnstVal1) ? cnstVal1 : adj5;
                         maxAdj1 = a5 * 2;
@@ -5069,13 +5069,13 @@ export const PPTXShapeUtils = (function() {
                         sw1 = sw0 + rdAngVal3;
                         swAng = (sw0 > 0) ? sw0 : sw1;
 
-                        var strtAng = stAng * 180 / Math.PI
-                        var endAng = strtAng + (swAng * 180 / Math.PI);
-                        var stiAng = istAng * 180 / Math.PI;
-                        var swiAng = iswAng * 180 / Math.PI;
-                        var ediAng = stiAng + swiAng;
+                        const strtAng = stAng * 180 / Math.PI
+                        const endAng = strtAng + (swAng * 180 / Math.PI);
+                        const stiAng = istAng * 180 / Math.PI;
+                        const swiAng = iswAng * 180 / Math.PI;
+                        const ediAng = stiAng + swiAng;
 
-                        var d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
+                        let d_val = PPTXShapeUtils.shapeArc(w / 2, h / 2, rw1, rh1, strtAng, endAng, false) +
                             " L" + xGp + "," + yGp +
                             " L" + xA + "," + yA +
                             " L" + xBp + "," + yBp +
@@ -5088,15 +5088,15 @@ export const PPTXShapeUtils = (function() {
                         break;
                     }
                     case "leftCircularArrow": {
-                        var shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        var sAdj1, adj1 = 12500 * SLIDE_FACTOR;
-                        var sAdj2, adj2 = (-1142319 / 60000) * Math.PI / 180;
-                        var sAdj3, adj3 = (1142319 / 60000) * Math.PI / 180;
-                        var sAdj4, adj4 = (10800000 / 60000) * Math.PI / 180;
-                        var sAdj5, adj5 = 12500 * SLIDE_FACTOR;
+                        const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        let sAdj1, adj1 = 12500 * SLIDE_FACTOR;
+                        let sAdj2, adj2 = (-1142319 / 60000) * Math.PI / 180;
+                        let sAdj3, adj3 = (1142319 / 60000) * Math.PI / 180;
+                        let sAdj4, adj4 = (10800000 / 60000) * Math.PI / 180;
+                        let sAdj5, adj5 = 12500 * SLIDE_FACTOR;
                         if (shapAdjst_ary !== undefined) {
                             for (var i = 0; i < shapAdjst_ary.length; i++) {
-                                var sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                                 if (sAdj_name == "adj1") {
                                     sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
                                     adj1 = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
@@ -5116,12 +5116,12 @@ export const PPTXShapeUtils = (function() {
                             }
                         }
                         var vc = h / 2, hc = w / 2, r = w, b = h, l = 0, t = 0, wd2 = w / 2, hd2 = h / 2;
-                        var ss = Math.min(w, h);
-                        var cnstVal1 = 25000 * SLIDE_FACTOR;
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var rdAngVal1 = (1 / 60000) * Math.PI / 180;
-                        var rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
-                        var rdAngVal3 = 2 * Math.PI;
+                        const ss = Math.min(w, h);
+                        const cnstVal1 = 25000 * SLIDE_FACTOR;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        const rdAngVal1 = (1 / 60000) * Math.PI / 180;
+                        const rdAngVal2 = (21599999 / 60000) * Math.PI / 180;
+                        const rdAngVal3 = 2 * Math.PI;
                         var a5, maxAdj1, a1, enAng, stAng, th, thh, th2, rw1, rh1, rw2, rh2, rw3, rh3, wtH, htH, dxH, dyH, xH, yH, rI,
                             u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12, u13, u14, u15, u16, u17, u18, u19, u20, u21, u22,
                             minAng, u23, a2, aAng, ptAng, wtA, htA, dxA, dyA, xA, yA, wtE, htE, dxE, dyE, xE, yE, wtD, htD, dxD, dyD,
@@ -5322,13 +5322,13 @@ export const PPTXShapeUtils = (function() {
                         swAng = (sw0 > 0) ? sw1 : sw0;
                         stAng0 = stAng + swAng;
 
-                        var strtAng = stAng0 * 180 / Math.PI;
-                        var endAng = stAng * 180 / Math.PI;
-                        var stiAng = istAng * 180 / Math.PI;
-                        var swiAng = iswAng * 180 / Math.PI;
-                        var ediAng = stiAng + swiAng;
+                        const strtAng = stAng0 * 180 / Math.PI;
+                        const endAng = stAng * 180 / Math.PI;
+                        const stiAng = istAng * 180 / Math.PI;
+                        const swiAng = iswAng * 180 / Math.PI;
+                        const ediAng = stiAng + swiAng;
 
-                        var d_val = "M" + xE + "," + yE +
+                        let d_val = "M" + xE + "," + yE +
                             " L" + xD + "," + yD +
                             PPTXShapeUtils.shapeArc(w / 2, h / 2, rw2, rh2, stiAng, ediAng, false).replace("M", "L") +
                             " L" + xBp + "," + yBp +
@@ -5350,16 +5350,16 @@ export const PPTXShapeUtils = (function() {
                          * - 上宽下窄的漏斗形状
                          * - 常用于数据分析和流程图
                          */
-                        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        var adj = 40000 * SLIDE_FACTOR;
+                        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+                        let adj = 40000 * SLIDE_FACTOR;
                         if (shapAdjst !== undefined) {
                             adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
                         }
-                        var cnstVal2 = 100000 * SLIDE_FACTOR;
-                        var a = (adj < 0) ? 0 : (adj > cnstVal2) ? cnstVal2 : adj;
+                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        let a = (adj < 0) ? 0 : (adj > cnstVal2) ? cnstVal2 : adj;
                         
                         // 漏斗底部宽度
-                        var bottomW = w * a / cnstVal2;
+                        const bottomW = w * a / cnstVal2;
                         
                         var d = "M0,0" + // 左上角
                             " L" + w + ",0" + // 右上角
@@ -5379,8 +5379,8 @@ export const PPTXShapeUtils = (function() {
                          * - 圆形路径，两端有向左和向右的箭头
                          */
                         var wd2 = w / 2;
-                        var hd2 = h / 2;
-                        var r = Math.min(wd2, hd2);
+                        let hd2 = h / 2;
+                        let r = Math.min(wd2, hd2);
                         
                         var d = "M" + (wd2 - r) + "," + hd2 +
                             PPTXShapeUtils.shapeArc(wd2, hd2, r, r, 180, 360, false).replace("M", "L") +

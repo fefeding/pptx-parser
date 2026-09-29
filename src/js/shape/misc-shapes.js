@@ -25,17 +25,17 @@ export function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillCol
     let dVal = "";
 
     if (shapType === "smileyFace") {
-        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-        var refr = SLIDE_FACTOR;
-        var adj = 4653 * refr;
+        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+        const refr = SLIDE_FACTOR;
+        let adj = 4653 * refr;
         if (shapAdjst !== undefined) {
             adj = parseInt(shapAdjst.substr(4)) * refr;
         }
-        var cnstVal1 = 50000 * refr;
-        var cnstVal2 = 100000 * refr;
-        var cnstVal3 = 4653 * refr;
-        var ss = Math.min(w, h);
-        var a, x1, x2, x3, x4, y1, y3, dy2, y2, y4, dy3, y5, wR, hR, wd2, hd2;
+        const cnstVal1 = 50000 * refr;
+        const cnstVal2 = 100000 * refr;
+        const cnstVal3 = 4653 * refr;
+        const ss = Math.min(w, h);
+        let a, x1, x2, x3, x4, y1, y3, dy2, y2, y4, dy3, y5, wR, hR, wd2, hd2;
         wd2 = w / 2;
         hd2 = h / 2;
         a = (adj < -cnstVal3) ? -cnstVal3 : (adj > cnstVal3) ? cnstVal3 : adj;
@@ -52,9 +52,9 @@ export function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillCol
         y5 = y4 + dy3;
         wR = w * 1125 / 21600;
         hR = h * 1125 / 21600;
-        var cX1 = x2 - wR * Math.cos(Math.PI);
-        var cY1 = y1 - hR * Math.sin(Math.PI);
-        var cX2 = x3 - wR * Math.cos(Math.PI);
+        const cX1 = x2 - wR * Math.cos(Math.PI);
+        const cY1 = y1 - hR * Math.sin(Math.PI);
+        const cX2 = x3 - wR * Math.cos(Math.PI);
         dVal = //eyes
             shapeArc(cX1, cY1, wR, hR, 180, 540, false) +
             shapeArc(cX2, cY1, wR, hR, 180, 540, false) +
@@ -68,23 +68,23 @@ export function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillCol
             " z";
     }
     else if (shapType === "verticalScroll" || shapType === "horizontalScroll") {
-        var shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-        var refr = SLIDE_FACTOR;
-        var adj = 12500 * refr;
+        const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
+        const refr = SLIDE_FACTOR;
+        let adj = 12500 * refr;
         if (shapAdjst !== undefined) {
             adj = parseInt(shapAdjst.substr(4)) * refr;
         }
-        var cnstVal1 = 25000 * refr;
-        var cnstVal2 = 100000 * refr;
-        var ss = Math.min(w, h);
-        var t = 0, l = 0, b = h, r = w;
-        var a, ch, ch2, ch4;
+        const cnstVal1 = 25000 * refr;
+        const cnstVal2 = 100000 * refr;
+        const ss = Math.min(w, h);
+        const t = 0, l = 0, b = h, r = w;
+        let a, ch, ch2, ch4;
         a = (adj < 0) ? 0 : (adj > cnstVal1) ? cnstVal1 : adj;
         ch = ss * a / cnstVal2;
         ch2 = ch / 2;
         ch4 = ch / 4;
         if (shapType === "verticalScroll") {
-            var x3, x4, x6, x7, x5, y3, y4;
+            let x3, x4, x6, x7, x5, y3, y4;
             x3 = ch + ch2;
             x4 = ch + ch;
             x6 = r - ch;
@@ -117,7 +117,7 @@ export function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillCol
                 " M" + ch + "," + y4 +
                 " L" + ch + "," + y3;
         } else if (shapType === "horizontalScroll") {
-            var y3, y4, y6, y7, y5, x3, x4;
+            let y3, y4, y6, y7, y5, x3, x4;
             y3 = ch + ch2;
             y4 = ch + ch;
             y6 = b - ch;
