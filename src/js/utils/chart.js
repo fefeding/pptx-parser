@@ -16,7 +16,10 @@ import { SLIDE_FACTOR } from '../core/constants.js';
  */
 async function genChart(node, warpObj, parentNode) {
     const order = node["attrs"]["order"];
-    let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
+    // graphicFrame 的变换元素标准是 <a:xfrm>（ECMA-376），
+    // 但部分生成工具（旧版/某些导出器）会写成 <p:xfrm>，需兼容两种写法
+    let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["a:xfrm"]) ||
+        PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
 
     // 处理组合缩放 - 当chart在group-abs类型组合中时需要应用缩放
     let workingXfrmNode = xfrmNode;

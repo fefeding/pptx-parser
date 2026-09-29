@@ -62,19 +62,47 @@ export class ChartRenderer {
             return;
         }
 
-        // 创建 ECharts 实例
-        const chart = echarts.init(chartElement);
+        // 容器可能尚未完成布局（clientWidth/clientHeight 为 0），
+        // 此时 echarts.init 会创建 0x0 画布并告警。
+        // 延迟到容器有可测量尺寸时再初始化；若仍无尺寸则兜底使用默认尺寸，保证图表可见。
+        const doInit = () => {
+            const w = chartElement.clientWidth;
+            const h = chartElement.clientHeight;
+            const hasSize = w > 0 && h > 0;
+            const chart = hasSize
+                ? echarts.init(chartElement)
+                : echarts.init(chartElement, null, {
+                    width: Math.max(w, 600),
+                    height: Math.max(h, 400)
+                });
 
-        // 设置配置
-        chart.setOption(option);
+            // 设置配置
+            chart.setOption(option);
 
-        // 启用窗口大小调整
-        window.addEventListener('resize', () => {
-            chart.resize();
-        });
+            // 启用窗口大小调整
+            window.addEventListener('resize', () => {
+                chart.resize();
+            });
 
-        // 存储图表实例以便后续更新
-        this.chartInstances.set(chartInfo.chartId, chart);
+            // 容器后续获得真实尺寸时重新适配
+            if (!hasSize) {
+                requestAnimationFrame(() => {
+                    if (chartElement.clientWidth > 0 && chartElement.clientHeight > 0) {
+                        chart.resize();
+                    }
+                });
+            }
+
+            // 存储图表实例以便后续更新
+            this.chartInstances.set(chartInfo.chartId, chart);
+        };
+
+        if (chartElement.clientWidth > 0 && chartElement.clientHeight > 0) {
+            doInit();
+        } else {
+            // 等待下一帧布局完成后再初始化
+            requestAnimationFrame(doInit);
+        }
     }
 
     /**
@@ -322,7 +350,7 @@ export class ChartRenderer {
             }
 
             const seriesConfig = {
-                name: series.key || `Series ${index}`,
+                name: series.key || `Series ${index + 1}`,
                 type: echartsType,
                 data: seriesData,
                 smooth: isAreaChart,
@@ -364,7 +392,7 @@ export class ChartRenderer {
 
         if (Array.isArray(series.values)) {
             series.values.forEach((item, index) => {
-                let label = `Item ${index}`;
+                let label = `Item ${index + 1}`;
                 if (series.xlabels && series.xlabels[index] !== undefined) {
                     label = series.xlabels[index];
                 }
@@ -562,13 +590,45 @@ export class ChartRenderer {
      * @param {Array} chartData - 图表数据
      * @param {Object} chartInfo - 图表信息
      * @returns {Array} 散点图系列配置
+     *
+     * chartData 可能形态：
+     *  A) [[xVals], [yVals]] —— parser 对散点(xVal/yVal)的输出
+     *  B) [{ key, values: [{x, y}], style }] —— 与其它图表一致的统一形态
+     * 统一转换为 ECharts 散点所需的 [x, y] 点数组。
      */
     prepareScatterSeries(chartData, chartInfo) {
-        return chartData.map((series, index) => {
-            const seriesConfig = {
-                name: series.key || `Series ${index}`,
+        // 形态 A：[[xVals], [yVals]]
+        const isXYArrays = Array.isArray(chartData) && chartData.length >= 1 &&
+            chartData.every(a => Array.isArray(a) && a.every(v => typeof v === 'number'));
+        if (isXYArrays) {
+            const xs = chartData[0] || [];
+            const ys = chartData[1] || [];
+            const points = xs.map((xv, i) => [xv, ys[i]]);
+            const config = {
+                name: 'Series 1',
                 type: 'scatter',
-                data: series.values || []
+                data: points
+            };
+            return [config];
+        }
+
+        // 形态 B：多系列统一形态
+        return chartData.map((series, index) => {
+            let data = [];
+            const vals = series.values;
+            if (Array.isArray(vals)) {
+                data = vals.map(v => {
+                    if (v && typeof v === 'object' && 'x' in v && 'y' in v) {
+                        return [Number(v.x), Number(v.y)];
+                    }
+                    return Array.isArray(v) ? v : v;
+                });
+            }
+
+            const seriesConfig = {
+                name: series.key || `Series ${index + 1}`,
+                type: 'scatter',
+                data: data
             };
 
             // 应用系列颜色
