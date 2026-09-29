@@ -172,7 +172,7 @@ function getFillType(node: any) {
                     //}
                 } else {
                     if (isSvgMode) {
-                        let color = tinycolor(fillColor);
+                        let color: any = tinycolor(fillColor);
                         fillColor = color.toRgbString();
 
                         return fillColor;
@@ -225,7 +225,7 @@ function getFillType(node: any) {
             //themeContent
 
             let rPrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr"]);
-            let filTyp, color, textBordr, colorType = "", highlightColor = "";
+            let filTyp, color: any, textBordr, colorType = "", highlightColor: any = "";
 
 
             if (rPrNode !== undefined) {
@@ -524,15 +524,15 @@ function getFillType(node: any) {
             if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] && node["a:rPr"]["attrs"]["sz"] !== undefined) {
                 fontSize = parseInt(node["a:rPr"]["attrs"]["sz"]) / 100;
             }
-            if (isNaN(fontSize) || fontSize === undefined && node["a:fld"] !== undefined) {
+            if (isNaN((fontSize as any)) || fontSize === undefined && node["a:fld"] !== undefined) {
                 sz = PPTXXmlUtils.getTextByPathList(node["a:fld"], ["a:rPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
-            if ((isNaN(fontSize) || fontSize === undefined) && node["a:t"] === undefined) {
+            if ((isNaN((fontSize as any)) || fontSize === undefined) && node["a:t"] === undefined) {
                 sz = PPTXXmlUtils.getTextByPathList(node["a:endParaRPr"], [ "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
-            if ((isNaN(fontSize) || fontSize === undefined) && lstStyle !== undefined) {
+            if ((isNaN((fontSize as any)) || fontSize === undefined) && lstStyle !== undefined) {
                 sz = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlpPr, "a:defRPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
@@ -549,7 +549,7 @@ function getFillType(node: any) {
                     isKerning = true;
                 }
             }
-            if (isNaN(fontSize) || fontSize === undefined) {
+            if (isNaN((fontSize as any)) || fontSize === undefined) {
                 // if (type == "shape" || type == "textBox") {
                 //     type = "body";
                 //     lvlpPr = "a:lvl1pPr";
@@ -1591,7 +1591,7 @@ function getFillType(node: any) {
             //https://stackoverflow.com/questions/14072142/striped-text-in-css
             //https://css-tricks.com/stripes-css/
             //https://yuanchuan.dev/gradient-shapes/
-            let fgColor = "", bgColor = "", prst = "";
+            let fgColor: any = "", bgColor: any = "", prst = "";
             let bgClr = node["a:bgClr"];
             let fgClr = node["a:fgClr"];
             prst = node["attrs"]["prst"];
@@ -1862,7 +1862,7 @@ function getFillType(node: any) {
                             px_pr_ary = ["1px", "100%", "2px 2px"];
                             break
                     }
-                    return [`radial-gradient(#${fgColor} ${px_pr_ary[0]}, transparent ${px_pr_ary[1]}),#${bgColor};`, px_pr_ary[2]];
+                    return [`radial-gradient(#${fgColor} ${px_pr_ary![0]}, transparent ${px_pr_ary![1]}),#${bgColor};`, px_pr_ary![2]];
                     break
                 default:
                     return [0, 0];
@@ -1875,7 +1875,7 @@ function getFillType(node: any) {
                 return undefined;
             }
 
-            let color = "";
+            let color: any = "";
             let clrNode;
             if (node["a:srgbClr"] !== undefined) {
                 clrNode = node["a:srgbClr"];
@@ -2305,7 +2305,7 @@ function getFillType(node: any) {
         function getSchemeColorFromTheme(schemeClr: any, clrMap: any, phClr: any, warpObj: any) {
             //<p:clrMap ...> in slide master
             // e.g. tx2="dk2" bg2="lt2" tx1="dk1" bg1="lt1" slideLayoutClrOvride
-            let color = '';
+            let color: any = '';
             let slideLayoutClrOvride;
             if (clrMap !== undefined) {
                 slideLayoutClrOvride = clrMap;//getTextByPathList(clrMap, ["p:sldMaster", "p:clrMap", "attrs"])
@@ -2567,7 +2567,7 @@ function getFillType(node: any) {
          * @param {number} shadeValue
          */
         function applyShade(rgbStr: any, shadeValue: any, isAlpha: any) {
-            let color = tinycolor(rgbStr).toHsl();
+            let color: any = tinycolor(rgbStr).toHsl();
             // 确保shadeValue在0-1之间
             shadeValue = Math.max(0, Math.min(1, shadeValue));
             // PPTX标准：Shade = L * shadeValue
@@ -2583,7 +2583,7 @@ function getFillType(node: any) {
          * @param {number} tintValue
          */
         function applyTint(rgbStr: any, tintValue: any, isAlpha: any) {
-            let color = tinycolor(rgbStr).toHsl();
+            let color: any = tinycolor(rgbStr).toHsl();
             // 确保tintValue在0-1之间
             tintValue = Math.max(0, Math.min(1, tintValue));
             // PPTX标准：Tint = L * tintValue + (1 - tintValue)
@@ -2599,7 +2599,7 @@ function getFillType(node: any) {
          * @param {number} offset
          */
         function applyLumOff(rgbStr: any, offset: any, isAlpha: any) {
-            let color = tinycolor(rgbStr).toHsl();
+            let color: any = tinycolor(rgbStr).toHsl();
             let lum = offset + color.l;
             if (lum >= 1) {
                 if (isAlpha)
@@ -2617,7 +2617,7 @@ function getFillType(node: any) {
          * @param {number} multiplier
          */
         function applyLumMod(rgbStr: any, multiplier: any, isAlpha: any) {
-            let color = tinycolor(rgbStr).toHsl();
+            let color: any = tinycolor(rgbStr).toHsl();
             let cacl_l = color.l * multiplier;
             if (cacl_l >= 1) {
                 cacl_l = 1;
@@ -2634,7 +2634,7 @@ function getFillType(node: any) {
         //  * @param {number} multiplier
         //  */
         function applyHueMod(rgbStr: any, multiplier: any, isAlpha: any) {
-            let color = tinycolor(rgbStr).toHsl();
+            let color: any = tinycolor(rgbStr).toHsl();
             let cacl_h = color.h * multiplier;
             if (cacl_h >= 360) {
                 cacl_h = cacl_h - 360;
@@ -2668,7 +2668,7 @@ function getFillType(node: any) {
         //  * @param {number} multiplier
         //  */
         function applySatMod(rgbStr: any, multiplier: any, isAlpha: any) {
-            let color = tinycolor(rgbStr).toHsl();
+            let color: any = tinycolor(rgbStr).toHsl();
             let cacl_s = color.s * multiplier;
             if (cacl_s >= 1) {
                 cacl_s = 1;
@@ -2828,8 +2828,8 @@ function getFillType(node: any) {
             }
             
             let pic_dim = getBase64ImageDimensions(fillUrl);
-            let width = pic_dim[0];
-            let height = pic_dim[1];
+            let width = pic_dim![0];
+            let height = pic_dim![1];
             let blipFillNode = node["p:spPr"]["a:blipFill"];
             let sx = 0, sy = 0;
             let tileNode = PPTXXmlUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"])
@@ -2867,7 +2867,7 @@ function getFillType(node: any) {
                         let hexClr = getSolidFill(obj, undefined, undefined, warpObj)
                         //clr_ary.push();
 
-                        let color = tinycolor(`#${hexClr}`);
+                        let color: any = tinycolor(`#${hexClr}`);
                         clr_ary.push(color.toRgb()); // { r: 255, g: 0, b: 0, a: 1 }
                     }
                     // })
@@ -3673,7 +3673,7 @@ function extractChartTitleStyle(chartNode: any, warpObj: any) {
                     // 提取字体颜色
                     const solidFill = PPTXXmlUtils.getTextByPathList(defRPr, ["a:solidFill"]);
                     if (solidFill) {
-                        let color = getColor(solidFill, undefined, undefined, warpObj);
+                        let color: any = getColor(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
                             color = `#${color}`;
                         }
@@ -3720,7 +3720,7 @@ function extractChartTitleStyle(chartNode: any, warpObj: any) {
                         // 提取字体颜色
                         const solidFill = PPTXXmlUtils.getTextByPathList(defRPr, ["a:solidFill"]);
                         if (solidFill) {
-                            let color = getColor(solidFill, undefined, undefined, warpObj);
+                            let color: any = getColor(solidFill, undefined, undefined, warpObj);
                             if (color && !color.startsWith('#')) {
                                 color = `#${color}`;
                             }
@@ -3817,7 +3817,7 @@ function extractChartLegendStyle(chartNode: any, warpObj: any) {
                     // 提取字体颜色
                     const solidFill = PPTXXmlUtils.getTextByPathList(defRPr, ["a:solidFill"]);
                     if (solidFill) {
-                        let color = getSolidFill(solidFill, undefined, undefined, warpObj);
+                        let color: any = getSolidFill(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
                             color = `#${color}`;
                         }
@@ -3855,7 +3855,7 @@ function extractChartAxisStyle(plotAreaNode: any, axisType: any, warpObj: any) {
                     // 提取字体颜色
                     const solidFill = PPTXXmlUtils.getTextByPathList(defRPr, ["a:solidFill"]);
                     if (solidFill) {
-                        let color = getSolidFill(solidFill, undefined, undefined, warpObj);
+                        let color: any = getSolidFill(solidFill, undefined, undefined, warpObj);
                         if (color && !color.startsWith('#')) {
                             color = `#${color}`;
                         }

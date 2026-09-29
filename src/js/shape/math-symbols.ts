@@ -61,9 +61,9 @@ export function renderMathSymbol(shapType: any, w: any, h: any, imgFillFlg: any,
             adj2 = 110 * Math.PI / 180;
             adj3 = 11760 * SLIDE_FACTOR;
         } else {
-            adj1 = adj1 * SLIDE_FACTOR;
-            adj2 = (adj2 / 60000) * Math.PI / 180;
-            adj3 = adj3 * SLIDE_FACTOR;
+            adj1 = adj1! * SLIDE_FACTOR;
+            adj2 = (adj2! / 60000) * Math.PI / 180;
+            adj3 = adj3! * SLIDE_FACTOR;
         }
         let a1, crAng, a2a1, maxAdj3, a3, dy1, dy2, dx1, x1, x8, y2, y3, y1, y4,
             cadj2, xadj2, len, bhw, bhw2, x7, dx67, x6, dx57, x5, dx47, x4, dx37,
@@ -136,9 +136,9 @@ export function renderMathSymbol(shapType: any, w: any, h: any, imgFillFlg: any,
             adj2 = 5880 * SLIDE_FACTOR;
             adj3 = 11760 * SLIDE_FACTOR;
         } else {
-            adj1 = adj1 * SLIDE_FACTOR;
-            adj2 = adj2 * SLIDE_FACTOR;
-            adj3 = adj3 * SLIDE_FACTOR;
+            adj1 = adj1! * SLIDE_FACTOR;
+            adj2 = adj2! * SLIDE_FACTOR;
+            adj3 = adj3! * SLIDE_FACTOR;
         }
         let a1, ma1, ma3h, ma3w, maxAdj3, a3, m4a3, maxAdj2, a2, dy1, yg, rad, dx1,
             y3, y4, a, y2, y1, y5, x1, x3, x2;
@@ -180,8 +180,8 @@ export function renderMathSymbol(shapType: any, w: any, h: any, imgFillFlg: any,
             adj1 = 23520 * SLIDE_FACTOR;
             adj2 = 11760 * SLIDE_FACTOR;
         } else {
-            adj1 = adj1 * SLIDE_FACTOR;
-            adj2 = adj2 * SLIDE_FACTOR;
+            adj1 = adj1! * SLIDE_FACTOR;
+            adj2 = adj2! * SLIDE_FACTOR;
         }
         const cnstVal5 = 36745 * SLIDE_FACTOR;
         const cnstVal6 = 73490 * SLIDE_FACTOR;
@@ -209,7 +209,7 @@ export function renderMathSymbol(shapType: any, w: any, h: any, imgFillFlg: any,
         if (shapAdjst_ary === undefined) {
             adj1 = 23520 * SLIDE_FACTOR;
         } else {
-            adj1 = adj1 * SLIDE_FACTOR;
+            adj1 = adj1! * SLIDE_FACTOR;
         }
         const cnstVal6 = 73490 * SLIDE_FACTOR;
         let a1, dy1, dx1, y1, y2, x1, x2;
@@ -228,7 +228,7 @@ export function renderMathSymbol(shapType: any, w: any, h: any, imgFillFlg: any,
         if (shapAdjst_ary === undefined) {
             adj1 = 23520 * SLIDE_FACTOR;
         } else {
-            adj1 = adj1 * SLIDE_FACTOR;
+            adj1 = adj1! * SLIDE_FACTOR;
         }
         const cnstVal6 = 51965 * SLIDE_FACTOR;
         let a1, th, a, sa, ca, ta, dl, rw, lM, xM, yM, dxAM, dyAM,
@@ -273,7 +273,7 @@ export function renderMathSymbol(shapType: any, w: any, h: any, imgFillFlg: any,
         if (shapAdjst_ary === undefined) {
             adj1 = 23520 * SLIDE_FACTOR;
         } else {
-            adj1 = adj1 * SLIDE_FACTOR;
+            adj1 = adj1! * SLIDE_FACTOR;
         }
         const cnstVal6 = 73490 * SLIDE_FACTOR;
         const ss = Math.min(w, h);

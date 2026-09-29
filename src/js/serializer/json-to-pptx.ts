@@ -309,7 +309,7 @@ async function editPptx(fileData: any) {
             }
 
             const part = info.slideParts[slideNum - 1];
-            const slidePath = part.target; // ppt/slides/slideN.xml
+            const slidePath = part!.target; // ppt/slides/slideN.xml
 
             // 1. 移除 sldIdLst 条目
             const remaining = info.entries.filter((_, i) => i !== slideNum - 1);
@@ -317,8 +317,8 @@ async function editPptx(fileData: any) {
 
             // 2. 移除 presentation.xml.rels 中的关系
             const relsText = await readText('ppt/_rels/presentation.xml.rels');
-            const relRe = new RegExp(`<Relationship\\s+Id="${part.relId}"[^>]*/>`);
-            zip.file('ppt/_rels/presentation.xml.rels', relsText.replace(relRe, ''));
+            const relRe = new RegExp(`<Relationship\\s+Id="${part!.relId}"[^>]*/>`);
+            zip.file('ppt/_rels/presentation.xml.rels', relsText!.replace(relRe, ''));
 
             // 3. 找到并移除 notesSlide（通过 slide 的 rels）
             const slideRelsText = await readText(`${slidePath.replace('slides/', 'slides/_rels/')}.rels`);
@@ -397,10 +397,10 @@ async function editPptx(fileData: any) {
                 const newNum = i + 1;
                 if (oldNum !== newNum) {
                     const re = new RegExp(`(<Relationship\\s+Id="${rel.Id}"[^>]*?Target=")slides/slide${oldNum}\\.xml(")`);
-                    relsText = relsText.replace(re, `$1slides/slide${newNum}.xml$2`);
+                    relsText = relsText!.replace(re, `$1slides/slide${newNum}.xml$2`);
                 }
             });
-            zip.file('ppt/_rels/presentation.xml.rels', relsText);
+            zip.file('ppt/_rels/presentation.xml.rels', (relsText as any));
 
             // 重写 sldIdLst（新逻辑顺序）
             zip.file('ppt/presentation.xml', rewriteSldIdLst(info.text, entries));
@@ -480,13 +480,13 @@ async function editPptx(fileData: any) {
             // presentation.xml.rels 追加关系
             const relsText = await readText('ppt/_rels/presentation.xml.rels');
             const newRel = `<Relationship Id="${newRelId}" Type="${REL_TYPES.slide}" Target="slides/slide${nextNum}.xml"/>`;
-            zip.file('ppt/_rels/presentation.xml.rels', relsText.replace('</Relationships>', `${newRel}</Relationships>`));
+            zip.file('ppt/_rels/presentation.xml.rels', relsText!.replace('</Relationships>', `${newRel}</Relationships>`));
 
             // Content-Types 追加
             const ctText = await readText('[Content_Types].xml');
             let newCt = ctText;
             const override = `<Override PartName="/ppt/slides/slide${nextNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
-            newCt = newCt.replace('</Types>', `${override}</Types>`);
+            newCt = newCt!.replace('</Types>', `${override}</Types>`);
             const MIME_MAP = { png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml' };
             for (const ext of mediaExts) {
                 if (!newCt.includes(`Extension="${ext}"`)) {

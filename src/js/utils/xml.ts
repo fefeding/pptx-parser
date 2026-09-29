@@ -408,7 +408,7 @@ export const PPTXXmlUtils = (function() {
             let binary = '';
             for (let i = 0; i < byteLength; i += CHUNK_SIZE) {
                 const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, byteLength));
-                binary += String.fromCharCode.apply(null, chunk);
+                binary += String.fromCharCode.apply(null, (chunk as any));
             }
             return btoa(binary);
         }

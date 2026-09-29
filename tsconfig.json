@@ -6,9 +6,8 @@
     "lib": ["ES2020", "DOM"],
     "outDir": "./dist/types",
     "rootDir": "./src",
-    // ⚠️ 迁移期配置：源码已全量转为 TypeScript(.ts)，但类型尚未逐处补全，
-    // 暂时放宽严格检查以保证 tsc / 构建 / 测试通过；后续应逐文件收紧至 true。
-    "strict": false,
+    // ✅ 已开启完整严格模式（strictNullChecks / noImplicitThis / strictFunctionTypes 等）
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

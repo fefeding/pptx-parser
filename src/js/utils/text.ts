@@ -721,7 +721,7 @@ function getTextWidth(html: any) {
             if (buFontSize === undefined) {
                 bultSize = dfltBultSize;
             }
-            font_val = parseInt(bultSize, 10);
+            font_val = parseInt((bultSize as any), 10);
             ////////////////////////////////////////////////////////////////////////
             if (buType == "TYPE_BULLET") {
                 let typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
@@ -1230,7 +1230,7 @@ function getTextWidth(html: any) {
             roman = "",
             i = 3;
         while (i--)
-            roman = (key[+digits.pop() + (i * 10)] || "") + roman;
+            roman = (key[+(digits!.pop!() as any) + (i * 10)] || "") + roman;
         return Array(+digits.join("") + 1).join("M") + roman;
     }
     let hebrew2Minus = archaicNumbers([
@@ -1750,7 +1750,7 @@ function getTextWidth(html: any) {
             if (tblBorderStyl !== undefined) {
                 tbl_borders = PPTXStyleUtils.getTableBorders(tblBorderStyl, warpObj);
             }
-            let tbl_bgcolor = "";
+            let tbl_bgcolor: any = "";
             let tbl_opacity = 1;
             let tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
             //console.log( "thisTblStyle:", thisTblStyle, "warpObj:", warpObj)
@@ -1784,7 +1784,7 @@ function getTextWidth(html: any) {
             //if (trNodes.constructor === Array) {
                 //multi rows
                 let totalrowSpan = 0;
-                let rowSpanAry = [];
+                let rowSpanAry: any = [];
                 for (const i of trNodes.keys()){
                     //////////////rows Style ////////////Amir
                     let rowHeightParam = trNodes[i]["attrs"]["h"];
@@ -1795,8 +1795,8 @@ function getTextWidth(html: any) {
                         rowHeight = Math.round(rowHeight * 100) / 100;
                         rowsStyl += `height:${rowHeight}px;`;
                     }
-                    let fillColor = "";
-                    let row_borders = "";
+                    let fillColor: any = "";
+                    let row_borders: any = "";
                     let fontClrPr = "";
                     let fontWeight = "";
                     let band_1H_fillColor;

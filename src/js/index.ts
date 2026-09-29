@@ -296,7 +296,7 @@ async function processSingleSlideStructured(zip: any, slideFileName: any, index:
 
     if (themeFilename !== undefined) {
         const themeName = themeFilename.split("/").pop();
-        const themeResFileName = `${themeFilename.replace(themeName, `_rels/${themeName}`)}.rels`;
+        const themeResFileName = `${themeFilename.replace((themeName as any), `_rels/${themeName}`)}.rels`;
 
         themeContent = await PPTXXmlUtils.readXmlFile(zip, themeFilename);
         const themeResContent = await PPTXXmlUtils.readXmlFile(zip, themeResFileName);
@@ -327,7 +327,7 @@ async function processSingleSlideStructured(zip: any, slideFileName: any, index:
 
     if (diagramFilename !== undefined) {
         const diagramName = diagramFilename.split("/").pop();
-        const diagramResFileName = `${diagramFilename.replace(diagramName, `_rels/${diagramName}`)}.rels`;
+        const diagramResFileName = `${diagramFilename.replace((diagramName as any), `_rels/${diagramName}`)}.rels`;
 
         diagramContent = await PPTXXmlUtils.readXmlFile(zip, diagramFilename);
         if (diagramContent !== null && diagramContent !== undefined && diagramContent !== "") {
@@ -436,7 +436,7 @@ async function convertSlideDataToHtml(slideData: any, slideSize: any, settings: 
         bgResult = await PPTXNodeUtils.getBackground(warpObj, slideSize, slideData.index, settings);
     }
 
-    let bgColor = "";
+    let bgColor: any = "";
     if (processFullTheme === "colorsAndImageOnly") {
         bgColor = await PPTXStyleUtils.getSlideBackgroundFill(warpObj, slideData.index);
     }
@@ -762,7 +762,7 @@ async function pptxToFiles(fileData: any) {
                         base64: base64
                     };
                 }
-            } catch (error) {
+            } catch (error: any) {
                 (result.content as any)[relativePath] = {
                     type: 'error',
                     error: error.message
