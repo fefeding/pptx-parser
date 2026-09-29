@@ -6,6 +6,8 @@ import { PPTXTextUtils } from './utils/text.js';
 import { PPTXShapeUtils } from './shape/shape.js';
 import { processMsgQueue, processSingleMsg } from './utils/chart.js';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants.js';
+import { jsonToPptx, editPptx } from './serializer/json-to-pptx.js';
+import { PPTXComposer } from './serializer/composer.js';
 
 /**
  * Parse PPTX file to structured JSON data (internal function)
@@ -821,4 +823,4 @@ function extractSlideTransition(slideContent) {
 }
 
 export default pptxToHtml;
-export { pptxToJson, pptxToHtml, pptxToFiles };
+export { pptxToJson, pptxToHtml, pptxToFiles, jsonToPptx, editPptx, PPTXComposer };

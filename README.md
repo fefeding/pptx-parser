@@ -6,7 +6,7 @@ A lightweight PPTX parsing library that makes working with PowerPoint files simp
 
 - **Simple & Easy** — Parse and convert PPTX files with just a few lines of code
 - **Zero Dependencies** — No framework lock-in, works in any JavaScript/TypeScript project
-- **Dual Conversion** — Parse PPTX to HTML or JSON, both directions supported
+- **Dual Conversion** — Parse PPTX to HTML or JSON, and serialize JSON (or the fluent `PPTXComposer`) back to a valid PPTX file
 - **Comprehensive Elements** — Text, shapes, tables, images, charts and more
 - **Smart Unit Handling** — Automatic EMU to PX conversion
 - **Universal Module** — Supports both ESM and CommonJS
@@ -79,6 +79,75 @@ const result = await pptxToFiles(fileData);
 console.log('Files:', result.files);
 console.log('Content:', result.content);
 ```
+
+## Serialize JSON to PPTX
+
+### Fluent Composer
+
+```javascript
+import { PPTXComposer } from '@fefeding/ppt-parser';
+
+const composer = new PPTXComposer();
+composer
+  .title('My Deck')
+  .author('me')
+  .addSlide(slide => {
+    slide.background('#ffffff');
+    slide.addText(t => t.value('Hello World').x(100).y(80).fontSize(28).bold());
+    slide.addShape({ shapeType: 'roundRect', x: 100, y: 400, width: 200, height: 80, fill: { color: '#4f46e5' } });
+    slide.addImage({ data: dataUrl, x: 500, y: 400, width: 100, height: 100 });
+  })
+  .addSlide(slide => {
+    // Hyperlinks: external URLs, or '#N' to jump to slide N
+    slide.addText(t => t.runs([
+      { text: 'External link', options: { href: 'https://example.com' } },
+      { text: ' / ', options: {} },
+      { text: 'Jump to slide 1', options: { href: '#1' } }
+    ]).x(100).y(100));
+  });
+
+const data = await composer.save(); // Uint8Array
+```
+
+Object-style config is also accepted: `slide.addText({ text: 'Hi', x: 0, y: 0 })`.
+
+### JSON to PPTX
+
+```javascript
+import { jsonToPptx } from '@fefeding/ppt-parser';
+
+const data = await jsonToPptx({
+  metadata: { title: 'My Deck', author: 'me' },
+  slideSize: { width: 1280, height: 720 },  // px, default 16:9
+  slides: [
+    {
+      background: '#ffffff',
+      elements: [
+        { type: 'text', x: 100, y: 80, width: 600, height: 60, text: 'Title\nSubtitle', fontSize: 24, color: '#1e293b' },
+        { type: 'shape', shapeType: 'ellipse', x: 600, y: 300, width: 150, height: 150, fill: { color: '#ed7d31' }, line: { color: '#000', width: 1 } },
+        { type: 'image', data: dataUrl, x: 100, y: 300, width: 200, height: 150 }
+      ]
+    }
+  ]
+});
+```
+
+Supported elements: text (multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks, bullets, alignment), preset shapes, and images (dataURL / base64 / remote URL via `src`).
+
+### Edit Existing PPTX
+
+```javascript
+import { editPptx } from '@fefeding/ppt-parser';
+
+const editor = await editPptx(fileData);
+await editor.deleteSlide(2);                       // remove slide 2
+await editor.moveSlide(1, 3);                      // reorder
+await editor.addSlide({ elements: [/* same element format */] });
+await editor.setMetadata({ title: 'Updated', author: 'me' });
+const updated = await editor.save();
+```
+
+Generated files round-trip through `pptxToJson` / `pptxToHtml`.
 
 ## Options
 

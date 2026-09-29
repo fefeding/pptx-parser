@@ -22,6 +22,13 @@ src/js/
 │   ├── path-generators.js # 路径生成器（纯数学函数）
 │   └── shape-categories.js # 形状分类常量
 │
+├── serializer/         # JSON→PPTX 序列化模块
+│   ├── xml-builder.js  # XML 构建工具（转义、单位换算、节点生成）
+│   ├── templates.js    # OOXML 静态模板（主题/母版/版式/Content-Types 等）
+│   ├── element-builders.js # 元素构建器（文本/形状/图片 → OOXML 节点）
+│   ├── composer.js     # 流式构建 API（PPTXComposer）
+│   └── json-to-pptx.js # 序列化主入口（jsonToPptx / editPptx 编辑器）
+│
 ├── utils/              # 工具函数
 │   ├── xml.js          # XML 节点遍历和查询
 │   ├── style.js        # 样式处理（填充、边框、阴影等）

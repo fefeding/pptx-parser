@@ -8591,7 +8591,7 @@ function getTextWidth(html) {
             let lin_bottm = "",
                 lin_top = "",
                 lin_left = "",
-                lin_right = "";
+                lin_right = "";
             
             let colSapnInt = parseInt(colSpan);
             let total_col_width = 0;
@@ -18232,6 +18232,1714 @@ const PPTXNodeUtils = {
 };
 
 /**
+ * XML 构建工具模块
+ *
+ * 提供 JSON→PPTX 序列化所需的底层 XML 生成能力：
+ * - XML 转义
+ * - 单位换算（px→EMU、pt→OOXML 百分值）
+ * - 颜色规范化（借助 tinycolor2，支持 #hex / rgb / 常见颜色名）
+ * - XML 节点构建与拼接
+ *
+ * @module serializer/xml-builder
+ */
+
+
+/** px → EMU 换算因子（96px = 1inch = 914400EMU） */
+const PX_TO_EMU = 914400 / 96;
+
+/** pt → EMU 换算因子（1pt = 12700EMU） */
+const PT_TO_EMU = 12700;
+
+/** OOXML 命名空间 */
+const NS = {
+    a: 'http://schemas.openxmlformats.org/drawingml/2006/main',
+    r: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+    p: 'http://schemas.openxmlformats.org/presentationml/2006/main',
+    c: 'http://schemas.openxmlformats.org/drawingml/2006/chart',
+    rel: 'http://schemas.openxmlformats.org/package/2006/relationships',
+    cp: 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties',
+    dc: 'http://purl.org/dc/elements/1.1/',
+    dcterms: 'http://purl.org/dc/terms/',
+    dcmitype: 'http://purl.org/dc/dcmitype/',
+    xsi: 'http://www.w3.org/2001/XMLSchema-instance',
+    ext: 'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties'
+};
+
+/**
+ * XML 特殊字符转义
+ * @param {string} str - 原始文本
+ * @returns {string} 转义后的文本
+ */
+function escapeXml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+/**
+ * 像素转 EMU
+ * @param {number} px - 像素值
+ * @returns {number} EMU 值（取整）
+ */
+function pxToEmu(px) {
+    return Math.round((Number(px) || 0) * PX_TO_EMU);
+}
+
+/**
+ * 磅转 EMU（用于线条宽度）
+ * @param {number} pt - 磅值
+ * @returns {number} EMU 值（取整）
+ */
+function ptToEmu(pt) {
+    return Math.round((Number(pt) || 0) * PT_TO_EMU);
+}
+
+/**
+ * 磅转 OOXML 字号（sz 属性，百分之一磅）
+ * @param {number} pt - 磅值
+ * @returns {number} sz 值
+ */
+function ptToSz(pt) {
+    return Math.round((Number(pt) || 0) * 100);
+}
+
+/**
+ * 角度转 OOXML 旋转值（1/60000 度）
+ * @param {number} deg - 角度
+ * @returns {number} OOXML 旋转值
+ */
+function degToRot(deg) {
+    return Math.round((Number(deg) || 0) * 60000);
+}
+
+/**
+ * 颜色规范化为 6 位大写 HEX（不含 #），供 a:srgbClr val 使用
+ * @param {string} color - 颜色值（#hex / rgb() / 颜色名）
+ * @returns {string} 6 位 HEX 字符串，无法解析时返回 '000000'
+ */
+function colorToHex(color) {
+    if (color === undefined || color === null || color === '') return '000000';
+    const c = new tinycolor$2(String(color));
+    if (!c.isValid()) return '000000';
+    return c.toHexString().replace('#', '').toUpperCase();
+}
+
+/**
+ * 构建单个 XML 标签
+ * @param {string} tagName - 标签名（可含命名空间前缀，如 a:off）
+ * @param {Object} [attrs] - 属性表（值为 null/undefined 的属性会被忽略）
+ * @param {...(string|Object)} children - 子内容：字符串或其他节点对象
+ * @returns {Object} 节点对象 { tagName, attrs, children }
+ */
+function xmlNode(tagName, attrs, ...children) {
+    // 容错：第二参数误传节点对象时（如 xmlNode('a:solidFill', xmlNode(...))），
+    // 自动将其视为子节点，避免节点属性被当成属性表序列化
+    if (attrs && typeof attrs === 'object' && !Array.isArray(attrs) && typeof attrs.tagName === 'string') {
+        children.unshift(attrs);
+        attrs = null;
+    }
+    const filteredAttrs = {};
+    if (attrs) {
+        for (const key in attrs) {
+            const val = attrs[key];
+            if (val !== undefined && val !== null) {
+                filteredAttrs[key] = String(val);
+            }
+        }
+    }
+    return {
+        tagName,
+        attrs: filteredAttrs,
+        children: children.filter(c => c !== undefined && c !== null && c !== '')
+    };
+}
+
+/**
+ * 节点转 XML 字符串
+ * @param {Object|string} node - 节点对象或纯文本
+ * @param {string} [indent=''] - 缩进（内部递归使用）
+ * @returns {string} XML 字符串
+ */
+function nodeToString(node, indent = '') {
+    if (typeof node === 'string') {
+        return escapeXml(node);
+    }
+
+    const attrs = Object.keys(node.attrs)
+        .map(key => ` ${key}="${escapeXml(node.attrs[key])}"`)
+        .join('');
+
+    if (!node.children || node.children.length === 0) {
+        return `<${node.tagName}${attrs}/>`;
+    }
+
+    const inner = node.children
+        .map(child => nodeToString(child))
+        .join('');
+
+    // 纯文本子节点直接内联，避免多余空白
+    if (node.children.every(c => typeof c === 'string')) {
+        return `<${node.tagName}${attrs}>${inner}</${node.tagName}>`;
+    }
+
+    return `<${node.tagName}${attrs}>${inner}</${node.tagName}>`;
+}
+
+/**
+ * 生成带 XML 声明的完整文档
+ * @param {Object} rootNode - 根节点对象
+ * @returns {string} XML 文档字符串
+ */
+function toXmlDocument(rootNode) {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n${nodeToString(rootNode)}`;
+}
+
+/**
+ * OOXML 静态模板模块
+ *
+ * 存放生成 PPTX 包所需的固定 XML 部件模板：
+ * 主题（theme1.xml）、母版（slideMaster1.xml）、版式（slideLayout1.xml）、
+ * 演示文稿属性（presProps/viewProps/tableStyles）等。
+ * 模板保持最小可用结构，参考标准 Office 输出。
+ *
+ * @module serializer/templates
+ */
+
+
+/** DrawingML 常用命名空间声明串 */
+const DRAWING_NS = `xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}"`;
+
+/**
+ * 主题模板（Office 标准配色/字体方案，最小化 fmtScheme）
+ * @returns {string} theme1.xml 内容
+ */
+function buildThemeXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<a:theme xmlns:a="${NS.a}" name="Office Theme"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2><a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2><a:accent3><a:srgbClr val="A5A5A5"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4><a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="Office"><a:majorFont><a:latin typeface="Calibri Light"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="94000"/><a:satMod val="110000"/></a:schemeClr></a:gs><a:gs pos="1000"><a:schemeClr val="phClr"><a:tint val="94000"/><a:satMod val="120000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="94000"/><a:satMod val="120000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="4553000" scaled="0"/></a:gradFill><a:solidFill><a:schemeClr val="phClr"><a:tint val="60000"/><a:satMod val="170000"/></a:schemeClr></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="19050" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst><a:outerShdw blurRad="57150" dist="19050" dir="5400000" algn="ctr" rotWithShape="0"><a:srgbClr val="000000"><a:alpha val="63000"/></a:srgbClr></a:outerShdw></a:effectLst></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"><a:tint val="95000"/><a:satMod val="170000"/></a:schemeClr></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="93000"/><a:satMod val="150000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="97000"/><a:satMod val="130000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+}
+
+/**
+ * 母版模板（空白母版，仅含布局引用与颜色映射）
+ * @returns {string} slideMaster1.xml 内容
+ */
+function buildSlideMasterXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:sldMaster ${DRAWING_NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="4400"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="3200"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:otherStyle></p:txStyles></p:sldMaster>`;
+}
+
+/**
+ * 版式模板（空白版式）
+ * @returns {string} slideLayout1.xml 内容
+ */
+function buildSlideLayoutXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:sldLayout ${DRAWING_NS} type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`;
+}
+
+/**
+ * 演示文稿属性模板（presProps.xml）
+ * @returns {string} presProps.xml 内容
+ */
+function buildPresPropsXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentationPr xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}"/>`;
+}
+
+/**
+ * 视图属性模板（viewProps.xml）
+ * @returns {string} viewProps.xml 内容
+ */
+function buildViewPropsXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:viewProps xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}"/>`;
+}
+
+/**
+ * 表格样式模板（tableStyles.xml）
+ * @returns {string} tableStyles.xml 内容
+ */
+function buildTableStylesXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:tblStyLst xmlns:a="${NS.a}" xmlns:p="${NS.p}" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"/>`;
+}
+
+/**
+ * 生成 presentation.xml
+ * @param {Object} slideSize - 幻灯片尺寸（px）
+ * @param {number} slideSize.width - 宽（px）
+ * @param {number} slideSize.height - 高（px）
+ * @param {Array<{relId: string}>} slides - 幻灯片引用列表
+ * @returns {string} presentation.xml 内容
+ */
+function buildPresentationXml(slideSize, slides) {
+    const slideEntries = slides
+        .map((s, i) => `<p:sldId id="${256 + i}" r:id="${escapeXml(s.relId)}"/>`)
+        .join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slideEntries}</p:sldIdLst><p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="914400"/><p:defaultTextStyle/></p:presentation>`;
+}
+
+/**
+ * 生成 presentation.xml.rels
+ * @param {Array<{relId: string, target: string, type: string, external?: boolean}>} rels - 关系列表
+ * @returns {string} presentation.xml.rels 内容
+ */
+function buildRelationshipsXml(rels) {
+    const entries = rels
+        .map(r => `<Relationship Id="${escapeXml(r.relId)}" Type="${escapeXml(r.type)}" Target="${escapeXml(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`)
+        .join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="${NS.rel}">${entries}</Relationships>`;
+}
+
+/**
+ * 生成 [Content_Types].xml
+ * @param {Array<string>} mediaExts - 用到的媒体扩展名（如 ['png','jpeg']）
+ * @param {number} slideCount - 幻灯片数量
+ * @returns {string} [Content_Types].xml 内容
+ */
+function buildContentTypesXml(mediaExts, slideCount) {
+    const MIME_MAP = {
+        png: 'image/png',
+        jpeg: 'image/jpeg',
+        jpg: 'image/jpeg',
+        gif: 'image/gif',
+        bmp: 'image/bmp',
+        svg: 'image/svg+xml',
+        tiff: 'image/tiff',
+        webp: 'image/webp',
+        emf: 'image/x-emf',
+        wmf: 'image/x-wmf'
+    };
+    const defaults = ['rels', 'xml']
+        .map(ext => `<Default Extension="${ext}" ContentType="${ext === 'rels' ? 'application/vnd.openxmlformats-package.relationships+xml' : 'application/xml'}"/>`)
+        .join('');
+    const mediaDefaults = [...new Set(mediaExts)]
+        .map(ext => `<Default Extension="${escapeXml(ext)}" ContentType="${MIME_MAP[ext.toLowerCase()] || 'application/octet-stream'}"/>`)
+        .join('');
+    const slideOverrides = Array.from({ length: slideCount }, (_, i) =>
+        `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`
+    ).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>${slideOverrides}</Types>`;
+}
+
+/**
+ * 生成 docProps/core.xml（元数据）
+ * @param {Object} metadata - 元数据（title/author/subject/keywords/description/lastModifiedBy/category/status）
+ * @returns {string} core.xml 内容
+ */
+function buildCorePropsXml(metadata) {
+    const md = metadata || {};
+    const now = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    const created = md.created || now;
+    const modified = md.modified || now;
+    const fields = [
+        ['dc:title', md.title],
+        ['dc:subject', md.subject],
+        ['dc:creator', md.author],
+        ['cp:keywords', md.keywords],
+        ['dc:description', md.description],
+        ['cp:lastModifiedBy', md.lastModifiedBy || md.author],
+        ['cp:category', md.category],
+        ['cp:contentStatus', md.status]
+    ]
+        .filter(([, val]) => val !== undefined && val !== null && val !== '')
+        .map(([tag, val]) => `<${tag}>${escapeXml(val)}</${tag}>`)
+        .join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<cp:coreProperties xmlns:cp="${NS.cp}" xmlns:dc="${NS.dc}" xmlns:dcterms="${NS.dcterms}" xmlns:dcmitype="${NS.dcmitype}" xmlns:xsi="${NS.xsi}">${fields}<dcterms:created xsi:type="dcterms:W3CDTF">${created}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${modified}</dcterms:modified></cp:coreProperties>`;
+}
+
+/**
+ * 生成 docProps/app.xml
+ * @param {number} slideCount - 幻灯片数量
+ * @returns {string} app.xml 内容
+ */
+function buildAppPropsXml(slideCount) {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Properties xmlns="${NS.ext}" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Microsoft Office PowerPoint</Application><Slides>${slideCount}</Slides><AppVersion>16.0000</AppVersion></Properties>`;
+}
+
+/**
+ * 生成根关系 _rels/.rels
+ * @returns {string} .rels 内容
+ */
+function buildRootRelsXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="${NS.rel}"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`;
+}
+
+/** 母版关系：rId1 版式、rId2 主题 */
+const MASTER_RELS = [
+    { relId: 'rId1', type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout', target: '../slideLayouts/slideLayout1.xml' },
+    { relId: 'rId2', type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme', target: '../theme/theme1.xml' }
+];
+
+/** 版式关系：rId1 母版 */
+const LAYOUT_RELS = [
+    { relId: 'rId1', type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster', target: '../slideMasters/slideMaster1.xml' }
+];
+
+/** 关系类型常量 */
+const REL_TYPES = {
+    slide: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide',
+    slideLayout: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout',
+    slideMaster: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster',
+    theme: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme',
+    image: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
+    hyperlink: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink',
+    chart: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart',
+    presProps: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps',
+    viewProps: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/viewProps',
+    tableStyles: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles'
+};
+
+/**
+ * 元素构建器模块
+ *
+ * 将幻灯片元素（文本/形状/图片）的 JSON 描述转换为 OOXML 节点。
+ * 构建过程中通过 ctx 收集图片媒体文件与超链接关系，
+ * 供上层（jsonToPptx / editPptx.addSlide）打包 zip 时使用。
+ *
+ * 支持的元素 JSON 格式：
+ * - 文本：{ type:'text', x,y,width,height, text | runs | paragraphs,
+ *          align, valign, fontSize(pt), color, bold, italic, underline, fontFace, href }
+ * - 形状：{ type:'shape', shapeType:'rect'|'roundRect'|'ellipse'|..., x,y,width,height,
+ *          fill:{color}|'none', line:{color,width(pt)}|'none', rotation(deg) }
+ * - 图片：{ type:'image', x,y,width,height, data(dataURL/base64)|src(URL), extension, href }
+ *
+ * @module serializer/element-builders
+ */
+
+
+/**
+ * 创建元素构建上下文
+ * @param {Object} [options]
+ * @param {number} [options.startMediaIndex=0] - 媒体文件起始编号（避免与已有文件冲突）
+ * @returns {Object} 构建上下文
+ */
+function createElementContext(options = {}) {
+    return {
+        /** 关系列表 {relId, type, target, external} */
+        rels: [],
+        /** 媒体文件列表 {name, base64} */
+        media: [],
+        /** 幻灯片内元素自增 id（1 被 spTree 根占用） */
+        nextElementId: 2,
+        /** 关系自增 id（rId1 固定为版式引用） */
+        nextRelId: 2,
+        /** 媒体文件自增编号 */
+        mediaIndex: options.startMediaIndex || 0,
+        /** 图表部件列表 {name, xml}（生成后由上层写入 ppt/charts/） */
+        charts: [],
+        /** 图表自增编号 */
+        chartIndex: 0
+    };
+}
+
+/**
+ * 添加关系并返回关系 id
+ * @param {Object} ctx - 构建上下文
+ * @param {string} type - 关系类型（REL_TYPES 值）
+ * @param {string} target - 目标路径
+ * @param {boolean} [external=false] - 是否为外部链接
+ * @returns {string} 关系 id（如 rId3）
+ */
+function addRelationship(ctx, type, target, external) {
+    const relId = `rId${ctx.nextRelId++}`;
+    ctx.rels.push({ relId, type, target, external: !!external });
+    return relId;
+}
+
+/**
+ * 解析图片来源数据
+ * @param {Object} el - 图片元素
+ * @returns {Promise<{base64: string, ext: string}>} 图片数据
+ */
+async function resolveImageData(el) {
+    if (el.data) {
+        const str = String(el.data);
+        const dataUrlMatch = str.match(/^data:image\/([a-z0-9.+-]+);base64,(.+)$/i);
+        if (dataUrlMatch) {
+            let ext = dataUrlMatch[1].toLowerCase();
+            if (ext === 'jpg') ext = 'jpeg';
+            if (ext === 'svg+xml') ext = 'svg';
+            return { base64: dataUrlMatch[2], ext: el.extension || ext };
+        }
+        // 裸 base64
+        return { base64: str, ext: el.extension || 'png' };
+    }
+
+    if (el.src) {
+        if (typeof fetch !== 'function') {
+            throw new Error(`无法获取远程图片 ${el.src}：当前环境不支持 fetch。请将图片下载后以 data(base64/dataURL) 方式提供`);
+        }
+        const resp = await fetch(el.src);
+        if (!resp.ok) {
+            throw new Error(`下载远程图片失败: ${el.src} (HTTP ${resp.status})`);
+        }
+        const buffer = await resp.arrayBuffer();
+        const base64 = arrayBufferToBase64(buffer);
+        const mimeFromHeader = (resp.headers.get('content-type') || '').match(/^image\/([a-z0-9.+-]+)/i);
+        let ext = mimeFromHeader ? mimeFromHeader[1].toLowerCase() : null;
+        if (ext === 'jpg') ext = 'jpeg';
+        if (ext === 'svg+xml') ext = 'svg';
+        return { base64, ext: el.extension || ext || guessExtFromUrl(el.src) || 'png' };
+    }
+
+    throw new Error("图片元素需要提供 data（dataURL/base64）或 src（远程 URL）字段");
+}
+
+/**
+ * 从 URL 猜测图片扩展名
+ * @param {string} url - 图片 URL
+ * @returns {string|null} 扩展名
+ */
+function guessExtFromUrl(url) {
+    const match = String(url).split('?')[0].match(/\.([a-z0-9]+)$/i);
+    return match ? match[1].toLowerCase() : null;
+}
+
+/**
+ * ArrayBuffer 转 base64（兼容浏览器与 Node）
+ * @param {ArrayBuffer} buffer - 二进制数据
+ * @returns {string} base64 字符串
+ */
+function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    if (typeof btoa === 'function') {
+        return btoa(binary);
+    }
+    return Buffer.from(bytes).toString('base64');
+}
+
+/**
+ * 构建位置节点（a:xfrm）
+ * @param {Object} el - 含 x/y/width/height/rotation 的元素
+ * @returns {Object} a:xfrm 节点
+ */
+function buildXfrm(el) {
+    return xmlNode('a:xfrm',
+        { rot: el.rotation ? degToRot(el.rotation) : null },
+        xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
+        xmlNode('a:ext', { cx: pxToEmu(el.width || 0), cy: pxToEmu(el.height || 0) })
+    );
+}
+
+/**
+ * 构建超链接 rPr 子节点
+ * @param {Object} ctx - 构建上下文
+ * @param {string} href - 链接（http(s):// 外部；'#N' 内部跳转到第 N 页）
+ * @returns {Object|null} a:hlinkClick 节点
+ */
+function buildHyperlink(ctx, href) {
+    if (!href) return null;
+    const internalMatch = String(href).match(/^#(\d+)$/);
+    if (internalMatch) {
+        // 内部跳转：指向对应 slide 部件（slide rels 位于 ppt/slides/_rels/，同目录相对路径）
+        const relId = addRelationship(ctx, REL_TYPES.slide, `slide${internalMatch[1]}.xml`);
+        return xmlNode('a:hlinkClick', { 'r:id': relId, action: 'ppaction://hlinksldjump' });
+    }
+    const relId = addRelationship(ctx, REL_TYPES.hyperlink, String(href), true);
+    return xmlNode('a:hlinkClick', { 'r:id': relId });
+}
+
+/**
+ * 构建文本运行（a:r）
+ * @param {Object} ctx - 构建上下文
+ * @param {string} text - 运行文本
+ * @param {Object} opts - 运行选项（fontSize/color/bold/italic/underline/fontFace/href）
+ * @returns {Object} a:r 节点
+ */
+function buildTextRun(ctx, text, opts = {}) {
+    const rPrChildren = [];
+
+    if (opts.color) {
+        rPrChildren.push(xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(opts.color) })));
+    }
+    if (opts.fontFace) {
+        rPrChildren.push(xmlNode('a:latin', { typeface: opts.fontFace }));
+    }
+    const hlink = buildHyperlink(ctx, opts.href);
+    if (hlink) rPrChildren.push(hlink);
+
+    return xmlNode('a:r',
+        null,
+        xmlNode('a:rPr',
+            {
+                lang: opts.lang || 'zh-CN',
+                sz: opts.fontSize !== undefined ? ptToSz(opts.fontSize) : null,
+                b: opts.bold ? 1 : null,
+                i: opts.italic ? 1 : null,
+                u: opts.underline ? 'sng' : null,
+                dirty: 0
+            },
+            ...rPrChildren
+        ),
+        xmlNode('a:t', null, String(text))
+    );
+}
+
+/**
+ * 构建段落（a:p）
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} paragraph - 段落 { text, runs, align, bullet }
+ * @param {Object} defaults - 元素级默认运行选项
+ * @returns {Object} a:p 节点
+ */
+function buildParagraph(ctx, paragraph, defaults) {
+    const alignMap = { left: 'l', center: 'ctr', right: 'r', justify: 'just' };
+    const p = paragraph || {};
+
+    // 段落属性
+    const pPrChildren = [];
+    if (p.bullet) {
+        pPrChildren.push(xmlNode('a:buFont', { typeface: 'Arial' }));
+        pPrChildren.push(xmlNode('a:buChar', { char: '•' }));
+    } else {
+        pPrChildren.push(xmlNode('a:buNone'));
+    }
+    const pPr = xmlNode('a:pPr',
+        { algn: alignMap[p.align || defaults.align] || null },
+        ...pPrChildren
+    );
+
+    // 运行列表：显式 runs 优先，否则用 text + 元素级默认样式
+    let runs;
+    if (Array.isArray(p.runs) && p.runs.length > 0) {
+        runs = p.runs.map(r => {
+            // 兼容两种格式：{ text, options: {...} }（规范）与 { text, color, ... }（扁平简写）
+            const { text, options, ...flat } = r;
+            return buildTextRun(ctx, text, { ...defaults, ...(options || {}), ...flat });
+        });
+    } else {
+        runs = [buildTextRun(ctx, p.text !== undefined ? p.text : '', defaults)];
+    }
+
+    return xmlNode('a:p', null, pPr, ...runs);
+}
+
+/**
+ * 规范化段落列表
+ * @param {Object} el - 文本元素
+ * @returns {Array<Object>} 段落列表
+ */
+function normalizeParagraphs(el) {
+    if (Array.isArray(el.paragraphs) && el.paragraphs.length > 0) {
+        return el.paragraphs;
+    }
+    if (Array.isArray(el.runs) && el.runs.length > 0) {
+        return [{ runs: el.runs }];
+    }
+    if (el.text !== undefined) {
+        return String(el.text).split('\n').map(t => ({ text: t }));
+    }
+    return [{ text: '' }];
+}
+
+/**
+ * 构建文本框元素（p:sp）
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 文本元素 JSON
+ * @returns {Object} p:sp 节点
+ */
+function buildTextElement(ctx, el) {
+    const id = ctx.nextElementId++;
+    const anchorMap = { top: null, middle: 'ctr', bottom: 'b' };
+    const defaults = {
+        align: el.align,
+        fontSize: el.fontSize,
+        color: el.color,
+        bold: el.bold,
+        italic: el.italic,
+        underline: el.underline,
+        fontFace: el.fontFace,
+        href: el.href,
+        lang: el.lang
+    };
+
+    return xmlNode('p:sp',
+        null,
+        xmlNode('p:nvSpPr',
+            null,
+            xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}` }),
+            xmlNode('p:cNvSpPr', { txBox: 1 }),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:spPr',
+            null,
+            buildXfrm(el),
+            xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))
+        ),
+        xmlNode('p:txBody',
+            null,
+            xmlNode('a:bodyPr',
+                { wrap: 'square', rtlCol: 0, anchor: anchorMap[el.valign] || null }
+            ),
+            xmlNode('a:lstStyle'),
+            ...normalizeParagraphs(el).map(p => buildParagraph(ctx, p, defaults))
+        )
+    );
+}
+
+/**
+ * 构建形状元素（p:sp）
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 形状元素 JSON
+ * @returns {Object} p:sp 节点
+ */
+function buildShapeElement(ctx, el) {
+    const id = ctx.nextElementId++;
+
+    // 填充
+    let fillNode;
+    if (el.fill === 'none' || el.fill === null) {
+        fillNode = xmlNode('a:noFill');
+    } else {
+        const fillColor = typeof el.fill === 'string' ? el.fill : (el.fill && el.fill.color);
+        if (fillColor) {
+            fillNode = xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(fillColor) }));
+        } else {
+            fillNode = null; // 未指定填充则继承主题
+        }
+    }
+
+    // 边框
+    let lineNode;
+    if (el.line === 'none' || el.line === null) {
+        lineNode = xmlNode('a:ln', null, xmlNode('a:noFill'));
+    } else if (el.line) {
+        const w = el.line.width !== undefined ? el.line.width : 1;
+        lineNode = xmlNode('a:ln',
+            { w: ptToEmu(w) },
+            xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(el.line.color) }))
+        );
+    }
+
+    return xmlNode('p:sp',
+        null,
+        xmlNode('p:nvSpPr',
+            null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Shape ${id - 1}` }),
+            xmlNode('p:cNvSpPr'),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:spPr',
+            null,
+            buildXfrm(el),
+            xmlNode('a:prstGeom', { prst: el.shapeType || 'rect' }, xmlNode('a:avLst')),
+            fillNode,
+            lineNode
+        )
+    );
+}
+
+/**
+ * 构建图片元素（p:pic）
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 图片元素 JSON
+ * @returns {Promise<Object>} p:pic 节点
+ */
+async function buildImageElement(ctx, el) {
+    const id = ctx.nextElementId++;
+    const { base64, ext } = await resolveImageData(el);
+
+    ctx.mediaIndex++;
+    const mediaName = `image${ctx.mediaIndex}.${ext}`;
+    ctx.media.push({ name: mediaName, base64 });
+
+    const embedRelId = addRelationship(ctx, REL_TYPES.image, `../media/${mediaName}`);
+
+    // 图片级超链接挂在 cNvPr 上
+    let cNvPrChildren = null;
+    if (el.href && !/^#\d+$/.test(String(el.href))) {
+        const hlinkRelId = addRelationship(ctx, REL_TYPES.hyperlink, String(el.href), true);
+        cNvPrChildren = xmlNode('a:hlinkClick', { 'r:id': hlinkRelId });
+    }
+
+    return xmlNode('p:pic',
+        null,
+        xmlNode('p:nvPicPr',
+            null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Image ${id - 1}` }, cNvPrChildren),
+            xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noChangeAspect: 1 })),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:blipFill',
+            null,
+            xmlNode('a:blip', { 'r:embed': embedRelId }),
+            xmlNode('a:stretch', null, xmlNode('a:fillRect'))
+        ),
+        xmlNode('p:spPr',
+            null,
+            buildXfrm(el),
+            xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))
+        )
+    );
+}
+
+/**
+ * 构建图表元素（p:graphicFrame + 原生 c:chartSpace 部件）
+ *
+ * 输入 el 格式：
+ * { type:'chart', x,y,width,height, name,
+ *   chartType: 'barChart'|'lineChart'|'areaChart'|'pieChart'|'pie3DChart'|'scatterChart',
+ *   title, legend(true), varyColors(true),
+ *   categories: ['A','B','C'],
+ *   series: [ { name, values:[..], color? }, ... ]            // 非散点
+ *   series: [ { name, x:[..], y:[..] } ]                      // 散点
+ * }
+ *
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 图表元素 JSON
+ * @returns {Object} p:graphicFrame 节点
+ */
+function buildChartElement(ctx, el) {
+    const id = ctx.nextElementId++;
+    ctx.chartIndex++;
+    const chartNum = ctx.chartIndex;
+    const chartName = `chart${chartNum}.xml`;
+    const relId = addRelationship(ctx, REL_TYPES.chart, `../charts/${chartName}`);
+    const xml = buildChartXml(el);
+    ctx.charts.push({ name: chartName, xml });
+
+    return xmlNode('p:graphicFrame',
+        null,
+        xmlNode('p:nvGraphicFramePr',
+            null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }),
+            xmlNode('p:cNvGraphicFramePr'),
+            xmlNode('p:nvPr')
+        ),
+        buildXfrm(el),
+        xmlNode('a:graphic',
+            null,
+            xmlNode('a:graphicData',
+                { uri: NS.c },
+                xmlNode('c:chart', { 'xmlns:c': NS.c, 'xmlns:r': NS.r, 'r:id': relId })
+            )
+        )
+    );
+}
+
+/** 构造 c:strRef（类别标签缓存） */
+function strRefXml(values, col) {
+    const n = values.length;
+    let pts = '';
+    for (let i = 0; i < n; i++) {
+        pts += `<c:pt idx="${i}"><c:v>${escapeXml(String(values[i]))}</c:v></c:pt>`;
+    }
+    const last = n > 0 ? n - 1 : 0;
+    return `<c:strRef><c:f>Sheet1!$${col}$2:$${col}$${2 + last}</c:f>` +
+        `<c:strCache><c:ptCount val="${n}"/>${pts}</c:strCache></c:strRef>`;
+}
+
+/** 构造 c:numRef（数值缓存） */
+function numRefXml(values, col) {
+    const n = values.length;
+    let pts = '';
+    for (let i = 0; i < n; i++) {
+        pts += `<c:pt idx="${i}"><c:v>${Number(values[i])}</c:v></c:pt>`;
+    }
+    const last = n > 0 ? n - 1 : 0;
+    return `<c:numRef><c:f>Sheet1!$${col}$2:$${col}$${2 + last}</c:f>` +
+        `<c:numCache><c:fmtCode>General</c:fmtCode><c:ptCount val="${n}"/>${pts}</c:numCache></c:numRef>`;
+}
+
+/**
+ * 生成 c:chartSpace 原生图表 XML（自包含，内联数据缓存，无需外部工作簿）
+ * @param {Object} el - 图表元素 JSON
+ * @returns {string} chart 部件 XML
+ */
+function buildChartXml(el) {
+    const type = el.chartType || 'barChart';
+    const isPie = /pie/i.test(type);
+    const isScatter = type === 'scatterChart';
+    const cats = el.categories || [];
+    const series = el.series || [];
+    const varyColors = el.varyColors !== undefined ? (el.varyColors ? 1 : 0) : (isPie ? 1 : 0);
+
+    const serXml = series.map((s, i) => {
+        const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
+            `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
+        let data;
+        if (isScatter) {
+            data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
+        } else {
+            data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
+        }
+        return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${data}</c:ser>`;
+    }).join('');
+
+    // 图表类型特定根（含轴 id，散点/柱状/折线/面积需要）
+    let plotChart;
+    if (isPie) {
+        plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}</c:${type}>`;
+    } else {
+        const dir = type === 'barChart' ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
+        const grouping = type === 'lineChart' ? '<c:grouping val="standard"/>' : '';
+        plotChart = `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serXml}` +
+            `<c:axId val="111"/><c:axId val="112"/></c:${type}>`;
+    }
+
+    // 坐标轴（饼图除外）
+    let axes = '';
+    if (!isPie) {
+        axes = '<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling>' +
+            '<c:delete val="0"/><c:axPos val="b"/><c:crossAx val="112"/></c:catAx>' +
+            '<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling>' +
+            '<c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111"/><c:majorGridlines/></c:valAx>';
+    }
+
+    const titleXml = el.title
+        ? `<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/>` +
+          `<a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml(el.title)}</a:t></a:r></a:p>` +
+          `</c:rich></c:tx><c:overlay val="0"/></c:title>`
+        : '';
+
+    const legendXml = el.legend !== false
+        ? '<c:legend><c:legendPos val="r"/><c:overlay val="0"/></c:legend>'
+        : '';
+
+    const autoTitleDeleted = `<c:autoTitleDeleted val="${el.title ? 0 : 1}"/>`;
+
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<c:chartSpace xmlns:c="${NS.c}" xmlns:a="${NS.a}" xmlns:r="${NS.r}">` +
+        `<c:chart>${titleXml}${autoTitleDeleted}` +
+        `<c:plotArea><c:layout/>${plotChart}${axes}</c:plotArea>` +
+        `${legendXml}<c:plotVisOnly val="1"/></c:chart></c:chartSpace>`;
+}
+
+/**
+ * 构建单个幻灯片元素节点
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 元素 JSON
+ * @returns {Promise<Object|null>} 元素节点，不支持的类型返回 null
+ */
+async function buildElement(ctx, el) {
+    if (!el || typeof el !== 'object') return null;
+    switch (el.type) {
+        case 'text':
+            return buildTextElement(ctx, el);
+        case 'shape':
+            return buildShapeElement(ctx, el);
+        case 'image':
+            return buildImageElement(ctx, el);
+        case 'chart':
+            return buildChartElement(ctx, el);
+        default:
+            return null;
+    }
+}
+
+/**
+ * 构建完整幻灯片 XML 根节点（p:sld）
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} slide - 幻灯片 JSON { background, elements }
+ * @returns {Promise<Object>} p:sld 根节点
+ */
+async function buildSlideRoot(ctx, slide) {
+    const elementNodes = [];
+    for (const el of (slide && slide.elements) || []) {
+        const node = await buildElement(ctx, el);
+        if (node) elementNodes.push(node);
+    }
+
+    // 背景色
+    let bgNode = null;
+    const bgColor = slide && slide.background;
+    if (bgColor && bgColor !== 'none') {
+        bgNode = xmlNode('p:bg',
+            null,
+            xmlNode('p:bgPr',
+                null,
+                xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(bgColor) })),
+                xmlNode('a:effectLst')
+            )
+        );
+    }
+
+    return xmlNode('p:sld',
+        { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
+          'xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+          'xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main' },
+        xmlNode('p:cSld',
+            null,
+            bgNode,
+            xmlNode('p:spTree',
+                null,
+                xmlNode('p:nvGrpSpPr',
+                    null,
+                    xmlNode('p:cNvPr', { id: 1, name: '' }),
+                    xmlNode('p:cNvGrpSpPr'),
+                    xmlNode('p:nvPr')
+                ),
+                xmlNode('p:grpSpPr',
+                    null,
+                    xmlNode('a:xfrm',
+                        null,
+                        xmlNode('a:off', { x: 0, y: 0 }),
+                        xmlNode('a:ext', { cx: 0, cy: 0 }),
+                        xmlNode('a:chOff', { x: 0, y: 0 }),
+                        xmlNode('a:chExt', { cx: 0, cy: 0 })
+                    )
+                ),
+                ...elementNodes
+            )
+        ),
+        xmlNode('p:clrMapOvr', null, xmlNode('a:masterClrMapping'))
+    );
+}
+
+/**
+ * JSON → PPTX 序列化模块
+ *
+ * 提供两个核心 API：
+ *
+ * 1. jsonToPptx(presentation, options) —— 从演示文稿 JSON 树生成全新的 PPTX 文件。
+ *    输入格式与 PPTXComposer.toJSON() 输出一致，也可直接传 Composer 实例。
+ *
+ * 2. editPptx(fileData) —— 加载已有 PPTX，进行幻灯片管理（删除/重排/追加）、
+ *    元数据写回等编辑操作后重新保存。借鉴 nodejs-pptx 的 load/modify/save 模式。
+ *
+ * 生成的文件结构完全兼容 PowerPoint / WPS / Keynote，
+ * 且可被本库的 pptxToJson/pptxToHtml 直接解析（round-trip）。
+ *
+ * @module serializer/json-to-pptx
+ */
+
+
+/**
+ * 规范化演示文稿 JSON 输入
+ * @param {Object|{toJSON: Function}} input - 演示文稿 JSON 或 Composer 实例
+ * @returns {Object} 演示文稿 JSON 树
+ */
+function normalizePresentation(input) {
+    let presentation = input;
+    if (presentation && typeof presentation.toJSON === 'function') {
+        presentation = presentation.toJSON();
+    }
+    if (!presentation || typeof presentation !== 'object') {
+        throw new Error('jsonToPptx: 输入必须为演示文稿 JSON 对象或 PPTXComposer 实例');
+    }
+    if (!Array.isArray(presentation.slides) || presentation.slides.length === 0) {
+        throw new Error('jsonToPptx: 演示文稿至少需要一页幻灯片（slides 数组为空）');
+    }
+    return presentation;
+}
+
+/**
+ * 将演示文稿 JSON 序列化为 PPTX
+ * @param {Object|{toJSON: Function}} presentation - 演示文稿 JSON 或 Composer 实例
+ * @param {Object} [options] - 选项
+ * @param {string} [options.outputType='uint8array'] - JSZip 输出类型
+ *        （uint8array / arraybuffer / blob / nodebuffer / base64）
+ * @returns {Promise<Uint8Array>} PPTX 文件二进制数据
+ */
+async function jsonToPptx(presentation, options = {}) {
+    const pres = normalizePresentation(presentation);
+    const slideSize = pres.slideSize || { width: 1280, height: 720 };
+    const zip = new JSZip();
+
+    // ===== 逐页构建 slide XML 与关系 =====
+    const slideRefs = [];       // presentation.xml 中的引用 { relId, target }
+    const allMediaExts = new Set();
+    const allChartNames = [];   // 图表部件名（用于 Content-Types 覆盖）
+    let presRelId = 2;         // rId1 为母版
+
+    for (let i = 0; i < pres.slides.length; i++) {
+        const slideIndex = i + 1;
+        const ctx = createElementContext();
+        const slideRoot = await buildSlideRoot(ctx, pres.slides[i]);
+
+        zip.file(`ppt/slides/slide${slideIndex}.xml`, toXmlDocument(slideRoot));
+
+        // slide 关系：rId1 版式 + 元素产生的图片/超链接/图表关系
+        const slideRels = [
+            { relId: 'rId1', type: REL_TYPES.slideLayout, target: '../slideLayouts/slideLayout1.xml' },
+            ...ctx.rels
+        ];
+        zip.file(`ppt/slides/_rels/slide${slideIndex}.xml.rels`, buildRelationshipsXml(slideRels));
+
+        // 媒体文件
+        for (const media of ctx.media) {
+            zip.file(`ppt/media/${media.name}`, media.base64, { base64: true });
+            allMediaExts.add(media.name.split('.').pop().toLowerCase());
+        }
+
+        // 图表部件
+        for (const chart of ctx.charts) {
+            zip.file(`ppt/charts/${chart.name}`, chart.xml);
+            allChartNames.push(chart.name);
+        }
+
+        slideRefs.push({ relId: `rId${presRelId++}`, target: `slides/slide${slideIndex}.xml` });
+    }
+
+    // ===== presentation.xml 及其关系 =====
+    zip.file('ppt/presentation.xml', buildPresentationXml(slideSize, slideRefs));
+
+    // presentation.xml.rels：母版 rId1 → 各 slide → theme/presProps/viewProps/tableStyles
+    const presRels = [
+        { relId: 'rId1', type: REL_TYPES.slideMaster, target: 'slideMasters/slideMaster1.xml' },
+        ...slideRefs.map(ref => ({ relId: ref.relId, type: REL_TYPES.slide, target: ref.target }))
+    ];
+    presRels.push(
+        { relId: `rId${presRelId++}`, type: REL_TYPES.theme, target: 'theme/theme1.xml' },
+        { relId: `rId${presRelId++}`, type: REL_TYPES.presProps, target: 'presProps.xml' },
+        { relId: `rId${presRelId++}`, type: REL_TYPES.viewProps, target: 'viewProps.xml' },
+        { relId: `rId${presRelId++}`, type: REL_TYPES.tableStyles, target: 'tableStyles.xml' }
+    );
+    zip.file('ppt/_rels/presentation.xml.rels', buildRelationshipsXml(presRels));
+
+    // ===== 静态部件 =====
+    zip.file('ppt/theme/theme1.xml', buildThemeXml());
+    zip.file('ppt/slideMasters/slideMaster1.xml', buildSlideMasterXml());
+    zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', buildRelationshipsXml(MASTER_RELS));
+    zip.file('ppt/slideLayouts/slideLayout1.xml', buildSlideLayoutXml());
+    zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', buildRelationshipsXml(LAYOUT_RELS));
+    zip.file('ppt/presProps.xml', buildPresPropsXml());
+    zip.file('ppt/viewProps.xml', buildViewPropsXml());
+    zip.file('ppt/tableStyles.xml', buildTableStylesXml());
+
+    // ===== docProps =====
+    zip.file('docProps/core.xml', buildCorePropsXml(pres.metadata));
+    zip.file('docProps/app.xml', buildAppPropsXml(pres.slides.length));
+
+    // ===== 包级文件 =====
+    zip.file('_rels/.rels', buildRootRelsXml());
+    let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length);
+    // 图表部件 Content-Types 覆盖
+    for (const chartName of allChartNames) {
+        const override = `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`;
+        contentTypeXml = contentTypeXml.replace('</Types>', override + '</Types>');
+    }
+    zip.file('[Content_Types].xml', contentTypeXml);
+
+    return zip.generateAsync({
+        type: options.outputType || 'uint8array',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+    });
+}
+
+// ---------------------------------------------------------------------------
+// 已有 PPTX 编辑器（editPptx）
+// ---------------------------------------------------------------------------
+
+/** 从文本中解析 <Relationship .../> 列表 */
+function parseRelationships(relsText) {
+    const rels = [];
+    const re = /<Relationship\s+([^>]*?)\/>/g;
+    const attrRe = /(\w+)="([^"]*)"/g;
+    let match;
+    while ((match = re.exec(relsText)) !== null) {
+        const attrs = {};
+        let attrMatch;
+        while ((attrMatch = attrRe.exec(match[1])) !== null) {
+            attrs[attrMatch[1]] = attrMatch[2];
+        }
+        if (attrs.Id) rels.push(attrs);
+    }
+    return rels;
+}
+
+/** 从 presentation.xml 解析 sldIdLst 条目 */
+function parseSldIdLst(presentationText) {
+    const lstMatch = presentationText.match(/<p:sldIdLst>([\s\S]*?)<\/p:sldIdLst>/);
+    if (!lstMatch) return [];
+    const entries = [];
+    const re = /<p:sldId\s+([^>]*?)\/>/g;
+    const attrRe = /([\w:.-]+)="([^"]*)"/g;
+    let match;
+    while ((match = re.exec(lstMatch[1])) !== null) {
+        const attrs = {};
+        let attrMatch;
+        while ((attrMatch = attrRe.exec(match[1])) !== null) {
+            attrs[attrMatch[1]] = attrMatch[2];
+        }
+        if (attrs['r:id']) entries.push({ id: attrs.id, relId: attrs['r:id'] });
+    }
+    return entries;
+}
+
+/** 用新条目列表重写 presentation.xml 的 sldIdLst */
+function rewriteSldIdLst(presentationText, entries) {
+    const inner = entries
+        .map((e, i) => `<p:sldId id="${e.id || 256 + i}" r:id="${escapeXml(e.relId)}"/>`)
+        .join('');
+    return presentationText.replace(
+        /<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/,
+        `<p:sldIdLst>${inner}</p:sldIdLst>`
+    );
+}
+
+/** 列出 zip 中匹配 /ppt\/slides\/slide(\d+)\.xml 的幻灯片编号 */
+function listSlideNumbers(zip) {
+    const numbers = [];
+    zip.forEach((path, entry) => {
+        if (entry.dir) return;
+        const m = path.match(/^ppt\/slides\/slide(\d+)\.xml$/);
+        if (m) numbers.push(Number(m[1]));
+    });
+    return numbers.sort((a, b) => a - b);
+}
+
+/** 列出 zip 中 ppt/media 下的最大媒体编号（不限 imageN 命名，取文件名中最后一个数字段） */
+function maxMediaIndex(zip) {
+    let max = 0;
+    zip.forEach((path, entry) => {
+        if (entry.dir) return;
+        const m = path.match(/^ppt\/media\/[^/]*?(\d+)\.[^/]+$/);
+        if (m) max = Math.max(max, Number(m[1]));
+    });
+    return max;
+}
+
+/**
+ * 加载已有 PPTX 并返回编辑器
+ * @param {ArrayBuffer|Uint8Array|Buffer} fileData - PPTX 文件数据
+ * @returns {Promise<Object>} 编辑器实例
+ */
+async function editPptx(fileData) {
+    const zip = await JSZip.loadAsync(fileData);
+
+    const readText = async (name) => {
+        const f = zip.file(name);
+        return f ? await f.async('string') : null;
+    };
+
+    /** 读取 presentation.xml 解析后的信息 */
+    async function getPresentationInfo() {
+        const text = await readText('ppt/presentation.xml');
+        if (!text) throw new Error('editPptx: 无效的 PPTX 文件（缺少 ppt/presentation.xml）');
+        const relsText = await readText('ppt/_rels/presentation.xml.rels');
+        const rels = parseRelationships(relsText || '');
+        const relById = {};
+        for (const r of rels) relById[r.Id] = r;
+        const entries = parseSldIdLst(text);
+        // 解析每页对应的 slide 部件路径
+        const slideParts = entries.map(e => {
+            const rel = relById[e.relId];
+            if (!rel) return null;
+            const target = rel.Target.replace(/^\//, '').replace(/^ppt\//, 'ppt/');
+            return { relId: e.relId, target: target.startsWith('ppt/') ? target : `ppt/${target}` };
+        }).filter(Boolean);
+        return { text, rels, relById, entries, slideParts };
+    }
+
+    /** 回写 docProps/app.xml 的 <Slides> 计数（不存在则跳过） */
+    async function setAppSlideCount(n) {
+        const app = await readText('docProps/app.xml');
+        if (app && /<Slides>\d+<\/Slides>/.test(app)) {
+            zip.file('docProps/app.xml', app.replace(/<Slides>\d+<\/Slides>/, `<Slides>${n}</Slides>`));
+        }
+    }
+
+    /**
+     * 保存编辑结果
+     * @param {Object} [options] - 选项
+     * @param {string} [options.outputType='uint8array'] - JSZip 输出类型
+     * @returns {Promise<Uint8Array>} 新的 PPTX 文件数据
+     */
+    async function save(options = {}) {
+        return zip.generateAsync({
+            type: options.outputType || 'uint8array',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+    }
+
+    return {
+        zip,
+        save,
+
+        /**
+         * 获取幻灯片数量（逻辑顺序 = sldIdLst 顺序，与 PowerPoint 显示一致）
+         * @returns {Promise<number>} 页数
+         */
+        async getSlideCount() {
+            const info = await getPresentationInfo();
+            return info.entries.length;
+        },
+
+        /**
+         * 获取指定页的简化 XML 树（与 pptxToJson 结果中的 slideContent 同构，仅含该页）。
+         * slideNum 为逻辑顺序（sldIdLst 顺序），通过关系反查真实文件名。
+         * @param {number} slideNum - 页码（1 起，逻辑顺序）
+         * @returns {Promise<Object|null>} tXml 简化树
+         */
+        async getSlide(slideNum) {
+            const info = await getPresentationInfo();
+            const part = info.slideParts[slideNum - 1];
+            if (!part) throw new Error(`getSlide: 页码越界（共 ${info.entries.length} 页）`);
+            return PPTXXmlUtils.readXmlFile(zip, part.target);
+        },
+
+        /**
+         * 删除指定页（同步移除 sldIdLst 条目、关系、slide 部件、Content-Types 覆盖项；
+         * 关联的 notesSlide 会一并移除，媒体文件保留不清理）
+         * @param {number} slideNum - 页码（1 起）
+         */
+        async deleteSlide(slideNum) {
+            const info = await getPresentationInfo();
+            if (slideNum < 1 || slideNum > info.entries.length) {
+                throw new Error(`deleteSlide: 页码越界（共 ${info.entries.length} 页）`);
+            }
+            if (info.entries.length <= 1) {
+                throw new Error('deleteSlide: 至少需保留一页幻灯片，无法删除最后一页');
+            }
+
+            const part = info.slideParts[slideNum - 1];
+            const slidePath = part.target; // ppt/slides/slideN.xml
+
+            // 1. 移除 sldIdLst 条目
+            const remaining = info.entries.filter((_, i) => i !== slideNum - 1);
+            zip.file('ppt/presentation.xml', rewriteSldIdLst(info.text, remaining));
+
+            // 2. 移除 presentation.xml.rels 中的关系
+            const relsText = await readText('ppt/_rels/presentation.xml.rels');
+            const relRe = new RegExp(`<Relationship\\s+Id="${part.relId}"[^>]*/>`);
+            zip.file('ppt/_rels/presentation.xml.rels', relsText.replace(relRe, ''));
+
+            // 3. 找到并移除 notesSlide（通过 slide 的 rels）
+            const slideRelsText = await readText(slidePath.replace('slides/', 'slides/_rels/') + '.rels');
+            if (slideRelsText) {
+                for (const rel of parseRelationships(slideRelsText)) {
+                    if (rel.Type && rel.Type.endsWith('/notesSlide')) {
+                        const notesPath = rel.Target.replace('../', 'ppt/');
+                        zip.remove(notesPath);
+                        zip.remove(notesPath.replace('notesSlides/', 'notesSlides/_rels/') + '.rels');
+                        await removeContentTypeOverride(notesPath);
+                    }
+                }
+            }
+
+            // 4. 移除 slide 部件与关系文件
+            zip.remove(slidePath);
+            zip.remove(slidePath.replace('slides/', 'slides/_rels/') + '.rels');
+
+            // 5. 移除 Content-Types 覆盖项
+            await removeContentTypeOverride(slidePath);
+
+            // 6. 回写 app.xml 幻灯片计数
+            await setAppSlideCount(remaining.length);
+        },
+
+        /**
+         * 重排幻灯片：把第 from 页移动到第 to 页的位置。
+         * 除更新 sldIdLst 外，还会物理重编号 slide 文件（slide1..slideN 按新顺序），
+         * 以保证 PowerPoint 与本库解析端（按文件名编号排序）顺序一致；
+         * 同时重映射各页 rels 中的内部跳转目标。
+         * @param {number} from - 原页码（1 起）
+         * @param {number} to - 目标页码（1 起）
+         */
+        async moveSlide(from, to) {
+            const info = await getPresentationInfo();
+            const entries = [...info.entries];
+            if (from < 1 || from > entries.length || to < 1 || to > entries.length) {
+                throw new Error(`moveSlide: 页码越界（共 ${entries.length} 页）`);
+            }
+            const [moved] = entries.splice(from - 1, 1);
+            entries.splice(to - 1, 0, moved);
+
+            // 新逻辑顺序下各条目对应的旧文件编号
+            const orderedRels = entries.map(e => info.relById[e.relId]);
+            const oldNums = orderedRels.map(rel => {
+                const m = rel.Target.match(/slide(\d+)\.xml$/);
+                if (!m) throw new Error(`moveSlide: 无法解析 slide 目标 ${rel.Target}`);
+                return Number(m[1]);
+            });
+            const mapping = {}; // 旧编号 → 新编号
+            oldNums.forEach((oldNum, i) => { mapping[oldNum] = i + 1; });
+
+            // 先读出全部内容，避免读写交叉覆盖
+            const contents = [];
+            const relsContents = [];
+            for (const oldNum of oldNums) {
+                contents.push(await readText(`ppt/slides/slide${oldNum}.xml`));
+                relsContents.push(await readText(`ppt/slides/_rels/slide${oldNum}.xml.rels`));
+            }
+
+            // 按新编号写回，并重映射 rels 中的内部跳转目标（slideN.xml）
+            oldNums.forEach((oldNum, i) => {
+                const newNum = i + 1;
+                const newRels = (relsContents[i] || '').replace(
+                    /Target="slide(\d+)\.xml"/g,
+                    (m, n) => `Target="slide${mapping[n] !== undefined ? mapping[n] : n}.xml"`
+                );
+                zip.file(`ppt/slides/slide${newNum}.xml`, contents[i]);
+                zip.file(`ppt/slides/_rels/slide${newNum}.xml.rels`, newRels);
+            });
+
+            // 更新 presentation.xml.rels：各 relId 目标改为新编号文件
+            let relsText = await readText('ppt/_rels/presentation.xml.rels');
+            orderedRels.forEach((rel, i) => {
+                const oldNum = oldNums[i];
+                const newNum = i + 1;
+                if (oldNum !== newNum) {
+                    const re = new RegExp(`(<Relationship\\s+Id="${rel.Id}"[^>]*?Target=")slides/slide${oldNum}\\.xml(")`);
+                    relsText = relsText.replace(re, `$1slides/slide${newNum}.xml$2`);
+                }
+            });
+            zip.file('ppt/_rels/presentation.xml.rels', relsText);
+
+            // 重写 sldIdLst（新逻辑顺序）
+            zip.file('ppt/presentation.xml', rewriteSldIdLst(info.text, entries));
+        },
+
+        /**
+         * 写回演示文稿元数据（docProps/core.xml）
+         * @param {Object} metadata - 元数据（字段同 pptxToJson 返回的 metadata）
+         */
+        async setMetadata(metadata) {
+            const existing = await readText('docProps/core.xml');
+            if (existing) {
+                zip.file('docProps/core.xml', buildCorePropsXml(metadata));
+            } else {
+                // 创建 core.xml 并补齐根关系与 Content-Types
+                zip.file('docProps/core.xml', buildCorePropsXml(metadata));
+                const rootRels = await readText('_rels/.rels');
+                if (rootRels && !rootRels.includes('core-properties')) {
+                    const newRel = '<Relationship Id="rIdCore" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>';
+                    zip.file('_rels/.rels', rootRels.replace('</Relationships>', newRel + '</Relationships>'));
+                }
+                const ctText = await readText('[Content_Types].xml');
+                if (ctText && !ctText.includes('core-properties')) {
+                    const override = '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>';
+                    zip.file('[Content_Types].xml', ctText.replace('</Types>', override + '</Types>'));
+                }
+            }
+        },
+
+        /**
+         * 追加一页幻灯片（元素格式同 jsonToPptx 的 slide JSON）
+         * @param {Object} slideJson - 幻灯片 JSON { background, elements }
+         */
+        async addSlide(slideJson) {
+            const info = await getPresentationInfo();
+            const numbers = listSlideNumbers(zip);
+            const nextNum = (numbers.length ? numbers[numbers.length - 1] : 0) + 1;
+
+            // 构建新页内容
+            const ctx = createElementContext({ startMediaIndex: maxMediaIndex(zip) });
+            const slideRoot = await buildSlideRoot(ctx, slideJson);
+            zip.file(`ppt/slides/slide${nextNum}.xml`, toXmlDocument(slideRoot));
+
+            const slideRels = [
+                { relId: 'rId1', type: REL_TYPES.slideLayout, target: '../slideLayouts/slideLayout1.xml' },
+                ...ctx.rels
+            ];
+            zip.file(`ppt/slides/_rels/slide${nextNum}.xml.rels`, buildRelationshipsXml(slideRels));
+
+            // 媒体文件
+            const mediaExts = new Set();
+            const newCtCharts = [];
+            for (const media of ctx.media) {
+                zip.file(`ppt/media/${media.name}`, media.base64, { base64: true });
+                mediaExts.add(media.name.split('.').pop().toLowerCase());
+            }
+
+            // 图表部件
+            for (const chart of ctx.charts) {
+                zip.file(`ppt/charts/${chart.name}`, chart.xml);
+                newCtCharts.push(chart.name);
+            }
+
+            // presentation.xml 追加 sldId
+            const maxId = info.entries.reduce((m, e) => Math.max(m, Number(e.id) || 256), 255);
+            const usedRelIds = new Set(info.rels.map(r => r.Id));
+            let relNum = 1;
+            while (usedRelIds.has(`rId${relNum}`)) relNum++;
+            const newRelId = `rId${relNum}`;
+
+            const newEntries = [...info.entries, { id: maxId + 1, relId: newRelId }];
+            zip.file('ppt/presentation.xml', rewriteSldIdLst(info.text, newEntries));
+
+            // 回写 app.xml 幻灯片计数
+            await setAppSlideCount(newEntries.length);
+
+            // presentation.xml.rels 追加关系
+            const relsText = await readText('ppt/_rels/presentation.xml.rels');
+            const newRel = `<Relationship Id="${newRelId}" Type="${REL_TYPES.slide}" Target="slides/slide${nextNum}.xml"/>`;
+            zip.file('ppt/_rels/presentation.xml.rels', relsText.replace('</Relationships>', newRel + '</Relationships>'));
+
+            // Content-Types 追加
+            const ctText = await readText('[Content_Types].xml');
+            let newCt = ctText;
+            const override = `<Override PartName="/ppt/slides/slide${nextNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
+            newCt = newCt.replace('</Types>', override + '</Types>');
+            const MIME_MAP = { png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml' };
+            for (const ext of mediaExts) {
+                if (!newCt.includes(`Extension="${ext}"`)) {
+                    newCt = newCt.replace('</Types>', `<Default Extension="${ext}" ContentType="${MIME_MAP[ext] || 'application/octet-stream'}"/></Types>`);
+                }
+            }
+            for (const chartName of newCtCharts) {
+                if (!newCt.includes(`/ppt/charts/${chartName}`)) {
+                    newCt = newCt.replace('</Types>', `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>`);
+                }
+            }
+            zip.file('[Content_Types].xml', newCt);
+        }
+    };
+
+    /**
+     * 移除 [Content_Types].xml 中指定部件的覆盖项
+     * @param {string} partPath - 部件路径（如 ppt/slides/slide2.xml）
+     */
+    async function removeContentTypeOverride(partPath) {
+        const ctText = await readText('[Content_Types].xml');
+        if (!ctText) return;
+        const re = new RegExp(`<Override PartName="/${partPath.replace(/\//g, '\\/')}"[^>]*/>`);
+        zip.file('[Content_Types].xml', ctText.replace(re, ''));
+    }
+}
+
+/**
+ * PPTX Composer 模块（流式构建 API）
+ *
+ * 参考 nodejs-pptx 的 Composer 模式，提供两种等价写法：
+ *
+ * 1. 回调式（fluent）：
+ *    const composer = new PPTXComposer();
+ *    composer.addSlide(slide => {
+ *        slide.addText(t => t.value('Hello').x(100).y(50).fontSize(24).bold());
+ *        slide.addShape({ shapeType: 'roundRect', x: 0, y: 0, width: 200, height: 100, fill: { color: '#4f46e5' } });
+ *    });
+ *    const data = await composer.save();
+ *
+ * 2. 对象式：直接传配置对象给 addText/addShape/addImage。
+ *
+ * Composer 内部维护一棵「演示文稿 JSON 树」，可通过 toJSON() 导出，
+ * 再交给 jsonToPptx() 序列化为 PPTX 文件（save() 即此封装）。
+ *
+ * @module serializer/composer
+ */
+
+
+/** 默认 16:9 幻灯片尺寸（px，与解析端 SLIDE_FACTOR 换算一致：12192000EMU x 6858000EMU） */
+const DEFAULT_SLIDE_SIZE = { width: 1280, height: 720 };
+
+/**
+ * 创建作用于目标对象的流式 setter 集合
+ * @param {Object} el - 实际承载属性的目标对象
+ * @param {string[]} keys - 属性名列表
+ * @returns {Object} 构建器（每个 key 对应一个 setter，返回构建器自身以支持链式调用）
+ */
+function makeFluent(el, keys) {
+    const builder = {};
+    for (const key of keys) {
+        builder[key] = function (value) {
+            el[key] = value === undefined ? true : value;
+            return builder;
+        };
+    }
+    return builder;
+}
+
+/**
+ * 应用回调或对象配置
+ * @param {Object} element - 元素对象
+ * @param {Function|Object} config - 回调函数或配置对象
+ */
+function applyConfig(element, config) {
+    if (typeof config === 'function') {
+        config(element);
+    } else if (config && typeof config === 'object') {
+        Object.assign(element, config);
+    }
+}
+
+/**
+ * 幻灯片构建器
+ */
+class SlideComposer {
+    constructor() {
+        /** @type {{background: *, elements: Array}} */
+        this.slide = { background: null, elements: [] };
+    }
+
+    /**
+     * 设置背景色
+     * @param {string} color - 颜色值
+     * @returns {SlideComposer} this
+     */
+    background(color) {
+        this.slide.background = color;
+        return this;
+    }
+
+    /**
+     * 添加文本框
+     * @param {Function|Object} config - 回调（接收流式构建器）或配置对象
+     * @returns {SlideComposer} this
+     */
+    addText(config) {
+        const el = { type: 'text', x: 0, y: 0, width: 300, height: 60 };
+        if (typeof config === 'function') {
+            const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'align', 'valign',
+                'fontSize', 'color', 'bold', 'italic', 'underline', 'fontFace', 'href', 'lang', 'name']);
+            builder.value = (text) => { el.text = text; return builder; };
+            builder.runs = (runs) => { el.runs = runs; return builder; };
+            builder.paragraphs = (paragraphs) => { el.paragraphs = paragraphs; return builder; };
+            config(builder);
+        } else {
+            applyConfig(el, config);
+        }
+        this.slide.elements.push(el);
+        return this;
+    }
+
+    /**
+     * 添加形状
+     * @param {Function|Object} config - 回调（接收流式构建器）或配置对象
+     * @returns {SlideComposer} this
+     */
+    addShape(config) {
+        const el = { type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 200, height: 120 };
+        if (typeof config === 'function') {
+            const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'rotation', 'name']);
+            builder.shapeType = (type) => { el.shapeType = type; return builder; };
+            builder.fill = (fill) => { el.fill = fill; return builder; };
+            builder.line = (line) => { el.line = line; return builder; };
+            config(builder);
+        } else {
+            applyConfig(el, config);
+        }
+        this.slide.elements.push(el);
+        return this;
+    }
+
+    /**
+     * 添加图片
+     * @param {Function|Object} config - 回调（接收流式构建器）或配置对象
+     * @returns {SlideComposer} this
+     */
+    addImage(config) {
+        const el = { type: 'image', x: 0, y: 0, width: 300, height: 200 };
+        if (typeof config === 'function') {
+            const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'extension', 'href', 'name']);
+            builder.data = (data) => { el.data = data; return builder; };
+            builder.src = (src) => { el.src = src; return builder; };
+            config(builder);
+        } else {
+            applyConfig(el, config);
+        }
+        this.slide.elements.push(el);
+        return this;
+    }
+
+    /**
+     * 添加原生图表（PowerPoint/WPS 可编辑的真图表）
+     * 配置对象字段：
+     *   chartType: 'barChart'|'lineChart'|'areaChart'|'pieChart'|'pie3DChart'|'scatterChart'
+     *   title, legend, varyColors, categories:[],
+     *   series: [{ name, values:[] }]（非散点） 或  [{ name, x:[], y:[] }]（散点）
+     * @param {Function|Object} config - 回调（接收配置对象，可直接赋值字段）或配置对象
+     * @returns {SlideComposer} this
+     */
+    addChart(config) {
+        const el = { type: 'chart', chartType: 'barChart', x: 0, y: 0, width: 600, height: 400 };
+        if (typeof config === 'function') {
+            config(el);
+        } else {
+            applyConfig(el, config);
+        }
+        this.slide.elements.push(el);
+        return this;
+    }
+}
+
+/**
+ * 演示文稿构建器（Composer）
+ */
+class PPTXComposer {
+    constructor() {
+        this.presentation = {
+            metadata: {},
+            slideSize: { ...DEFAULT_SLIDE_SIZE },
+            slides: []
+        };
+    }
+
+    /**
+     * 设置幻灯片尺寸（px）。兼容两种写法：
+     *   slideSize(1280, 720) 或 slideSize({ width: 1280, height: 720 })
+     * @param {number|Object} width - 宽，或含 width/height 的对象
+     * @param {number} [height] - 高
+     * @returns {PPTXComposer} this
+     */
+    slideSize(width, height) {
+        if (width && typeof width === 'object') {
+            this.presentation.slideSize = {
+                width: width.width,
+                height: width.height
+            };
+        } else {
+            this.presentation.slideSize = { width, height };
+        }
+        return this;
+    }
+
+    /**
+     * 设置元数据（字段与 pptxToJson 返回的 metadata 互通）
+     * @param {Object} metadata - 元数据
+     * @returns {PPTXComposer} this
+     */
+    metadata(metadata) {
+        this.presentation.metadata = { ...this.presentation.metadata, ...metadata };
+        return this;
+    }
+
+    /** 元数据便捷方法：标题 */
+    title(value) { return this.metadata({ title: value }); }
+
+    /** 元数据便捷方法：作者 */
+    author(value) { return this.metadata({ author: value }); }
+
+    /** 元数据便捷方法：主题 */
+    subject(value) { return this.metadata({ subject: value }); }
+
+    /** 元数据便捷方法：关键词 */
+    keywords(value) { return this.metadata({ keywords: value }); }
+
+    /** 元数据便捷方法：描述 */
+    description(value) { return this.metadata({ description: value }); }
+
+    /**
+     * 添加幻灯片
+     * @param {Function|Object} config - 回调（接收 SlideComposer）或幻灯片配置对象
+     * @returns {PPTXComposer} this
+     */
+    addSlide(config) {
+        const slideComposer = new SlideComposer();
+        if (typeof config === 'function') {
+            config(slideComposer);
+        } else if (config && typeof config === 'object') {
+            applyConfig(slideComposer.slide, config);
+        }
+        this.presentation.slides.push(slideComposer.slide);
+        return this;
+    }
+
+    /**
+     * 导出演示文稿 JSON 树（可直接传给 jsonToPptx）
+     * @returns {Object} 演示文稿 JSON
+     */
+    toJSON() {
+        return JSON.parse(JSON.stringify(this.presentation));
+    }
+
+    /**
+     * 序列化为 PPTX 文件数据
+     * @param {Object} [options] - 序列化选项（同 jsonToPptx options）
+     * @returns {Promise<Uint8Array>} PPTX 文件二进制数据
+     */
+    save(options) {
+        return jsonToPptx(this.toJSON(), options);
+    }
+}
+
+/**
  * Parse PPTX file to structured JSON data (internal function)
  * @param {ArrayBuffer} file - The PPTX file data
  * @param {Object} settings - Conversion settings
@@ -19037,5 +20745,5 @@ function extractSlideTransition(slideContent) {
     };
 }
 
-export { pptxToHtml as default, pptxToFiles, pptxToHtml, pptxToJson };
+export { PPTXComposer, pptxToHtml as default, editPptx, jsonToPptx, pptxToFiles, pptxToHtml, pptxToJson };
 //# sourceMappingURL=ppt-parser.browser.js.map
