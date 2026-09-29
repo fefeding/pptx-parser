@@ -547,6 +547,18 @@ export declare function pptxToHtml(
     options?: PptxParserOptions
 ): Promise<PptxHtmlResult | null>;
 
+// 与源码 `export default pptxToHtml` 对齐
+export default pptxToHtml;
+
+// 函数类型别名：供下方 pptxParser 命名空间引用，避免在命名空间内
+// 用 `typeof pptxToHtml` 造成的自引用循环（TS2502）
+type _PptxToHtml = typeof pptxToHtml;
+type _PptxToJson = typeof pptxToJson;
+type _PptxToFiles = typeof pptxToFiles;
+type _JsonToPptx = typeof jsonToPptx;
+type _EditPptx = typeof editPptx;
+type _PPTXComposer = typeof PPTXComposer;
+
 /**
  * PPTX转JSON转换器
  * @param fileData - PPTX文件数据
@@ -764,32 +776,32 @@ export declare namespace pptxParser {
     /**
      * PPTX转HTML转换器
      */
-    const pptxToHtml: typeof import('./src/js/index').pptxToHtml;
+    const pptxToHtml: _PptxToHtml;
 
     /**
      * PPTX转JSON转换器
      */
-    const pptxToJson: typeof import('./src/js/index').pptxToJson;
+    const pptxToJson: _PptxToJson;
 
     /**
      * PPTX转文件索引和内容转换器
      */
-    const pptxToFiles: typeof import('./src/js/index').pptxToFiles;
+    const pptxToFiles: _PptxToFiles;
 
     /**
      * JSON转PPTX序列化器
      */
-    const jsonToPptx: typeof import('./src/js/index').jsonToPptx;
+    const jsonToPptx: _JsonToPptx;
 
     /**
      * PPTX编辑器
      */
-    const editPptx: typeof import('./src/js/index').editPptx;
+    const editPptx: _EditPptx;
 
     /**
      * 演示文稿流式构建器
      */
-    const PPTXComposer: typeof import('./src/js/index').PPTXComposer;
+    const PPTXComposer: _PPTXComposer;
 }
 
 /**
@@ -798,12 +810,12 @@ export declare namespace pptxParser {
 declare global {
     interface Window {
         pptxParser: {
-            pptxToHtml: typeof import('./src/js/index').pptxToHtml;
-            pptxToJson: typeof import('./src/js/index').pptxToJson;
-            pptxToFiles: typeof import('./src/js/index').pptxToFiles;
-            jsonToPptx: typeof import('./src/js/index').jsonToPptx;
-            editPptx: typeof import('./src/js/index').editPptx;
-            PPTXComposer: typeof import('./src/js/index').PPTXComposer;
+            pptxToHtml: typeof pptxToHtml;
+            pptxToJson: typeof pptxToJson;
+            pptxToFiles: typeof pptxToFiles;
+            jsonToPptx: typeof jsonToPptx;
+            editPptx: typeof editPptx;
+            PPTXComposer: typeof PPTXComposer;
         };
     }
 }
