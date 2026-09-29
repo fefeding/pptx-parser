@@ -1196,12 +1196,12 @@ function getTextWidth(html) {
         return {
             format: (n) => {
                 let ret = '';
-                for (let i = 0; i < arr.length; i++) {
-                    let num = arr[i][0];
+                for (const item of arr){
+                    let num = item[0];
                     if (parseInt(num) > 0) {
-                        for (; n >= num; n -= num) ret += arr[i][1];
+                        for (; n >= num; n -= num) ret += item[1];
                     } else {
-                        ret = ret.replace(num, arr[i][1]);
+                        ret = ret.replace(num, item[1]);
                     }
                 }
                 return ret;
@@ -1718,9 +1718,9 @@ function getTextWidth(html) {
                 let tbleStylList = warpObj.tableStyles["a:tblStyleLst"]["a:tblStyle"];
                 if (tbleStylList !== undefined) {
                     if (tbleStylList.constructor === Array) {
-                        for (let k = 0; k < tbleStylList.length; k++) {
-                            if (tbleStylList[k]["attrs"]["styleId"] == tbleStyleId) {
-                                thisTblStyle = tbleStylList[k];
+                        for (const item of tbleStylList){
+                            if (item["attrs"]["styleId"] == tbleStyleId) {
+                                thisTblStyle = item;
                             }
                         }
                     } else {

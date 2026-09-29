@@ -83,13 +83,13 @@ function readAdjustmentParams(node, w, h) {
     let sAdj2, sAdj2_val = 0.5;
     
     if (shapAdjst) {
-        for (let i = 0; i < shapAdjst.length; i++) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "name"]);
+        for (const item of shapAdjst){
+            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj1") {
-                sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
             } else if (sAdjName === "adj2") {
-                sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                 const maxConst = w / h;  // 会在调用处重新计算
                 sAdj2_val = sAdj2Val2 / maxConst;
@@ -120,10 +120,10 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
     // 重新读取并计算 sAdj2_val（因为需要正确的 max_sAdj2_const）
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
     if (shapAdjst) {
-        for (let i = 0; i < shapAdjst.length; i++) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "name"]);
+        for (const item of shapAdjst){
+            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj2") {
-                const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                 sAdj2_val = sAdj2Val2 / max_sAdj2_const;
             }
@@ -143,10 +143,10 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         let sAdj2_val_up = 0.5;
         
         if (shapAdjst_up) {
-            for (let i = 0; i < shapAdjst_up.length; i++) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst_up[i], ["attrs", "name"]);
+            for (const item of shapAdjst_up){
+                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_up[i], ["attrs", "fmla"]);
+                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val_up = sAdj2Val2 / max_sAdj2_const_up;
                 }
@@ -161,10 +161,10 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         let sAdj2_val_down = 0.5;
         
         if (shapAdjst_down) {
-            for (let i = 0; i < shapAdjst_down.length; i++) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst_down[i], ["attrs", "name"]);
+            for (const item of shapAdjst_down){
+                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_down[i], ["attrs", "fmla"]);
+                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val_down = sAdj2Val2 / max_sAdj2_const_down;
                 }
@@ -197,13 +197,13 @@ function renderDoubleArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
     
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
     if (shapAdjst) {
-        for (let i = 0; i < shapAdjst.length; i++) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "name"]);
+        for (const item of shapAdjst){
+            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj1") {
-                const sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                const sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
             } else if (sAdjName === "adj2") {
-                const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                 sAdj2_val = sAdj2Val2 / max_sAdj2_const;
             }
@@ -221,13 +221,13 @@ function renderDoubleArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
         
         const shapAdjst_ud = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         if (shapAdjst_ud) {
-            for (let i = 0; i < shapAdjst_ud.length; i++) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst_ud[i], ["attrs", "name"]);
+            for (const item of shapAdjst_ud){
+                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj1") {
-                    const sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ud[i], ["attrs", "fmla"]);
+                    const sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
                 } else if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ud[i], ["attrs", "fmla"]);
+                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val = sAdj2Val2 / max_sAdj2_const_ud;
                 }

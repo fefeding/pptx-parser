@@ -187,13 +187,13 @@ export const PPTXXmlUtils = (function() {
         let subObj = ContentTypesJson["Types"]["Override"];
         let slidesLocArray = [];
         let slideLayoutsLocArray = [];
-        for (let i = 0; i < subObj.length; i++) {
-            switch (subObj[i]["attrs"]["ContentType"]) {
+        for (const item of subObj){
+            switch (item["attrs"]["ContentType"]) {
                 case "application/vnd.openxmlformats-officedocument.presentationml.slide+xml":
-                    slidesLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
+                    slidesLocArray.push(item["attrs"]["PartName"].substr(1));
                     break;
                 case "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml":
-                    slideLayoutsLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
+                    slideLayoutsLocArray.push(item["attrs"]["PartName"].substr(1));
                     break;
                 default:
             }

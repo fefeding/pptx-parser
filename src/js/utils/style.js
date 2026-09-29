@@ -1068,12 +1068,12 @@ function getFillType(node) {
                         let bgFillLstTyp = bgFillLst[key];
                         if (key != "attrs") {
                             if (bgFillLstTyp.constructor === Array) {
-                                for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                for (const item of bgFillLstTyp){
                                     let obj = {};
-                                    obj[key] = bgFillLstTyp[i];
-                                    obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                                    obj[key] = item;
+                                    obj["idex"] = item["attrs"]["order"];
                                     obj["attrs"] = {
-                                        "order": bgFillLstTyp[i]["attrs"]["order"]
+                                        "order": item["attrs"]["order"]
                                     }
                                     sortblAry.push(obj)
                                 }
@@ -1158,12 +1158,12 @@ function getFillType(node) {
                             let bgFillLstTyp = bgFillLst[key];
                             if (key != "attrs") {
                                 if (bgFillLstTyp.constructor === Array) {
-                                    for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                    for (const item of bgFillLstTyp){
                                         let obj = {};
-                                        obj[key] = bgFillLstTyp[i];
-                                        obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                                        obj[key] = item;
+                                        obj["idex"] = item["attrs"]["order"];
                                         obj["attrs"] = {
-                                            "order": bgFillLstTyp[i]["attrs"]["order"]
+                                            "order": item["attrs"]["order"]
                                         }
                                         sortblAry.push(obj)
                                     }
@@ -1253,12 +1253,12 @@ function getFillType(node) {
                                 let bgFillLstTyp = bgFillLst[key];
                                 if (key != "attrs") {
                                     if (bgFillLstTyp.constructor === Array) {
-                                        for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                        for (const item of bgFillLstTyp){
                                             let obj = {};
-                                            obj[key] = bgFillLstTyp[i];
-                                            obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                                            obj[key] = item;
+                                            obj["idex"] = item["attrs"]["order"];
                                             obj["attrs"] = {
-                                                "order": bgFillLstTyp[i]["attrs"]["order"]
+                                                "order": item["attrs"]["order"]
                                             }
                                             sortblAry.push(obj)
                                         }

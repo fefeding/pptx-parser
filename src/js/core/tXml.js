@@ -18,11 +18,7 @@ let order = 1;
  * @param {Function} [options.filter] - 过滤函数
  * @returns {Array|Object} 解析结果
  */
-function tXml(xml, options) {
-    'use strict';
-
-    options = options || {};
-
+function tXml(xml, options = {}) {
     const POS = options.pos || 0;
 
     // 字符常量
@@ -329,12 +325,12 @@ tXml.stringify = (nodes) => {
     function processNodes(nodes) {
         if (!nodes)
             return;
-        for (let i = 0; i < nodes.length; i++) {
-            if (typeof nodes[i] === 'string') {
-                xmlString += nodes[i].trim();
+        for (const item of nodes){
+            if (typeof item === 'string') {
+                xmlString += item.trim();
             }
             else {
-                processNode(nodes[i]);
+                processNode(item);
             }
         }
     }

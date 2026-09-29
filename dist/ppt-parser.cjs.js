@@ -93,10 +93,7 @@ let order = 1;
  * @param {Function} [options.filter] - 过滤函数
  * @returns {Array|Object} 解析结果
  */
-function tXml(xml, options) {
-
-    options = options || {};
-
+function tXml(xml, options = {}) {
     const POS = options.pos || 0;
 
     // 字符常量
@@ -403,12 +400,12 @@ tXml.stringify = (nodes) => {
     function processNodes(nodes) {
         if (!nodes)
             return;
-        for (let i = 0; i < nodes.length; i++) {
-            if (typeof nodes[i] === 'string') {
-                xmlString += nodes[i].trim();
+        for (const item of nodes){
+            if (typeof item === 'string') {
+                xmlString += item.trim();
             }
             else {
-                processNode(nodes[i]);
+                processNode(item);
             }
         }
     }
@@ -714,13 +711,13 @@ const PPTXXmlUtils = (function() {
         let subObj = ContentTypesJson["Types"]["Override"];
         let slidesLocArray = [];
         let slideLayoutsLocArray = [];
-        for (let i = 0; i < subObj.length; i++) {
-            switch (subObj[i]["attrs"]["ContentType"]) {
+        for (const item of subObj){
+            switch (item["attrs"]["ContentType"]) {
                 case "application/vnd.openxmlformats-officedocument.presentationml.slide+xml":
-                    slidesLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
+                    slidesLocArray.push(item["attrs"]["PartName"].substr(1));
                     break;
                 case "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml":
-                    slideLayoutsLocArray.push(subObj[i]["attrs"]["PartName"].substr(1));
+                    slideLayoutsLocArray.push(item["attrs"]["PartName"].substr(1));
                     break;
             }
         }
@@ -2271,12 +2268,12 @@ function getFillType(node) {
                         let bgFillLstTyp = bgFillLst[key];
                         if (key != "attrs") {
                             if (bgFillLstTyp.constructor === Array) {
-                                for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                for (const item of bgFillLstTyp){
                                     let obj = {};
-                                    obj[key] = bgFillLstTyp[i];
-                                    obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                                    obj[key] = item;
+                                    obj["idex"] = item["attrs"]["order"];
                                     obj["attrs"] = {
-                                        "order": bgFillLstTyp[i]["attrs"]["order"]
+                                        "order": item["attrs"]["order"]
                                     };
                                     sortblAry.push(obj);
                                 }
@@ -2354,12 +2351,12 @@ function getFillType(node) {
                             let bgFillLstTyp = bgFillLst[key];
                             if (key != "attrs") {
                                 if (bgFillLstTyp.constructor === Array) {
-                                    for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                    for (const item of bgFillLstTyp){
                                         let obj = {};
-                                        obj[key] = bgFillLstTyp[i];
-                                        obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                                        obj[key] = item;
+                                        obj["idex"] = item["attrs"]["order"];
                                         obj["attrs"] = {
-                                            "order": bgFillLstTyp[i]["attrs"]["order"]
+                                            "order": item["attrs"]["order"]
                                         };
                                         sortblAry.push(obj);
                                     }
@@ -2442,12 +2439,12 @@ function getFillType(node) {
                                 let bgFillLstTyp = bgFillLst[key];
                                 if (key != "attrs") {
                                     if (bgFillLstTyp.constructor === Array) {
-                                        for (let i = 0; i < bgFillLstTyp.length; i++) {
+                                        for (const item of bgFillLstTyp){
                                             let obj = {};
-                                            obj[key] = bgFillLstTyp[i];
-                                            obj["idex"] = bgFillLstTyp[i]["attrs"]["order"];
+                                            obj[key] = item;
+                                            obj["idex"] = item["attrs"]["order"];
                                             obj["attrs"] = {
-                                                "order": bgFillLstTyp[i]["attrs"]["order"]
+                                                "order": item["attrs"]["order"]
                                             };
                                             sortblAry.push(obj);
                                         }
@@ -6415,12 +6412,12 @@ function getTextWidth(html) {
         return {
             format: (n) => {
                 let ret = '';
-                for (let i = 0; i < arr.length; i++) {
-                    let num = arr[i][0];
+                for (const item of arr){
+                    let num = item[0];
                     if (parseInt(num) > 0) {
-                        for (; n >= num; n -= num) ret += arr[i][1];
+                        for (; n >= num; n -= num) ret += item[1];
                     } else {
-                        ret = ret.replace(num, arr[i][1]);
+                        ret = ret.replace(num, item[1]);
                     }
                 }
                 return ret;
@@ -6927,9 +6924,9 @@ function getTextWidth(html) {
                 let tbleStylList = warpObj.tableStyles["a:tblStyleLst"]["a:tblStyle"];
                 if (tbleStylList !== undefined) {
                     if (tbleStylList.constructor === Array) {
-                        for (let k = 0; k < tbleStylList.length; k++) {
-                            if (tbleStylList[k]["attrs"]["styleId"] == tbleStyleId) {
-                                thisTblStyle = tbleStylList[k];
+                        for (const item of tbleStylList){
+                            if (item["attrs"]["styleId"] == tbleStyleId) {
+                                thisTblStyle = item;
                             }
                         }
                     } else {
@@ -8611,16 +8608,16 @@ function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
     let sAdj3, adj3;
     if (shapAdjst_ary !== undefined) {
         if (shapAdjst_ary.constructor === Array) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+            for (const item of shapAdjst_ary){
+                const sAdj_name = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
-                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4));
                 } else if (sAdj_name == "adj2") {
-                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     adj2 = parseInt(sAdj2.substr(4));
                 } else if (sAdj_name == "adj3") {
-                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj3 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     adj3 = parseInt(sAdj3.substr(4));
                 }
             }
@@ -9350,13 +9347,13 @@ function readAdjustmentParams(node, w, h) {
     let sAdj2, sAdj2_val = 0.5;
     
     if (shapAdjst) {
-        for (let i = 0; i < shapAdjst.length; i++) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "name"]);
+        for (const item of shapAdjst){
+            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj1") {
-                sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
             } else if (sAdjName === "adj2") {
-                sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                 const maxConst = w / h;  // 会在调用处重新计算
                 sAdj2_val = sAdj2Val2 / maxConst;
@@ -9387,10 +9384,10 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
     // 重新读取并计算 sAdj2_val（因为需要正确的 max_sAdj2_const）
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
     if (shapAdjst) {
-        for (let i = 0; i < shapAdjst.length; i++) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "name"]);
+        for (const item of shapAdjst){
+            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj2") {
-                const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                 sAdj2_val = sAdj2Val2 / max_sAdj2_const;
             }
@@ -9410,10 +9407,10 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         let sAdj2_val_up = 0.5;
         
         if (shapAdjst_up) {
-            for (let i = 0; i < shapAdjst_up.length; i++) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst_up[i], ["attrs", "name"]);
+            for (const item of shapAdjst_up){
+                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_up[i], ["attrs", "fmla"]);
+                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val_up = sAdj2Val2 / max_sAdj2_const_up;
                 }
@@ -9428,10 +9425,10 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         let sAdj2_val_down = 0.5;
         
         if (shapAdjst_down) {
-            for (let i = 0; i < shapAdjst_down.length; i++) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst_down[i], ["attrs", "name"]);
+            for (const item of shapAdjst_down){
+                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_down[i], ["attrs", "fmla"]);
+                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val_down = sAdj2Val2 / max_sAdj2_const_down;
                 }
@@ -9464,13 +9461,13 @@ function renderDoubleArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
     
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
     if (shapAdjst) {
-        for (let i = 0; i < shapAdjst.length; i++) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "name"]);
+        for (const item of shapAdjst){
+            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj1") {
-                const sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                const sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
             } else if (sAdjName === "adj2") {
-                const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst[i], ["attrs", "fmla"]);
+                const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                 const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                 sAdj2_val = sAdj2Val2 / max_sAdj2_const;
             }
@@ -9488,13 +9485,13 @@ function renderDoubleArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
         
         const shapAdjst_ud = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
         if (shapAdjst_ud) {
-            for (let i = 0; i < shapAdjst_ud.length; i++) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(shapAdjst_ud[i], ["attrs", "name"]);
+            for (const item of shapAdjst_ud){
+                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj1") {
-                    const sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ud[i], ["attrs", "fmla"]);
+                    const sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
                 } else if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ud[i], ["attrs", "fmla"]);
+                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
                     sAdj2_val = sAdj2Val2 / max_sAdj2_const_ud;
                 }

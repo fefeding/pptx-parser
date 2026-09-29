@@ -30,16 +30,16 @@ export function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillCo
     let sAdj3, adj3;
     if (shapAdjst_ary !== undefined) {
         if (shapAdjst_ary.constructor === Array) {
-            for (var i = 0; i < shapAdjst_ary.length; i++) {
-                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+            for (const item of shapAdjst_ary){
+                const sAdj_name = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdj_name == "adj1") {
-                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     adj1 = parseInt(sAdj1.substr(4));
                 } else if (sAdj_name == "adj2") {
-                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     adj2 = parseInt(sAdj2.substr(4));
                 } else if (sAdj_name == "adj3") {
-                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj3 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
                     adj3 = parseInt(sAdj3.substr(4));
                 }
             }
