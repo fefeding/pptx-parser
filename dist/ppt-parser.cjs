@@ -6365,9 +6365,9 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 Object.keys(moveToPtNode).forEach((key2) => {
                     var ptObj = {};
                     var moveToNoPt = moveToPtNode[key2];
-                    var spX = moveToNoPt["attrs"]["x"];
-                    var spY = moveToNoPt["attrs"]["y"];
-                    var ptOrdr = moveToNoPt["attrs"]["order"];
+                    var spX = moveToNoPt["x"];
+                    var spY = moveToNoPt["y"];
+                    var ptOrdr = moveToNoPt["order"];
                     ptObj.type = "movto";
                     ptObj.order = ptOrdr;
                     ptObj.x = spX;
@@ -6383,9 +6383,9 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                     Object.keys(lnToPtNode).forEach((key2) => {
                         var ptObj = {};
                         var lnToNoPt = lnToPtNode[key2];
-                        var ptX = lnToNoPt["attrs"]["x"];
-                        var ptY = lnToNoPt["attrs"]["y"];
-                        var ptOrdr = lnToNoPt["attrs"]["order"];
+                        var ptX = lnToNoPt["x"];
+                        var ptY = lnToNoPt["y"];
+                        var ptOrdr = lnToNoPt["order"];
                         ptObj.type = "lnto";
                         ptObj.order = ptOrdr;
                         ptObj.x = ptX;

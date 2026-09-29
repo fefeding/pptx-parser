@@ -58,11 +58,12 @@ export function renderCustomShape(custShapType: any, w: any, h: any, imgFillFlg:
     var ptObj: any = {};
     var moveToNoPt = moveToPtNode[key2];
     
-    var spX = moveToNoPt["attrs"]["x"];
+    // moveToNoPt 已是 a:pt 的 attrs 对象（由 Object.keys 迭代得到），直接取 x
+    var spX = moveToNoPt["x"];
     
-    var spY = moveToNoPt["attrs"]["y"];
+    var spY = moveToNoPt["y"];
     
-    var ptOrdr = moveToNoPt["attrs"]["order"];
+    var ptOrdr = moveToNoPt["order"];
     ptObj.type = "movto";
     ptObj.order = ptOrdr;
     ptObj.x = spX;
@@ -81,11 +82,12 @@ export function renderCustomShape(custShapType: any, w: any, h: any, imgFillFlg:
     var ptObj: any = {};
     var lnToNoPt = lnToPtNode[key2];
     
-    var ptX = lnToNoPt["attrs"]["x"];
+    // lnToNoPt 已是 a:pt 的 attrs 对象，直接取 x
+    var ptX = lnToNoPt["x"];
     
-    var ptY = lnToNoPt["attrs"]["y"];
+    var ptY = lnToNoPt["y"];
     
-    var ptOrdr = lnToNoPt["attrs"]["order"];
+    var ptOrdr = lnToNoPt["order"];
     ptObj.type = "lnto";
     ptObj.order = ptOrdr;
     ptObj.x = ptX;
