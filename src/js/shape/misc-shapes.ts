@@ -6,11 +6,13 @@
 import { PPTXXmlUtils } from '../utils/xml';
 import { shapeArc, shapeArcAlt } from './path-generators';
 import { SLIDE_FACTOR } from '../core/constants';
+import type { XmlNode } from '../core/types';
+import type { ShapeBorder } from './pie-shapes';
 
 /**
  * 检查形状是否为杂项形状
  */
-export function isMiscShape(shapType: any) {
+export function isMiscShape(shapType: string) {
     const miscShapes = [
         'smileyFace', 'verticalScroll', 'horizontalScroll'
     ];
@@ -20,7 +22,7 @@ export function isMiscShape(shapType: any) {
 /**
  * 渲染杂项形状
  */
-export function renderMiscShape(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
+export function renderMiscShape(shapType: string, w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, node: XmlNode) {
     let result = "";
     let dVal = "";
 

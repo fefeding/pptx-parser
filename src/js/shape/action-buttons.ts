@@ -3,11 +3,13 @@
  * 处理所有 actionButton 类型的形状渲染
  */
 
+import type { ShapeBorder } from './pie-shapes';
+
 /**
  * 渲染 actionButtonBackPrevious 形状
  * 返回按钮（左箭头）
  */
-function renderBackPrevious(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
+function renderBackPrevious(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -24,7 +26,7 @@ function renderBackPrevious(w: any, h: any, imgFillFlg: any, grndFillFlg: any, f
  * 渲染 actionButtonBeginning 形状
  * 开始按钮（双竖线+左箭头）
  */
-function renderBeginning(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
+function renderBeginning(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -46,7 +48,7 @@ function renderBeginning(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fill
  * 渲染 actionButtonDocument 形状
  * 文档按钮
  */
-function renderDocument(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
+function renderDocument(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -67,7 +69,7 @@ function renderDocument(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillC
  * 渲染 actionButtonEnd 形状
  * 结束按钮（双竖线+右箭头）
  */
-function renderEnd(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
+function renderEnd(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -89,7 +91,7 @@ function renderEnd(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor:
  * 渲染 actionButtonForwardNext 形状
  * 前进按钮（右箭头）
  */
-function renderForwardNext(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
+function renderForwardNext(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -106,7 +108,7 @@ function renderForwardNext(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fi
  * 渲染 actionButtonHelp 形状
  * 帮助按钮（问号）
  */
-function renderHelp(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, shapeArcAlt: any) {
+function renderHelp(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, shapeArcAlt: (cX: number, cY: number, rx: number, ry: number, start: number, end: number, flag: boolean) => string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -143,7 +145,7 @@ function renderHelp(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor
  * 渲染 actionButtonHome 形状
  * 主页按钮（房子图标）
  */
-function renderHome(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
+function renderHome(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -181,7 +183,7 @@ function renderHome(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor
  * 渲染 actionButtonInformation 形状
  * 信息按钮（感叹号+圆点）
  */
-function renderInformation(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, shapeArcAlt: any) {
+function renderInformation(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, shapeArcAlt: (cX: number, cY: number, rx: number, ry: number, start: number, end: number, flag: boolean) => string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -217,7 +219,7 @@ function renderInformation(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fi
  * 渲染 actionButtonMovie 形状
  * 影片按钮（胶片图标）
  */
-function renderMovie(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
+function renderMovie(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -269,7 +271,7 @@ function renderMovie(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColo
  * 渲染 actionButtonReturn 形状
  * 返回按钮（折返箭头）
  */
-function renderReturn(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, shapeArcAlt: any) {
+function renderReturn(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, shapeArcAlt: (cX: number, cY: number, rx: number, ry: number, start: number, end: number, flag: boolean) => string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -305,7 +307,7 @@ function renderReturn(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillCol
  * 渲染 actionButtonSound 形状
  * 声音按钮（喇叭图标）
  */
-function renderSound(w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any) {
+function renderSound(w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string) {
     const hc = w / 2, vc = h / 2, ss = Math.min(w, h);
     const dx2 = ss * 3 / 8;
     const g9 = vc - dx2;
@@ -362,7 +364,7 @@ const BUTTON_RENDERERS = {
  * @param {Function} shapeArcAlt - 弧形生成函数
  * @returns {string} SVG 路径字符串
  */
-export function renderActionButton(shapeType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, shapeArcAlt: any) {
+export function renderActionButton(shapeType: string, w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, shapeArcAlt: (cX: number, cY: number, rx: number, ry: number, start: number, end: number, flag: boolean) => string) {
     const renderer = (BUTTON_RENDERERS as any)[shapeType];
     if (!renderer) {
         return '';
@@ -375,6 +377,6 @@ export function renderActionButton(shapeType: any, w: any, h: any, imgFillFlg: a
  * @param {string} shapeType - 形状类型
  * @returns {boolean}
  */
-export function isActionButton(shapeType: any) {
+export function isActionButton(shapeType: string) {
     return BUTTON_RENDERERS.hasOwnProperty(shapeType);
 }

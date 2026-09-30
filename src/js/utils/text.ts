@@ -11,6 +11,7 @@
  * 
  * @module utils/text
  */
+import type { XmlNode, WarpObject } from '../core/types';
 
 import { PPTXXmlUtils } from './xml';
 import { PPTXStyleUtils } from './style';
@@ -19,12 +20,12 @@ import { genChart } from './chart';
 import TinyColor from 'tinycolor2';
 
 // 创建 tinycolor 工厂函数以保持向后兼容
-const tinycolor = (color: any, opts?: any) => new TinyColor(color, opts);
+const tinycolor = (color: string, opts?: object) => new TinyColor(color, opts);
 let is_first_br = false;
 
 
 
-function getTextWidth(html: any) {
+function getTextWidth(html: string) {
         let div = document.createElement('div');
         div.style.position = 'absolute';
         div.style.float = 'left';
@@ -37,7 +38,7 @@ function getTextWidth(html: any) {
         return width;
     }
 
-    async function genTextBody(textBodyNode: any, spNode: any, slideLayoutSpNode: any, slideMasterSpNode: any, type: any, idx: any, warpObj: any, tbl_col_width?: any) {
+    async function genTextBody(textBodyNode: XmlNode | undefined, spNode: XmlNode, slideLayoutSpNode: XmlNode | undefined, slideMasterSpNode: XmlNode | undefined, type: string, idx: number | undefined, warpObj: WarpObject, tbl_col_width?: number) {
             let text = "";
             let slideMasterTextStyles = warpObj["slideMasterTextStyles"];
 
@@ -106,15 +107,15 @@ function getTextWidth(html: any) {
                 if (rNode !== undefined && brNode !== undefined) {
                     is_first_br = true;
                     brNode = (brNode.constructor === Array) ? brNode : [brNode];
-                    brNode.forEach((item: any, indx: any) => {
+                    brNode.forEach((item: XmlNode, indx: number) => {
                         item.type = "br";
                     });
                     if (brNode.length > 1) {
                         brNode.shift();
                     }
                     rNode = rNode.concat(brNode)
-                    rNode.sort((a: any, b: any) => {
-                        return a.attrs.order - b.attrs.order;
+                    rNode.sort((a: XmlNode, b: XmlNode) => {
+                        return (a.attrs!.order ?? 0) - (b.attrs!.order ?? 0);
                     });
                 }
                 //rtlStr = "";//`dir='${isRTL}'`;
@@ -270,7 +271,7 @@ function getTextWidth(html: any) {
                     prgrph_text += prgr_text;
                 } else if (rNode !== undefined) {
                     // with multi r
-                    let previousStyle: any = {};
+                    let previousStyle: Record<string, unknown> = {};
                     for (const j of rNode.keys()){
                         // 如果当前元素没有sz属性，使用前面元素的样式
                         if (rNode[j]["a:rPr"] && !rNode[j]["a:rPr"]["attrs"] && previousStyle["sz"]) {
@@ -294,7 +295,7 @@ function getTextWidth(html: any) {
                     }
                 }
 
-                prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR - (bu_width as any) - (mrgin_val as any);
+                prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR - bu_width - Number(mrgin_val);
                 prg_width_node = Math.round(prg_width_node * 100) / 100;
                 // 不根据文本测量宽度收缩段落容器：PPT 段落应以文本框可用宽度为准，
                 // 否则在中文/混合字体场景下会因测量误差导致提前换行。
@@ -388,7 +389,7 @@ function getTextWidth(html: any) {
      * @param {string} anchor - 垂直对齐方式（t=顶部, ctr=居中, b=底部）
      * @returns {string} CSS padding字符串
      */
-    function getBodyPrPadding(textBodyNode: any, type: any, anchor: any) {
+    function getBodyPrPadding(textBodyNode: XmlNode, type: string, anchor: string) {
         let paddingStyle = "";
 
         // 获取bodyPr的各个内边距属性
@@ -444,7 +445,7 @@ function getTextWidth(html: any) {
         return paddingStyle;
     }
         
-        async function genBuChar(node: any, i: any, spNode: any, textBodyNode: any, pFontStyle: any, idx: any, type: any, warpObj: any) {
+        async function genBuChar(node: XmlNode, i: number, spNode: XmlNode, textBodyNode: XmlNode, pFontStyle: Record<string, unknown>, idx: number | undefined, type: string, warpObj: WarpObject) {
 
             ///////////////////////////////////////Amir///////////////////////////////
             let sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
@@ -721,7 +722,7 @@ function getTextWidth(html: any) {
             if (buFontSize === undefined) {
                 bultSize = dfltBultSize;
             }
-            font_val = parseInt((bultSize as any), 10);
+            font_val = parseInt(bultSize ?? "", 10);
             ////////////////////////////////////////////////////////////////////////
             if (buType == "TYPE_BULLET") {
                 let typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
@@ -820,7 +821,7 @@ function getTextWidth(html: any) {
                     //bullet += "display: inline-block;white-space: nowrap ;direction:rtl"; // float: right;  
                     bullet += "white-space: nowrap ;direction:rtl"; // display: table-cell;;
                 }
-                let isIE11 = !!(window as any).MSInputMethodContext && !!(document as any).documentMode;
+                let isIE11 = !!(window as { MSInputMethodContext?: unknown }).MSInputMethodContext && !!(document as { documentMode?: unknown }).documentMode;
                 let htmlBu = buChar;
                 let useUnicodeFont = false;
 
@@ -947,7 +948,7 @@ function getTextWidth(html: any) {
 
             return [bullet, margin_val, font_val];//$(bullet).outerWidth()];
         }
-        function getHtmlBullet(typefaceNode: any, buChar: any) {
+        function getHtmlBullet(typefaceNode: string, buChar: string) {
             //http://www.alanwood.net/demos/wingdings.html
             //not work for IE11
             //console.log("genBuChar typefaceNode:", typefaceNode, " buChar:", buChar, "charCodeAt:", buChar.charCodeAt(0))
@@ -1121,10 +1122,10 @@ function getTextWidth(html: any) {
                     return `&#${(buChar.charCodeAt(0))};`;
             }
         }
-        function getDingbatToUnicode(typefaceNode: any, buChar: any){
+        function getDingbatToUnicode(typefaceNode: string, buChar: string){
             // 原为 dingbatUnicode（未定义，运行时 ReferenceError），修正为已导入的 DINGBAT_UNICODE
             if (DINGBAT_UNICODE){
-                let dingbat_code = buChar.codePointAt(0) & 0xFFF;
+                let dingbat_code = (buChar.codePointAt(0) ?? 0) & 0xFFF;
                 let char_unicode = null;
                 let len = DINGBAT_UNICODE.length;
                 let i = 0;
@@ -1132,7 +1133,7 @@ function getTextWidth(html: any) {
                     // blah blah
                     let item = DINGBAT_UNICODE[i];
                     // code 为字符串、dingbat_code 为数值，此处依赖 == 的类型转换语义
-                    if (item.f == typefaceNode && (item.code as any) == dingbat_code) {
+                    if (item.f == typefaceNode && Number(item.code) == dingbat_code) {
                         char_unicode = item.unicode;
                         break;
                     }
@@ -1148,7 +1149,7 @@ function getTextWidth(html: any) {
      * @param {string} upperLower - 大小写选项（upperCase或lowerCase）
      * @returns {string} 字母数字格式的字符串
      */
-    function alphaNumeric(num: any, upperLower: any) {
+    function alphaNumeric(num: number, upperLower: string) {
         num = Number(num) - 1;
         let aNum = "";
         if (upperLower == "upperCase") {
@@ -1164,7 +1165,7 @@ function getTextWidth(html: any) {
      * @param {number} num - 数字
      * @returns {string} 希伯来字母编号字符串
      */
-    function hebrewAlphaNumeric(num: any) {
+    function hebrewAlphaNumeric(num: number) {
         num = Number(num) - 1;
         // 希伯来字母表（22个字母）
         const hebrewLetters = [
@@ -1197,17 +1198,18 @@ function getTextWidth(html: any) {
      * @param {Array} arr - 数字映射数组
      * @returns {Object} 包含format方法的对象
      */
-    function archaicNumbers(arr: any) {
-        let arrParse = arr.slice().sort((a: any, b: any) => { return b[1].length - a[1].length });
+    function archaicNumbers(arr: Array<[string | number | RegExp, string]>) {
+        let arrParse = arr.slice().sort((a, b) => { return b[1].length - a[1].length });
         return {
-            format: (n: any) => {
+            format: (n: number) => {
                 let ret = '';
                 for (const item of arr){
                     let num = item[0];
-                    if (parseInt(num) > 0) {
-                        for (; n >= num; n -= num) ret += item[1];
+                    if (parseInt(String(num)) > 0) {
+                        const numVal = parseInt(String(num));
+                        for (; n >= numVal; n -= numVal) ret += item[1];
                     } else {
-                        ret = ret.replace(num, item[1]);
+                        ret = ret.replace(num as string | RegExp, item[1]);
                     }
                 }
                 return ret;
@@ -1220,7 +1222,7 @@ function getTextWidth(html: any) {
      * @param {number} num - 数字
      * @returns {string} 罗马数字字符串
      */
-    function romanize(num: any) {
+    function romanize(num: number) {
         if (!+num)
             return false;
         let digits = String(+num).split(""),
@@ -1230,7 +1232,7 @@ function getTextWidth(html: any) {
             roman = "",
             i = 3;
         while (i--)
-            roman = (key[+(digits!.pop!() as any) + (i * 10)] || "") + roman;
+            roman = (key[+(digits.pop() ?? 0) + i * 10] || "") + roman;
         return Array(+digits.join("") + 1).join("M") + roman;
     }
     let hebrew2Minus = archaicNumbers([
@@ -1268,7 +1270,7 @@ function getTextWidth(html: any) {
      * @param {number} num - 数字
      * @returns {string} 格式化的数字字符串
      */
-    function getNumTypeNum(numTyp: any, num: any) {
+    function getNumTypeNum(numTyp: string, num: number) {
         let rtrnNum = "";
         switch (numTyp) {
             case "arabicPeriod":
@@ -1302,12 +1304,12 @@ function getTextWidth(html: any) {
                 rtrnNum = `${hebrewAlphaNumeric(num)}-`;
                 break;
             default:
-                rtrnNum = num;
+                rtrnNum = String(num);
         }
         return rtrnNum;
     }
 
-    async function genSpanElement(node: any, rIndex: any, pNode: any, textBodyNode: any, pFontStyle: any, slideLayoutSpNode: any, idx: any, type: any, rNodeLength: any, warpObj: any, isBullate: any) {
+    async function genSpanElement(node: XmlNode, rIndex: number | undefined, pNode: XmlNode, textBodyNode: XmlNode, pFontStyle: Record<string, unknown>, slideLayoutSpNode: XmlNode | undefined, idx: number | undefined, type: string, rNodeLength: number, warpObj: WarpObject, isBullate: boolean) {
             //https://codepen.io/imdunn/pen/GRgwaye ?
             let text_style = "";
             let lstStyle = textBodyNode["a:lstStyle"];
@@ -1633,11 +1635,11 @@ function getTextWidth(html: any) {
                 let processedText = text
                     .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')  // 制表符转4个空格
                     .replace(/\n/g, "<br>")                      // 换行符转<br>
-                    .replace(/  +/g, (spaces: any) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
+                    .replace(/  +/g, (spaces: string) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
 
                 // 在 rtlCol 模式下，每个单词单独一行
                 if (isRTLCol) {
-                    processedText = processedText.split(/\s+/).filter((word: any) => word.length > 0).join("<br>");
+                    processedText = processedText.split(/\s+/).filter((word: string) => word.length > 0).join("<br>");
                 }
 
                 return openElemnt + ` class='text-block ${cssName}' style='` + text_style + `'><a href='${linkURL}' ` + linkColorSyle + `  ${linkTooltip}${linkTargetAttr}>` +
@@ -1647,11 +1649,11 @@ function getTextWidth(html: any) {
                 let processedText = text
                     .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')  // 制表符转4个空格
                     .replace(/\n/g, "<br>")                      // 换行符转<br>
-                    .replace(/  +/g, (spaces: any) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
+                    .replace(/  +/g, (spaces: string) => '&nbsp;'.repeat(spaces.length));  // 多个空格转&nbsp;
 
                 // 在 rtlCol 模式下，每个单词单独一行
                 if (isRTLCol) {
-                    processedText = processedText.split(/\s+/).filter((word: any) => word.length > 0).join("<br>");
+                    processedText = processedText.split(/\s+/).filter((word: string) => word.length > 0).join("<br>");
                 }
 
                 return openElemnt + ` class='text-block ${cssName}' style='` + text_style + "'>" + processedText + closeElemnt;//"</bdi>";
@@ -1660,8 +1662,8 @@ function getTextWidth(html: any) {
         }
 
 
-        async function genTable(node: any, warpObj: any, shapeType: any) {
-            let order = node["attrs"]["order"];
+        async function genTable(node: XmlNode, warpObj: WarpObject, shapeType: string) {
+            let order = node["attrs"]!["order"];
             let tableNode = PPTXXmlUtils.getTextByPathList(node, ["a:graphic", "a:graphicData", "a:tbl"]);
             let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["p:xfrm"]);
 
@@ -1750,7 +1752,7 @@ function getTextWidth(html: any) {
             if (tblBorderStyl !== undefined) {
                 tbl_borders = PPTXStyleUtils.getTableBorders(tblBorderStyl, warpObj);
             }
-            let tbl_bgcolor: any = "";
+            let tbl_bgcolor = "";
             let tbl_opacity = 1;
             let tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
             //console.log( "thisTblStyle:", thisTblStyle, "warpObj:", warpObj)
@@ -1784,7 +1786,7 @@ function getTextWidth(html: any) {
             //if (trNodes.constructor === Array) {
                 //multi rows
                 let totalrowSpan = 0;
-                let rowSpanAry: any = [];
+                let rowSpanAry: number[] = [];
                 for (const i of trNodes.keys()){
                     //////////////rows Style ////////////Amir
                     let rowHeightParam = trNodes[i]["attrs"]["h"];
@@ -1795,8 +1797,8 @@ function getTextWidth(html: any) {
                         rowHeight = Math.round(rowHeight * 100) / 100;
                         rowsStyl += `height:${rowHeight}px;`;
                     }
-                    let fillColor: any = "";
-                    let row_borders: any = "";
+                    let fillColor = "";
+                    let row_borders: string | undefined = "";
                     let fontClrPr = "";
                     let fontWeight = "";
                     let band_1H_fillColor;
@@ -2106,7 +2108,7 @@ function getTextWidth(html: any) {
             return tableHtml;
         }
         
-        async function getTableCellParams(tcNodes: any, getColsGrid: any , row_idx: any , col_idx: any , thisTblStyle: any, cellSource: any, warpObj: any) {
+        async function getTableCellParams(tcNodes: XmlNode, getColsGrid: XmlNode[], row_idx: number | undefined, col_idx: number | undefined, thisTblStyle: XmlNode, cellSource: string | undefined, warpObj: WarpObject) {
             //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
             //text, cell-width, cell-borders, 
             //let text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
@@ -2120,18 +2122,18 @@ function getTextWidth(html: any) {
             let col_borders = "";
             let colFontClrPr = "";
             let colFontWeight = "";
-            let lin_bottm = "",
-                lin_top = "",
-                lin_left = "",
-                lin_right = "",
-                lin_bottom_left_to_top_right = "",
-                lin_top_left_to_bottom_right = "";
+            let lin_bottm: XmlNode | undefined,
+                lin_top: XmlNode | undefined,
+                lin_left: XmlNode | undefined,
+                lin_right: XmlNode | undefined,
+                lin_bottom_left_to_top_right: XmlNode | undefined,
+                lin_top_left_to_bottom_right: XmlNode | undefined;
             
             let colSapnInt = parseInt(colSpan);
             let total_col_width = 0;
             if (!isNaN(colSapnInt) && colSapnInt > 1){
                 for (let k = 0; k < colSapnInt ; k++) {
-                    total_col_width += parseInt (PPTXXmlUtils.getTextByPathList(getColsGrid[col_idx + k], ["attrs", "w"]));
+                    total_col_width += parseInt (PPTXXmlUtils.getTextByPathList(getColsGrid[col_idx! + k], ["attrs", "w"]));
                 }
             }else{
                 total_col_width = PPTXXmlUtils.getTextByPathList((col_idx === undefined) ? getColsGrid : getColsGrid[col_idx], ["attrs", "w"]);
@@ -2221,25 +2223,25 @@ function getTextWidth(html: any) {
             lin_bottom_left_to_top_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnBlToTr"]);
             lin_top_left_to_bottom_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:InTlToBr"]);
 
-            if (lin_bottm !== undefined && lin_bottm != "") {
+            if (lin_bottm !== undefined && (lin_bottm as unknown) != "") {
                 let bottom_line_border = PPTXStyleUtils.getBorder(lin_bottm, undefined, false, "", warpObj)
                 if (bottom_line_border != "") {
                     colStyl += `border-bottom:${bottom_line_border};`;
                 }
             }
-            if (lin_top !== undefined && lin_top != "") {
+            if (lin_top !== undefined && (lin_top as unknown) != "") {
                 let top_line_border = PPTXStyleUtils.getBorder(lin_top, undefined, false, "", warpObj);
                 if (top_line_border != "") {
                     colStyl += `border-top: ${top_line_border};`;
                 }
             }
-            if (lin_left !== undefined && lin_left != "") {
+            if (lin_left !== undefined && (lin_left as unknown) != "") {
                 let left_line_border = PPTXStyleUtils.getBorder(lin_left, undefined, false, "", warpObj)
                 if (left_line_border != "") {
                     colStyl += `border-left: ${left_line_border};`;
                 }
             }
-            if (lin_right !== undefined && lin_right != "") {
+            if (lin_right !== undefined && (lin_right as unknown) != "") {
                 let right_line_border = PPTXStyleUtils.getBorder(lin_right, undefined, false, "", warpObj)
                 if (right_line_border != "") {
                     colStyl += `border-right:${right_line_border};`;

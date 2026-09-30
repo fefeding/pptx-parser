@@ -33,6 +33,65 @@ export interface XmlNode {
 export type XmlPath = (string | number)[];
 
 /**
+ * tXml 解析出的「原始」节点形态（simplify 之前）：
+ * 以 tagName / attributes / children 组织，与简化后 XmlNode 不同。
+ */
+export interface RawXmlNode {
+    tagName: string;
+    attributes?: Record<string, string | null>;
+    children?: RawXmlChildren;
+    pos?: number;
+}
+export type RawXmlChildren = (RawXmlNode | string)[];
+
+/** 解析进度回调 */
+export interface ParseCallbacks {
+    onFileStart?: () => void;
+    /** html：pptxToHtml 传 HTML 字符串，pptxToJson 传结构化数据 */
+    onSlide?: (html: string | Record<string, unknown>, info: { slideNum: number; fileName: string }) => void;
+    onThumbnail?: (thumbnail: string) => void;
+    onSlideSize?: (slideSize: { width: number; height: number }) => void;
+    onGlobalCSS?: (css: string) => void;
+    onComplete?: (info: { executionTime: number; slideWidth: number; slideHeight: number; styleTable?: unknown; settings?: unknown }) => void;
+    onError?: (err: { type: string; message: string }) => void;
+}
+
+/** pptxToHtml 的解析选项 */
+export interface ParseSettings {
+    /** true = 完整主题处理；'colorsAndImageOnly' = 仅颜色与背景图 */
+    themeProcess?: boolean | string;
+    mediaProcess?: boolean;
+    incSlide?: { width: number; height: number };
+    styleTable?: Record<string, unknown>;
+    callbacks?: ParseCallbacks;
+}
+
+/** SmartArt 提取出的单个节点 */
+export interface SmartArtNode {
+    id: string;
+    type: string;
+    text: string;
+    children: string[];
+    parent: string | null;
+}
+
+/** SmartArt 节点映射与根节点 */
+export interface SmartArtData {
+    nodes: Record<string, SmartArtNode>;
+    root: SmartArtNode | null;
+}
+
+/** tXml 解析选项 */
+export interface RawXmlParseOptions {
+    pos?: number;
+    parseNode?: boolean;
+    attrName?: string;
+    attrValue?: string;
+    simplify?: boolean;
+    filter?: (node: RawXmlNode) => boolean;
+}
+
+/**
  * 解析共享上下文（在 shape / style / text 等模块间传递）
  * 注：仍保留索引签名，逐步收敛为具体字段类型
  */

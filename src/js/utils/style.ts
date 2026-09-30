@@ -14,13 +14,14 @@
 import { PPTXXmlUtils } from './xml';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constants';
 import TinyColor from 'tinycolor2';
+import type { XmlNode, WarpObject } from '../core/types';
 
 // 创建 tinycolor 工厂函数以保持向后兼容
 const tinycolor = (color: any, opts?: any) => new TinyColor(color, opts);
 
 
 
-function getFillType(node: any) {
+function getFillType(node: XmlNode | undefined) {
             //Need to test/////////////////////////////////////////////
             //SOLID_FILL
             //PIC_FILL
@@ -31,22 +32,22 @@ function getFillType(node: any) {
             if (node === undefined) {
                 return fillType;
             }
-            if (node["a:noFill"] !== undefined) {
+            if (node!["a:noFill"] !== undefined) {
                 fillType = "NO_FILL";
             }
-            if (node["a:solidFill"] !== undefined) {
+            if (node!["a:solidFill"] !== undefined) {
                 fillType = "SOLID_FILL";
             }
-            if (node["a:gradFill"] !== undefined) {
+            if (node!["a:gradFill"] !== undefined) {
                 fillType = "GRADIENT_FILL";
             }
-            if (node["a:pattFill"] !== undefined) {
+            if (node!["a:pattFill"] !== undefined) {
                 fillType = "PATTERN_FILL";
             }
-            if (node["a:blipFill"] !== undefined) {
+            if (node!["a:blipFill"] !== undefined) {
                 fillType = "PIC_FILL";
             }
-            if (node["a:grpFill"] !== undefined) {
+            if (node!["a:grpFill"] !== undefined) {
                 fillType = "GROUP_FILL";
             }
 
@@ -60,7 +61,7 @@ function getFillType(node: any) {
         //     let arrByte = new Uint8Array(arrBuff);
         //     return arrByte[1] + "," + arrByte[2] + "," + arrByte[3];
         // }
-        async function getShapeFill(node: any, pNode: any, isSvgMode: any, warpObj: any, source: any) {
+        async function getShapeFill(node: XmlNode | undefined, pNode: any, isSvgMode: boolean, warpObj: WarpObject, source: any) {
 
             // 1. presentationML
             // p:spPr/ [a:noFill, solidFill, gradFill, blipFill, pattFill, grpFill]
@@ -73,16 +74,16 @@ function getFillType(node: any) {
             if (fillType === "NO_FILL") {
                 return isSvgMode ? "none" : "";
             } else if (fillType === "SOLID_FILL") {
-                let shpFill = node["p:spPr"]["a:solidFill"];
+                let shpFill = node!["p:spPr"]["a:solidFill"];
                 fillColor = getSolidFill(shpFill, undefined, undefined, warpObj);
             } else if (fillType === "GRADIENT_FILL") {
-                let shpFill = node["p:spPr"]["a:gradFill"];
+                let shpFill = node!["p:spPr"]["a:gradFill"];
                 fillColor = getGradientFill(shpFill, warpObj);
             } else if (fillType === "PATTERN_FILL") {
-                let shpFill = node["p:spPr"]["a:pattFill"];
+                let shpFill = node!["p:spPr"]["a:pattFill"];
                 fillColor = getPatternFill(shpFill, warpObj);
             } else if (fillType === "PIC_FILL") {
-                let shpFill = node["p:spPr"]["a:blipFill"];
+                let shpFill = node!["p:spPr"]["a:blipFill"];
                 fillColor = await getPicFill(source, shpFill, warpObj);
             }
 
@@ -161,12 +162,12 @@ function getFillType(node: any) {
                     //     return fillColor;
                     // } else {
                     let bgPtrn = "", bgSize = "", bgPos = "";
-                    bgPtrn = (fillColor as any)[0];
-                    if ((fillColor as any)[1] !== null && (fillColor as any)[1] !== undefined && (fillColor as any)[1] != "") {
-                        bgSize = ` background-size:${(fillColor as any)[1]};`;
+                    bgPtrn = fillColor[0];
+                    if (fillColor[1] !== null && fillColor[1] !== undefined && fillColor[1] != "") {
+                        bgSize = ` background-size:${fillColor[1]};`;
                     }
-                    if ((fillColor as any)[2] !== null && (fillColor as any)[2] !== undefined && (fillColor as any)[2] != "") {
-                        bgPos = ` background-position:${(fillColor as any)[2]};`;
+                    if (fillColor[2] !== null && fillColor[2] !== undefined && fillColor[2] != "") {
+                        bgPos = ` background-position:${fillColor[2]};`;
                     }
                     return `background: ${bgPtrn};${bgSize}${bgPos}`;
                     //}
@@ -193,7 +194,7 @@ function getFillType(node: any) {
         }
 
         
-        function getFontType(node: any, type: any, warpObj: any, pFontStyle: any) {
+        function getFontType(node: XmlNode | undefined, type: string, warpObj: WarpObject, pFontStyle: any) {
             let typeface = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:latin", "attrs", "typeface"]);
 
             if (typeface === undefined) {
@@ -217,7 +218,7 @@ function getFillType(node: any) {
             return (typeface === undefined) ? "inherit" : typeface;
         }
 
-        async function getFontColorPr(node: any, pNode: any, lstStyle: any, pFontStyle: any, lvl: any, idx: any, type: any, warpObj: any) {
+        async function getFontColorPr(node: XmlNode | undefined, pNode: any, lstStyle: any, pFontStyle: any, lvl: number, idx: number | undefined, type: string, warpObj: WarpObject) {
             //text border using: text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
             //{getFontColor(..) return color} -> getFontColorPr(..) return array[color,textBordr/shadow]
             //https://stackoverflow.com/questions/2570972/css-font-border
@@ -432,7 +433,7 @@ function getFillType(node: any) {
                             if (!Array.isArray(effectStyleLst)) {
                                 effectStyleLst = [effectStyleLst];
                             }
-                            var idx: any = Number(effectIdx); // idx is 0-based, not 1-based
+                            idx = Number(effectIdx); // idx is 0-based, not 1-based
                             if (idx >= 0 && effectStyleLst[idx] !== undefined) {
                                 txtShadow = PPTXXmlUtils.getTextByPathList(effectStyleLst[idx], ["a:effectLst", "a:outerShdw"]);
                             }
@@ -514,25 +515,25 @@ function getFillType(node: any) {
             //return [color, textBordr, colorType];
             return [color, txt_effects, colorType, highlightColor];
         }
-        function getFontSize(node: any, textBodyNode: any, pFontStyle: any, lvl: any, type: any, warpObj: any) {
+        function getFontSize(node: XmlNode | undefined, textBodyNode: any, pFontStyle: any, lvl: number, type: string, warpObj: WarpObject) {
             // if(type == "sldNum")
             //console.log("getFontSize node:", node, "lstStyle", lstStyle, "lvl:", lvl, 'type:', type, "warpObj:", warpObj)
             let lstStyle = (textBodyNode !== undefined)? textBodyNode["a:lstStyle"] : undefined;
             let lvlpPr = `a:lvl${lvl}pPr`;
             let fontSize = undefined;
             let sz, kern;
-            if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] && node["a:rPr"]["attrs"]["sz"] !== undefined) {
-                fontSize = parseInt(node["a:rPr"]["attrs"]["sz"]) / 100;
+            if (node!["a:rPr"] !== undefined && node!["a:rPr"]["attrs"] && node!["a:rPr"]["attrs"]["sz"] !== undefined) {
+                fontSize = parseInt(node!["a:rPr"]["attrs"]["sz"]) / 100;
             }
-            if (isNaN((fontSize as any)) || fontSize === undefined && node["a:fld"] !== undefined) {
-                sz = PPTXXmlUtils.getTextByPathList(node["a:fld"], ["a:rPr", "attrs", "sz"]);
+            if (isNaN(fontSize ?? NaN) || fontSize === undefined && node!["a:fld"] !== undefined) {
+                sz = PPTXXmlUtils.getTextByPathList(node!["a:fld"], ["a:rPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
-            if ((isNaN((fontSize as any)) || fontSize === undefined) && node["a:t"] === undefined) {
-                sz = PPTXXmlUtils.getTextByPathList(node["a:endParaRPr"], [ "attrs", "sz"]);
+            if ((isNaN(fontSize ?? NaN) || fontSize === undefined) && node!["a:t"] === undefined) {
+                sz = PPTXXmlUtils.getTextByPathList(node!["a:endParaRPr"], [ "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
-            if ((isNaN((fontSize as any)) || fontSize === undefined) && lstStyle !== undefined) {
+            if ((isNaN(fontSize ?? NaN) || fontSize === undefined) && lstStyle !== undefined) {
                 sz = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlpPr, "a:defRPr", "attrs", "sz"]);
                 fontSize = parseInt(sz) / 100;
             }
@@ -549,7 +550,7 @@ function getFillType(node: any) {
                     isKerning = true;
                 }
             }
-            if (isNaN((fontSize as any)) || fontSize === undefined) {
+            if (isNaN(fontSize ?? NaN) || fontSize === undefined) {
                 // if (type == "shape" || type == "textBox") {
                 //     type = "body";
                 //     lvlpPr = "a:lvl1pPr";
@@ -617,7 +618,7 @@ function getFillType(node: any) {
 
             // 如果仍然没有找到字体大小，尝试从段落的默认样式中获取
             if (isNaN(fontSize) || fontSize === undefined) {
-                let pPrNode = node.parentNode && node.parentNode["a:pPr"];
+                let pPrNode = node!.parentNode && node!.parentNode["a:pPr"];
                 if (pPrNode) {
                     let defRPrNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:defRPr"]);
                     if (defRPrNode && defRPrNode["attrs"] && defRPrNode["attrs"]["sz"]) {
@@ -642,23 +643,23 @@ function getFillType(node: any) {
             return isNaN(fontSize) ? ((type == "br") ? "initial" : "inherit") : (`${fontSize * FONT_SIZE_FACTOR}px`);// + "pt");
         }
 
-        function getFontBold(node: any, type: any, slideMasterTextStyles: any) {
-            if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] !== undefined) {
-                const boldAttr = node["a:rPr"]["attrs"]["b"];
+        function getFontBold(node: XmlNode | undefined, type: string, slideMasterTextStyles: any) {
+            if (node!["a:rPr"] !== undefined && node!["a:rPr"]["attrs"] !== undefined) {
+                const boldAttr = node!["a:rPr"]["attrs"]["b"];
                 return (boldAttr === "1" || boldAttr === "true" || boldAttr === "on") ? "bold" : "inherit";
             }
             return "inherit";
         }
 
-        function getFontItalic(node: any, type: any, slideMasterTextStyles: any) {
-            return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["i"] === "1") ? "italic" : "inherit";
+        function getFontItalic(node: XmlNode | undefined, type: string, slideMasterTextStyles: any) {
+            return (node!["a:rPr"] !== undefined && node!["a:rPr"]["attrs"]["i"] === "1") ? "italic" : "inherit";
         }
 
-        function getFontDecoration(node: any, type: any, slideMasterTextStyles: any) {
+        function getFontDecoration(node: XmlNode | undefined, type: string, slideMasterTextStyles: any) {
             ///////////////////////////////Amir///////////////////////////////
-            if (node["a:rPr"] !== undefined) {
-                let underLine = node["a:rPr"]["attrs"]["u"] !== undefined ? node["a:rPr"]["attrs"]["u"] : "none";
-                let strikethrough = node["a:rPr"]["attrs"]["strike"] !== undefined ? node["a:rPr"]["attrs"]["strike"] : 'noStrike';
+            if (node!["a:rPr"] !== undefined) {
+                let underLine = node!["a:rPr"]["attrs"]["u"] !== undefined ? node!["a:rPr"]["attrs"]["u"] : "none";
+                let strikethrough = node!["a:rPr"]["attrs"]["strike"] !== undefined ? node!["a:rPr"]["attrs"]["strike"] : 'noStrike';
                 //console.log("strikethrough: "+strikethrough);
 
                 if (underLine != "none" && strikethrough == "noStrike") {
@@ -674,10 +675,10 @@ function getFillType(node: any) {
                 return "inherit";
             }
             /////////////////////////////////////////////////////////////////
-            //return (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"]["u"] === "sng") ? "underline" : "inherit";
+            //return (node!["a:rPr"] !== undefined && node!["a:rPr"]["attrs"]["u"] === "sng") ? "underline" : "inherit";
         }
         ////////////////////////////////////Amir/////////////////////////////////////
-        function getTextHorizontalAlign(node: any, pNode: any, type: any, warpObj: any) {
+        function getTextHorizontalAlign(node: XmlNode | undefined, pNode: any, type: string, warpObj: WarpObject) {
             //console.log("getTextHorizontalAlign: type: ", type, ", node: ", node)
             let getAlgn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (getAlgn === undefined) {
@@ -734,44 +735,44 @@ function getFillType(node: any) {
             return align;
         }
         /////////////////////////////////////////////////////////////////////
-        function getTextVerticalAlign(node: any, type: any, slideMasterTextStyles: any) {
+        function getTextVerticalAlign(node: XmlNode | undefined, type: string, slideMasterTextStyles: any) {
             let baseline = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "attrs", "baseline"]);
             return baseline === undefined ? "baseline" : `${(parseInt(baseline) / 1000)}%`;
         }
 
-        function getTableBorders(node: any, warpObj: any) {
+        function getTableBorders(node: XmlNode | undefined, warpObj: WarpObject) {
             let borderStyle = "";
-            if (node["a:bottom"] !== undefined) {
+            if (node!["a:bottom"] !== undefined) {
                 let obj = {
                     "p:spPr": {
-                        "a:ln": node["a:bottom"]["a:ln"]
+                        "a:ln": node!["a:bottom"]["a:ln"]
                     }
                 }
                 let borders = getBorder(obj, undefined, false, "shape", warpObj);
                 borderStyle += borders.replace("border", "border-bottom");
             }
-            if (node["a:top"] !== undefined) {
+            if (node!["a:top"] !== undefined) {
                 let obj = {
                     "p:spPr": {
-                        "a:ln": node["a:top"]["a:ln"]
+                        "a:ln": node!["a:top"]["a:ln"]
                     }
                 }
                 let borders = getBorder(obj, undefined, false, "shape", warpObj);
                 borderStyle += borders.replace("border", "border-top");
             }
-            if (node["a:right"] !== undefined) {
+            if (node!["a:right"] !== undefined) {
                 let obj = {
                     "p:spPr": {
-                        "a:ln": node["a:right"]["a:ln"]
+                        "a:ln": node!["a:right"]["a:ln"]
                     }
                 }
                 let borders = getBorder(obj, undefined, false, "shape", warpObj);
                 borderStyle += borders.replace("border", "border-right");
             }
-            if (node["a:left"] !== undefined) {
+            if (node!["a:left"] !== undefined) {
                 let obj = {
                     "p:spPr": {
-                        "a:ln": node["a:left"]["a:ln"]
+                        "a:ln": node!["a:left"]["a:ln"]
                     }
                 }
                 let borders = getBorder(obj, undefined, false, "shape", warpObj);
@@ -781,18 +782,18 @@ function getFillType(node: any) {
             return borderStyle;
         }
         //////////////////////////////////////////////////////////////////
-        function getBorder(node: any, pNode: any, isSvgMode: any, bType: any, warpObj: any): any {
+        function getBorder(node: XmlNode | undefined, pNode: any, isSvgMode: boolean, bType: any, warpObj: WarpObject): any {
             //console.log("getBorder", node, pNode, isSvgMode, bType)
             let cssText, lineNode, subNodeTxt;
 
             if (bType == "shape") {
                 cssText = "border: ";
-                lineNode = node["p:spPr"]["a:ln"];
+                lineNode = node!["p:spPr"]["a:ln"];
                 //subNodeTxt = "p:spPr";
-                //node["p:style"]["a:lnRef"] =
+                //node!["p:style"]["a:lnRef"] =
             } else if (bType == "text") {
                 cssText = "";
-                lineNode = node["a:rPr"]["a:ln"];
+                lineNode = node!["a:rPr"]["a:ln"];
                 //subNodeTxt = "a:rPr";
             }
 
@@ -981,7 +982,7 @@ function getFillType(node: any) {
             //     }
             // }
         }
-        async function getSlideBackgroundFill(warpObj: any, index: any) {
+        async function getSlideBackgroundFill(warpObj: WarpObject, index: any) {
             let slideContent = warpObj["slideContent"];
             let slideLayoutContent = warpObj["slideLayoutContent"];
             let slideMasterContent = warpObj["slideMasterContent"];
@@ -1299,7 +1300,7 @@ function getFillType(node: any) {
 
             return bgcolor;
         }
-        function getBgGradientFill(bgPr: any, phClr: any, slideMasterContent: any, warpObj: any) {
+        function getBgGradientFill(bgPr: any, phClr: any, slideMasterContent: any, warpObj: WarpObject) {
             let bgcolor = "";
             if (bgPr !== undefined) {
                 let grdFill = bgPr["a:gradFill"];
@@ -1360,7 +1361,7 @@ function getFillType(node: any) {
             }
             return bgcolor;
         }
-        async function getBgPicFill(bgPr: any, sorce: any, warpObj: any, phClr: any, index: any) {
+        async function getBgPicFill(bgPr: any, sorce: any, warpObj: WarpObject, phClr: any, index: any) {
             let bgcolor;
             let picFillResult = await getPicFill(sorce, bgPr["a:blipFill"], warpObj);
             let picFillBase64 = picFillResult;
@@ -1463,9 +1464,9 @@ function getFillType(node: any) {
         }
       
         
-        function getGradientFill(node: any, warpObj: any) {
+        function getGradientFill(node: XmlNode | undefined, warpObj: WarpObject) {
             //console.log("getGradientFill: node", node)
-            let gsLst = node["a:gsLst"]["a:gs"];
+            let gsLst = node!["a:gsLst"]["a:gs"];
             // 归一化：单个 <a:gs> 时解析器返回对象而非数组
             if (!Array.isArray(gsLst)) {
                 gsLst = gsLst ? [gsLst] : [];
@@ -1479,7 +1480,7 @@ function getFillType(node: any) {
                 color_ary[i] = lo_color;
             }
             //get rot
-            let lin = node["a:lin"];
+            let lin = node!["a:lin"];
             let rot = 0;
             if (lin !== undefined) {
                 rot = PPTXXmlUtils.angleToDegrees(lin["attrs"]["ang"]) + 90;
@@ -1489,11 +1490,11 @@ function getFillType(node: any) {
                 "rot": rot
             }
         }
-        async function getPicFill(type: any, node: any, warpObj: any) {
+        async function getPicFill(type: string, node: XmlNode | undefined, warpObj: WarpObject) {
             //Need to test/////////////////////////////////////////////
             //rId
             let img;
-            let rId = node["a:blip"]["attrs"]["r:embed"];
+            let rId = node!["a:blip"]["attrs"]["r:embed"];
             let imgPath;
             if (type == "slideBg" || type == "slide") {
                 imgPath = PPTXXmlUtils.getTextByPathList(warpObj, ["slideResObj", rId, "target"]);
@@ -1529,14 +1530,14 @@ function getFillType(node: any) {
                     return undefined;
                 }
                 let imgArrayBuffer = await imgFile.async("arraybuffer");
-                let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
+                let imgMimeType = PPTXXmlUtils.getMimeType(imgExt ?? '');
                 img = `data:${imgMimeType};base64,${PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer)}`;
                 //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
                 setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
             }
             // 处理图像属性 - Tile, Stretch, or Display Portion of Image
-            let tileNode = node["a:tile"];
-            let stretchNode = node["a:stretch"];
+            let tileNode = node!["a:tile"];
+            let stretchNode = node!["a:stretch"];
             let fillMode = "stretch";
             let backgroundSize = "cover";
             let backgroundPosition = "center";
@@ -1583,7 +1584,7 @@ function getFillType(node: any) {
                 "backgroundRepeat": backgroundRepeat
             };
         }
-        function getPatternFill(node: any, warpObj: any) {
+        function getPatternFill(node: XmlNode | undefined, warpObj: WarpObject) {
             //https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Images/Using_CSS_gradients
             //https://cssgradient.io/blog/css-gradient-text/
             //https://css-tricks.com/background-patterns-simplified-by-conic-gradients/
@@ -1592,9 +1593,9 @@ function getFillType(node: any) {
             //https://css-tricks.com/stripes-css/
             //https://yuanchuan.dev/gradient-shapes/
             let fgColor: any = "", bgColor: any = "", prst = "";
-            let bgClr = node["a:bgClr"];
-            let fgClr = node["a:fgClr"];
-            prst = node["attrs"]["prst"];
+            let bgClr = node!["a:bgClr"];
+            let fgClr = node!["a:fgClr"];
+            prst = node!["attrs"]!["prst"];
             fgColor = getSolidFill(fgClr, undefined, undefined, warpObj);
             bgColor = getSolidFill(bgClr, undefined, undefined, warpObj);
             //var angl_ary = getAnglefromParst(prst);
@@ -1869,7 +1870,7 @@ function getFillType(node: any) {
             }
         }
 
-        function getSolidFill(node: any, clrMap: any, phClr: any, warpObj: any) {
+        function getSolidFill(node: XmlNode | undefined, clrMap: any, phClr: any, warpObj: WarpObject) {
 
             if (node === undefined) {
                 return undefined;
@@ -1877,15 +1878,15 @@ function getFillType(node: any) {
 
             let color: any = "";
             let clrNode;
-            if (node["a:srgbClr"] !== undefined) {
-                clrNode = node["a:srgbClr"];
+            if (node!["a:srgbClr"] !== undefined) {
+                clrNode = node!["a:srgbClr"];
                 color = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //#...
-            } else if (node["a:schemeClr"] !== undefined) { //a:schemeClr
-                clrNode = node["a:schemeClr"];
+            } else if (node!["a:schemeClr"] !== undefined) { //a:schemeClr
+                clrNode = node!["a:schemeClr"];
                 let schemeClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]);
                 color = getSchemeColorFromTheme(`a:${schemeClr}`, clrMap, phClr, warpObj);
-            } else if (node["a:scrgbClr"] !== undefined) {
-                clrNode = node["a:scrgbClr"];
+            } else if (node!["a:scrgbClr"] !== undefined) {
+                clrNode = node!["a:scrgbClr"];
                 //<a:scrgbClr r="50%" g="50%" b="50%"/>  //Need to test/////////////////////////////////////////////
                 let defBultColorVals = clrNode["attrs"];
                 let red = (defBultColorVals["r"].indexOf("%") != -1) ? defBultColorVals["r"].split("%").shift() : defBultColorVals["r"];
@@ -1895,14 +1896,14 @@ function getFillType(node: any) {
                 color = toHex(255 * (Number(red) / 100)) + toHex(255 * (Number(green) / 100)) + toHex(255 * (Number(blue) / 100));
                 //console.log("scrgbClr: " + scrgbClr);
 
-            } else if (node["a:prstClr"] !== undefined) {
-                clrNode = node["a:prstClr"];
+            } else if (node!["a:prstClr"] !== undefined) {
+                clrNode = node!["a:prstClr"];
                 //<a:prstClr val="black"/>  //Need to test/////////////////////////////////////////////
-                let prstClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //node["a:prstClr"]["attrs"]["val"];
+                let prstClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "val"]); //node!["a:prstClr"]["attrs"]["val"];
                 color = getColorName2Hex(prstClr);
                 //console.log("blip prstClr: ", prstClr, " => hexClr: ", color);
-            } else if (node["a:hslClr"] !== undefined) {
-                clrNode = node["a:hslClr"];
+            } else if (node!["a:hslClr"] !== undefined) {
+                clrNode = node!["a:hslClr"];
                 //<a:hslClr hue="14400000" sat="100%" lum="50%"/>  //Need to test/////////////////////////////////////////////
                 let defBultColorVals = clrNode["attrs"];
                 let hue = Number(defBultColorVals["hue"]) / 100000;
@@ -1913,8 +1914,8 @@ function getFillType(node: any) {
                 color = toHex(hsl2rgb.r) + toHex(hsl2rgb.g) + toHex(hsl2rgb.b);
                 //defBultColor = cnvrtHslColor2Hex(hslClr); //TODO
                 // console.log("hslClr: " + hslClr);
-            } else if (node["a:sysClr"] !== undefined) {
-                clrNode = node["a:sysClr"];
+            } else if (node!["a:sysClr"] !== undefined) {
+                clrNode = node!["a:sysClr"];
                 //<a:sysClr val="windowText" lastClr="000000"/>  //Need to test/////////////////////////////////////////////
                 let sysClr = PPTXXmlUtils.getTextByPathList(clrNode, ["attrs", "lastClr"]);
                 if (sysClr !== undefined) {
@@ -2302,7 +2303,7 @@ function getFillType(node: any) {
             }
             return hex;
         }
-        function getSchemeColorFromTheme(schemeClr: any, clrMap: any, phClr: any, warpObj: any) {
+        function getSchemeColorFromTheme(schemeClr: any, clrMap: any, phClr: any, warpObj: WarpObject) {
             //<p:clrMap ...> in slide master
             // e.g. tx2="dk2" bg2="lt2" tx1="dk1" bg1="lt1" slideLayoutClrOvride
             let color: any = '';
@@ -2363,7 +2364,7 @@ function getFillType(node: any) {
             return color;
         }
 
-        function extractChartData(serNode: any, warpObj: any) {
+        function extractChartData(serNode: any, warpObj: WarpObject) {
 
             let dataMat = new Array();
 
@@ -2507,7 +2508,7 @@ function getFillType(node: any) {
          * @param {string Array} path
          * @param {string} value
          */
-        function setTextByPathList(node: any, path: any, value: any): any {
+        function setTextByPathList(node: XmlNode | undefined, path: any, value: any): any {
 
             if (path.constructor !== Array) {
                 throw Error("Error of path type! path is not array.");
@@ -2544,12 +2545,12 @@ function getFillType(node: any) {
          * @param {Object} node
          * @param {function} doFunction
          */
-        function eachElement(node: any, doFunction: any) {
+        function eachElement(node: XmlNode | undefined, doFunction: any) {
             if (node === undefined) {
                 return;
             }
             let result = "";
-            if (node.constructor === Array) {
+            if (Array.isArray(node)) {
                 let l = node.length;
                 for (let i = 0; i < l; i++) {
                     result += doFunction(node[i], i);
@@ -2820,7 +2821,7 @@ function getFillType(node: any) {
                 y2 = Math.round(ty1 / h * 100 * 100) / 100;
             return [x1, y1, x2, y2];
         }
-        function getSvgImagePattern(node: any, fill: any, shpId: any, warpObj: any) {
+        function getSvgImagePattern(node: XmlNode | undefined, fill: any, shpId: any, warpObj: WarpObject) {
             // 处理 fill 参数是对象的情况
             let fillUrl = fill;
             if (typeof fill === 'object' && fill.img) {
@@ -2830,7 +2831,7 @@ function getFillType(node: any) {
             let pic_dim = getBase64ImageDimensions(fillUrl);
             let width = pic_dim![0];
             let height = pic_dim![1];
-            let blipFillNode = node["p:spPr"]["a:blipFill"];
+            let blipFillNode = node!["p:spPr"]["a:blipFill"];
             let sx = 0, sy = 0;
             let tileNode = PPTXXmlUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"])
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
@@ -2838,7 +2839,7 @@ function getFillType(node: any) {
                 sy = (parseInt(tileNode["sy"]) / 100000) * height;
             }
 
-            let blipNode = node["p:spPr"]["a:blipFill"]["a:blip"];
+            let blipNode = node!["p:spPr"]["a:blipFill"]["a:blip"];
             let tialphaModFixNode = PPTXXmlUtils.getTextByPathList(blipNode, ["a:alphaModFix", "attrs"])
             let imgOpacity = "";
             if (tialphaModFixNode !== undefined && tialphaModFixNode["amt"] !== undefined && tialphaModFixNode["amt"] != "") {
@@ -2912,7 +2913,7 @@ function getFillType(node: any) {
             //return [w, h];
         }
 
-        function getVerticalAlign(node: any, slideLayoutSpNode: any, slideMasterSpNode: any, type: any) {
+        function getVerticalAlign(node: XmlNode | undefined, slideLayoutSpNode: any, slideMasterSpNode: any, type: string) {
 
             //X, <a:bodyPr anchor="ctr">, <a:bodyPr anchor="b">
             let anchor = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:bodyPr", "attrs", "anchor"]);
@@ -2941,7 +2942,7 @@ function getFillType(node: any) {
             return (anchor === "ctr")?"v-mid" : ((anchor === "b") ? "v-down" : "v-up");
         }
 
-    function getContentDir(node: any, type: any, warpObj: any) {
+    function getContentDir(node: XmlNode | undefined, type: string, warpObj: WarpObject) {
             return "content";
             let defRtl = PPTXXmlUtils.getTextByPathList(node, ["p:txBody", "a:lstStyle", "a:defPPr", "attrs", "rtl"]);
             if (defRtl !== undefined) {
@@ -3006,7 +3007,7 @@ function getFillType(node: any) {
             //console.log("getContentDir() type:", type, "slideMasterTextStyles:", slideMasterTextStyles,"dirNode:",dirVal)
         }
 
-        function getVerticalMargins(pNode: any, textBodyNode: any, type: any, idx: any, warpObj: any, totalParagraphs: any, paragraphIndex: any, anchor: any) {
+        function getVerticalMargins(pNode: any, textBodyNode: any, type: string, idx: number | undefined, warpObj: WarpObject, totalParagraphs: any, paragraphIndex: any, anchor: any) {
             //margin-top ;
             //a:pPr => a:spcBef => a:spcPts (/100) | a:spcPct (/?)
             //margin-bottom
@@ -3014,7 +3015,7 @@ function getFillType(node: any) {
             //+
             //a:pPr =>a:lnSpc => a:spcPts (/?) | a:spcPct (/?)
             //let lstStyle = textBodyNode["a:lstStyle"];
-            let lvl: any = 1
+            let lvl: number | string = 1
             let spcBefNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcBef", "a:spcPts", "attrs", "val"]);
             let spcAftNode = PPTXXmlUtils.getTextByPathList(pNode, ["a:pPr", "a:spcAft", "a:spcPts", "attrs", "val"]);
             let spcBefType = "Pts";
@@ -3332,7 +3333,7 @@ function getFillType(node: any) {
             //return spcAft + spcBef;
             return marginTopBottomStr;
         }
-        function getHorizontalAlign(node: any, textBodyNode: any, idx: any, type: any, prg_dir: any, warpObj: any, spNode?: any) {
+        function getHorizontalAlign(node: XmlNode | undefined, textBodyNode: any, idx: number | undefined, type: string, prg_dir: any, warpObj: WarpObject, spNode?: any) {
             let algn = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "algn"]);
             if (algn === undefined) {
                 let layoutMasterNode = getLayoutAndMasterNode(node, idx, type, warpObj);
@@ -3449,9 +3450,9 @@ function getFillType(node: any) {
             //return algn === "ctr" ? "h-mid" : algn === "r" ? "h-right" : "h-left";
         }
 
-        function getLayoutAndMasterNode(node: any, idx: any, type: any, warpObj: any) {
+        function getLayoutAndMasterNode(node: XmlNode | undefined, idx: number | undefined, type: string, warpObj: WarpObject) {
             let pPrNodeLaout, pPrNodeMaster;
-            const pPrNode = node["a:pPr"];
+            const pPrNode = node!["a:pPr"];
             //lvl
             let lvl = 1;
             let lvlNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "lvl"]);
@@ -3492,7 +3493,7 @@ function getFillType(node: any) {
                 "nodeMaster": pPrNodeMaster
             };
         }
-    function getPregraphDir(node: any, textBodyNode: any, idx: any, type: any, warpObj: any) {
+    function getPregraphDir(node: XmlNode | undefined, textBodyNode: any, idx: number | undefined, type: string, warpObj: WarpObject) {
             let rtl = PPTXXmlUtils.getTextByPathList(node, ["a:pPr", "attrs", "rtl"]);
 
             if (rtl === undefined) {
@@ -3520,7 +3521,7 @@ function getFillType(node: any) {
             return "pregraph-inherit";
 
             // var contentDir = PPTXStyleUtils.getContentDir(type, warpObj);
-            // console.log("getPregraphDir node:", node["a:r"], "rtl:", rtl, "idx", idx, "type", type, "contentDir:", contentDir)
+            // console.log("getPregraphDir node:", node!["a:r"], "rtl:", rtl, "idx", idx, "type", type, "contentDir:", contentDir)
 
             // if (contentDir == "content"){
             //     return "pregraph-ltr";
@@ -3529,7 +3530,7 @@ function getFillType(node: any) {
             // }
             // return "";
         }
-    function getPregraphMargn(pNode: any, idx: any, type: any, isBullate: any, warpObj: any, fontSize: any){
+    function getPregraphMargn(pNode: any, idx: number | undefined, type: string, isBullate: any, warpObj: WarpObject, fontSize: any){
             if (!isBullate){
                 return ["",0];
             }
@@ -3630,7 +3631,7 @@ function getFillType(node: any) {
             return [marLStr, maginVal];
         }
 // 提取图表标题样式
-function extractChartTitleStyle(chartNode: any, warpObj: any) {
+function extractChartTitleStyle(chartNode: any, warpObj: WarpObject) {
     const titleNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:title"]);
     if (!titleNode) return { text: "", style: {} };
     
@@ -3744,7 +3745,7 @@ function extractChartTitleStyle(chartNode: any, warpObj: any) {
 }
 
 // 提取图表区域样式
-function extractChartAreaStyle(chartSpaceNode: any, warpObj: any) {
+function extractChartAreaStyle(chartSpaceNode: any, warpObj: WarpObject) {
     const style: any = {};
     
     // 提取图表区域填充
@@ -3789,7 +3790,7 @@ function extractChartAreaStyle(chartSpaceNode: any, warpObj: any) {
 }
 
 // 提取图表图例样式
-function extractChartLegendStyle(chartNode: any, warpObj: any) {
+function extractChartLegendStyle(chartNode: any, warpObj: WarpObject) {
     const legendNode = PPTXXmlUtils.getTextByPathList(chartNode, ["c:legend"]);
     if (!legendNode) return {};
     
@@ -3832,7 +3833,7 @@ function extractChartLegendStyle(chartNode: any, warpObj: any) {
 }
 
 // 提取图表轴样式
-function extractChartAxisStyle(plotAreaNode: any, axisType: any, warpObj: any) {
+function extractChartAxisStyle(plotAreaNode: any, axisType: any, warpObj: WarpObject) {
     const axisNode = PPTXXmlUtils.getTextByPathList(plotAreaNode, [axisType]);
     if (!axisNode) return {};
     
@@ -3913,9 +3914,9 @@ function extractChartAxisStyle(plotAreaNode: any, axisType: any, warpObj: any) {
 }
 
 // 辅助函数：获取颜色
-function getColor(node: any, clrMap: any, phClr: any, warpObj: any) {
-    if (node["a:solidFill"]) {
-        return getSolidFill(node["a:solidFill"], clrMap, phClr, warpObj);
+function getColor(node: XmlNode | undefined, clrMap: any, phClr: any, warpObj: WarpObject) {
+    if (node!["a:solidFill"]) {
+        return getSolidFill(node!["a:solidFill"], clrMap, phClr, warpObj);
     }
     return "";
 }

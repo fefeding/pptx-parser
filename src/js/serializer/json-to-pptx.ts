@@ -24,26 +24,53 @@ import {
     buildCorePropsXml, buildAppPropsXml, buildRootRelsXml,
     MASTER_RELS, LAYOUT_RELS, REL_TYPES
 } from './templates';
-import { createElementContext, buildSlideRoot } from './element-builders';
+import { createElementContext, buildSlideRoot, type SerializerSlide } from './element-builders';
 import { PPTXXmlUtils } from '../utils/xml';
+
+/** 演示文稿 JSON 树 */
+interface PresentationJson {
+    slides: SerializerSlide[];
+    slideSize?: { width: number; height: number };
+    metadata?: Record<string, string>;
+    [key: string]: unknown;
+}
+
+/** 带 toJSON 的对象（如 PPTXComposer 实例） */
+interface JsonSerializable {
+    toJSON: () => PresentationJson;
+}
+
+/** sldIdLst 条目 */
+interface SldIdEntry {
+    id?: string | number;
+    relId: string;
+}
+
+/** JSZip 支持的输出类型 */
+export type ZipOutputType = 'base64' | 'string' | 'text' | 'binarystring' | 'array' | 'uint8array' | 'arraybuffer' | 'blob' | 'nodebuffer';
+
+/** 已解析的 Relationship（属性集合） */
+type ParsedRel = Record<string, string>;
 
 /**
  * 规范化演示文稿 JSON 输入
  * @param {Object|{toJSON: Function}} input - 演示文稿 JSON 或 Composer 实例
  * @returns {Object} 演示文稿 JSON 树
  */
-function normalizePresentation(input: any) {
-    let presentation = input;
-    if (presentation && typeof presentation.toJSON === 'function') {
-        presentation = presentation.toJSON();
+function normalizePresentation(input: unknown): PresentationJson {
+    let presentation: unknown = input;
+    const serializable = presentation as Partial<JsonSerializable> | null;
+    if (serializable && typeof serializable.toJSON === 'function') {
+        presentation = serializable.toJSON();
     }
-    if (!presentation || typeof presentation !== 'object') {
+    const pres = presentation as PresentationJson | null | undefined;
+    if (!pres || typeof pres !== 'object') {
         throw new Error('jsonToPptx: 输入必须为演示文稿 JSON 对象或 PPTXComposer 实例');
     }
-    if (!Array.isArray(presentation.slides) || presentation.slides.length === 0) {
+    if (!Array.isArray(pres.slides) || pres.slides.length === 0) {
         throw new Error('jsonToPptx: 演示文稿至少需要一页幻灯片（slides 数组为空）');
     }
-    return presentation;
+    return pres;
 }
 
 /**
@@ -54,7 +81,7 @@ function normalizePresentation(input: any) {
  *        （uint8array / arraybuffer / blob / nodebuffer / base64）
  * @returns {Promise<Uint8Array>} PPTX 文件二进制数据
  */
-async function jsonToPptx(presentation: any, options: any = {}) {
+async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutputType } = {}) {
     const pres = normalizePresentation(presentation);
     const slideSize = pres.slideSize || { width: 1280, height: 720 };
     const zip = new JSZip();
@@ -82,7 +109,7 @@ async function jsonToPptx(presentation: any, options: any = {}) {
         // 媒体文件
         for (const media of ctx.media) {
             zip.file(`ppt/media/${media.name}`, media.base64, { base64: true });
-            allMediaExts.add(media.name.split('.').pop().toLowerCase());
+            allMediaExts.add((media.name.split('.').pop() ?? '').toLowerCase());
         }
 
         // 图表部件
@@ -146,13 +173,13 @@ async function jsonToPptx(presentation: any, options: any = {}) {
 // ---------------------------------------------------------------------------
 
 /** 从文本中解析 <Relationship .../> 列表 */
-function parseRelationships(relsText: any) {
-    const rels = [];
+function parseRelationships(relsText: string): ParsedRel[] {
+    const rels: ParsedRel[] = [];
     const re = /<Relationship\s+([^>]*?)\/>/g;
     const attrRe = /(\w+)="([^"]*)"/g;
     let match;
     while ((match = re.exec(relsText)) !== null) {
-        const attrs: any = {};
+        const attrs: ParsedRel = {};
         let attrMatch;
         while ((attrMatch = attrRe.exec(match[1])) !== null) {
             attrs[attrMatch[1]] = attrMatch[2];
@@ -163,15 +190,15 @@ function parseRelationships(relsText: any) {
 }
 
 /** 从 presentation.xml 解析 sldIdLst 条目 */
-function parseSldIdLst(presentationText: any) {
+function parseSldIdLst(presentationText: string): SldIdEntry[] {
     const lstMatch = presentationText.match(/<p:sldIdLst>([\s\S]*?)<\/p:sldIdLst>/);
     if (!lstMatch) return [];
-    const entries = [];
+    const entries: SldIdEntry[] = [];
     const re = /<p:sldId\s+([^>]*?)\/>/g;
     const attrRe = /([\w:.-]+)="([^"]*)"/g;
     let match;
     while ((match = re.exec(lstMatch[1])) !== null) {
-        const attrs: any = {};
+        const attrs: ParsedRel = {};
         let attrMatch;
         while ((attrMatch = attrRe.exec(match[1])) !== null) {
             attrs[attrMatch[1]] = attrMatch[2];
@@ -182,9 +209,9 @@ function parseSldIdLst(presentationText: any) {
 }
 
 /** 用新条目列表重写 presentation.xml 的 sldIdLst */
-function rewriteSldIdLst(presentationText: any, entries: any) {
+function rewriteSldIdLst(presentationText: string, entries: SldIdEntry[]) {
     const inner = entries
-        .map((e: any, i: any) => `<p:sldId id="${e.id || 256 + i}" r:id="${escapeXml(e.relId)}"/>`)
+        .map((e, i) => `<p:sldId id="${e.id || 256 + i}" r:id="${escapeXml(e.relId)}"/>`)
         .join('');
     return presentationText.replace(
         /<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/,
@@ -193,20 +220,20 @@ function rewriteSldIdLst(presentationText: any, entries: any) {
 }
 
 /** 列出 zip 中匹配 /ppt\/slides\/slide(\d+)\.xml 的幻灯片编号 */
-function listSlideNumbers(zip: any) {
-    const numbers: any = [];
-    zip.forEach((path: any, entry: any) => {
+function listSlideNumbers(zip: JSZip) {
+    const numbers: number[] = [];
+    zip.forEach((path: string, entry: { dir: boolean }) => {
         if (entry.dir) return;
         const m = path.match(/^ppt\/slides\/slide(\d+)\.xml$/);
         if (m) numbers.push(Number(m[1]));
     });
-    return numbers.sort((a: any, b: any) => a - b);
+    return numbers.sort((a: number, b: number) => a - b);
 }
 
 /** 列出 zip 中 ppt/media 下的最大媒体编号（不限 imageN 命名，取文件名中最后一个数字段） */
-function maxMediaIndex(zip: any) {
+function maxMediaIndex(zip: JSZip) {
     let max = 0;
-    zip.forEach((path: any, entry: any) => {
+    zip.forEach((path: string, entry: { dir: boolean }) => {
         if (entry.dir) return;
         const m = path.match(/^ppt\/media\/[^/]*?(\d+)\.[^/]+$/);
         if (m) max = Math.max(max, Number(m[1]));
@@ -219,10 +246,10 @@ function maxMediaIndex(zip: any) {
  * @param {ArrayBuffer|Uint8Array|Buffer} fileData - PPTX 文件数据
  * @returns {Promise<Object>} 编辑器实例
  */
-async function editPptx(fileData: any) {
+async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
     const zip = await JSZip.loadAsync(fileData);
 
-    const readText = async (name: any) => {
+    const readText = async (name: string) => {
         const f = zip.file(name);
         return f ? await f.async('string') : null;
     };
@@ -233,7 +260,7 @@ async function editPptx(fileData: any) {
         if (!text) throw new Error('editPptx: 无效的 PPTX 文件（缺少 ppt/presentation.xml）');
         const relsText = await readText('ppt/_rels/presentation.xml.rels');
         const rels = parseRelationships(relsText || '');
-        const relById: any = {};
+        const relById: Record<string, ParsedRel> = {};
         for (const r of rels) relById[r.Id] = r;
         const entries = parseSldIdLst(text);
         // 解析每页对应的 slide 部件路径
@@ -247,7 +274,7 @@ async function editPptx(fileData: any) {
     }
 
     /** 回写 docProps/app.xml 的 <Slides> 计数（不存在则跳过） */
-    async function setAppSlideCount(n: any) {
+    async function setAppSlideCount(n: number) {
         const app = await readText('docProps/app.xml');
         if (app && /<Slides>\d+<\/Slides>/.test(app)) {
             zip.file('docProps/app.xml', app.replace(/<Slides>\d+<\/Slides>/, `<Slides>${n}</Slides>`));
@@ -260,7 +287,7 @@ async function editPptx(fileData: any) {
      * @param {string} [options.outputType='uint8array'] - JSZip 输出类型
      * @returns {Promise<Uint8Array>} 新的 PPTX 文件数据
      */
-    async function save(options: any = {}) {
+    async function save(options: { outputType?: ZipOutputType } = {}) {
         return zip.generateAsync({
             type: options.outputType || 'uint8array',
             compression: 'DEFLATE',
@@ -287,7 +314,7 @@ async function editPptx(fileData: any) {
          * @param {number} slideNum - 页码（1 起，逻辑顺序）
          * @returns {Promise<Object|null>} tXml 简化树
          */
-        async getSlide(slideNum: any) {
+        async getSlide(slideNum: number) {
             const info = await getPresentationInfo();
             const part = info.slideParts[slideNum - 1];
             if (!part) throw new Error(`getSlide: 页码越界（共 ${info.entries.length} 页）`);
@@ -299,7 +326,7 @@ async function editPptx(fileData: any) {
          * 关联的 notesSlide 会一并移除，媒体文件保留不清理）
          * @param {number} slideNum - 页码（1 起）
          */
-        async deleteSlide(slideNum: any) {
+        async deleteSlide(slideNum: number) {
             const info = await getPresentationInfo();
             if (slideNum < 1 || slideNum > info.entries.length) {
                 throw new Error(`deleteSlide: 页码越界（共 ${info.entries.length} 页）`);
@@ -352,7 +379,7 @@ async function editPptx(fileData: any) {
          * @param {number} from - 原页码（1 起）
          * @param {number} to - 目标页码（1 起）
          */
-        async moveSlide(from: any, to: any) {
+        async moveSlide(from: number, to: number) {
             const info = await getPresentationInfo();
             const entries = [...info.entries];
             if (from < 1 || from > entries.length || to < 1 || to > entries.length) {
@@ -368,12 +395,12 @@ async function editPptx(fileData: any) {
                 if (!m) throw new Error(`moveSlide: 无法解析 slide 目标 ${rel.Target}`);
                 return Number(m[1]);
             });
-            const mapping: any = {}; // 旧编号 → 新编号
-            oldNums.forEach((oldNum, i) => { mapping[oldNum] = i + 1; });
+            const mapping: Record<string, number> = {}; // 旧编号 → 新编号
+            oldNums.forEach((oldNum, i) => { mapping[String(oldNum)] = i + 1; });
 
             // 先读出全部内容，避免读写交叉覆盖
-            const contents: any = [];
-            const relsContents: any = [];
+            const contents: (string | null)[] = [];
+            const relsContents: (string | null)[] = [];
             for (const oldNum of oldNums) {
                 contents.push(await readText(`ppt/slides/slide${oldNum}.xml`));
                 relsContents.push(await readText(`ppt/slides/_rels/slide${oldNum}.xml.rels`));
@@ -384,9 +411,9 @@ async function editPptx(fileData: any) {
                 const newNum = i + 1;
                 const newRels = (relsContents[i] || '').replace(
                     /Target="slide(\d+)\.xml"/g,
-                    (m: any, n: any) => `Target="slide${mapping[n] !== undefined ? mapping[n] : n}.xml"`
+                    (m: string, n: string) => `Target="slide${mapping[n] !== undefined ? mapping[n] : n}.xml"`
                 );
-                zip.file(`ppt/slides/slide${newNum}.xml`, contents[i]);
+                zip.file(`ppt/slides/slide${newNum}.xml`, contents[i]!);
                 zip.file(`ppt/slides/_rels/slide${newNum}.xml.rels`, newRels);
             });
 
@@ -400,7 +427,7 @@ async function editPptx(fileData: any) {
                     relsText = relsText!.replace(re, `$1slides/slide${newNum}.xml$2`);
                 }
             });
-            zip.file('ppt/_rels/presentation.xml.rels', (relsText as any));
+            zip.file('ppt/_rels/presentation.xml.rels', relsText!);
 
             // 重写 sldIdLst（新逻辑顺序）
             zip.file('ppt/presentation.xml', rewriteSldIdLst(info.text, entries));
@@ -410,7 +437,7 @@ async function editPptx(fileData: any) {
          * 写回演示文稿元数据（docProps/core.xml）
          * @param {Object} metadata - 元数据（字段同 pptxToJson 返回的 metadata）
          */
-        async setMetadata(metadata: any) {
+        async setMetadata(metadata: Record<string, unknown>) {
             const existing = await readText('docProps/core.xml');
             if (existing) {
                 zip.file('docProps/core.xml', buildCorePropsXml(metadata));
@@ -434,7 +461,7 @@ async function editPptx(fileData: any) {
          * 追加一页幻灯片（元素格式同 jsonToPptx 的 slide JSON）
          * @param {Object} slideJson - 幻灯片 JSON { background, elements }
          */
-        async addSlide(slideJson: any) {
+        async addSlide(slideJson: SerializerSlide) {
             const info = await getPresentationInfo();
             const numbers = listSlideNumbers(zip);
             const nextNum = (numbers.length ? numbers[numbers.length - 1] : 0) + 1;
@@ -455,7 +482,7 @@ async function editPptx(fileData: any) {
             const newCtCharts = [];
             for (const media of ctx.media) {
                 zip.file(`ppt/media/${media.name}`, media.base64, { base64: true });
-                mediaExts.add(media.name.split('.').pop().toLowerCase());
+                mediaExts.add((media.name.split('.').pop() ?? '').toLowerCase());
             }
 
             // 图表部件
@@ -487,10 +514,10 @@ async function editPptx(fileData: any) {
             let newCt = ctText;
             const override = `<Override PartName="/ppt/slides/slide${nextNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
             newCt = newCt!.replace('</Types>', `${override}</Types>`);
-            const MIME_MAP = { png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml' };
+            const MIME_MAP: Record<string, string> = { png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml' };
             for (const ext of mediaExts) {
                 if (!newCt.includes(`Extension="${ext}"`)) {
-                    newCt = newCt.replace('</Types>', `<Default Extension="${ext}" ContentType="${(MIME_MAP as any)[ext as string] || 'application/octet-stream'}"/></Types>`);
+                    newCt = newCt.replace('</Types>', `<Default Extension="${ext}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/></Types>`);
                 }
             }
             for (const chartName of newCtCharts) {
@@ -506,7 +533,7 @@ async function editPptx(fileData: any) {
      * 移除 [Content_Types].xml 中指定部件的覆盖项
      * @param {string} partPath - 部件路径（如 ppt/slides/slide2.xml）
      */
-    async function removeContentTypeOverride(partPath: any) {
+    async function removeContentTypeOverride(partPath: string) {
         const ctText = await readText('[Content_Types].xml');
         if (!ctText) return;
         const re = new RegExp(`<Override PartName="/${partPath.replace(/\//g, '\\/')}"[^>]*/>`);

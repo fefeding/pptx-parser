@@ -6,11 +6,19 @@
 import { PPTXXmlUtils } from '../utils/xml';
 import { shapePie, shapeArc } from './path-generators';
 import { SLIDE_FACTOR } from '../core/constants';
+import type { XmlNode } from '../core/types';
+
+/** 形状描边信息 */
+export interface ShapeBorder {
+    color: string;
+    width: string;
+    strokeDasharray: string;
+}
 
 /**
  * 检查形状是否为饼图/弧形形状
  */
-export function isPieShape(shapType: any) {
+export function isPieShape(shapType: string): boolean {
     const pieShapes = [
         'pie', 'pieWedge', 'arc', 'chord', 'blockArc'
     ];
@@ -20,13 +28,13 @@ export function isPieShape(shapType: any) {
 /**
  * 渲染饼图/弧形形状
  */
-export function renderPieShape(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any, oShadowSvgUrlStr: any) {
+export function renderPieShape(shapType: string, w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, node: XmlNode, oShadowSvgUrlStr: string): string {
     let result = "";
     let dVal = "";
 
     if (shapType === "pie" || shapType === "pieWedge" || shapType === "arc") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        let adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
+        let adj1 = 0, adj2 = 0, H = 0, shapAdjst1: string | undefined, shapAdjst2: string | undefined, isClose = false;
         if (shapType === "pie") {
             adj1 = 0;
             adj2 = 270;
@@ -62,17 +70,19 @@ export function renderPieShape(shapType: any, w: any, h: any, imgFillFlg: any, g
     }
     else if (shapType === "chord") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        let sAdj1, sAdj1_val = 45;
-        let sAdj2, sAdj2_val = 270;
+        let sAdj1: string | undefined, sAdj1_val = 45;
+        let sAdj2: string | undefined, sAdj2_val = 270;
         if (shapAdjst_ary !== undefined) {
-            for (const i of shapAdjst_ary.keys()){
+            for (const i of shapAdjst_ary.keys()) {
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
-                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1 = fmla;
+                    sAdj1_val = parseInt(fmla.substr(4)) / 60000;
                 } else if (sAdj_name === "adj2") {
-                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    sAdj2_val = parseInt(sAdj2.substr(4)) / 60000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj2 = fmla;
+                    sAdj2_val = parseInt(fmla.substr(4)) / 60000;
                 }
             }
         }
@@ -83,28 +93,31 @@ export function renderPieShape(shapType: any, w: any, h: any, imgFillFlg: any, g
     }
     else if (shapType === "blockArc") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        let sAdj1, adj1 = 180;
-        let sAdj2, adj2 = 0;
-        let sAdj3, adj3 = 25000 * SLIDE_FACTOR;
+        let sAdj1: string | undefined, adj1 = 180;
+        let sAdj2: string | undefined, adj2 = 0;
+        let sAdj3: string | undefined, adj3 = 25000 * SLIDE_FACTOR;
         const cnstVal1 = 50000 * SLIDE_FACTOR;
         const cnstVal2 = 100000 * SLIDE_FACTOR;
         if (shapAdjst_ary !== undefined) {
-            for (const i of shapAdjst_ary.keys()){
+            for (const i of shapAdjst_ary.keys()) {
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
-                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    adj1 = parseInt(sAdj1.substr(4)) / 60000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1 = fmla;
+                    adj1 = parseInt(fmla.substr(4)) / 60000;
                 } else if (sAdj_name === "adj2") {
-                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    adj2 = parseInt(sAdj2.substr(4)) / 60000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj2 = fmla;
+                    adj2 = parseInt(fmla.substr(4)) / 60000;
                 } else if (sAdj_name === "adj3") {
-                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    adj3 = parseInt(sAdj3.substr(4)) * SLIDE_FACTOR;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj3 = fmla;
+                    adj3 = parseInt(fmla.substr(4)) * SLIDE_FACTOR;
                 }
             }
         }
 
-        let stAng, istAng, a3, sw11, sw12, swAng, iswAng;
+        let stAng = 0, istAng = 0, a3 = 0, sw11 = 0, sw12 = 0, swAng = 0, iswAng = 0;
         const cd1 = 360;
         if (adj1 < 0) stAng = 0;
         else if (adj1 > cd1) stAng = cd1;
@@ -126,13 +139,10 @@ export function renderPieShape(shapType: any, w: any, h: any, imgFillFlg: any, g
         const endAng = stAng + swAng;
         const iendAng = istAng + iswAng;
 
-        let wt1, ht1, dx1, dy1, x1, y1, stRd, istRd, wd2, hd2, hc, vc;
+        let wt1 = 0, ht1 = 0, dx1 = 0, dy1 = 0, x1 = 0, y1 = 0, stRd = 0, istRd = 0;
+        let wd2 = w / 2, hd2 = h / 2, hc = w / 2, vc = h / 2;
         stRd = stAng * (Math.PI) / 180;
         istRd = istAng * (Math.PI) / 180;
-        wd2 = w / 2;
-        hd2 = h / 2;
-        hc = w / 2;
-        vc = h / 2;
         if (stAng > 90 && stAng < 270) {
             wt1 = wd2 * (Math.sin((Math.PI) / 2 - stRd));
             ht1 = hd2 * (Math.cos((Math.PI) / 2 - stRd));
@@ -152,7 +162,7 @@ export function renderPieShape(shapType: any, w: any, h: any, imgFillFlg: any, g
             x1 = hc + dx1;
             y1 = vc + dy1;
         }
-        let dr, iwd2, ihd2, wt2, ht2, dx2, dy2, x2, y2;
+        let dr = 0, iwd2 = 0, ihd2 = 0, wt2 = 0, ht2 = 0, dx2 = 0, dy2 = 0, x2 = 0, y2 = 0;
         dr = Math.min(w, h) * a3 / cnstVal2;
         iwd2 = wd2 - dr;
         ihd2 = hd2 - dr;

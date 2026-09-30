@@ -897,7 +897,7 @@ const DINGBAT_UNICODE = [
 ];
 
 let order = 1;
-function tXml(xml, options = {}) {
+const tXml = (function (xml, options = {}) {
     const POS = options.pos || 0;
     const CHAR_LT = '<';
     const CHAR_GT = '>';
@@ -988,7 +988,7 @@ function tXml(xml, options = {}) {
         return match ? match.index : -1;
     }
     function parseNode() {
-        const node = {};
+        const node = { tagName: '' };
         pos++;
         node.tagName = parseTagName();
         let hasAttributes = false;
@@ -1076,7 +1076,7 @@ function tXml(xml, options = {}) {
     }
     result.pos = pos;
     return result;
-}
+});
 tXml.simplify = (nodes) => {
     const result = {};
     if (nodes === undefined) {
@@ -1099,7 +1099,7 @@ tXml.simplify = (nodes) => {
                 simplified.attrs = node.attributes;
             }
             if (simplified.attrs === undefined) {
-                simplified.attrs = { order: order };
+                simplified.attrs = { order };
             }
             else {
                 simplified.attrs.order = order;
@@ -1108,7 +1108,8 @@ tXml.simplify = (nodes) => {
         }
     });
     for (const key in result) {
-        if (result[key].length === 1) {
+        const arr = result[key];
+        if (arr.length === 1) {
             result[key] = result[key][0];
         }
     }
@@ -1120,7 +1121,7 @@ tXml.filter = (nodes, filterFn) => {
         if (typeof node === 'object' && filterFn(node)) {
             result.push(node);
         }
-        if (node.children) {
+        if (typeof node === 'object' && node.children) {
             const filtered = tXml.filter(node.children, filterFn);
             result.push(...filtered);
         }
@@ -1143,20 +1144,22 @@ tXml.stringify = (nodes) => {
     }
     function processNode(node) {
         xmlString += `<${node.tagName}`;
-        for (const attr in node.attributes) {
-            const value = node.attributes[attr];
-            if (value === null) {
-                xmlString += ` ${attr}`;
-            }
-            else if (value.indexOf('"') === -1) {
-                xmlString += ` ${attr}="${value.trim()}"`;
-            }
-            else {
-                xmlString += ` ${attr}='${value.trim()}'`;
+        if (node.attributes) {
+            for (const attr in node.attributes) {
+                const value = node.attributes[attr];
+                if (value === null) {
+                    xmlString += ` ${attr}`;
+                }
+                else if (value.indexOf('"') === -1) {
+                    xmlString += ` ${attr}="${value.trim()}"`;
+                }
+                else {
+                    xmlString += ` ${attr}='${value.trim()}'`;
+                }
             }
         }
         xmlString += '>';
-        processNodes(node.children);
+        processNodes(node.children ?? []);
         xmlString += `</${node.tagName}>`;
     }
     processNodes(nodes);
@@ -1172,7 +1175,7 @@ tXml.toContentString = (node) => {
         return text;
     }
     if (typeof node === 'object') {
-        return tXml.toContentString(node.children);
+        return tXml.toContentString(node.children ?? []);
     }
     return ` ${node}`;
 };
@@ -1190,27 +1193,27 @@ tXml.getElementsByClassName = (xml, className, simplify) => {
         simplify: simplify
     });
 };
-tXml.parseStream = (source, chunkSize) => {
+tXml.parseStream = (source, chunkSize = 0) => {
     if (typeof chunkSize === 'function') {
         chunkSize = 0;
     }
-    if (typeof chunkSize === 'string') {
-        chunkSize = chunkSize.length + 2;
-    }
+    let stream;
     if (typeof source === 'string') {
         const fs = require('fs');
-        source = fs.createReadStream(source, { start: chunkSize });
-        chunkSize = 0;
+        stream = fs.createReadStream(source, { start: chunkSize });
+    }
+    else {
+        stream = source;
     }
     let pos = chunkSize;
     let buffer = '';
-    source.on('data', (chunk) => {
+    stream.on('data', (chunk) => {
         buffer += chunk;
         let lastPos = 0;
         while (true) {
             pos = buffer.indexOf('<', pos) + 1;
             const node = tXml(buffer, { pos: pos, parseNode: true });
-            pos = node.pos;
+            pos = node.pos ?? 0;
             if (pos > buffer.length - 1 || lastPos > pos) {
                 if (lastPos) {
                     buffer = buffer.slice(lastPos);
@@ -1219,11 +1222,11 @@ tXml.parseStream = (source, chunkSize) => {
                 }
                 return;
             }
-            source.emit('xml', node);
+            stream.emit('xml', node);
             lastPos = pos;
         }
     });
-    return source;
+    return stream;
 };
 
 const PPTXXmlUtils = (function () {
@@ -1291,13 +1294,13 @@ const PPTXXmlUtils = (function () {
         if (angle == "" || angle == null) {
             return 0;
         }
-        return Math.round(angle / 60000);
+        return Math.round(Number(angle) / 60000);
     }
     function degreesToRadians(degrees) {
         if (degrees == "" || degrees == null || degrees == undefined) {
             return 0;
         }
-        return degrees * (Math.PI / 180);
+        return Number(degrees) * (Math.PI / 180);
     }
     function escapeHtml(text) {
         let map = {
@@ -1315,10 +1318,10 @@ const PPTXXmlUtils = (function () {
             if (!zipFile)
                 return null;
             let fileContent = zipFile.async ? await zipFile.async("text") : zipFile.asText();
-            if (isSlideContent && appVersion <= 12) {
+            if (isSlideContent && appVersion !== undefined && appVersion <= 12) {
                 fileContent = fileContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
             }
-            let xmlData = tXml(fileContent, { simplify: 1 });
+            let xmlData = tXml(fileContent, { simplify: true });
             if (xmlData["?xml"] !== undefined) {
                 return xmlData["?xml"];
             }
@@ -1353,15 +1356,15 @@ const PPTXXmlUtils = (function () {
     async function getSlideSizeAndSetDefaultTextStyle(zip, settings) {
         let app = await PPTXXmlUtils.readXmlFile(zip, "docProps/app.xml");
         app["Properties"]["AppVersion"];
-        let rtenObj = {};
+        let rtenObj;
         let content = await PPTXXmlUtils.readXmlFile(zip, "ppt/presentation.xml");
         let sldSzAttrs = content["p:presentation"]["p:sldSz"]["attrs"];
         let sldSzWidth = parseInt(sldSzAttrs["cx"]);
         let sldSzHeight = parseInt(sldSzAttrs["cy"]);
         sldSzAttrs["type"];
         const defaultTextStyle = content["p:presentation"]["p:defaultTextStyle"];
-        const slideWidth = sldSzWidth * SLIDE_FACTOR$1 + settings.incSlide.width | 0;
-        const slideHeight = sldSzHeight * SLIDE_FACTOR$1 + settings.incSlide.height | 0;
+        const slideWidth = (sldSzWidth * SLIDE_FACTOR$1 + (settings.incSlide?.width ?? 0)) | 0;
+        const slideHeight = (sldSzHeight * SLIDE_FACTOR$1 + (settings.incSlide?.height ?? 0)) | 0;
         rtenObj = {
             "width": slideWidth,
             "height": slideHeight,
@@ -1997,7 +2000,7 @@ async function getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type,
                     if (!Array.isArray(effectStyleLst)) {
                         effectStyleLst = [effectStyleLst];
                     }
-                    var idx = Number(effectIdx);
+                    idx = Number(effectIdx);
                     if (idx >= 0 && effectStyleLst[idx] !== undefined) {
                         txtShadow = PPTXXmlUtils.getTextByPathList(effectStyleLst[idx], ["a:effectLst", "a:outerShdw"]);
                     }
@@ -2051,22 +2054,22 @@ function getFontSize(node, textBodyNode, pFontStyle, lvl, type, warpObj) {
     if (node["a:rPr"] !== undefined && node["a:rPr"]["attrs"] && node["a:rPr"]["attrs"]["sz"] !== undefined) {
         fontSize = parseInt(node["a:rPr"]["attrs"]["sz"]) / 100;
     }
-    if (isNaN(fontSize) || fontSize === undefined && node["a:fld"] !== undefined) {
+    if (isNaN(fontSize ?? NaN) || fontSize === undefined && node["a:fld"] !== undefined) {
         sz = PPTXXmlUtils.getTextByPathList(node["a:fld"], ["a:rPr", "attrs", "sz"]);
         fontSize = parseInt(sz) / 100;
     }
-    if ((isNaN(fontSize) || fontSize === undefined) && node["a:t"] === undefined) {
+    if ((isNaN(fontSize ?? NaN) || fontSize === undefined) && node["a:t"] === undefined) {
         sz = PPTXXmlUtils.getTextByPathList(node["a:endParaRPr"], ["attrs", "sz"]);
         fontSize = parseInt(sz) / 100;
     }
-    if ((isNaN(fontSize) || fontSize === undefined) && lstStyle !== undefined) {
+    if ((isNaN(fontSize ?? NaN) || fontSize === undefined) && lstStyle !== undefined) {
         sz = PPTXXmlUtils.getTextByPathList(lstStyle, [lvlpPr, "a:defRPr", "attrs", "sz"]);
         fontSize = parseInt(sz) / 100;
     }
     if (textBodyNode !== undefined) {
         PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "a:spAutoFit"]);
     }
-    if (isNaN(fontSize) || fontSize === undefined) {
+    if (isNaN(fontSize ?? NaN) || fontSize === undefined) {
         sz = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "sz"]);
         fontSize = parseInt(sz) / 100;
         kern = PPTXXmlUtils.getTextByPathList(warpObj["slideLayoutTables"], ["typeTable", type, "p:txBody", "a:lstStyle", lvlpPr, "a:defRPr", "attrs", "kern"]);
@@ -2804,7 +2807,7 @@ async function getPicFill(type, node, warpObj) {
             return undefined;
         }
         let imgArrayBuffer = await imgFile.async("arraybuffer");
-        let imgMimeType = PPTXXmlUtils.getMimeType(imgExt);
+        let imgMimeType = PPTXXmlUtils.getMimeType(imgExt ?? '');
         img = `data:${imgMimeType};base64,${PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer)}`;
         setTextByPathList(warpObj, ["loaded-images", imgPath], img);
     }
@@ -3347,7 +3350,7 @@ function eachElement(node, doFunction) {
         return;
     }
     let result = "";
-    if (node.constructor === Array) {
+    if (Array.isArray(node)) {
         let l = node.length;
         for (let i = 0; i < l; i++) {
             result += doFunction(node[i], i);
@@ -4450,7 +4453,7 @@ async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterS
             }
             rNode = rNode.concat(brNode);
             rNode.sort((a, b) => {
-                return a.attrs.order - b.attrs.order;
+                return (a.attrs.order ?? 0) - (b.attrs.order ?? 0);
             });
         }
         let styleText = "";
@@ -4588,7 +4591,7 @@ async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterS
                 }
             }
         }
-        prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR$1 - bu_width - mrgin_val;
+        prg_width_node = parseInt(prg_width_node) * SLIDE_FACTOR$1 - bu_width - Number(mrgin_val);
         prg_width_node = Math.round(prg_width_node * 100) / 100;
         let textContainerWidth = "";
         if (!isAutoFit && !isNoWrap && sld_prg_width_val !== null && !isNaN(sld_prg_width_val) && type !== "table") {
@@ -4924,7 +4927,7 @@ async function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, w
     if (buFontSize === undefined) {
         bultSize = dfltBultSize;
     }
-    font_val = parseInt(bultSize, 10);
+    font_val = parseInt(bultSize ?? "", 10);
     if (buType == "TYPE_BULLET") {
         let typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
         let typeface = "";
@@ -5193,13 +5196,13 @@ function getHtmlBullet(typefaceNode, buChar) {
 }
 function getDingbatToUnicode(typefaceNode, buChar) {
     if (DINGBAT_UNICODE) {
-        let dingbat_code = buChar.codePointAt(0) & 0xFFF;
+        let dingbat_code = (buChar.codePointAt(0) ?? 0) & 0xFFF;
         let char_unicode = null;
         let len = DINGBAT_UNICODE.length;
         let i = 0;
         while (len--) {
             let item = DINGBAT_UNICODE[i];
-            if (item.f == typefaceNode && item.code == dingbat_code) {
+            if (item.f == typefaceNode && Number(item.code) == dingbat_code) {
                 char_unicode = item.unicode;
                 break;
             }
@@ -5250,8 +5253,9 @@ function archaicNumbers(arr) {
             let ret = '';
             for (const item of arr) {
                 let num = item[0];
-                if (parseInt(num) > 0) {
-                    for (; n >= num; n -= num)
+                if (parseInt(String(num)) > 0) {
+                    const numVal = parseInt(String(num));
+                    for (; n >= numVal; n -= numVal)
                         ret += item[1];
                 }
                 else {
@@ -5269,7 +5273,7 @@ function romanize(num) {
         "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC",
         "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"], roman = "", i = 3;
     while (i--)
-        roman = (key[+digits.pop() + (i * 10)] || "") + roman;
+        roman = (key[+(digits.pop() ?? 0) + i * 10] || "") + roman;
     return Array(+digits.join("") + 1).join("M") + roman;
 }
 archaicNumbers([
@@ -5332,7 +5336,7 @@ function getNumTypeNum(numTyp, num) {
             rtrnNum = `${hebrewAlphaNumeric(num)}-`;
             break;
         default:
-            rtrnNum = num;
+            rtrnNum = String(num);
     }
     return rtrnNum;
 }
@@ -5967,7 +5971,7 @@ async function getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTb
     let celFillColor = "";
     let colFontClrPr = "";
     let colFontWeight = "";
-    let lin_bottm = "", lin_top = "", lin_left = "", lin_right = "";
+    let lin_bottm, lin_top, lin_left, lin_right;
     let colSapnInt = parseInt(colSpan);
     let total_col_width = 0;
     if (!isNaN(colSapnInt) && colSapnInt > 1) {
@@ -6172,7 +6176,7 @@ function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
     return d;
 }
 function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, isClose) {
-    let dData;
+    let dData = "";
     let angle = stAng;
     function fmt(num) {
         return parseFloat(num.toFixed(2));
@@ -6242,7 +6246,7 @@ function shapeSnipRoundRect(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp) {
     return d;
 }
 function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
-    let adjA, adjB, adjC, adjD;
+    let adjA = 0, adjB = 0, adjC = 0, adjD = 0;
     if (adjType == "cornr1") {
         adjA = 0;
         adjB = 0;
@@ -6267,7 +6271,7 @@ function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
         adjC = adj1;
         adjD = adj2;
     }
-    let d;
+    let d = "";
     if (shapeType == "round") {
         d = `M0,${(h / 2 + (1 - adjB) * (h / 2))} Q${0},${h} ${adjB * (w / 2)},${h} L${(w / 2 + (1 - adjC) * (w / 2))},${h} Q${w},${h} ${w},${(h / 2 + (h / 2) * (1 - adjC))}L${w},${(h / 2) * adjD} Q${w},${0} ${(w / 2 + (w / 2) * (1 - adjD))},0 L${(w / 2) * adjA},0 Q${0},${0} 0,${(h / 2) * (adjA)} z`;
     }
@@ -6277,16 +6281,18 @@ function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
     return d;
 }
 function shapePie(H, w, adj1, adj2, isClose) {
-    const pieVal = parseInt(adj2);
-    const piAngle = parseInt(adj1);
-    let size = parseInt(H), radius = (size / 2), value = pieVal - piAngle;
+    const pieVal = parseInt(String(adj2));
+    const piAngle = parseInt(String(adj1));
+    let size = parseInt(String(H)), radius = (size / 2), value = pieVal - piAngle;
     if (value < 0) {
         value = 360 + value;
     }
     value = Math.min(Math.max(value, 0), 360);
     const x = Math.cos((2 * Math.PI) / (360 / value));
     const y = Math.sin((2 * Math.PI) / (360 / value));
-    let longArc, d, rot;
+    let longArc = 0;
+    let d = "";
+    let rot = "";
     if (isClose) {
         longArc = (value <= 180) ? 0 : 1;
         d = `M${radius},${radius} L${radius},${0} A${radius},${radius} 0 ${longArc},1 ${(radius + y * radius)},${(radius - x * radius)} z`;
@@ -6360,14 +6366,14 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
     const multiSapeAry = [];
     if (moveToNode.length > 0) {
         Object.keys(moveToNode).forEach((key) => {
-            var moveToPtNode = moveToNode[key]["a:pt"];
+            const moveToPtNode = moveToNode[key]["a:pt"];
             if (moveToPtNode !== undefined) {
                 Object.keys(moveToPtNode).forEach((key2) => {
-                    var ptObj = {};
-                    var moveToNoPt = moveToPtNode[key2];
-                    var spX = moveToNoPt["x"];
-                    var spY = moveToNoPt["y"];
-                    var ptOrdr = moveToNoPt["order"];
+                    const ptObj = {};
+                    const moveToNoPt = moveToPtNode[key2];
+                    const spX = moveToNoPt["x"];
+                    const spY = moveToNoPt["y"];
+                    const ptOrdr = moveToNoPt["order"];
                     ptObj.type = "movto";
                     ptObj.order = ptOrdr;
                     ptObj.x = spX;
@@ -6378,14 +6384,14 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
         });
         if (lnToNodes !== undefined) {
             Object.keys(lnToNodes).forEach((key) => {
-                var lnToPtNode = lnToNodes[key]["a:pt"];
+                const lnToPtNode = lnToNodes[key]["a:pt"];
                 if (lnToPtNode !== undefined) {
                     Object.keys(lnToPtNode).forEach((key2) => {
-                        var ptObj = {};
-                        var lnToNoPt = lnToPtNode[key2];
-                        var ptX = lnToNoPt["x"];
-                        var ptY = lnToNoPt["y"];
-                        var ptOrdr = lnToNoPt["order"];
+                        const ptObj = {};
+                        const lnToNoPt = lnToPtNode[key2];
+                        const ptX = lnToNoPt["x"];
+                        const ptY = lnToNoPt["y"];
+                        const ptOrdr = lnToNoPt["order"];
                         ptObj.type = "lnto";
                         ptObj.order = ptOrdr;
                         ptObj.x = ptX;
@@ -6404,12 +6410,12 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 cubicBezToPtNodesAry.push(cubicBezToNodes[key]["a:pt"]);
             });
             cubicBezToPtNodesAry.forEach((key2) => {
-                var nodeObj = {};
+                const nodeObj = {};
                 nodeObj.type = "cubicBezTo";
                 nodeObj.order = key2[0]["attrs"]["order"];
-                var pts_ary = [];
+                const pts_ary = [];
                 key2.forEach((pt) => {
-                    var pt_obj = {
+                    const pt_obj = {
                         x: pt["attrs"]["x"],
                         y: pt["attrs"]["y"]
                     };
@@ -6429,12 +6435,12 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 quadBezToPtNodesAry.push(quadBezToNodes[key]["a:pt"]);
             });
             quadBezToPtNodesAry.forEach((key2) => {
-                var nodeObj = {};
+                const nodeObj = {};
                 nodeObj.type = "quadBezTo";
                 nodeObj.order = key2[0]["attrs"]["order"];
-                var pts_ary = [];
+                const pts_ary = [];
                 key2.forEach((pt) => {
-                    var pt_obj = {
+                    const pt_obj = {
                         x: pt["attrs"]["x"],
                         y: pt["attrs"]["y"]
                     };
@@ -6458,7 +6464,7 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 shftX = arcToPtNode["x"];
                 shftY = arcToPtNode["y"];
             }
-            var ptObj = {};
+            const ptObj = {};
             ptObj.type = "arcTo";
             ptObj.order = arcOrder;
             ptObj.hR = hR;
@@ -6474,16 +6480,16 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 closeNode = [closeNode];
             }
             Object.keys(closeNode).forEach((key) => {
-                var clsAttrs = closeNode[key]["attrs"];
-                var clsOrder = clsAttrs["order"];
-                var ptObj = {};
+                const clsAttrs = closeNode[key]["attrs"];
+                const clsOrder = clsAttrs["order"];
+                const ptObj = {};
                 ptObj.type = "close";
                 ptObj.order = clsOrder;
                 multiSapeAry.push(ptObj);
             });
         }
         multiSapeAry.sort((a, b) => {
-            return a.order - b.order;
+            return Number(a.order) - Number(b.order);
         });
         let k = 0;
         if (isNaN(cX))
@@ -6499,8 +6505,8 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                     cX = 0;
                 if (isNaN(cY))
                     cY = 0;
-                var spX = xVal * cX;
-                var spY = yVal * cY;
+                const spX = xVal * cX;
+                const spY = yVal * cY;
                 d += ` M${spX},${spY}`;
             }
             else if (multiSapeAry[k].type == "lnto") {
@@ -6546,12 +6552,12 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
                 }
             }
             else if (multiSapeAry[k].type == "quadBezTo") {
-                var quadBzPt = multiSapeAry[k].quadBzPt;
+                const quadBzPt = multiSapeAry[k].quadBzPt;
                 if (quadBzPt && quadBzPt.length >= 2) {
-                    const ctrlX = quadBzPt[0].x * cX;
-                    const ctrlY = quadBzPt[0].y * cY;
-                    const endX = quadBzPt[1].x * cX;
-                    const endY = quadBzPt[1].y * cY;
+                    const ctrlX = Number(quadBzPt[0].x) * cX;
+                    const ctrlY = Number(quadBzPt[0].y) * cY;
+                    const endX = Number(quadBzPt[1].x) * cX;
+                    const endY = Number(quadBzPt[1].y) * cY;
                     d += `Q${ctrlX},${ctrlY} ${endX},${endY}`;
                 }
             }
@@ -6566,7 +6572,7 @@ function renderCustomShape(custShapType, w, h, imgFillFlg, grndFillFlg, fillColo
 }
 
 const SLIDE_FACTOR = 0.0001;
-function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt, node) {
+function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, _shapeArcAlt, node) {
     let result = '';
     const hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
     const fill = !imgFillFlg ? (grndFillFlg ? `url(#linGrd_${shpId})` : fillColor) : `url(#imgPtrn_${shpId})`;
@@ -7037,16 +7043,15 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
 }
 function getAdjValue(node, name, defaultValue) {
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-    if (shapAdjst !== undefined) {
-        if (Array.isArray(shapAdjst)) {
-            for (let key of Object.keys(shapAdjst)) {
-                if (shapAdjst[key] && shapAdjst[key]["attrs"] && shapAdjst[key]["attrs"]["name"] === name) {
-                    return parseInt(shapAdjst[key]["attrs"]["fmla"].substr(4)) * SLIDE_FACTOR;
-                }
+    if (shapAdjst === undefined)
+        return defaultValue * SLIDE_FACTOR;
+    const items = Array.isArray(shapAdjst) ? shapAdjst : [shapAdjst];
+    for (const item of items) {
+        if (item.attrs && item.attrs["name"] === name) {
+            const fmla = item.attrs["fmla"];
+            if (typeof fmla === "string") {
+                return parseInt(fmla.substr(4)) * SLIDE_FACTOR;
             }
-        }
-        else if (shapAdjst["attrs"] && shapAdjst["attrs"]["name"] === name) {
-            return parseInt(shapAdjst["attrs"]["fmla"].substr(4)) * SLIDE_FACTOR;
         }
     }
     return defaultValue * SLIDE_FACTOR;
@@ -7581,7 +7586,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
     let dVal = "";
     if (shapType === "pie" || shapType === "pieWedge" || shapType === "arc") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        let adj1, adj2, H, shapAdjst1, shapAdjst2, isClose;
+        let adj1 = 0, adj2 = 0, H = 0, shapAdjst1, shapAdjst2, isClose = false;
         if (shapType === "pie") {
             adj1 = 0;
             adj2 = 270;
@@ -7619,18 +7624,18 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
     }
     else if (shapType === "chord") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        let sAdj1, sAdj1_val = 45;
-        let sAdj2, sAdj2_val = 270;
+        let sAdj1_val = 45;
+        let sAdj2_val = 270;
         if (shapAdjst_ary !== undefined) {
             for (const i of shapAdjst_ary.keys()) {
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
-                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    sAdj1_val = parseInt(sAdj1.substr(4)) / 60000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj1_val = parseInt(fmla.substr(4)) / 60000;
                 }
                 else if (sAdj_name === "adj2") {
-                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    sAdj2_val = parseInt(sAdj2.substr(4)) / 60000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    sAdj2_val = parseInt(fmla.substr(4)) / 60000;
                 }
             }
         }
@@ -7641,29 +7646,29 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
     }
     else if (shapType === "blockArc") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        let sAdj1, adj1 = 180;
-        let sAdj2, adj2 = 0;
-        let sAdj3, adj3 = 25000 * SLIDE_FACTOR$1;
+        let adj1 = 180;
+        let adj2 = 0;
+        let adj3 = 25000 * SLIDE_FACTOR$1;
         const cnstVal1 = 50000 * SLIDE_FACTOR$1;
         const cnstVal2 = 100000 * SLIDE_FACTOR$1;
         if (shapAdjst_ary !== undefined) {
             for (const i of shapAdjst_ary.keys()) {
                 const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
                 if (sAdj_name === "adj1") {
-                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    adj1 = parseInt(sAdj1.substr(4)) / 60000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj1 = parseInt(fmla.substr(4)) / 60000;
                 }
                 else if (sAdj_name === "adj2") {
-                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    adj2 = parseInt(sAdj2.substr(4)) / 60000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj2 = parseInt(fmla.substr(4)) / 60000;
                 }
                 else if (sAdj_name === "adj3") {
-                    sAdj3 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                    adj3 = parseInt(sAdj3.substr(4)) * SLIDE_FACTOR$1;
+                    const fmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                    adj3 = parseInt(fmla.substr(4)) * SLIDE_FACTOR$1;
                 }
             }
         }
-        let stAng, istAng, a3, sw11, sw12, swAng, iswAng;
+        let stAng = 0, istAng = 0, a3 = 0, sw11 = 0, sw12 = 0, swAng = 0, iswAng = 0;
         const cd1 = 360;
         if (adj1 < 0)
             stAng = 0;
@@ -7689,13 +7694,10 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
         iswAng = -swAng;
         const endAng = stAng + swAng;
         const iendAng = istAng + iswAng;
-        let wt1, ht1, dx1, dy1, x1, y1, stRd, istRd, wd2, hd2, hc, vc;
+        let wt1 = 0, ht1 = 0, dx1 = 0, dy1 = 0, x1 = 0, y1 = 0, stRd = 0, istRd = 0;
+        let wd2 = w / 2, hd2 = h / 2, hc = w / 2, vc = h / 2;
         stRd = stAng * (Math.PI) / 180;
         istRd = istAng * (Math.PI) / 180;
-        wd2 = w / 2;
-        hd2 = h / 2;
-        hc = w / 2;
-        vc = h / 2;
         if (stAng > 90 && stAng < 270) {
             wt1 = wd2 * (Math.sin((Math.PI) / 2 - stRd));
             ht1 = hd2 * (Math.cos((Math.PI) / 2 - stRd));
@@ -7712,7 +7714,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
             x1 = hc + dx1;
             y1 = vc + dy1;
         }
-        let dr, iwd2, ihd2, wt2, ht2, dx2, dy2, x2, y2;
+        let dr = 0, iwd2 = 0, ihd2 = 0, wt2 = 0, ht2 = 0, dx2 = 0, dy2 = 0, x2 = 0, y2 = 0;
         dr = Math.min(w, h) * a3 / cnstVal2;
         iwd2 = wd2 - dr;
         ihd2 = hd2 - dr;
@@ -7749,18 +7751,18 @@ function renderArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border,
 }
 function readAdjustmentParams(node, w, h) {
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-    let sAdj1, sAdj1_val = 0.25;
-    let sAdj2, sAdj2_val = 0.5;
+    let sAdj1_val = 0.25;
+    let sAdj2_val = 0.5;
     if (shapAdjst) {
         for (const item of shapAdjst) {
             const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj1") {
-                sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
+                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                sAdj1_val = parseInt(fmla.substr(4)) / 200000;
             }
             else if (sAdjName === "adj2") {
-                sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
+                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
                 const maxConst = w / h;
                 sAdj2_val = sAdj2Val2 / maxConst;
             }
@@ -7776,8 +7778,8 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         for (const item of shapAdjst) {
             const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj2") {
-                const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
+                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
                 sAdj2_val = sAdj2Val2 / max_sAdj2_const;
             }
         }
@@ -7798,8 +7800,8 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
             for (const item of shapAdjst_up) {
                 const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                    const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                    const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
                     sAdj2_val_up = sAdj2Val2 / max_sAdj2_const_up;
                 }
             }
@@ -7815,8 +7817,8 @@ function renderBasicArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
             for (const item of shapAdjst_down) {
                 const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                    const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                    const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
                     sAdj2_val_down = sAdj2Val2 / max_sAdj2_const_down;
                 }
             }
@@ -7834,12 +7836,12 @@ function renderDoubleArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
         for (const item of shapAdjst) {
             const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
             if (sAdjName === "adj1") {
-                const sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
+                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                sAdj1_val = parseInt(fmla.substr(4)) / 200000;
             }
             else if (sAdjName === "adj2") {
-                const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
+                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
                 sAdj2_val = sAdj2Val2 / max_sAdj2_const;
             }
         }
@@ -7857,12 +7859,12 @@ function renderDoubleArrow(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, b
             for (const item of shapAdjst_ud) {
                 const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
                 if (sAdjName === "adj1") {
-                    const sAdj1 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                    sAdj1_val = parseInt(sAdj1.substr(4)) / 200000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                    sAdj1_val = parseInt(fmla.substr(4)) / 200000;
                 }
                 else if (sAdjName === "adj2") {
-                    const sAdj2 = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                    const sAdj2Val2 = parseInt(sAdj2.substr(4)) / 100000;
+                    const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
+                    const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
                     sAdj2_val = sAdj2Val2 / max_sAdj2_const_ud;
                 }
             }
@@ -8363,7 +8365,7 @@ const PPTXShapeUtils = (function () {
                         if (!Array.isArray(effectStyleLst)) {
                             effectStyleLst = [effectStyleLst];
                         }
-                        var idx = Number(effectIdx);
+                        idx = Number(effectIdx);
                         if (effectStyleLst.length > 0) {
                             if (idx >= 0 && idx < effectStyleLst.length) {
                                 effectStyleNode = effectStyleLst[idx];
@@ -10433,7 +10435,7 @@ const PPTXShapeUtils = (function () {
                         a2 = adj2;
                     if (adj3 < 0)
                         a3 = 0;
-                    else if (adj3 > maxAdj3)
+                    else if (maxAdj3 !== undefined && adj3 > maxAdj3)
                         a3 = maxAdj3;
                     else
                         a3 = adj3;
@@ -12435,13 +12437,15 @@ function processMsgQueue(queue, result) {
     for (const msg of queue) {
         if (msg.type === "chart" || msg.type === "createChart") {
             const chartObj = msg.data;
-            result.charts.push({
-                chartId: chartObj.chartId,
-                type: chartObj.chartType,
-                data: chartObj.chartData,
-                style: chartObj.style,
-                title: chartObj.title
-            });
+            if (chartObj) {
+                result.charts.push({
+                    chartId: chartObj.chartId,
+                    type: chartObj.chartType,
+                    data: chartObj.chartData,
+                    style: chartObj.style,
+                    title: chartObj.title
+                });
+            }
         }
     }
 }
@@ -13084,8 +13088,9 @@ function xmlNode(tagName, attrs, ...children) {
     }
     const filteredAttrs = {};
     if (attrs) {
-        for (const key in attrs) {
-            const val = attrs[key];
+        const src = attrs;
+        for (const key in src) {
+            const val = src[key];
             if (val !== undefined && val !== null) {
                 filteredAttrs[key] = String(val);
             }
@@ -13098,22 +13103,25 @@ function xmlNode(tagName, attrs, ...children) {
     };
 }
 function nodeToString(node, indent = '') {
+    if (node === null || node === undefined)
+        return '';
     if (typeof node === 'string') {
         return escapeXml(node);
     }
-    const attrs = Object.keys(node.attrs)
-        .map(key => ` ${key}="${escapeXml(node.attrs[key])}"`)
+    const attrs = node.attrs ?? {};
+    const attrStr = Object.keys(attrs)
+        .map(key => ` ${key}="${escapeXml(attrs[key])}"`)
         .join('');
     if (!node.children || node.children.length === 0) {
-        return `<${node.tagName}${attrs}/>`;
+        return `<${node.tagName}${attrStr}/>`;
     }
     const inner = node.children
         .map((child) => nodeToString(child))
         .join('');
     if (node.children.every((c) => typeof c === 'string')) {
-        return `<${node.tagName}${attrs}>${inner}</${node.tagName}>`;
+        return `<${node.tagName}${attrStr}>${inner}</${node.tagName}>`;
     }
-    return `<${node.tagName}${attrs}>${inner}</${node.tagName}>`;
+    return `<${node.tagName}${attrStr}>${inner}</${node.tagName}>`;
 }
 function toXmlDocument(rootNode) {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n${nodeToString(rootNode)}`;
@@ -13277,7 +13285,7 @@ function arrayBufferToBase64(buffer) {
     let binary = '';
     const chunk = 0x8000;
     for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
     }
     if (typeof btoa === 'function') {
         return btoa(binary);
@@ -13329,7 +13337,7 @@ function buildParagraph(ctx, paragraph, defaults) {
     else {
         pPrChildren.push(xmlNode('a:buNone'));
     }
-    const pPr = xmlNode('a:pPr', { algn: alignMap[p.align || defaults.align] || null }, ...pPrChildren);
+    const pPr = xmlNode('a:pPr', { algn: alignMap[p.align || defaults.align || 'left'] || null }, ...pPrChildren);
     let runs;
     if (Array.isArray(p.runs) && p.runs.length > 0) {
         runs = p.runs.map((r) => {
@@ -13368,7 +13376,7 @@ function buildTextElement(ctx, el) {
         href: el.href,
         lang: el.lang
     };
-    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}` }), xmlNode('p:cNvSpPr', { txBox: 1 }), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))), xmlNode('p:txBody', null, xmlNode('a:bodyPr', { wrap: 'square', rtlCol: 0, anchor: anchorMap[el.valign] || null }), xmlNode('a:lstStyle'), ...normalizeParagraphs(el).map((p) => buildParagraph(ctx, p, defaults))));
+    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}` }), xmlNode('p:cNvSpPr', { txBox: 1 }), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))), xmlNode('p:txBody', null, xmlNode('a:bodyPr', { wrap: 'square', rtlCol: 0, anchor: anchorMap[el.valign ?? 'top'] ?? null }), xmlNode('a:lstStyle'), ...normalizeParagraphs(el).map((p) => buildParagraph(ctx, p, defaults))));
 }
 function buildShapeElement(ctx, el) {
     const id = ctx.nextElementId++;
@@ -13522,16 +13530,18 @@ async function buildSlideRoot(ctx, slide) {
 
 function normalizePresentation(input) {
     let presentation = input;
-    if (presentation && typeof presentation.toJSON === 'function') {
-        presentation = presentation.toJSON();
+    const serializable = presentation;
+    if (serializable && typeof serializable.toJSON === 'function') {
+        presentation = serializable.toJSON();
     }
-    if (!presentation || typeof presentation !== 'object') {
+    const pres = presentation;
+    if (!pres || typeof pres !== 'object') {
         throw new Error('jsonToPptx: 输入必须为演示文稿 JSON 对象或 PPTXComposer 实例');
     }
-    if (!Array.isArray(presentation.slides) || presentation.slides.length === 0) {
+    if (!Array.isArray(pres.slides) || pres.slides.length === 0) {
         throw new Error('jsonToPptx: 演示文稿至少需要一页幻灯片（slides 数组为空）');
     }
-    return presentation;
+    return pres;
 }
 async function jsonToPptx(presentation, options = {}) {
     const pres = normalizePresentation(presentation);
@@ -13553,7 +13563,7 @@ async function jsonToPptx(presentation, options = {}) {
         zip.file(`ppt/slides/_rels/slide${slideIndex}.xml.rels`, buildRelationshipsXml(slideRels));
         for (const media of ctx.media) {
             zip.file(`ppt/media/${media.name}`, media.base64, { base64: true });
-            allMediaExts.add(media.name.split('.').pop().toLowerCase());
+            allMediaExts.add((media.name.split('.').pop() ?? '').toLowerCase());
         }
         for (const chart of ctx.charts) {
             zip.file(`ppt/charts/${chart.name}`, chart.xml);
@@ -13753,7 +13763,7 @@ async function editPptx(fileData) {
                 return Number(m[1]);
             });
             const mapping = {};
-            oldNums.forEach((oldNum, i) => { mapping[oldNum] = i + 1; });
+            oldNums.forEach((oldNum, i) => { mapping[String(oldNum)] = i + 1; });
             const contents = [];
             const relsContents = [];
             for (const oldNum of oldNums) {
@@ -13813,7 +13823,7 @@ async function editPptx(fileData) {
             const newCtCharts = [];
             for (const media of ctx.media) {
                 zip.file(`ppt/media/${media.name}`, media.base64, { base64: true });
-                mediaExts.add(media.name.split('.').pop().toLowerCase());
+                mediaExts.add((media.name.split('.').pop() ?? '').toLowerCase());
             }
             for (const chart of ctx.charts) {
                 zip.file(`ppt/charts/${chart.name}`, chart.xml);
@@ -13838,7 +13848,7 @@ async function editPptx(fileData) {
             const MIME_MAP = { png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml' };
             for (const ext of mediaExts) {
                 if (!newCt.includes(`Extension="${ext}"`)) {
-                    newCt = newCt.replace('</Types>', `<Default Extension="${ext}" ContentType="${MIME_MAP[ext] || 'application/octet-stream'}"/></Types>`);
+                    newCt = newCt.replace('</Types>', `<Default Extension="${ext}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/></Types>`);
                 }
             }
             for (const chartName of newCtCharts) {
@@ -13861,20 +13871,21 @@ async function editPptx(fileData) {
 const DEFAULT_SLIDE_SIZE = { width: 1280, height: 720 };
 function makeFluent(el, keys) {
     const builder = {};
+    const target = el;
     for (const key of keys) {
         builder[key] = (value) => {
-            el[key] = value === undefined ? true : value;
+            target[key] = value === undefined ? true : value;
             return builder;
         };
     }
     return builder;
 }
-function applyConfig(element, config) {
+function applyConfig(target, config) {
     if (typeof config === 'function') {
-        config(element);
+        config(target);
     }
     else if (config && typeof config === 'object') {
-        Object.assign(element, config);
+        Object.assign(target, config);
     }
 }
 class SlideComposer {
@@ -13958,7 +13969,7 @@ class PPTXComposer {
             };
         }
         else {
-            this.presentation.slideSize = { width, height };
+            this.presentation.slideSize = { width: width, height: height };
         }
         return this;
     }
@@ -13985,13 +13996,13 @@ class PPTXComposer {
     toJSON() {
         return JSON.parse(JSON.stringify(this.presentation));
     }
-    save(options) {
+    save(options = {}) {
         return jsonToPptx(this.toJSON(), options);
     }
 }
 
 async function processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle) {
-    if (file.byteLength < 10) {
+    if ((typeof file === 'string' ? file.length : file.byteLength) < 10) {
         if (callbacks.onError) {
             callbacks.onError({ type: "file_error", message: "Invalid file: file too small" });
         }
@@ -14201,7 +14212,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     const themeResObj = {};
     if (themeFilename !== undefined) {
         const themeName = themeFilename.split("/").pop();
-        const themeResFileName = `${themeFilename.replace(themeName, `_rels/${themeName}`)}.rels`;
+        const themeResFileName = `${themeFilename.replace(String(themeName), `_rels/${themeName}`)}.rels`;
         themeContent = await PPTXXmlUtils.readXmlFile(zip, themeFilename);
         const themeResContent = await PPTXXmlUtils.readXmlFile(zip, themeResFileName);
         if (themeResContent !== null) {
@@ -14228,7 +14239,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
     const diagramResObj = {};
     if (diagramFilename !== undefined) {
         const diagramName = diagramFilename.split("/").pop();
-        const diagramResFileName = `${diagramFilename.replace(diagramName, `_rels/${diagramName}`)}.rels`;
+        const diagramResFileName = `${diagramFilename.replace(String(diagramName), `_rels/${diagramName}`)}.rels`;
         diagramContent = await PPTXXmlUtils.readXmlFile(zip, diagramFilename);
         if (diagramContent !== null && diagramContent !== undefined && diagramContent !== "") {
             const diagramJson = JSON.stringify(diagramContent);
@@ -14490,7 +14501,7 @@ async function pptxToJson(fileData, options) {
     return null;
 }
 async function pptxToFiles(fileData) {
-    if (fileData.byteLength < 10) {
+    if ((typeof fileData === 'string' ? fileData.length : fileData.byteLength) < 10) {
         throw new Error("Invalid file: file too small");
     }
     const zip = JSZip.loadAsync ? await JSZip.loadAsync(fileData) : new JSZip().load(fileData);
@@ -14510,7 +14521,7 @@ async function pptxToFiles(fileData) {
                 if (zipEntry.dir) {
                     return;
                 }
-                const ext = relativePath.split('.').pop().toLowerCase();
+                const ext = (relativePath.split('.').pop() ?? '').toLowerCase();
                 if (ext === 'xml' || ext === 'rels') {
                     const content = await zipEntry.async('text');
                     result.content[relativePath] = {
@@ -14538,7 +14549,7 @@ async function pptxToFiles(fileData) {
             catch (error) {
                 result.content[relativePath] = {
                     type: 'error',
-                    error: error.message
+                    error: error instanceof Error ? error.message : String(error)
                 };
             }
         })();

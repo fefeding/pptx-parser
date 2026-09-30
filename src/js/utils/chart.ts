@@ -6,6 +6,7 @@
 import { PPTXXmlUtils } from './xml';
 import { PPTXStyleUtils } from './style';
 import { SLIDE_FACTOR } from '../core/constants';
+import type { XmlNode, WarpObject } from '../core/types';
 
 // nvd3 / d3 由浏览器通过 <script> 标签注入，运行时作为全局变量存在
 declare const nv: any;
@@ -18,8 +19,8 @@ declare const d3: any;
  * @param {Object} parentNode - Parent node (for group elements coordinate calculation)
  * @returns {Promise<string>} Chart HTML
  */
-async function genChart(node: any, warpObj: any, parentNode: any) {
-    const order = node["attrs"]["order"];
+async function genChart(node: XmlNode | undefined, warpObj: WarpObject, parentNode: XmlNode | undefined) {
+    const order = node!["attrs"]!["order"];
     // graphicFrame 的变换元素标准是 <a:xfrm>（ECMA-376），
     // 但部分生成工具（旧版/某些导出器）会写成 <p:xfrm>，需兼容两种写法
     let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ["a:xfrm"]) ||
@@ -75,7 +76,7 @@ async function genChart(node: any, warpObj: any, parentNode: any) {
     const result = `<div id='chart${warpObj.chartId.value}' class='block content' style='${PPTXXmlUtils.getPosition(workingXfrmNode, parentNode || node, undefined, undefined)}${PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined)}` +
         ` z-index: ${order};'${dataAttrs}></div>`;
 
-    const rid = node["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
+    const rid = node!["a:graphic"]["a:graphicData"]["c:chart"]["attrs"]["r:id"];
     const refName = warpObj["slideResObj"][rid]["target"];
     const content = await PPTXXmlUtils.readXmlFile(warpObj["zip"], refName);
     // Guard: chart XML file may be missing or unreadable
@@ -91,7 +92,7 @@ async function genChart(node: any, warpObj: any, parentNode: any) {
 
     // 提取3D视图属性
     const view3D = PPTXXmlUtils.getTextByPathList(chart, ["c:view3D"]);
-    const view3DProps: any = {};
+    const view3DProps: Record<string, unknown> = {};
     if (view3D) {
         if (view3D["attrs"]?.rotX !== undefined) view3DProps.rotX = parseFloat(view3D["attrs"].rotX);
         if (view3D["attrs"]?.rotY !== undefined) view3DProps.rotY = parseFloat(view3D["attrs"].rotY);
@@ -104,7 +105,7 @@ async function genChart(node: any, warpObj: any, parentNode: any) {
     const varyColors = chartType ? PPTXXmlUtils.getTextByPathList(plotArea[chartType], ["c:varyColors", "attrs", "val"]) : undefined;
 
     // 提取系列数据点的样式（dPt）和爆炸效果（explosion）
-    let dataPointStyles: any = [];
+    let dataPointStyles: Array<Record<string, unknown>> = [];
     if (chartType && plotArea[chartType]["c:ser"]) {
         const serArray = Array.isArray(plotArea[chartType]["c:ser"]) 
             ? plotArea[chartType]["c:ser"] 
@@ -113,7 +114,7 @@ async function genChart(node: any, warpObj: any, parentNode: any) {
         serArray.forEach(ser => {
             const dPtArray = ser["c:dPt"];
             if (dPtArray) {
-                const dpStyles: any = {};
+                const dpStyles: Record<string, unknown> = {};
                 const dpList = Array.isArray(dPtArray) ? dPtArray : [dPtArray];
                 dpList.forEach(dp => {
                     const idx = dp["c:idx"]?.["attrs"]?.val;
@@ -121,7 +122,7 @@ async function genChart(node: any, warpObj: any, parentNode: any) {
                     const spPr = dp["c:spPr"];
                     
                     if (idx !== undefined) {
-                        const dpStyle: any = {};
+                        const dpStyle: Record<string, unknown> = {};
                         if (explosion !== undefined) {
                             dpStyle.explosion = parseFloat(explosion);
                         }
@@ -252,17 +253,19 @@ async function genChart(node: any, warpObj: any, parentNode: any) {
  * @param {Array} queue - Message queue
  * @param {Object} result - Result object to store chart data
  */
-function processMsgQueue(queue: any, result: any) {
+function processMsgQueue(queue: Array<{ type?: string; data?: Record<string, unknown> }>, result: { charts: Array<Record<string, unknown>> }) {
     for (const msg of queue) {
         if (msg.type === "chart" || msg.type === "createChart") {
             const chartObj = msg.data;
-            result.charts.push({
-                chartId: chartObj.chartId,
-                type: chartObj.chartType,
-                data: chartObj.chartData,
-                style: chartObj.style,
-                title: chartObj.title
-            });
+            if (chartObj) {
+                result.charts.push({
+                    chartId: chartObj.chartId,
+                    type: chartObj.chartType,
+                    data: chartObj.chartData,
+                    style: chartObj.style,
+                    title: chartObj.title
+                });
+            }
         }
     }
 }
@@ -287,7 +290,7 @@ function processSingleMsg(data: any, callbacks: any) {
             
             chart = nv.models.lineChart().useInteractiveGuideline(true);
             if (chartData[0]?.xlabels) {
-                chart.xAxis.tickFormat((d: any) => chartData[0].xlabels[d] || d);
+                chart.xAxis.tickFormat((d: number) => chartData[0].xlabels[d] || d);
             }
             break;
 
@@ -296,7 +299,7 @@ function processSingleMsg(data: any, callbacks: any) {
             
             chart = nv.models.multiBarChart();
             if (chartData[0]?.xlabels) {
-                chart.xAxis.tickFormat((d: any) => chartData[0].xlabels[d] || d);
+                chart.xAxis.tickFormat((d: number) => chartData[0].xlabels[d] || d);
             }
             break;
 
@@ -314,7 +317,7 @@ function processSingleMsg(data: any, callbacks: any) {
                 .clipEdge(true)
                 .useInteractiveGuideline(true);
             if (chartData[0]?.xlabels) {
-                chart.xAxis.tickFormat((d: any) => chartData[0].xlabels[d] || d);
+                chart.xAxis.tickFormat((d: number) => chartData[0].xlabels[d] || d);
             }
             break;
 

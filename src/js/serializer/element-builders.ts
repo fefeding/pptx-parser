@@ -18,18 +18,129 @@
 import { xmlNode, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml } from './xml-builder';
 import { REL_TYPES } from './templates';
 
+/** 关系记录（写入 slide rels） */
+export interface SerializerRel {
+    relId: string;
+    type: string;
+    target: string;
+    external: boolean;
+}
+/** 媒体文件记录 */
+export interface SerializerMedia {
+    name: string;
+    base64: string;
+}
+/** 图表部件记录 */
+export interface SerializerChart {
+    name: string;
+    xml: string;
+}
+/** 元素构建上下文：构建过程中收集 rels / media / charts */
+export interface SerializerContext {
+    rels: SerializerRel[];
+    media: SerializerMedia[];
+    charts: SerializerChart[];
+    nextElementId: number;
+    nextRelId: number;
+    mediaIndex: number;
+    chartIndex: number;
+}
+/** createElementContext 的选项 */
+export interface ElementContextOptions {
+    startMediaIndex?: number;
+}
+/** 运行级样式（文本默认样式 / 单段 run 样式均使用） */
+export interface RunStyle {
+    align?: string;
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontFace?: string;
+    href?: string;
+    lang?: string;
+}
+/** 文本运行：{ text, options } 规范格式，或扁平简写格式 */
+export interface TextRunSpec extends RunStyle {
+    text?: string;
+    options?: RunStyle;
+}
+/** 段落 */
+export interface ParagraphSpec {
+    text?: string;
+    runs?: TextRunSpec[];
+    align?: string;
+    bullet?: boolean;
+}
+/** 图表系列 */
+export interface ChartSeriesSpec {
+    name?: string;
+    /** 非散点图数值 */
+    values?: number[];
+    /** 散点图 x / y 值 */
+    x?: number[];
+    y?: number[];
+    color?: string;
+}
+/** 幻灯片元素 JSON（text / shape / image / chart） */
+export interface SerializerElement {
+    type?: string;
+    name?: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    rotation?: number;
+    /** 文本：直接文本 */
+    text?: string;
+    runs?: TextRunSpec[];
+    paragraphs?: ParagraphSpec[];
+    align?: string;
+    valign?: string;
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontFace?: string;
+    lang?: string;
+    href?: string;
+    /** 形状填充：颜色字符串 / { color } / 'none' / null */
+    fill?: string | { color?: string } | null;
+    /** 形状边框：{ color, width } / 'none' / null */
+    line?: { color?: string; width?: number } | 'none' | null;
+    shapeType?: string;
+    /** 图片：dataURL / base64 / 远程 URL */
+    data?: string;
+    src?: string;
+    extension?: string;
+    chartType?: string;
+    categories?: string[];
+    series?: ChartSeriesSpec[];
+    varyColors?: boolean;
+    barDir?: string;
+    title?: string;
+    legend?: boolean;
+}
+/** 幻灯片 JSON */
+export interface SerializerSlide {
+    background?: string | null;
+    elements?: SerializerElement[];
+}
+
 /**
  * 创建元素构建上下文
  * @param {Object} [options]
  * @param {number} [options.startMediaIndex=0] - 媒体文件起始编号（避免与已有文件冲突）
  * @returns {Object} 构建上下文
  */
-export function createElementContext(options: any = {}) {
+export function createElementContext(options: ElementContextOptions = {}): SerializerContext {
     return {
         /** 关系列表 {relId, type, target, external} */
-        rels: ([] as any),
+        rels: ([] as SerializerRel[]),
         /** 媒体文件列表 {name, base64} */
-        media: ([] as any),
+        media: ([] as SerializerMedia[]),
         /** 幻灯片内元素自增 id（1 被 spTree 根占用） */
         nextElementId: 2,
         /** 关系自增 id（rId1 固定为版式引用） */
@@ -37,7 +148,7 @@ export function createElementContext(options: any = {}) {
         /** 媒体文件自增编号 */
         mediaIndex: options.startMediaIndex || 0,
         /** 图表部件列表 {name, xml}（生成后由上层写入 ppt/charts/） */
-        charts: ([] as any),
+        charts: ([] as SerializerChart[]),
         /** 图表自增编号 */
         chartIndex: 0
     };
@@ -51,7 +162,7 @@ export function createElementContext(options: any = {}) {
  * @param {boolean} [external=false] - 是否为外部链接
  * @returns {string} 关系 id（如 rId3）
  */
-function addRelationship(ctx: any, type: any, target: any, external?: any) {
+function addRelationship(ctx: SerializerContext, type: string, target: string, external?: boolean) {
     const relId = `rId${ctx.nextRelId++}`;
     ctx.rels.push({ relId, type, target, external: !!external });
     return relId;
@@ -62,7 +173,7 @@ function addRelationship(ctx: any, type: any, target: any, external?: any) {
  * @param {Object} el - 图片元素
  * @returns {Promise<{base64: string, ext: string}>} 图片数据
  */
-async function resolveImageData(el: any) {
+async function resolveImageData(el: SerializerElement) {
     if (el.data) {
         const str = String(el.data);
         const dataUrlMatch = str.match(/^data:image\/([a-z0-9.+-]+);base64,(.+)$/i);
@@ -101,7 +212,7 @@ async function resolveImageData(el: any) {
  * @param {string} url - 图片 URL
  * @returns {string|null} 扩展名
  */
-function guessExtFromUrl(url: any) {
+function guessExtFromUrl(url: string) {
     const match = String(url).split('?')[0].match(/\.([a-z0-9]+)$/i);
     return match ? match[1].toLowerCase() : null;
 }
@@ -111,12 +222,12 @@ function guessExtFromUrl(url: any) {
  * @param {ArrayBuffer} buffer - 二进制数据
  * @returns {string} base64 字符串
  */
-function arrayBufferToBase64(buffer: any) {
+function arrayBufferToBase64(buffer: ArrayBuffer) {
     const bytes = new Uint8Array(buffer);
     let binary = '';
     const chunk = 0x8000;
     for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, (bytes.subarray(i, i + chunk) as any));
+        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
     }
     if (typeof btoa === 'function') {
         return btoa(binary);
@@ -129,7 +240,7 @@ function arrayBufferToBase64(buffer: any) {
  * @param {Object} el - 含 x/y/width/height/rotation 的元素
  * @returns {Object} a:xfrm 节点
  */
-function buildXfrm(el: any) {
+function buildXfrm(el: SerializerElement) {
     return xmlNode('a:xfrm',
         { rot: el.rotation ? degToRot(el.rotation) : null },
         xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
@@ -143,7 +254,7 @@ function buildXfrm(el: any) {
  * @param {string} href - 链接（http(s):// 外部；'#N' 内部跳转到第 N 页）
  * @returns {Object|null} a:hlinkClick 节点
  */
-function buildHyperlink(ctx: any, href: any) {
+function buildHyperlink(ctx: SerializerContext, href: string | undefined) {
     if (!href) return null;
     const internalMatch = String(href).match(/^#(\d+)$/);
     if (internalMatch) {
@@ -162,7 +273,7 @@ function buildHyperlink(ctx: any, href: any) {
  * @param {Object} opts - 运行选项（fontSize/color/bold/italic/underline/fontFace/href）
  * @returns {Object} a:r 节点
  */
-function buildTextRun(ctx: any, text: any, opts: any = {}) {
+function buildTextRun(ctx: SerializerContext, text: string | undefined, opts: RunStyle = {}) {
     const rPrChildren = [];
 
     if (opts.color) {
@@ -198,8 +309,8 @@ function buildTextRun(ctx: any, text: any, opts: any = {}) {
  * @param {Object} defaults - 元素级默认运行选项
  * @returns {Object} a:p 节点
  */
-function buildParagraph(ctx: any, paragraph: any, defaults: any) {
-    const alignMap = { left: 'l', center: 'ctr', right: 'r', justify: 'just' };
+function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaults: RunStyle) {
+    const alignMap: Record<string, string | null> = { left: 'l', center: 'ctr', right: 'r', justify: 'just' };
     const p = paragraph || {};
 
     // 段落属性
@@ -211,14 +322,14 @@ function buildParagraph(ctx: any, paragraph: any, defaults: any) {
         pPrChildren.push(xmlNode('a:buNone'));
     }
     const pPr = xmlNode('a:pPr',
-        { algn: (alignMap as any)[p.align || defaults.align] || null },
+        { algn: alignMap[p.align || defaults.align || 'left'] || null },
         ...pPrChildren
     );
 
     // 运行列表：显式 runs 优先，否则用 text + 元素级默认样式
     let runs;
     if (Array.isArray(p.runs) && p.runs.length > 0) {
-        runs = p.runs.map((r: any) => {
+        runs = p.runs.map((r: TextRunSpec) => {
             // 兼容两种格式：{ text, options: {...} }（规范）与 { text, color, ... }（扁平简写）
             const { text, options, ...flat } = r;
             return buildTextRun(ctx, text, { ...defaults, ...(options || {}), ...flat });
@@ -235,7 +346,7 @@ function buildParagraph(ctx: any, paragraph: any, defaults: any) {
  * @param {Object} el - 文本元素
  * @returns {Array<Object>} 段落列表
  */
-function normalizeParagraphs(el: any) {
+function normalizeParagraphs(el: SerializerElement): ParagraphSpec[] {
     if (Array.isArray(el.paragraphs) && el.paragraphs.length > 0) {
         return el.paragraphs;
     }
@@ -254,9 +365,9 @@ function normalizeParagraphs(el: any) {
  * @param {Object} el - 文本元素 JSON
  * @returns {Object} p:sp 节点
  */
-function buildTextElement(ctx: any, el: any) {
+function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
-    const anchorMap = { top: (null as any), middle: 'ctr', bottom: 'b' };
+    const anchorMap: Record<string, string | null> = { top: null, middle: 'ctr', bottom: 'b' };
     const defaults = {
         align: el.align,
         fontSize: el.fontSize,
@@ -285,10 +396,10 @@ function buildTextElement(ctx: any, el: any) {
         xmlNode('p:txBody',
             null,
             xmlNode('a:bodyPr',
-                { wrap: 'square', rtlCol: 0, anchor: (anchorMap as any)[el.valign] || null }
+                { wrap: 'square', rtlCol: 0, anchor: anchorMap[el.valign ?? 'top'] ?? null }
             ),
             xmlNode('a:lstStyle'),
-            ...normalizeParagraphs(el).map((p: any) => buildParagraph(ctx, p, defaults))
+            ...normalizeParagraphs(el).map((p: ParagraphSpec) => buildParagraph(ctx, p, defaults))
         )
     );
 }
@@ -299,7 +410,7 @@ function buildTextElement(ctx: any, el: any) {
  * @param {Object} el - 形状元素 JSON
  * @returns {Object} p:sp 节点
  */
-function buildShapeElement(ctx: any, el: any) {
+function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
 
     // 填充
@@ -351,7 +462,7 @@ function buildShapeElement(ctx: any, el: any) {
  * @param {Object} el - 图片元素 JSON
  * @returns {Promise<Object>} p:pic 节点
  */
-async function buildImageElement(ctx: any, el: any) {
+async function buildImageElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
     const { base64, ext } = await resolveImageData(el);
 
@@ -405,7 +516,7 @@ async function buildImageElement(ctx: any, el: any) {
  * @param {Object} el - 图表元素 JSON
  * @returns {Object} p:graphicFrame 节点
  */
-function buildChartElement(ctx: any, el: any) {
+function buildChartElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
     ctx.chartIndex++;
     const chartNum = ctx.chartIndex;
@@ -434,7 +545,7 @@ function buildChartElement(ctx: any, el: any) {
 }
 
 /** 构造 c:strRef（类别标签缓存） */
-function strRefXml(values: any, col: any) {
+function strRefXml(values: unknown[], col: string) {
     const n = values.length;
     let pts = '';
     for (let i = 0; i < n; i++) {
@@ -446,7 +557,7 @@ function strRefXml(values: any, col: any) {
 }
 
 /** 构造 c:numRef（数值缓存） */
-function numRefXml(values: any, col: any) {
+function numRefXml(values: unknown[], col: string) {
     const n = values.length;
     let pts = '';
     for (let i = 0; i < n; i++) {
@@ -462,7 +573,7 @@ function numRefXml(values: any, col: any) {
  * @param {Object} el - 图表元素 JSON
  * @returns {string} chart 部件 XML
  */
-function buildChartXml(el: any) {
+function buildChartXml(el: SerializerElement) {
     const type = el.chartType || 'barChart';
     const isPie = /pie/i.test(type);
     const isScatter = type === 'scatterChart';
@@ -470,7 +581,7 @@ function buildChartXml(el: any) {
     const series = el.series || [];
     const varyColors = el.varyColors !== undefined ? (el.varyColors ? 1 : 0) : (isPie ? 1 : 0);
 
-    const serXml = series.map((s: any, i: any) => {
+    const serXml = series.map((s: ChartSeriesSpec, i: number) => {
         const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
             `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
         let data;
@@ -524,7 +635,7 @@ function buildChartXml(el: any) {
  * @param {Object} el - 元素 JSON
  * @returns {Promise<Object|null>} 元素节点，不支持的类型返回 null
  */
-export async function buildElement(ctx: any, el: any) {
+export async function buildElement(ctx: SerializerContext, el: SerializerElement) {
     if (!el || typeof el !== 'object') return null;
     switch (el.type) {
         case 'text':
@@ -546,7 +657,7 @@ export async function buildElement(ctx: any, el: any) {
  * @param {Object} slide - 幻灯片 JSON { background, elements }
  * @returns {Promise<Object>} p:sld 根节点
  */
-export async function buildSlideRoot(ctx: any, slide: any) {
+export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSlide) {
     const elementNodes = [];
     for (const el of (slide && slide.elements) || []) {
         const node = await buildElement(ctx, el);

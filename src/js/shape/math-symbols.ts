@@ -6,11 +6,13 @@
 import { PPTXXmlUtils } from '../utils/xml';
 import { shapeArc } from './path-generators';
 import { SLIDE_FACTOR } from '../core/constants';
+import type { XmlNode } from '../core/types';
+import type { ShapeBorder } from './pie-shapes';
 
 /**
  * 检查形状是否为数学符号形状
  */
-export function isMathSymbol(shapType: any) {
+export function isMathSymbol(shapType: string) {
     const mathSymbols = [
         'mathDivide', 'mathEqual', 'mathMinus', 'mathMultiply', 'mathNotEqual', 'mathPlus'
     ];
@@ -20,7 +22,7 @@ export function isMathSymbol(shapType: any) {
 /**
  * 渲染数学符号形状
  */
-export function renderMathSymbol(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
+export function renderMathSymbol(shapType: string, w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, node: XmlNode) {
     let result = "";
 
     // 获取形状调整参数

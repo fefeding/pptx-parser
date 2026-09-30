@@ -4,6 +4,12 @@
  * 从 shape.js 提取的独立工具函数
  */
 
+/** 笛卡尔坐标 */
+export interface Point {
+    x: number;
+    y: number;
+}
+
 /**
  * polarToCartesian - 将极坐标转换为笛卡尔坐标
  * @param {number} cx - 圆心X坐标
@@ -11,12 +17,12 @@
  * @param {number} w - 宽度
  * @param {number} h - 高度
  * @param {number} angleInDegrees - 角度
- * @returns {Object} 笛卡尔坐标对象 {x, y}
+ * @returns {Point} 笛卡尔坐标对象 {x, y}
  */
-export function polarToCartesian(cx: any, cy: any, w: any, h: any, angleInDegrees: any): any {
+export function polarToCartesian(cx: number, cy: number, w: number, h: number, angleInDegrees: number): Point {
     const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
     // 格式化数字为2位小数
-    function fmt(num: any) {
+    function fmt(num: number): number {
         return parseFloat(num.toFixed(2));
     }
     return {
@@ -36,12 +42,12 @@ export function polarToCartesian(cx: any, cy: any, w: any, h: any, angleInDegree
  * @param {boolean} clockwise - 是否顺时针
  * @returns {string} SVG路径字符串
  */
-export function shapeArc(cx: any, cy: any, w: any, h: any, startAngle: any, endAngle: any, clockwise: any): any {
+export function shapeArc(cx: number, cy: number, w: number, h: number, startAngle: number, endAngle: number, clockwise: boolean): string {
     const start = polarToCartesian(cx, cy, w, h, endAngle);
     const end = polarToCartesian(cx, cy, w, h, startAngle);
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
     // 格式化数字为2位小数
-    function fmt(num: any) {
+    function fmt(num: number): number {
         return parseFloat(num.toFixed(2));
     }
     const d = [
@@ -62,11 +68,11 @@ export function shapeArc(cx: any, cy: any, w: any, h: any, startAngle: any, endA
  * @param {boolean} isClose - 是否闭合
  * @returns {string} SVG路径字符串
  */
-export function shapeArcAlt(cX: any, cY: any, rX: any, rY: any, stAng: any, endAng: any, isClose: any): any {
-    let dData;
+export function shapeArcAlt(cX: number, cY: number, rX: number, rY: number, stAng: number, endAng: number, isClose: boolean): string {
+    let dData = "";
     let angle = stAng;
     // 辅助函数：格式化数字为2位小数
-    function fmt(num: any) {
+    function fmt(num: number): number {
         return parseFloat(num.toFixed(2));
     }
     if (endAng >= stAng) {
@@ -106,7 +112,7 @@ export function shapeArcAlt(cX: any, cY: any, rX: any, rY: any, stAng: any, endA
  * @param {string} adjTyp - 调整类型 ("cornr1", "cornr2", "cornrAll", "diag")
  * @returns {string} SVG路径字符串
  */
-export function shapeSnipRoundRect(w: any, h: any, sAdj1_val: any, sAdj2_val: any, shpTyp: any, adjTyp: any): any {
+export function shapeSnipRoundRect(w: number, h: number, sAdj1_val: number, sAdj2_val: number, shpTyp: string, adjTyp: string): string {
     let d = "";
     let sAdj1 = 0;
     let sAdj2 = 0;
@@ -150,8 +156,8 @@ export function shapeSnipRoundRect(w: any, h: any, sAdj1_val: any, sAdj2_val: an
  * @param {string} adjType - 调整类型 ("cornr1", "cornr2", "cornrAll", "diag")
  * @returns {string} SVG路径字符串
  */
-export function shapeSnipRoundRectAlt(w: any, h: any, adj1: any, adj2: any, shapeType: any, adjType: any): any {
-    let adjA, adjB, adjC, adjD;
+export function shapeSnipRoundRectAlt(w: number, h: number, adj1: number, adj2: number, shapeType: string, adjType: string): string {
+    let adjA = 0, adjB = 0, adjC = 0, adjD = 0;
     if (adjType == "cornr1") {
         adjA = 0;
         adjB = 0;
@@ -174,7 +180,7 @@ export function shapeSnipRoundRectAlt(w: any, h: any, adj1: any, adj2: any, shap
         adjD = adj2;
     }
 
-    let d;
+    let d = "";
     if (shapeType == "round") {
         d = `M0,${(h / 2 + (1 - adjB) * (h / 2))} Q${0},${h} ${adjB * (w / 2)},${h} L${(w / 2 + (1 - adjC) * (w / 2))},${h} Q${w},${h} ${w},${(h / 2 + (h / 2) * (1 - adjC))}L${w},${(h / 2) * adjD} Q${w},${0} ${(w / 2 + (w / 2) * (1 - adjD))},0 L${(w / 2) * adjA},0 Q${0},${0} 0,${(h / 2) * (adjA)} z`;
     } else if (shapeType == "snip") {
@@ -190,12 +196,12 @@ export function shapeSnipRoundRectAlt(w: any, h: any, adj1: any, adj2: any, shap
  * @param {number} adj1 - 调整值1(起始角度)
  * @param {number} adj2 - 调整值2(结束角度)
  * @param {boolean} isClose - 是否闭合
- * @returns {Array} [路径字符串, 旋转字符串]
+ * @returns {[string, string]} [路径字符串, 旋转字符串]
  */
-export function shapePie(H: any, w: any, adj1: any, adj2: any, isClose: any): any {
-    const pieVal = parseInt(adj2);
-    const piAngle = parseInt(adj1);
-    let size = parseInt(H),
+export function shapePie(H: number, w: number, adj1: number, adj2: number, isClose: boolean): [string, string] {
+    const pieVal = parseInt(String(adj2));
+    const piAngle = parseInt(String(adj1));
+    let size = parseInt(String(H)),
         radius = (size / 2),
         value = pieVal - piAngle;
     if (value < 0) {
@@ -206,7 +212,9 @@ export function shapePie(H: any, w: any, adj1: any, adj2: any, isClose: any): an
     const x = Math.cos((2 * Math.PI) / (360 / value));
     const y = Math.sin((2 * Math.PI) / (360 / value));
 
-    let longArc, d, rot;
+    let longArc = 0;
+    let d = "";
+    let rot = "";
     if (isClose) {
         longArc = (value <= 180) ? 0 : 1;
         d = `M${radius},${radius} L${radius},${0} A${radius},${radius} 0 ${longArc},1 ${(radius + y * radius)},${(radius - x * radius)} z`;
@@ -229,7 +237,7 @@ export function shapePie(H: any, w: any, adj1: any, adj2: any, isClose: any): an
  * @param {number} points - 点数(齿轮齿数)
  * @returns {string} SVG路径字符串
  */
-export function shapeGear(w: any, h: any, points: any): any {
+export function shapeGear(w: number, h: number, points: number): string {
     const innerRadius = h;
     const outerRadius = 1.5 * innerRadius;
     const cx = outerRadius;

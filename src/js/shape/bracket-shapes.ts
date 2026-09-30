@@ -6,11 +6,13 @@
 import { PPTXXmlUtils } from '../utils/xml';
 import { shapeArc } from './path-generators';
 import { SLIDE_FACTOR } from '../core/constants';
+import type { XmlNode } from '../core/types';
+import type { ShapeBorder } from './pie-shapes';
 
 /**
  * 检查形状是否为括号形状
  */
-export function isBracket(shapType: any) {
+export function isBracket(shapType: string) {
     const bracketShapes = [
         'bracePair', 'bracketPair', 'leftBrace', 'leftBracket', 'rightBrace', 'rightBracket'
     ];
@@ -20,7 +22,7 @@ export function isBracket(shapType: any) {
 /**
  * 渲染括号形状
  */
-export function renderBracket(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, node: any) {
+export function renderBracket(shapType: string, w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, node: XmlNode) {
     let result = "";
     let dVal = "";
 

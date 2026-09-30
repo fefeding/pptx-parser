@@ -1,22 +1,16 @@
 import { PPTXXmlUtils } from '../utils/xml';
+import type { XmlNode } from '../core/types';
+import type { ShapeBorder } from './pie-shapes';
 
 const SLIDE_FACTOR = 0.0001;
 
+/** shapeArcAlt 函数签名 */
+type ShapeArcAltFn = (cX: number, cY: number, rX: number, rY: number, stAng: number, endAng: number, isClose: boolean) => string;
+
 /**
  * Render star shapes (star4, star5, star6, star7, star8, star10, star12, star16, star24, star32)
- * @param {string} shapType - Shape type
- * @param {number} w - Width
- * @param {number} h - Height
- * @param {boolean} imgFillFlg - Image fill flag
- * @param {boolean} grndFillFlg - Gradient fill flag
- * @param {string} fillColor - Fill color
- * @param {object} border - Border object with color, width, strokeDasharray
- * @param {string} shpId - Shape ID
- * @param {object} shapeArcAlt - Shape arc alt
- * @param {object} node - XML node for shape adjustments
- * @returns {string} SVG string
  */
-export function renderStar(shapType: any, w: any, h: any, imgFillFlg: any, grndFillFlg: any, fillColor: any, border: any, shpId: any, shapeArcAlt: any, node: any) {
+export function renderStar(shapType: string, w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, _shapeArcAlt: ShapeArcAltFn, node: XmlNode): string {
     let result = '';
     const hc = w / 2, vc = h / 2, wd2 = w / 2, hd2 = h / 2;
     const fill = !imgFillFlg ? (grndFillFlg ? `url(#linGrd_${shpId})` : fillColor) : `url(#imgPtrn_${shpId})`;
@@ -516,28 +510,27 @@ export function renderStar(shapType: any, w: any, h: any, imgFillFlg: any, grndF
  * @param {string} shapType - Shape type
  * @returns {boolean}
  */
-export function isStar(shapType: any) {
+export function isStar(shapType: string): boolean {
     return ["star4", "star5", "star6", "star7", "star8", "star10", "star12", "star16", "star24", "star32"].includes(shapType);
 }
 
 /**
  * Get adjustment value from node
- * @param {object} node - XML node
+ * @param {XmlNode} node - XML node
  * @param {string} name - Adjustment name
  * @param {number} defaultValue - Default value
  * @returns {number}
  */
-function getAdjValue(node: any, name: any, defaultValue: any) {
+function getAdjValue(node: XmlNode, name: string, defaultValue: number): number {
     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-    if (shapAdjst !== undefined) {
-        if (Array.isArray(shapAdjst)) {
-            for (let key of Object.keys(shapAdjst)) {
-                if ((shapAdjst as any)[key] && (shapAdjst as any)[key]["attrs"] && (shapAdjst as any)[key]["attrs"]["name"] === name) {
-                    return parseInt((shapAdjst as any)[key]["attrs"]["fmla"].substr(4)) * SLIDE_FACTOR;
-                }
+    if (shapAdjst === undefined) return defaultValue * SLIDE_FACTOR;
+    const items: XmlNode[] = Array.isArray(shapAdjst) ? shapAdjst : [shapAdjst];
+    for (const item of items) {
+        if (item.attrs && item.attrs["name"] === name) {
+            const fmla = item.attrs["fmla"];
+            if (typeof fmla === "string") {
+                return parseInt(fmla.substr(4)) * SLIDE_FACTOR;
             }
-        } else if (shapAdjst["attrs"] && shapAdjst["attrs"]["name"] === name) {
-            return parseInt(shapAdjst["attrs"]["fmla"].substr(4)) * SLIDE_FACTOR;
         }
     }
     return defaultValue * SLIDE_FACTOR;
@@ -550,6 +543,6 @@ function getAdjValue(node: any, name: any, defaultValue: any) {
  * @param {number} max - Maximum value
  * @returns {number}
  */
-function clamp(value: any, min: any, max: any) {
+function clamp(value: number, min: number, max: number): number {
     return value < min ? min : value > max ? max : value;
 }

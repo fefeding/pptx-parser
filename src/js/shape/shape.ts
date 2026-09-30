@@ -59,8 +59,23 @@ import {
     isComplexShape
 } from './shape-categories';
 import { renderActionButton, isActionButton } from './action-buttons';
+import type { XmlNode, WarpObject, ParseSettings } from '../core/types';
 
-export const PPTXShapeUtils: any = (function() {
+/** PPTXShapeUtils 模块对外接口 */
+interface ShapeUtilsModule {
+    /** 重新导出的路径生成函数 */
+    shapeArc: typeof shapeArc;
+    shapeArcAlt: typeof shapeArcAlt;
+    shapePie: typeof shapePie;
+    shapeGear: typeof shapeGear;
+    shapeSnipRoundRect: typeof shapeSnipRoundRect;
+    shapeSnipRoundRectAlt: typeof shapeSnipRoundRectAlt;
+    polarToCartesian: typeof polarToCartesian;
+    /** 核心形状生成函数（定义在 IIFE 内部，此处显式声明签名） */
+    genShape: (node: XmlNode | undefined, pNode: XmlNode | undefined, slideLayoutSpNode: XmlNode | undefined, slideMasterSpNode: XmlNode | undefined, id: string | number | undefined, name: string | undefined, idx: number | undefined, type: string, order: string | number | undefined, warpObj: WarpObject, isUserDrawnBg: boolean | undefined, sType: string, source: string, settings: ParseSettings) => Promise<string>;
+}
+
+export const PPTXShapeUtils: ShapeUtilsModule = (function() {
     /**
      * 辅助函数：生成形状的 data- 属性字符串
      * @param {Object} node - 节点
@@ -73,7 +88,7 @@ export const PPTXShapeUtils: any = (function() {
      * @param {string} sType - 形状类型
      * @returns {string} data- 属性字符串
      */
-    function genShapeDataAttributes(node: any, slideXfrmNode: any, id: any, name: any, idx: any, type: any, rotate: any, sType: any) {
+    function genShapeDataAttributes(node: XmlNode | undefined, slideXfrmNode: XmlNode | undefined, id: string | number | undefined, name: string | undefined, idx: number | undefined, type: string, rotate: number | undefined, sType: string) {
         let dataAttrs = '';
         
         // 提取位置和尺寸信息
@@ -117,7 +132,7 @@ export const PPTXShapeUtils: any = (function() {
         return dataAttrs;
     }
 
-    async function genShape(node: any, pNode: any, slideLayoutSpNode: any, slideMasterSpNode: any, id: any, name: any, idx: any, type: any, order: any, warpObj: any, isUserDrawnBg: any, sType: any, source: any, settings: any) {
+    async function genShape(node: XmlNode | undefined, pNode: XmlNode | undefined, slideLayoutSpNode: XmlNode | undefined, slideMasterSpNode: XmlNode | undefined, id: string | number | undefined, name: string | undefined, idx: number | undefined, type: string, order: string | number | undefined, warpObj: WarpObject, isUserDrawnBg: boolean | undefined, sType: string, source: string, settings: ParseSettings) {
             //var dltX = 0;
             //var dltY = 0;
             const xfrmList = ["p:spPr", "a:xfrm"];
@@ -410,7 +425,7 @@ export const PPTXShapeUtils: any = (function() {
                             }
                             // Convert effectIdx to number and use as array index
                             // effectRef idx is 0-based (idx="0" refers to first effectStyle)
-                            var idx: any = Number(effectIdx);
+                            idx = Number(effectIdx);
                             // Handle idx out of range
                             if (effectStyleLst.length > 0) {
                                 if (idx >= 0 && idx < effectStyleLst.length) {
@@ -805,7 +820,7 @@ export const PPTXShapeUtils: any = (function() {
                                 break;
                             }
                         }
-                        let d_val = PPTXShapeUtils.shapeSnipRoundRectAlt(w, h, sAdj1_val, sAdj2_val, shpTyp, adjTyp);
+                        let d_val = PPTXShapeUtils.shapeSnipRoundRectAlt(w, h, sAdj1_val!, sAdj2_val!, shpTyp!, adjTyp!);
                         result += `<path ${tranglRott}  d='${d_val}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
@@ -1001,7 +1016,7 @@ export const PPTXShapeUtils: any = (function() {
                     case "star24":
                     case "star32": {
                         // 使用drawW和drawH（原始尺寸）进行形状计算
-                        result += renderStar(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt, node);
+                        result += renderStar(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt, node!);
                         break;
                     }
                     case "pie":
@@ -1009,7 +1024,7 @@ export const PPTXShapeUtils: any = (function() {
                     case "arc":
                     case "chord": {
                         // 使用drawW和drawH（原始尺寸）进行形状计算
-                        result += renderPieShape(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node, oShadowSvgUrlStr);
+                        result += renderPieShape(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node!, oShadowSvgUrlStr);
                         break;
                     }
                     case "frame": {
@@ -1157,7 +1172,7 @@ export const PPTXShapeUtils: any = (function() {
                     case "rightBrace":
                     case "rightBracket": {
                         // 使用drawW和drawH（原始尺寸）进行形状计算
-                        result += renderBracket(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        result += renderBracket(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node!);
                         break;
                     }
                     case "moon": {
@@ -1745,7 +1760,7 @@ export const PPTXShapeUtils: any = (function() {
                     case "verticalScroll":
                     case "horizontalScroll": {
                         // 使用drawW和drawH（原始尺寸）进行形状计算
-                        result += renderMiscShape(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        result += renderMiscShape(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node!);
                         break;
                     }
                     case "wedgeEllipseCallout": {
@@ -2603,7 +2618,7 @@ export const PPTXShapeUtils: any = (function() {
                     case "upDownArrow": {
                         // 使用drawW和drawH（原始尺寸）而不是w和h（缩放后尺寸）
                         // SVG会通过transform scale()进行缩放
-                        result += renderArrow(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        result += renderArrow(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node!);
                         break;
                     }
                     case "quadArrow": {
@@ -2804,7 +2819,7 @@ export const PPTXShapeUtils: any = (function() {
                         else if (adj2 > cnstVal1) a2 = cnstVal1
                         else a2 = adj2
                         if (adj3 < 0) a3 = 0
-                        else if (adj3 > (maxAdj3 as any)) a3 = maxAdj3
+                        else if (maxAdj3 !== undefined && adj3 > maxAdj3) a3 = maxAdj3
                         else a3 = adj3
                         y1 = minWH * a3! / cnstVal2;
                         dx1 = minWH * a2 / cnstVal1;
@@ -3862,7 +3877,7 @@ export const PPTXShapeUtils: any = (function() {
                     case "mathNotEqual":
                     case "mathPlus": {
                         // 使用drawW和drawH（原始尺寸）进行形状计算
-                        result += renderMathSymbol(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node);
+                        result += renderMathSymbol(shapType, drawW, drawH, imgFillFlg, grndFillFlg, fillColor, border, shpId, node!);
                         break;
                     }
                     case "cylinder":
@@ -4544,11 +4559,11 @@ export const PPTXShapeUtils: any = (function() {
                 result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${transform3dStyle} z-index: ${order};'${dataAttrs1}${animationAttrs}>`;
 
                 // TextBody
-                if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
+                if (node!["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
                     if (type != "diagram" && type != "textBox") {
                         type = "shape";
                     }
-                    result += await PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type='shape'
+                    result += await PPTXTextUtils.genTextBody(node!["p:txBody"], node!, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type='shape'
                 }
                 result += "</div>";
             } else if (custShapType !== undefined) {
@@ -4574,7 +4589,7 @@ export const PPTXShapeUtils: any = (function() {
                 result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)} z-index: ${order};'${dataAttrs2}${animationAttrs2}>`;
 
                 // TextBody
-                if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
+                if (node!["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
                     if (type != "diagram" && type != "textBox") {
                         type = "shape";
                     }
@@ -4583,11 +4598,11 @@ export const PPTXShapeUtils: any = (function() {
                     let textNode = node;
                     if (sType === 'group-abs' && workingXfrmNode !== slideXfrmNode) {
                         textNode = JSON.parse(JSON.stringify(node));
-                        if (textNode["p:spPr"] && textNode["p:spPr"]["a:xfrm"]) {
-                            textNode["p:spPr"]["a:xfrm"] = workingXfrmNode;
+                        if (textNode!["p:spPr"] && textNode!["p:spPr"]["a:xfrm"]) {
+                            textNode!["p:spPr"]["a:xfrm"] = workingXfrmNode;
                         }
                     }
-                    result += await PPTXTextUtils.genTextBody(textNode["p:txBody"], textNode, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type=shape
+                    result += await PPTXTextUtils.genTextBody(textNode!["p:txBody"], textNode!, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj); //type=shape
                 }
                 result += "</div>";
 
@@ -4607,8 +4622,8 @@ export const PPTXShapeUtils: any = (function() {
                 result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(slideXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(slideXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${PPTXStyleUtils.getBorder(node, pNode, false, "shape", warpObj)}${await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source)} z-index: ${order};'${dataAttrs3}>`;
 
                 // TextBody
-                if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
-                    result += await PPTXTextUtils.genTextBody(node["p:txBody"], node, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj);
+                if (node!["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
+                    result += await PPTXTextUtils.genTextBody(node!["p:txBody"], node!, slideLayoutSpNode, slideMasterSpNode, type, idx, warpObj);
                 }
                 result += "</div>";
 

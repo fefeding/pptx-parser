@@ -4,21 +4,23 @@
  * @module tXml
  */
 
+import { RawXmlNode, RawXmlChildren, RawXmlParseOptions, XmlNode } from './types';
+
 let order = 1;
 
-/**
- * 解析 XML 字符串
- * @param {string} xml - XML 字符串
- * @param {Object} options - 解析选项
- * @param {number} [options.pos=0] - 起始位置
- * @param {boolean} [options.parseNode=false] - 只解析单个节点
- * @param {string} [options.attrName] - 属性名过滤
- * @param {string} [options.attrValue] - 属性值过滤
- * @param {boolean} [options.simplify=false] - 简化输出
- * @param {Function} [options.filter] - 过滤函数
- * @returns {Array|Object} 解析结果
- */
-function tXml(xml: any, options: any = {}) {
+/** tXml 的可调用形态：既是函数，又挂载 simplify/filter 等方法 */
+interface TXmlFn {
+    (xml: string, options?: RawXmlParseOptions): RawXmlNode[] | RawXmlNode;
+    simplify: (nodes: RawXmlChildren) => XmlNode | string;
+    filter: (nodes: RawXmlChildren, filterFn: (node: RawXmlNode) => boolean) => RawXmlNode[];
+    stringify: (nodes: RawXmlChildren) => string;
+    toContentString: (node: RawXmlNode | RawXmlChildren | string) => string;
+    getElementById: (xml: string, id: string, simplify: boolean) => RawXmlNode | RawXmlNode[];
+    getElementsByClassName: (xml: string, className: string, simplify: boolean) => RawXmlNode[];
+    parseStream: (source: string | NodeJS.ReadableStream, chunkSize?: number | ((chunk: Buffer) => void)) => NodeJS.ReadableStream;
+}
+
+const tXml = (function (xml: string, options: RawXmlParseOptions = {}): RawXmlNode[] | RawXmlNode | RawXmlChildren {
     const POS = options.pos || 0;
 
     // 字符常量
@@ -47,8 +49,8 @@ function tXml(xml: any, options: any = {}) {
      * 解析所有子节点
      * @returns {Array} 子节点数组
      */
-    function parseChildren() {
-        const children = [];
+    function parseChildren(): RawXmlChildren {
+        const children: RawXmlChildren = [];
 
         while (xml[pos]) {
             const charCode = xml.charCodeAt(pos);
@@ -68,10 +70,10 @@ function tXml(xml: any, options: any = {}) {
                     // CDATA 或 注释
                     if (xml.charCodeAt(pos + 2) === CODE_DASH) {
                         // 跳过注释 <!-- -->
-                        while (pos !== -1 && 
-                               !(xml.charCodeAt(pos) === CODE_GT && 
-                                 xml.charCodeAt(pos - 1) === CODE_DASH && 
-                                 xml.charCodeAt(pos - 2) === CODE_DASH)) {
+                        while (pos !== -1 &&
+                            !(xml.charCodeAt(pos) === CODE_GT &&
+                                xml.charCodeAt(pos - 1) === CODE_DASH &&
+                                xml.charCodeAt(pos - 2) === CODE_DASH)) {
                             pos = xml.indexOf(CHAR_GT, pos + 1);
                         }
                         if (pos === -1) pos = xml.length;
@@ -104,7 +106,7 @@ function tXml(xml: any, options: any = {}) {
      * 解析文本节点
      * @returns {string} 文本内容
      */
-    function parseText() {
+    function parseText(): string {
         const start = pos;
         pos = xml.indexOf(CHAR_LT, pos) - 1;
         if (pos === -2) {
@@ -117,7 +119,7 @@ function tXml(xml: any, options: any = {}) {
      * 解析标签名
      * @returns {string} 标签名
      */
-    function parseTagName() {
+    function parseTagName(): string {
         const start = pos;
         while (STOP_CHARS.indexOf(xml[pos]) === -1 && xml[pos]) {
             pos++;
@@ -129,7 +131,7 @@ function tXml(xml: any, options: any = {}) {
      * 解析属性值
      * @returns {string|null} 属性值
      */
-    function parseAttributeValue() {
+    function parseAttributeValue(): string {
         const quoteChar = xml[pos];
         const start = ++pos;
         pos = xml.indexOf(quoteChar, start);
@@ -140,7 +142,7 @@ function tXml(xml: any, options: any = {}) {
      * 查找属性位置
      * @returns {number} 属性位置索引
      */
-    function findAttributePosition() {
+    function findAttributePosition(): number {
         const pattern = new RegExp(`\\s${options.attrName}\\s*=[\'"]${options.attrValue}[\'"]`);
         const match = pattern.exec(xml);
         return match ? match.index : -1;
@@ -150,8 +152,8 @@ function tXml(xml: any, options: any = {}) {
      * 解析单个 XML 节点
      * @returns {Object} 节点对象
      */
-    function parseNode() {
-        const node: any = {};
+    function parseNode(): RawXmlNode {
+        const node: RawXmlNode = { tagName: '' };
         pos++;
         node.tagName = parseTagName();
 
@@ -163,22 +165,22 @@ function tXml(xml: any, options: any = {}) {
             // 检查是否是属性名开始
             if ((charCode > 64 && charCode < 91) || (charCode > 96 && charCode < 123)) {
                 const attrName = parseTagName();
-                let attrValue = null;
+                let attrValue: string | null = null;
 
                 // 跳过空白和等号
                 let currentCharCode = xml.charCodeAt(pos);
-                while (currentCharCode && 
-                       currentCharCode !== CODE_SINGLE_QUOTE && 
-                       currentCharCode !== CODE_DOUBLE_QUOTE &&
-                       !((currentCharCode > 64 && currentCharCode < 91) || 
-                         (currentCharCode > 96 && currentCharCode < 123)) && 
-                       currentCharCode !== CODE_GT) {
+                while (currentCharCode &&
+                    currentCharCode !== CODE_SINGLE_QUOTE &&
+                    currentCharCode !== CODE_DOUBLE_QUOTE &&
+                    !((currentCharCode > 64 && currentCharCode < 91) ||
+                        (currentCharCode > 96 && currentCharCode < 123)) &&
+                    currentCharCode !== CODE_GT) {
                     pos++;
                     currentCharCode = xml.charCodeAt(pos);
                 }
 
                 // 解析属性值
-                if (currentCharCode === CODE_SINGLE_QUOTE || 
+                if (currentCharCode === CODE_SINGLE_QUOTE ||
                     currentCharCode === CODE_DOUBLE_QUOTE) {
                     attrValue = parseAttributeValue();
                     if (pos === -1) return node;
@@ -191,7 +193,7 @@ function tXml(xml: any, options: any = {}) {
                     node.attributes = {};
                     hasAttributes = true;
                 }
-                node.attributes[attrName] = attrValue;
+                node.attributes![attrName] = attrValue;
             }
             pos++;
         }
@@ -221,7 +223,7 @@ function tXml(xml: any, options: any = {}) {
         return node;
     }
 
-    let result;
+    let result: RawXmlNode[] | RawXmlNode | RawXmlChildren;
 
     if (options.attrValue !== undefined) {
         options.attrName = options.attrName || 'id';
@@ -230,7 +232,7 @@ function tXml(xml: any, options: any = {}) {
         while ((attrPos = findAttributePosition()) !== -1) {
             pos = xml.lastIndexOf(CHAR_LT, attrPos);
             if (pos !== -1) {
-                result.push(parseNode());
+                (result as RawXmlNode[]).push(parseNode());
             }
             xml = xml.substr(pos);
             pos = 0;
@@ -240,55 +242,56 @@ function tXml(xml: any, options: any = {}) {
     }
 
     if (options.filter) {
-        result = tXml.filter(result, options.filter);
+        result = tXml.filter(result as RawXmlChildren, options.filter);
     }
     if (options.simplify) {
-        result = tXml.simplify(result);
+        result = tXml.simplify(result as RawXmlChildren) as RawXmlNode[] | RawXmlNode;
     }
 
-    result.pos = pos;
+    (result as RawXmlNode).pos = pos;
     return result;
-}
+}) as unknown as TXmlFn;
 
 /**
  * 简化解析结果
  * @param {Array} nodes - 节点数组
  * @returns {Object|string} 简化后的对象
  */
-tXml.simplify = (nodes: any) => {
-    const result: any = {};
+tXml.simplify = (nodes: RawXmlChildren): XmlNode | string => {
+    const result: XmlNode = {};
     if (nodes === undefined) {
         return {};
     }
     if (nodes.length === 1 && typeof nodes[0] === 'string') {
         return nodes[0];
     }
-    nodes.forEach((node: any) => {
-    if (typeof node !== 'object') {
-        return;
-    }
-    if (!result[node.tagName]) {
-        result[node.tagName] = [];
-    }
-    const simplified = tXml.simplify(node.children || []);
-    result[node.tagName].push(simplified);
-    // 只在对象是对象类型时设置属性
-    if (typeof simplified === 'object' && simplified !== null) {
-        if (node.attributes) {
-            simplified.attrs = node.attributes;
+    nodes.forEach((node: RawXmlNode | string) => {
+        if (typeof node !== 'object') {
+            return;
         }
-        if (simplified.attrs === undefined) {
-            simplified.attrs = { order: order };
+        if (!result[node.tagName]) {
+            result[node.tagName] = [];
         }
-        else {
-            simplified.attrs.order = order;
+        const simplified: XmlNode | string = tXml.simplify(node.children || []);
+        (result[node.tagName] as (XmlNode | string)[]).push(simplified);
+        // 只在对象是对象类型时设置属性
+        if (typeof simplified === 'object' && simplified !== null) {
+            if (node.attributes) {
+                simplified.attrs = node.attributes;
+            }
+            if (simplified.attrs === undefined) {
+                simplified.attrs = { order };
+            }
+            else {
+                simplified.attrs.order = order;
+            }
+            order++;
         }
-        order++;
-    }
-});
+    });
     // 如果数组只有一个元素，直接返回该元素
     for (const key in result) {
-        if (result[key].length === 1) {
+        const arr = result[key] as unknown as ArrayLike<unknown>;
+        if (arr.length === 1) {
             result[key] = result[key][0];
         }
     }
@@ -301,17 +304,17 @@ tXml.simplify = (nodes: any) => {
  * @param {Function} filterFn - 过滤函数
  * @returns {Array} 过滤后的节点
  */
-tXml.filter = (nodes: any, filterFn: any) => {
-    const result: any = [];
-    nodes.forEach((node: any) => {
-    if (typeof node === 'object' && filterFn(node)) {
-        result.push(node);
-    }
-    if (node.children) {
-        const filtered = tXml.filter(node.children, filterFn);
-        result.push(...filtered);
-    }
-});
+tXml.filter = (nodes: RawXmlChildren, filterFn: (node: RawXmlNode) => boolean): RawXmlNode[] => {
+    const result: RawXmlNode[] = [];
+    nodes.forEach((node: RawXmlNode | string) => {
+        if (typeof node === 'object' && filterFn(node)) {
+            result.push(node);
+        }
+        if (typeof node === 'object' && node.children) {
+            const filtered = tXml.filter(node.children, filterFn);
+            result.push(...filtered);
+        }
+    });
     return result;
 };
 
@@ -320,12 +323,12 @@ tXml.filter = (nodes: any, filterFn: any) => {
  * @param {Array} nodes - 节点数组
  * @returns {string} XML 字符串
  */
-tXml.stringify = (nodes: any) => {
+tXml.stringify = (nodes: RawXmlChildren): string => {
     let xmlString = '';
-    function processNodes(nodes: any) {
+    function processNodes(nodes: RawXmlChildren) {
         if (!nodes)
             return;
-        for (const item of nodes){
+        for (const item of nodes) {
             if (typeof item === 'string') {
                 xmlString += item.trim();
             }
@@ -334,22 +337,24 @@ tXml.stringify = (nodes: any) => {
             }
         }
     }
-    function processNode(node: any) {
+    function processNode(node: RawXmlNode) {
         xmlString += `<${node.tagName}`;
-        for (const attr in node.attributes) {
-            const value = node.attributes[attr];
-            if (value === null) {
-                xmlString += ` ${attr}`;
-            }
-            else if (value.indexOf('"') === -1) {
-                xmlString += ` ${attr}="${value.trim()}"`;
-            }
-            else {
-                xmlString += ` ${attr}='${value.trim()}'`;
+        if (node.attributes) {
+            for (const attr in node.attributes) {
+                const value = node.attributes[attr];
+                if (value === null) {
+                    xmlString += ` ${attr}`;
+                }
+                else if (value.indexOf('"') === -1) {
+                    xmlString += ` ${attr}="${value.trim()}"`;
+                }
+                else {
+                    xmlString += ` ${attr}='${value.trim()}'`;
+                }
             }
         }
         xmlString += '>';
-        processNodes(node.children);
+        processNodes(node.children ?? []);
         xmlString += `</${node.tagName}>`;
     }
     processNodes(nodes);
@@ -361,17 +366,17 @@ tXml.stringify = (nodes: any) => {
  * @param {Array|Object|string} node - 节点
  * @returns {string} 文本内容
  */
-tXml.toContentString = (node: any): any => {
+tXml.toContentString = (node: RawXmlNode | RawXmlChildren | string): string => {
     if (Array.isArray(node)) {
         let text = '';
         node.forEach((child) => {
-    text += ` ${tXml.toContentString(child)}`;
-    text = text.trim();
-});
+            text += ` ${tXml.toContentString(child)}`;
+            text = text.trim();
+        });
         return text;
     }
     if (typeof node === 'object') {
-        return tXml.toContentString(node.children);
+        return tXml.toContentString(node.children ?? []);
     }
     return ` ${node}`;
 };
@@ -383,12 +388,12 @@ tXml.toContentString = (node: any): any => {
  * @param {boolean} simplify - 是否简化结果
  * @returns {Object} 元素对象
  */
-tXml.getElementById = (xml: any, id: any, simplify: any) => {
+tXml.getElementById = (xml: string, id: string, simplify: boolean): RawXmlNode | RawXmlNode[] => {
     const result = tXml(xml, {
         attrValue: id,
         simplify: simplify
     });
-    return simplify ? result : result[0];
+    return simplify ? result : (result as RawXmlNode[])[0];
 };
 
 /**
@@ -398,12 +403,12 @@ tXml.getElementById = (xml: any, id: any, simplify: any) => {
  * @param {boolean} simplify - 是否简化结果
  * @returns {Array} 元素数组
  */
-tXml.getElementsByClassName = (xml: any, className: any, simplify: any) => {
+tXml.getElementsByClassName = (xml: string, className: string, simplify: boolean): RawXmlNode[] => {
     return tXml(xml, {
         attrName: 'class',
         attrValue: `[a-zA-Z0-9-s ]*${className}[a-zA-Z0-9-s ]*`,
         simplify: simplify
-    });
+    }) as RawXmlNode[];
 };
 
 /**
@@ -412,45 +417,43 @@ tXml.getElementsByClassName = (xml: any, className: any, simplify: any) => {
  * @param {number|Function} chunkSize - 块大小或回调函数
  * @returns {EventEmitter} 事件发射器
  */
-tXml.parseStream = (source: any, chunkSize: any) => {
-    let callback;
+tXml.parseStream = (source: string | NodeJS.ReadableStream, chunkSize: number | ((chunk: Buffer) => void) = 0): NodeJS.ReadableStream => {
+    let callback: ((chunk: Buffer) => void) | undefined;
     if (typeof chunkSize === 'function') {
         callback = chunkSize;
         chunkSize = 0;
     }
-    if (typeof chunkSize === 'string') {
-        chunkSize = chunkSize.length + 2;
-    }
-    // Node.js 流处理
+    let stream: NodeJS.ReadableStream;
     if (typeof source === 'string') {
         const fs = require('fs');
-        source = fs.createReadStream(source, { start: chunkSize });
-        chunkSize = 0;
+        stream = fs.createReadStream(source, { start: chunkSize });
+    } else {
+        stream = source;
     }
     let pos = chunkSize;
     let buffer = '';
     let chunkIndex = 0;
-    source.on('data', (chunk: any) => {
-    chunkIndex++;
-    buffer += chunk;
-    let lastPos = 0;
-    while (true) {
-        pos = buffer.indexOf('<', pos) + 1;
-        const node = tXml(buffer, { pos: pos, parseNode: true });
-        pos = node.pos;
-        if (pos > buffer.length - 1 || lastPos > pos) {
-            if (lastPos) {
-                buffer = buffer.slice(lastPos);
-                pos = 0;
-                lastPos = 0;
+    stream.on('data', (chunk: Buffer) => {
+        chunkIndex++;
+        buffer += chunk;
+        let lastPos = 0;
+        while (true) {
+            pos = buffer.indexOf('<', pos) + 1;
+            const node = tXml(buffer, { pos: pos, parseNode: true });
+            pos = (node as RawXmlNode).pos ?? 0;
+            if (pos > buffer.length - 1 || lastPos > pos) {
+                if (lastPos) {
+                    buffer = buffer.slice(lastPos);
+                    pos = 0;
+                    lastPos = 0;
+                }
+                return;
             }
-            return;
+            stream.emit('xml', node);
+            lastPos = pos;
         }
-        source.emit('xml', node);
-        lastPos = pos;
-    }
-});
-    return source;
+    });
+    return stream;
 };
 
 export default tXml;
