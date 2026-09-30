@@ -3,7 +3,7 @@
 ## 目录结构
 
 ```
-src/js/
+src/
 ├── core/               # 核心工具
 │   ├── constants.js    # 常量定义（SLIDE_FACTOR, FONT_SIZE_FACTOR 等）
 │   ├── tXml.js         # XML 解析库

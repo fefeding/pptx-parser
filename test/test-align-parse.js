@@ -1,4 +1,4 @@
-import tXml from '../src/js/core/tXml.js';
+import tXml from '../src/core/tXml.js';
 
 // 模拟 PPTXXmlUtils.getTextByPathList 函数
 function getTextByPathList(node, path) {

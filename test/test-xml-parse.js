@@ -1,4 +1,4 @@
-import tXml from '../src/js/core/tXml.js';
+import tXml from '../src/core/tXml.js';
 
 // 测试 XML 解析
 const xml = `
