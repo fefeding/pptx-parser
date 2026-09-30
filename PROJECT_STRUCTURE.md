@@ -5,62 +5,62 @@
 ```
 src/
 ├── core/               # 核心工具
-│   ├── constants.js    # 常量定义（SLIDE_FACTOR, FONT_SIZE_FACTOR 等）
-│   ├── tXml.js         # XML 解析库
-│   └── tinycolor.js    # 颜色处理库
+│   ├── constants.ts    # 常量定义（SLIDE_FACTOR, FONT_SIZE_FACTOR 等）
+│   ├── tXml.ts         # XML 解析库
+│   └── tinycolor.ts    # 颜色处理库
 │
 ├── shape/              # 形状渲染模块
-│   ├── shape.js        # 主形状渲染模块（4875 行，208 个形状类型）
-│   ├── arrow-shapes.js # 箭头形状（基础和双向箭头）
-│   ├── star-shapes.js  # 星形和多边形
-│   ├── bracket-shapes.js # 括号形状（大括号、方括号等）
-│   ├── pie-shapes.js   # 饼图和弧形
-│   ├── math-symbols.js # 数学符号
-│   ├── misc-shapes.js  # 杂项形状
-│   ├── action-buttons.js # 动作按钮
-│   ├── custom-shape.js # 自定义形状
-│   ├── path-generators.js # 路径生成器（纯数学函数）
-│   └── shape-categories.js # 形状分类常量
+│   ├── shape.ts        # 主形状渲染模块（4875 行，208 个形状类型）
+│   ├── arrow-shapes.ts # 箭头形状（基础和双向箭头）
+│   ├── star-shapes.ts  # 星形和多边形
+│   ├── bracket-shapes.ts # 括号形状（大括号、方括号等）
+│   ├── pie-shapes.ts   # 饼图和弧形
+│   ├── math-symbols.ts # 数学符号
+│   ├── misc-shapes.ts  # 杂项形状
+│   ├── action-buttons.ts # 动作按钮
+│   ├── custom-shape.ts # 自定义形状
+│   ├── path-generators.ts # 路径生成器（纯数学函数）
+│   └── shape-categories.ts # 形状分类常量
 │
 ├── serializer/         # JSON→PPTX 序列化模块
-│   ├── xml-builder.js  # XML 构建工具（转义、单位换算、节点生成）
-│   ├── templates.js    # OOXML 静态模板（主题/母版/版式/Content-Types 等）
-│   ├── element-builders.js # 元素构建器（文本/形状/图片 → OOXML 节点）
-│   ├── composer.js     # 流式构建 API（PPTXComposer）
-│   └── json-to-pptx.js # 序列化主入口（jsonToPptx / editPptx 编辑器）
+│   ├── xml-builder.ts  # XML 构建工具（转义、单位换算、节点生成）
+│   ├── templates.ts    # OOXML 静态模板（主题/母版/版式/Content-Types 等）
+│   ├── element-builders.ts # 元素构建器（文本/形状/图片 → OOXML 节点）
+│   ├── composer.ts     # 流式构建 API（PPTXComposer）
+│   └── json-to-pptx.ts # 序列化主入口（jsonToPptx / editPptx 编辑器）
 │
 ├── utils/              # 工具函数
-│   ├── xml.js          # XML 节点遍历和查询
-│   ├── style.js        # 样式处理（填充、边框、阴影等）
-│   ├── text.js         # 文本处理（样式、段落、RTL 支持）
-│   └── node.js         # 节点处理（幻灯片、图表、SmartArt）
+│   ├── xml.ts          # XML 节点遍历和查询
+│   ├── style.ts        # 样式处理（填充、边框、阴影等）
+│   ├── text.ts         # 文本处理（样式、段落、RTL 支持）
+│   └── node.ts         # 节点处理（幻灯片、图表、SmartArt）
 │
-└── index.js            # 主入口文件
+└── index.ts            # 主入口文件
 ```
 
 ## 模块说明
 
 ### core/
 
-#### constants.js
+#### constants.ts
 定义项目使用的所有常量，包括：
 - `SLIDE_FACTOR`: 幻灯片缩放因子
 - `FONT_SIZE_FACTOR`: 字体大小缩放因子
 - `RTL_LANGS_ARRAY`: RTL 语言列表
 - `DINGBAT_UNICODE`: 装饰字符 Unicode 码点
 
-#### tXml.js
+#### tXml.ts
 轻量级 XML 解析库，用于解析 PPTX 文件中的 XML 内容。
 
-#### tinycolor.js
+#### tinycolor.ts
 颜色处理库，用于颜色的转换和操作。
 
 ---
 
 ### shape/
 
-#### shape.js（主模块）
-形状渲染的核心模块，通过 IIFE 导出 `PPTXShapeUtils` 对象。
+#### shape.ts（主模块）
+形状渲染的核心模块，以具名导出 `PPTXShapeUtils` 对象。
 
 **主要功能:**
 - `genShape()`: 主入口函数，处理单个形状的完整渲染流程
@@ -70,10 +70,10 @@ src/
 
 **注意:**
 - 代码量较大（4875 行），包含约 208 个形状类型
-- 使用 ES5 语法以保持兼容性
+- 源码为 TypeScript（编译目标 ES2020），经 Rollup 打包以保持浏览器/Node 兼容
 - 复杂形状已拆分到独立子模块
 
-#### arrow-shapes.js
+#### arrow-shapes.ts
 箭头形状渲染模块，处理各种箭头的 SVG 生成。
 
 **箭头分类:**
@@ -88,28 +88,28 @@ src/
 - `renderBasicArrow()`: 渲染基础方向箭头
 - `renderDoubleArrow()`: 渲染双向箭头
 
-#### star-shapes.js
+#### star-shapes.ts
 星形和多边形形状渲染模块。
 
-#### bracket-shapes.js
+#### bracket-shapes.ts
 括号形状渲染模块，处理大括号、方括号等。
 
-#### pie-shapes.js
+#### pie-shapes.ts
 饼图和弧形形状渲染模块。
 
-#### math-symbols.js
+#### math-symbols.ts
 数学符号渲染模块。
 
-#### misc-shapes.js
+#### misc-shapes.ts
 杂项形状渲染模块。
 
-#### action-buttons.js
+#### action-buttons.ts
 动作按钮形状渲染模块。
 
-#### custom-shape.js
+#### custom-shape.ts
 自定义形状渲染模块。
 
-#### path-generators.js
+#### path-generators.ts
 路径生成器模块，纯数学计算函数，无外部依赖，无副作用。
 
 **导出函数:**
@@ -121,7 +121,7 @@ src/
 - `shapePie()`: 生成饼图路径
 - `shapeGear()`: 生成齿轮路径
 
-#### shape-categories.js
+#### shape-categories.ts
 形状分类常量模块。
 
 **导出的常量:**
@@ -145,16 +145,16 @@ src/
 
 ### utils/
 
-#### xml.js
+#### xml.ts
 XML 工具函数模块，提供 XML 节点遍历和查询功能。
 
 **导出:**
-- `PPTXXmlUtils`: IIFE 对象
+- `PPTXXmlUtils`: 具名导出对象
   - `getTextByPathList()`: 通过路径数组访问嵌套的 XML 节点
   - `getTextByPathStr()`: 通过路径字符串访问嵌套的 XML 节点
   - `readXmlFile()`: 从 ZIP 文件中读取 XML 文件
 
-#### style.js
+#### style.ts
 样式处理模块，处理 PPTX 文件中的各种样式属性。
 
 **处理功能:**
@@ -165,9 +165,9 @@ XML 工具函数模块，提供 XML 节点遍历和查询功能。
 - 反射效果
 
 **导出:**
-- `PPTXStyleUtils`: IIFE 对象
+- `PPTXStyleUtils`: 具名导出对象
 
-#### text.js
+#### text.ts
 文本处理模块，处理 PPTX 中的文本内容。
 
 **处理功能:**
@@ -179,9 +179,9 @@ XML 工具函数模块，提供 XML 节点遍历和查询功能。
 - RTL（从右到左）语言支持
 
 **导出:**
-- `PPTXTextUtils`: IIFE 对象
+- `PPTXTextUtils`: 具名导出对象
 
-#### node.js
+#### node.ts
 节点工具函数模块，处理 PPTX 节点的各种操作。
 
 **处理功能:**
@@ -191,7 +191,7 @@ XML 工具函数模块，提供 XML 节点遍历和查询功能。
 - 节点索引和查询
 
 **导出:**
-- `PPTXNodeUtils`: IIFE 对象
+- `PPTXNodeUtils`: 具名导出对象
 
 ---
 
@@ -218,16 +218,16 @@ XML 工具函数模块，提供 XML 节点遍历和查询功能。
 - 内部函数使用驼峰命名：`renderBasicArrow`, `readAdjustmentParams`
 
 ### 文件命名
-- 模块文件使用 kebab-case：`arrow-shapes.js`, `path-generators.js`
-- 工具模块使用单数名词：`xml.js`, `style.js`, `text.js`
+- 模块文件使用 kebab-case：`arrow-shapes.ts`, `path-generators.ts`
+- 工具模块使用单数名词：`xml.ts`, `style.ts`, `text.ts`
 
 ---
 
 ## 代码风格
 
 ### 模块格式
-所有模块都使用 ES6 模块语法：
-```javascript
+所有模块都使用 ES 模块语法（TypeScript）：
+```typescript
 /**
  * 模块描述
  * 
@@ -235,7 +235,7 @@ XML 工具函数模块，提供 XML 节点遍历和查询功能。
  * @module module/name
  */
 
-import { ... } from './path.js';
+import { ... } from './path.ts';
 
 /**
  * 函数描述
@@ -245,18 +245,16 @@ import { ... } from './path.js';
 export function functionName() { ... }
 ```
 
-### IIFE 格式
-工具模块使用 IIFE 导出对象：
-```javascript
-export const PPTXXmlUtils = (function() {
-    // 私有函数
-    function privateFunc() { ... }
-    
-    // 公开接口
-    return {
-        publicFunc: privateFunc
-    };
-})();
+### 模块导出格式
+工具模块使用具名导出（named export）：
+```typescript
+// 私有函数
+function privateFunc() { ... }
+
+// 具名导出
+export const PPTXXmlUtils = {
+    publicFunc: privateFunc
+};
 ```
 
 ### 注释规范
@@ -268,16 +266,16 @@ export const PPTXXmlUtils = (function() {
 
 ## 开发建议
 
-1. **保持模块化**: 将新功能拆分到独立模块，避免 `shape.js` 继续膨胀
+1. **保持模块化**: 将新功能拆分到独立模块，避免 `shape.ts` 继续膨胀
 2. **遵循命名规范**: 使用项目既定的匈牙利命名法和函数命名规则
 3. **添加文档注释**: 所有导出函数都应包含 JSDoc 注释
-4. **避免副作用**: 保持 `path-generators.js` 等工具模块的纯函数特性
-5. **向后兼容**: 工具模块使用 ES5 语法以保持兼容性
+4. **避免副作用**: 保持 `path-generators.ts` 等工具模块的纯函数特性
+5. **向后兼容**: 源码为 TypeScript（目标 ES2020），经 Rollup 打包输出适配浏览器与 Node 环境
 
 ---
 
 ## 已知的重构点
 
-1. **shape.js**: 代码量过大（4875 行），建议继续拆分复杂形状到独立模块
-2. **复杂箭头**: `arrow-shapes.js` 中 23 个复杂箭头仍在 `shape.js` 中，可以迁移
+1. **shape.ts**: 代码量过大（4875 行），建议继续拆分复杂形状到独立模块
+2. **复杂箭头**: `arrow-shapes.ts` 中 23 个复杂箭头仍在 `shape.ts` 中，可以迁移
 3. **代码重复**: 部分 shape 模块存在重复的调整参数读取逻辑，可以提取共享函数
