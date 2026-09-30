@@ -1340,7 +1340,11 @@ function buildDiagramDataModel(nodes: DiagramNode[]): string {
     let modelId = 0;
     const points = [`<dsdgm:pt modelId="0" type="doc"><dsdgm:extLst/></dsdgm:pt>`];
     const connectors: string[] = [];
-    const walk = (ns: DiagramNode[], parentId: number) => {
+    // 同时生成可渲染的 p:drawing/p:spTree（结构级：按层级缩进堆叠，供解析端直接渲染文字）
+    const sps: string[] = [];
+    let row = 0;
+    const EMU = 914400;
+    const walk = (ns: DiagramNode[], parentId: number, depth: number) => {
         for (const node of ns) {
             modelId++;
             const mid = modelId;
@@ -1354,14 +1358,28 @@ function buildDiagramDataModel(nodes: DiagramNode[]): string {
             );
             const cxnId = 1000 + mid;
             connectors.push(`<dsdgm:cxn modelId="${cxnId}" type="parOf" srcId="${parentId}" destId="${mid}"/>`);
-            if (node.children && node.children.length) walk(node.children, mid);
+            const x = Math.round(depth * EMU * 1.4);
+            const y = Math.round(row * EMU * 0.7);
+            row++;
+            sps.push(
+                `<p:sp><p:nvSpPr><p:cNvPr id="${mid}" name="Node${mid}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
+                `<p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="2286000" cy="370840"/></a:xfrm>` +
+                `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>` +
+                `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr/><a:t>${text}</a:t></a:r></a:p></p:txBody></p:sp>`
+            );
+            if (node.children && node.children.length) walk(node.children, mid, depth + 1);
         }
     };
-    walk(nodes, 0);
+    walk(nodes, 0, 0);
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
-        `<dsdgm:dataModel xmlns:dsdgm="${DGML_NS}">` +
+        `<dsdgm:dataModel xmlns:dsdgm="${DGML_NS}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
         `<dsdgm:ptLst>${points.join('')}</dsdgm:ptLst>` +
         `<dsdgm:cxnLst>${connectors.join('')}</dsdgm:cxnLst>` +
+        `<p:drawing><p:spTree>` +
+        `<p:nvGrpSpPr><p:cNvPr id="1" name="Diagram"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>` +
+        `<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>` +
+        sps.join('') +
+        `</p:spTree></p:drawing>` +
         `</dsdgm:dataModel>`;
 }
 
@@ -1426,7 +1444,11 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
     const layoutXml = buildDiagramLayout(dgmType, n);
     const colorsXml = buildDiagramColors(dgmType, n);
     const quickStyleXml = buildDiagramQuickStyle(dgmType, n);
+    // 标准 SmartArt：slide 通过 dgm:relIds 引用四个 diagram 部件（colors/data/layout/quickStyle）
     const dataRelId = addRelationship(ctx, REL_TYPES.diagramData, `../diagrams/data${n}.xml`);
+    const colorsRelId = addRelationship(ctx, REL_TYPES.diagramColors, `../diagrams/colors${n}.xml`);
+    const layoutRelId = addRelationship(ctx, REL_TYPES.diagramLayout, `../diagrams/layout${n}.xml`);
+    const quickStyleRelId = addRelationship(ctx, REL_TYPES.diagramQuickStyle, `../diagrams/quickStyle${n}.xml`);
     ctx.diagrams.push({ index: n, dataXml, layoutXml, colorsXml, quickStyleXml });
 
     const id = ctx.nextElementId++;
@@ -1446,7 +1468,14 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
         xmlNode('a:graphic',
             null,
             xmlNode('a:graphicData', { uri: DGML_NS },
-                xmlNode('dgm:rel', { 'xmlns:dgm': DGML_NS, 'xmlns:r': NS.r, 'r:id': dataRelId }))
+                xmlNode('dgm:relIds', {
+                    'xmlns:dgm': DGML_NS,
+                    'xmlns:r': NS.r,
+                    'r:cs': colorsRelId,
+                    'r:dm': dataRelId,
+                    'r:lo': layoutRelId,
+                    'r:qs': quickStyleRelId
+                }))
         )
     );
 }

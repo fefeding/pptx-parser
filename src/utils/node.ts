@@ -34,27 +34,38 @@ async function genDiagram(node: XmlNode | undefined, wrapObj: WarpObject, source
     const zip = wrapObj.zip;
     let xfrmNode = PPTXXmlUtils.getTextByPathList(node, ['p:xfrm']);
     const dgmRelIds = PPTXXmlUtils.getTextByPathList(node, ['a:graphic', 'a:graphicData', 'dgm:relIds', 'attrs']);
+    if (!dgmRelIds) {
+        console.warn('[genDiagram] dgm:relIds not found, skip diagram');
+        return '';
+    }
     const dgmClrFileId = dgmRelIds['r:cs'];
     const dgmDataFileId = dgmRelIds['r:dm'];
     const dgmLayoutFileId = dgmRelIds['r:lo'];
     const dgmQuickStyleFileId = dgmRelIds['r:qs'];
 
-    const dgmClrFileName = wrapObj.slideResObj[dgmClrFileId].target;
-    const dgmDataFileName = wrapObj.slideResObj[dgmDataFileId].target;
-    const dgmLayoutFileName = wrapObj.slideResObj[dgmLayoutFileId].target;
-    const dgmQuickStyleFileName = wrapObj.slideResObj[dgmQuickStyleFileId].target;
+    const relTargetOf = (relId?: string) =>
+        relId && wrapObj.slideResObj[relId] ? wrapObj.slideResObj[relId].target : undefined;
+    const dgmClrFileName = relTargetOf(dgmClrFileId);
+    const dgmDataFileName = relTargetOf(dgmDataFileId);
+    const dgmLayoutFileName = relTargetOf(dgmLayoutFileId);
+    const dgmQuickStyleFileName = relTargetOf(dgmQuickStyleFileId);
+    if (!dgmClrFileName || !dgmDataFileName || !dgmLayoutFileName || !dgmQuickStyleFileName) {
+        console.warn('[genDiagram] missing diagram part reference, skip diagram');
+        return '';
+    }
 
     const dgmClr = await PPTXXmlUtils.readXmlFile(zip, dgmClrFileName);
     const dgmData = await PPTXXmlUtils.readXmlFile(zip, dgmDataFileName);
     const dgmLayout = await PPTXXmlUtils.readXmlFile(zip, dgmLayoutFileName);
     const dgmQuickStyle = await PPTXXmlUtils.readXmlFile(zip, dgmQuickStyleFileName);
 
-    const dgmDrwSpArray = PPTXXmlUtils.getTextByPathList(wrapObj.diagramContent, ['p:drawing', 'p:spTree', 'p:sp']);
+    const dgmDrwSpArray = dgmData ? PPTXXmlUtils.getTextByPathList(dgmData, ['p:drawing', 'p:spTree', 'p:sp']) : undefined;
     let result = '';
 
     if (dgmDrwSpArray !== undefined) {
+        const spArray = Array.isArray(dgmDrwSpArray) ? dgmDrwSpArray : [dgmDrwSpArray];
         const results = [];
-        for (const dspSp of dgmDrwSpArray) {
+        for (const dspSp of spArray) {
             const txBody = PPTXXmlUtils.getTextByPathList(dspSp, ['p:txBody', 'a:p', 'a:r', 'a:t']);
             results.push(processSpNode(dspSp, node, wrapObj, 'diagramBg', shapeType));
         }
