@@ -127,8 +127,31 @@ function extractTxBody(txBody: any): { paragraphs: PptxParagraph[]; hasText: boo
         const pPr = pNode['a:pPr'];
         const pAttrs = (pPr && pPr.attrs) || {};
         const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : undefined;
-        // 项目符号：存在 buChar/buAutoNum 且无 buNone
-        const bullet = !!pPr && !!(pPr['a:buChar'] || pPr['a:buAutoNum']) && !pPr['a:buNone'];
+
+        // 列表样式：自动编号 / 项目符号
+        let bullet: any;
+        if (pPr && pPr['a:buAutoNum'] && !pPr['a:buNone']) {
+            const auto = pPr['a:buAutoNum'];
+            bullet = { type: 'number', fmt: (auto.attrs && auto.attrs.type) || 'arabic', start: (auto.attrs && auto.attrs.startAt != null) ? Number(auto.attrs.startAt) : 1 };
+        } else if (pPr && pPr['a:buChar'] && !pPr['a:buNone']) {
+            const bc = pPr['a:buChar'];
+            bullet = { type: 'bullet', char: (bc.attrs && bc.attrs.char) || '•' };
+        }
+
+        // 行距 / 段间距 / 缩进
+        let lineSpacing: any;
+        const lnSpc = pPr && pPr['a:lnSpc'];
+        if (lnSpc) {
+            if (lnSpc['a:spcPct']) lineSpacing = { type: 'percent', value: Number(lnSpc['a:spcPct'].attrs.val) / 1000 };
+            else if (lnSpc['a:spcPts']) lineSpacing = { type: 'pt', value: Number(lnSpc['a:spcPts'].attrs.val) / 100 };
+        }
+        const spcBef = pPr && pPr['a:spcBef'] && pPr['a:spcBef']['a:spcPts'];
+        const spcAft = pPr && pPr['a:spcAft'] && pPr['a:spcAft']['a:spcPts'];
+        const spaceBefore = spcBef ? Number(spcBef.attrs.val) / 100 : undefined;
+        const spaceAfter = spcAft ? Number(spcAft.attrs.val) / 100 : undefined;
+        const indentLeft = pAttrs.marL != null ? emuToPt(pAttrs.marL) : undefined;
+        const indentRight = pAttrs.marR != null ? emuToPt(pAttrs.marR) : undefined;
+        const indent = pAttrs.indent != null ? emuToPt(pAttrs.indent) : undefined;
 
         const runs: PptxTextRun[] = [];
         let paraText = '';
@@ -142,7 +165,13 @@ function extractTxBody(txBody: any): { paragraphs: PptxParagraph[]; hasText: boo
 
         const para: PptxParagraph = { runs };
         if (align) para.align = align;
-        if (bullet) para.bullet = true;
+        if (bullet) para.bullet = bullet;
+        if (lineSpacing) para.lineSpacing = lineSpacing;
+        if (spaceBefore != null) para.spaceBefore = spaceBefore;
+        if (spaceAfter != null) para.spaceAfter = spaceAfter;
+        if (indentLeft != null) para.indentLeft = indentLeft;
+        if (indentRight != null) para.indentRight = indentRight;
+        if (indent != null) para.indent = indent;
         if (valign) (para as any).valign = valign;
         paragraphs.push(para);
     }
@@ -155,9 +184,9 @@ function extractTextBody(spNode: any): { paragraphs: PptxParagraph[]; hasText: b
     return { paragraphs, hasText };
 }
 
-/** 从 p:spPr 读取几何/填充/边框 */
-function readSpPr(spPr: any): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'line'> {
-    const out: Pick<PptxShapeElement, 'shapeType' | 'fill' | 'line'> = { shapeType: 'rect' };
+/** 从 p:spPr 读取几何/填充/边框/特效 */
+function readSpPr(spPr: any): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'line' | 'effects'> {
+    const out: any = { shapeType: 'rect' };
     if (!spPr) return out;
     const prst = spPr['a:prstGeom'];
     if (prst && prst.attrs && prst.attrs.prst) out.shapeType = String(prst.attrs.prst);
@@ -165,9 +194,29 @@ function readSpPr(spPr: any): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'lin
     // 填充
     if (spPr['a:noFill']) {
         out.fill = 'none';
+    } else if (spPr['a:gradFill']) {
+        const gf = spPr['a:gradFill'];
+        const gsLst = gf['a:gsLst'];
+        const stops = (gsLst ? asArray(gsLst['a:gs']) : []).map((gs: any) => {
+            const pos = gs && gs.attrs ? Number(gs.attrs.pos) / 100000 : 0;
+            return { color: readSrgbClr(gs) || '#000000', position: pos };
+        });
+        const lin = gf['a:lin'];
+        let direction: 'horizontal' | 'vertical' | 'diagonal' = 'horizontal';
+        if (lin && lin.attrs) {
+            const ang = Number(lin.attrs.ang) / 60000; // 度
+            direction = ang >= 45 && ang < 135 ? 'vertical' : (ang >= 22.5 && ang < 67.5 ? 'diagonal' : 'horizontal');
+        }
+        out.fill = { type: 'gradient', direction, stops };
     } else {
         const color = readSrgbClr(spPr);
-        if (color) out.fill = color;
+        if (color) {
+            const solid = spPr['a:solidFill'];
+            const srgb = solid && solid['a:srgbClr'];
+            const alphaNode = (solid && solid['a:alpha']) || (srgb && srgb['a:alpha']);
+            const transparency = alphaNode && alphaNode.attrs ? Math.round(100 - Number(alphaNode.attrs.val) / 1000) : undefined;
+            out.fill = transparency != null ? { type: 'solid', color, transparency } : color;
+        }
     }
 
     // 边框
@@ -178,8 +227,46 @@ function readSpPr(spPr: any): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'lin
         } else {
             const color = readSrgbClr(ln);
             const w = ln.attrs && ln.attrs.w ? emuToPt(ln.attrs.w) : DEFAULT_LN_PT;
-            out.line = color ? { color, width: w } : { width: w };
+            const srgb = ln['a:solidFill'] && ln['a:solidFill']['a:srgbClr'];
+            const alphaNode = srgb && srgb['a:alpha'];
+            const transparency = alphaNode && alphaNode.attrs ? Math.round(100 - Number(alphaNode.attrs.val) / 1000) : undefined;
+            const dash = ln['a:prstDash'] && ln['a:prstDash'].attrs && ln['a:prstDash'].attrs.val;
+            const lineObj: any = { width: w };
+            if (color) lineObj.color = color;
+            if (transparency != null) lineObj.transparency = transparency;
+            if (dash) lineObj.dashType = String(dash);
+            out.line = lineObj;
         }
+    }
+
+    // 特效（a:effectLst：阴影 / 发光）
+    const effLst = spPr['a:effectLst'];
+    if (effLst) {
+        const effects: any = {};
+        const inner = effLst['a:innerShdw'];
+        const outer = effLst['a:outerShdw'] || inner;
+        if (outer) {
+            const shadow: any = { type: inner ? 'inner' : 'outer' };
+            if (outer.attrs) {
+                if (outer.attrs.blur != null) shadow.blur = emuToPt(outer.attrs.blur);
+                if (outer.attrs.dist != null) shadow.distance = emuToPt(outer.attrs.dist);
+                if (outer.attrs.dir != null) shadow.angle = Math.round(Number(outer.attrs.dir) / 60000);
+            }
+            const srgb = outer['a:srgbClr'];
+            if (srgb && srgb.attrs && srgb.attrs.val) shadow.color = String(srgb.attrs.val);
+            const alphaNode = srgb && srgb['a:alpha'];
+            if (alphaNode && alphaNode.attrs) shadow.transparency = Math.round(100 - Number(alphaNode.attrs.val) / 1000);
+            effects.shadow = shadow;
+        }
+        const glow = effLst['a:glow'];
+        if (glow) {
+            const g: any = {};
+            if (glow.attrs && glow.attrs.blur != null) g.blur = emuToPt(glow.attrs.blur);
+            const srgb = glow['a:srgbClr'];
+            if (srgb && srgb.attrs && srgb.attrs.val) g.color = String(srgb.attrs.val);
+            effects.glow = g;
+        }
+        if (effects.shadow || effects.glow) out.effects = effects;
     }
     return out;
 }
@@ -610,6 +697,7 @@ async function nodeToElement(
         };
         if (sp.fill !== undefined) shapeEl.fill = sp.fill;
         if (sp.line !== undefined) shapeEl.line = sp.line;
+        if (sp.effects) shapeEl.effects = sp.effects;
         if (xf && xf.rotation) shapeEl.rotation = xf.rotation;
         if (name) shapeEl.name = String(name);
         return shapeEl;
@@ -696,12 +784,27 @@ function tableToElement(tbl: any, node: any): PptxTableElement {
             }
             if (paragraphs[0] && paragraphs[0].align) cell.align = paragraphs[0].align;
 
-            // 单元格属性：底色与垂直对齐
+            // 单元格属性：底色、垂直对齐与边框
             const tcPr = tc && tc['a:tcPr'];
             if (tcPr) {
                 const fill = readSrgbClr(tcPr);
                 if (fill) cell.fill = fill;
                 if (tcPr.attrs && tcPr.attrs.anchor) cell.valign = VALIGN_MAP[tcPr.attrs.anchor];
+
+                // 边框回读（a:lnL / a:lnR / a:lnT / a:lnB）
+                const edgeKey: Record<string, 'left' | 'right' | 'top' | 'bottom'> = { L: 'left', R: 'right', T: 'top', B: 'bottom' };
+                const borders: Record<string, { color: string; width: number }> = {};
+                let hasBorder = false;
+                for (const e of Object.keys(edgeKey)) {
+                    const ln = tcPr['a:ln' + e];
+                    if (ln && ln.attrs) {
+                        const w = ln.attrs.w !== undefined ? Math.round(Number(ln.attrs.w) / EMU_PER_PT) : DEFAULT_LN_PT;
+                        const color = readSrgbClr(ln) || '#000000';
+                        borders[edgeKey[e]] = { color, width: w };
+                        hasBorder = true;
+                    }
+                }
+                if (hasBorder) cell.borders = borders;
             }
             row.cells.push(cell);
         }

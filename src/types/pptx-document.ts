@@ -67,14 +67,51 @@ export interface PptxParagraph {
     text?: string;
     runs?: PptxTextRun[];
     align?: TextAlign;
-    bullet?: boolean;
+    /** 列表样式：true=项目符号；'number'=自动编号；{ type:'number', fmt?, start? } 或 { type:'bullet', char? } */
+    bullet?: boolean | 'number' | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    /** 行距：数字=百分比(100=单倍) 或 { type:'pt', value } / { type:'percent', value } */
+    lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
+    /** 段前间距 pt */
+    spaceBefore?: number;
+    /** 段后间距 pt */
+    spaceAfter?: number;
+    /** 左缩进 pt（a:pPr@marL） */
+    indentLeft?: number;
+    /** 右缩进 pt（a:pPr@marR） */
+    indentRight?: number;
+    /** 悬挂缩进 pt（a:pPr@indent，项目符号相对文本的缩进） */
+    indent?: number;
 }
 
-/** 形状填充：颜色串 / { color } / 'none'(无填充) / null(继承主题) */
-export type PptxFill = string | { color?: string } | 'none' | null;
+/** 渐变填充色标 */
+export interface PptxGradientStop { color: string; position: number; }
+/** 纯色填充（可带透明度 0-100） */
+export interface PptxFillSolid { type?: 'solid'; color?: string; transparency?: number; }
+/** 渐变填充 */
+export interface PptxFillGradient { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: PptxGradientStop[]; }
+/** 形状填充：颜色串 / {color} / {type:'solid',...} / {type:'gradient',...} / 'none' / null */
+export type PptxFill = string | PptxFillSolid | PptxFillGradient | 'none' | null;
 
-/** 形状边框：{ color, width(pt) } / 'none'(无边框) / null(继承) */
-export type PptxLine = { color?: string; width?: number } | 'none' | null;
+/** 形状边框：{ color, width(pt), transparency, dashType } / 'none'(无边框) / null(继承) */
+export interface PptxLineStyle { color?: string; width?: number; transparency?: number; dashType?: string; }
+export type PptxLine = PptxLineStyle | 'none' | null;
+
+/** 形状阴影 */
+export interface PptxShadow {
+    type?: 'outer' | 'inner';
+    color?: string;
+    blur?: number;          // pt
+    distance?: number;      // pt
+    angle?: number;         // 度
+    transparency?: number; // 0-100
+}
+/** 形状发光 */
+export interface PptxGlow { color?: string; blur?: number; } // blur 单位 pt
+/** 形状特效集合（对应 a:effectLst） */
+export interface PptxShapeEffects {
+    shadow?: PptxShadow | boolean;  // true = 默认外阴影
+    glow?: PptxGlow | boolean;      // true = 默认发光
+}
 
 /** 背景填充 */
 export type PptxBackground =
@@ -95,6 +132,10 @@ export interface PptxChartSeries {
     values?: number[];   // 非散点图
     x?: number[];        // 散点图 X
     y?: number[];        // 散点图 Y
+    open?: number[];     // 股票图：开盘
+    high?: number[];     // 股票图：最高
+    low?: number[];      // 股票图：最低
+    close?: number[];    // 股票图：收盘
     color?: string;
 }
 
@@ -148,6 +189,14 @@ export interface PptxTextElement extends PptxElementBase {
     rotation?: number;
     align?: TextAlign;
     valign?: VAlign;
+    /** 段落级默认样式（纯 text 模式透传给每个段落）：列表/行距/段间距/缩进 */
+    bullet?: boolean | 'number' | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
+    spaceBefore?: number;
+    spaceAfter?: number;
+    indentLeft?: number;
+    indentRight?: number;
+    indent?: number;
     /** 文本来源三选一：paragraphs > runs > text */
     paragraphs?: PptxParagraph[];
     runs?: PptxTextRun[];
@@ -160,6 +209,10 @@ export interface PptxTextElement extends PptxElementBase {
     underline?: boolean;
     fontFace?: string;
     href?: string;
+    /** 文本框内边距（px）：{ l, r, t, b } */
+    inset?: { l?: number; r?: number; t?: number; b?: number };
+    /** 文字方向：'wordArtVertical' / 'eaVertical' / 'vert' / 'horz'（默认横排） */
+    textDirection?: string;
 }
 
 /** 形状元素 */
@@ -173,6 +226,12 @@ export interface PptxShapeElement extends PptxElementBase {
     rotation?: number;
     fill?: PptxFill;
     line?: PptxLine;
+    /** 形状特效：阴影 / 发光（对应 a:effectLst） */
+    effects?: PptxShapeEffects;
+    /** 几何调整值（圆角半径 / 箭头尺寸 / 星形尖角等），如 { adj: 25000 } */
+    adjust?: Record<string, number>;
+    /** 几何调整值（圆角半径 / 箭头尺寸 / 星形尖角等），如 { adj: 25000 } */
+    adjust?: Record<string, number>;
 }
 
 /** 图片元素 */
@@ -190,6 +249,10 @@ export interface PptxImageElement extends PptxElementBase {
     extension?: string;
     /** 图片级超链接（内部跳转用 '#N'） */
     href?: string;
+    /** 图片裁剪（百分比 0-100）：{ l, r, t, b } */
+    crop?: { l?: number; r?: number; t?: number; b?: number };
+    /** 图片调整：{ brightness(-100..100), contrast(-100..100), transparency(0..100) } */
+    imageAdjust?: { brightness?: number; contrast?: number; transparency?: number };
 }
 
 /** 图表元素 */
@@ -220,6 +283,15 @@ export interface PptxTableCell {
     rowSpan?: number;
     /** 单元格底色 */
     fill?: string;
+    /** 四边统一边框 */
+    border?: { color?: string; width?: number };
+    /** 分边边框（覆盖统一边框） */
+    borders?: {
+        left?: { color?: string; width?: number } | 'none';
+        right?: { color?: string; width?: number } | 'none';
+        top?: { color?: string; width?: number } | 'none';
+        bottom?: { color?: string; width?: number } | 'none';
+    };
     /** 文本水平对齐 */
     align?: TextAlign;
     /** 文本垂直对齐（OOXML anchor） */
@@ -231,6 +303,8 @@ export interface PptxTableCell {
     italic?: boolean;
     underline?: boolean;
     fontFace?: string;
+    /** 单元格内边距（px）：{ l, r, t, b } */
+    inset?: { l?: number; r?: number; t?: number; b?: number };
 }
 
 /** 表格行 */
@@ -255,15 +329,37 @@ export interface PptxTableElement extends PptxElementBase {
     colWidths?: number[];
     /** 行高（px，长度即行数） */
     rowHeights?: number[];
+    /** 表格级默认边框（四边统一） */
+    border?: { color?: string; width?: number };
+    /** 表格级分边默认边框 */
+    borders?: {
+        left?: { color?: string; width?: number } | 'none';
+        right?: { color?: string; width?: number } | 'none';
+        top?: { color?: string; width?: number } | 'none';
+        bottom?: { color?: string; width?: number } | 'none';
+        /** 对角线边框：'tlBr' / 'blTr' / 'both' */
+        diagonal?: 'tlBr' | 'blTr' | 'both';
+    };
+    /** 表格级单元格内边距（px）：{ l, r, t, b } */
+    inset?: { l?: number; r?: number; t?: number; b?: number };
+    /** 表格样式 ID（引用内置 tableStyles.xml） */
+    tableStyleId?: string;
     rows: PptxTableRow[];
 }
 
+/** SmartArt 图示节点（层级结构，叶子含 text） */
+export interface PptxDiagramNode {
+    /** 节点文本 */
+    text: string;
+    /** 子节点（层级） */
+    children?: PptxDiagramNode[];
+}
+
 /**
- * SmartArt / 图示元素（解析自 p:graphicFrame/a:graphicData[uri=diagram]）
+ * SmartArt / 图示元素（解析自 p:graphicFrame/a:graphicData[uri=diagram]，或创作生成）
  *
- * SmartArt 的几何布局由 diagrams/layoutN.xml 驱动，无法在语义层无损表达，
- * 因此标准格式仅保留可读文本内容（texts）与原始节点（__raw），
- * 其还原依赖 __raw 回退（语义层不保证保真）。
+ * 创作时提供 diagramType + nodes 即可生成原生 diagrams/* 部件；
+ * 解析端仅保留可读文本（texts）与原始节点（__raw），还原依赖 __raw 回退。
  */
 export interface PptxDiagramElement extends PptxElementBase {
     type: 'diagram';
@@ -271,7 +367,11 @@ export interface PptxDiagramElement extends PptxElementBase {
     y: number;
     width: number;
     height: number;
-    /** 图示数据部件（ppt/diagrams/dataN.xml）中的文本内容，按文档顺序 */
+    /** 图示类型：'list' | 'hierarchy' | 'process' | 'cycle' | 'pyramid'（创作端） */
+    diagramType?: string;
+    /** 图示节点层级（创作端） */
+    nodes?: PptxDiagramNode[];
+    /** 图示数据部件（ppt/diagrams/dataN.xml）中的文本内容，按文档顺序（解析端） */
     texts?: string[];
     /** 数据部件路径（便于调试与二次读取） */
     dataPath?: string;
@@ -292,6 +392,49 @@ export interface PptxRawElement extends PptxElementBase {
     height: number;
 }
 
+/** 分组元素（组合多个子元素，对应 p:grpSp） */
+export interface PptxGroupElement extends PptxElementBase {
+    type: 'group';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /**
+     * 子元素坐标体系：
+     * - 'local'（默认，OOXML 标准）：children 的 x/y 为相对组左上角的局部坐标
+     * - 'page'：children 的 x/y 为页绝对坐标，生成时自动减 group 偏移做相对化
+     */
+    childrenCoordinates?: 'local' | 'page';
+    /** 子元素（默认相对组左上角的局部坐标；childrenCoordinates:'page' 时为页绝对坐标） */
+    children: PptxElement[];
+}
+
+/** 视频元素（mp4 等，p:pic + 媒体关系） */
+export interface PptxVideoElement extends PptxElementBase {
+    type: 'video';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    data?: string;
+    src?: string;
+    extension?: string;
+    /** 视频海报/预览图 */
+    poster?: { data?: string; src?: string; extension?: string };
+}
+
+/** 音频元素（mp3/m4a 等，p:pic + 媒体关系） */
+export interface PptxAudioElement extends PptxElementBase {
+    type: 'audio';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    data?: string;
+    src?: string;
+    extension?: string;
+}
+
 export type PptxElement =
     | PptxTextElement
     | PptxShapeElement
@@ -299,6 +442,9 @@ export type PptxElement =
     | PptxChartElement
     | PptxTableElement
     | PptxDiagramElement
+    | PptxGroupElement
+    | PptxVideoElement
+    | PptxAudioElement
     | PptxRawElement;
 
 /** 媒体资源（当元素不内联 data 时，通过 id 引用本表） */
@@ -316,7 +462,21 @@ export interface PptxSlide {
     transition?: PptxTransition;
     /** 演讲者备注（解析端自 notesContent 产出，生成端写回 notesSlide 部件） */
     notes?: string;
+    /** 幻灯片批注（生成端写回 ppt/comments/commentsN.xml） */
+    comments?: PptxComment[];
     elements: PptxElement[];
+}
+
+/** 幻灯片批注（commentsN.xml 的 p:cm） */
+export interface PptxComment {
+    /** 作者（用于 commentAuthors；缺省 'Author'） */
+    author?: string;
+    /** 批注正文 */
+    text: string;
+    /** 批注时间（ISO 8601）；缺省取当前时间 */
+    dt?: string;
+    /** 批注锚点位置（EMU）；缺省 1 英寸处 */
+    pos?: { x?: number; y?: number };
 }
 
 /** 可选主题覆盖（高级样式；标准 v1.0 暂为宽松结构，后续细化） */

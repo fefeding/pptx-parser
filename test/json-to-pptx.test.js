@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import JSZip from 'jszip';
-import { pptxToJson, jsonToPptx, editPptx, PPTXComposer } from '../src/index.ts';
+import { pptxToJson, pptxToStandard, jsonToPptx, editPptx, PPTXComposer } from '../src/index.ts';
 
 // 1x1 红色 PNG 的 base64
 const TINY_PNG_BASE64 =
@@ -310,5 +310,256 @@ describe('图表生成（原生 OOXML chart 部件）', () => {
         expect(chartXml).toContain('<c:xVal>');
         expect(chartXml).toContain('<c:yVal>');
         expect(chartXml).not.toContain('<c:cat>');
+    });
+
+    it('股票图生成 open/high/low/close 四引用与 hiLowLines/serLines', async () => {
+        const composer = new PPTXComposer();
+        composer.addSlide(slide => {
+            slide.addChart({
+                chartType: 'stockChart', x: 0, y: 0, width: 400, height: 300,
+                series: [{ name: '股价',
+                    open: [10, 11, 12], high: [15, 16, 17], low: [8, 9, 10], close: [13, 14, 15] }]
+            });
+        });
+        const data = await composer.save();
+        const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+        const zip = await JSZip.loadAsync(buffer);
+        const chartXml = await zip.file('ppt/charts/chart1.xml').async('string');
+        expect(chartXml).toContain('<c:stockChart');
+        expect(chartXml).toContain('<c:openVal>');
+        expect(chartXml).toContain('<c:highVal>');
+        expect(chartXml).toContain('<c:lowVal>');
+        expect(chartXml).toContain('<c:closeVal>');
+        expect(chartXml).toContain('<c:hiLowLines/>');
+        expect(chartXml).toContain('<c:serLines/>');
+    });
+
+    it('雷达图含 radarStyle、曲面图含 bandFmts', async () => {
+        const composer = new PPTXComposer();
+        composer.addSlide(slide => {
+            slide.addChart({ chartType: 'radarChart', x: 0, y: 0, width: 400, height: 300,
+                series: [{ name: 'R', values: [1, 2, 3] }] });
+        });
+        const d1 = await composer.save();
+        const z1 = await JSZip.loadAsync(d1.buffer.slice(d1.byteOffset, d1.byteOffset + d1.byteLength));
+        expect(await z1.file('ppt/charts/chart1.xml').async('string')).toContain('<c:radarStyle');
+
+        const composer2 = new PPTXComposer();
+        composer2.addSlide(slide => {
+            slide.addChart({ chartType: 'surfaceChart', x: 0, y: 0, width: 400, height: 300,
+                series: [{ name: 'S', values: [1, 2, 3] }] });
+        });
+        const d2 = await composer2.save();
+        const z2 = await JSZip.loadAsync(d2.buffer.slice(d2.byteOffset, d2.byteOffset + d2.byteLength));
+        expect(await z2.file('ppt/charts/chart1.xml').async('string')).toContain('<c:bandFmts/>');
+    });
+});
+
+describe('批注 comments (T18)', () => {
+    it('生成 commentsN.xml、commentAuthors.xml 及其关系', async () => {
+        const data = await jsonToPptx({
+            slides: [
+                { elements: [], comments: [
+                    { author: 'Alice', text: '第一条批注', dt: '2026-01-01T00:00:00Z' },
+                    { author: 'Bob', text: '第二条批注' }
+                ] },
+                { elements: [] }
+            ]
+        });
+        const zip = await JSZip.loadAsync(data);
+
+        // 评论部件：cmLst / p:cm / authorId / 正文
+        const cm = await zip.file('ppt/comments/comments1.xml').async('string');
+        expect(cm).toContain('<p:cmLst');
+        expect(cm).toContain('<p:cm ');
+        expect(cm).toContain('authorId="0"');
+        expect(cm).toContain('authorId="1"');
+        expect(cm).toContain('第一条批注');
+        expect(cm).toContain('<p:pos');
+        expect(cm).toContain('<p:text>');
+
+        // 作者表：commentAuthors / 作者名
+        const authors = await zip.file('ppt/commentAuthors.xml').async('string');
+        expect(authors).toContain('<p:commentAuthors');
+        expect(authors).toContain('name="Alice"');
+        expect(authors).toContain('name="Bob"');
+
+        // 幻灯片关系 → comments 部件
+        const slideRels = await zip.file('ppt/slides/_rels/slide1.xml.rels').async('string');
+        expect(slideRels).toContain('relationships/comments');
+        expect(slideRels).toContain('../comments/comments1.xml');
+
+        // comments 部件关系 → commentAuthors
+        const cmRels = await zip.file('ppt/comments/_rels/comments1.xml.rels').async('string');
+        expect(cmRels).toContain('relationships/commentAuthors');
+
+        // presentation 关系含 commentAuthors
+        const presRels = await zip.file('ppt/_rels/presentation.xml.rels').async('string');
+        expect(presRels).toContain('relationships/commentAuthors');
+
+        // Content-Types 覆盖
+        const ct = await zip.file('[Content_Types].xml').async('string');
+        expect(ct).toContain('presentationml.comments+xml');
+        expect(ct).toContain('presentationml.commentAuthors+xml');
+    });
+
+    it('无批注时不生成评论部件', async () => {
+        const data = await jsonToPptx({ slides: [{ elements: [] }] });
+        const zip = await JSZip.loadAsync(data);
+        expect(zip.file('ppt/comments/comments1.xml')).toBeNull();
+        expect(zip.file('ppt/commentAuthors.xml')).toBeNull();
+    });
+});
+
+describe('组合 group (T4)', () => {
+    it('生成 p:grpSp 并内嵌子元素（chOff/chExt 正确）', async () => {
+        const data = await jsonToPptx({
+            slides: [{
+                elements: [{
+                    type: 'group', x: 50, y: 50, width: 400, height: 300,
+                    children: [
+                        { type: 'text', x: 60, y: 60, width: 200, height: 40, text: '组内文本' },
+                        { type: 'shape', shapeType: 'rect', x: 60, y: 120, width: 100, height: 50, fill: { color: '#ff0000' } }
+                    ]
+                }]
+            }]
+        });
+        const zip = await JSZip.loadAsync(data);
+        const slide = await zip.file('ppt/slides/slide1.xml').async('string');
+
+        expect(slide).toContain('<p:grpSp>');
+        expect(slide).toContain('<a:chOff');
+        expect(slide).toContain('<a:chExt');
+        // 子元素被递归内嵌
+        expect(slide).toContain('组内文本');
+        expect(slide).toContain('<p:sp>');
+    });
+
+    it('composer.addGroup 写入分组', async () => {
+        const composer = new PPTXComposer();
+        composer.addSlide(slide => {
+            slide.addGroup(g => g
+                .x(10).y(10).width(300).height(200)
+                .children([
+                    { type: 'text', x: 20, y: 20, width: 100, height: 30, text: 'A' },
+                    { type: 'text', x: 20, y: 60, width: 100, height: 30, text: 'B' }
+                ]));
+        });
+        const data = await composer.save();
+        const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+        const zip = await JSZip.loadAsync(buffer);
+        const slide = await zip.file('ppt/slides/slide1.xml').async('string');
+        expect(slide).toContain('<p:grpSp>');
+        expect(slide).toContain('A');
+        expect(slide).toContain('B');
+    });
+
+    it("'page' 坐标模式将子元素相对化（减 group 偏移），'local' 保持原值", async () => {
+        const EMU = 914400 / 96; // pxToEmu 常量：1px = 9525 EMU
+        const build = async (coords) => {
+            const data = await jsonToPptx({ slides: [{ elements: [{
+                type: 'group', x: 50, y: 50, width: 400, height: 300,
+                childrenCoordinates: coords,
+                children: [{ type: 'text', x: 110, y: 110, width: 100, height: 30, text: 'T' }]
+            }] }] });
+            const zip = await JSZip.loadAsync(data);
+            const slide = await zip.file('ppt/slides/slide1.xml').async('string');
+            return [...slide.matchAll(/<a:off x="(\d+)"/g)].map(m => m[1]);
+        };
+        const local = await build('local');
+        const page = await build('page');
+        // page 模式：子元素 110px 减 group 偏移 50 → 局部 60px (54866400)
+        expect(page).toContain(String(60 * EMU));
+        expect(page).not.toContain(String(110 * EMU));
+        // local 模式：子元素保持 110px (100584000)
+        expect(local).toContain(String(110 * EMU));
+    });
+});
+
+describe('SmartArt 图示 diagram (T16)', () => {
+    function buildDiagramComposer() {
+        const composer = new PPTXComposer();
+        composer.addSlide(slide => {
+            slide.addDiagram(d => d
+                .x(40).y(40).width(500).height(400)
+                .diagramType('hierarchy')
+                .nodes([
+                    { text: '根', children: [
+                        { text: '子A' },
+                        { text: '子B', children: [ { text: '孙' } ] }
+                    ] }
+                ]));
+        });
+        return composer;
+    }
+
+    it('生成 p:graphicFrame + diagrams 四件套及关系', async () => {
+        const data = await buildDiagramComposer().save();
+        const zip = await JSZip.loadAsync(data);
+
+        // 幻灯片含 graphicFrame 引用 diagramData
+        const slide = await zip.file('ppt/slides/slide1.xml').async('string');
+        expect(slide).toContain('<p:graphicFrame>');
+        expect(slide).toContain('drawingml/2006/diagram');
+        expect(slide).toContain('<dgm:rel');
+
+        // 四个图示部件存在
+        const dataXml = await zip.file('ppt/diagrams/data1.xml').async('string');
+        expect(dataXml).toContain('<dsdgm:dataModel');
+        expect(dataXml).toContain('根');
+        expect(dataXml).toContain('子A');
+        expect(dataXml).toContain('子B');
+        expect(dataXml).toContain('孙');
+        expect(dataXml).toContain('<dsdgm:pt');
+        expect(dataXml).toContain('<dsdgm:cxn');
+        expect(await zip.file('ppt/diagrams/layout1.xml').async('string')).toContain('<dgm:layoutDef');
+        expect(await zip.file('ppt/diagrams/colors1.xml').async('string')).toContain('<dgm:colorsDef');
+        expect(await zip.file('ppt/diagrams/quickStyle1.xml').async('string')).toContain('<dgm:quickStyleDef');
+
+        // data 部件关系 → layout/colors/quickStyle
+        const dataRels = await zip.file('ppt/diagrams/_rels/data1.xml.rels').async('string');
+        expect(dataRels).toContain('relationships/diagramLayout');
+        expect(dataRels).toContain('relationships/diagramColors');
+        expect(dataRels).toContain('relationships/diagramQuickStyle');
+
+        // 幻灯片关系 → diagramData
+        const slideRels = await zip.file('ppt/slides/_rels/slide1.xml.rels').async('string');
+        expect(slideRels).toContain('relationships/diagramData');
+        expect(slideRels).toContain('../diagrams/data1.xml');
+
+        // Content-Types 覆盖
+        const ct = await zip.file('[Content_Types].xml').async('string');
+        expect(ct).toContain('drawingml.diagramData+xml');
+        expect(ct).toContain('drawingml.diagramLayout+xml');
+        expect(ct).toContain('drawingml.diagramColors+xml');
+        expect(ct).toContain('drawingml.diagramQuickStyle+xml');
+    });
+
+    it('round-trip：图示可被 pptxToStandard 解析出文本', async () => {
+        const data = await buildDiagramComposer().save();
+        const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+        const result = await pptxToStandard(buffer);
+        const diagramEl = result.slides[0].elements.find((e) => e.type === 'diagram');
+        expect(diagramEl).toBeTruthy();
+        expect(JSON.stringify(diagramEl.texts || diagramEl)).toContain('根');
+    });
+
+    it('editPptx.addSlide 支持图示并写入部件', async () => {
+        const composer = new PPTXComposer();
+        composer.addSlide(slide => slide.addText(t => t.value('原页').x(10).y(10).fontSize(20)));
+        const base = await composer.save();
+        const buffer = base.buffer.slice(base.byteOffset, base.byteOffset + base.byteLength);
+        const editor = await editPptx(buffer);
+        await editor.addSlide({
+            elements: [{
+                type: 'diagram', x: 0, y: 0, width: 300, height: 200,
+                diagramType: 'list',
+                nodes: [{ text: '列表项' }]
+            }]
+        });
+        const newData = await editor.save();
+        const newBuffer = newData.buffer.slice(newData.byteOffset, newData.byteOffset + newData.byteLength);
+        const zip = await JSZip.loadAsync(newBuffer);
+        expect(await zip.file('ppt/diagrams/data1.xml').async('string')).toContain('列表项');
     });
 });

@@ -36,6 +36,22 @@ export interface SerializerChart {
     name: string;
     xml: string;
 }
+/** SmartArt 图示部件记录（data/layout/colors/quickStyle 四件套，编号共享） */
+export interface SerializerDiagram {
+    /** 部件编号（与 dataN/layoutN/colorsN/quickStyleN 的 N 一致） */
+    index: number;
+    dataXml: string;
+    layoutXml: string;
+    colorsXml: string;
+    quickStyleXml: string;
+}
+/** SmartArt 图示节点（层级结构，叶子含 text） */
+export interface DiagramNode {
+    /** 节点文本 */
+    text: string;
+    /** 子节点（层级） */
+    children?: DiagramNode[];
+}
 /**
  * __raw 回退所需的附属部件（如 SmartArt 的 diagrams/*.xml）
  * media=true 表示二进制资源（以 base64 落盘，走 Default 扩展名声明）
@@ -63,11 +79,13 @@ export interface SerializerContext {
     rels: SerializerRel[];
     media: SerializerMedia[];
     charts: SerializerChart[];
+    diagrams: SerializerDiagram[];
     parts: SerializerPart[];
     nextElementId: number;
     nextRelId: number;
     mediaIndex: number;
     chartIndex: number;
+    diagramIndex: number;
 }
 /** createElementContext 的选项 */
 export interface ElementContextOptions {
@@ -75,6 +93,8 @@ export interface ElementContextOptions {
     startMediaIndex?: number;
     /** 图表部件起始编号（避免与已有部件冲突） */
     startChartIndex?: number;
+    /** 图示部件起始编号（避免与已有部件冲突） */
+    startDiagramIndex?: number;
 }
 /** 运行级样式（文本默认样式 / 单段 run 样式均使用） */
 export interface RunStyle {
@@ -98,8 +118,37 @@ export interface ParagraphSpec {
     text?: string;
     runs?: TextRunSpec[];
     align?: string;
-    bullet?: boolean;
+    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
+    spaceBefore?: number;
+    spaceAfter?: number;
+    indentLeft?: number;
+    indentRight?: number;
+    indent?: number;
 }
+/** 单元格/表格边框：颜色 + 线宽(pt) */
+export interface CellBorder {
+    color?: string;
+    width?: number;
+}
+/** 分边边框：每边为 CellBorder 或 'none'（显式无该边） */
+export interface TableBorders {
+    left?: CellBorder | 'none';
+    right?: CellBorder | 'none';
+    top?: CellBorder | 'none';
+    bottom?: CellBorder | 'none';
+    /** 对角线边框：'tlBr'(左上-右下) / 'blTr'(左下-右上) / 'both' */
+    diagonal?: 'tlBr' | 'blTr' | 'both';
+}
+
+/** 形状填充/边框/特效（供 SerializerElement 使用） */
+export interface ShapeFillSolid { type?: 'solid'; color?: string; transparency?: number; }
+export interface ShapeFillGradient { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; }
+export interface ShapeLineSpec { color?: string; width?: number; transparency?: number; dashType?: string; }
+export interface ShapeShadowSpec { type?: 'outer' | 'inner'; color?: string; blur?: number; distance?: number; angle?: number; transparency?: number; }
+export interface ShapeGlowSpec { color?: string; blur?: number; }
+export interface ShapeEffectsSpec { shadow?: ShapeShadowSpec | boolean; glow?: ShapeGlowSpec | boolean; }
+
 /** 表格单元格 */
 export interface SerializerTableCell {
     text?: string;
@@ -107,6 +156,10 @@ export interface SerializerTableCell {
     colSpan?: number;
     rowSpan?: number;
     fill?: string;
+    /** 四边统一边框（优先于表格级默认） */
+    border?: CellBorder;
+    /** 分边边框（最高优先级，覆盖统一边框） */
+    borders?: TableBorders;
     align?: string;
     valign?: string;
     fontSize?: number;
@@ -115,6 +168,8 @@ export interface SerializerTableCell {
     italic?: boolean;
     underline?: boolean;
     fontFace?: string;
+    /** 单元格内边距（px）：{ l, r, t, b } */
+    inset?: { l?: number; r?: number; t?: number; b?: number };
 }
 /** 表格行 */
 export interface SerializerTableRow {
@@ -129,6 +184,11 @@ export interface ChartSeriesSpec {
     /** 散点图 x / y 值 */
     x?: number[];
     y?: number[];
+    /** 股票图：开盘/最高/最低/收盘值（open/high/low/close） */
+    open?: number[];
+    high?: number[];
+    low?: number[];
+    close?: number[];
     color?: string;
 }
 /** 幻灯片元素 JSON（text / shape / image / chart） */
@@ -146,6 +206,14 @@ export interface SerializerElement {
     paragraphs?: ParagraphSpec[];
     align?: string;
     valign?: string;
+    /** 段落级默认样式（纯 text 模式透传给每个段落）：列表/行距/段间距/缩进 */
+    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
+    spaceBefore?: number;
+    spaceAfter?: number;
+    indentLeft?: number;
+    indentRight?: number;
+    indent?: number;
     fontSize?: number;
     color?: string;
     bold?: boolean;
@@ -154,10 +222,12 @@ export interface SerializerElement {
     fontFace?: string;
     lang?: string;
     href?: string;
-    /** 形状填充：颜色字符串 / { color } / 'none' / null */
-    fill?: string | { color?: string } | null;
-    /** 形状边框：{ color, width } / 'none' / null */
-    line?: { color?: string; width?: number } | 'none' | null;
+    /** 形状填充：颜色串 / {type:'solid',color,transparency} / {type:'gradient',...} / 'none' / null */
+    fill?: string | ShapeFillSolid | ShapeFillGradient | null;
+    /** 形状边框：{ color, width, transparency, dashType } / 'none' / null */
+    line?: ShapeLineSpec | 'none' | null;
+    /** 形状特效（阴影 / 发光） */
+    effects?: ShapeEffectsSpec | null;
     shapeType?: string;
     /** 图片：dataURL / base64 / 远程 URL */
     data?: string;
@@ -170,12 +240,44 @@ export interface SerializerElement {
     barDir?: string;
     title?: string;
     legend?: boolean;
+    /** 分组（type:'group'）：子元素坐标体系。'local'=相对组左上角的局部坐标（OOXML 标准，默认）；'page'=页绝对坐标（构建时减 group 偏移做相对化） */
+    childrenCoordinates?: 'local' | 'page';
     /** 表格：行数据 */
     rows?: SerializerTableRow[];
     /** 表格：列宽（px，缺省均分） */
     colWidths?: number[];
     /** 表格：行高（px，缺省均分） */
     rowHeights?: number[];
+    /** 表格级默认边框（四边统一） */
+    border?: CellBorder;
+    /** 表格级分边默认边框 */
+    borders?: TableBorders;
+    /** 分组：子元素列表（type:'group' 时） */
+    children?: SerializerElement[];
+    /** 水平翻转 */
+    flipH?: boolean;
+    /** 垂直翻转 */
+    flipV?: boolean;
+    /** 几何调整值（圆角半径 / 箭头尺寸 / 星形尖角等），如 { adj: 25000 } */
+    adjust?: Record<string, number>;
+    /** 文本框内边距（px）：{ l, r, t, b } */
+    inset?: { l?: number; r?: number; t?: number; b?: number };
+    /** 文字方向：'wordArtVertical' / 'eaVertical' / 'vert' / 'horz'（默认横排） */
+    textDirection?: string;
+    /** 图片裁剪（百分比 0-100）：{ l, r, t, b } */
+    crop?: { l?: number; r?: number; t?: number; b?: number };
+    /** 图片调整：{ brightness(-100..100), contrast(-100..100), transparency(0..100) } */
+    imageAdjust?: { brightness?: number; contrast?: number; transparency?: number };
+    /** 表格级单元格内边距（px）：{ l, r, t, b }（单元格未显式时继承） */
+    tableInset?: { l?: number; r?: number; t?: number; b?: number };
+    /** 表格级对角线边框：'tlBr' / 'blTr' / 'both' */
+    tableDiagonal?: 'tlBr' | 'blTr' | 'both';
+    /** 表格样式 ID（引用内置 tableStyles.xml） */
+    tableStyleId?: string;
+    /** SmartArt 图示类型：'list' | 'hierarchy' | 'process' | 'cycle' | 'pyramid' */
+    diagramType?: string;
+    /** SmartArt 图示节点（层级结构，叶子含 text） */
+    nodes?: DiagramNode[];
     /** 原始 OOXML 载荷（解析端产出，语义层未覆盖时用于无损回写） */
     __raw?: unknown;
     /** 强制以 __raw 回写（即使 type 已受语义层支持） */
@@ -189,7 +291,29 @@ export interface SerializerSlide {
     notes?: string;
     /** 过渡效果 */
     transition?: PptxTransition;
+    /** 自动播放：停留毫秒后切换（设置后生成 p:timing 计时） */
+    advanceTime?: number;
+    /** 是否允许点击切换（默认 true；与 advanceTime 配合） */
+    advanceOnClick?: boolean;
+    /** 元素动画：[{ target?, type:'fade'|'flyIn'|'zoom'|'wipe', duration? }] */
+    animations?: Array<{ target?: number; type?: string; duration?: number }>;
+    /** 隐藏幻灯片（show="0"） */
+    hidden?: boolean;
+    /** 幻灯片批注（生成 ppt/comments/commentsN.xml） */
+    comments?: SerializerComment[];
     elements?: SerializerElement[];
+}
+
+/** 幻灯片批注（commentsN.xml 的 p:cm） */
+export interface SerializerComment {
+    /** 作者（用于 commentAuthors；缺省 'Author'） */
+    author?: string;
+    /** 批注正文 */
+    text: string;
+    /** 批注时间（ISO 8601）；缺省取当前时间 */
+    dt?: string;
+    /** 批注锚点位置（EMU）；缺省 1 英寸处 */
+    pos?: { x?: number; y?: number };
 }
 
 /**
@@ -215,7 +339,11 @@ export function createElementContext(options: ElementContextOptions = {}): Seria
         /** 图表部件列表 {name, xml}（生成后由上层写入 ppt/charts/） */
         charts: ([] as SerializerChart[]),
         /** 图表自增编号 */
-        chartIndex: options.startChartIndex || 0
+        chartIndex: options.startChartIndex || 0,
+        /** 图示部件列表（生成后由上层写入 ppt/diagrams/） */
+        diagrams: ([] as SerializerDiagram[]),
+        /** 图示自增编号 */
+        diagramIndex: options.startDiagramIndex || 0
     };
 }
 
@@ -327,8 +455,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
  * @returns {Object} a:xfrm 节点
  */
 function buildXfrm(el: SerializerElement) {
+    const xfrmAttrs: Record<string, number | string | null> = { rot: el.rotation ? degToRot(el.rotation) : null };
+    if (el.flipH) xfrmAttrs.flipH = 1;
+    if (el.flipV) xfrmAttrs.flipV = 1;
     return xmlNode('a:xfrm',
-        { rot: el.rotation ? degToRot(el.rotation) : null },
+        xfrmAttrs,
         xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
         xmlNode('a:ext', { cx: pxToEmu(el.width || 0), cy: pxToEmu(el.height || 0) })
     );
@@ -363,7 +494,7 @@ function buildTextRun(ctx: SerializerContext, text: string | undefined, opts: Ru
     const rPrChildren = [];
 
     if (opts.color) {
-        rPrChildren.push(xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(opts.color) })));
+        rPrChildren.push(xmlNode('a:solidFill', colorNode(opts.color)));
     }
     if (opts.fontFace) {
         rPrChildren.push(xmlNode('a:latin', { typeface: opts.fontFace }));
@@ -399,18 +530,42 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
     const alignMap: Record<string, string | null> = { left: 'l', center: 'ctr', right: 'r', justify: 'just' };
     const p = paragraph || {};
 
-    // 段落属性
-    const pPrChildren = [];
-    if (p.bullet) {
+    const pPrAttrs: Record<string, number | string | null> = { algn: alignMap[p.align || defaults.align || 'left'] || null };
+    if (p.indentLeft != null) pPrAttrs.marL = ptToEmu(p.indentLeft);
+    if (p.indentRight != null) pPrAttrs.marR = ptToEmu(p.indentRight);
+    if (p.indent != null) pPrAttrs.indent = ptToEmu(p.indent);
+
+    const pPrChildren: BuilderNode[] = [];
+
+    // 行距 / 段间距
+    if (p.lineSpacing != null) {
+        const ls = p.lineSpacing;
+        if (typeof ls === 'number') {
+            pPrChildren.push(xmlNode('a:lnSpc', null, xmlNode('a:spcPct', { val: Math.round(ls * 1000) })));
+        } else if (ls.type === 'pt') {
+            pPrChildren.push(xmlNode('a:lnSpc', null, xmlNode('a:spcPts', { val: ptToSz(ls.value) })));
+        } else {
+            pPrChildren.push(xmlNode('a:lnSpc', null, xmlNode('a:spcPct', { val: Math.round(ls.value * 1000) })));
+        }
+    }
+    if (p.spaceBefore != null) pPrChildren.push(xmlNode('a:spcBef', null, xmlNode('a:spcPts', { val: ptToSz(p.spaceBefore) })));
+    if (p.spaceAfter != null) pPrChildren.push(xmlNode('a:spcAft', null, xmlNode('a:spcPts', { val: ptToSz(p.spaceAfter) })));
+
+    // 列表符号：自动编号 / 项目符号 / 无
+    const b = p.bullet;
+    if (b === 'number' || (b && typeof b === 'object' && b.type === 'number')) {
+        const fmt = (b && typeof b === 'object' && b.fmt) || 'arabic';
+        const start = (b && typeof b === 'object' && b.start != null) ? b.start : 1;
+        pPrChildren.push(xmlNode('a:buAutoNum', { type: fmt, startAt: start }));
+    } else if (b === true || b === 'bullet' || (b && typeof b === 'object' && (b.type === 'bullet' || b.char))) {
+        const char = (b && typeof b === 'object' && b.char) ? b.char : '•';
         pPrChildren.push(xmlNode('a:buFont', { typeface: 'Arial' }));
-        pPrChildren.push(xmlNode('a:buChar', { char: '•' }));
+        pPrChildren.push(xmlNode('a:buChar', { char }));
     } else {
         pPrChildren.push(xmlNode('a:buNone'));
     }
-    const pPr = xmlNode('a:pPr',
-        { algn: alignMap[p.align || defaults.align || 'left'] || null },
-        ...pPrChildren
-    );
+
+    const pPr = xmlNode('a:pPr', pPrAttrs, ...pPrChildren);
 
     // 运行列表：显式 runs 优先，否则用 text + 元素级默认样式
     let runs;
@@ -433,16 +588,27 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
  * @returns {Array<Object>} 段落列表
  */
 function normalizeParagraphs(el: SerializerElement): ParagraphSpec[] {
+    let paras: ParagraphSpec[];
     if (Array.isArray(el.paragraphs) && el.paragraphs.length > 0) {
-        return el.paragraphs;
+        paras = el.paragraphs;
+    } else if (Array.isArray(el.runs) && el.runs.length > 0) {
+        paras = [{ runs: el.runs }];
+    } else if (el.text !== undefined) {
+        paras = String(el.text).split('\n').map(t => ({ text: t }));
+    } else {
+        paras = [{ text: '' }];
     }
-    if (Array.isArray(el.runs) && el.runs.length > 0) {
-        return [{ runs: el.runs }];
-    }
-    if (el.text !== undefined) {
-        return String(el.text).split('\n').map(t => ({ text: t }));
-    }
-    return [{ text: '' }];
+    // 元素级段落默认样式（纯 text 模式）：段落自身未显式设置时继承
+    const pDefaults: ParagraphSpec = {
+        bullet: el.bullet,
+        lineSpacing: el.lineSpacing,
+        spaceBefore: el.spaceBefore,
+        spaceAfter: el.spaceAfter,
+        indentLeft: el.indentLeft,
+        indentRight: el.indentRight,
+        indent: el.indent
+    };
+    return paras.map(p => ({ ...pDefaults, ...p }));
 }
 
 /**
@@ -454,6 +620,16 @@ function normalizeParagraphs(el: SerializerElement): ParagraphSpec[] {
 function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
     const anchorMap: Record<string, string | null> = { top: null, middle: 'ctr', bottom: 'b' };
+    const bodyPrAttrs: Record<string, number | string | null> = { wrap: 'square', rtlCol: 0 };
+    const anchor = anchorMap[el.valign ?? 'top'];
+    if (anchor) bodyPrAttrs.anchor = anchor;
+    if (el.textDirection) bodyPrAttrs.vert = el.textDirection;
+    if (el.inset) {
+        if (el.inset.l != null) bodyPrAttrs.lIns = pxToEmu(el.inset.l);
+        if (el.inset.r != null) bodyPrAttrs.rIns = pxToEmu(el.inset.r);
+        if (el.inset.t != null) bodyPrAttrs.tIns = pxToEmu(el.inset.t);
+        if (el.inset.b != null) bodyPrAttrs.bIns = pxToEmu(el.inset.b);
+    }
     const defaults = {
         align: el.align,
         fontSize: el.fontSize,
@@ -482,7 +658,7 @@ function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
         xmlNode('p:txBody',
             null,
             xmlNode('a:bodyPr',
-                { wrap: 'square', rtlCol: 0, anchor: anchorMap[el.valign ?? 'top'] ?? null }
+                bodyPrAttrs
             ),
             xmlNode('a:lstStyle'),
             ...normalizeParagraphs(el).map((p: ParagraphSpec) => buildParagraph(ctx, p, defaults))
@@ -496,21 +672,56 @@ function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
  * @param {Object} el - 形状元素 JSON
  * @returns {Object} p:sp 节点
  */
-function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
+/** 构造颜色节点：支持 scheme:<name>（a:schemeClr）与绝对色（a:srgbClr） */
+function colorNode(color: string): BuilderNode {
+    if (typeof color === 'string' && color.startsWith('scheme:')) {
+        return xmlNode('a:schemeClr', { val: color.slice(7) });
+    }
+    return xmlNode('a:srgbClr', { val: colorToHex(color) });
+}
+
+/** 构造填充节点（solidFill / gradFill / blipFill / pattFill / noFill）；transparency 写入 a:alpha */
+async function buildFillNode(ctx: SerializerContext, fill: SerializerElement['fill']): Promise<BuilderNode | null> {
+    if (fill === undefined) return null; // 未指定填充则继承主题
+    if (fill === 'none' || fill === null) return xmlNode('a:noFill');
+    if (typeof fill === 'string') return xmlNode('a:solidFill', colorNode(fill));
+    if ((fill as ShapeFillGradient).type === 'gradient') {
+        const g = fill as ShapeFillGradient;
+        const stops = (g.stops || []).map((s) =>
+            xmlNode('a:gs', { pos: Math.round((s.position || 0) * 100000) }, colorNode(s.color))
+        );
+        const ang = (g.direction === 'vertical' ? 90 : g.direction === 'diagonal' ? 45 : 0) * 60000;
+        return xmlNode('a:gradFill', null, xmlNode('a:gsLst', null, ...stops), xmlNode('a:lin', { ang, scaled: 1 }));
+    }
+    if ((fill as any).type === 'image') {
+        const img = fill as { type: 'image'; data?: string; src?: string; extension?: string };
+        const { base64, ext } = await resolveImageData({ type: 'image', data: img.data, src: img.src, extension: img.extension } as SerializerElement);
+        ctx.mediaIndex++;
+        const mediaName = `image${ctx.mediaIndex}.${ext}`;
+        ctx.media.push({ name: mediaName, base64 });
+        const embedRelId = addRelationship(ctx, REL_TYPES.image, `../media/${mediaName}`);
+        return xmlNode('a:blipFill', null, xmlNode('a:blip', { 'r:embed': embedRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect')));
+    }
+    if ((fill as any).type === 'pattern') {
+        const p = fill as { type: 'pattern'; prst: string; fg?: string; bg?: string };
+        const fg = p.fg ? colorNode(p.fg) : xmlNode('a:schemeClr', { val: 'tx1' });
+        const bg = p.bg ? colorNode(p.bg) : xmlNode('a:schemeClr', { val: 'bg1' });
+        return xmlNode('a:pattFill', { prst: p.prst }, xmlNode('a:fgClr', null, fg), xmlNode('a:bgClr', null, bg));
+    }
+    // solid（{color} 或 {type:'solid'}）
+    const color = (fill as ShapeFillSolid).color;
+    if (!color) return null;
+    const alpha = (fill as ShapeFillSolid).transparency;
+    // 注意：a:alpha 必须嵌套在颜色节点（srgbClr/schemeClr）内部，不能放在 a:solidFill 下，否则不符合 OOXML schema
+    const srgb = colorNode(color);
+    if (alpha != null) (srgb.children as BuilderNode[]).push(xmlNode('a:alpha', { val: Math.round((100 - alpha) * 1000) }));
+    return xmlNode('a:solidFill', srgb);
+}
+
+async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
 
-    // 填充
-    let fillNode;
-    if (el.fill === 'none' || el.fill === null) {
-        fillNode = xmlNode('a:noFill');
-    } else {
-        const fillColor = typeof el.fill === 'string' ? el.fill : (el.fill && el.fill.color);
-        if (fillColor) {
-            fillNode = xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(fillColor) }));
-        } else {
-            fillNode = null; // 未指定填充则继承主题
-        }
-    }
+    const fillNode = await buildFillNode(ctx, el.fill);
 
     // 边框
     let lineNode;
@@ -518,10 +729,43 @@ function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
         lineNode = xmlNode('a:ln', null, xmlNode('a:noFill'));
     } else if (el.line) {
         const w = el.line.width !== undefined ? el.line.width : 1;
-        lineNode = xmlNode('a:ln',
-            { w: ptToEmu(w) },
-            xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(el.line.color) }))
-        );
+        const srgb = colorNode(el.line.color);
+        if (el.line.transparency != null) (srgb.children as BuilderNode[]).push(xmlNode('a:alpha', { val: Math.round((100 - el.line.transparency) * 1000) }));
+        const lnChildren: BuilderNode[] = [xmlNode('a:solidFill', srgb)];
+        if (el.line.dashType && el.line.dashType !== 'solid') lnChildren.push(xmlNode('a:prstDash', { val: el.line.dashType }));
+        lineNode = xmlNode('a:ln', { w: ptToEmu(w) }, ...lnChildren);
+    }
+
+    // 特效（a:effectLst：阴影 / 发光）
+    let effectNode: BuilderNode | null = null;
+    if (el.effects) {
+        const effChildren: BuilderNode[] = [];
+        const sh = el.effects.shadow;
+        if (sh && sh !== true) {
+            const shType = sh.type || 'outer';
+            const blur = sh.blur !== undefined ? sh.blur : 4;
+            const dist = sh.distance !== undefined ? sh.distance : 3;
+            const ang = sh.angle !== undefined ? sh.angle : 90;
+            const color = sh.color || '#000000';
+            const alpha = sh.transparency != null ? Math.round((100 - sh.transparency) * 1000) : 60000;
+            effChildren.push(xmlNode(shType === 'inner' ? 'a:innerShdw' : 'a:outerShdw',
+                { blur: ptToEmu(blur), dist: ptToEmu(dist), dir: Math.round(ang * 60000) },
+                xmlNode('a:srgbClr', { val: colorToHex(color) }, xmlNode('a:alpha', { val: alpha }))
+            ));
+        } else if (sh === true) {
+            effChildren.push(xmlNode('a:outerShdw', { blur: ptToEmu(4), dist: ptToEmu(3), dir: 5400000 },
+                xmlNode('a:srgbClr', { val: '000000' }, xmlNode('a:alpha', { val: 60000 }))
+            ));
+        }
+        const gw = el.effects.glow;
+        if (gw && gw !== true) {
+            effChildren.push(xmlNode('a:glow', { blur: ptToEmu(gw.blur !== undefined ? gw.blur : 5) },
+                xmlNode('a:srgbClr', { val: colorToHex(gw.color || '#FFFF00') })));
+        } else if (gw === true) {
+            effChildren.push(xmlNode('a:glow', { blur: ptToEmu(5) },
+                xmlNode('a:srgbClr', { val: colorToHex('#FFFF00') })));
+        }
+        if (effChildren.length) effectNode = xmlNode('a:effectLst', null, ...effChildren);
     }
 
     return xmlNode('p:sp',
@@ -535,9 +779,13 @@ function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
         xmlNode('p:spPr',
             null,
             buildXfrm(el),
-            xmlNode('a:prstGeom', { prst: el.shapeType || 'rect' }, xmlNode('a:avLst')),
+            xmlNode('a:prstGeom', { prst: el.shapeType || 'rect' },
+                el.adjust && Object.keys(el.adjust).length
+                    ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
+                    : xmlNode('a:avLst')),
             fillNode,
-            lineNode
+            lineNode,
+            ...(effectNode ? [effectNode] : [])
         )
     );
 }
@@ -565,6 +813,24 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
         cNvPrChildren = xmlNode('a:hlinkClick', { 'r:id': hlinkRelId });
     }
 
+    // 裁剪 / 调整 → blip 子节点（a:srcRect / a:lum / a:contrast / a:alphaModFix）
+    const blipChildren: BuilderNode[] = [];
+    if (el.crop) {
+        const c = el.crop;
+        const srect: Record<string, number> = {};
+        if (c.l != null) srect.l = Math.round(c.l * 1000);
+        if (c.r != null) srect.r = Math.round(c.r * 1000);
+        if (c.t != null) srect.t = Math.round(c.t * 1000);
+        if (c.b != null) srect.b = Math.round(c.b * 1000);
+        blipChildren.push(xmlNode('a:srcRect', srect));
+    }
+    if (el.imageAdjust) {
+        const adj = el.imageAdjust;
+        if (adj.brightness != null) blipChildren.push(xmlNode('a:lum', { val: Math.round((100 + adj.brightness) * 1000) }));
+        if (adj.contrast != null) blipChildren.push(xmlNode('a:contrast', { val: Math.round((100 + adj.contrast) * 1000) }));
+        if (adj.transparency != null) blipChildren.push(xmlNode('a:alphaModFix', { val: Math.round((100 - adj.transparency) * 1000) }));
+    }
+
     return xmlNode('p:pic',
         null,
         xmlNode('p:nvPicPr',
@@ -575,7 +841,7 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
         ),
         xmlNode('p:blipFill',
             null,
-            xmlNode('a:blip', { 'r:embed': embedRelId }),
+            xmlNode('a:blip', { 'r:embed': embedRelId }, ...blipChildren),
             xmlNode('a:stretch', null, xmlNode('a:fillRect'))
         ),
         xmlNode('p:spPr',
@@ -663,6 +929,12 @@ function buildChartXml(el: SerializerElement) {
     const type = el.chartType || 'barChart';
     const isPie = /pie/i.test(type);
     const isScatter = type === 'scatterChart';
+    const isStock = type === 'stockChart';
+    const isRadar = type === 'radarChart';
+    const isSurface = type === 'surfaceChart';
+    const is3D = /3D$/i.test(type);
+    const isDoughnut = type === 'doughnutChart';
+    const isBubble = type === 'bubbleChart';
     const cats = el.categories || [];
     const series = el.series || [];
     const varyColors = el.varyColors !== undefined ? (el.varyColors ? 1 : 0) : (isPie ? 1 : 0);
@@ -673,22 +945,37 @@ function buildChartXml(el: SerializerElement) {
         let data;
         if (isScatter) {
             data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
+        } else if (isStock) {
+            data = `<c:openVal>${numRefXml(s.open || [], 'B')}</c:openVal>` +
+                `<c:highVal>${numRefXml(s.high || [], 'C')}</c:highVal>` +
+                `<c:lowVal>${numRefXml(s.low || [], 'D')}</c:lowVal>` +
+                `<c:closeVal>${numRefXml(s.close || s.values || [], 'E')}</c:closeVal>`;
         } else {
             data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
         }
-        return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${data}</c:ser>`;
+        const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
+        return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${data}</c:ser>`;
     }).join('');
 
     // 图表类型特定根（含轴 id，散点/柱状/折线/面积需要）
     let plotChart;
-    if (isPie) {
+    if (isPie || isDoughnut) {
         plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}</c:${type}>`;
+    } else if (isBubble) {
+        plotChart = `<c:${type}>${serXml}</c:${type}>`;
+    } else if (isRadar) {
+        plotChart = `<c:${type}><c:radarStyle val="standard"/>${serXml}</c:${type}>`;
+    } else if (isStock) {
+        plotChart = `<c:${type}><c:hiLowLines/><c:serLines/>${serXml}</c:${type}>`;
+    } else if (isSurface) {
+        plotChart = `<c:${type}><c:bandFmts/>${serXml}</c:${type}>`;
     } else {
-        const dir = type === 'barChart' ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
-        const grouping = type === 'lineChart' ? '<c:grouping val="standard"/>' : '';
+        const dir = (type === 'barChart' || type === 'bar3DChart') ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
+        const grouping = (type === 'lineChart' || type === 'areaChart') ? '<c:grouping val="standard"/>' : '';
         plotChart = `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serXml}` +
             `<c:axId val="111"/><c:axId val="112"/></c:${type}>`;
     }
+    const view3D = is3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="0"/></c:view3D>' : '';
 
     // 坐标轴（饼图除外）
     let axes = '';
@@ -702,8 +989,13 @@ function buildChartXml(el: SerializerElement) {
           `</c:rich></c:tx><c:overlay val="0"/></c:title>`
         : '';
 
-    const legendXml = el.legend !== false
-        ? '<c:legend><c:legendPos val="r"/><c:overlay val="0"/></c:legend>'
+    const legendXml = el.legend !== false && el.legend !== undefined
+        ? `<c:legend><c:legendPos val="${typeof el.legend === 'string' ? el.legend : 'r'}"/><c:overlay val="0"/></c:legend>`
+        : '';
+    const dLblsXml = el.dataLabels
+        ? `<c:dLbls><c:showVal val="${(el.dataLabels === true || el.dataLabels.showValue) ? 1 : 0}"/>` +
+          `<c:showPercent val="${el.dataLabels.showPercent ? 1 : 0}"/><c:showSer val="${el.dataLabels.showSeries ? 1 : 0}"/>` +
+          `<c:showCatName val="${el.dataLabels.showCategory ? 1 : 0}"/></c:dLbls>`
         : '';
 
     const autoTitleDeleted = `<c:autoTitleDeleted val="${el.title ? 0 : 1}"/>`;
@@ -711,17 +1003,47 @@ function buildChartXml(el: SerializerElement) {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<c:chartSpace xmlns:c="${NS.c}" xmlns:a="${NS.a}" xmlns:r="${NS.r}">` +
         `<c:chart>${titleXml}${autoTitleDeleted}` +
-        `<c:plotArea><c:layout/>${plotChart}${axes}</c:plotArea>` +
-        `${legendXml}<c:plotVisOnly val="1"/></c:chart></c:chartSpace>`;
+        `<c:plotArea><c:layout/>${plotChart}${view3D}${axes}</c:plotArea>` +
+        `${dLblsXml}${legendXml}<c:plotVisOnly val="1"/></c:chart></c:chartSpace>`;
+}
+
+/** 表格级边框默认（type:'table' 元素的 border/borders 透传） */
+type TableBorderSpec = { border?: CellBorder; borders?: TableBorders };
+
+/** 读取边框对象（'none' 或空 → undefined 表示不生成该边） */
+function normalizeCellBorder(b: CellBorder | 'none' | undefined): CellBorder | undefined {
+    if (!b || b === 'none') return undefined;
+    return { color: b.color, width: b.width };
+}
+
+/** 解析某条边最终采用的边框：单元格分边 > 单元格统一 > 表格分边 > 表格统一 */
+function resolveBorderSide(side: 'L' | 'R' | 'T' | 'B', cell: SerializerTableCell, tableBorder?: TableBorderSpec): CellBorder | undefined {
+    const key = side === 'L' ? 'left' : side === 'R' ? 'right' : side === 'T' ? 'top' : 'bottom';
+    const cSides = cell.borders || {};
+    const tSides = (tableBorder && tableBorder.borders) || {};
+    if (cSides[key] !== undefined) return normalizeCellBorder(cSides[key]);
+    if (cell.border) return { color: cell.border.color, width: cell.border.width };
+    if (tSides[key] !== undefined) return normalizeCellBorder(tSides[key]);
+    if (tableBorder && tableBorder.border) return { color: tableBorder.border.color, width: tableBorder.border.width };
+    return undefined;
+}
+
+/** 构造一条单元格边框线 a:ln{side}（含 solidFill 颜色） */
+function edgeLineXml(side: 'L' | 'R' | 'T' | 'B', b: CellBorder): BuilderNode {
+    const w = b.width !== undefined ? b.width : 1;
+    const color = b.color || '#000000';
+    return xmlNode(`a:ln${side}`, { w: ptToEmu(w) },
+        xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(color) })));
 }
 
 /**
  * 构建表格单元格（a:tc）
  * @param {Object} ctx - 构建上下文
- * @param {Object} cell - 单元格 { text | paragraphs, colSpan, rowSpan, fill, align, valign, ...样式 }
+ * @param {Object} cell - 单元格 { text | paragraphs, colSpan, rowSpan, fill, border, borders, align, valign, ...样式 }
+ * @param {Object} [tableBorder] - 表格级边框默认（type:'table' 的 border/borders）
  * @returns {Object} a:tc 节点
  */
-function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell): BuilderNode {
+function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell, tableBorder?: TableBorderSpec): BuilderNode {
     const attrs: Record<string, unknown> = {};
     if (cell.colSpan && cell.colSpan > 1) attrs.gridSpan = cell.colSpan;
     if (cell.rowSpan && cell.rowSpan > 1) attrs.rowSpan = cell.rowSpan;
@@ -740,8 +1062,32 @@ function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell): Buil
         : [{ text: cell.text !== undefined ? cell.text : '' }];
 
     const tcPrChildren: BuilderNode[] = [];
+    // 边框（OOXML 顺序位在填充之前）
+    for (const side of ['L', 'R', 'T', 'B'] as const) {
+        const b = resolveBorderSide(side, cell, tableBorder);
+        if (b) tcPrChildren.push(edgeLineXml(side, b));
+    }
     if (cell.fill) {
         tcPrChildren.push(xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(cell.fill) })));
+    }
+    // 单元格内边距
+    if (cell.inset) {
+        const ins = cell.inset;
+        const insAttrs: Record<string, number> = {};
+        if (ins.l != null) insAttrs.l = pxToEmu(ins.l);
+        if (ins.r != null) insAttrs.r = pxToEmu(ins.r);
+        if (ins.t != null) insAttrs.t = pxToEmu(ins.t);
+        if (ins.b != null) insAttrs.b = pxToEmu(ins.b);
+        tcPrChildren.push(xmlNode('a:tableCellInsets', insAttrs));
+    }
+    // 对角线边框
+    const diag = cell.borders && cell.borders.diagonal;
+    if (diag) {
+        const dc = (cell.border && cell.border.color) || '#000000';
+        const dw = (cell.border && cell.border.width != null) ? cell.border.width : 1;
+        const dLine = xmlNode('a:ln', { w: ptToEmu(dw) }, xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(dc) })));
+        if (diag === 'tlBr' || diag === 'both') tcPrChildren.push(xmlNode('a:lnTlToBr', null, dLine));
+        if (diag === 'blTr' || diag === 'both') tcPrChildren.push(xmlNode('a:lnBlToTr', null, dLine));
     }
     const anchorMap: Record<string, string | null> = { top: 't', middle: 'ctr', bottom: 'b' };
 
@@ -792,7 +1138,13 @@ function buildTableElement(ctx: SerializerContext, el: SerializerElement): Build
     const gridCols = colWidths.map((w) => xmlNode('a:gridCol', { w: pxToEmu(w) }));
     const trNodes = rows.map((row, ri) =>
         xmlNode('a:tr', { h: pxToEmu(rowHeights[ri]) },
-            ...(row.cells || []).map((cell) => buildTableCell(ctx, cell))
+            ...(row.cells || []).map((cell) => {
+                const merged: SerializerTableCell = { ...cell };
+                if (merged.inset == null && el.tableInset != null) merged.inset = el.tableInset;
+                const cdiag = merged.borders && merged.borders.diagonal;
+                if (el.tableDiagonal && !cdiag) merged.borders = { ...(merged.borders || {}), diagonal: el.tableDiagonal } as TableBorders;
+                return buildTableCell(ctx, merged, { border: el.border, borders: el.borders });
+            })
         )
     );
 
@@ -809,7 +1161,7 @@ function buildTableElement(ctx: SerializerContext, el: SerializerElement): Build
         xmlNode('a:graphic', null,
             xmlNode('a:graphicData', { uri: NS.table },
                 xmlNode('a:tbl', null,
-                    xmlNode('a:tblPr', { firstRow: 1, bandRow: 1 }),
+                    xmlNode('a:tblPr', { firstRow: 1, bandRow: 1, tableStyleId: el.tableStyleId || '2D1D2E6E-4B9A-4B3C-9B6E-7B5C8D9E0F1A' }),
                     xmlNode('a:tblGrid', null, ...gridCols),
                     ...trNodes
                 )
@@ -893,6 +1245,212 @@ export function buildRawElement(ctx: SerializerContext, el: SerializerElement): 
  * @param {Object} el - 元素 JSON
  * @returns {Promise<Object|null>} 元素节点；语义层不支持且无 __raw 时返回 null
  */
+/** 构建分组元素（p:grpSp），递归构建子元素 */
+async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) {
+    const id = ctx.nextElementId++;
+    const children = el.children || [];
+    const childNodes: BuilderNode[] = [];
+    // 'page' 模式：子元素坐标是页绝对坐标，构建时减 group 偏移转为组内局部坐标（OOXML 标准）
+    const pageCoords = el.childrenCoordinates === 'page';
+    const gx = el.x || 0;
+    const gy = el.y || 0;
+    for (const c of children) {
+        const cc = pageCoords ? { ...c, x: (c.x || 0) - gx, y: (c.y || 0) - gy } : c;
+        const n = await buildElement(ctx, cc);
+        if (n) childNodes.push(n);
+    }
+    const w = pxToEmu(el.width || 0);
+    const h = pxToEmu(el.height || 0);
+    return xmlNode('p:grpSp',
+        null,
+        xmlNode('p:nvGrpSpPr',
+            null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }),
+            xmlNode('p:cNvGrpSpPr'),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:grpSpPr',
+            null,
+            xmlNode('a:xfrm',
+                null,
+                xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
+                xmlNode('a:ext', { cx: w, cy: h }),
+                xmlNode('a:chOff', { x: 0, y: 0 }),
+                xmlNode('a:chExt', { cx: w, cy: h })
+            )
+        ),
+        ...childNodes
+    );
+}
+
+/** 构建视频/音频媒体元素（p:pic + 媒体关系） */
+async function buildMediaElement(ctx: SerializerContext, el: SerializerElement, kind: 'video' | 'audio') {
+    const id = ctx.nextElementId++;
+    ctx.mediaIndex++;
+    const ext = el.extension || (kind === 'video' ? 'mp4' : 'm4a');
+    const mediaName = `${kind}${ctx.mediaIndex}.${ext}`;
+    const { base64 } = await resolveImageData({ type: 'image', data: el.data, src: el.src, extension: ext } as SerializerElement);
+    ctx.media.push({ name: mediaName, base64 });
+    const embedRelId = addRelationship(ctx, kind === 'video' ? REL_TYPES.video : REL_TYPES.audio, `../media/${mediaName}`);
+    let posterRelId = embedRelId;
+    if (el.poster) {
+        ctx.mediaIndex++;
+        const pExt = el.poster.extension || 'png';
+        const pName = `image${ctx.mediaIndex}.${pExt}`;
+        const pData = await resolveImageData({ type: 'image', data: el.poster.data, src: el.poster.src, extension: pExt } as SerializerElement);
+        ctx.media.push({ name: pName, base64: pData.base64 });
+        posterRelId = addRelationship(ctx, REL_TYPES.image, `../media/${pName}`);
+    }
+    const mediaFileNode = kind === 'video'
+        ? xmlNode('a:videoFile', { 'r:link': embedRelId })
+        : xmlNode('a:audioFile', { 'r:link': embedRelId });
+    return xmlNode('p:pic',
+        null,
+        xmlNode('p:nvPicPr',
+            null,
+            xmlNode('p:cNvPr', { id, name: el.name || `${kind} ${id}` }),
+            xmlNode('p:cNvPicPr'),
+            xmlNode('p:nvPr', null, mediaFileNode)
+        ),
+        xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': posterRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect'))),
+        xmlNode('p:spPr', null, xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')))
+    );
+}
+
+/** SmartArt 图示命名空间 */
+const DGML_NS = 'http://schemas.openxmlformats.org/drawingml/2006/diagram';
+
+/** 生成确定性的 uniqueId（GUID 形态，便于被 PowerPoint 接受） */
+function diagramUniqueId(seed: number): string {
+    const hex = (seed & 0xfffffff).toString(16).padStart(8, '0');
+    return `{A1B2C3D4-0000-0000-0000-${('00000000' + hex).slice(-12)}}`;
+}
+
+/** diagramType → dgm:cat type 缩写 */
+function diagramCat(type: string): string {
+    const map: Record<string, string> = {
+        list: 'list', hierarchy: 'hier', orgChart: 'hier',
+        process: 'process', cycle: 'cycle', pyramid: 'pyra', matrix: 'matrix'
+    };
+    return map[type] || 'list';
+}
+
+/** 构建图示数据模型（dataN.xml）：point + connector 树 */
+function buildDiagramDataModel(nodes: DiagramNode[]): string {
+    let modelId = 0;
+    const points = [`<dsdgm:pt modelId="0" type="doc"><dsdgm:extLst/></dsdgm:pt>`];
+    const connectors: string[] = [];
+    const walk = (ns: DiagramNode[], parentId: number) => {
+        for (const node of ns) {
+            modelId++;
+            const mid = modelId;
+            const text = escapeXml(node.text || '');
+            points.push(
+                `<dsdgm:pt modelId="${mid}" type="node">` +
+                `<dsdgm:prSet loColr="none" hiColr="none"/>` +
+                `<dsdgm:spPr/>` +
+                `<dsdgm:t><dsdgm:str val="${text}"/></dsdgm:t>` +
+                `<dsdgm:extLst/></dsdgm:pt>`
+            );
+            const cxnId = 1000 + mid;
+            connectors.push(`<dsdgm:cxn modelId="${cxnId}" type="parOf" srcId="${parentId}" destId="${mid}"/>`);
+            if (node.children && node.children.length) walk(node.children, mid);
+        }
+    };
+    walk(nodes, 0);
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<dsdgm:dataModel xmlns:dsdgm="${DGML_NS}">` +
+        `<dsdgm:ptLst>${points.join('')}</dsdgm:ptLst>` +
+        `<dsdgm:cxnLst>${connectors.join('')}</dsdgm:cxnLst>` +
+        `</dsdgm:dataModel>`;
+}
+
+/** 构建图示布局（layoutN.xml）：最小但结构完整的 layoutDef */
+function buildDiagramLayout(type: string, seed: number): string {
+    const cat = diagramCat(type);
+    const uid = diagramUniqueId(seed * 4 + 1);
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<dgm:layoutDef xmlns:dgm="${DGML_NS}" uniqueId="${uid}" minVer="2.0.0.0" ` +
+        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramStyle" name="${escapeXml(type)}">` +
+        `<dgm:title val="${escapeXml(type)}"/><dgm:desc val="pptx-parser generated diagram"/>` +
+        `<dgm:catLst><dgm:cat type="${cat}" pri="1000"/></dgm:catLst>` +
+        `<dgm:styleData/><dgm:adjLst/><dgm:nodeLst/><dgm:connLst/><dgm:foreachLst/>` +
+        `<dgm:layoutNode name="ROOT" styleLbl="node"><dgm:alg type="hierChild"/>` +
+        `<dgm:forEach val="__NODE__" refType="begin"><dgm:layoutNode name="NODE" styleLbl="node">` +
+        `<dgm:alg type="tx"/><dgm:shp txBox="1" type="rect"/>` +
+        `<dgm:forEach val="__CHILD__" refType="child">` +
+        `<dgm:layoutNode name="CHILD" styleLbl="node"><dgm:alg type="tx"/><dgm:shp txBox="1" type="rect"/></dgm:layoutNode>` +
+        `</dgm:forEach></dgm:layoutNode></dgm:forEach></dgm:layoutNode>` +
+        `<dgm:qryLst/><dgm:clrData/><dgm:ruleLst/><dgm:layoutVarLst/><dgm:algLst/>` +
+        `</dgm:layoutDef>`;
+}
+
+/** 构建图示配色（colorsN.xml）：最小 colorsDef */
+function buildDiagramColors(type: string, seed: number): string {
+    const uid = diagramUniqueId(seed * 4 + 2);
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<dgm:colorsDef xmlns:dgm="${DGML_NS}" uniqueId="${uid}" minVer="2.0.0.0" ` +
+        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramColors" name="${escapeXml(type)} colors">` +
+        `<dgm:title val="${escapeXml(type)} colors"/><dgm:desc val="generated"/>` +
+        `<dgm:catLst/><dgm:varLst/><dgm:styleLblLst/><dgm:sampRagLst/></dgm:colorsDef>`;
+}
+
+/** 构建图示快速样式（quickStyleN.xml）：最小 quickStyleDef */
+function buildDiagramQuickStyle(type: string, seed: number): string {
+    const uid = diagramUniqueId(seed * 4 + 3);
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<dgm:quickStyleDef xmlns:dgm="${DGML_NS}" uniqueId="${uid}" minVer="2.0.0.0" ` +
+        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramQuickStyle" name="${escapeXml(type)} quick style">` +
+        `<dgm:title val="${escapeXml(type)} quick style"/><dgm:desc val="generated"/>` +
+        `<dgm:catLst/><dgm:varLst/><dgm:styleLblLst/></dgm:quickStyleDef>`;
+}
+
+/**
+ * 构建 SmartArt 图示元素（p:graphicFrame + 原生 diagrams/* 部件）
+ * 生成 data/layout/colors/quickStyle 四件套，并登记幻灯片 → dataN.xml 关系；
+ * 四部件由上层（jsonToPptx / editPptx.addSlide）写入 ppt/diagrams/ 并补 dataN.xml.rels。
+ *
+ * 限制：生成的 layoutDef/colorsDef/quickStyleDef 为结构级最小骨架，可被本解析器 round-trip、
+ * 可被 PowerPoint 打开，但 PowerPoint 对 SmartArt 布局引擎校验严格，自定义布局可能不渲染为
+ * 完整图示图形。如需保真渲染，应提供完整的标准 layoutDef 模板替换 buildDiagramLayout 等。
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 图示元素 JSON { type:'diagram', diagramType, nodes:[{text,children?}] }
+ * @returns {Promise<Object>} p:graphicFrame 节点
+ */
+async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement) {
+    ctx.diagramIndex++;
+    const n = ctx.diagramIndex;
+    const dgmType = el.diagramType || 'list';
+    const nodes: DiagramNode[] = el.nodes || [];
+    const dataXml = buildDiagramDataModel(nodes);
+    const layoutXml = buildDiagramLayout(dgmType, n);
+    const colorsXml = buildDiagramColors(dgmType, n);
+    const quickStyleXml = buildDiagramQuickStyle(dgmType, n);
+    const dataRelId = addRelationship(ctx, REL_TYPES.diagramData, `../diagrams/data${n}.xml`);
+    ctx.diagrams.push({ index: n, dataXml, layoutXml, colorsXml, quickStyleXml });
+
+    const id = ctx.nextElementId++;
+    return xmlNode('p:graphicFrame',
+        null,
+        xmlNode('p:nvGraphicFramePr',
+            null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Diagram ${id}` }),
+            xmlNode('p:cNvGraphicFramePr'),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:xfrm',
+            null,
+            xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
+            xmlNode('a:ext', { cx: pxToEmu(el.width || 400), cy: pxToEmu(el.height || 300) })
+        ),
+        xmlNode('a:graphic',
+            null,
+            xmlNode('a:graphicData', { uri: DGML_NS },
+                xmlNode('dgm:rel', { 'xmlns:dgm': DGML_NS, 'xmlns:r': NS.r, 'r:id': dataRelId }))
+        )
+    );
+}
+
 export async function buildElement(ctx: SerializerContext, el: SerializerElement) {
     if (!el || typeof el !== 'object') return null;
     // 显式回退：已支持的语义类型也可用 __raw 原样回写（语义层可能丢失主题色/动画等细节）
@@ -904,10 +1462,18 @@ export async function buildElement(ctx: SerializerContext, el: SerializerElement
             return buildShapeElement(ctx, el);
         case 'image':
             return buildImageElement(ctx, el);
+        case 'video':
+        case 'audio':
+            return buildMediaElement(ctx, el, el.type as 'video' | 'audio');
         case 'chart':
             return buildChartElement(ctx, el);
         case 'table':
             return buildTableElement(ctx, el);
+        case 'group':
+            return buildGroupElement(ctx, el);
+        case 'diagram':
+            // 有 __raw 载荷（解析端回读）时回落无损回退；否则按语义层生成原生 diagrams 部件
+            return el.__raw ? buildRawElement(ctx, el) : buildDiagramElement(ctx, el);
         default:
             // 语义层未覆盖（SmartArt / 组合 / 连接符 / OLE 等）→ 回退 __raw
             return buildRawElement(ctx, el);
@@ -926,12 +1492,12 @@ export async function buildBackground(bg: string | PptxBackground | null | undef
     let bgPrChildren: (BuilderNode | string)[];
     if (typeof bg === 'string') {
         bgPrChildren = [
-            xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(bg) })),
+            xmlNode('a:solidFill', colorNode(bg)),
             xmlNode('a:effectLst')
         ];
     } else if (bg.type === 'solid') {
         bgPrChildren = [
-            xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(bg.color) })),
+            xmlNode('a:solidFill', colorNode(bg.color)),
             xmlNode('a:effectLst')
         ];
     } else if (bg.type === 'gradient') {
@@ -1039,6 +1605,50 @@ export function buildNotesSlide(notes: string): BuilderNode {
  * @param {Object} slide - 幻灯片 JSON { background, notes, transition, elements }
  * @returns {Promise<Object>} p:sld 根节点
  */
+/** 构建幻灯片计时（自动播放 + 元素动画），生成 p:timing */
+function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
+    if (!slide) return null;
+    const adv = slide.advanceTime;
+    const anims = slide.animations || [];
+    if (adv == null && anims.length === 0) return null;
+
+    const childNodes: BuilderNode[] = [];
+    if (adv != null) {
+        childNodes.push(xmlNode('p:cTn',
+            { id: 2, fill: 'hold' },
+            xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterTime', val: Math.round(adv) })),
+            xmlNode('p:childTnLst', null, xmlNode('p:cTn', { id: 3, pres: 'sld', fill: 'hold' }))
+        ));
+    }
+    let nid = 10;
+    for (const a of anims) {
+        const spid = a.target != null ? a.target + 1 : 2; // 元素 id 从 2 起
+        const preset = a.type === 'flyIn' ? 'flyIn' : a.type === 'zoom' ? 'zoom' : a.type === 'wipe' ? 'wipe' : 'fade';
+        const effectChildren: BuilderNode[] = [];
+        if (a.duration != null) effectChildren.push(xmlNode('p:cTn', { id: nid++, dur: Math.round(a.duration * 1000), fill: 'hold' }));
+        childNodes.push(xmlNode('p:cTn',
+            { id: nid++, fill: 'hold' },
+            xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid })),
+            xmlNode('p:childTnLst', null,
+                xmlNode('p:cTn', { id: nid++, presetClass: 'entr', presetId: 1, type: 'withEffect', preset }, ...effectChildren)
+            )
+        ));
+    }
+    return xmlNode('p:timing',
+        null,
+        xmlNode('p:tnLst',
+            null,
+            xmlNode('p:par',
+                null,
+                xmlNode('p:cTn', { id: 1, fill: 'hold' },
+                    xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterPrev' })),
+                    xmlNode('p:childTnLst', null, ...childNodes)
+                )
+            )
+        )
+    );
+}
+
 export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSlide) {
     const elementNodes = [];
     for (const el of (slide && slide.elements) || []) {
@@ -1051,11 +1661,13 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
 
     // 过渡效果
     const transitionNode = buildTransition(slide && slide.transition);
+    const timingNode = buildTimingNode(slide);
 
     return xmlNode('p:sld',
         { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
           'xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-          'xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main' },
+          'xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
+          show: (slide && slide.hidden) ? 0 : null },
         xmlNode('p:cSld',
             null,
             bgNode,
@@ -1081,6 +1693,7 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
             )
         ),
         transitionNode,
+        timingNode,
         xmlNode('p:clrMapOvr', null, xmlNode('a:masterClrMapping'))
     );
 }

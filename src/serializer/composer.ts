@@ -102,7 +102,8 @@ class SlideComposer {
         const el: SerializerElement = { type: 'text', x: 0, y: 0, width: 300, height: 60 };
         if (typeof config === 'function') {
             const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'align', 'valign',
-                'fontSize', 'color', 'bold', 'italic', 'underline', 'fontFace', 'href', 'lang', 'name']);
+                'fontSize', 'color', 'bold', 'italic', 'underline', 'fontFace', 'href', 'lang', 'name',
+                'lineSpacing', 'spaceBefore', 'spaceAfter', 'indentLeft', 'indentRight', 'indent', 'bullet']);
             builder.value = (text: unknown) => { el.text = text as string; return builder; };
             builder.runs = (runs: unknown) => { el.runs = runs as TextRunSpec[]; return builder; };
             builder.paragraphs = (paragraphs: unknown) => { el.paragraphs = paragraphs as ParagraphSpec[]; return builder; };
@@ -126,6 +127,7 @@ class SlideComposer {
             builder.shapeType = (type: unknown) => { el.shapeType = type as string; return builder; };
             builder.fill = (fill: unknown) => { el.fill = fill as SerializerElement['fill']; return builder; };
             builder.line = (line: unknown) => { el.line = line as SerializerElement['line']; return builder; };
+            builder.effects = (effects: unknown) => { el.effects = effects as SerializerElement['effects']; return builder; };
             config(builder);
         } else {
             applyConfig(el, config);
@@ -172,11 +174,46 @@ class SlideComposer {
         this.slide.elements!.push(el);
         return this;
     }
-}
 
-/**
- * 演示文稿构建器（Composer）
- */
+    /**
+     * 添加分组（组合多个子元素，对应 p:grpSp）
+     * 子元素坐标约定：默认 children 的 x/y 为相对组左上角的局部坐标（OOXML 标准）。
+     * 若子元素使用页绝对坐标，请设 childrenCoordinates:'page'，生成时会自动减 group 偏移做相对化。
+     * @param {Function|Object} config - 回调（接收流式构建器）或配置对象
+     * @returns {SlideComposer} this
+     */
+    addGroup(config: ElementConfig) {
+        const el: SerializerElement = { type: 'group', x: 0, y: 0, width: 400, height: 300, children: [] };
+        if (typeof config === 'function') {
+            const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'name']);
+            builder.children = (children: unknown) => { el.children = children as SerializerElement[]; return builder; };
+            config(builder);
+        } else {
+            applyConfig(el, config);
+        }
+        this.slide.elements!.push(el);
+        return this;
+    }
+
+    /**
+     * 添加 SmartArt 图示（对应 p:graphicFrame + 原生 diagrams/* 部件）
+     * @param {Function|Object} config - 回调（接收流式构建器）或配置对象；
+     *   关键字段：diagramType('list'|'hierarchy'|'process'|'cycle'|'pyramid')、nodes([{text, children?}])
+     * @returns {SlideComposer} this
+     */
+    addDiagram(config: any) {
+        const el: SerializerElement = { type: 'diagram', diagramType: 'list', x: 0, y: 0, width: 400, height: 300, nodes: [] };
+        if (typeof config === 'function') {
+            const builder = makeFluent(el, ['x', 'y', 'width', 'height', 'name', 'diagramType']);
+            builder.nodes = (nodes: unknown) => { el.nodes = nodes as SerializerElement['nodes']; return builder; };
+            config(builder);
+        } else {
+            applyConfig(el, config);
+        }
+        this.slide.elements!.push(el);
+        return this;
+    }
+}
 class PPTXComposer {
     presentation: ComposerPresentation;
     constructor() {

@@ -21,10 +21,11 @@ import {
     buildThemeXml, buildSlideMasterXml, buildSlideLayoutXml,
     buildPresPropsXml, buildViewPropsXml, buildTableStylesXml,
     buildPresentationXml, buildRelationshipsXml, buildContentTypesXml,
-    buildCorePropsXml, buildAppPropsXml, buildRootRelsXml,
+    buildCorePropsXml, buildAppPropsXml, buildRootRelsXml, buildCustomPropsXml,
+    buildCommentsXml, buildCommentAuthorsXml,
     MASTER_RELS, LAYOUT_RELS, REL_TYPES
 } from './templates';
-import { createElementContext, buildSlideRoot, buildNotesSlide, type SerializerSlide, type SerializerPart, type SerializerRel } from './element-builders';
+import { createElementContext, buildSlideRoot, buildNotesSlide, type SerializerSlide, type SerializerComment, type SerializerPart, type SerializerRel } from './element-builders';
 import { PPTXXmlUtils } from '../utils/xml';
 
 /** 演示文稿 JSON 树 */
@@ -136,17 +137,34 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     const allMediaExts = new Set();
     const allChartNames = [];   // 图表部件名（用于 Content-Types 覆盖）
     const allNotesSlides: number[] = [];  // 备注部件编号（用于 Content-Types 覆盖）
+    const commentsSlideIndices: number[] = [];  // 含批注的幻灯片编号（用于 Content-Types 覆盖）
+    const allDiagramIndices: number[] = [];  // 图示部件编号（用于 Content-Types 覆盖）
     const allRawParts: { path: string; contentType: string }[] = []; // __raw 回退部件（用于 Content-Types 覆盖）
     let presRelId = 2;         // rId1 为母版
 
     // 媒体/图表编号需跨页递增：否则各页都从 1 开始，后页会覆盖前页的 image1/chart1
     let mediaIndex = 0;
     let chartIndex = 0;
+    let diagramIndex = 0;
     const usedRawParts = new Set<string>();
+
+    // 批注作者收集（跨页去重，按出现顺序编号，供 commentsN.xml 的 authorId 引用）
+    const commentAuthors = new Map<string, number>();
+    let commentAuthorSeq = 0;
+    for (const slide of pres.slides) {
+        const slideComments = (slide as any).comments as SerializerComment[] | undefined;
+        if (slideComments) {
+            for (const c of slideComments) {
+                const name = c.author || 'Author';
+                if (!commentAuthors.has(name)) commentAuthors.set(name, commentAuthorSeq++);
+            }
+        }
+    }
+    const hasComments = commentAuthors.size > 0;
 
     for (const i of pres.slides.keys()){
         const slideIndex = i + 1;
-        const ctx = createElementContext({ startMediaIndex: mediaIndex, startChartIndex: chartIndex });
+        const ctx = createElementContext({ startMediaIndex: mediaIndex, startChartIndex: chartIndex, startDiagramIndex: diagramIndex });
         const slideRoot = await buildSlideRoot(ctx, pres.slides[i]);
 
         zip.file(`ppt/slides/slide${slideIndex}.xml`, toXmlDocument(slideRoot));
@@ -166,6 +184,24 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
                 buildRelationshipsXml([{ relId: 'rId1', type: REL_TYPES.slide, target: `../slides/slide${slideIndex}.xml` }]));
             slideRels.push({ relId: notesRelId, type: REL_TYPES.notesSlide, target: `../notesSlides/notesSlide${slideIndex}.xml` });
             allNotesSlides.push(slideIndex);
+        }
+
+        // 幻灯片批注 → 生成 commentsN.xml 部件及其关系（幻灯片 → commentsN.xml → commentAuthors.xml）
+        const slideComments = (pres.slides[i] as any).comments as SerializerComment[] | undefined;
+        if (slideComments && slideComments.length) {
+            const commentsRelId = `rId${ctx.nextRelId++}`;
+            const resolved = slideComments.map((c) => ({
+                authorId: commentAuthors.get(c.author || 'Author') ?? 0,
+                text: c.text,
+                dt: c.dt || new Date().toISOString(),
+                x: c.pos?.x,
+                y: c.pos?.y
+            }));
+            zip.file(`ppt/comments/comments${slideIndex}.xml`, buildCommentsXml(resolved));
+            zip.file(`ppt/comments/_rels/comments${slideIndex}.xml.rels`,
+                buildRelationshipsXml([{ relId: 'rId1', type: REL_TYPES.commentAuthors, target: '../commentAuthors.xml' }]));
+            slideRels.push({ relId: commentsRelId, type: REL_TYPES.comments, target: `../comments/comments${slideIndex}.xml` });
+            commentsSlideIndices.push(slideIndex);
         }
 
         // __raw 回退附属部件（SmartArt 的 diagrams/*.xml 等）
@@ -195,10 +231,35 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
             allChartNames.push(chart.name);
         }
 
+        // 图示部件（data/layout/colors/quickStyle 四件套 + dataN.xml.rels）
+        for (const d of ctx.diagrams) {
+            const dir = `ppt/diagrams/`;
+            zip.file(`${dir}data${d.index}.xml`, d.dataXml);
+            zip.file(`${dir}layout${d.index}.xml`, d.layoutXml);
+            zip.file(`${dir}colors${d.index}.xml`, d.colorsXml);
+            zip.file(`${dir}quickStyle${d.index}.xml`, d.quickStyleXml);
+            zip.file(`${dir}_rels/data${d.index}.xml.rels`,
+                buildRelationshipsXml([
+                    { relId: 'rId1', type: REL_TYPES.diagramLayout, target: `layout${d.index}.xml` },
+                    { relId: 'rId2', type: REL_TYPES.diagramColors, target: `colors${d.index}.xml` },
+                    { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` }
+                ]));
+            allDiagramIndices.push(d.index);
+        }
+
         mediaIndex = ctx.mediaIndex;
         chartIndex = ctx.chartIndex;
+        diagramIndex = ctx.diagramIndex;
 
         slideRefs.push({ relId: `rId${presRelId++}`, target: `slides/slide${slideIndex}.xml` });
+    }
+
+    // 批注作者表（所有含批注的页共享一份 commentAuthors.xml，由 comments 部件与 presentation 共同引用）
+    if (hasComments) {
+        const authors = [...commentAuthors.entries()]
+            .sort((a, b) => a[1] - b[1])
+            .map(([name, id]) => ({ id, name }));
+        zip.file('ppt/commentAuthors.xml', buildCommentAuthorsXml(authors));
     }
 
     // ===== presentation.xml 及其关系 =====
@@ -215,13 +276,20 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
         { relId: `rId${presRelId++}`, type: REL_TYPES.viewProps, target: 'viewProps.xml' },
         { relId: `rId${presRelId++}`, type: REL_TYPES.tableStyles, target: 'tableStyles.xml' }
     );
+    if (hasComments) {
+        presRels.push({ relId: `rId${presRelId++}`, type: REL_TYPES.commentAuthors, target: 'commentAuthors.xml' });
+    }
     zip.file('ppt/_rels/presentation.xml.rels', buildRelationshipsXml(presRels));
 
     // ===== 静态部件 =====
-    zip.file('ppt/theme/theme1.xml', buildThemeXml());
-    zip.file('ppt/slideMasters/slideMaster1.xml', buildSlideMasterXml());
+    // 主题 / 母版 / 版式：支持自定义覆盖（options.theme/masterXml/layoutXml 或 pres.theme/slideMaster/slideLayout 提供完整 XML）
+    const themeXml = (options && (options as any).theme) || (pres as any).theme;
+    zip.file('ppt/theme/theme1.xml', typeof themeXml === 'string' ? themeXml : buildThemeXml());
+    const masterXml = (options && (options as any).masterXml) || (pres as any).slideMaster;
+    zip.file('ppt/slideMasters/slideMaster1.xml', typeof masterXml === 'string' ? masterXml : buildSlideMasterXml());
     zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', buildRelationshipsXml(MASTER_RELS));
-    zip.file('ppt/slideLayouts/slideLayout1.xml', buildSlideLayoutXml());
+    const layoutXml = (options && (options as any).layoutXml) || (pres as any).slideLayout;
+    zip.file('ppt/slideLayouts/slideLayout1.xml', typeof layoutXml === 'string' ? layoutXml : buildSlideLayoutXml());
     zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', buildRelationshipsXml(LAYOUT_RELS));
     zip.file('ppt/presProps.xml', buildPresPropsXml());
     zip.file('ppt/viewProps.xml', buildViewPropsXml());
@@ -232,8 +300,18 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     zip.file('docProps/app.xml', buildAppPropsXml(pres.slides.length));
 
     // ===== 包级文件 =====
-    zip.file('_rels/.rels', buildRootRelsXml());
+    let rootRelsXml = buildRootRelsXml();
+    if ((pres as any).customProps) {
+        rootRelsXml = rootRelsXml.replace('</Relationships>',
+            `<Relationship Id="rIdCustom" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>`);
+    }
+    zip.file('_rels/.rels', rootRelsXml);
     let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length);
+    if ((pres as any).customProps) {
+        contentTypeXml = contentTypeXml.replace('</Types>',
+            `<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>`);
+        zip.file('docProps/custom.xml', buildCustomPropsXml((pres as any).customProps as Record<string, string>));
+    }
     // 图表部件 Content-Types 覆盖
     for (const chartName of allChartNames) {
         const override = `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`;
@@ -243,6 +321,28 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     for (const idx of allNotesSlides) {
         const override = `<Override PartName="/ppt/notesSlides/notesSlide${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"/>`;
         contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
+    }
+    // 批注部件 Content-Types 覆盖（commentsN.xml + commentAuthors.xml）
+    if (hasComments) {
+        const cmOverride = `<Override PartName="/ppt/commentAuthors.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.commentAuthors+xml"/>`;
+        contentTypeXml = contentTypeXml.replace('</Types>', `${cmOverride}</Types>`);
+        for (const idx of commentsSlideIndices) {
+            const override = `<Override PartName="/ppt/comments/comments${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.comments+xml"/>`;
+            contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
+        }
+    }
+    // 图示部件 Content-Types 覆盖（data/layout/colors/quickStyle）
+    const DIAGRAM_CT: Record<string, string> = {
+        data: 'application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml',
+        layout: 'application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml',
+        colors: 'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml',
+        quickStyle: 'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml'
+    };
+    for (const idx of allDiagramIndices) {
+        for (const kind of ['data', 'layout', 'colors', 'quickStyle'] as const) {
+            const override = `<Override PartName="/ppt/diagrams/${kind}${idx}.xml" ContentType="${DIAGRAM_CT[kind]}"/>`;
+            contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
+        }
     }
     // __raw 回退部件 Content-Types 覆盖
     for (const part of allRawParts) {
@@ -589,6 +689,23 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
                 newCtCharts.push(chart.name);
             }
 
+            // 图示部件（data/layout/colors/quickStyle 四件套 + dataN.xml.rels）
+            const newCtDiagrams: number[] = [];
+            for (const d of ctx.diagrams) {
+                const dir = `ppt/diagrams/`;
+                zip.file(`${dir}data${d.index}.xml`, d.dataXml);
+                zip.file(`${dir}layout${d.index}.xml`, d.layoutXml);
+                zip.file(`${dir}colors${d.index}.xml`, d.colorsXml);
+                zip.file(`${dir}quickStyle${d.index}.xml`, d.quickStyleXml);
+                zip.file(`${dir}_rels/data${d.index}.xml.rels`,
+                    buildRelationshipsXml([
+                        { relId: 'rId1', type: REL_TYPES.diagramLayout, target: `layout${d.index}.xml` },
+                        { relId: 'rId2', type: REL_TYPES.diagramColors, target: `colors${d.index}.xml` },
+                        { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` }
+                    ]));
+                newCtDiagrams.push(d.index);
+            }
+
             // __raw 回退附属部件（SmartArt 的 diagrams/*.xml 等）
             // 与包内已有部件重名时重命名并同步改写关系，且必须先于 slide rels 落盘
             const usedPaths = new Set<string>();
@@ -642,6 +759,15 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
             for (const chartName of newCtCharts) {
                 if (!newCt.includes(`/ppt/charts/${chartName}`)) {
                     newCt = newCt.replace('</Types>', `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>`);
+                }
+            }
+            for (const idx of newCtDiagrams) {
+                for (const kind of ['data', 'layout', 'colors', 'quickStyle'] as const) {
+                    const partName = `/ppt/diagrams/${kind}${idx}.xml`;
+                    if (!newCt.includes(partName)) {
+                        const ct = { data: 'application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml', layout: 'application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml', colors: 'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml', quickStyle: 'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml' }[kind];
+                        newCt = newCt.replace('</Types>', `<Override PartName="${partName}" ContentType="${ct}"/></Types>`);
+                    }
                 }
             }
             for (const part of newCtRawParts) {

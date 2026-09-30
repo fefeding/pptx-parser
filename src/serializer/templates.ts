@@ -63,6 +63,81 @@ export function buildTableStylesXml() {
 }
 
 /**
+ * 生成 docProps/custom.xml（自定义文档属性）
+ * @param {Object} pairs - 键值对（名称 → 值）
+ * @returns {string} custom.xml 内容
+ */
+export function buildCustomPropsXml(pairs: Record<string, string>) {
+    const props = Object.entries(pairs)
+        .map(([name, value], i) =>
+            `<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="${i + 2}" name="${escapeXml(name)}"><vt:lpwstr>${escapeXml(value)}</vt:lpwstr></property>`)
+        .join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" ` +
+        `xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">${props}</Properties>`;
+}
+
+/** 注释作者信息 */
+export interface CommentAuthorInfo {
+    /** 作者编号（comments 部件通过 authorId 引用） */
+    id: number;
+    /** 作者显示名 */
+    name: string;
+    /** 作者缩写（缺省取 name 首字母） */
+    initials?: string;
+    /** 作者批注颜色（ARGB hex，缺省 FF000000） */
+    color?: string;
+    /** 该作者最后一条批注 id（缺省 0） */
+    lastIdx?: number;
+}
+
+/** 单条批注（已解析 authorId） */
+export interface CommentInfo {
+    /** 引用的作者编号 */
+    authorId: number;
+    /** 批注正文 */
+    text: string;
+    /** 批注时间（ISO 8601） */
+    dt: string;
+    /** 批注锚点 x（EMU） */
+    x?: number;
+    /** 批注锚点 y（EMU） */
+    y?: number;
+}
+
+/**
+ * 生成 ppt/comments/commentsN.xml（批注列表 p:cmLst）
+ * @param {CommentInfo[]} comments - 已解析作者的批注数组
+ * @returns {string} commentsN.xml 内容
+ */
+export function buildCommentsXml(comments: CommentInfo[]) {
+    const items = comments
+        .map((c, i) =>
+            `<p:cm authorId="${c.authorId}" dt="${escapeXml(c.dt)}" id="${i}">` +
+            `<p:pos x="${c.x ?? 914400}" y="${c.y ?? 914400}"/>` +
+            `<p:text>${escapeXml(c.text)}</p:text></p:cm>`)
+        .join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<p:cmLst xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}">${items}</p:cmLst>`;
+}
+
+/**
+ * 生成 ppt/commentAuthors.xml（批注作者列表）
+ * @param {CommentAuthorInfo[]} authors - 作者数组（按 id 升序）
+ * @returns {string} commentAuthors.xml 内容
+ */
+export function buildCommentAuthorsXml(authors: CommentAuthorInfo[]) {
+    const items = authors
+        .map((a) =>
+            `<p:cmAuthor id="${a.id}" name="${escapeXml(a.name)}" ` +
+            `initials="${escapeXml(a.initials || (a.name ? a.name[0] : 'A'))}" ` +
+            `lastIdx="${a.lastIdx ?? 0}" clr="${escapeXml(a.color || 'FF000000')}"/>`)
+        .join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<p:commentAuthors xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}">${items}</p:commentAuthors>`;
+}
+
+/**
  * 生成 presentation.xml
  * @param {Object} slideSize - 幻灯片尺寸（px）
  * @param {number} slideSize.width - 宽（px）
@@ -186,5 +261,13 @@ export const REL_TYPES = {
     notesSlide: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide',
     presProps: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps',
     viewProps: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/viewProps',
-    tableStyles: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles'
+    tableStyles: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles',
+    video: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/video',
+    audio: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/audio',
+    comments: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments',
+    commentAuthors: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/commentAuthors',
+    diagramData: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramData',
+    diagramLayout: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramLayout',
+    diagramColors: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramColors',
+    diagramQuickStyle: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramQuickStyle'
 };
