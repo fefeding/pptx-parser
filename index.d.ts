@@ -132,6 +132,160 @@ declare class PPTXComposer {
     }): Promise<string | ArrayBuffer | number[] | Uint8Array<ArrayBufferLike> | Blob | Buffer<ArrayBufferLike>>;
 }
 
+type PptxDocumentVersion = '1.0';
+interface PptxMetadata$1 {
+    title?: string;
+    subject?: string;
+    author?: string;
+    keywords?: string;
+    description?: string;
+    lastModifiedBy?: string;
+    created?: string;
+    modified?: string;
+    category?: string;
+    status?: string;
+    contentType?: string;
+    language?: string;
+    version?: string;
+    [key: string]: string | undefined;
+}
+type TextAlign = 'left' | 'center' | 'right' | 'justify';
+type VAlign = 'top' | 'middle' | 'bottom';
+interface PptxTextRun {
+    text: string;
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontFace?: string;
+    href?: string;
+}
+interface PptxParagraph {
+    text?: string;
+    runs?: PptxTextRun[];
+    align?: TextAlign;
+    bullet?: boolean;
+}
+type PptxFill = string | {
+    color?: string;
+} | 'none' | null;
+type PptxLine = {
+    color?: string;
+    width?: number;
+} | 'none' | null;
+type PptxBackground = string | {
+    type: 'solid';
+    color: string;
+} | {
+    type: 'gradient';
+    direction?: 'horizontal' | 'vertical' | 'diagonal';
+    stops: {
+        color: string;
+        position: number;
+    }[];
+} | {
+    type: 'image';
+    data?: string;
+    src?: string;
+    extension?: string;
+};
+interface PptxTransition {
+    type: string;
+    duration: number;
+}
+interface PptxChartSeries {
+    name?: string;
+    values?: number[];
+    x?: number[];
+    y?: number[];
+    color?: string;
+}
+type PptxChartType = 'barChart' | 'lineChart' | 'areaChart' | 'pieChart' | 'pie3DChart' | 'scatterChart' | string;
+interface PptxElementBase {
+    __raw?: unknown;
+    name?: string;
+}
+interface PptxTextElement extends PptxElementBase {
+    type: 'text';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation?: number;
+    align?: TextAlign;
+    valign?: VAlign;
+    paragraphs?: PptxParagraph[];
+    runs?: PptxTextRun[];
+    text?: string;
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontFace?: string;
+    href?: string;
+}
+interface PptxShapeElement extends PptxElementBase {
+    type: 'shape';
+    shapeType: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation?: number;
+    fill?: PptxFill;
+    line?: PptxLine;
+}
+interface PptxImageElement extends PptxElementBase {
+    type: 'image';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation?: number;
+    data?: string;
+    src?: string;
+    extension?: string;
+    href?: string;
+}
+interface PptxChartElement extends PptxElementBase {
+    type: 'chart';
+    chartType: PptxChartType;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    title?: string;
+    legend?: boolean;
+    varyColors?: boolean;
+    barDir?: 'bar' | 'col';
+    categories?: string[];
+    series?: PptxChartSeries[];
+}
+type PptxElement = PptxTextElement | PptxShapeElement | PptxImageElement | PptxChartElement;
+interface PptxMediaResource {
+    base64: string;
+    mime: string;
+}
+interface PptxSlide {
+    background?: PptxBackground;
+    transition?: PptxTransition;
+    notes?: string;
+    elements: PptxElement[];
+}
+interface PptxTheme {
+    [key: string]: unknown;
+}
+interface PptxDocument {
+    version: PptxDocumentVersion;
+    slideSize: SlideSize;
+    metadata?: PptxMetadata$1;
+    slides: PptxSlide[];
+    media?: Record<string, PptxMediaResource>;
+    theme?: PptxTheme;
+}
+
 interface XmlAttrs {
     order?: number;
     [name: string]: any;
@@ -442,6 +596,7 @@ interface PptxEditor {
 declare namespace pptxParser {
     const pptxToHtml: typeof pptxToHtml;
     const pptxToJson: typeof pptxToJson;
+    const pptxToStandard: typeof pptxToStandard;
     const pptxToFiles: typeof pptxToFiles;
     const jsonToPptx: typeof jsonToPptx;
     const editPptx: typeof editPptx;
@@ -534,7 +689,9 @@ declare function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettin
     metadata: PptxMetadata;
     charts: Array<Record<string, unknown>>;
 } | null>;
-declare function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings>): Promise<{
+declare function pptxToJson(fileData: PptxFileData, options?: Partial<ParseSettings> & {
+    mode?: 'raw' | 'semantic';
+}): Promise<{
     slides: JsonSlideResult[];
     slideSize: {
         width: number;
@@ -548,10 +705,11 @@ declare function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettin
     metadata: PptxMetadata;
     charts: Array<Record<string, unknown>>;
 } | null>;
+declare function pptxToStandard(fileData: PptxFileData, options?: Partial<ParseSettings>): Promise<PptxDocument>;
 declare function pptxToFiles(fileData: PptxFileData): Promise<{
     files: FileIndexEntry[];
     content: Record<string, unknown>;
 }>;
 
-export { PPTXComposer, pptxToHtml as default, editPptx, jsonToPptx, pptxParser, pptxToFiles, pptxToHtml, pptxToJson };
-export type { BinaryContent, Callbacks, ChartData, ChartDataPoint, ChartSeries, ComposerSlide, ErrorContent, FileContent, FileInfo, ImageContent, PptxEditor, PptxFilesResult, PptxHtmlResult, PptxJsonResult, PptxParserOptions, PptxSerializeOptions, ProcessedSlideData, RelationshipObject, SlideElement, SlideHtml, SlideJson, SlideSize, StyleTable, StyleTableItem, TextContent, TextParagraph, TextRun };
+export { PPTXComposer, pptxToHtml as default, editPptx, jsonToPptx, pptxParser, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard };
+export type { BinaryContent, Callbacks, ChartData, ChartDataPoint, ChartSeries, ComposerSlide, ErrorContent, FileContent, FileInfo, ImageContent, PptxBackground, PptxChartElement, PptxChartSeries, PptxChartType, PptxDocument, PptxDocumentVersion, PptxEditor, PptxElement, PptxFilesResult, PptxFill, PptxHtmlResult, PptxImageElement, PptxJsonResult, PptxLine, PptxMediaResource, PptxMetadata$1 as PptxMetadata, PptxParagraph, PptxParserOptions, PptxSerializeOptions, PptxShapeElement, PptxSlide, PptxTextElement, PptxTextRun, PptxTheme, PptxTransition, ProcessedSlideData, RelationshipObject, SlideElement, SlideHtml, SlideJson, SlideSize, StyleTable, StyleTableItem, TextAlign, TextContent, TextParagraph, TextRun, VAlign };

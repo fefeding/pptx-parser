@@ -8,6 +8,8 @@ import { processMsgQueue, processSingleMsg } from './utils/chart';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants';
 import { jsonToPptx, editPptx } from './serializer/json-to-pptx';
 import { PPTXComposer } from './serializer/composer';
+import { buildStandardDocument } from './serializer/json-from-pptx';
+import type { PptxDocument } from './types/pptx-document';
 import type { XmlNode, ParseSettings, ParseCallbacks } from './core/types';
 
 /** 图表消息队列条目（由解析阶段产生，交给 processMsgQueue 消费） */
@@ -692,7 +694,7 @@ async function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettings
  * @param {Object} options - Conversion options
  * @returns {Promise<Object>} Parsed result
  */
-async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings>) {
+async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings> & { mode?: 'raw' | 'semantic' } = {}) {
     // Merge default settings with user options
     const settings: ParseSettings = {
         mediaProcess: true,
@@ -726,7 +728,7 @@ async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings
      */
     async function convertToJson(file: PptxFileData) {
         // Step 1: Parse PPTX to structured JSON data
-        const { parsedData, msgQueue, slideSize, thumbnail, metadata, executionTime } = 
+        const { parsedData, msgQueue, zip, slideSize, thumbnail, metadata, executionTime } = 
             await processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle);
 
         // Step 2: Convert structured data to JSON result
@@ -774,6 +776,11 @@ async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings
         processMsgQueue(msgQueue, result);
         isDone = true;
 
+        // semantic 模式：附加标准 PptxDocument（与 jsonToPptx 同源）
+        if (options.mode === 'semantic') {
+            (result as any).document = await buildStandardDocument(parsedData, zip);
+        }
+
         if (callbacks.onComplete) {
             callbacks.onComplete({
                 executionTime,
@@ -792,6 +799,55 @@ async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings
         return convertToJson(fileData);
     }
     return null;
+}
+
+/**
+ * PPTX → 标准 JSON（统一契约 PptxDocument）
+ *
+ * 直接产出 types/pptx-document.ts 定义的 PptxDocument，与 jsonToPptx 输入同源，
+ * 可立即交回 jsonToPptx 还原，实现 JSON 级 round-trip。等价于 pptxToJson(..., {mode:'semantic'}).document。
+ * @param {ArrayBuffer} fileData - The PPTX file data
+ * @param {Object} options - 同 pptxToJson 的解析选项
+ * @returns {Promise<PptxDocument>} 标准 PPTX JSON
+ */
+async function pptxToStandard(fileData: PptxFileData, options: Partial<ParseSettings> = {}) {
+    // Merge default settings with user options
+    const settings: ParseSettings = {
+        mediaProcess: true,
+        themeProcess: true,
+        incSlide: {
+            width: 0,
+            height: 0
+        },
+        styleTable: {},
+        ...options
+    };
+
+    const callbacks = settings.callbacks || {};
+
+    let defaultTextStyle: any = null;
+    const chartId = { value: 0 };
+    const styleTable = settings.styleTable as StyleTable;
+
+    if (callbacks.onFileStart) {
+        callbacks.onFileStart();
+    }
+
+    const { parsedData, zip } = await processToJson(fileData, settings, callbacks, chartId, styleTable, defaultTextStyle);
+
+    const doc = await buildStandardDocument(parsedData, zip);
+
+    if (callbacks.onComplete) {
+        callbacks.onComplete({
+            executionTime: parsedData.executionTime,
+            slideWidth: parsedData.slideSize?.width || 0,
+            slideHeight: parsedData.slideSize?.height || 0,
+            styleTable,
+            settings
+        });
+    }
+
+    return doc;
 }
 
 /**
@@ -917,5 +973,6 @@ function extractSlideTransition(slideContent: XmlNode) {
 }
 
 export default pptxToHtml;
-export { pptxToJson, pptxToHtml, pptxToFiles, jsonToPptx, editPptx, PPTXComposer };
+export { pptxToJson, pptxToHtml, pptxToFiles, jsonToPptx, editPptx, PPTXComposer, pptxToStandard };
+export * from './types/pptx-document';
 export * from './compatibility-types';

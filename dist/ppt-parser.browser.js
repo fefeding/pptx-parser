@@ -15204,6 +15204,515 @@ class PPTXComposer {
     }
 }
 
+const EMU_PER_PT = 12700;
+const DEFAULT_LN_PT = 1;
+function asArray(v) {
+    if (v === undefined || v === null)
+        return [];
+    return Array.isArray(v) ? v : [v];
+}
+function emuToPx(emu) {
+    const n = Number(emu) || 0;
+    return Math.round(n * SLIDE_FACTOR$1 * 100) / 100;
+}
+function emuToPt(emu) {
+    const n = Number(emu) || 0;
+    return Math.round((n / EMU_PER_PT) * 100) / 100;
+}
+function rotToDeg(rot) {
+    const n = Number(rot) || 0;
+    return n === 0 ? 0 : Math.round(n / 60000);
+}
+function resolvePart(target) {
+    if (!target)
+        return undefined;
+    return target.replace(/\.\.\//g, 'ppt/').replace(/^\/+/, '');
+}
+function readSrgbClr(node) {
+    const c = node && (node['a:srgbClr'] || (node['a:solidFill'] && node['a:solidFill']['a:srgbClr']));
+    return c && c.attrs && c.attrs.val ? String(c.attrs.val) : undefined;
+}
+function readRunText(runNode) {
+    const t = runNode && runNode['a:t'];
+    return typeof t === 'string' ? t : (t ? String(t) : '');
+}
+function readRunStyle(rPr) {
+    const style = {};
+    if (!rPr)
+        return style;
+    const attrs = rPr.attrs || {};
+    if (attrs.sz)
+        style.fontSize = Math.round(Number(attrs.sz) / 100 * 100) / 100;
+    if (attrs.b === '1' || attrs.b === 1)
+        style.bold = true;
+    if (attrs.i === '1' || attrs.i === 1)
+        style.italic = true;
+    if (attrs.u && attrs.u !== 'none')
+        style.underline = true;
+    const color = readSrgbClr(rPr);
+    if (color)
+        style.color = color;
+    const latin = rPr['a:latin'];
+    if (latin && latin.attrs && latin.attrs.typeface)
+        style.fontFace = String(latin.attrs.typeface);
+    const hlink = rPr['a:hlinkClick'];
+    if (hlink && hlink.attrs && hlink.attrs['r:id'])
+        style.href = String(hlink.attrs['r:id']);
+    return style;
+}
+function extractTextBody(spNode) {
+    const paragraphs = [];
+    let hasText = false;
+    const txBody = spNode && spNode['p:txBody'];
+    if (!txBody)
+        return { paragraphs, hasText };
+    const bodyPr = txBody['a:bodyPr'];
+    const valignMap = { ctr: 'middle', b: 'bottom' };
+    const defaultValign = bodyPr && bodyPr.attrs && bodyPr.attrs.anchor
+        ? valignMap[bodyPr.attrs.anchor] : undefined;
+    for (const pNode of asArray(txBody['a:p'])) {
+        const pPr = pNode['a:pPr'];
+        const pAttrs = (pPr && pPr.attrs) || {};
+        const alignMap = { l: 'left', ctr: 'center', r: 'right', just: 'justify' };
+        const align = pAttrs.algn ? alignMap[pAttrs.algn] : undefined;
+        const bullet = !!(pNode['a:pPr'] && (pNode['a:pPr']['a:buChar'] || pNode['a:pPr']['a:buAutoNum']))
+            && !(pNode['a:pPr']['a:buNone']);
+        const runs = [];
+        for (const runNode of asArray(pNode['a:r'])) {
+            const text = readRunText(runNode);
+            if (text)
+                hasText = true;
+            const style = readRunStyle(runNode['a:rPr']);
+            runs.push({ text, ...style });
+        }
+        const para = { runs };
+        if (align)
+            para.align = align;
+        if (bullet)
+            para.bullet = true;
+        if (defaultValign)
+            para.valign = defaultValign;
+        paragraphs.push(para);
+    }
+    return { paragraphs, hasText };
+}
+function readSpPr(spPr) {
+    const out = { shapeType: 'rect' };
+    if (!spPr)
+        return out;
+    const prst = spPr['a:prstGeom'];
+    if (prst && prst.attrs && prst.attrs.prst)
+        out.shapeType = String(prst.attrs.prst);
+    if (spPr['a:noFill']) {
+        out.fill = 'none';
+    }
+    else {
+        const color = readSrgbClr(spPr);
+        if (color)
+            out.fill = color;
+    }
+    const ln = spPr['a:ln'];
+    if (ln) {
+        if (ln['a:noFill']) {
+            out.line = 'none';
+        }
+        else {
+            const color = readSrgbClr(ln);
+            const w = ln.attrs && ln.attrs.w ? emuToPt(ln.attrs.w) : DEFAULT_LN_PT;
+            out.line = color ? { color, width: w } : { width: w };
+        }
+    }
+    return out;
+}
+function readXfrm(node, isGraphicFrame) {
+    const xf = isGraphicFrame ? node['p:xfrm'] : (node['p:spPr'] && node['p:spPr']['a:xfrm']);
+    if (!xf || !xf['a:off'])
+        return null;
+    const off = (xf['a:off'] && xf['a:off'].attrs) || {};
+    const ext = (xf['a:ext'] && xf['a:ext'].attrs) || {};
+    return {
+        x: emuToPx(off.x),
+        y: emuToPx(off.y),
+        width: emuToPx(ext.cx),
+        height: emuToPx(ext.cy),
+        rotation: rotToDeg(xf.attrs && xf.attrs.rot)
+    };
+}
+function extractNotes(notesContent) {
+    if (!notesContent)
+        return undefined;
+    const spTree = notesContent['p:notesSlide']
+        && notesContent['p:notesSlide']['p:cSld']
+        && notesContent['p:notesSlide']['p:cSld']['p:spTree'];
+    if (!spTree)
+        return undefined;
+    const texts = [];
+    for (const sp of asArray(spTree['p:sp'])) {
+        const txBody = sp && sp['p:txBody'];
+        if (!txBody)
+            continue;
+        for (const p of asArray(txBody['a:p'])) {
+            for (const r of asArray(p['a:r'])) {
+                const t = readRunText(r);
+                if (t)
+                    texts.push(t);
+            }
+        }
+    }
+    const joined = texts.join('\n').trim();
+    return joined.length ? joined : undefined;
+}
+function extractTransition(slideContent) {
+    const sld = slideContent && slideContent['p:sld'];
+    if (!sld)
+        return undefined;
+    const t = sld['p:transition'];
+    if (!t)
+        return undefined;
+    const types = ['p:blinds', 'p:checker', 'p:circle', 'p:comb', 'p:cover', 'p:dissolve', 'p:fade', 'p:push', 'p:random', 'p:split', 'p:strips', 'p:wipe'];
+    let type = 'fade';
+    for (const ty of types) {
+        if (t[ty]) {
+            type = ty.replace('p:', '');
+            break;
+        }
+    }
+    let duration = 1000;
+    if (t.attrs && t.attrs['spd']) {
+        const m = { '1': 500, '2': 1000, '3': 2000 };
+        duration = m[String(t.attrs['spd'])] || 1000;
+    }
+    return { type, duration };
+}
+function extractBackground(slideContent) {
+    const sld = slideContent && slideContent['p:sld'];
+    if (!sld)
+        return undefined;
+    const bg = sld['p:cSld'] && sld['p:cSld']['p:bg'];
+    if (!bg)
+        return undefined;
+    const bgPr = bg['p:bgPr'];
+    if (bgPr) {
+        const color = readSrgbClr(bgPr);
+        if (color)
+            return color;
+        if (bgPr['a:gradFill']) {
+            const gsLst = bgPr['a:gradFill']['a:gsLst'];
+            const stops = [];
+            for (const gs of asArray(gsLst && gsLst['a:gs'])) {
+                const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
+                const c = readSrgbClr(gs);
+                if (c)
+                    stops.push({ color: c, position: pos });
+            }
+            return { type: 'gradient', direction: 'horizontal', stops };
+        }
+    }
+    return undefined;
+}
+function extractChart(chartXml) {
+    try {
+        const chart = chartXml && chartXml['c:chartSpace'] && chartXml['c:chartSpace']['c:chart'];
+        if (!chart)
+            return undefined;
+        const plotArea = chart['c:plotArea'];
+        if (!plotArea)
+            return undefined;
+        const chartTypes = ['c:barChart', 'c:lineChart', 'c:areaChart', 'c:pieChart', 'c:pie3DChart', 'c:scatterChart'];
+        let chartNode = null;
+        let chartType = 'barChart';
+        for (const ct of chartTypes) {
+            if (plotArea[ct]) {
+                chartNode = plotArea[ct];
+                chartType = ct.replace('c:', '');
+                break;
+            }
+        }
+        if (!chartNode)
+            return undefined;
+        const isScatter = chartType === 'scatterChart';
+        const firstSer = asArray(chartNode['c:ser'])[0];
+        const catNode = firstSer && firstSer['c:cat'];
+        let categories = [];
+        if (catNode) {
+            const strCache = catNode['c:strRef'] && catNode['c:strRef']['c:strCache'];
+            const pts = strCache ? asArray(strCache['c:pt']) : [];
+            categories = pts.map((p) => (p && p['c:v'] !== undefined ? String(p['c:v']) : '')).filter(Boolean);
+        }
+        const series = [];
+        for (const ser of asArray(chartNode['c:ser'])) {
+            const nameNode = ser['c:tx'] && ser['c:tx']['c:strRef'] && ser['c:tx']['c:strRef']['c:strCache'];
+            const namePts = nameNode ? asArray(nameNode['c:pt']) : [];
+            const name = namePts.length && namePts[0]['c:v'] ? String(namePts[0]['c:v']) : undefined;
+            const s = {};
+            if (name)
+                s.name = name;
+            if (isScatter) {
+                s.x = numCacheValues(ser['c:xVal']);
+                s.y = numCacheValues(ser['c:yVal']);
+            }
+            else {
+                s.values = numCacheValues(ser['c:val']);
+            }
+            const serColor = readSrgbClr(ser);
+            if (serColor)
+                s.color = serColor;
+            series.push(s);
+        }
+        let title;
+        const titleRich = chart['c:title'] && chart['c:title']['c:tx'] && chart['c:title']['c:tx']['c:rich'];
+        if (titleRich) {
+            for (const p of asArray(titleRich['a:p'])) {
+                for (const r of asArray(p['a:r'])) {
+                    const t = readRunText(r);
+                    if (t)
+                        title = (title || '') + t;
+                }
+            }
+        }
+        const legend = !!chart['c:legend'];
+        const out = { chartType, series };
+        if (categories.length)
+            out.categories = categories;
+        if (title)
+            out.title = title.trim();
+        out.legend = legend;
+        return out;
+    }
+    catch {
+        return undefined;
+    }
+}
+function numCacheValues(refNode) {
+    if (!refNode)
+        return [];
+    const cache = refNode['c:numRef'] && refNode['c:numRef']['c:numCache'];
+    if (!cache)
+        return [];
+    return asArray(cache['c:pt'])
+        .map((p) => (p && p['c:v'] !== undefined ? Number(p['c:v']) : NaN))
+        .filter((v) => !isNaN(v));
+}
+function collectShapeNodes(spTree, acc) {
+    if (!spTree || typeof spTree !== 'object')
+        return;
+    for (const key of Object.keys(spTree)) {
+        const val = spTree[key];
+        if (val === undefined || val === null)
+            continue;
+        const nodes = asArray(val);
+        for (const node of nodes) {
+            if (key === 'p:grpSp') {
+                const inner = node && node['p:spTree'];
+                if (inner)
+                    collectShapeNodes(inner, acc);
+            }
+            else if (['p:sp', 'p:pic', 'p:graphicFrame', 'p:cxnSp'].includes(key)) {
+                acc.push({ key, node });
+            }
+        }
+    }
+}
+async function extractSlideToStandard(slideData, zip) {
+    const slide = { elements: [] };
+    try {
+        const slideContent = slideData && slideData.slideContent;
+        const spTree = slideContent
+            && slideContent['p:sld']
+            && slideContent['p:sld']['p:cSld']
+            && slideContent['p:sld']['p:cSld']['p:spTree'];
+        const resObj = slideData.slideResObj || {};
+        const bg = extractBackground(slideContent);
+        if (bg !== undefined)
+            slide.background = bg;
+        const transition = extractTransition(slideContent);
+        if (transition)
+            slide.transition = transition;
+        const notes = extractNotes(slideData.notesContent);
+        if (notes)
+            slide.notes = notes;
+        if (spTree) {
+            const shapeNodes = [];
+            collectShapeNodes(spTree, shapeNodes);
+            for (const { key, node } of shapeNodes) {
+                try {
+                    const el = await nodeToElement(key, node, resObj, zip);
+                    if (el)
+                        slide.elements.push(el);
+                }
+                catch {
+                    slide.elements.push({ type: 'text', x: 0, y: 0, width: 0, height: 0, __raw: node });
+                }
+            }
+        }
+    }
+    catch {
+    }
+    return slide;
+}
+async function nodeToElement(key, node, resObj, zip) {
+    if (key === 'p:graphicFrame') {
+        return await graphicFrameToChart(node, resObj, zip);
+    }
+    if (key === 'p:pic') {
+        return await picToImage(node, resObj, zip);
+    }
+    const spPr = node['p:spPr'];
+    const { paragraphs, hasText } = extractTextBody(node);
+    const geom = spPr && spPr['a:prstGeom'];
+    if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
+        const xf = readXfrm(node, false);
+        const name = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvPr'] && node['p:nvSpPr']['p:cNvPr'].attrs && node['p:nvSpPr']['p:cNvPr'].attrs.name;
+        const textEl = {
+            type: 'text',
+            x: xf ? xf.x : 0,
+            y: xf ? xf.y : 0,
+            width: xf ? xf.width : 300,
+            height: xf ? xf.height : 60,
+            paragraphs,
+            __raw: node
+        };
+        if (xf && xf.rotation)
+            textEl.rotation = xf.rotation;
+        if (name)
+            textEl.name = String(name);
+        if (paragraphs[0]) {
+            if (paragraphs[0].align)
+                textEl.align = paragraphs[0].align;
+            if (paragraphs[0].valign)
+                textEl.valign = paragraphs[0].valign;
+        }
+        const firstRun = paragraphs[0] && paragraphs[0].runs && paragraphs[0].runs[0];
+        if (firstRun) {
+            if (firstRun.fontSize !== undefined)
+                textEl.fontSize = firstRun.fontSize;
+            if (firstRun.color !== undefined)
+                textEl.color = firstRun.color;
+            if (firstRun.bold !== undefined)
+                textEl.bold = firstRun.bold;
+            if (firstRun.italic !== undefined)
+                textEl.italic = firstRun.italic;
+            if (firstRun.underline !== undefined)
+                textEl.underline = firstRun.underline;
+            if (firstRun.fontFace !== undefined)
+                textEl.fontFace = firstRun.fontFace;
+        }
+        return textEl;
+    }
+    if (geom) {
+        const xf = readXfrm(node, false);
+        const sp = readSpPr(spPr);
+        const name = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvPr'] && node['p:nvSpPr']['p:cNvPr'].attrs && node['p:nvSpPr']['p:cNvPr'].attrs.name;
+        const shapeEl = {
+            type: 'shape',
+            shapeType: sp.shapeType,
+            x: xf ? xf.x : 0,
+            y: xf ? xf.y : 0,
+            width: xf ? xf.width : 200,
+            height: xf ? xf.height : 120,
+            __raw: node
+        };
+        if (sp.fill !== undefined)
+            shapeEl.fill = sp.fill;
+        if (sp.line !== undefined)
+            shapeEl.line = sp.line;
+        if (xf && xf.rotation)
+            shapeEl.rotation = xf.rotation;
+        if (name)
+            shapeEl.name = String(name);
+        return shapeEl;
+    }
+    return null;
+}
+async function graphicFrameToChart(node, resObj, zip) {
+    const chartRef = node['a:graphic']
+        && node['a:graphic']['a:graphicData']
+        && node['a:graphic']['a:graphicData']['c:chart'];
+    if (!chartRef || !chartRef.attrs || !chartRef.attrs['r:id'])
+        return null;
+    const rid = String(chartRef.attrs['r:id']);
+    const target = resObj[rid] && resObj[rid].target;
+    const part = resolvePart(target);
+    let chartSemantic;
+    if (part) {
+        const chartXml = await PPTXXmlUtils.readXmlFile(zip, part);
+        chartSemantic = extractChart(chartXml);
+    }
+    const xf = readXfrm(node, true);
+    const chartEl = {
+        type: 'chart',
+        chartType: (chartSemantic && chartSemantic.chartType) || 'barChart',
+        x: xf ? xf.x : 0,
+        y: xf ? xf.y : 0,
+        width: xf ? xf.width : 600,
+        height: xf ? xf.height : 400,
+        series: (chartSemantic && chartSemantic.series) || [],
+        __raw: node
+    };
+    if (chartSemantic && chartSemantic.categories)
+        chartEl.categories = chartSemantic.categories;
+    if (chartSemantic && chartSemantic.title)
+        chartEl.title = chartSemantic.title;
+    if (chartSemantic && chartSemantic.legend !== undefined)
+        chartEl.legend = chartSemantic.legend;
+    return chartEl;
+}
+async function picToImage(node, resObj, zip) {
+    const blip = node['p:blipFill'] && node['p:blipFill']['a:blip'];
+    if (!blip || !blip.attrs || !blip.attrs['r:embed'])
+        return null;
+    const rid = String(blip.attrs['r:embed']);
+    const target = resObj[rid] && resObj[rid].target;
+    const part = resolvePart(target);
+    if (!part)
+        return null;
+    const xf = readXfrm(node, false);
+    const name = node['p:nvPicPr'] && node['p:nvPicPr']['p:cNvPr'] && node['p:nvPicPr']['p:cNvPr'].attrs && node['p:nvPicPr']['p:cNvPr'].attrs.name;
+    const ext = (part.split('.').pop() || 'png').toLowerCase();
+    const mimeMap = {
+        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml'
+    };
+    const mime = mimeMap[ext] || 'application/octet-stream';
+    let data;
+    try {
+        const file = zip.file(part);
+        if (file) {
+            const b64 = await file.async('base64');
+            data = `data:${mime};base64,${b64}`;
+        }
+    }
+    catch { }
+    const imgEl = {
+        type: 'image',
+        x: xf ? xf.x : 0,
+        y: xf ? xf.y : 0,
+        width: xf ? xf.width : 300,
+        height: xf ? xf.height : 200,
+        extension: ext,
+        __raw: node
+    };
+    if (data)
+        imgEl.data = data;
+    else if (target)
+        imgEl.src = target;
+    if (xf && xf.rotation)
+        imgEl.rotation = xf.rotation;
+    if (name)
+        imgEl.name = String(name);
+    return imgEl;
+}
+async function buildStandardDocument(parsedData, zip) {
+    const slides = await Promise.all((parsedData.slides || []).map(async (s) => extractSlideToStandard(s.data, zip)));
+    const doc = {
+        version: '1.0',
+        slideSize: parsedData.slideSize,
+        slides
+    };
+    if (parsedData.metadata)
+        doc.metadata = parsedData.metadata;
+    return doc;
+}
+
 async function processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle) {
     if ((typeof file === 'string' ? file.length : file.byteLength) < 10) {
         if (callbacks.onError) {
@@ -15634,7 +16143,7 @@ async function pptxToHtml(fileData, options) {
     }
     return null;
 }
-async function pptxToJson(fileData, options) {
+async function pptxToJson(fileData, options = {}) {
     const settings = {
         mediaProcess: true,
         themeProcess: true,
@@ -15653,7 +16162,7 @@ async function pptxToJson(fileData, options) {
         callbacks.onFileStart();
     }
     async function convertToJson(file) {
-        const { parsedData, msgQueue, slideSize, thumbnail, metadata, executionTime } = await processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle);
+        const { parsedData, msgQueue, zip, slideSize, thumbnail, metadata, executionTime } = await processToJson(file, settings, callbacks, chartId, styleTable, defaultTextStyle);
         const result = {
             slides: [],
             slideSize,
@@ -15687,6 +16196,9 @@ async function pptxToJson(fileData, options) {
             callbacks.onGlobalCSS(result.styles.global);
         }
         processMsgQueue(msgQueue, result);
+        if (options.mode === 'semantic') {
+            result.document = await buildStandardDocument(parsedData, zip);
+        }
         if (callbacks.onComplete) {
             callbacks.onComplete({
                 executionTime,
@@ -15702,6 +16214,37 @@ async function pptxToJson(fileData, options) {
         return convertToJson(fileData);
     }
     return null;
+}
+async function pptxToStandard(fileData, options = {}) {
+    const settings = {
+        mediaProcess: true,
+        themeProcess: true,
+        incSlide: {
+            width: 0,
+            height: 0
+        },
+        styleTable: {},
+        ...options
+    };
+    const callbacks = settings.callbacks || {};
+    let defaultTextStyle = null;
+    const chartId = { value: 0 };
+    const styleTable = settings.styleTable;
+    if (callbacks.onFileStart) {
+        callbacks.onFileStart();
+    }
+    const { parsedData, zip } = await processToJson(fileData, settings, callbacks, chartId, styleTable, defaultTextStyle);
+    const doc = await buildStandardDocument(parsedData, zip);
+    if (callbacks.onComplete) {
+        callbacks.onComplete({
+            executionTime: parsedData.executionTime,
+            slideWidth: parsedData.slideSize?.width || 0,
+            slideHeight: parsedData.slideSize?.height || 0,
+            styleTable,
+            settings
+        });
+    }
+    return doc;
 }
 async function pptxToFiles(fileData) {
     if ((typeof fileData === 'string' ? fileData.length : fileData.byteLength) < 10) {
@@ -15791,5 +16334,5 @@ function extractSlideTransition(slideContent) {
     };
 }
 
-export { PPTXComposer, pptxToHtml as default, editPptx, jsonToPptx, pptxToFiles, pptxToHtml, pptxToJson };
+export { PPTXComposer, pptxToHtml as default, editPptx, jsonToPptx, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard };
 //# sourceMappingURL=ppt-parser.browser.js.map

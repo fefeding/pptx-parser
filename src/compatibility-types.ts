@@ -297,6 +297,7 @@ export interface PptxEditor {
 export declare namespace pptxParser {
     const pptxToHtml: typeof import('./index').pptxToHtml;
     const pptxToJson: typeof import('./index').pptxToJson;
+    const pptxToStandard: typeof import('./index').pptxToStandard;
     const pptxToFiles: typeof import('./index').pptxToFiles;
     const jsonToPptx: typeof import('./index').jsonToPptx;
     const editPptx: typeof import('./index').editPptx;
