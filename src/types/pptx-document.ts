@@ -230,8 +230,6 @@ export interface PptxShapeElement extends PptxElementBase {
     effects?: PptxShapeEffects;
     /** 几何调整值（圆角半径 / 箭头尺寸 / 星形尖角等），如 { adj: 25000 } */
     adjust?: Record<string, number>;
-    /** 几何调整值（圆角半径 / 箭头尺寸 / 星形尖角等），如 { adj: 25000 } */
-    adjust?: Record<string, number>;
 }
 
 /** 图片元素 */

@@ -1,233 +1,289 @@
 /**
  * 生成「覆盖全部序列化能力」的 PPTX，供真机打开验证。
- * 运行：node examples/generate-test-pptx.mjs
+ * 运行：node examples/generate-test-pptx.mjs   （需先 npm run build，产物在 dist/）
  *
- * 同时在本脚本末尾做一轮解析自检（断言关键 OOXML 特征），
+ * 按 PPTX_GEN_GAP_PLAN.md，每一页对应一个功能点（T1–T19），并附带一轮解析自检。
  * 任一断言失败则以非零退出码报错。
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import JSZip from 'jszip';
-// 源码已转为 TypeScript，Node 无法直接运行 .ts，故改用构建产物（需先 npm run build）
-import { PPTXComposer, pptxToJson } from '../dist/ppt-parser.esm.js';
+import { jsonToPptx, pptxToJson } from '../dist/ppt-parser.esm.js';
 
 // ---- 测试用图片（base64）----
-// 64x64 蓝色 PNG
-const BLUE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAOklEQVR42u3OMQEAAAgDoJk/aRZw0gJ6mUm3bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2T9cCAr0H9dQAAAAASUVORK5CYII=';
-// 64x64 橙色 PNG
-const ORANGE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAOklEQVR42u3OMQEAAAgDoJk/aRZw0gJ6mUm3bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2T9cCAr0H9dQAAAAASUVORK5CYII=';
-// 1x1 白色 JPEG（验证 extension 覆盖）
-const WHITE_JPEG = '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAA//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AfwD/2Q==';
+const BLUE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAOklEQVR42u3OMQEAAAgDoJk/aRZw0gJ6mUm3bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2T9cCAr0H9dQAAAAASUVORK5CYII=';
+const ORANGE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAOklEQVR42u3OMQEAAAgDoJk/aRZw0gJ6mUm3bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2T9cCAr0H9dQAAAAASUVORK5CYII=';
 
-// 远程图片（生成时下载并内嵌；离线则回退到本地 PNG，保证文件始终可生成）
-async function resolveRemoteImage() {
-    const url = 'https://www.w3.org/2008/site/images/favicon.ico';
-    try {
-        if (typeof fetch === 'function') {
-            const resp = await fetch(url);
-            if (resp.ok) {
-                const buf = await resp.arrayBuffer();
-                const b64 = Buffer.from(new Uint8Array(buf)).toString('base64');
-                return `data:image/x-icon;base64,${b64}`;
-            }
-        }
-    } catch (_) { /* 离线回退 */ }
-    console.warn('[warn] 远程图片下载失败，已回退为本地 PNG（src 能力仍走同一代码路径）');
-    return `data:image/png;base64,${BLUE_PNG}`;
+// 自定义主题 XML（覆盖默认主题，演示 T17：accent1..6 改为自定义色）
+const CUSTOM_THEME = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="CustomTest">
+ <a:themeElements>
+  <a:clrScheme name="CustomTest">
+   <a:dk1><a:sysClr val="windowText" lastClr="1F2937"/></a:dk1>
+   <a:lt1><a:sysClr val="window" lastClr="F8FAFC"/></a:lt1>
+   <a:dk2><a:srgbClr val="0F172A"/></a:dk2>
+   <a:lt2><a:srgbClr val="FFFFFF"/></a:lt2>
+   <a:accent1><a:srgbClr val="6366F1"/></a:accent1>
+   <a:accent2><a:srgbClr val="EC4899"/></a:accent2>
+   <a:accent3><a:srgbClr val="10B981"/></a:accent3>
+   <a:accent4><a:srgbClr val="F59E0B"/></a:accent4>
+   <a:accent5><a:srgbClr val="3B82F6"/></a:accent5>
+   <a:accent6><a:srgbClr val="8B5CF6"/></a:accent6>
+   <a:hlink><a:srgbClr val="2563EB"/></a:hlink>
+   <a:folHlink><a:srgbClr val="9333EA"/></a:folHlink>
+  </a:clrScheme>
+  <a:fontScheme name="CustomTest">
+   <a:majorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>
+   <a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>
+  </a:fontScheme>
+  <a:fmtScheme name="CustomTest">
+   <a:fillStyleLst>
+    <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+    <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+    <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+   </a:fillStyleLst>
+   <a:lnStyleLst>
+    <a:ln w="6350" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln>
+    <a:ln w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln>
+    <a:ln w="19050" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln>
+   </a:lnStyleLst>
+   <a:effectStyleLst>
+    <a:effectStyle><a:effectLst/></a:effectStyle>
+    <a:effectStyle><a:effectLst/></a:effectStyle>
+    <a:effectStyle><a:effectLst/></a:effectStyle>
+   </a:effectStyleLst>
+   <a:bgFillStyleLst>
+    <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+    <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+    <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+   </a:bgFillStyleLst>
+  </a:fmtScheme>
+ </a:themeElements>
+</a:theme>`;
+
+// ---- 辅助：构造一页（标题 + 功能元素 + 可选 slide 级扩展）----
+function page(title, elements, extra = {}) {
+    return {
+        background: '#ffffff',
+        elements: [
+            { type: 'text', x: 60, y: 30, width: 1160, height: 50, text: title, fontSize: 30, bold: true, color: '#0f172a' },
+            ...elements
+        ],
+        ...extra
+    };
 }
 
-const composer = new PPTXComposer();
-composer
-    .title('PPTX 序列化能力全覆盖')
-    .author('pptx-parser')
-    .subject('真机打开验证')
-    .keywords('serializer;test;all-features')
-    .description('覆盖文本/形状/图片/幻灯片/演示文稿各级别全部生成能力')
-    .slideSize(1280, 720);
+const slides = [];
 
-// ============ 第 1 页：文本能力全集 ============
-composer.addSlide(slide => {
-    slide.background('#f8fafc');
-
-    // 标题（value + bold + color）
-    slide.addText(t => t
-        .value('第1页 · 文本能力全集')
-        .x(60).y(40).width(900).height(70)
-        .fontSize(36).color('#0f172a').bold());
-
-    // 普通正文 + 对齐 + 颜色
-    slide.addText(t => t
-        .value('普通正文：颜色 / 左对齐 / 默认样式')
-        .x(60).y(130).width(700).height(36)
-        .fontSize(18).color('#475569'));
-
-    // 粗体 / 斜体 / 下划线 各一行
-    slide.addText(t => t.value('粗体 bold').x(60).y(180).width(300).height(30).fontSize(18).bold());
-    slide.addText(t => t.value('斜体 italic').x(360).y(180).width(300).height(30).fontSize(18).italic());
-    slide.addText(t => t.value('下划线 underline').x(660).y(180).width(300).height(30).fontSize(18).underline());
-
-    // 指定字体 fontFace + 语言 lang
-    slide.addText(t => t
-        .value('指定字体 Arial + lang=en-US')
-        .x(60).y(225).width(700).height(30)
-        .fontSize(18).fontFace('Arial').lang('en-US'));
-
-    // 垂直居中文本框（valign=middle）
-    slide.addText(t => t
-        .value('垂直居中(middle)')
-        .x(60).y(270).width(300).height(80)
-        .fontSize(20).color('#7c3aed').valign('middle'));
-
-    // 项目符号段落（bullet）
-    slide.addText(t => t
-        .value('').x(420).y(270).width(500).height(120)
-        .fontSize(18)
-        .paragraphs([
-            { text: '项目符号 第一项', bullet: true },
-            { text: '项目符号 第二项', bullet: true },
-            { text: '无符号 第三项', bullet: false }
-        ]));
-
-    // runs 规范写法：外部 + 内部跳转超链接、不同颜色
-    slide.addText(t => t
-        .runs([
-            { text: '外部链接', options: { href: 'https://github.com', color: '#2563eb', underline: true } },
-            { text: '  ', options: {} },
-            { text: '跳到第3页', options: { href: '#3', color: '#dc2626' } }
-        ])
-        .x(60).y(410).width(700).height(30));
-
-    // runs 扁平简写 + 多行 \n 混合
-    slide.addText(t => t
-        .runs([
-            { text: '扁平简写红色', color: '#ef4444', bold: true },
-            { text: '\n换行的第二行', color: '#0891b2' }
-        ])
-        .x(60).y(455).width(700).height(60).fontSize(16));
-
-    // 命名文本框（验证 cNvPr name）
-    slide.addText(t => t
-        .value('命名文本框(name=MyTextBox)')
-        .x(60).y(525).width(700).height(30)
-        .fontSize(16).name('MyTextBox'));
-});
-
-// ============ 第 2 页：形状能力全集 ============
-composer.addSlide(slide => {
-    slide.background('#0f172a');
-    slide.addText(t => t
-        .value('第2页 · 形状能力全集')
-        .x(60).y(40).width(900).height(70)
-        .fontSize(36).color('#f8fafc').bold());
-
-    const palette = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
-    const types = ['rect', 'roundRect', 'ellipse', 'triangle', 'diamond', 'hexagon', 'star5', 'rightArrow', 'pie', 'plus'];
-
-    types.forEach((type, i) => {
-        const col = i % 5;
-        const row = Math.floor(i / 5);
-        slide.addShape(s => s
-            .shapeType(type)
-            .x(60 + col * 230).y(130 + row * 200).width(180).height(150)
-            .fill({ color: palette[i % palette.length] })
-            .line({ color: '#ffffff', width: 1.5 }));
-    });
-
-    // 无填充 + 蓝色边框
-    slide.addShape(s => s
-        .shapeType('rect')
-        .x(60).y(540).width(220).height(120)
-        .fill('none')
-        .line({ color: '#22d3ee', width: 3 }));
-
-    // 无边框（line=none）
-    slide.addShape(s => s
-        .shapeType('ellipse')
-        .x(310).y(540).width(120).height(120)
-        .fill({ color: '#f43f5e' })
-        .line('none'));
-
-    // 旋转 30 度
-    slide.addShape(s => s
-        .shapeType('roundRect')
-        .x(470).y(540).width(180).height(90)
-        .fill({ color: '#84cc16' })
-        .rotation(30));
-
-    // 命名形状
-    slide.addShape(s => s
-        .shapeType('diamond')
-        .x(700).y(540).width(120).height(120)
-        .fill({ color: '#eab308' })
-        .name('MyShape'));
-});
-
-// ============ 第 3 页：图片能力全集 ============
-const remoteData = await resolveRemoteImage();
-composer.addSlide(slide => {
-    slide.background('#ffffff');
-    slide.addText(t => t
-        .value('第3页 · 图片能力全集')
-        .x(60).y(40).width(900).height(70)
-        .fontSize(36).color('#111827').bold());
-
-    // data: base64 PNG
-    slide.addImage({ data: `data:image/png;base64,${BLUE_PNG}`, x: 60, y: 130, width: 140, height: 140, name: 'Base64Png' });
-    // 裸 base64 + extension 覆盖（JPEG）
-    slide.addImage({ data: WHITE_JPEG, extension: 'jpeg', x: 240, y: 130, width: 140, height: 140, name: 'JpegExt' });
-    // 远程 src（生成时内嵌）
-    slide.addImage({ src: remoteData, x: 420, y: 130, width: 140, height: 140, name: 'RemoteImg' });
-    // 图片级外部超链接
-    slide.addImage({ data: `data:image/png;base64,${ORANGE_PNG}`, href: 'https://example.com', x: 600, y: 130, width: 140, height: 140, name: 'LinkedImg' });
-
-    slide.addText(t => t
-        .value('左上:base64 PNG  中左:裸base64+JPEG扩展  中右:远程src内嵌  右下:带外部链接')
-        .x(60).y(300).width(1000).height(60).fontSize(16).color('#64748b'));
-});
-
-// ============ 第 4 页：幻灯片/演示级（背景 none / 尺寸 / 元数据）============
-composer.addSlide(slide => {
-    // 不设置 background（即 'none'，使用默认白底，验证背景缺失分支）
-    slide.addText(t => t
-        .value('第4页 · 背景 none（默认白底）+ 演示级元数据已在文件头写入')
-        .x(60).y(60).width(1000).height(80)
-        .fontSize(24).color('#111827'));
-});
-
-// ============ 第 5 页：图表能力全集（原生 OOXML 图表）============
-composer.addSlide(slide => {
-    slide.background('#ffffff');
-    slide.addText(t => t
-        .value('第5页 · 图表能力全集（PowerPoint/WPS 可编辑真图表）')
-        .x(40).y(40).width(1100).height(60)
-        .fontSize(28).color('#111827').bold());
-
-    slide.addChart({
-        chartType: 'barChart', title: '柱状图', x: 40, y: 120, width: 560, height: 260,
-        categories: ['Q1', 'Q2', 'Q3', 'Q4'],
-        series: [
-            { name: '销售额', values: [120, 200, 150, 180] },
-            { name: '利润', values: [30, 55, 40, 60] }
+// ============ T1 表格单元格边框线 ============
+slides.push(page('T1 · 表格单元格边框线', [
+    { type: 'table', x: 60, y: 110, width: 1100, height: 280,
+        colWidths: [280, 280, 280, 260],
+        rows: [
+            { cells: [
+                { text: '四边粗框', border: { color: '#ef4444', width: 2 } },
+                { text: '上下右分边', borders: { top: { color: '#10b981', width: 2 }, right: { color: '#10b981', width: 2 } } },
+                { text: '左边粗', borders: { left: { color: '#3b82f6', width: 3 } } },
+                { text: '无框', borders: { top: 'none', bottom: 'none', left: 'none', right: 'none' } }
+            ] },
+            { cells: [
+                { text: '细框', border: { color: '#000000', width: 1 } },
+                { text: '橙框', border: { color: '#f59e0b', width: 3 } },
+                { text: '默认', },
+                { text: '蓝框', border: { color: '#2563eb', width: 2 } }
+            ] }
         ]
-    });
-    slide.addChart({
-        chartType: 'lineChart', title: '折线图', x: 640, y: 120, width: 560, height: 260,
-        categories: ['1月', '2月', '3月'],
-        series: [{ name: '访问量', values: [300, 400, 350] }]
-    });
-    slide.addChart({
-        chartType: 'pieChart', title: '饼图', x: 40, y: 400, width: 560, height: 260,
-        categories: ['A', 'B', 'C'],
-        series: [{ name: '占比', values: [40, 35, 25] }]
-    });
-    slide.addChart({
-        chartType: 'scatterChart', title: '散点图', x: 640, y: 400, width: 560, height: 260,
-        series: [{ name: '样本', x: [1, 2, 3, 4], y: [2, 4, 1, 5] }]
-    });
-});
+    }
+]));
 
-// ===================== 生成并写入 =====================
-const data = await composer.save(); // 默认 Uint8Array
+// ============ T2 形状渐变填充 + 透明度 + 阴影/发光 ============
+slides.push(page('T2 · 形状渐变/透明度/阴影/发光', [
+    { type: 'shape', shapeType: 'rect', x: 60, y: 120, width: 240, height: 150,
+        fill: { type: 'gradient', direction: 'horizontal', stops: [{ position: 0, color: '#6366f1' }, { position: 1, color: '#ec4899' }] },
+        line: { color: '#111827', width: 1 } },
+    { type: 'shape', shapeType: 'roundRect', x: 340, y: 120, width: 240, height: 150,
+        fill: { type: 'solid', color: '#10b981', transparency: 40 }, line: { color: '#047857', width: 1.5 } },
+    { type: 'shape', shapeType: 'ellipse', x: 620, y: 120, width: 160, height: 160,
+        fill: { color: '#3b82f6' }, effects: { shadow: { blur: 10, dist: 5, dir: 90, color: '#000000', alpha: 60 } } },
+    { type: 'shape', shapeType: 'diamond', x: 820, y: 120, width: 160, height: 160,
+        fill: { color: '#f59e0b' }, effects: { glow: { color: '#ef4444', blur: 15 } } }
+]));
+
+// ============ T3 文本编号列表 + 行距/段间距/缩进 ============
+slides.push(page('T3 · 文本编号列表/行距/缩进', [
+    { type: 'text', x: 60, y: 120, width: 1040, height: 420, fontSize: 18, color: '#334155',
+        paragraphs: [
+            { text: '编号第一项', bullet: { type: 'number', fmt: 'decimal' } },
+            { text: '编号第二项', bullet: { type: 'number', fmt: 'decimal' } },
+            { text: '缩进 + 行距28pt + 段前/后10', bullet: true, indent: 40, lineSpacing: { type: 'pt', value: 28 }, spaceBefore: 10, spaceAfter: 10 },
+            { text: '普通项（无符号）', bullet: false }
+        ]
+    }
+]));
+
+// ============ T4 组合 grpSp ============
+slides.push(page('T4 · 组合 grpSp（childrenCoordinates=local）', [
+    { type: 'group', x: 80, y: 120, width: 600, height: 320, childrenCoordinates: 'local',
+        children: [
+            { type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 200, height: 100, fill: { color: '#60a5fa' } },
+            { type: 'text', x: 20, y: 120, width: 320, height: 40, text: '组合内文本', fontSize: 18 },
+            { type: 'shape', shapeType: 'ellipse', x: 260, y: 60, width: 120, height: 120, fill: { color: '#f472b6' } }
+        ]
+    }
+]));
+
+// ============ T5 主题色引用 ============
+slides.push(page('T5 · 主题色引用（scheme:）', [
+    { type: 'shape', shapeType: 'rect', x: 60, y: 120, width: 240, height: 120,
+        fill: { type: 'solid', color: 'scheme:accent1' }, line: { color: 'scheme:dk1', width: 1.5 } },
+    { type: 'shape', shapeType: 'roundRect', x: 340, y: 120, width: 240, height: 120,
+        fill: { type: 'solid', color: 'scheme:accent2' } },
+    { type: 'shape', shapeType: 'ellipse', x: 620, y: 120, width: 160, height: 160,
+        fill: { type: 'solid', color: 'scheme:accent3' } },
+    { type: 'text', x: 60, y: 300, width: 1040, height: 40, text: '引用 scheme:accent1/2/3 与 scheme:dk1（自定义主题见 T17）', color: 'scheme:dk1', fontSize: 18 }
+]));
+
+// ============ T6 形状图片填充 + 图案填充 ============
+slides.push(page('T6 · 形状图片填充 / 图案填充', [
+    { type: 'shape', shapeType: 'rect', x: 60, y: 120, width: 240, height: 160,
+        fill: { type: 'image', data: `data:image/png;base64,${BLUE_PNG}` } },
+    { type: 'shape', shapeType: 'roundRect', x: 340, y: 120, width: 240, height: 160,
+        fill: { type: 'pattern', prst: 'diagCross', fg: '#ef4444', bg: '#fef3c7' } }
+]));
+
+// ============ T7 形状几何调整值 avLst ============
+slides.push(page('T7 · 形状几何调整 avLst', [
+    { type: 'shape', shapeType: 'roundRect', x: 60, y: 120, width: 240, height: 120,
+        fill: { color: '#6366f1' }, adjust: { adj: 30000 } },
+    { type: 'shape', shapeType: 'rightArrow', x: 340, y: 120, width: 240, height: 120,
+        fill: { color: '#10b981' }, adjust: { arrowWidth: 50000, arrowLength: 40000 } }
+]));
+
+// ============ T8 水平/垂直翻转 ============
+slides.push(page('T8 · 水平/垂直翻转', [
+    { type: 'shape', shapeType: 'rect', x: 60, y: 120, width: 200, height: 140, fill: { color: '#3b82f6' }, flipH: true },
+    { type: 'shape', shapeType: 'rect', x: 320, y: 120, width: 200, height: 140, fill: { color: '#ef4444' }, flipV: true },
+    { type: 'shape', shapeType: 'diamond', x: 580, y: 120, width: 160, height: 160, fill: { color: '#10b981' }, flipH: true, flipV: true }
+]));
+
+// ============ T9 文本框内边距 + 竖排 ============
+slides.push(page('T9 · 文本框内边距 / 竖排', [
+    { type: 'text', x: 60, y: 120, width: 240, height: 200, text: '内边距 l/r/t/b=20', fontSize: 16, color: '#0f172a', inset: { l: 20, r: 20, t: 20, b: 20 } },
+    { type: 'text', x: 360, y: 120, width: 160, height: 320, text: '竖排文字', fontSize: 22, color: '#7c3aed', textDirection: 'wordArtVertical' }
+]));
+
+// ============ T10 单元格内边距 + 对角线边框 + 表格样式 ============
+slides.push(page('T10 · 单元格内边距/对角线/表格样式', [
+    { type: 'table', x: 60, y: 120, width: 900, height: 260, tableStyleId: '{2D1D2E6E-9063-44E1-9D16-7D619778F921}',
+        borders: { diagonal: 'tlBr' },
+        rows: [
+            { cells: [
+                { text: '内边距', inset: { l: 20, r: 20, t: 10, b: 10 } },
+                { text: '对角线', borders: { diagonal: 'tlBr' } },
+                { text: '样式' }
+            ] },
+            { cells: [
+                { text: 'A', inset: { l: 10, r: 10, t: 10, b: 10 } },
+                { text: 'B' },
+                { text: 'C' }
+            ] }
+        ]
+    }
+]));
+
+// ============ T11 图表类型与特性扩展 ============
+slides.push(page('T11 · 图表类型扩展（3D/环/气泡/雷达/股票/曲面 + 数据标签/图例）', [
+    { type: 'chart', chartType: 'bar3DChart', title: '3D柱', x: 40, y: 120, width: 320, height: 200,
+        categories: ['Q1', 'Q2', 'Q3'], series: [{ name: 'A', values: [10, 20, 15] }] },
+    { type: 'chart', chartType: 'doughnutChart', title: '环图', legend: 'b', x: 380, y: 120, width: 320, height: 200,
+        categories: ['a', 'b', 'c'], series: [{ name: '占比', values: [40, 35, 25] }] },
+    { type: 'chart', chartType: 'bubbleChart', title: '气泡', x: 720, y: 120, width: 320, height: 200,
+        series: [{ name: 'b', x: [1, 2, 3], y: [2, 3, 1], values: [3, 4, 2] }] },
+    { type: 'chart', chartType: 'radarChart', title: '雷达', dataLabels: { showValue: true }, x: 40, y: 340, width: 320, height: 200,
+        series: [{ name: 'r', values: [1, 2, 3, 4] }] },
+    { type: 'chart', chartType: 'stockChart', title: '股票', x: 380, y: 340, width: 320, height: 200,
+        series: [{ name: 's', open: [1, 2, 3], high: [4, 5, 6], low: [0, 1, 2], close: [2, 3, 4] }] },
+    { type: 'chart', chartType: 'surfaceChart', title: '曲面', x: 720, y: 340, width: 320, height: 200,
+        series: [{ name: 'f', values: [1, 2, 3] }] }
+]));
+
+// ============ T12 图片裁剪 + 调整/透明度 ============
+slides.push(page('T12 · 图片裁剪 / 调整(亮度/对比度/透明度)', [
+    { type: 'image', data: `data:image/png;base64,${BLUE_PNG}`, x: 60, y: 120, width: 240, height: 240,
+        crop: { l: 0.1, r: 0.1, t: 0.1, b: 0.1 }, name: 'Crop' },
+    { type: 'image', data: `data:image/png;base64,${ORANGE_PNG}`, x: 360, y: 120, width: 240, height: 240,
+        imageAdjust: { brightness: 20, contrast: 30, transparency: 10 }, name: 'Adjust' }
+]));
+
+// ============ T13 动画 timing ============
+slides.push(page('T13 · 动画 timing（淡入 + 自动播放）', [
+    { type: 'shape', shapeType: 'rect', x: 240, y: 180, width: 320, height: 160, fill: { color: '#6366f1' }, name: 'AnimShape' }
+], { animations: [{ target: 1, type: 'fade', duration: 1 }] }));
+
+// ============ T14 切换时序/自动播放 + 隐藏幻灯片 ============
+slides.push(page('T14 · 切换/自动播放 + 隐藏幻灯片', [
+    { type: 'shape', shapeType: 'rect', x: 240, y: 180, width: 320, height: 160, fill: { color: '#10b981' } }
+], {
+    transition: { type: 'fade', duration: 1000, advanceOnClick: false },
+    advanceTime: 3000,
+    hidden: true
+}));
+
+// ============ T15 视频/音频 media ============
+slides.push(page('T15 · 视频 / 音频 media', [
+    { type: 'video', data: 'data:video/mp4;base64,AAAA', extension: 'mp4', x: 60, y: 120, width: 360, height: 210,
+        poster: { data: `data:image/png;base64,${BLUE_PNG}` }, name: 'Vid' },
+    { type: 'audio', data: 'data:audio/m4a;base64,AAAA', extension: 'm4a', x: 480, y: 120, width: 200, height: 200, name: 'Aud' }
+]));
+
+// ============ T16 SmartArt 图示 ============
+slides.push(page('T16 · SmartArt 图示（结构级四件套）', [
+    { type: 'diagram', diagramType: 'hierarchy', x: 60, y: 120, width: 820, height: 400,
+        nodes: [{ text: '根', children: [
+            { text: '子A' },
+            { text: '子B', children: [{ text: '孙' }] }
+        ] }]
+    }
+]));
+
+// ============ T17 自定义主题 / 母版 / 版式 ============
+// 注：本文件整体已通过 options.theme 覆盖为 CUSTOM_THEME（见 jsonToPptx 调用）；此处演示主题色在页面中的引用
+slides.push(page('T17 · 自定义主题覆盖（options.theme）', [
+    { type: 'shape', shapeType: 'rect', x: 60, y: 120, width: 240, height: 120, fill: { type: 'solid', color: 'scheme:accent4' } },
+    { type: 'shape', shapeType: 'roundRect', x: 340, y: 120, width: 240, height: 120, fill: { type: 'solid', color: 'scheme:accent5' } },
+    { type: 'text', x: 60, y: 280, width: 1040, height: 40, text: 'accent4/accent5 使用自定义主题色（theme1.xml 已覆盖）', color: 'scheme:dk2', fontSize: 18 }
+]));
+
+// ============ T18 批注 comments ============
+slides.push(page('T18 · 批注 comments', [
+    { type: 'shape', shapeType: 'note', x: 200, y: 200, width: 300, height: 120, fill: { color: '#fde68a' } }
+], {
+    comments: [
+        { author: 'Alice', text: '这是一条批注', dt: '2026-01-01T00:00:00Z' },
+        { author: 'Bob', text: '第二条批注' }
+    ]
+}));
+
+// ============ T19 自定义属性 ============
+slides.push(page('T19 · 自定义文档属性（docProps/custom.xml）', [
+    { type: 'text', x: 60, y: 130, width: 1040, height: 40, text: '本文档写入了自定义属性：部门 / 版本 / 项目', fontSize: 18, color: '#475569' }
+]));
+
+// ===================== 生成 =====================
+const pres = {
+    slideSize: { width: 1280, height: 720 },
+    metadata: {
+        title: 'PPTX 序列化能力全覆盖（每功能点一页）',
+        author: 'pptx-parser',
+        subject: '真机打开验证',
+        keywords: 'serializer;test;T1-T19',
+        description: '覆盖 T1-T19 全部生成能力'
+    },
+    customProps: { '部门': '研发', '版本': '1.0', '项目': 'pptx-parser' },
+    slides
+};
+
+const data = await jsonToPptx(pres, { theme: CUSTOM_THEME }); // 默认 Uint8Array
 const outPath = path.resolve('examples/test-sample.pptx');
 fs.writeFileSync(outPath, Buffer.from(data));
 console.log(`已生成: ${outPath} (${(data.byteLength / 1024).toFixed(1)} KB)`);
@@ -240,81 +296,88 @@ async function selfCheck() {
     const zip = await JSZip.loadAsync(buffer);
 
     const slideXml = [];
-    const slideRels = [];
     for (let i = 1; i <= result.slides.length; i++) {
         slideXml.push(await zip.file(`ppt/slides/slide${i}.xml`).async('string'));
-        const relFile = zip.file(`ppt/slides/_rels/slide${i}.xml.rels`);
-        if (relFile) slideRels.push(await relFile.async('string'));
     }
-    const all = slideXml.join('\n') + '\n' + slideRels.join('\n');
+    const all = slideXml.join('\n');
     const contentTypes = await zip.file('[Content_Types].xml').async('string');
 
-    // 图表部件内容（用于断言 chart 类型与数据）
     const chartXml = [];
     for (const name of Object.keys(zip.files)) {
-        if (/^ppt\/charts\/chart\d+\.xml$/.test(name)) {
-            chartXml.push(await zip.file(name).async('string'));
-        }
+        if (/^ppt\/charts\/chart\d+\.xml$/.test(name)) chartXml.push(await zip.file(name).async('string'));
     }
     const chartAll = chartXml.join('\n');
 
     const checks = [];
     const assert = (name, cond) => checks.push({ name, ok: !!cond });
 
-    // 演示级
-    assert('页数=5', result.slides.length === 5);
+    assert('页数=19', result.slides.length === 19);
     assert('slideSize=1280x720', result.slideSize.width === 1280 && result.slideSize.height === 720);
-    assert('metadata.title', result.metadata.title === 'PPTX 序列化能力全覆盖');
-    assert('metadata.keywords', result.metadata.keywords === 'serializer;test;all-features');
-    assert('metadata.description', /覆盖文本/.test(result.metadata.description || ''));
+    assert('metadata.title', result.metadata.title === 'PPTX 序列化能力全覆盖（每功能点一页）');
+    assert('metadata.keywords', result.metadata.keywords === 'serializer;test;T1-T19');
 
-    // 文本能力
-    assert('粗体 b=1', /<a:rPr[^>]*\sb="1"/.test(all));
-    assert('斜体 i=1', /<a:rPr[^>]*\si="1"/.test(all));
-    assert('下划线 u=sng', /u="sng"/.test(all));
-    assert('字体 latin', /<a:latin/.test(all));
-    assert('垂直居中 anchor=ctr', /anchor="ctr"/.test(all));
-    assert('项目符号 buChar', /<a:buChar/.test(all));
-    assert('内部跳转 ppaction', /ppaction:\/\/hlinksldjump/.test(all));
-    assert('外部超链接 rel', /TargetMode="External"/.test(all));
-    assert('多行(多个 a:p)', (all.match(/<a:p>/g) || []).length >= 5);
-    assert('命名文本框 name', /MyTextBox/.test(all));
-    assert('lang=en-US', /lang="en-US"/.test(all));
-
-    // 形状能力
-    assert('旋转 rot', /rot="/.test(all));
-    assert('无填充 noFill', /<a:noFill\/>/.test(all));
-    assert('line=none 的 noFill', /<a:ln[^>]*><a:noFill\/>/.test(all));
-    assert('多种 prstGeom', /prst="diamond"/.test(all) && /prst="hexagon"/.test(all) && /prst="star5"/.test(all));
-    assert('命名形状 MyShape', /MyShape/.test(all));
-    assert('边框线宽 ln w', /<a:ln[^>]*\bw="/.test(all));
-
-    // 图片能力
-    assert('图片 blip', /<a:blip/.test(all));
-    assert('远程/内嵌媒体存在', !!zip.file('ppt/media/image1.png') || Object.keys(zip.files).some(f => f.startsWith('ppt/media/')));
-    assert('JPEG 扩展媒体', Object.keys(zip.files).some(f => /ppt\/media\/image\d+\.jpeg$/.test(f)));
-
-    // 第4页背景 none（无 p:bg）
-    const slide4 = slideXml[3] || '';
-    assert('第4页无背景 p:bg', !/<p:bg>/.test(slide4));
-    // 第1页有背景
-    assert('第1页有背景 p:bg', /<p:bg>/.test(slideXml[0]));
-
-    // 图表能力（原生 OOXML）
-    assert('graphicFrame 存在', /<p:graphicFrame/.test(all));
-    assert('图表部件 chart1.xml', !!zip.file('ppt/charts/chart1.xml'));
-    assert('图表部件 chart2~4', !!zip.file('ppt/charts/chart2.xml') && !!zip.file('ppt/charts/chart3.xml') && !!zip.file('ppt/charts/chart4.xml'));
-    assert('c:barChart', /<c:barChart/.test(chartAll));
-    assert('c:lineChart', /<c:lineChart/.test(chartAll));
-    assert('c:pieChart', /<c:pieChart/.test(chartAll));
-    assert('c:scatterChart', /<c:scatterChart/.test(chartAll));
-    assert('图表类别/系列名 销售额', /销售额/.test(chartAll));
-    assert('图表数值 <c:v>120', /<c:v>120<\/c:v>/.test(chartAll));
-    assert('图表关系 rel(chart)', /relationships\/chart/.test(all));
-    assert('ContentTypes chart 覆盖', /drawingml\.chart\+xml/.test(contentTypes));
-    // 注：pptxToJson(JSON 路径) 目前不回解图表（仅 pptxToHtml 浏览器渲染会处理），
-    // 故此处直接校验生成的图表部件 XML 结构正确（含 chartSpace/plotArea 与各类型）。
-    assert('图表部件=4 且结构有效', chartXml.length === 4 && chartXml.every(x => /<c:chartSpace/.test(x) && /<c:plotArea>/.test(x)));
+    // T1 边框
+    assert('T1 单元格边框 lnL/lnR/lnT/lnB', /<a:lnL|<a:lnR|<a:lnT|<a:lnB/.test(slideXml[0]));
+    // T2 渐变/特效/透明度
+    assert('T2 渐变 gradFill', /<a:gradFill/.test(slideXml[1]));
+    assert('T2 特效 effectLst', /<a:effectLst/.test(slideXml[1]));
+    assert('T2 透明度 alpha', /<a:alpha/.test(slideXml[1]));
+    // T3 编号/行距
+    assert('T3 编号 buAutoNum', /<a:buAutoNum/.test(slideXml[2]));
+    assert('T3 行距 lnSpc', /<a:lnSpc/.test(slideXml[2]));
+    // T4 组合
+    assert('T4 组合 grpSp', /<p:grpSp/.test(slideXml[3]));
+    // T5 主题色引用
+    assert('T5 schemeClr 引用', /<a:schemeClr/.test(slideXml[4]));
+    // T6 图片/图案填充
+    assert('T6 形状图片填充 blipFill', /<a:blipFill/.test(slideXml[5]));
+    assert('T6 图案填充 pattFill', /<a:pattFill/.test(slideXml[5]));
+    // T7 调整值 avLst
+    assert('T7 几何调整 avLst', /<a:avLst/.test(slideXml[6]));
+    // T8 翻转
+    assert('T8 翻转 flipH/flipV', /flipH="1"|flipV="1"/.test(slideXml[7]));
+    // T9 内边距/竖排
+    assert('T9 内边距 lIns', /lIns=/.test(slideXml[8]));
+    assert('T9 竖排 vert', /vert=/.test(slideXml[8]));
+    // T10 对角线/内边距/样式
+    assert('T10 对角线 lnTlToBr/lnBlToTr', /<a:lnTlToBr|<a:lnBlToTr/.test(slideXml[9]));
+    assert('T10 单元格内边距 tableCellInsets', /<a:tableCellInsets/.test(slideXml[9]));
+    assert('T10 表格样式 tableStyleId', /tableStyleId=/.test(slideXml[9]));
+    // T11 图表类型
+    assert('T11 c:bar3DChart', /<c:bar3DChart/.test(chartAll));
+    assert('T11 c:doughnutChart', /<c:doughnutChart/.test(chartAll));
+    assert('T11 c:bubbleChart', /<c:bubbleChart/.test(chartAll));
+    assert('T11 c:radarChart', /<c:radarChart/.test(chartAll));
+    assert('T11 c:stockChart', /<c:stockChart/.test(chartAll));
+    assert('T11 c:surfaceChart', /<c:surfaceChart/.test(chartAll));
+    assert('T11 数据标签 dLbls', /<c:dLbls/.test(chartAll));
+    assert('T11 图例位置 legendPos', /<c:legendPos/.test(chartAll));
+    // T12 裁剪/调整
+    assert('T12 裁剪 srcRect', /<a:srcRect/.test(slideXml[11]));
+    assert('T12 调整 lum/alphaModFix', /<a:lum|<a:alphaModFix/.test(slideXml[11]));
+    // T13 动画
+    assert('T13 p:timing', /<p:timing/.test(slideXml[12]));
+    assert('T13 动画目标 spTgt', /<p:spTgt/.test(slideXml[12]));
+    // T14 切换/自动播放/隐藏
+    assert('T14 隐藏 show="0"', /show="0"/.test(slideXml[13]));
+    assert('T14 自动播放 afterTime', /afterTime/.test(slideXml[13]));
+    assert('T14 切换 transition', /<p:transition/.test(slideXml[13]));
+    // T15 视频/音频
+    assert('T15 视频/音频节点', /videoFile|audioFile/.test(slideXml[14]));
+    assert('T15 媒体部件 mp4/m4a', Object.keys(zip.files).some(f => /ppt\/media\/.+\.(mp4|m4a)$/.test(f)));
+    // T16 SmartArt（部件编号按页内 diagramIndex，此处 data1.xml）
+    assert('T16 diagrams/dataN.xml', Object.keys(zip.files).some(f => /^ppt\/diagrams\/data\d+\.xml$/.test(f)));
+    assert('T16 graphicFrame+dgm:rel', /<p:graphicFrame/.test(slideXml[15]) && /dgm:rel/.test(slideXml[15]));
+    // T17 自定义主题
+    assert('T17 自定义主题色 6366F1', (await zip.file('ppt/theme/theme1.xml').async('string')).includes('6366F1'));
+    // T18 批注（comments 部件按 slideIndex 命名，用正则匹配任意编号）
+    const commentsFile = Object.keys(zip.files).find(f => /^ppt\/comments\/comments\d+\.xml$/.test(f));
+    assert('T18 commentsN.xml', !!commentsFile);
+    assert('T18 p:cm 批注', commentsFile ? /<p:cm /.test(await zip.file(commentsFile).async('string')) : false);
+    assert('T18 commentAuthors.xml', !!zip.file('ppt/commentAuthors.xml'));
+    // T19 自定义属性
+    assert('T19 custom.xml', !!zip.file('docProps/custom.xml'));
+    assert('T19 自定义属性内容', /研发/.test(await zip.file('docProps/custom.xml').async('string')));
 
     let failed = 0;
     for (const c of checks) {
