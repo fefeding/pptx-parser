@@ -55,25 +55,43 @@ export const DEFAULT_ORDER = 1;
 export const DPI = 96;
 
 // =============================================================================
-// 效果（发光/阴影/柔化边缘）渲染常量
+// 效果（发光/阴影）渲染常量
 // =============================================================================
 
 /**
- * 发光半径 rad → 高斯模糊标准差 σ 的换算系数。
+ * 外阴影（a:outerShdw/@blurRad）→ 高斯模糊标准差 σ 的换算系数（σ = blurRad_px × 该系数）。
  *
- * a:glow/@rad 表示发光向外延伸的距离（EMU）。高斯模糊的可见衰减范围约为 2σ，
- * 取 σ = rad / 2 时，光晕外扩距离 ≈ rad，与 PowerPoint 的「发光大小」语义一致。
+ * OOXML 只给出「模糊半径」这个标量，未规定核函数；实测把 blurRad 直接当作 σ
+ * （或当作 CSS drop-shadow 的 blur 半径，Chromium 下近似 σ≈半径）会让阴影糊成一圈光晕，
+ * 与 PowerPoint/WPS 不符。按 WPS 逐像素剖面拟合得到 σ ≈ blurRad / 3.5。
  */
-export const GLOW_SIGMA_FACTOR = 0.5;
+export const SHADOW_SIGMA_RATIO = 0.29;
 
 /**
- * 发光 alpha 的线性放大系数（feComponentTransfer 的 slope）。
+ * 发光（a:glow/@rad）渲染参数，单位与 rad 相同（px）：
+ * PowerPoint/WPS 的发光是「轮廓先向外膨胀出一段实心光边，再高斯柔化外缘」，
+ * 单纯对轮廓做高斯模糊在尖角处只有 ~0.25 强度、整体明显偏淡。
  *
- * 对不透明轮廓（半平面）做高斯模糊后，紧贴轮廓处的 alpha 仅为 0.5，轮廓外迅速衰减；
- * 而 PowerPoint / WPS 的发光在紧贴轮廓处是接近满强度的，只做 blur+flood 会整体偏淡。
- * 因此对模糊后的 alpha 做线性放大（超过 1 的部分由滤镜自动 clamp），使边缘回满强度。
+ * 由 WPS 逐像素剖面拟合：实心核心外扩 ≈ 0.38×rad，柔化 σ ≈ 0.17×rad。
  */
-export const GLOW_ALPHA_SLOPE = 2;
+export const GLOW_DILATE_RATIO = 0.38;
+export const GLOW_SIGMA_RATIO = 0.17;
+
+// =============================================================================
+// 渐变插值
+// =============================================================================
+
+/**
+ * 渐变是否在「线性光」空间插值。
+ *
+ * PowerPoint/WPS 的渐变中点色比 sRGB 线性插值更亮、更偏向后一色（首个颜色的色带略窄）；
+ * SVG 的 linearGradient 固定按 sRGB 插值，开启后会细分出中间色标还原该曲线。
+ * 置为 false 即回到纯 sRGB 插值。
+ */
+export const GRADIENT_LINEAR_LIGHT = true;
+
+/** 开启线性光插值时，相邻色标之间细分的段数 */
+export const GRADIENT_SUBDIV = 16;
 
 // =============================================================================
 // 语言相关常量

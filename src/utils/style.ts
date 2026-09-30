@@ -12,7 +12,7 @@
  */
 
 import { PPTXXmlUtils } from './xml';
-import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY } from '../core/constants';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR, RTL_LANGS_ARRAY, GRADIENT_LINEAR_LIGHT, GRADIENT_SUBDIV } from '../core/constants';
 import TinyColor from 'tinycolor2';
 import type { XmlNode, WarpObject } from '../core/types';
 
@@ -2715,6 +2715,40 @@ function getFillType(node: XmlNode | undefined) {
         //     return degrees * (Math.PI / 180);
         // }
         
+        /** sRGB 分量(0-255) → 线性光(0-1) */
+        function srgbChannelToLinear(v: number) {
+            const c = v / 255;
+            return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        }
+        /** 线性光(0-1) → sRGB 分量(0-255) */
+        function linearChannelToSrgb(l: number) {
+            const c = l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055;
+            return c * 255;
+        }
+        /**
+         * 在线性光空间对相邻色标做插值，并把结果细分为多个 sRGB 色标。
+         * SVG 的 linearGradient 固定按 sRGB 插值，只能靠细分还原线性光插值的曲线。
+         */
+        function subdivideGradientStops(rawStops: { offset: number; rgb: number[]; alpha: number }[]) {
+            if (!GRADIENT_LINEAR_LIGHT || rawStops.length < 2) return rawStops;
+            const out: typeof rawStops = [];
+            for (let i = 0; i < rawStops.length; i++) {
+                out.push(rawStops[i]);
+                if (i === rawStops.length - 1) break;
+                const a = rawStops[i], b = rawStops[i + 1];
+                for (let k = 1; k < GRADIENT_SUBDIV; k++) {
+                    const t = k / GRADIENT_SUBDIV;
+                    out.push({
+                        offset: a.offset + (b.offset - a.offset) * t,
+                        rgb: a.rgb.map((v, ch) =>
+                            linearChannelToSrgb(srgbChannelToLinear(v) * (1 - t) + srgbChannelToLinear(b.rgb[ch]) * t)),
+                        alpha: a.alpha + (b.alpha - a.alpha) * t
+                    });
+                }
+            }
+            return out;
+        }
+
         function getSvgGradient(w: any, h: any, angl: any, color_arry: any, shpId: any) {
             const stopsArray = getMiddleStops(color_arry - 2);
 
@@ -2734,10 +2768,25 @@ function getFillType(node: XmlNode | undefined) {
             svgAngle = `<linearGradient id="linGrd_${shpId}"${svgAngle}>\n`;
             svg += svgAngle;
 
+            // 收集原始色标
+            const rawStops: { offset: number; rgb: number[]; alpha: number }[] = [];
             for (let i = 0; i < sal; i++) {
                 const tinClr = tinycolor(`#${color_arry[i]}`);
-                let alpha = tinClr.getAlpha();
-                svg += `<stop offset="${Math.round(parseFloat(stopsArray[i]) / 100 * sr) / sr}" style="stop-color:${tinClr.toHexString()}; stop-opacity:${(alpha)};"`;
+                const rgb = tinClr.toRgb();
+                rawStops.push({
+                    offset: parseFloat(stopsArray[i]) / 100,
+                    rgb: [rgb.r, rgb.g, rgb.b],
+                    alpha: tinClr.getAlpha()
+                });
+            }
+            // PowerPoint/WPS 的渐变是在「线性光」空间插值的：实测中点色比 sRGB 插值更亮、更偏向后一色，
+            // 表现为首个颜色的色带略窄。SVG 默认按 sRGB 插值，因此细分出中间色标来还原这条曲线。
+            const stops = subdivideGradientStops(rawStops);
+
+            for (const st of stops) {
+                const hex = st.rgb.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+                const offset = Math.round(st.offset * 100 * sr) / sr;
+                svg += `<stop offset="${offset}" style="stop-color:#${hex}; stop-opacity:${Math.round(st.alpha * 1000) / 1000};"`;
                 svg += '/>\n'
             }
 
@@ -2759,67 +2808,37 @@ function getFillType(node: XmlNode | undefined) {
             }
             return sArry
         }
+        /**
+         * 把 OOXML 渐变方向角（a:lin/@ang）换算成 SVG linearGradient 的起止点（百分比）。
+         *
+         * a:lin/@ang 是顺时针角度、0° 指向右，含义是「渐变推进方向」——即 stop0 在反方向的边界上、
+         * stop1 在正方向的边界上（ang=0 → stop0 在左；ang=90 → stop0 在上）。注意这与 CSS 渐变角不同。
+         *
+         * @returns [x1, y1, x2, y2]，均为相对图形宽高的百分比
+         */
         function SVGangle(deg: any, svgHeight: any, svgWidth: any) {
-            let w = parseFloat(svgWidth),
+            const w = parseFloat(svgWidth),
                 h = parseFloat(svgHeight),
-                ang = parseFloat(deg),
-                o = 2,
-                n = 2,
+                parsed = parseFloat(deg),
+                ang = isNaN(parsed) ? 0 : parsed,
                 wc = w / 2,
                 hc = h / 2,
-                tx1 = 2,
-                ty1 = 2,
-                tx2 = 2,
-                ty2 = 2,
-                k = (((ang % 360) + 360) % 360),
-                j = (360 - k) * Math.PI / 180,
-                i = Math.tan(j),
-                l = hc - i * wc;
-
-            if (k == 0) {
-                tx1 = w,
-                    ty1 = hc,
-                    tx2 = 0,
-                    ty2 = hc
-            } else if (k < 90) {
-                n = w,
-                    o = 0
-            } else if (k == 90) {
-                tx1 = wc,
-                    ty1 = 0,
-                    tx2 = wc,
-                    ty2 = h
-            } else if (k < 180) {
-                n = 0,
-                    o = 0
-            } else if (k == 180) {
-                tx1 = 0,
-                    ty1 = hc,
-                    tx2 = w,
-                    ty2 = hc
-            } else if (k < 270) {
-                n = 0,
-                    o = h
-            } else if (k == 270) {
-                tx1 = wc,
-                    ty1 = h,
-                    tx2 = wc,
-                    ty2 = 0
-            } else {
-                n = w,
-                    o = h;
-            }
-            // AM: I could not quite figure out what m, n, and o are supposed to represent from the original code on visualcsstools.com.
-            let m = o + (n / i);
-                tx1 = tx1 == 2 ? i * (m - l) / (Math.pow(i, 2) + 1) : tx1,
-                ty1 = ty1 == 2 ? i * tx1 + l : ty1,
-                tx2 = tx2 == 2 ? w - tx1 : tx2,
-                ty2 = ty2 == 2 ? h - ty1 : ty2;
-            let x1 = Math.round(tx2 / w * 100 * 100) / 100,
-                y1 = Math.round(ty2 / h * 100 * 100) / 100,
-                x2 = Math.round(tx1 / w * 100 * 100) / 100,
-                y2 = Math.round(ty1 / h * 100 * 100) / 100;
-            return [x1, y1, x2, y2];
+                rad = ang * Math.PI / 180,
+                dx = Math.cos(rad),
+                dy = Math.sin(rad);
+            // 从中心沿某方向走到矩形边界的距离
+            const edgeDist = (vx: number, vy: number) => {
+                const tx = Math.abs(vx) > 1e-6 ? wc / Math.abs(vx) : Infinity;
+                const ty = Math.abs(vy) > 1e-6 ? hc / Math.abs(vy) : Infinity;
+                return Math.min(tx, ty);
+            };
+            const t1 = edgeDist(dx, dy),      // 中心 → stop1 端
+                t2 = edgeDist(-dx, -dy);      // 中心 → stop0 端
+            const toPct = (v: number, total: number) => (total === 0 ? 0 : Math.round(v / total * 100 * 100) / 100);
+            return [
+                toPct(wc - t2 * dx, w), toPct(hc - t2 * dy, h),
+                toPct(wc + t1 * dx, w), toPct(hc + t1 * dy, h)
+            ];
         }
         function getSvgImagePattern(node: XmlNode | undefined, fill: any, shpId: any, warpObj: WarpObject) {
             // 处理 fill 参数是对象的情况

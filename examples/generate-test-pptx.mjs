@@ -113,8 +113,9 @@ slides.push(page('T2 · 形状渐变/透明度/阴影/发光', [
 slides.push(page('T3 · 文本编号列表/行距/缩进', [
     { type: 'text', x: 60, y: 120, width: 1040, height: 420, fontSize: 18, color: '#334155',
         paragraphs: [
-            { text: '编号第一项', bullet: { type: 'number', fmt: 'decimal' } },
-            { text: '编号第二项', bullet: { type: 'number', fmt: 'decimal' } },
+            // fmt 必须是合法的 ST_TextAutonumberScheme：'ea1ChsPeriod' = 中文编号「一、二、」
+            { text: '编号第一项', bullet: { type: 'number', fmt: 'ea1ChsPeriod' } },
+            { text: '编号第二项', bullet: { type: 'number', fmt: 'ea1ChsPeriod' } },
             { text: '缩进 + 行距28pt + 段前/后10', bullet: true, indent: 40, lineSpacing: { type: 'pt', value: 28 }, spaceBefore: 10, spaceAfter: 10 },
             { text: '普通项（无符号）', bullet: false }
         ]
@@ -324,6 +325,8 @@ async function selfCheck() {
     assert('T2 透明度 alpha', /<a:alpha/.test(slideXml[1]));
     // T3 编号/行距
     assert('T3 编号 buAutoNum', /<a:buAutoNum/.test(slideXml[2]));
+    // 编号 type 必须是合法的 ST_TextAutonumberScheme（否则 WPS/PowerPoint 会回退成默认编号）
+    assert('T3 编号 type 合法', /<a:buAutoNum type="(ea1ChsPeriod|arabicPeriod|alphaLcPeriod|romanUcPeriod)"/.test(slideXml[2]));
     assert('T3 行距 lnSpc', /<a:lnSpc/.test(slideXml[2]));
     // T4 组合
     assert('T4 组合 grpSp', /<p:grpSp/.test(slideXml[3]));

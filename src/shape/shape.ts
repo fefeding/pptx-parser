@@ -26,7 +26,7 @@
 import { PPTXXmlUtils } from '../utils/xml';
 import { PPTXStyleUtils } from '../utils/style';
 import { PPTXTextUtils } from '../utils/text';
-import { SLIDE_FACTOR, FONT_SIZE_FACTOR, GLOW_SIGMA_FACTOR, GLOW_ALPHA_SLOPE } from '../core/constants';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR, SHADOW_SIGMA_RATIO, GLOW_DILATE_RATIO, GLOW_SIGMA_RATIO } from '../core/constants';
 import {
     polarToCartesian,
     shapeArc,
@@ -338,7 +338,9 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                 if (clrFillType == "GRADIENT_FILL") {
                     grndFillFlg = true;
                     const color_arry = fillColor.color;
-                    const angl = fillColor.rot + 90;
+                    // getGradientFill 返回的 rot 是给 CSS linear-gradient() 用的（rot = a:lin/@ang + 90）；
+                    // SVGangle 需要 a:lin/@ang 的原始角度（顺时针、0° 指向右）
+                    const angl = fillColor.rot - 90;
                     const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId);
                     //fill="url(#linGrd)"
                     //console.log("genShape: svgGrdnt: ", svgGrdnt)
@@ -463,8 +465,6 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                 }
 
                 var oShadowSvgUrlStr: any = ""
-                // 阴影 / 发光统一收集为同一条 filter CSS 规则
-                const filterParts: string[] = [];
                 // Check if outerShdwNode exists and has valid shadow attributes
                 // A valid shadow should have at least dist defined with a non-zero value
                 let hasOuterShadow = false;
@@ -499,36 +499,46 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                 }
 
 
+                // 阴影与发光统一用一个 SVG 滤镜实现：
+                //  · CSS drop-shadow 的 blur 半径各浏览器对 σ 的解释不一致（实测 Chromium 近似 σ ≈ 半径），
+                //    改用 feGaussianBlur 的 stdDeviation 表达才可控且跨浏览器一致；
+                //  · 两者基于同一份 SourceAlpha 计算，避免链式 filter 让发光把阴影也算进去。
+                const fxId = `fx_${svgCssName}`;
+                let fxPasses = '';
+                const fxLayers: string[] = [];
+                let fxMargin = 0;
+
+                // 颜色可能带 a:alpha（getSolidFill 返回 8 位 hex），需拆成 flood-color + flood-opacity
+                const splitAlphaColor = (rawClr: string) => {
+                    const isHex8 = /^[0-9a-fA-F]{8}$/.test(rawClr);
+                    return {
+                        color: isHex8 ? rawClr.slice(0, 6) : rawClr,
+                        opacity: isHex8 ? (parseInt(rawClr.slice(6, 8), 16) / 255).toFixed(3) : '1'
+                    };
+                };
+
                 if (hasOuterShadow) {
-                    const chdwClrNode = PPTXStyleUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj);
+                    const chdwClrNode = PPTXStyleUtils.getSolidFill(outerShdwNode, undefined, undefined, warpObj) || '000000';
                     const outerShdwAttrs = outerShdwNode["attrs"];
 
                     //var algn = outerShdwAttrs["algn"];
                     var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
                     var dist = parseInt(outerShdwAttrs["dist"]) * SLIDE_FACTOR;//(px) //* (3 / 4); //(pt)
                     //var rotWithShape = outerShdwAttrs["rotWithShape"];
-                    var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR) : 0; // 缺省 0：留空会生成非法 CSS 导致整条 filter 失效
+                    var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR) : 0;
                     //var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
                     //var sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
                     const vx = dist * Math.sin(dir * Math.PI / 180);
                     const hx = dist * Math.cos(dir * Math.PI / 180);
-                    //SVG
-                    //var oShadowId = "outerhadow_" + shpId;
-                    //oShadowSvgUrlStr = "filter='url(#" + oShadowId+")'";
-                    //var shadowFilterStr = '<filter id="' + oShadowId + '" x="0" y="0" width="' + w * (6 / 8) + '" height="' + h + '">';
-                    //1:
-                    //shadowFilterStr += '<feDropShadow dx="' + vx + '" dy="' + hx + '" stdDeviation="' + blurRad * (3 / 4) + '" flood-color="#' + chdwClrNode +'" flood-opacity="1" />'
-                    //2:
-                    //shadowFilterStr += '<feFlood result="floodColor" flood-color="red" flood-opacity="0.5"   width="' + w * (6 / 8) + '" height="' + h + '"  />'; //#' + chdwClrNode +'
-                    //shadowFilterStr += '<feOffset result="offOut" in="SourceGraph ccfsdf-+ic"  dx="' + vx + '" dy="' + hx + '"/>'; //how much to offset
-                    //shadowFilterStr += '<feGaussianBlur result="blurOut" in="offOut" stdDeviation="' + blurRad*(3/4) +'"/>'; //tdDeviation is how much to blur
-                    //shadowFilterStr += '<feComponentTransfer><feFuncA type="linear" slope="0.5"/></feComponentTransfer>'; //slope is the opacity of the shadow
-                    //shadowFilterStr += '<feBlend in="SourceGraphic" in2="blurOut"  mode="normal" />'; //this contains the element that the filter is applied to
-                    //shadowFilterStr += '</filter>'; 
-                    //result += shadowFilterStr;
-
-                    //css：统一收集到 filterParts，最后与发光合并为一条 filter 规则
-                    filterParts.push(`drop-shadow(${hx}px ${vx}px ${blurRad}px #${chdwClrNode})`);
+                    // OOXML 未规定模糊核：σ 按 SHADOW_SIGMA_RATIO 换算（对 WPS 剖面拟合所得）
+                    const shdwSigma = blurRad * SHADOW_SIGMA_RATIO;
+                    const shdwClr = splitAlphaColor(chdwClrNode);
+                    fxPasses += `<feGaussianBlur in="SourceAlpha" stdDeviation="${shdwSigma}" result="shdwBlur"/>`;
+                    fxPasses += `<feOffset in="shdwBlur" dx="${hx}" dy="${vx}" result="shdwOff"/>`;
+                    fxPasses += `<feFlood flood-color="#${shdwClr.color}" flood-opacity="${shdwClr.opacity}" result="shdwColor"/>`;
+                    fxPasses += `<feComposite in="shdwColor" in2="shdwOff" operator="in" result="shdwLayer"/>`;
+                    fxLayers.push('shdwLayer');
+                    fxMargin = Math.max(fxMargin, dist + shdwSigma * 3);
                 }
 
                 //////////////////////////////glow///////////////////////////////////////////////
@@ -542,35 +552,34 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     const glowAttrs = glowNode["attrs"] || {};
                     const glowRad = glowAttrs["rad"] ? (parseInt(glowAttrs["rad"]) * SLIDE_FACTOR) : 0;
                     if (glowRad > 0) {
-                        const glowClrRaw = PPTXStyleUtils.getSolidFill(glowNode, undefined, undefined, warpObj) || '000000';
-                        // 颜色可能带 a:alpha（getSolidFill 返回 8 位 hex），需拆成 flood-color + flood-opacity
-                        const hasAlphaHex = /^[0-9a-fA-F]{8}$/.test(glowClrRaw);
-                        const glowClr = hasAlphaHex ? glowClrRaw.slice(0, 6) : glowClrRaw;
-                        const glowOpacity = hasAlphaHex
-                            ? (parseInt(glowClrRaw.slice(6, 8), 16) / 255).toFixed(3)
-                            : '1';
-                        // 按 PowerPoint/WPS 的发光算法：对形状轮廓高斯模糊 → 用发光色填充 → 与原形状合成。
-                        // 得到的是向外渐隐的柔光；用多层不透明 drop-shadow 叠出来的是实心色块（观感像阴影）。
-                        const glowId = `glow_${svgCssName}`;
-                        const stdDev = glowRad * GLOW_SIGMA_FACTOR;
-                        // 显式指定 sRGB：SVG 滤镜默认在 linearRGB 空间运算，与 PowerPoint/WPS/CSS 的 sRGB 不一致。
-                        // 本滤镜只模糊 alpha 通道（影响极小），但对 softEdge 这类模糊颜色通道的滤镜会明显偏亮发灰。
-                        let glowFilter = `<filter id="${glowId}" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">`;
-                        glowFilter += `<feGaussianBlur in="SourceAlpha" stdDeviation="${stdDev}" result="glowBlur"/>`;
-                        // 模糊半平面在轮廓处只有 0.5 alpha，放大回满强度才能贴合 PowerPoint 的发光观感
-                        glowFilter += `<feComponentTransfer in="glowBlur" result="glowAlpha"><feFuncA type="linear" slope="${GLOW_ALPHA_SLOPE}"/></feComponentTransfer>`;
-                        glowFilter += `<feFlood flood-color="#${glowClr}" flood-opacity="${glowOpacity}" result="glowColor"/>`;
-                        glowFilter += `<feComposite in="glowColor" in2="glowAlpha" operator="in" result="glowLayer"/>`;
-                        glowFilter += `<feMerge><feMergeNode in="glowLayer"/><feMergeNode in="SourceGraphic"/></feMerge>`;
-                        glowFilter += `</filter>`;
-                        result += glowFilter;
-                        filterParts.push(`url(#${glowId})`);
+                        const glowClr = splitAlphaColor(PPTXStyleUtils.getSolidFill(glowNode, undefined, undefined, warpObj) || '000000');
+                        // 按 PowerPoint/WPS 的发光算法：轮廓先向外膨胀出一段实心光边，再高斯柔化外缘。
+                        // 只对轮廓做高斯模糊的话，尖角处强度只有 ~0.25、整体明显偏淡。
+                        const glowDilate = glowRad * GLOW_DILATE_RATIO;
+                        const glowSigma = glowRad * GLOW_SIGMA_RATIO;
+                        fxPasses += `<feMorphology in="SourceAlpha" operator="dilate" radius="${glowDilate}" result="glowDil"/>`;
+                        fxPasses += `<feGaussianBlur in="glowDil" stdDeviation="${glowSigma}" result="glowBlur"/>`;
+                        fxPasses += `<feFlood flood-color="#${glowClr.color}" flood-opacity="${glowClr.opacity}" result="glowColor"/>`;
+                        fxPasses += `<feComposite in="glowColor" in2="glowBlur" operator="in" result="glowLayer"/>`;
+                        // 发光在最底层，阴影次之，形状本体最上
+                        fxLayers.unshift('glowLayer');
+                        fxMargin = Math.max(fxMargin, glowDilate + glowSigma * 3);
                     }
                 }
 
-                // 阴影/发光注册为同一条 filter CSS 规则（作用于该形状 SVG 元素）
-                if (filterParts.length > 0) {
-                    let effectsCss = `filter:${filterParts.join(' ')};`;
+                // 阴影/发光注册为一条 filter CSS 规则（作用于该形状 SVG 元素）
+                if (fxLayers.length > 0) {
+                    const margin = Math.ceil(fxMargin) + 2;
+                    // 显式指定 sRGB：SVG 滤镜默认在 linearRGB 空间运算，与 PowerPoint/WPS/CSS 的 sRGB 不一致。
+                    // 滤镜区域用 userSpaceOnUse 精确给出（按 bbox 百分比在细长图形上会裁掉光晕/阴影）。
+                    let fxFilter = `<filter id="${fxId}" filterUnits="userSpaceOnUse" x="${-margin}" y="${-margin}"` +
+                        ` width="${w + margin * 2}" height="${h + margin * 2}" color-interpolation-filters="sRGB">`;
+                    fxFilter += fxPasses;
+                    fxFilter += `<feMerge>${fxLayers.map(layer => `<feMergeNode in="${layer}"/>`).join('')}<feMergeNode in="SourceGraphic"/></feMerge>`;
+                    fxFilter += `</filter>`;
+                    result += fxFilter;
+
+                    let effectsCss = `filter:url(#${fxId});`;
                     if (effectsCss in warpObj.styleTable) {
                         effectsCss += `do-nothing: ${svgCssName};`;
                     }

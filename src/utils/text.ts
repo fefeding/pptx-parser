@@ -229,7 +229,7 @@ function getTextWidth(html: string) {
                     }
                 }
                 text += `<div style='display: flex;${sld_prg_width}${sld_prg_height}${outerFlexStyle}${directionStyle}' class='slide-prgrph ${horizontalAlign}` + ` ${prg_dir} ` + cssName + "' >";
-                let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj);
+                let buText_ary = await genBuChar(pNode, i, spNode, textBodyNode, pFontStyle, idx, type, warpObj, apNode.length, anchor);
                 let isBullate = (buText_ary[0] !== undefined && buText_ary[0] !== null && buText_ary[0] != "" ) ? true : false;
                 let bu_width = (buText_ary[1] !== undefined && buText_ary[1] !== null && isBullate) ? (Number(buText_ary[1]) + Number(buText_ary[2])) : 0;
 
@@ -445,7 +445,7 @@ function getTextWidth(html: string) {
         return paddingStyle;
     }
         
-        async function genBuChar(node: XmlNode, i: number, spNode: XmlNode, textBodyNode: XmlNode, pFontStyle: Record<string, unknown>, idx: number | undefined, type: string, warpObj: WarpObject) {
+        async function genBuChar(node: XmlNode, i: number, spNode: XmlNode, textBodyNode: XmlNode, pFontStyle: Record<string, unknown>, idx: number | undefined, type: string, warpObj: WarpObject, totalParagraphs?: number, anchor?: string) {
 
             ///////////////////////////////////////Amir///////////////////////////////
             let sldMstrTxtStyles = warpObj["slideMasterTextStyles"];
@@ -723,6 +723,27 @@ function getTextWidth(html: string) {
                 bultSize = dfltBultSize;
             }
             font_val = parseInt(bultSize ?? "", 10);
+
+            // 项目符号要垂直居中于「段落首行」，而不是段落的顶边或整段：
+            // 宿主页面的样式（如 .slide div.h-left{align-items:flex-start}）会把兄弟元素顶到行首，
+            // 所以这里显式声明自身对齐方式，并套用与首行一致的行高与段前距。
+            const bulletVAlignStyle = (() => {
+                const fontSizePx = parseFloat(dfltBultSize ?? "") || 0;
+                const vMargins = PPTXStyleUtils.getVerticalMargins(
+                    node, textBodyNode, type, idx, warpObj,
+                    totalParagraphs !== undefined ? totalParagraphs : 1, i, anchor);
+                // 行高是比例值，需要乘正文字号换算成首行盒高（符号字号可能与正文不同）
+                const lhMatch = /line-height:\s*([\d.]+)/.exec(vMargins);
+                const mtMatch = /margin-top:\s*(-?[\d.]+)px/.exec(vMargins);
+                let style = "align-self: flex-start;";
+                if (mtMatch) {
+                    style += `margin-top:${mtMatch[1]}px;`;
+                }
+                if (lhMatch && fontSizePx > 0) {
+                    style += `height:${(parseFloat(lhMatch[1]) * fontSizePx).toFixed(2)}px;`;
+                }
+                return style;
+            })();
             ////////////////////////////////////////////////////////////////////////
             if (buType == "TYPE_BULLET") {
                 let typefaceNode = PPTXXmlUtils.getTextByPathList(pPrNode, ["a:buFont", "attrs", "typeface"]);
@@ -838,7 +859,7 @@ function getTextWidth(html: string) {
                     bullet = bullet.replace(/font-family:\s*(Wingdings|Wingdings\s*2|Wingdings\s*3|Webdings)\s*/gi, "font-family: Arial, sans-serif");
                 }
                 
-                bullet += `display: flex; align-items: center;'><div>${htmlBu}</div></div>`;
+                bullet += `${bulletVAlignStyle}display: flex; align-items: center;'><div>${htmlBu}</div></div>`;
                 //} 
                 // else {
                 //     marginLeft = 328600 * SLIDE_FACTOR * lvl;
@@ -887,7 +908,7 @@ function getTextWidth(html: string) {
                 } else {
                     bullet += "white-space: nowrap ;direction:ltr;";
                 }
-                bullet += `display: flex; align-items: center;'><div>${bulletText}</div></div>`;
+                bullet += `${bulletVAlignStyle}display: flex; align-items: center;'><div>${bulletText}</div></div>`;
 
             } else if (buType == "TYPE_BULPIC") { //PIC BULLET
                 // let marginLeft = parseInt (PPTXXmlUtils.getTextByPathList(pPrNode, ["attrs", "marL"])) * SLIDE_FACTOR;
@@ -933,7 +954,7 @@ function getTextWidth(html: string) {
                     buImg = "&#8227;";
                 }
                 bullet = `<div style='${marLStr}${marRStr}` +
-                    `width:${bultSize};display: flex; align-items: center;`;// +
+                    `width:${bultSize};${bulletVAlignStyle}display: flex; align-items: center;`;// +
                 //"line-height: 0px;";
                 if (isRTL) {
                     bullet += "white-space: nowrap ;direction:rtl;"; //direction:rtl; float: right;
@@ -1265,6 +1286,43 @@ function getTextWidth(html: string) {
             [/^([א-ת])$/, "$1׳"]
         ]);
     /**
+     * 中文数字（一、二、三…；financial=true 时用壹、贰、叁…）
+     * @param num 1-9999 的整数
+     */
+    function chineseNumeric(num: number, financial = false) {
+        const digits = financial
+            ? ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
+            : ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+        const units = financial ? ['', '拾', '佰', '仟'] : ['', '十', '百', '千'];
+        if (!isFinite(num) || num < 1 || num > 9999 || Math.floor(num) !== num) {
+            return String(num);
+        }
+        if (num < 10) {
+            return digits[num];
+        }
+        // 中文「十」习惯：10-19 写作 十/十一（财务写法为 壹拾/壹拾壹）
+        if (num < 20) {
+            const rest = num % 10 ? digits[num % 10] : '';
+            return (financial ? digits[1] + units[1] : units[1]) + rest;
+        }
+        const str = String(num);
+        const len = str.length;
+        let out = '';
+        for (let i = 0; i < len; i++) {
+            const d = Number(str[i]);
+            const unitIdx = len - 1 - i;
+            if (d === 0) {
+                // 中间的零只保留一个，末尾零省略
+                if (out !== '' && i < len - 1 && !out.endsWith(digits[0])) {
+                    out += digits[0];
+                }
+            } else {
+                out += digits[d] + units[unitIdx];
+            }
+        }
+        return out;
+    }
+    /**
      * getNumTypeNum - 根据数字类型获取格式化的数字
      * @param {string} numTyp - 数字类型
      * @param {number} num - 数字
@@ -1276,8 +1334,38 @@ function getTextWidth(html: string) {
             case "arabicPeriod":
                 rtrnNum = `${num}. `;
                 break;
+            case "arabicPlain":
+                rtrnNum = `${num} `;
+                break;
+            case "arabicParenBoth":
+                rtrnNum = `(${num}) `;
+                break;
             case "arabicParenR":
                 rtrnNum = `${num}) `;
+                break;
+            // East Asian 编号（中文环境下 PowerPoint/WPS 常用）
+            case "chineseCounting":
+            case "chineseCountingThousand":
+            case "ideographDigital":
+                rtrnNum = `${chineseNumeric(num)}`;
+                break;
+            case "chineseLegalSimplified":
+                rtrnNum = `${chineseNumeric(num, true)}、`;
+                break;
+            case "ea1ChsPeriod":
+            case "ea1ChtPeriod":
+            case "ea1JpnChsDbPeriod":
+            case "ea1JpnKorPeriod":
+                rtrnNum = `${chineseNumeric(num)}、`;
+                break;
+            case "ea1ChsPlain":
+            case "ea1ChtPlain":
+            case "ea1JpnKorPlain":
+                rtrnNum = `${chineseNumeric(num)} `;
+                break;
+            case "circleNumDbPlain":
+                // ① ② ③ …
+                rtrnNum = (num >= 1 && num <= 20) ? `${String.fromCodePoint(0x2460 + num - 1)} ` : `${num} `;
                 break;
             case "alphaLcParenR":
                 rtrnNum = `${alphaNumeric(num, "lowerCase")}) `;

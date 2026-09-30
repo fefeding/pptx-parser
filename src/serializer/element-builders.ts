@@ -526,6 +526,46 @@ function buildTextRun(ctx: SerializerContext, text: string | undefined, opts: Ru
 }
 
 /**
+ * a:buAutoNum/@type 的合法取值（ECMA-376 ST_TextAutonumberScheme）
+ * 只列常用项；不在其中的值一律按别名映射或回退到 arabicPeriod，
+ * 避免写出 WPS/PowerPoint 无法识别的 type（会被当成默认中文编号渲染）。
+ */
+const VALID_AUTONUM_TYPES = [
+    'alphaLcParenBoth', 'alphaUcParenBoth', 'alphaLcParenR', 'alphaUcParenR', 'alphaLcPeriod', 'alphaUcPeriod',
+    'arabicParenBoth', 'arabicParenR', 'arabicPeriod', 'arabicPlain',
+    'romanLcParenBoth', 'romanUcParenBoth', 'romanLcParenR', 'romanUcParenR', 'romanLcPeriod', 'romanUcPeriod',
+    'circleNumDbPlain', 'circleNumWdWhitePlain', 'circleNumWdBlackPlain',
+    'ea1ChsPeriod', 'ea1ChsPlain', 'ea1ChtPeriod', 'ea1ChtPlain', 'ea1JpnChsDbPeriod', 'ea1JpnKorPeriod', 'ea1JpnKorPlain',
+    'chineseCounting', 'chineseLegalSimplified', 'chineseCountingThousand', 'ideographDigital',
+    'hebrew1', 'hebrew2'
+];
+
+/** 友好写法 → 合法 ST_TextAutonumberScheme 值 */
+const AUTONUM_TYPE_ALIASES: Record<string, string> = {
+    arabic: 'arabicPeriod', decimal: 'arabicPeriod', numeric: 'arabicPeriod', number: 'arabicPeriod', '1': 'arabicPeriod',
+    arabicPlain: 'arabicPlain', decimalPlain: 'arabicPlain',
+    alphaLc: 'alphaLcPeriod', alphaUc: 'alphaUcPeriod', alpha: 'alphaLcPeriod', letter: 'alphaLcPeriod',
+    romanLc: 'romanLcPeriod', romanUc: 'romanUcPeriod', roman: 'romanUcPeriod',
+    // 中文编号
+    chinese: 'chineseCounting', chineseCounting: 'chineseCounting',
+    chineseLegal: 'chineseLegalSimplified',
+    ea1Chs: 'ea1ChsPeriod', ea1Cht: 'ea1ChtPeriod', ea1JpnKor: 'ea1JpnKorPeriod'
+};
+
+/**
+ * 归一化自动编号类型：已经是合法值则原样返回，友好写法按别名表映射，其余回退 arabicPeriod
+ * @param {string|undefined} fmt - 用户传入的编号格式
+ * @returns {string} 合法的 ST_TextAutonumberScheme 值
+ */
+function normalizeAutoNumType(fmt: string | undefined): string {
+    if (typeof fmt === 'string' && fmt !== '') {
+        if (VALID_AUTONUM_TYPES.indexOf(fmt) !== -1) return fmt;
+        if (AUTONUM_TYPE_ALIASES[fmt] !== undefined) return AUTONUM_TYPE_ALIASES[fmt];
+    }
+    return 'arabicPeriod';
+}
+
+/**
  * 构建段落（a:p）
  * @param {Object} ctx - 构建上下文
  * @param {Object} paragraph - 段落 { text, runs, align, bullet }
@@ -560,7 +600,8 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
     // 列表符号：自动编号 / 项目符号 / 无
     const b = p.bullet;
     if (b === 'number' || (b && typeof b === 'object' && b.type === 'number')) {
-        const fmt = (b && typeof b === 'object' && b.fmt) || 'arabic';
+        // fmt 需是合法的 ST_TextAutonumberScheme（'decimal' 这类写法会让 WPS/PowerPoint 回退成中文编号）
+        const fmt = normalizeAutoNumType(b && typeof b === 'object' ? b.fmt : undefined);
         const start = (b && typeof b === 'object' && b.start != null) ? b.start : 1;
         pPrChildren.push(xmlNode('a:buAutoNum', { type: fmt, startAt: start }));
     } else if (b === true || b === 'bullet' || (b && typeof b === 'object' && (b.type === 'bullet' || b.char))) {
