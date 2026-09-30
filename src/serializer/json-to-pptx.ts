@@ -24,7 +24,7 @@ import {
     buildCorePropsXml, buildAppPropsXml, buildRootRelsXml,
     MASTER_RELS, LAYOUT_RELS, REL_TYPES
 } from './templates';
-import { createElementContext, buildSlideRoot, type SerializerSlide } from './element-builders';
+import { createElementContext, buildSlideRoot, buildNotesSlide, type SerializerSlide, type SerializerPart, type SerializerRel } from './element-builders';
 import { PPTXXmlUtils } from '../utils/xml';
 
 /** 演示文稿 JSON 树 */
@@ -51,6 +51,51 @@ export type ZipOutputType = 'base64' | 'string' | 'text' | 'binarystring' | 'arr
 
 /** 已解析的 Relationship（属性集合） */
 type ParsedRel = Record<string, string>;
+
+/**
+ * 关系目标 → zip 内绝对路径（ppt/...）
+ * @param {string} target - 关系目标（../xx 或 ppt/xx 或绝对 http 链接）
+ * @returns {string} 绝对路径；外部链接原样返回
+ */
+function toAbsPath(target: string): string {
+    if (!target) return target;
+    if (/^https?:/i.test(target)) return target;
+    if (target.startsWith('ppt/')) return target;
+    return `ppt/${target.replace(/^(\.\.\/)+/, '').replace(/^\/+/, '')}`;
+}
+
+/**
+ * 规整 __raw 附属部件路径：与已占用路径冲突时重命名，并同步改写 ctx.rels 中指向原路径的关系目标
+ *
+ * 必须在 slide 关系落盘前调用，否则重命名后的部件不会被关系指向。
+ *
+ * @param {Object} ctx - 元素构建上下文
+ * @param {Set<string>} usedPaths - 已被占用的 zip 内路径（调用方需持续维护）
+ * @returns {Array<{part: Object, path: string}>} 部件与最终落盘路径
+ */
+function dedupeRawParts(ctx: { parts: SerializerPart[]; rels: SerializerRel[] }, usedPaths: Set<string>) {
+    const resolved: { part: SerializerPart; path: string }[] = [];
+    for (const part of ctx.parts) {
+        let path = part.path;
+        if (usedPaths.has(path)) {
+            const dot = path.lastIndexOf('.');
+            const base = dot > 0 ? path.slice(0, dot) : path;
+            const ext = dot > 0 ? path.slice(dot) : '';
+            let n = 2;
+            while (usedPaths.has(`${base}__${n}${ext}`)) n++;
+            path = `${base}__${n}${ext}`;
+            // 同步改写指向原路径的关系目标
+            for (const rel of ctx.rels) {
+                if (toAbsPath(rel.target) === part.path) {
+                    rel.target = `../${path.replace(/^ppt\//, '')}`;
+                }
+            }
+        }
+        usedPaths.add(path);
+        resolved.push({ part, path });
+    }
+    return resolved;
+}
 
 /**
  * 规范化演示文稿 JSON 输入
@@ -90,11 +135,18 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     const slideRefs = [];       // presentation.xml 中的引用 { relId, target }
     const allMediaExts = new Set();
     const allChartNames = [];   // 图表部件名（用于 Content-Types 覆盖）
+    const allNotesSlides: number[] = [];  // 备注部件编号（用于 Content-Types 覆盖）
+    const allRawParts: { path: string; contentType: string }[] = []; // __raw 回退部件（用于 Content-Types 覆盖）
     let presRelId = 2;         // rId1 为母版
+
+    // 媒体/图表编号需跨页递增：否则各页都从 1 开始，后页会覆盖前页的 image1/chart1
+    let mediaIndex = 0;
+    let chartIndex = 0;
+    const usedRawParts = new Set<string>();
 
     for (const i of pres.slides.keys()){
         const slideIndex = i + 1;
-        const ctx = createElementContext();
+        const ctx = createElementContext({ startMediaIndex: mediaIndex, startChartIndex: chartIndex });
         const slideRoot = await buildSlideRoot(ctx, pres.slides[i]);
 
         zip.file(`ppt/slides/slide${slideIndex}.xml`, toXmlDocument(slideRoot));
@@ -104,6 +156,31 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
             { relId: 'rId1', type: REL_TYPES.slideLayout, target: '../slideLayouts/slideLayout1.xml' },
             ...ctx.rels
         ];
+
+        // 演讲者备注 → 生成 notesSlide 部件及其关系（双向标准字段）
+        const slideNotes = pres.slides[i] && pres.slides[i].notes;
+        if (slideNotes) {
+            const notesRelId = `rId${ctx.nextRelId++}`;
+            zip.file(`ppt/notesSlides/notesSlide${slideIndex}.xml`, toXmlDocument(buildNotesSlide(slideNotes)));
+            zip.file(`ppt/notesSlides/_rels/notesSlide${slideIndex}.xml.rels`,
+                buildRelationshipsXml([{ relId: 'rId1', type: REL_TYPES.slide, target: `../slides/slide${slideIndex}.xml` }]));
+            slideRels.push({ relId: notesRelId, type: REL_TYPES.notesSlide, target: `../notesSlides/notesSlide${slideIndex}.xml` });
+            allNotesSlides.push(slideIndex);
+        }
+
+        // __raw 回退附属部件（SmartArt 的 diagrams/*.xml 等）
+        // 不同页的原始部件可能同名（如各自的 diagrams/data1.xml），需去重并同步改写引用关系。
+        // 必须先于 slide rels 落盘执行，否则重命名的部件不会被关系指向。
+        for (const { part, path } of dedupeRawParts(ctx, usedRawParts)) {
+            if (part.base64) {
+                zip.file(path, part.base64, { base64: true });
+                allMediaExts.add((path.split('.').pop() ?? '').toLowerCase());
+            } else if (part.content !== undefined) {
+                zip.file(path, part.content);
+                allRawParts.push({ path, contentType: part.contentType });
+            }
+        }
+
         zip.file(`ppt/slides/_rels/slide${slideIndex}.xml.rels`, buildRelationshipsXml(slideRels));
 
         // 媒体文件
@@ -117,6 +194,9 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
             zip.file(`ppt/charts/${chart.name}`, chart.xml);
             allChartNames.push(chart.name);
         }
+
+        mediaIndex = ctx.mediaIndex;
+        chartIndex = ctx.chartIndex;
 
         slideRefs.push({ relId: `rId${presRelId++}`, target: `slides/slide${slideIndex}.xml` });
     }
@@ -157,6 +237,16 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     // 图表部件 Content-Types 覆盖
     for (const chartName of allChartNames) {
         const override = `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`;
+        contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
+    }
+    // 备注部件 Content-Types 覆盖
+    for (const idx of allNotesSlides) {
+        const override = `<Override PartName="/ppt/notesSlides/notesSlide${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"/>`;
+        contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
+    }
+    // __raw 回退部件 Content-Types 覆盖
+    for (const part of allRawParts) {
+        const override = `<Override PartName="/${part.path}" ContentType="${escapeXml(part.contentType)}"/>`;
         contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
     }
     zip.file('[Content_Types].xml', contentTypeXml);
@@ -228,6 +318,17 @@ function listSlideNumbers(zip: JSZip) {
         if (m) numbers.push(Number(m[1]));
     });
     return numbers.sort((a: number, b: number) => a - b);
+}
+
+/** 列出 zip 中 ppt/charts 下的最大图表编号（chartN.xml） */
+function maxChartIndex(zip: JSZip) {
+    let max = 0;
+    zip.forEach((path: string, entry: { dir: boolean }) => {
+        if (entry.dir) return;
+        const m = path.match(/^ppt\/charts\/[^/]*?(\d+)\.[^/]+$/);
+        if (m) max = Math.max(max, Number(m[1]));
+    });
+    return max;
 }
 
 /** 列出 zip 中 ppt/media 下的最大媒体编号（不限 imageN 命名，取文件名中最后一个数字段） */
@@ -466,16 +567,13 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
             const numbers = listSlideNumbers(zip);
             const nextNum = (numbers.length ? numbers[numbers.length - 1] : 0) + 1;
 
-            // 构建新页内容
-            const ctx = createElementContext({ startMediaIndex: maxMediaIndex(zip) });
+            // 构建新页内容（媒体/图表编号从包内现有最大值续接，避免覆盖已有部件）
+            const ctx = createElementContext({
+                startMediaIndex: maxMediaIndex(zip),
+                startChartIndex: maxChartIndex(zip)
+            });
             const slideRoot = await buildSlideRoot(ctx, slideJson);
             zip.file(`ppt/slides/slide${nextNum}.xml`, toXmlDocument(slideRoot));
-
-            const slideRels = [
-                { relId: 'rId1', type: REL_TYPES.slideLayout, target: '../slideLayouts/slideLayout1.xml' },
-                ...ctx.rels
-            ];
-            zip.file(`ppt/slides/_rels/slide${nextNum}.xml.rels`, buildRelationshipsXml(slideRels));
 
             // 媒体文件
             const mediaExts = new Set();
@@ -490,6 +588,27 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
                 zip.file(`ppt/charts/${chart.name}`, chart.xml);
                 newCtCharts.push(chart.name);
             }
+
+            // __raw 回退附属部件（SmartArt 的 diagrams/*.xml 等）
+            // 与包内已有部件重名时重命名并同步改写关系，且必须先于 slide rels 落盘
+            const usedPaths = new Set<string>();
+            zip.forEach((p: string, entry: { dir: boolean }) => { if (!entry.dir) usedPaths.add(p); });
+            const newCtRawParts: { path: string; contentType: string }[] = [];
+            for (const { part, path } of dedupeRawParts(ctx, usedPaths)) {
+                if (part.base64) {
+                    zip.file(path, part.base64, { base64: true });
+                    mediaExts.add((path.split('.').pop() ?? '').toLowerCase());
+                } else if (part.content !== undefined) {
+                    zip.file(path, part.content);
+                    newCtRawParts.push({ path, contentType: part.contentType });
+                }
+            }
+
+            const slideRels = [
+                { relId: 'rId1', type: REL_TYPES.slideLayout, target: '../slideLayouts/slideLayout1.xml' },
+                ...ctx.rels
+            ];
+            zip.file(`ppt/slides/_rels/slide${nextNum}.xml.rels`, buildRelationshipsXml(slideRels));
 
             // presentation.xml 追加 sldId
             const maxId = info.entries.reduce((m, e) => Math.max(m, Number(e.id) || 256), 255);
@@ -523,6 +642,11 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
             for (const chartName of newCtCharts) {
                 if (!newCt.includes(`/ppt/charts/${chartName}`)) {
                     newCt = newCt.replace('</Types>', `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>`);
+                }
+            }
+            for (const part of newCtRawParts) {
+                if (!newCt.includes(`/${part.path}`)) {
+                    newCt = newCt.replace('</Types>', `<Override PartName="/${part.path}" ContentType="${escapeXml(part.contentType)}"/></Types>`);
                 }
             }
             zip.file('[Content_Types].xml', newCt);

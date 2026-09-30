@@ -31,6 +31,7 @@ export const NS = {
     r: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
     p: 'http://schemas.openxmlformats.org/presentationml/2006/main',
     c: 'http://schemas.openxmlformats.org/drawingml/2006/chart',
+    table: 'http://schemas.openxmlformats.org/drawingml/2006/table',
     rel: 'http://schemas.openxmlformats.org/package/2006/relationships',
     cp: 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties',
     dc: 'http://purl.org/dc/elements/1.1/',

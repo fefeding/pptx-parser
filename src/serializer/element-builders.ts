@@ -15,8 +15,9 @@
  * @module serializer/element-builders
  */
 
-import { xmlNode, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml } from './xml-builder';
+import { xmlNode, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml, type BuilderNode } from './xml-builder';
 import { REL_TYPES } from './templates';
+import type { PptxBackground, PptxTransition } from '../types/pptx-document';
 
 /** 关系记录（写入 slide rels） */
 export interface SerializerRel {
@@ -35,11 +36,34 @@ export interface SerializerChart {
     name: string;
     xml: string;
 }
-/** 元素构建上下文：构建过程中收集 rels / media / charts */
+/**
+ * __raw 回退所需的附属部件（如 SmartArt 的 diagrams/*.xml）
+ * media=true 表示二进制资源（以 base64 落盘，走 Default 扩展名声明）
+ */
+export interface SerializerPart {
+    path: string;
+    content?: string;
+    base64?: string;
+    contentType: string;
+    media?: boolean;
+}
+/** __raw 载荷：原始 OOXML 子树 + 其依赖的关系与部件 */
+export interface SerializerRawPayload {
+    /** 原始节点标签名（如 p:graphicFrame） */
+    tag: string;
+    /** tXml simplify 形态的节点内容 */
+    node: unknown;
+    /** 节点引用的关系：旧 rId → { type, target, external } */
+    rels?: Record<string, { type: string; target: string; external?: boolean }>;
+    /** 关系指向的部件内容（自包含，保证 round-trip 不丢件） */
+    parts?: SerializerPart[];
+}
+/** 元素构建上下文：构建过程中收集 rels / media / charts / parts */
 export interface SerializerContext {
     rels: SerializerRel[];
     media: SerializerMedia[];
     charts: SerializerChart[];
+    parts: SerializerPart[];
     nextElementId: number;
     nextRelId: number;
     mediaIndex: number;
@@ -47,7 +71,10 @@ export interface SerializerContext {
 }
 /** createElementContext 的选项 */
 export interface ElementContextOptions {
+    /** 媒体文件起始编号（避免与已有文件冲突） */
     startMediaIndex?: number;
+    /** 图表部件起始编号（避免与已有部件冲突） */
+    startChartIndex?: number;
 }
 /** 运行级样式（文本默认样式 / 单段 run 样式均使用） */
 export interface RunStyle {
@@ -72,6 +99,27 @@ export interface ParagraphSpec {
     runs?: TextRunSpec[];
     align?: string;
     bullet?: boolean;
+}
+/** 表格单元格 */
+export interface SerializerTableCell {
+    text?: string;
+    paragraphs?: ParagraphSpec[];
+    colSpan?: number;
+    rowSpan?: number;
+    fill?: string;
+    align?: string;
+    valign?: string;
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontFace?: string;
+}
+/** 表格行 */
+export interface SerializerTableRow {
+    height?: number;
+    cells: SerializerTableCell[];
 }
 /** 图表系列 */
 export interface ChartSeriesSpec {
@@ -122,10 +170,25 @@ export interface SerializerElement {
     barDir?: string;
     title?: string;
     legend?: boolean;
+    /** 表格：行数据 */
+    rows?: SerializerTableRow[];
+    /** 表格：列宽（px，缺省均分） */
+    colWidths?: number[];
+    /** 表格：行高（px，缺省均分） */
+    rowHeights?: number[];
+    /** 原始 OOXML 载荷（解析端产出，语义层未覆盖时用于无损回写） */
+    __raw?: unknown;
+    /** 强制以 __raw 回写（即使 type 已受语义层支持） */
+    rawFallback?: boolean;
 }
 /** 幻灯片 JSON */
 export interface SerializerSlide {
-    background?: string | null;
+    /** 背景：纯色串 / 渐变 / 图片（与 PptxBackground 同源） */
+    background?: string | PptxBackground | null;
+    /** 演讲者备注 */
+    notes?: string;
+    /** 过渡效果 */
+    transition?: PptxTransition;
     elements?: SerializerElement[];
 }
 
@@ -141,6 +204,8 @@ export function createElementContext(options: ElementContextOptions = {}): Seria
         rels: ([] as SerializerRel[]),
         /** 媒体文件列表 {name, base64} */
         media: ([] as SerializerMedia[]),
+        /** __raw 回退附属部件列表 */
+        parts: ([] as SerializerPart[]),
         /** 幻灯片内元素自增 id（1 被 spTree 根占用） */
         nextElementId: 2,
         /** 关系自增 id（rId1 固定为版式引用） */
@@ -150,7 +215,7 @@ export function createElementContext(options: ElementContextOptions = {}): Seria
         /** 图表部件列表 {name, xml}（生成后由上层写入 ppt/charts/） */
         charts: ([] as SerializerChart[]),
         /** 图表自增编号 */
-        chartIndex: 0
+        chartIndex: options.startChartIndex || 0
     };
 }
 
@@ -176,18 +241,20 @@ function addRelationship(ctx: SerializerContext, type: string, target: string, e
 async function resolveImageData(el: SerializerElement) {
     if (el.data) {
         const str = String(el.data);
-        const dataUrlMatch = str.match(/^data:image\/([a-z0-9.+-]+);base64,(.+)$/i);
+        // 兼容任意 mime 的 dataURL（如非常规扩展名产生的 data:application/octet-stream;base64,...）
+        const dataUrlMatch = str.match(/^data:([^;,]*);base64,(.+)$/is);
         if (dataUrlMatch) {
-            let ext = dataUrlMatch[1].toLowerCase();
-            if (ext === 'jpg') ext = 'jpeg';
-            if (ext === 'svg+xml') ext = 'svg';
-            return { base64: dataUrlMatch[2], ext: el.extension || ext };
+            return { base64: dataUrlMatch[2], ext: el.extension || mimeToExt(dataUrlMatch[1]) };
         }
         // 裸 base64
         return { base64: str, ext: el.extension || 'png' };
     }
 
     if (el.src) {
+        if (!/^https?:\/\//i.test(String(el.src))) {
+            // 非 URL（如包内相对路径）无法下载，给出明确报错而不是交给 fetch 失败
+            throw new Error(`图片元素 src 不是可下载的 URL: ${el.src}。请改用 data（dataURL/base64）或绝对 http(s) 地址`);
+        }
         if (typeof fetch !== 'function') {
             throw new Error(`无法获取远程图片 ${el.src}：当前环境不支持 fetch。请将图片下载后以 data(base64/dataURL) 方式提供`);
         }
@@ -205,6 +272,25 @@ async function resolveImageData(el: SerializerElement) {
     }
 
     throw new Error("图片元素需要提供 data（dataURL/base64）或 src（远程 URL）字段");
+}
+
+/**
+ * mime 类型 → 文件扩展名（未知 mime 回退 png）
+ * @param {string} mime - mime 类型，如 image/png
+ * @returns {string} 扩展名（不含点）
+ */
+function mimeToExt(mime: string): string {
+    const map: Record<string, string> = {
+        'image/png': 'png', 'image/jpeg': 'jpeg', 'image/jpg': 'jpeg', 'image/gif': 'gif',
+        'image/bmp': 'bmp', 'image/svg+xml': 'svg', 'image/tiff': 'tiff', 'image/webp': 'webp',
+        'image/x-icon': 'ico', 'image/vnd.microsoft.icon': 'ico',
+        'image/x-emf': 'emf', 'image/x-wmf': 'wmf'
+    };
+    const m = String(mime || '').toLowerCase().trim();
+    if (map[m]) return map[m];
+    const sub = m.split('/')[1];
+    if (!sub) return 'png';
+    return sub.replace(/\+.*$/, '').replace(/^x-/, '');
 }
 
 /**
@@ -630,13 +716,187 @@ function buildChartXml(el: SerializerElement) {
 }
 
 /**
+ * 构建表格单元格（a:tc）
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} cell - 单元格 { text | paragraphs, colSpan, rowSpan, fill, align, valign, ...样式 }
+ * @returns {Object} a:tc 节点
+ */
+function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell): BuilderNode {
+    const attrs: Record<string, unknown> = {};
+    if (cell.colSpan && cell.colSpan > 1) attrs.gridSpan = cell.colSpan;
+    if (cell.rowSpan && cell.rowSpan > 1) attrs.rowSpan = cell.rowSpan;
+
+    const defaults: RunStyle = {
+        align: cell.align,
+        fontSize: cell.fontSize,
+        color: cell.color,
+        bold: cell.bold,
+        italic: cell.italic,
+        underline: cell.underline,
+        fontFace: cell.fontFace
+    };
+    const paragraphs = Array.isArray(cell.paragraphs) && cell.paragraphs.length
+        ? cell.paragraphs
+        : [{ text: cell.text !== undefined ? cell.text : '' }];
+
+    const tcPrChildren: BuilderNode[] = [];
+    if (cell.fill) {
+        tcPrChildren.push(xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(cell.fill) })));
+    }
+    const anchorMap: Record<string, string | null> = { top: 't', middle: 'ctr', bottom: 'b' };
+
+    return xmlNode('a:tc', attrs,
+        xmlNode('a:txBody', null,
+            xmlNode('a:bodyPr', { wrap: 'square', rtlCol: 0 }),
+            xmlNode('a:lstStyle'),
+            ...paragraphs.map((p) => buildParagraph(ctx, p, defaults))
+        ),
+        xmlNode('a:tcPr', { anchor: anchorMap[cell.valign ?? 'top'] ?? null }, ...tcPrChildren)
+    );
+}
+
+/**
+ * 构建表格元素（p:graphicFrame + a:graphic/a:graphicData/a:tbl）
+ *
+ * 输入 el 格式：
+ * { type:'table', x,y,width,height, colWidths?: number[], rowHeights?: number[],
+ *   rows: [ { height?, cells: [ { text | paragraphs, colSpan, rowSpan, fill, align, valign, ... } ] } ] }
+ * 缺省 colWidths/rowHeights 时按整体尺寸均分。
+ *
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 表格元素 JSON
+ * @returns {Object} p:graphicFrame 节点
+ */
+function buildTableElement(ctx: SerializerContext, el: SerializerElement): BuilderNode {
+    const id = ctx.nextElementId++;
+    const rows = el.rows || [];
+    const width = el.width || 0;
+    const height = el.height || 0;
+
+    // 列宽：显式优先，否则均分
+    const colCount = el.colWidths && el.colWidths.length
+        ? el.colWidths.length
+        : Math.max(0, ...rows.map((r) => (r.cells || []).length));
+    const colWidths = el.colWidths && el.colWidths.length
+        ? el.colWidths
+        : new Array(colCount).fill(colCount ? width / colCount : 0);
+
+    // 行高：行级 height > rowHeights > 均分
+    const rowHeights = rows.map((r, i) =>
+        r.height !== undefined
+            ? r.height
+            : (el.rowHeights && el.rowHeights[i] !== undefined
+                ? el.rowHeights[i]
+                : (rows.length ? height / rows.length : 0)));
+
+    const gridCols = colWidths.map((w) => xmlNode('a:gridCol', { w: pxToEmu(w) }));
+    const trNodes = rows.map((row, ri) =>
+        xmlNode('a:tr', { h: pxToEmu(rowHeights[ri]) },
+            ...(row.cells || []).map((cell) => buildTableCell(ctx, cell))
+        )
+    );
+
+    return xmlNode('p:graphicFrame', null,
+        xmlNode('p:nvGraphicFramePr', null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Table ${id - 1}` }),
+            xmlNode('p:cNvGraphicFramePr', null, xmlNode('a:graphicFrameLocks', { noGrp: 1 })),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:xfrm', null,
+            xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
+            xmlNode('a:ext', { cx: pxToEmu(width), cy: pxToEmu(height) })
+        ),
+        xmlNode('a:graphic', null,
+            xmlNode('a:graphicData', { uri: NS.table },
+                xmlNode('a:tbl', null,
+                    xmlNode('a:tblPr', { firstRow: 1, bandRow: 1 }),
+                    xmlNode('a:tblGrid', null, ...gridCols),
+                    ...trNodes
+                )
+            )
+        )
+    );
+}
+
+/** 规整为数组（tXml 单节点为对象、多节点为数组） */
+function toArray(v: unknown): unknown[] {
+    if (v === undefined || v === null) return [];
+    return Array.isArray(v) ? v : [v];
+}
+
+/**
+ * 将 tXml simplify 形态的原始节点还原为构建器节点（含 rId 重映射）
+ * @param {string} tag - 标签名
+ * @param {Object|string} node - 原始节点内容
+ * @param {Object} remap - 旧 rId → 新 rId 映射
+ * @returns {Object} BuilderNode
+ */
+function rawNodeToBuilder(tag: string, node: unknown, remap: Record<string, string>): BuilderNode {
+    if (node === null || node === undefined) return xmlNode(tag, null);
+    if (typeof node !== 'object') return xmlNode(tag, null, String(node));
+
+    const src = node as Record<string, unknown>;
+    const attrs: Record<string, unknown> = {};
+    const srcAttrs = (src.attrs || {}) as Record<string, unknown>;
+    for (const k of Object.keys(srcAttrs)) {
+        const raw = String(srcAttrs[k]);
+        attrs[k] = remap[raw] || raw;
+    }
+
+    const children: (BuilderNode | string)[] = [];
+    for (const k of Object.keys(src)) {
+        if (k === 'attrs') continue;
+        for (const child of toArray(src[k])) {
+            if (child === null || child === undefined) continue;
+            if (typeof child === 'object') children.push(rawNodeToBuilder(k, child, remap));
+            else children.push(xmlNode(k, null, String(child)));
+        }
+    }
+    return xmlNode(tag, attrs, ...children);
+}
+
+/**
+ * 用 __raw 原样回写元素（语义层未覆盖时的无损兜底）
+ *
+ * 载荷形如 { tag, node, rels, parts }（解析端产出）：
+ * - rels 中的旧 rId 会在当前 ctx 中重新登记，节点内的 r:* 属性同步重写为新 rId；
+ * - parts 登记到 ctx.parts，由上层（jsonToPptx / addSlide）写入 zip 并声明 Content-Types。
+ *
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 元素 JSON（需含 __raw）
+ * @returns {Object|null} 构建器节点；__raw 缺失或格式不符时返回 null
+ */
+export function buildRawElement(ctx: SerializerContext, el: SerializerElement): BuilderNode | null {
+    const payload = el.__raw as SerializerRawPayload | undefined;
+    if (!payload || typeof payload !== 'object' || !payload.tag) return null;
+
+    // 关系重映射：旧 rId → 新 rId
+    // 载荷中的 target 为 zip 内绝对路径（ppt/...），写入 slide rels 需转换为 ../ 相对路径
+    const remap: Record<string, string> = {};
+    for (const [oldRid, rel] of Object.entries(payload.rels || {})) {
+        if (!rel || !rel.target) continue;
+        const target = rel.target.startsWith('ppt/') ? `../${rel.target.slice(4)}` : rel.target;
+        remap[oldRid] = addRelationship(ctx, rel.type, target, rel.external);
+    }
+
+    // 附属部件登记
+    for (const part of payload.parts || []) {
+        if (part && part.path) ctx.parts.push(part);
+    }
+
+    return rawNodeToBuilder(payload.tag, payload.node, remap);
+}
+
+/**
  * 构建单个幻灯片元素节点
  * @param {Object} ctx - 构建上下文
  * @param {Object} el - 元素 JSON
- * @returns {Promise<Object|null>} 元素节点，不支持的类型返回 null
+ * @returns {Promise<Object|null>} 元素节点；语义层不支持且无 __raw 时返回 null
  */
 export async function buildElement(ctx: SerializerContext, el: SerializerElement) {
     if (!el || typeof el !== 'object') return null;
+    // 显式回退：已支持的语义类型也可用 __raw 原样回写（语义层可能丢失主题色/动画等细节）
+    if (el.rawFallback && el.__raw) return buildRawElement(ctx, el);
     switch (el.type) {
         case 'text':
             return buildTextElement(ctx, el);
@@ -646,15 +906,137 @@ export async function buildElement(ctx: SerializerContext, el: SerializerElement
             return buildImageElement(ctx, el);
         case 'chart':
             return buildChartElement(ctx, el);
+        case 'table':
+            return buildTableElement(ctx, el);
         default:
-            return null;
+            // 语义层未覆盖（SmartArt / 组合 / 连接符 / OLE 等）→ 回退 __raw
+            return buildRawElement(ctx, el);
     }
+}
+
+/**
+ * 构建背景节点（p:bg）
+ * @param {Object} bg - 背景描述（字符串 / {type:'solid'} / {type:'gradient'} / {type:'image'}）
+ * @param {Object} ctx - 构建上下文（图片型背景需登记媒体与关系）
+ * @returns {Promise<Object|null>} p:bg 节点，无背景返回 null
+ */
+export async function buildBackground(bg: string | PptxBackground | null | undefined, ctx: SerializerContext): Promise<BuilderNode | null> {
+    if (!bg || bg === 'none') return null;
+
+    let bgPrChildren: (BuilderNode | string)[];
+    if (typeof bg === 'string') {
+        bgPrChildren = [
+            xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(bg) })),
+            xmlNode('a:effectLst')
+        ];
+    } else if (bg.type === 'solid') {
+        bgPrChildren = [
+            xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(bg.color) })),
+            xmlNode('a:effectLst')
+        ];
+    } else if (bg.type === 'gradient') {
+        const stops = (bg.stops || []).map(s =>
+            xmlNode('a:gs', { pos: Math.round((s.position || 0) * 100000) },
+                xmlNode('a:srgbClr', { val: colorToHex(s.color) }))
+        );
+        const ang = bg.direction === 'vertical' ? 90 : bg.direction === 'diagonal' ? 45 : 0;
+        bgPrChildren = [
+            xmlNode('a:gradFill', null,
+                xmlNode('a:gsLst', null, ...stops),
+                xmlNode('a:lin', { ang, scaled: 1 })
+            )
+        ];
+    } else {
+        // 图片型背景：内联媒体并登记关系
+        const imgEl: SerializerElement = { type: 'image', data: bg.data, src: bg.src, extension: bg.extension };
+        const { base64, ext } = await resolveImageData(imgEl);
+        ctx.mediaIndex++;
+        const mediaName = `image${ctx.mediaIndex}.${ext}`;
+        ctx.media.push({ name: mediaName, base64 });
+        const embedRelId = addRelationship(ctx, REL_TYPES.image, `../media/${mediaName}`);
+        bgPrChildren = [
+            xmlNode('a:blipFill', null,
+                xmlNode('a:blip', { 'r:embed': embedRelId }),
+                xmlNode('a:stretch', null, xmlNode('a:fillRect'))
+            )
+        ];
+    }
+
+    return xmlNode('p:bg', null, xmlNode('p:bgPr', null, ...bgPrChildren));
+}
+
+/** 过渡类型 → OOXML p:* 子元素 */
+const TRANSITION_TAG: Record<string, string> = {
+    fade: 'p:fade', wipe: 'p:wipe', push: 'p:push', cover: 'p:cover',
+    blinds: 'p:blinds', checker: 'p:checker', circle: 'p:circle', comb: 'p:comb',
+    dissolve: 'p:dissolve', random: 'p:random', split: 'p:split', strips: 'p:strips'
+};
+
+/**
+ * 构建过渡节点（p:transition）
+ * @param {Object} t - 过渡描述 { type, duration(ms) }
+ * @returns {Object|null} p:transition 节点
+ */
+export function buildTransition(t: PptxTransition | undefined): BuilderNode | null {
+    if (!t) return null;
+    const tag = TRANSITION_TAG[t.type] || 'p:fade';
+    const spd = t.duration <= 750 ? '1' : t.duration >= 1500 ? '3' : '2';
+    return xmlNode('p:transition', { spd }, xmlNode(tag));
+}
+
+/**
+ * 构建备注幻灯片节点（p:notesSlide）
+ * @param {string} notes - 备注文本
+ * @returns {Object} p:notesSlide 根节点
+ */
+export function buildNotesSlide(notes: string): BuilderNode {
+    return xmlNode('p:notesSlide',
+        { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
+          'xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+          'xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main' },
+        xmlNode('p:cSld', null,
+            xmlNode('p:spTree', null,
+                xmlNode('p:nvGrpSpPr', null,
+                    xmlNode('p:cNvPr', { id: 1, name: '' }),
+                    xmlNode('p:cNvGrpSpPr'),
+                    xmlNode('p:nvPr')
+                ),
+                xmlNode('p:grpSpPr', null,
+                    xmlNode('a:xfrm', null,
+                        xmlNode('a:off', { x: 0, y: 0 }),
+                        xmlNode('a:ext', { cx: 0, cy: 0 }),
+                        xmlNode('a:chOff', { x: 0, y: 0 }),
+                        xmlNode('a:chExt', { cx: 0, cy: 0 })
+                    )
+                ),
+                xmlNode('p:sp', null,
+                    xmlNode('p:nvSpPr', null,
+                        xmlNode('p:cNvPr', { id: 2, name: 'Notes Placeholder 1' }),
+                        xmlNode('p:cNvSpPr', null, xmlNode('p:ph', { type: 'body', idx: 1 })),
+                        xmlNode('p:nvPr')
+                    ),
+                    xmlNode('p:spPr'),
+                    xmlNode('p:txBody', null,
+                        xmlNode('a:bodyPr', { rtlCol: 0 }),
+                        xmlNode('a:lstStyle'),
+                        xmlNode('a:p', null,
+                            xmlNode('a:r', null,
+                                xmlNode('a:rPr', { lang: 'zh-CN' }),
+                                xmlNode('a:t', null, notes)
+                            )
+                        )
+                    )
+                )
+            )
+        ),
+        xmlNode('p:clrMapOvr', null, xmlNode('a:masterClrMapping'))
+    );
 }
 
 /**
  * 构建完整幻灯片 XML 根节点（p:sld）
  * @param {Object} ctx - 构建上下文
- * @param {Object} slide - 幻灯片 JSON { background, elements }
+ * @param {Object} slide - 幻灯片 JSON { background, notes, transition, elements }
  * @returns {Promise<Object>} p:sld 根节点
  */
 export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSlide) {
@@ -664,19 +1046,11 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
         if (node) elementNodes.push(node);
     }
 
-    // 背景色
-    let bgNode = null;
-    const bgColor = slide && slide.background;
-    if (bgColor && bgColor !== 'none') {
-        bgNode = xmlNode('p:bg',
-            null,
-            xmlNode('p:bgPr',
-                null,
-                xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(bgColor) })),
-                xmlNode('a:effectLst')
-            )
-        );
-    }
+    // 背景（纯色 / 渐变 / 图片）
+    const bgNode = await buildBackground(slide && slide.background, ctx);
+
+    // 过渡效果
+    const transitionNode = buildTransition(slide && slide.transition);
 
     return xmlNode('p:sld',
         { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
@@ -706,6 +1080,7 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
                 ...elementNodes
             )
         ),
+        transitionNode,
         xmlNode('p:clrMapOvr', null, xmlNode('a:masterClrMapping'))
     );
 }

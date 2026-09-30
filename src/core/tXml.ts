@@ -8,6 +8,39 @@ import { RawXmlNode, RawXmlChildren, RawXmlParseOptions, XmlNode } from './types
 
 let order = 1;
 
+/** XML 预定义实体 */
+const XML_ENTITIES: Record<string, string> = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'"
+};
+
+/**
+ * 解码 XML 实体：&amp; &lt; &gt; &quot; &apos; 及数字字符引用 &#nn; / &#xhh;
+ * 未识别的实体保持原样，避免破坏非标准内容。
+ * @param {string} str - 可能含实体的字符串
+ * @returns {string} 解码后的字符串
+ */
+function decodeEntities(str: string): string {
+    if (!str || str.indexOf('&') === -1) return str;
+    return str.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (match, code: string) => {
+        if (code.charAt(0) === '#') {
+            const isHex = code.charAt(1) === 'x' || code.charAt(1) === 'X';
+            const num = parseInt(isHex ? code.slice(2) : code.slice(1), isHex ? 16 : 10);
+            if (isNaN(num) || num < 0 || num > 0x10ffff) return match;
+            try {
+                return String.fromCodePoint(num);
+            } catch {
+                return match;
+            }
+        }
+        const named = XML_ENTITIES[code.toLowerCase()];
+        return named === undefined ? match : named;
+    });
+}
+
 /** tXml 的可调用形态：既是函数，又挂载 simplify/filter 等方法 */
 interface TXmlFn {
     (xml: string, options?: RawXmlParseOptions): RawXmlNode[] | RawXmlNode;
@@ -103,7 +136,7 @@ const tXml = (function (xml: string, options: RawXmlParseOptions = {}): RawXmlNo
     }
 
     /**
-     * 解析文本节点
+     * 解析文本节点（并解码 XML 实体）
      * @returns {string} 文本内容
      */
     function parseText(): string {
@@ -112,7 +145,7 @@ const tXml = (function (xml: string, options: RawXmlParseOptions = {}): RawXmlNo
         if (pos === -2) {
             pos = xml.length;
         }
-        return xml.slice(start, pos + 1);
+        return decodeEntities(xml.slice(start, pos + 1));
     }
 
     /**
@@ -128,14 +161,14 @@ const tXml = (function (xml: string, options: RawXmlParseOptions = {}): RawXmlNo
     }
 
     /**
-     * 解析属性值
+     * 解析属性值（并解码 XML 实体）
      * @returns {string|null} 属性值
      */
     function parseAttributeValue(): string {
         const quoteChar = xml[pos];
         const start = ++pos;
         pos = xml.indexOf(quoteChar, start);
-        return xml.slice(start, pos);
+        return decodeEntities(xml.slice(start, pos));
     }
 
     /**

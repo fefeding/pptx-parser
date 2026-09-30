@@ -14,6 +14,10 @@ pnpm-lock.yaml
 examples/PPTXjs
 examples/3guo*
 examples/*.pptx
+examples/out/
+# 构建产物（npm publish 前由 prepublishOnly -> build 生成）
+dist/
+index.d.ts
 examples/ppt
 examples/金腾研发架构&系统介绍
 examples/Sample_12

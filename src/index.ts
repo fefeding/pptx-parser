@@ -8,7 +8,7 @@ import { processMsgQueue, processSingleMsg } from './utils/chart';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants';
 import { jsonToPptx, editPptx } from './serializer/json-to-pptx';
 import { PPTXComposer } from './serializer/composer';
-import { buildStandardDocument } from './serializer/json-from-pptx';
+import { buildStandardDocument, type StandardExtractOptions } from './serializer/json-from-pptx';
 import type { PptxDocument } from './types/pptx-document';
 import type { XmlNode, ParseSettings, ParseCallbacks } from './core/types';
 
@@ -694,7 +694,7 @@ async function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettings
  * @param {Object} options - Conversion options
  * @returns {Promise<Object>} Parsed result
  */
-async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings> & { mode?: 'raw' | 'semantic' } = {}) {
+async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings> & { mode?: 'raw' | 'semantic' } & StandardExtractOptions = {}) {
     // Merge default settings with user options
     const settings: ParseSettings = {
         mediaProcess: true,
@@ -778,7 +778,7 @@ async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings
 
         // semantic 模式：附加标准 PptxDocument（与 jsonToPptx 同源）
         if (options.mode === 'semantic') {
-            (result as any).document = await buildStandardDocument(parsedData, zip);
+            (result as any).document = await buildStandardDocument(parsedData, zip, { rawDeps: options.rawDeps || 'auto' });
         }
 
         if (callbacks.onComplete) {
@@ -810,7 +810,7 @@ async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings
  * @param {Object} options - 同 pptxToJson 的解析选项
  * @returns {Promise<PptxDocument>} 标准 PPTX JSON
  */
-async function pptxToStandard(fileData: PptxFileData, options: Partial<ParseSettings> = {}) {
+async function pptxToStandard(fileData: PptxFileData, options: Partial<ParseSettings> & StandardExtractOptions = {}) {
     // Merge default settings with user options
     const settings: ParseSettings = {
         mediaProcess: true,
@@ -835,7 +835,7 @@ async function pptxToStandard(fileData: PptxFileData, options: Partial<ParseSett
 
     const { parsedData, zip } = await processToJson(fileData, settings, callbacks, chartId, styleTable, defaultTextStyle);
 
-    const doc = await buildStandardDocument(parsedData, zip);
+    const doc = await buildStandardDocument(parsedData, zip, { rawDeps: options.rawDeps || 'auto' });
 
     if (callbacks.onComplete) {
         callbacks.onComplete({

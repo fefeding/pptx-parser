@@ -22,13 +22,21 @@ import { PPTXXmlUtils } from '../utils/xml';
 import type {
     PptxDocument, PptxSlide, PptxElement, PptxTextElement, PptxShapeElement,
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
-    PptxTransition, PptxBackground
+    PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
+    PptxDiagramElement, PptxRawElement, TextAlign, VAlign
 } from '../types/pptx-document';
 
 /** 1pt = 12700 EMU */
 const EMU_PER_PT = 12700;
 /** 线宽 EMU 默认值（缺省按 1pt 处理时参考） */
 const DEFAULT_LN_PT = 1;
+/** 段落对齐映射（OOXML algn → 标准 align） */
+const ALIGN_MAP: Record<string, TextAlign> = { l: 'left', ctr: 'center', r: 'right', just: 'justify' };
+/** 垂直对齐映射（OOXML anchor → 标准 valign） */
+const VALIGN_MAP: Record<string, VAlign> = { t: 'top', ctr: 'middle', b: 'bottom' };
+/** graphicData uri 中的表格/图示标识 */
+const URI_TABLE = 'http://schemas.openxmlformats.org/drawingml/2006/table';
+const URI_DIAGRAM = 'http://schemas.openxmlformats.org/drawingml/2006/diagram';
 
 /** 将任意值规整为数组（tXml 单节点即对象，多节点为数组） */
 function asArray<T = any>(v: T | T[] | undefined): T[] {
@@ -54,10 +62,17 @@ function rotToDeg(rot: unknown): number {
     return n === 0 ? 0 : Math.round(n / 60000);
 }
 
-/** 从相对路径（如 ../media/image1.png）解析为 zip 内绝对部件路径 */
+/**
+ * 关系目标 → zip 内绝对部件路径（ppt/...）
+ * 兼容 ../media/x.png、media/x.png、/ppt/media/x.png 等写法；外部链接返回 undefined。
+ * @param {string} target - 关系目标
+ * @returns {string|undefined} 绝对部件路径
+ */
 function resolvePart(target: string | undefined): string | undefined {
     if (!target) return undefined;
-    return target.replace(/\.\.\//g, 'ppt/').replace(/^\/+/, '');
+    if (/^https?:/i.test(target)) return undefined;
+    if (target.startsWith('ppt/')) return target;
+    return `ppt/${target.replace(/^(\.\.\/)+/, '').replace(/^\/+/, '')}`;
 }
 
 /** 从节点读取 a:srgbClr 的颜色值 */
@@ -66,10 +81,14 @@ function readSrgbClr(node: any): string | undefined {
     return c && c.attrs && c.attrs.val ? String(c.attrs.val) : undefined;
 }
 
-/** 读取文本运行中的文本（a:t 在 simplify 形态下为字符串） */
+/**
+ * 读取文本运行中的文本（a:t 在 simplify 形态下为字符串）
+ * 注：<a:t/> 空元素或仅带属性时解析结果非字符串，此时按空文本处理，
+ * 避免 String(对象) 产生字面量 "[object Object]"。
+ */
 function readRunText(runNode: any): string {
     const t = runNode && runNode['a:t'];
-    return typeof t === 'string' ? t : (t ? String(t) : '');
+    return typeof t === 'string' ? t : '';
 }
 
 /** 读取运行级样式（a:rPr） */
@@ -90,40 +109,49 @@ function readRunStyle(rPr: any): Partial<PptxTextRun> {
     return style;
 }
 
-/** 提取一个 p:sp 的文本为正文段落 */
-function extractTextBody(spNode: any): { paragraphs: PptxParagraph[]; hasText: boolean } {
+/**
+ * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
+ * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
+ */
+function extractTxBody(txBody: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
-    const txBody = spNode && spNode['p:txBody'];
-    if (!txBody) return { paragraphs, hasText };
+    let text = '';
+    if (!txBody) return { paragraphs, hasText, text };
 
     const bodyPr = txBody['a:bodyPr'];
-    const valignMap: Record<string, 'top' | 'middle' | 'bottom'> = { ctr: 'middle', b: 'bottom' };
-    const defaultValign = bodyPr && bodyPr.attrs && bodyPr.attrs.anchor
-        ? valignMap[bodyPr.attrs.anchor] : undefined;
+    const valign = bodyPr && bodyPr.attrs && bodyPr.attrs.anchor
+        ? VALIGN_MAP[bodyPr.attrs.anchor] : undefined;
 
     for (const pNode of asArray(txBody['a:p'])) {
         const pPr = pNode['a:pPr'];
         const pAttrs = (pPr && pPr.attrs) || {};
-        const alignMap: Record<string, 'left' | 'center' | 'right' | 'justify'> = { l: 'left', ctr: 'center', r: 'right', just: 'justify' };
-        const align = pAttrs.algn ? alignMap[pAttrs.algn] : undefined;
+        const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : undefined;
         // 项目符号：存在 buChar/buAutoNum 且无 buNone
-        const bullet = !!(pNode['a:pPr'] && (pNode['a:pPr']['a:buChar'] || pNode['a:pPr']['a:buAutoNum']))
-            && !(pNode['a:pPr']['a:buNone']);
+        const bullet = !!pPr && !!(pPr['a:buChar'] || pPr['a:buAutoNum']) && !pPr['a:buNone'];
 
         const runs: PptxTextRun[] = [];
+        let paraText = '';
         for (const runNode of asArray(pNode['a:r'])) {
-            const text = readRunText(runNode);
-            if (text) hasText = true;
-            const style = readRunStyle(runNode['a:rPr']);
-            runs.push({ text, ...style });
+            const t = readRunText(runNode);
+            if (t) hasText = true;
+            paraText += t;
+            runs.push({ text: t, ...readRunStyle(runNode['a:rPr']) });
         }
+        if (paraText) text += (text ? '\n' : '') + paraText;
+
         const para: PptxParagraph = { runs };
         if (align) para.align = align;
         if (bullet) para.bullet = true;
-        if (defaultValign) (para as any).valign = defaultValign;
+        if (valign) (para as any).valign = valign;
         paragraphs.push(para);
     }
+    return { paragraphs, hasText, valign, text };
+}
+
+/** 提取一个 p:sp 的文本为正文段落 */
+function extractTextBody(spNode: any): { paragraphs: PptxParagraph[]; hasText: boolean } {
+    const { paragraphs, hasText } = extractTxBody(spNode && spNode['p:txBody']);
     return { paragraphs, hasText };
 }
 
@@ -231,7 +259,10 @@ function extractBackground(slideContent: any): PptxBackground | undefined {
                 const c = readSrgbClr(gs);
                 if (c) stops.push({ color: c, position: pos });
             }
-            return { type: 'gradient', direction: 'horizontal', stops };
+            const lin = bgPr['a:gradFill']['a:lin'];
+            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) : 0;
+            const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            return { type: 'gradient', direction, stops };
         }
     }
     // 主题引用 bgRef：无法解析为具体色，标记继承（不写 background）
@@ -320,6 +351,118 @@ function numCacheValues(refNode: any): number[] {
         .filter((v: number) => !isNaN(v));
 }
 
+/** 语义层已支持的类型（其余类型需靠 __raw 回退，故默认要附带关系与部件依赖） */
+const SEMANTIC_TYPES = new Set(['text', 'shape', 'image', 'chart', 'table']);
+
+/**
+ * 标准 JSON 解析选项
+ * rawDeps 控制 __raw 依赖（rels/parts）的携带范围：
+ * - 'auto'（默认）：仅为语义层不支持的类型附带，避免 JSON 体积膨胀；
+ * - 'all'：为所有元素附带，使语义类型也能用 rawFallback 无损回写。
+ */
+export interface StandardExtractOptions {
+    rawDeps?: 'auto' | 'all';
+}
+
+/**
+ * OOXML 关系类型前缀
+ * 注：slideResObj 中的 type 为去掉该前缀的短名（如 diagramData/image/chart），
+ * 写入 slide rels 时需还原为完整 URI。
+ */
+const REL_PREFIX = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
+
+/** 关系类型短名 → 完整 URI（已是完整 URI 时原样返回） */
+function normalizeRelType(type: string): string {
+    if (!type) return '';
+    return type.includes('/') ? type : REL_PREFIX + type;
+}
+
+/** 关系类型 URI → 部件 Content-Type */
+const REL_CONTENT_TYPE: Record<string, string> = {
+    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramData':
+        'application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml',
+    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramLayout':
+        'application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml',
+    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramQuickStyle':
+        'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml',
+    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramColors':
+        'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml',
+    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart':
+        'application/vnd.openxmlformats-officedocument.drawingml.chart+xml'
+};
+
+/** 递归收集节点内所有 r:* 关系引用 id（r:dm/r:embed/r:id/r:link...） */
+function collectRelIds(node: any, acc: Set<string>) {
+    if (!node || typeof node !== 'object') return;
+    for (const key of Object.keys(node)) {
+        if (key === 'attrs') {
+            const attrs = node.attrs || {};
+            for (const a of Object.keys(attrs)) {
+                if (!a.startsWith('r:')) continue;
+                const v = String(attrs[a]);
+                if (/^rId\d+$/.test(v)) acc.add(v);
+            }
+            continue;
+        }
+        for (const child of asArray(node[key])) {
+            if (child && typeof child === 'object') collectRelIds(child, acc);
+        }
+    }
+}
+
+/**
+ * 为 __raw 载荷补充关系与部件依赖，使其可在无源 PPTX 的情况下独立回写
+ * @param {Object} el - 已提取的元素（其 __raw 需已就位）
+ * @param {Object} node - 原始 OOXML 节点
+ * @param {Object} resObj - 幻灯片关系表（rId → { type, target }）
+ * @param {Object} zip - JSZip 实例
+ */
+async function attachRawDeps(
+    el: any,
+    node: any,
+    resObj: Record<string, { type?: string; target?: string }>,
+    zip: JSZip
+) {
+    const relIds = new Set<string>();
+    collectRelIds(node, relIds);
+    if (!relIds.size) return;
+
+    const rels: Record<string, { type: string; target: string; external?: boolean }> = {};
+    const parts: { path: string; content?: string; base64?: string; contentType: string; media?: boolean }[] = [];
+
+    for (const rid of relIds) {
+        const rel = resObj[rid];
+        if (!rel || !rel.target) continue;
+        // resObj.type 为短名（diagramData/image/...），统一还原为完整 URI 便于回写
+        const type = normalizeRelType(rel.type || '');
+        const external = /^https?:/i.test(rel.target) || /(^|\/)hyperlink$/.test(type);
+        rels[rid] = { type, target: rel.target };
+        if (external) {
+            rels[rid].external = true;
+            continue;
+        }
+        // resObj.target 已是 zip 内绝对路径（ppt/...），resolvePart 对已绝对路径幂等
+        const partPath = resolvePart(rel.target);
+        if (!partPath) continue;
+        const file = zip.file(partPath);
+        if (!file) continue;
+
+        const isMedia = /(image|video|audio|media)$/.test(type);
+        const contentType = REL_CONTENT_TYPE[type]
+            || `application/vnd.openxmlformats-officedocument.${(partPath.split('.').pop() || 'xml')}`;
+        try {
+            if (isMedia) {
+                parts.push({ path: partPath, base64: await file.async('base64'), contentType, media: true });
+            } else {
+                parts.push({ path: partPath, content: await file.async('string'), contentType });
+            }
+        } catch { /* 部件读取失败则跳过，回退时该引用会悬空 */ }
+    }
+
+    if (Object.keys(rels).length) el.__raw.rels = rels;
+    if (parts.length) el.__raw.parts = parts;
+}
+
 /** 递归收集 spTree 下的图形节点（展开 group） */
 function collectShapeNodes(spTree: any, acc: any[]) {
     if (!spTree || typeof spTree !== 'object') return;
@@ -343,8 +486,13 @@ function collectShapeNodes(spTree: any, acc: any[]) {
  * @param slideData - pptxToJson 产出的每页 data（SlideDataRecord）
  * @param zip - JSZip 实例（用于读取媒体/图表部件）
  */
-export async function extractSlideToStandard(slideData: any, zip: JSZip): Promise<PptxSlide> {
+export async function extractSlideToStandard(
+    slideData: any,
+    zip: JSZip,
+    options: StandardExtractOptions = {}
+): Promise<PptxSlide> {
     const slide: PptxSlide = { elements: [] };
+    const allDeps = options.rawDeps === 'all';
 
     try {
         const slideContent = slideData && slideData.slideContent;
@@ -370,10 +518,23 @@ export async function extractSlideToStandard(slideData: any, zip: JSZip): Promis
             for (const { key, node } of shapeNodes) {
                 try {
                     const el = await nodeToElement(key, node, resObj, zip);
-                    if (el) slide.elements.push(el);
+                    if (!el) continue;
+                    // 统一挂载 __raw 载荷（含标签名，供生成端无损回写）
+                    (el as any).__raw = { tag: key, node };
+                    // 依赖携带：语义层未覆盖的类型必须附带，否则 __raw 无法独立回写；
+                    // 语义类型仅在 rawDeps:'all' 时附带（供 rawFallback 使用）
+                    if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
+                        await attachRawDeps(el, node, resObj, zip);
+                    }
+                    slide.elements.push(el);
                 } catch {
-                    // 单元素失败：保留原始节点，不影响其它元素
-                    slide.elements.push({ type: 'text', x: 0, y: 0, width: 0, height: 0, __raw: node } as any);
+                    // 单元素失败：仅保留原始节点，由 __raw 回退承载
+                    const rawEl: PptxRawElement = {
+                        type: 'raw', x: 0, y: 0, width: 0, height: 0,
+                        __raw: { tag: key, node }, rawFallback: true
+                    };
+                    slide.elements.push(rawEl);
+                    if (allDeps) await attachRawDeps(rawEl, node, resObj, zip);
                 }
             }
         }
@@ -392,7 +553,7 @@ async function nodeToElement(
     zip: JSZip
 ): Promise<PptxElement | null> {
     if (key === 'p:graphicFrame') {
-        return await graphicFrameToChart(node, resObj, zip);
+        return await graphicFrameToElement(node, resObj, zip);
     }
     if (key === 'p:pic') {
         return await picToImage(node, resObj, zip);
@@ -412,8 +573,7 @@ async function nodeToElement(
             y: xf ? xf.y : 0,
             width: xf ? xf.width : 300,
             height: xf ? xf.height : 60,
-            paragraphs,
-            __raw: node
+            paragraphs
         };
         if (xf && xf.rotation) textEl.rotation = xf.rotation;
         if (name) textEl.name = String(name);
@@ -446,8 +606,7 @@ async function nodeToElement(
             x: xf ? xf.x : 0,
             y: xf ? xf.y : 0,
             width: xf ? xf.width : 200,
-            height: xf ? xf.height : 120,
-            __raw: node
+            height: xf ? xf.height : 120
         };
         if (sp.fill !== undefined) shapeEl.fill = sp.fill;
         if (sp.line !== undefined) shapeEl.line = sp.line;
@@ -458,6 +617,155 @@ async function nodeToElement(
 
     // 其余（无文本的占位/连接符等）：跳过，避免噪音
     return null;
+}
+
+/** 递归收集节点下所有 a:t 文本（用于 SmartArt 数据部件） */
+function collectTexts(node: any, acc: string[] = []): string[] {
+    if (!node || typeof node !== 'object') return acc;
+    for (const key of Object.keys(node)) {
+        const val = node[key];
+        if (val === undefined || val === null) continue;
+        if (key === 'a:t') {
+            for (const t of asArray(val)) {
+                if (typeof t !== 'string') continue;
+                if (t.trim()) acc.push(t);
+            }
+            continue;
+        }
+        for (const child of asArray(val)) {
+            if (child && typeof child === 'object') collectTexts(child, acc);
+        }
+    }
+    return acc;
+}
+
+/** 读取 graphicFrame 的名称（p:nvGraphicFramePr/p:cNvPr） */
+function readGraphicFrameName(node: any): string | undefined {
+    const cNvPr = node && node['p:nvGraphicFramePr'] && node['p:nvGraphicFramePr']['p:cNvPr'];
+    const name = cNvPr && cNvPr.attrs && cNvPr.attrs.name;
+    return name ? String(name) : undefined;
+}
+
+/** a:tbl（表格）→ PptxTableElement */
+function tableToElement(tbl: any, node: any): PptxTableElement {
+    const xf = readXfrm(node, true);
+    const el: PptxTableElement = {
+        type: 'table',
+        x: xf ? xf.x : 0,
+        y: xf ? xf.y : 0,
+        width: xf ? xf.width : 400,
+        height: xf ? xf.height : 200,
+        rows: []
+    };
+    const name = readGraphicFrameName(node);
+    if (name) el.name = name;
+
+    // 列宽（a:tblGrid/a:gridCol）
+    const grid = tbl && tbl['a:tblGrid'];
+    const colWidths = asArray(grid && grid['a:gridCol'])
+        .map((c: any) => (c && c.attrs && c.attrs.w ? emuToPx(c.attrs.w) : 0));
+    if (colWidths.length) el.colWidths = colWidths;
+
+    const rowHeights: number[] = [];
+    for (const tr of asArray(tbl && tbl['a:tr'])) {
+        const row: PptxTableRow = { cells: [] };
+        if (tr && tr.attrs && tr.attrs.h) row.height = emuToPx(tr.attrs.h);
+
+        for (const tc of asArray(tr && tr['a:tc'])) {
+            const cell: PptxTableCell = {};
+            const attrs = (tc && tc.attrs) || {};
+            if (attrs.gridSpan && Number(attrs.gridSpan) > 1) cell.colSpan = Number(attrs.gridSpan);
+            if (attrs.rowSpan && Number(attrs.rowSpan) > 1) cell.rowSpan = Number(attrs.rowSpan);
+
+            const { paragraphs, text } = extractTxBody(tc && tc['a:txBody']);
+            if (paragraphs.length > 1) {
+                // 多段保留段落结构，避免丢段
+                cell.paragraphs = paragraphs;
+            } else {
+                // 单段用 text 简写，并把 run 样式镜像到单元格级
+                cell.text = text;
+                const r0 = paragraphs[0] && paragraphs[0].runs && paragraphs[0].runs[0];
+                if (r0) {
+                    if (r0.fontSize !== undefined) cell.fontSize = r0.fontSize;
+                    if (r0.color !== undefined) cell.color = r0.color;
+                    if (r0.bold) cell.bold = true;
+                    if (r0.italic) cell.italic = true;
+                    if (r0.underline) cell.underline = true;
+                    if (r0.fontFace !== undefined) cell.fontFace = r0.fontFace;
+                }
+            }
+            if (paragraphs[0] && paragraphs[0].align) cell.align = paragraphs[0].align;
+
+            // 单元格属性：底色与垂直对齐
+            const tcPr = tc && tc['a:tcPr'];
+            if (tcPr) {
+                const fill = readSrgbClr(tcPr);
+                if (fill) cell.fill = fill;
+                if (tcPr.attrs && tcPr.attrs.anchor) cell.valign = VALIGN_MAP[tcPr.attrs.anchor];
+            }
+            row.cells.push(cell);
+        }
+
+        rowHeights.push(row.height !== undefined ? row.height : 0);
+        el.rows.push(row);
+    }
+    if (rowHeights.length && rowHeights.every((h) => h > 0)) el.rowHeights = rowHeights;
+    return el;
+}
+
+/** p:graphicFrame（SmartArt 图示）→ PptxDiagramElement：提取数据部件文本 */
+async function diagramToElement(
+    node: any,
+    resObj: Record<string, { type?: string; target?: string }>,
+    zip: JSZip
+): Promise<PptxDiagramElement> {
+    const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
+    const rel = graphicData && graphicData['dgm:rel'];
+    const rid = rel && rel.attrs && (rel.attrs['r:dm'] || rel.attrs['r:id']);
+    const target = rid ? resObj[String(rid)] && resObj[String(rid)].target : undefined;
+    const part = resolvePart(target);
+
+    let texts: string[] = [];
+    if (part) {
+        try {
+            const dataXml = await PPTXXmlUtils.readXmlFile(zip, part);
+            texts = collectTexts(dataXml);
+        } catch { /* 数据部件缺失/解析失败则仅保留 __raw */ }
+    }
+
+    const xf = readXfrm(node, true);
+    const el: PptxDiagramElement = {
+        type: 'diagram',
+        x: xf ? xf.x : 0,
+        y: xf ? xf.y : 0,
+        width: xf ? xf.width : 400,
+        height: xf ? xf.height : 300
+    };
+    const name = readGraphicFrameName(node);
+    if (name) el.name = name;
+    if (texts.length) el.texts = texts;
+    if (part) el.dataPath = part;
+    return el;
+}
+
+/** p:graphicFrame → 按 graphicData 类型分派到 table / diagram / chart */
+async function graphicFrameToElement(
+    node: any,
+    resObj: Record<string, { type?: string; target?: string }>,
+    zip: JSZip
+): Promise<PptxElement | null> {
+    const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
+    if (!graphicData) return null;
+    const uri = graphicData.attrs && graphicData.attrs.uri ? String(graphicData.attrs.uri) : '';
+
+    // 表格：以 a:tbl 实际存在为准（仅凭 uri 声明无法还原内容）
+    const tbl = graphicData['a:tbl'];
+    if (tbl) return tableToElement(tbl, node);
+    // 图示 / SmartArt：dgm:rel 或其命名空间 uri
+    if (graphicData['dgm:rel'] || uri === URI_DIAGRAM || /diagram/.test(uri)) {
+        return await diagramToElement(node, resObj, zip);
+    }
+    return await graphicFrameToChart(node, resObj, zip);
 }
 
 /** p:graphicFrame → chart 元素 */
@@ -488,8 +796,7 @@ async function graphicFrameToChart(
         y: xf ? xf.y : 0,
         width: xf ? xf.width : 600,
         height: xf ? xf.height : 400,
-        series: (chartSemantic && chartSemantic.series) || [],
-        __raw: node
+        series: (chartSemantic && chartSemantic.series) || []
     };
     if (chartSemantic && chartSemantic.categories) chartEl.categories = chartSemantic.categories;
     if (chartSemantic && chartSemantic.title) chartEl.title = chartSemantic.title;
@@ -508,25 +815,28 @@ async function picToImage(
     const rid = String(blip.attrs['r:embed']);
     const target = resObj[rid] && resObj[rid].target;
     const part = resolvePart(target);
-    if (!part) return null;
+    // 外链图片无包内部件，保留为 src 交由生成端下载；其余无法定位的则跳过
+    if (!part && !/^https?:/i.test(String(target))) return null;
 
     const xf = readXfrm(node, false);
     const name = node['p:nvPicPr'] && node['p:nvPicPr']['p:cNvPr'] && node['p:nvPicPr']['p:cNvPr'].attrs && node['p:nvPicPr']['p:cNvPr'].attrs.name;
 
-    const ext = (part.split('.').pop() || 'png').toLowerCase();
+    const ext = ((part || target || '').split('.').pop() || 'png').toLowerCase();
     const mimeMap: Record<string, string> = {
         png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml'
     };
     const mime = mimeMap[ext] || 'application/octet-stream';
 
     let data: string | undefined;
-    try {
-        const file = zip.file(part);
-        if (file) {
-            const b64 = await file.async('base64');
-            data = `data:${mime};base64,${b64}`;
-        }
-    } catch { /* 忽略媒体读取失败 */ }
+    if (part) {
+        try {
+            const file = zip.file(part);
+            if (file) {
+                const b64 = await file.async('base64');
+                data = `data:${mime};base64,${b64}`;
+            }
+        } catch { /* 忽略媒体读取失败 */ }
+    }
 
     const imgEl: PptxImageElement = {
         type: 'image',
@@ -534,11 +844,17 @@ async function picToImage(
         y: xf ? xf.y : 0,
         width: xf ? xf.width : 300,
         height: xf ? xf.height : 200,
-        extension: ext,
-        __raw: node
+        extension: ext
     };
-    if (data) imgEl.data = data;
-    else if (target) (imgEl as any).src = target;
+    if (data) {
+        imgEl.data = data;
+    } else if (/^https?:/i.test(String(target))) {
+        // 外链图片：保留 URL 交由生成端下载
+        (imgEl as any).src = target;
+    } else {
+        // 部件缺失且非外链（源文件不完整）：跳过该图片，避免生成端得到不可用的 src
+        return null;
+    }
     if (xf && xf.rotation) imgEl.rotation = xf.rotation;
     if (name) imgEl.name = String(name);
     return imgEl;
@@ -549,9 +865,13 @@ async function picToImage(
  * @param parsedData - processToJson 返回的 parsedData（含 slides/data、slideSize、metadata）
  * @param zip - JSZip 实例
  */
-export async function buildStandardDocument(parsedData: any, zip: JSZip): Promise<PptxDocument> {
+export async function buildStandardDocument(
+    parsedData: any,
+    zip: JSZip,
+    options: StandardExtractOptions = {}
+): Promise<PptxDocument> {
     const slides = await Promise.all(
-        (parsedData.slides || []).map(async (s: any) => extractSlideToStandard(s.data, zip))
+        (parsedData.slides || []).map(async (s: any) => extractSlideToStandard(s.data, zip, options))
     );
 
     const doc: PptxDocument = {

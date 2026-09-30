@@ -6,7 +6,7 @@
  *
  * 设计目标：
  * - 解析端 pptxToJson 与生成端 jsonToPptx 使用同一套结构，实现 JSON 级 round-trip。
- * - 语义优先：元素以 type 区分（text/shape/image/chart），坐标统一为 px。
+ * - 语义优先：元素以 type 区分（text/shape/image/chart/table/diagram），坐标统一为 px。
  * - 无损兜底：每个元素可选携带 __raw（原始 OOXML 片段），序列化时优先用语义字段，
  *   语义层未覆盖的细节回退到 __raw，保证往返不丢信息。
  *
@@ -103,10 +103,37 @@ export type PptxChartType =
     | 'barChart' | 'lineChart' | 'areaChart'
     | 'pieChart' | 'pie3DChart' | 'scatterChart' | string;
 
+/** __raw 载荷：原始 OOXML 子树及其依赖关系（解析端产出，生成端原样回写） */
+export interface PptxRawPayload {
+    /** 原始节点标签名（如 p:graphicFrame / p:sp） */
+    tag: string;
+    /** 原始节点内容（tXml simplify 形态） */
+    node: unknown;
+    /** 节点引用的关系：旧 rId → { type, target, external }，回写时重新登记为新 rId */
+    rels?: Record<string, { type: string; target: string; external?: boolean }>;
+    /** 关系指向的部件内容（如 SmartArt 的 diagrams/*.xml），保证回写自包含 */
+    parts?: { path: string; content?: string; base64?: string; contentType: string; media?: boolean }[];
+}
+
 /** 元素公共字段 */
 interface PptxElementBase {
-    /** 原始 OOXML 片段兜底（解析端提取时附上，用于无损回写） */
-    __raw?: unknown;
+    /**
+     * 原始 OOXML 载荷（解析端提取时附上）
+     * - 语义层不支持的类型（diagram/组合/OLE 等）序列化时自动回退；
+     * - 语义层已支持的类型需配合 rawFallback:true 才会回退。
+     *
+     * **依赖携带策略（重要）**：解析端默认只为「语义层不支持的类型」附带
+     * `__raw.rels` / `__raw.parts`（避免每个图片元素都内联一份 base64 使 JSON 膨胀）。
+     * 因此语义类型（text/shape/image/chart/table）默认只有 `{ tag, node }`，
+     * 对其设置 rawFallback:true 会因缺少依赖而使 r:embed / r:id 等引用悬空。
+     * 若确需对这些类型做原始回写，请用 `pptxToStandard(file, { rawDeps: 'all' })` 解析。
+     */
+    __raw?: PptxRawPayload;
+    /**
+     * 强制以 __raw 回写（即使 type 已受语义层支持）
+     * 注意：需配合 rawDeps:'all' 解析出的载荷，否则引用类属性会悬空（见 __raw 说明）。
+     */
+    rawFallback?: boolean;
     /** 元素名称（可选，便于编辑区分） */
     name?: string;
 }
@@ -181,12 +208,98 @@ export interface PptxChartElement extends PptxElementBase {
     series?: PptxChartSeries[];
 }
 
+/** 表格单元格 */
+export interface PptxTableCell {
+    /** 单元格文本（无 runs 时使用） */
+    text?: string;
+    /** 富文本段落（优先于 text） */
+    paragraphs?: PptxParagraph[];
+    /** 跨列数（OOXML gridSpan，默认 1） */
+    colSpan?: number;
+    /** 跨行数（OOXML rowSpan，默认 1） */
+    rowSpan?: number;
+    /** 单元格底色 */
+    fill?: string;
+    /** 文本水平对齐 */
+    align?: TextAlign;
+    /** 文本垂直对齐（OOXML anchor） */
+    valign?: VAlign;
+    /** 单元格级文本样式 */
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontFace?: string;
+}
+
+/** 表格行 */
+export interface PptxTableRow {
+    /** 行高（px，可选） */
+    height?: number;
+    cells: PptxTableCell[];
+}
+
+/**
+ * 表格元素（解析自 p:graphicFrame/a:graphic/a:graphicData/a:tbl）
+ *
+ * 行/列尺寸可选：缺省时生成端按均分处理。
+ */
+export interface PptxTableElement extends PptxElementBase {
+    type: 'table';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** 列宽（px，长度即列数） */
+    colWidths?: number[];
+    /** 行高（px，长度即行数） */
+    rowHeights?: number[];
+    rows: PptxTableRow[];
+}
+
+/**
+ * SmartArt / 图示元素（解析自 p:graphicFrame/a:graphicData[uri=diagram]）
+ *
+ * SmartArt 的几何布局由 diagrams/layoutN.xml 驱动，无法在语义层无损表达，
+ * 因此标准格式仅保留可读文本内容（texts）与原始节点（__raw），
+ * 其还原依赖 __raw 回退（语义层不保证保真）。
+ */
+export interface PptxDiagramElement extends PptxElementBase {
+    type: 'diagram';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** 图示数据部件（ppt/diagrams/dataN.xml）中的文本内容，按文档顺序 */
+    texts?: string[];
+    /** 数据部件路径（便于调试与二次读取） */
+    dataPath?: string;
+}
+
 /** 幻灯片元素（联合类型） */
+/**
+ * 原始元素（解析兜底）
+ *
+ * 元素解析失败（未知标签 / 结构异常）时的占位：语义未知，仅由 __raw 承载原始节点，
+ * 生成端始终按 __raw 原样回写，保证不丢信息。
+ */
+export interface PptxRawElement extends PptxElementBase {
+    type: 'raw';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 export type PptxElement =
     | PptxTextElement
     | PptxShapeElement
     | PptxImageElement
-    | PptxChartElement;
+    | PptxChartElement
+    | PptxTableElement
+    | PptxDiagramElement
+    | PptxRawElement;
 
 /** 媒体资源（当元素不内联 data 时，通过 id 引用本表） */
 export interface PptxMediaResource {
@@ -199,9 +312,9 @@ export interface PptxMediaResource {
 export interface PptxSlide {
     /** 背景（缺省继承主题） */
     background?: PptxBackground;
-    /** 过渡效果（生成端当前仅解析端产出，待消费） */
+    /** 过渡效果（解析端自 p:transition 产出，生成端写回 p:transition） */
     transition?: PptxTransition;
-    /** 演讲者备注（解析端自 notesContent 产出，生成端待消费） */
+    /** 演讲者备注（解析端自 notesContent 产出，生成端写回 notesSlide 部件） */
     notes?: string;
     elements: PptxElement[];
 }
