@@ -248,7 +248,9 @@ function readSpPr(spPr: any): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'lin
         if (outer) {
             const shadow: any = { type: inner ? 'inner' : 'outer' };
             if (outer.attrs) {
-                if (outer.attrs.blur != null) shadow.blur = emuToPt(outer.attrs.blur);
+                // OOXML 属性名为 blurRad（旧文件可能写作 blur，做兼容兜底）
+                const blurAttr = outer.attrs.blurRad != null ? outer.attrs.blurRad : outer.attrs.blur;
+                if (blurAttr != null) shadow.blur = emuToPt(blurAttr);
                 if (outer.attrs.dist != null) shadow.distance = emuToPt(outer.attrs.dist);
                 if (outer.attrs.dir != null) shadow.angle = Math.round(Number(outer.attrs.dir) / 60000);
             }
@@ -261,7 +263,9 @@ function readSpPr(spPr: any): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'lin
         const glow = effLst['a:glow'];
         if (glow) {
             const g: any = {};
-            if (glow.attrs && glow.attrs.blur != null) g.blur = emuToPt(glow.attrs.blur);
+            // OOXML 属性名为 rad（旧文件可能写作 blur，做兼容兜底）
+            const glowRad = glow.attrs ? (glow.attrs.rad != null ? glow.attrs.rad : glow.attrs.blur) : undefined;
+            if (glowRad != null) g.blur = emuToPt(glowRad);
             const srgb = glow['a:srgbClr'];
             if (srgb && srgb.attrs && srgb.attrs.val) g.color = String(srgb.attrs.val);
             effects.glow = g;
@@ -793,11 +797,18 @@ function tableToElement(tbl: any, node: any): PptxTableElement {
 
                 // 边框回读（a:lnL / a:lnR / a:lnT / a:lnB）
                 const edgeKey: Record<string, 'left' | 'right' | 'top' | 'bottom'> = { L: 'left', R: 'right', T: 'top', B: 'bottom' };
-                const borders: Record<string, { color: string; width: number }> = {};
+                const borders: Record<string, { color: string; width: number } | 'none'> = {};
                 let hasBorder = false;
                 for (const e of Object.keys(edgeKey)) {
                     const ln = tcPr['a:ln' + e];
-                    if (ln && ln.attrs) {
+                    if (!ln) continue;
+                    // 显式无边框（<a:lnX><a:noFill/></a:lnX>）→ 回读为 'none'，避免与「未指定（继承表格样式）」混淆
+                    if (ln['a:noFill']) {
+                        borders[edgeKey[e]] = 'none';
+                        hasBorder = true;
+                        continue;
+                    }
+                    if (ln.attrs) {
                         const w = ln.attrs.w !== undefined ? Math.round(Number(ln.attrs.w) / EMU_PER_PT) : DEFAULT_LN_PT;
                         const color = readSrgbClr(ln) || '#000000';
                         borders[edgeKey[e]] = { color, width: w };

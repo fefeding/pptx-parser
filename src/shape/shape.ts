@@ -463,6 +463,8 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                 }
 
                 var oShadowSvgUrlStr: any = ""
+                // 阴影 / 发光统一收集为同一条 filter CSS 规则
+                const filterParts: string[] = [];
                 // Check if outerShdwNode exists and has valid shadow attributes
                 // A valid shadow should have at least dist defined with a non-zero value
                 let hasOuterShadow = false;
@@ -505,7 +507,7 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     var dir = (outerShdwAttrs["dir"]) ? (parseInt(outerShdwAttrs["dir"]) / 60000) : 0;
                     var dist = parseInt(outerShdwAttrs["dist"]) * SLIDE_FACTOR;//(px) //* (3 / 4); //(pt)
                     //var rotWithShape = outerShdwAttrs["rotWithShape"];
-                    var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR) : ""; //+ "px"
+                    var blurRad = (outerShdwAttrs["blurRad"]) ? (parseInt(outerShdwAttrs["blurRad"]) * SLIDE_FACTOR) : 0; // 缺省 0：留空会生成非法 CSS 导致整条 filter 失效
                     //var sx = (outerShdwAttrs["sx"]) ? (parseInt(outerShdwAttrs["sx"]) / 100000) : 1;
                     //var sy = (outerShdwAttrs["sy"]) ? (parseInt(outerShdwAttrs["sy"]) / 100000) : 1;
                     const vx = dist * Math.sin(dir * Math.PI / 180);
@@ -525,16 +527,47 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     //shadowFilterStr += '</filter>'; 
                     //result += shadowFilterStr;
 
-                    //css:
-                    let svg_css_shadow = `filter:drop-shadow(${hx}px ${vx}px ${blurRad}px #${chdwClrNode});`;
+                    //css：统一收集到 filterParts，最后与发光合并为一条 filter 规则
+                    filterParts.push(`drop-shadow(${hx}px ${vx}px ${blurRad}px #${chdwClrNode})`);
+                }
 
-                    if (svg_css_shadow in warpObj.styleTable) {
-                        svg_css_shadow += `do-nothing: ${svgCssName};`;
+                //////////////////////////////glow///////////////////////////////////////////////
+                let glowNode = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:effectLst", "a:glow"]);
+
+                // If no direct glow, check from effectStyle
+                if (glowNode === undefined && effectStyleNode !== undefined) {
+                    glowNode = PPTXXmlUtils.getTextByPathList(effectStyleNode, ["a:effectLst", "a:glow"]);
+                }
+                if (glowNode !== undefined) {
+                    const glowAttrs = glowNode["attrs"] || {};
+                    const glowRad = glowAttrs["rad"] ? (parseInt(glowAttrs["rad"]) * SLIDE_FACTOR) : 0;
+                    if (glowRad > 0) {
+                        const glowClr = PPTXStyleUtils.getSolidFill(glowNode, undefined, undefined, warpObj);
+                        // 按 PowerPoint/WPS 的发光算法：对形状轮廓高斯模糊 → 用发光色填充 → 与原形状合成。
+                        // 得到的是向外渐隐的柔光；用多层不透明 drop-shadow 叠出来的是实心色块（观感像阴影）。
+                        const glowId = `glow_${svgCssName}`;
+                        const stdDev = glowRad / 2; // 滤镜/ CSS 的 blur 半径 ≈ 2σ
+                        let glowFilter = `<filter id="${glowId}" x="-100%" y="-100%" width="300%" height="300%">`;
+                        glowFilter += `<feGaussianBlur in="SourceAlpha" stdDeviation="${stdDev}" result="glowBlur"/>`;
+                        glowFilter += `<feFlood flood-color="#${glowClr}" result="glowColor"/>`;
+                        glowFilter += `<feComposite in="glowColor" in2="glowBlur" operator="in" result="glowLayer"/>`;
+                        glowFilter += `<feMerge><feMergeNode in="glowLayer"/><feMergeNode in="SourceGraphic"/></feMerge>`;
+                        glowFilter += `</filter>`;
+                        result += glowFilter;
+                        filterParts.push(`url(#${glowId})`);
+                    }
+                }
+
+                // 阴影/发光注册为同一条 filter CSS 规则（作用于该形状 SVG 元素）
+                if (filterParts.length > 0) {
+                    let effectsCss = `filter:${filterParts.join(' ')};`;
+                    if (effectsCss in warpObj.styleTable) {
+                        effectsCss += `do-nothing: ${svgCssName};`;
                     }
 
-                    warpObj.styleTable[svg_css_shadow] = {
+                    warpObj.styleTable[effectsCss] = {
                         "name": effectsClassName,
-                        "text": svg_css_shadow
+                        "text": effectsCss
                     };
 
                     // Add effectsClassName to the SVG tag since we have a CSS shadow effect

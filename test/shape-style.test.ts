@@ -50,7 +50,7 @@ describe('T2 形状渐变填充 / 透明度 / 阴影 / 发光（生成端）', (
         expect(xml).toContain('<a:alpha val="70000"'); // transparency 30 → 70000
     });
 
-    it('外阴影生成 a:effectLst/a:outerShdw + blur/dist/dir + alpha', async () => {
+    it('外阴影生成 a:effectLst/a:outerShdw + blurRad/dist/dir + alpha', async () => {
         const data = await jsonToPptx(shapeDoc(shapeEl({
             effects: { shadow: { type: 'outer', color: '#000000', blur: 4, distance: 3, angle: 90 } }
         })));
@@ -58,17 +58,17 @@ describe('T2 形状渐变填充 / 透明度 / 阴影 / 发光（生成端）', (
 
         expect(xml).toContain('<a:effectLst');
         expect(xml).toContain('<a:outerShdw');
-        expect(xml).toContain('blur="50800"');   // 4pt
-        expect(xml).toContain('dist="38100"');   // 3pt
-        expect(xml).toContain('dir="5400000"');  // 90°
+        expect(xml).toContain('blurRad="50800"'); // 4pt（OOXML 属性名是 blurRad）
+        expect(xml).toContain('dist="38100"');    // 3pt
+        expect(xml).toContain('dir="5400000"');   // 90°
     });
 
-    it('发光生成 a:glow + blur + 颜色', async () => {
+    it('发光生成 a:glow + rad + 颜色', async () => {
         const data = await jsonToPptx(shapeDoc(shapeEl({ effects: { glow: { color: '#FFFF00', blur: 5 } } })));
         const xml = await (await JSZip.loadAsync(data)).file('ppt/slides/slide1.xml').async('string');
 
         expect(xml).toContain('<a:glow');
-        expect(xml).toContain('blur="63500"');   // 5pt
+        expect(xml).toContain('rad="63500"');    // 5pt（OOXML 属性名是 rad）
         expect(xml).toContain('val="FFFF00"');
     });
 
@@ -102,6 +102,18 @@ describe('T2 形状样式 round-trip 回读', () => {
         expect(shape.fill.stops[1]).toEqual({ color: '00FF00', position: 1 });
         expect(shape.effects.shadow.type).toBe('outer');
         expect(shape.effects.shadow.transparency).toBe(40);
+        // blurRad 往返（旧实现写成 blur 会丢失）
+        expect(shape.effects.shadow.blur).toBe(4);
+        expect(shape.effects.shadow.distance).toBe(3);
+        expect(shape.effects.shadow.angle).toBe(90);
+    });
+
+    it('pptxToStandard 回读发光 rad', async () => {
+        const data = await jsonToPptx(shapeDoc(shapeEl({ effects: { glow: { color: '#EF4444', blur: 5 } } })));
+        const std: any = await pptxToStandard(toArrayBuffer(data));
+        const shape = std.slides[0].elements.find((e: any) => e.type === 'shape');
+        expect(shape.effects.glow.color).toBe('EF4444');
+        expect(shape.effects.glow.blur).toBe(5);
     });
 
     it('pptxToStandard 回读透明度与虚线', async () => {

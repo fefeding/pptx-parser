@@ -15,6 +15,7 @@ const rollupConfig = (await import('./rollup.config.mjs')).default
 
 let viteStarted = false
 let rollupReady = false
+let viteServer = null
 
 async function startVite() {
   if (viteStarted) return
@@ -23,6 +24,7 @@ async function startVite() {
     configFile: resolve(root, 'vite.dev.config.ts'),
     root
   })
+  viteServer = server
   await server.listen()
   server.printUrls()
 
@@ -43,6 +45,12 @@ watcher.on('event', (event) => {
     if (!rollupReady) {
       rollupReady = true
       startVite()
+      return
+    }
+    // 后续构建：产物全部写完后再通知浏览器刷新（dist 不在 Vite 监听范围内，
+    // 避免写入过程中被读取导致 Failed to load url / 解析语法错误）
+    if (viteServer) {
+      viteServer.ws.send({ type: 'full-reload' })
     }
   } else if (event.code === 'ERROR') {
     console.error('[rollup] build error:', event.error)

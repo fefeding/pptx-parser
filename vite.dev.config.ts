@@ -16,7 +16,13 @@ export default defineConfig({
       allow: [resolve(__dirname)]
     },
     // 启用 HMR / 文件变更全量刷新
-    hmr: true
+    hmr: true,
+    watch: {
+      // dist 由 rollup watch 写入：写入过程中文件是半截的，
+      // 这里不让 Vite 直接监听（否则会读到不完整产物报 Pre-transform error），
+      // 改由 dev-server.mjs 在每次构建结束后统一触发一次整页刷新。
+      ignored: ['**/dist/**']
+    }
   },
   build: {
     outDir: 'dist',

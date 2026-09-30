@@ -55,11 +55,35 @@ export function buildViewPropsXml() {
 }
 
 /**
+ * 默认表格样式 ID（对应内置 “Table Grid”：纯网格线、无底纹）
+ * 使用内置 GUID 可让 PowerPoint 直接解析，同时我们在 tableStyles.xml 中给出等价定义供解析器使用。
+ */
+export const DEFAULT_TABLE_STYLE_ID = '{5940675A-B579-460E-94D1-54222C63F5DA}';
+
+/**
  * 表格样式模板（tableStyles.xml）
+ *
+ * 根元素必须是 DrawingML 命名空间下的 a:tblStyleLst（解析端按 ["a:tblStyleLst"]["a:tblStyle"] 读取）；
+ * 并给出默认样式的完整定义（纯网格线），使表格在解析端也能渲染出完整网格而非只剩单元格自定义边。
  * @returns {string} tableStyles.xml 内容
  */
 export function buildTableStylesXml() {
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:tblStyLst xmlns:a="${NS.a}" xmlns:p="${NS.p}" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"/>`;
+    const edge = (side: string) =>
+        `<a:${side}><a:ln w="12700" cmpd="sng"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></a:${side}>`;
+    const grid = ['left', 'right', 'top', 'bottom', 'insideH', 'insideV'].map(edge).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<a:tblStyleLst xmlns:a="${NS.a}" def="${DEFAULT_TABLE_STYLE_ID}">` +
+        `<a:tblStyle styleId="${DEFAULT_TABLE_STYLE_ID}" styleName="Table Grid">` +
+        `<a:wholeTbl>` +
+        `<a:tcTxStyle b="off"><a:fontRef idx="minor"/><a:schemeClr val="dk1"/></a:tcTxStyle>` +
+        `<a:tcStyle><a:tcBdr>${grid}</a:tcBdr></a:tcStyle>` +
+        `</a:wholeTbl>` +
+        `<a:firstRow>` +
+        `<a:tcTxStyle b="on"><a:fontRef idx="minor"/><a:schemeClr val="dk1"/></a:tcTxStyle>` +
+        `<a:tcStyle><a:tcBdr>${grid}</a:tcBdr></a:tcStyle>` +
+        `</a:firstRow>` +
+        `</a:tblStyle>` +
+        `</a:tblStyleLst>`;
 }
 
 /**
@@ -192,7 +216,7 @@ export function buildContentTypesXml(mediaExts: Iterable<unknown>, slideCount: n
     const slideOverrides = Array.from({ length: slideCount }, (_, i) =>
         `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`
     ).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>${slideOverrides}</Types>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
 }
 
 /**

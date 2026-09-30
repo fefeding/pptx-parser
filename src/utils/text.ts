@@ -1725,22 +1725,27 @@ function getTextWidth(html: string) {
             }
 
             let thisTblStyle;
-            let tbleStyleId = getTblPr["a:tableStyleId"];
-            if (tbleStyleId !== undefined) {
-                let tbleStylList = warpObj.tableStyles["a:tblStyleLst"]["a:tblStyle"];
-                if (tbleStylList !== undefined) {
-                    if (tbleStylList.constructor === Array) {
-                        for (const item of tbleStylList){
-                            if (item["attrs"]["styleId"] == tbleStyleId) {
-                                thisTblStyle = item;
-                            }
-                        }
-                    } else {
-                        if (tbleStylList["attrs"]["styleId"] == tbleStyleId) {
-                            thisTblStyle = tbleStylList;
+            const tblStylesRoot = warpObj.tableStyles || {};
+            const tbleStyleId = getTblPr["a:tableStyleId"];
+            const tbleStylList = PPTXXmlUtils.getTextByPathList(tblStylesRoot, ["a:tblStyleLst", "a:tblStyle"]);
+            const pickTblStyle = (styleId: string | undefined): any => {
+                if (styleId === undefined || tbleStylList === undefined) {
+                    return undefined;
+                }
+                if (tbleStylList.constructor === Array) {
+                    for (const item of tbleStylList) {
+                        if (item["attrs"] && item["attrs"]["styleId"] == styleId) {
+                            return item;
                         }
                     }
+                    return undefined;
                 }
+                return (tbleStylList["attrs"] && tbleStylList["attrs"]["styleId"] == styleId) ? tbleStylList : undefined;
+            };
+            thisTblStyle = pickTblStyle(tbleStyleId);
+            // 未声明或未匹配到指定样式时，按 OOXML 规则回退到 a:tblStyleLst/@def 的默认样式
+            if (thisTblStyle === undefined) {
+                thisTblStyle = pickTblStyle(PPTXXmlUtils.getTextByPathList(tblStylesRoot, ["a:tblStyleLst", "attrs", "def"]));
             }
             if (thisTblStyle !== undefined) {
                 thisTblStyle["tblStylAttrObj"] = tblStylAttrObj;
@@ -2189,7 +2194,7 @@ function getTextWidth(html: string) {
 
             //cell bords
             lin_bottm = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnB"]);
-            if (lin_bottm === undefined && cellSource !== undefined) {
+            if (lin_bottm === undefined) {
                 if (cellSource !== undefined)
                     lin_bottm = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
                 if (lin_bottm === undefined) {
@@ -2221,7 +2226,7 @@ function getTextWidth(html: string) {
                 }
             }
             lin_bottom_left_to_top_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnBlToTr"]);
-            lin_top_left_to_bottom_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:InTlToBr"]);
+            lin_top_left_to_bottom_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnTlToBr"]);
 
             if (lin_bottm !== undefined && (lin_bottm as unknown) != "") {
                 let bottom_line_border = PPTXStyleUtils.getBorder(lin_bottm, undefined, false, "", warpObj)

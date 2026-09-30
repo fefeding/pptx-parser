@@ -104,7 +104,7 @@ slides.push(page('T2 · 形状渐变/透明度/阴影/发光', [
     { type: 'shape', shapeType: 'roundRect', x: 340, y: 120, width: 240, height: 150,
         fill: { type: 'solid', color: '#10b981', transparency: 40 }, line: { color: '#047857', width: 1.5 } },
     { type: 'shape', shapeType: 'ellipse', x: 620, y: 120, width: 160, height: 160,
-        fill: { color: '#3b82f6' }, effects: { shadow: { blur: 10, dist: 5, dir: 90, color: '#000000', alpha: 60 } } },
+        fill: { color: '#3b82f6' }, effects: { shadow: { blur: 10, distance: 5, angle: 90, color: '#000000', transparency: 40 } } },
     { type: 'shape', shapeType: 'diamond', x: 820, y: 120, width: 160, height: 160,
         fill: { color: '#f59e0b' }, effects: { glow: { color: '#ef4444', blur: 15 } } }
 ]));
@@ -342,7 +342,7 @@ async function selfCheck() {
     // T10 对角线/内边距/样式
     assert('T10 对角线 lnTlToBr/lnBlToTr', /<a:lnTlToBr|<a:lnBlToTr/.test(slideXml[9]));
     assert('T10 单元格内边距 tableCellInsets', /<a:tableCellInsets/.test(slideXml[9]));
-    assert('T10 表格样式 tableStyleId', /tableStyleId=/.test(slideXml[9]));
+    assert('T10 表格样式 tableStyleId', /<a:tableStyleId>/.test(slideXml[9]));
     // T11 图表类型
     assert('T11 c:bar3DChart', /<c:bar3DChart/.test(chartAll));
     assert('T11 c:doughnutChart', /<c:doughnutChart/.test(chartAll));

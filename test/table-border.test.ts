@@ -52,7 +52,7 @@ describe('T1 表格单元格边框线（生成端）', () => {
         expect(xml).toContain('val="000000"');
     });
 
-    it('borders 分边覆盖：top:"none" 不生成 a:lnT，其他边仍生成', async () => {
+    it('borders 分边覆盖：top:"none" 生成 a:lnT + noFill，其他边仍生成实线', async () => {
         const data = await jsonToPptx(tableDoc({
             type: 'table', x: 0, y: 0, width: 100, height: 50,
             colWidths: [100], rowHeights: [50],
@@ -61,11 +61,11 @@ describe('T1 表格单元格边框线（生成端）', () => {
         }));
         const xml = await (await JSZip.loadAsync(data)).file('ppt/slides/slide1.xml').async('string');
 
-        // 单单元格：应含 L/R/B 三条边，无 T
+        // 单单元格：L/R/B 三条实线边 + T 显式 noFill（覆盖表格样式，避免被默认网格补上）
         expect((xml.match(/<a:lnL/g) || []).length).toBe(1);
         expect((xml.match(/<a:lnR/g) || []).length).toBe(1);
         expect((xml.match(/<a:lnB/g) || []).length).toBe(1);
-        expect((xml.match(/<a:lnT/g) || []).length).toBe(0);
+        expect(xml).toContain('<a:lnT><a:noFill/></a:lnT>');
     });
 
     it('未声明任何边框时（兼容现状）不生成 ln* 节点', async () => {
@@ -124,7 +124,7 @@ describe('T1 表格单元格边框线（round-trip 回读）', () => {
 
         // C 单元格分边覆盖
         const cBorders = table.rows[1].cells[0].borders;
-        expect(cBorders.top).toBeUndefined();           // 'none' 不回读
+        expect(cBorders.top).toEqual('none');           // 显式 'none' 回读为 'none'（不继承表格样式）
         expect(cBorders.left).toEqual({ color: 'FF0000', width: 2 });
         expect(cBorders.right).toEqual({ color: '000000', width: 1 });
     });
