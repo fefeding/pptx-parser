@@ -23,7 +23,7 @@ interface StyleTableEntry {
     text: string;
 }
 /** 样式表：CSS 文本 -> 条目 */
-type StyleTable = Record<string, StyleTableEntry>;
+export type StyleTable = Record<string, StyleTableEntry>;
 
 /** 资源对应关系：rId -> { target, type } */
 type ResourceMap = Record<string, Record<string, string>>;
@@ -95,7 +95,7 @@ interface FileIndexEntry {
 type PptxFileData = ArrayBuffer | Uint8Array | string;
 
 /** 幻灯片尺寸（含解析端回传的默认文本样式） */
-interface SlideSize {
+export interface SlideSize {
     width: number;
     height: number;
     /** getSlideSizeAndSetDefaultTextStyle 一并返回，可能为 undefined */
@@ -918,3 +918,4 @@ function extractSlideTransition(slideContent: XmlNode) {
 
 export default pptxToHtml;
 export { pptxToJson, pptxToHtml, pptxToFiles, jsonToPptx, editPptx, PPTXComposer };
+export * from './compatibility-types';

@@ -147,10 +147,23 @@ window.chartRenderer = chartRenderer;
 
     .slide {
         background: white;
-        box-shadow: var(--shadow);
-        border-radius: 4px;
         overflow: hidden;
         transition: transform 0.2s ease;
+    }
+
+    /* 缩放层：固定为缩放后的尺寸，内部 slide 通过 transform 缩放 */
+    .slide-scaler {
+        position: relative;
+        overflow: hidden;
+        margin: 0 auto 2rem;
+        background: #fff;
+        box-shadow: var(--shadow);
+        border-radius: 4px;
+    }
+
+    .slide-scaler > section.slide {
+        margin: 0;
+        transform-origin: top left;
     }
 
     /* 工具栏 */
@@ -233,6 +246,9 @@ window.chartRenderer = chartRenderer;
         </div>
 
         <div class="toolbar" id="toolbar">
+            <button id="zoom-out" class="btn btn-secondary" title="缩小">−</button>
+            <button id="zoom-label" class="btn btn-secondary" title="点击适应宽度">100%</button>
+            <button id="zoom-in" class="btn btn-secondary" title="放大">+</button>
             <button id="fullscreen-btn" class="btn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
                 全屏演示
@@ -253,6 +269,10 @@ const progressContainer = document.getElementById("progressContainer");
 const progressBar = document.getElementById("progressBar");
 const loadingText = document.getElementById("loadingText");
 const toolbar = document.getElementById("toolbar");
+
+// 预览缩放状态
+let currentScale = 1;
+let currentSlideSize = null;
 
 // 处理拖拽视觉效果
 ['dragenter', 'dragover'].forEach(eventName => {
@@ -368,12 +388,21 @@ async function parseAndRender(fileData) {
 			resultDiv.appendChild(style);
 		}
 		
-		// 渲染所有幻灯片
+		// 渲染所有幻灯片（包裹缩放层，支持自适应宽度与手动缩放）
 		result.slides.forEach(slide => {
 			const slideContainer = document.createElement("div");
             slideContainer.innerHTML = slide.html;
-            resultDiv.appendChild(slideContainer.firstChild);
+			const slideEl = slideContainer.firstChild;
+			const scaler = document.createElement("div");
+			scaler.className = "slide-scaler";
+			scaler.appendChild(slideEl);
+            resultDiv.appendChild(scaler);
 		});
+
+		// 记录幻灯片尺寸并自动适应宽度
+		currentSlideSize = result.slideSize || null;
+		applyScale();
+		fitToWidth();
 
 		// 渲染所有图表 - 使用 ChartRenderer 模块
 		if (result.charts && result.charts.length > 0) {
@@ -405,6 +434,50 @@ async function handleFile(file) {
 	};
 	reader.readAsArrayBuffer(file);
 }
+
+// ===== 预览缩放：自动适应宽度 + 手动缩放（与 vue-demo 一致）=====
+function applyScale() {
+    const scalers = resultDiv.querySelectorAll('.slide-scaler');
+    scalers.forEach(scaler => {
+        scaler.style.width = (currentSlideSize.width * currentScale) + 'px';
+        scaler.style.height = (currentSlideSize.height * currentScale) + 'px';
+        const inner = scaler.firstElementChild;
+        if (inner) inner.style.transform = 'scale(' + currentScale + ')';
+    });
+    const label = document.getElementById('zoom-label');
+    if (label) label.textContent = Math.round(currentScale * 100) + '%';
+}
+
+// 根据预览区宽度自动计算缩放比（限制 0.1~2 倍）
+function fitToWidth() {
+    if (!currentSlideSize || !currentSlideSize.width) {
+        currentScale = 1;
+        applyScale();
+        return;
+    }
+    const avail = resultDiv.clientWidth - 48; // 减去左右 padding
+    let s = avail / currentSlideSize.width;
+    s = Math.max(0.1, Math.min(2, s));
+    currentScale = +s.toFixed(3);
+    applyScale();
+}
+
+function zoomIn() {
+    currentScale = Math.min(2, +(currentScale * 1.1).toFixed(3));
+    applyScale();
+}
+
+function zoomOut() {
+    currentScale = Math.max(0.1, +(currentScale / 1.1).toFixed(3));
+    applyScale();
+}
+
+// 事件绑定：手动缩放、窗口/全屏尺寸变化时自动适应宽度
+document.getElementById('zoom-in').addEventListener('click', zoomIn);
+document.getElementById('zoom-out').addEventListener('click', zoomOut);
+document.getElementById('zoom-label').addEventListener('click', fitToWidth);
+window.addEventListener('resize', fitToWidth);
+document.addEventListener('fullscreenchange', fitToWidth);
 
 // 默认加载远程示例 PPTX
 const DEFAULT_PPTX_URL = "https://pptx.js.org/pages/Sample_demo1.pptx";

@@ -36,7 +36,7 @@ type ElementConfig = ((builder: FluentBuilder) => void) | Record<string, unknown
 type ChartConfig = ((el: SerializerElement) => void) | Record<string, unknown>;
 
 /** 演示文稿 JSON 树 */
-interface ComposerPresentation {
+export interface ComposerPresentation {
     metadata: Record<string, unknown>;
     slideSize: { width: number; height: number };
     slides: SerializerSlide[];

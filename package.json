@@ -24,7 +24,7 @@
     "url": "git+https://github.com/fefeding/pptx-parser.git"
   },
   "scripts": {
-    "dev": "rollup -c rollup.config.mjs -w",
+    "dev": "node dev-server.mjs",
     "build": "rimraf dist && rollup -c rollup.config.mjs --environment production",
     "type-check": "tsc --noEmit --skipLibCheck",
     "test": "vitest",
