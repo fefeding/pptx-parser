@@ -26,7 +26,7 @@
 import { PPTXXmlUtils } from '../utils/xml';
 import { PPTXStyleUtils } from '../utils/style';
 import { PPTXTextUtils } from '../utils/text';
-import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from '../core/constants';
+import { SLIDE_FACTOR, FONT_SIZE_FACTOR, GLOW_SIGMA_FACTOR, GLOW_ALPHA_SLOPE } from '../core/constants';
 import {
     polarToCartesian,
     shapeArc,
@@ -542,15 +542,25 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     const glowAttrs = glowNode["attrs"] || {};
                     const glowRad = glowAttrs["rad"] ? (parseInt(glowAttrs["rad"]) * SLIDE_FACTOR) : 0;
                     if (glowRad > 0) {
-                        const glowClr = PPTXStyleUtils.getSolidFill(glowNode, undefined, undefined, warpObj);
+                        const glowClrRaw = PPTXStyleUtils.getSolidFill(glowNode, undefined, undefined, warpObj) || '000000';
+                        // 颜色可能带 a:alpha（getSolidFill 返回 8 位 hex），需拆成 flood-color + flood-opacity
+                        const hasAlphaHex = /^[0-9a-fA-F]{8}$/.test(glowClrRaw);
+                        const glowClr = hasAlphaHex ? glowClrRaw.slice(0, 6) : glowClrRaw;
+                        const glowOpacity = hasAlphaHex
+                            ? (parseInt(glowClrRaw.slice(6, 8), 16) / 255).toFixed(3)
+                            : '1';
                         // 按 PowerPoint/WPS 的发光算法：对形状轮廓高斯模糊 → 用发光色填充 → 与原形状合成。
                         // 得到的是向外渐隐的柔光；用多层不透明 drop-shadow 叠出来的是实心色块（观感像阴影）。
                         const glowId = `glow_${svgCssName}`;
-                        const stdDev = glowRad / 2; // 滤镜/ CSS 的 blur 半径 ≈ 2σ
-                        let glowFilter = `<filter id="${glowId}" x="-100%" y="-100%" width="300%" height="300%">`;
+                        const stdDev = glowRad * GLOW_SIGMA_FACTOR;
+                        // 显式指定 sRGB：SVG 滤镜默认在 linearRGB 空间运算，与 PowerPoint/WPS/CSS 的 sRGB 不一致。
+                        // 本滤镜只模糊 alpha 通道（影响极小），但对 softEdge 这类模糊颜色通道的滤镜会明显偏亮发灰。
+                        let glowFilter = `<filter id="${glowId}" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">`;
                         glowFilter += `<feGaussianBlur in="SourceAlpha" stdDeviation="${stdDev}" result="glowBlur"/>`;
-                        glowFilter += `<feFlood flood-color="#${glowClr}" result="glowColor"/>`;
-                        glowFilter += `<feComposite in="glowColor" in2="glowBlur" operator="in" result="glowLayer"/>`;
+                        // 模糊半平面在轮廓处只有 0.5 alpha，放大回满强度才能贴合 PowerPoint 的发光观感
+                        glowFilter += `<feComponentTransfer in="glowBlur" result="glowAlpha"><feFuncA type="linear" slope="${GLOW_ALPHA_SLOPE}"/></feComponentTransfer>`;
+                        glowFilter += `<feFlood flood-color="#${glowClr}" flood-opacity="${glowOpacity}" result="glowColor"/>`;
+                        glowFilter += `<feComposite in="glowColor" in2="glowAlpha" operator="in" result="glowLayer"/>`;
                         glowFilter += `<feMerge><feMergeNode in="glowLayer"/><feMergeNode in="SourceGraphic"/></feMerge>`;
                         glowFilter += `</filter>`;
                         result += glowFilter;
@@ -593,7 +603,8 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     // Applies a Gaussian blur to the edges of the shape
                     // The radius determines how far the blur extends from the edge
                     const softEdgeId = `softedge_${shpId}`;
-                    let softEdgeFilter = `<filter id="${softEdgeId}" x="-20%" y="-20%" width="140%" height="140%">`;
+                    // 同样显式指定 sRGB：滤镜默认在 linearRGB 空间模糊，会让柔化后的颜色偏亮发灰
+                    let softEdgeFilter = `<filter id="${softEdgeId}" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">`;
                     // Blur the source to create soft edge
                     softEdgeFilter += `<feGaussianBlur in="SourceGraphic" stdDeviation="${rad}" />`;
                     softEdgeFilter += '</filter>';

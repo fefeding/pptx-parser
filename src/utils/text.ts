@@ -1751,12 +1751,10 @@ function getTextWidth(html: string) {
                 thisTblStyle["tblStylAttrObj"] = tblStylAttrObj;
                 warpObj["thisTbiStyle"] = thisTblStyle;
             }
-            let tblStyl = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle"]);
-            let tblBorderStyl = PPTXXmlUtils.getTextByPathList(tblStyl, ["a:tcBdr"]);
-            let tbl_borders = "";
-            if (tblBorderStyl !== undefined) {
-                tbl_borders = PPTXStyleUtils.getTableBorders(tblBorderStyl, warpObj);
-            }
+            // 表格外边框不再画在 <table> 上：它由各单元格自身的边框决定（见 getTableCellParams），
+            // 否则会盖住显式「无边框」的单元格，并与相邻单元格的边框叠成双线。
+            const rightBorderGrid: any[][] = [];
+            const bottomBorderGrid: any[][] = [];
             let tbl_bgcolor = "";
             let tbl_opacity = 1;
             let tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:tblBg", "a:fillRef"]);
@@ -1767,6 +1765,10 @@ function getTextWidth(html: string) {
             if (tbl_bgFillschemeClr === undefined) {
                 tbl_bgFillschemeClr = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:fill", "a:solidFill"]);
                 tbl_bgcolor = PPTXStyleUtils.getSolidFill(tbl_bgFillschemeClr, undefined, undefined, warpObj);
+            }
+            // 表格无背景填充时 getSolidFill 返回 undefined，需归一为空串，否则会写进 style 变成字面量 "undefined"
+            if (typeof tbl_bgcolor !== 'string') {
+                tbl_bgcolor = "";
             }
             if (tbl_bgcolor !== "" && typeof tbl_bgcolor === 'string') {
                 if (tbl_bgcolor.length === 8) {
@@ -1782,12 +1784,31 @@ function getTextWidth(html: string) {
                 PPTXXmlUtils.getPosition(workingXfrmNode, node, undefined, undefined, shapeType) +
                 PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) +
                 ` z-index: ${order};` +
-                tbl_borders + `;${tbl_bgcolor}'>`;
+                `${tbl_bgcolor}'>`;
 
             let trNodes = tableNode["a:tr"];
             if (trNodes.constructor !== Array) {
                 trNodes = [trNodes];
             }
+            // 组装单元格边框解析所需的上下文：
+            // 命中区域（用于样式回退）+ 内部共享边（取左侧邻格的右边框 / 上方邻格的下边框）
+            const buildBorderCtx = (i: number, j: number, cellCount: number, cellSource: string | undefined) => {
+                const regions: string[] = [];
+                if (cellSource !== undefined) regions.push(cellSource);
+                if (i === 0 && tblStylAttrObj["isFrstRowAttr"] == 1) regions.push("a:firstRow");
+                else if (i === (trNodes.length - 1) && tblStylAttrObj["isLstRowAttr"] == 1) regions.push("a:lastRow");
+                else if (i > 0 && tblStylAttrObj["isBandRowAttr"] == 1) regions.push((i % 2) === 0 ? "a:band2H" : "a:band1H");
+                if (j === 0 && tblStylAttrObj["isFrstColAttr"] == 1) regions.push("a:firstCol");
+                if (j === (cellCount - 1) && tblStylAttrObj["isLstColAttr"] == 1) regions.push("a:lastCol");
+                regions.push("a:wholeTbl");
+                return {
+                    regions,
+                    lastRow: i === (trNodes.length - 1),
+                    lastCol: j === (cellCount - 1),
+                    leftBorder: (j > 0 && rightBorderGrid[i]) ? rightBorderGrid[i][j - 1] : undefined,
+                    topBorder: (i > 0 && bottomBorderGrid[i - 1]) ? bottomBorderGrid[i - 1][j] : undefined
+                };
+            };
             //if (trNodes.constructor === Array) {
                 //multi rows
                 let totalrowSpan = 0;
@@ -1959,7 +1980,8 @@ function getTextWidth(html: string) {
                             }
                         }
                     }
-                    rowsStyl += ((row_borders !== undefined) ? row_borders : "");
+                    // 行级边框不再写到 <tr> 上（浏览器在 border-collapse 下无法与单元格边框正确合并）：
+                    // 首行/末行/斑马行命中的样式区域已通过 borderCtx.regions 参与单元格边框解析。
                     if (fontClrPr !== undefined && typeof fontClrPr === 'string') {
                         let tableColorValue = fontClrPr;
                         if (tableColorValue.length === 8) {
@@ -2035,12 +2057,17 @@ function getTextWidth(html: string) {
                                         }
                                     }
 
-                                    let cellParmAry = await getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj)
+                                    let cellParmAry = await getTableCellParams(tcNodes[j], getColsGrid, i , j , thisTblStyle, a_sorce, warpObj,
+                                        buildBorderCtx(i, j, tcNodes.length, a_sorce))
                                     let text = cellParmAry[0];
                                     let colStyl = cellParmAry[1];
                                     let cssName = cellParmAry[2];
                                     let rowSpan = cellParmAry[3];
                                     let colSpan = cellParmAry[4];
+                                    if (!rightBorderGrid[i]) rightBorderGrid[i] = [];
+                                    if (!bottomBorderGrid[i]) bottomBorderGrid[i] = [];
+                                    rightBorderGrid[i][j] = cellParmAry[5];
+                                    bottomBorderGrid[i][j] = cellParmAry[6];
 
 
 
@@ -2092,11 +2119,16 @@ function getTextWidth(html: string) {
                             }
 
 
-                            let cellParmAry = await getTableCellParams(tcNodes, getColsGrid , i , undefined , thisTblStyle, a_sorce, warpObj)
+                            let cellParmAry = await getTableCellParams(tcNodes, getColsGrid , i , undefined , thisTblStyle, a_sorce, warpObj,
+                                buildBorderCtx(i, 0, 1, a_sorce))
                             let text = cellParmAry[0];
                             let colStyl = cellParmAry[1];
                             let cssName = cellParmAry[2];
                             let rowSpan = cellParmAry[3];
+                            if (!rightBorderGrid[i]) rightBorderGrid[i] = [];
+                            if (!bottomBorderGrid[i]) bottomBorderGrid[i] = [];
+                            rightBorderGrid[i][0] = cellParmAry[5];
+                            bottomBorderGrid[i][0] = cellParmAry[6];
 
                             if (rowSpan !== undefined) {
                                 tableHtml += `<td  class='${cssName}' rowspan='` + parseInt(rowSpan) + `' style = '${colStyl}'>` + text + "</td>";
@@ -2113,7 +2145,16 @@ function getTextWidth(html: string) {
             return tableHtml;
         }
         
-        async function getTableCellParams(tcNodes: XmlNode, getColsGrid: XmlNode[], row_idx: number | undefined, col_idx: number | undefined, thisTblStyle: XmlNode, cellSource: string | undefined, warpObj: WarpObject) {
+        async function getTableCellParams(tcNodes: XmlNode, getColsGrid: XmlNode[], row_idx: number | undefined, col_idx: number | undefined, thisTblStyle: XmlNode, cellSource: string | undefined, warpObj: WarpObject, borderCtx?: {
+            /** 该单元格命中的样式区域（按优先级，末尾应含 a:wholeTbl） */
+            regions: string[];
+            /** 是否为最后一行 / 最后一列（决定回退用 bottom/right 还是 insideH/insideV） */
+            lastRow: boolean;
+            lastCol: boolean;
+            /** 左侧邻格的右边框 / 上方邻格的下边框（内部共享边，由邻格决定） */
+            leftBorder?: any;
+            topBorder?: any;
+        }) {
             //thisTblStyle["a:band1V"] => thisTblStyle[cellSource]
             //text, cell-width, cell-borders, 
             //let text = PPTXTextUtils.genTextBody(tcNodes["a:txBody"], tcNodes, undefined, undefined, undefined, undefined, warpObj);//tableStyles
@@ -2127,10 +2168,11 @@ function getTextWidth(html: string) {
             let col_borders = "";
             let colFontClrPr = "";
             let colFontWeight = "";
-            let lin_bottm: XmlNode | undefined,
-                lin_top: XmlNode | undefined,
-                lin_left: XmlNode | undefined,
-                lin_right: XmlNode | undefined,
+            // 四边边框节点：XmlNode = 实线边框，'none' = 显式无边框，null = 无边，undefined = 未定
+            let lin_bottm: any,
+                lin_top: any,
+                lin_left: any,
+                lin_right: any,
                 lin_bottom_left_to_top_right: XmlNode | undefined,
                 lin_top_left_to_bottom_right: XmlNode | undefined;
             
@@ -2192,66 +2234,82 @@ function getTextWidth(html: string) {
                 colStyl += cellAlign;
             }
 
+            // 单元格垂直对齐：a:tcPr/@anchor（t=顶端, ctr=居中, b=底端；just/dist 按居中近似）。
+            // 不设置的话 <td> 默认为垂直居中，与 PowerPoint/WPS 的「顶端」表现不一致。
+            // 省略该属性时按 ECMA-376 取默认值 t（顶端）。
+            let anchorAttr = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "attrs", "anchor"]);
+            if (anchorAttr === undefined) {
+                anchorAttr = PPTXXmlUtils.getTextByPathList(tcNodes, ["attrs", "anchor"]);
+            }
+            // 兼容旧版 anchorCtr（垂直居中）
+            const anchorCtr = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "attrs", "anchorCtr"]);
+            const isAnchorCenter = anchorCtr === "1" || anchorCtr === "true";
+            if (isAnchorCenter) {
+                colStyl += "vertical-align:middle;";
+            } else {
+                const vAlign = (anchorAttr === "b") ? "bottom"
+                    : ((anchorAttr === "ctr" || anchorAttr === "just" || anchorAttr === "dist") ? "middle" : "top");
+                colStyl += `vertical-align:${vAlign};`;
+            }
+
             //cell bords
-            lin_bottm = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnB"]);
-            if (lin_bottm === undefined) {
-                if (cellSource !== undefined)
-                    lin_bottm = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
-                if (lin_bottm === undefined) {
-                    lin_bottm = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:bottom", "a:ln"]);
-                }
-            }
-            lin_top = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnT"]);
-            if (lin_top === undefined) {
-                if (cellSource !== undefined)
-                    lin_top = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
-                if (lin_top === undefined) {
-                    lin_top = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:top", "a:ln"]);
-                }
-            }
-            lin_left = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnL"]);
-            if (lin_left === undefined) {
-                if (cellSource !== undefined)
-                    lin_left = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
-                if (lin_left === undefined) {
-                    lin_left = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:left", "a:ln"]);
-                }
-            }
-            lin_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnR"]);
-            if (lin_right === undefined) {
-                if (cellSource !== undefined)
-                    lin_right = PPTXXmlUtils.getTextByPathList(thisTblStyle[cellSource], ["a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
-                if (lin_right === undefined) {
-                    lin_right = PPTXXmlUtils.getTextByPathList(thisTblStyle, ["a:wholeTbl", "a:tcStyle", "a:tcBdr", "a:right", "a:ln"]);
-                }
-            }
+            // 按 OOXML / PowerPoint 的规则解析单元格四条边：
+            //  · 单元格自身的 lnR/lnB 决定右/下边，未指定则回退表格样式（内部边用 insideV/insideH，
+            //    最后一行/列用 bottom/right）；
+            //  · 表格内部共享边取「左侧单元格的 lnR / 上方单元格的 lnB」，单元格自身的 lnL/lnT
+            //    只对最左列/最顶行（外边框）生效——否则同一位置会画出两条不同颜色的线；
+            //  · 显式 <a:noFill/> 表示该边无边框，不能被样式网格补上。
             lin_bottom_left_to_top_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnBlToTr"]);
             lin_top_left_to_bottom_right = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:lnTlToBr"]);
 
-            if (lin_bottm !== undefined && (lin_bottm as unknown) != "") {
-                let bottom_line_border = PPTXStyleUtils.getBorder(lin_bottm, undefined, false, "", warpObj)
-                if (bottom_line_border != "") {
-                    colStyl += `border-bottom:${bottom_line_border};`;
+            const isNoFillLn = (n: any) =>
+                n !== undefined && n !== null && typeof n === 'object' && !Array.isArray(n) && n["a:noFill"] !== undefined;
+            // 'none' 表示显式无边框，null 表示确实没有该边，undefined 表示「由调用方决定」
+            const normLn = (n: any): any => (n === undefined ? undefined : (isNoFillLn(n) ? 'none' : n));
+            const regions = (borderCtx && borderCtx.regions) ? borderCtx.regions : ["a:wholeTbl"];
+            const styleLn = (side: string): any => {
+                if (thisTblStyle === undefined) return null;
+                for (const region of regions) {
+                    const ln = PPTXXmlUtils.getTextByPathList(thisTblStyle, [region, "a:tcStyle", "a:tcBdr", side, "a:ln"]);
+                    if (ln !== undefined) return normLn(ln);
                 }
-            }
-            if (lin_top !== undefined && (lin_top as unknown) != "") {
-                let top_line_border = PPTXStyleUtils.getBorder(lin_top, undefined, false, "", warpObj);
-                if (top_line_border != "") {
-                    colStyl += `border-top: ${top_line_border};`;
+                return null;
+            };
+            const ownLn = (side: string) => normLn(PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "a:ln" + side]));
+            const isLastRow = (borderCtx && borderCtx.lastRow) ? true : false;
+            const isLastCol = (borderCtx && borderCtx.lastCol) ? true : false;
+
+            const ownRight = ownLn("R");
+            const ownBottom = ownLn("B");
+            lin_right = ownRight !== undefined ? ownRight : styleLn(isLastCol ? "a:right" : "a:insideV");
+            lin_bottm = ownBottom !== undefined ? ownBottom : styleLn(isLastRow ? "a:bottom" : "a:insideH");
+            const ownLeft = ownLn("L");
+            const ownTop = ownLn("T");
+            lin_left = (borderCtx && borderCtx.leftBorder !== undefined)
+                ? borderCtx.leftBorder
+                : (ownLeft !== undefined ? ownLeft : styleLn("a:left"));
+            lin_top = (borderCtx && borderCtx.topBorder !== undefined)
+                ? borderCtx.topBorder
+                : (ownTop !== undefined ? ownTop : styleLn("a:top"));
+
+            const emitBorder = (side: string, resolved: any) => {
+                if (resolved === undefined) return;
+                if (resolved === null || resolved === 'none') {
+                    colStyl += `border-${side}:none;`;
+                    return;
                 }
-            }
-            if (lin_left !== undefined && (lin_left as unknown) != "") {
-                let left_line_border = PPTXStyleUtils.getBorder(lin_left, undefined, false, "", warpObj)
-                if (left_line_border != "") {
-                    colStyl += `border-left: ${left_line_border};`;
+                const css = PPTXStyleUtils.getBorder(resolved, undefined, false, "", warpObj);
+                // getBorder 在缺少颜色时会产出非法 CSS（如 "1.33px solid "），这类边按无边框处理
+                if (typeof css === 'string' && css !== "" && /#|rgb/.test(css)) {
+                    colStyl += `border-${side}:${css};`;
+                } else {
+                    colStyl += `border-${side}:none;`;
                 }
-            }
-            if (lin_right !== undefined && (lin_right as unknown) != "") {
-                let right_line_border = PPTXStyleUtils.getBorder(lin_right, undefined, false, "", warpObj)
-                if (right_line_border != "") {
-                    colStyl += `border-right:${right_line_border};`;
-                }
-            }
+            };
+            emitBorder("left", lin_left);
+            emitBorder("top", lin_top);
+            emitBorder("right", lin_right);
+            emitBorder("bottom", lin_bottm);
 
             //cell fill color custom
             let getCelFill = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr"]);
@@ -2327,7 +2385,8 @@ function getTextWidth(html: string) {
                     `color: #${colFontClrPr};`) : "");
             colStyl += ((colFontWeight != "") ? ` font-weight:${colFontWeight};` : "");
 
-            return [text, colStyl, cssName, rowSpan, colSpan];
+            // 末尾两项返回解析好的右/下边框，供右侧与下方单元格作为共享边复用
+            return [text, colStyl, cssName, rowSpan, colSpan, lin_right, lin_bottm];
         }
 const PPTXTextUtils = {
         genTextBody,
