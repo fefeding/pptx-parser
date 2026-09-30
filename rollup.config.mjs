@@ -66,11 +66,11 @@ export default [
     // 不标记 dependencies 为 external，让它们被打包进去
     // external: []
   },
-  // 打包类型声明文件：生成完整的.d.ts文件
-  // 注释掉以避免覆盖现有的 index.d.ts 文件
-  // {
-  //   input: 'src/js/index.ts',
-  //   output: [{ file: pkg.types, format: 'es' }],
-  //   plugins: [dts()]
-  // }
+  // 打包类型声明文件：生成完整的 .d.ts（自包含，内联 XmlNode/WarpObject 等类型）
+  {
+    input: 'src/js/index.ts',
+    output: [{ file: pkg.types, format: 'es' }],
+    plugins: [dts()],
+    external: [...Object.keys(pkg.dependencies)]
+  }
 ];

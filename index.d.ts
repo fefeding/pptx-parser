@@ -1,821 +1,278 @@
+import JSZip from 'jszip';
 
-/**
- * 幻灯片大小信息
- */
-export interface SlideSize {
-    width: number;
-    height: number;
-    defaultTextStyle?: any;
+interface RunStyle {
+    align?: string;
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontFace?: string;
+    href?: string;
+    lang?: string;
+}
+interface TextRunSpec extends RunStyle {
+    text?: string;
+    options?: RunStyle;
+}
+interface ParagraphSpec {
+    text?: string;
+    runs?: TextRunSpec[];
+    align?: string;
+    bullet?: boolean;
+}
+interface ChartSeriesSpec {
+    name?: string;
+    values?: number[];
+    x?: number[];
+    y?: number[];
+    color?: string;
+}
+interface SerializerElement {
+    type?: string;
+    name?: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    rotation?: number;
+    text?: string;
+    runs?: TextRunSpec[];
+    paragraphs?: ParagraphSpec[];
+    align?: string;
+    valign?: string;
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontFace?: string;
+    lang?: string;
+    href?: string;
+    fill?: string | {
+        color?: string;
+    } | null;
+    line?: {
+        color?: string;
+        width?: number;
+    } | 'none' | null;
+    shapeType?: string;
+    data?: string;
+    src?: string;
+    extension?: string;
+    chartType?: string;
+    categories?: string[];
+    series?: ChartSeriesSpec[];
+    varyColors?: boolean;
+    barDir?: string;
+    title?: string;
+    legend?: boolean;
+}
+interface SerializerSlide {
+    background?: string | null;
+    elements?: SerializerElement[];
 }
 
-/**
- * 关系对象
- */
-export interface RelationshipObject {
-    type: string;
-    target: string;
+type ZipOutputType = 'base64' | 'string' | 'text' | 'binarystring' | 'array' | 'uint8array' | 'arraybuffer' | 'blob' | 'nodebuffer';
+declare function jsonToPptx(presentation: unknown, options?: {
+    outputType?: ZipOutputType;
+}): Promise<string | ArrayBuffer | number[] | Uint8Array<ArrayBufferLike> | Blob | Buffer<ArrayBufferLike>>;
+declare function editPptx(fileData: ArrayBuffer | Uint8Array | string): Promise<{
+    zip: JSZip;
+    save: (options?: {
+        outputType?: ZipOutputType;
+    }) => Promise<string | ArrayBuffer | number[] | Uint8Array<ArrayBufferLike> | Blob | Buffer<ArrayBufferLike>>;
+    getSlideCount(): Promise<number>;
+    getSlide(slideNum: number): Promise<any>;
+    deleteSlide(slideNum: number): Promise<void>;
+    moveSlide(from: number, to: number): Promise<void>;
+    setMetadata(metadata: Record<string, unknown>): Promise<void>;
+    addSlide(slideJson: SerializerSlide): Promise<void>;
+}>;
+
+type FluentBuilder = {
+    [key: string]: (value?: unknown) => FluentBuilder;
+};
+type ElementConfig = ((builder: FluentBuilder) => void) | Record<string, unknown>;
+type ChartConfig = ((el: SerializerElement) => void) | Record<string, unknown>;
+interface ComposerPresentation {
+    metadata: Record<string, unknown>;
+    slideSize: {
+        width: number;
+        height: number;
+    };
+    slides: SerializerSlide[];
+}
+declare class SlideComposer {
+    slide: SerializerSlide;
+    constructor();
+    background(color: string): this;
+    addText(config: ElementConfig): this;
+    addShape(config: ElementConfig): this;
+    addImage(config: ElementConfig): this;
+    addChart(config: ChartConfig): this;
+}
+declare class PPTXComposer {
+    presentation: ComposerPresentation;
+    constructor();
+    slideSize(width: number | {
+        width: number;
+        height: number;
+    }, height?: number): this;
+    metadata(metadata: Record<string, unknown>): this;
+    title(value: string): this;
+    author(value: string): this;
+    subject(value: string): this;
+    keywords(value: string): this;
+    description(value: string): this;
+    addSlide(config: ((slide: SlideComposer) => void) | SerializerSlide): this;
+    toJSON(): any;
+    save(options?: {
+        outputType?: ZipOutputType;
+    }): Promise<string | ArrayBuffer | number[] | Uint8Array<ArrayBufferLike> | Blob | Buffer<ArrayBufferLike>>;
 }
 
-/**
- * 样式表项
- */
-export interface StyleTableItem {
-    name: string;
-    text: string;
-    suffix?: string;
+interface XmlAttrs {
+    order?: number;
+    [name: string]: any;
 }
-
-/**
- * 样式表
- */
-export interface StyleTable {
-    [key: string]: StyleTableItem;
+interface XmlNode {
+    attrs?: XmlAttrs;
+    [tagName: string]: any;
 }
-
-/**
- * 回调函数接口
- */
-export interface Callbacks {
-    /**
-     * 文件开始处理时的回调
-     */
+interface ParseCallbacks {
     onFileStart?: () => void;
-    
-    /**
-     * 错误发生时的回调
-     */
-    onError?: (error: { type: string; message: string }) => void;
-    
-    /**
-     * 处理完单个幻灯片时的回调
-     */
-    onSlide?: (data: any, info: { slideNum: number; fileName: string }) => void;
-    
-    /**
-     * 获取缩略图时的回调
-     */
-    onThumbnail?: (thumbnail: string | null) => void;
-    
-    /**
-     * 获取幻灯片大小时的回调
-     */
-    onSlideSize?: (slideSize: SlideSize) => void;
-    
-    /**
-     * 获取全局CSS时的回调
-     */
+    onSlide?: (html: string | Record<string, unknown>, info: {
+        slideNum: number;
+        fileName: string;
+    }) => void;
+    onThumbnail?: (thumbnail: string) => void;
+    onSlideSize?: (slideSize: {
+        width: number;
+        height: number;
+    }) => void;
     onGlobalCSS?: (css: string) => void;
-    
-    /**
-     * 处理完成时的回调
-     */
     onComplete?: (info: {
         executionTime: number;
         slideWidth: number;
         slideHeight: number;
-        styleTable: StyleTable;
-        settings: PptxParserOptions;
+        styleTable?: unknown;
+        settings?: unknown;
+    }) => void;
+    onError?: (err: {
+        type: string;
+        message: string;
     }) => void;
 }
-
-/**
- * PPTX解析选项
- */
-export interface PptxParserOptions {
-    /**
-     * 是否处理媒体文件
-     */
+interface ParseSettings {
+    themeProcess?: boolean | string;
     mediaProcess?: boolean;
-    
-    /**
-     * 主题处理方式
-     */
-    themeProcess?: boolean | 'colorsAndImageOnly';
-    
-    /**
-     * 幻灯片尺寸调整
-     */
     incSlide?: {
         width: number;
         height: number;
     };
-    
-    /**
-     * 样式表
-     */
-    styleTable?: StyleTable;
-    
-    /**
-     * 回调函数
-     */
-    callbacks?: Callbacks;
+    styleTable?: Record<string, unknown>;
+    callbacks?: ParseCallbacks;
 }
 
-/**
- * 幻灯片HTML结果
- */
-export interface SlideHtml {
-    /**
-     * 幻灯片HTML
-     */
-    html: string;
-    
-    /**
-     * 幻灯片结构化数据（可用于后续处理）
-     */
-    data: any;
-    
-    /**
-     * 幻灯片编号
-     */
-    slideNum: number;
-    
-    /**
-     * 幻灯片文件名
-     */
-    fileName: string;
+interface ChartQueueItem {
+    type: string;
+    data: Record<string, unknown>;
 }
-
-/**
- * 幻灯片JSON结果
- */
-export interface SlideJson {
-    /**
-     * 幻灯片数据
-     */
-    data: any;
-    
-    /**
-     * 幻灯片编号
-     */
-    slideNum: number;
-    
-    /**
-     * 幻灯片文件名
-     */
-    fileName: string;
-}
-
-/**
- * PPTX转HTML结果
- */
-export interface PptxHtmlResult {
-    /**
-     * 幻灯片HTML结果数组
-     */
-    slides: SlideHtml[];
-    
-    /**
-     * 幻灯片大小信息
-     */
-    slideSize: SlideSize;
-    
-    /**
-     * 缩略图
-     */
-    thumbnail: string | null;
-    
-    /**
-     * 样式信息
-     */
-    styles: {
-        /**
-         * 全局CSS
-         */
-        global: string;
-    };
-    
-    /**
-     * 元数据
-     */
-    metadata: {
-        /**
-         * 标题
-         */
-        title?: string;
-        /**
-         * 主题
-         */
-        subject?: string;
-        /**
-         * 作者
-         */
-        author?: string;
-        /**
-         * 关键词
-         */
-        keywords?: string;
-        /**
-         * 描述
-         */
-        description?: string;
-        /**
-         * 最后修改者
-         */
-        lastModifiedBy?: string;
-        /**
-         * 创建日期
-         */
-        created?: string;
-        /**
-         * 修改日期
-         */
-        modified?: string;
-        /**
-         * 类别
-         */
-        category?: string;
-        /**
-         * 状态
-         */
-        status?: string;
-        /**
-         * 内容类型
-         */
-        contentType?: string;
-        /**
-         * 语言
-         */
-        language?: string;
-        /**
-         * 版本
-         */
-        version?: string;
-    };
-    
-    /**
-     * 图表数据
-     */
-    charts: ChartData[];
-}
-
-/**
- * PPTX转JSON结果
- */
-export interface PptxJsonResult {
-    /**
-     * 幻灯片JSON结果数组
-     */
-    slides: SlideJson[];
-
-    /**
-     * 幻灯片大小信息
-     */
-    slideSize: SlideSize;
-
-    /**
-     * 缩略图
-     */
-    thumbnail: string | null;
-
-    /**
-     * 样式信息
-     */
-    styles: {
-        /**
-         * 全局CSS
-         */
-        global: string;
-    };
-
-    /**
-     * 元数据
-     */
-    metadata: {
-        /**
-         * 标题
-         */
-        title?: string;
-        /**
-         * 主题
-         */
-        subject?: string;
-        /**
-         * 作者
-         */
-        author?: string;
-        /**
-         * 关键词
-         */
-        keywords?: string;
-        /**
-         * 描述
-         */
-        description?: string;
-        /**
-         * 最后修改者
-         */
-        lastModifiedBy?: string;
-        /**
-         * 创建日期
-         */
-        created?: string;
-        /**
-         * 修改日期
-         */
-        modified?: string;
-        /**
-         * 类别
-         */
-        category?: string;
-        /**
-         * 状态
-         */
-        status?: string;
-        /**
-         * 内容类型
-         */
-        contentType?: string;
-        /**
-         * 语言
-         */
-        language?: string;
-        /**
-         * 版本
-         */
-        version?: string;
-    };
-
-    /**
-     * 图表数据
-     */
-    charts: ChartData[];
-}
-
-/**
- * 文件信息
- */
-export interface FileInfo {
-    /**
-     * 文件路径
-     */
+interface StyleTableEntry {
     name: string;
-    /**
-     * 是否为目录
-     */
+    suffix?: string;
+    text: string;
+}
+type StyleTable = Record<string, StyleTableEntry>;
+type ResourceMap = Record<string, Record<string, string>>;
+interface PptxMetadata {
+    title?: string;
+    subject?: string;
+    author?: string;
+    keywords?: string;
+    description?: string;
+    lastModifiedBy?: string;
+    created?: string;
+    modified?: string;
+    category?: string;
+    status?: string;
+    contentType?: string;
+    language?: string;
+}
+interface SlideDataRecord {
+    index: number;
+    slideContent: XmlNode;
+    slideLayoutContent?: XmlNode;
+    slideMasterContent?: XmlNode;
+    themeContent?: XmlNode;
+    diagramContent?: XmlNode | string | null;
+    slideLayoutTables?: XmlNode;
+    slideMasterTables?: XmlNode;
+    slideMasterTextStyles?: unknown;
+    tableStyles?: XmlNode;
+    slideResObj?: ResourceMap;
+    layoutResObj?: ResourceMap;
+    masterResObj?: ResourceMap;
+    themeResObj?: ResourceMap;
+    diagramResObj?: ResourceMap;
+    styleTable?: StyleTable;
+    chartId?: {
+        value: number;
+    };
+    msgQueue?: ChartQueueItem[];
+    bulletCounter?: unknown;
+    defaultTextStyle?: XmlNode | null;
+    [key: string]: unknown;
+}
+interface HtmlSlideResult {
+    html: string;
+    data: SlideDataRecord | undefined;
+    slideNum: number | undefined;
+    fileName: string | undefined;
+}
+interface JsonSlideResult {
+    data: SlideDataRecord | undefined;
+    slideNum: number | undefined;
+    fileName: string | undefined;
+}
+interface FileIndexEntry {
+    name: string;
     dir: boolean;
-    /**
-     * 解压后大小
-     */
     size: number;
 }
-
-/**
- * 文本内容
- */
-export interface TextContent {
-    /**
-     * 类型为 text
-     */
-    type: 'text';
-    /**
-     * 文本内容
-     */
-    content: string;
-}
-
-/**
- * 图片内容
- */
-export interface ImageContent {
-    /**
-     * 类型为 image
-     */
-    type: 'image';
-    /**
-     * 图片格式
-     */
-    format: string;
-    /**
-     * Base64 编码
-     */
-    base64: string;
-    /**
-     * Data URL
-     */
-    dataUrl: string;
-}
-
-/**
- * 二进制内容
- */
-export interface BinaryContent {
-    /**
-     * 类型为 binary
-     */
-    type: 'binary';
-    /**
-     * Base64 编码
-     */
-    base64: string;
-}
-
-/**
- * 错误内容
- */
-export interface ErrorContent {
-    /**
-     * 类型为 error
-     */
-    type: 'error';
-    /**
-     * 错误信息
-     */
-    error: string;
-}
-
-/**
- * 文件内容（联合类型）
- */
-export type FileContent = TextContent | ImageContent | BinaryContent | ErrorContent;
-
-/**
- * PPTX转文件索引和内容结果
- */
-export interface PptxFilesResult {
-    /**
-     * 文件索引列表
-     */
-    files: FileInfo[];
-    /**
-     * 文件内容映射
-     */
-    content: {
-        [key: string]: FileContent;
+type PptxFileData = ArrayBuffer | Uint8Array | string;
+declare function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettings>): Promise<{
+    slides: HtmlSlideResult[];
+    slideSize: {
+        width: number;
+        height: number;
+        defaultTextStyle: XmlNode;
     };
-}
-
-/**
- * 图表数据点
- */
-export interface ChartDataPoint {
-    /**
-     * X坐标
-     */
-    x: string;
-    /**
-     * Y坐标
-     */
-    y: number;
-}
-
-/**
- * 图表系列
- */
-export interface ChartSeries {
-    /**
-     * 系列名称
-     */
-    key: string;
-    /**
-     * 系列数据点
-     */
-    values: ChartDataPoint[];
-    /**
-     * X轴标签
-     */
-    xlabels: {
-        [key: string]: string;
+    thumbnail: string | null;
+    styles: {
+        global: string;
     };
-}
-
-/**
- * 图表数据
- */
-export interface ChartData {
-    /**
-     * 图表ID
-     */
-    chartId: string;
-    /**
-     * 图表类型
-     */
-    type: string;
-    /**
-     * 图表数据
-     */
-    data: ChartSeries[];
-}
-
-/**
- * 处理后的幻灯片数据
- */
-export interface ProcessedSlideData {
-    slideLayoutContent: any;
-    slideLayoutTables: any;
-    slideMasterContent: any;
-    slideMasterTables: any;
-    slideContent: any;
-    slideResObj: {
-        [key: string]: RelationshipObject;
+    metadata: PptxMetadata;
+    charts: Array<Record<string, unknown>>;
+} | null>;
+declare function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings>): Promise<{
+    slides: JsonSlideResult[];
+    slideSize: {
+        width: number;
+        height: number;
+        defaultTextStyle: XmlNode;
     };
-    slideMasterTextStyles: any;
-    layoutResObj: {
-        [key: string]: RelationshipObject;
+    thumbnail: string | null;
+    styles: {
+        global: string;
     };
-    masterResObj: {
-        [key: string]: RelationshipObject;
-    };
-    themeContent: any;
-    themeResObj: {
-        [key: string]: RelationshipObject;
-    };
-    diagramContent: any;
-    diagramResObj: {
-        [key: string]: RelationshipObject;
-    };
-    defaultTextStyle: any;
-    tableStyles: any;
-    styleTable: StyleTable;
-    chartId: { value: number };
-    msgQueue: any[];
-    bulletCounter: {
-        [key: string]: number;
-    };
-    slideSize: SlideSize;
-    index: number;
-}
+    metadata: PptxMetadata;
+    charts: Array<Record<string, unknown>>;
+} | null>;
+declare function pptxToFiles(fileData: PptxFileData): Promise<{
+    files: FileIndexEntry[];
+    content: Record<string, unknown>;
+}>;
 
-/**
- * PPTX转HTML转换器
- * @param fileData - PPTX文件数据
- * @param options - 转换选项
- * @returns 转换结果
- */
-export declare function pptxToHtml(
-    fileData: ArrayBuffer,
-    options?: PptxParserOptions
-): Promise<PptxHtmlResult | null>;
-
-// 与源码 `export default pptxToHtml` 对齐
-export default pptxToHtml;
-
-// 函数类型别名：供下方 pptxParser 命名空间引用，避免在命名空间内
-// 用 `typeof pptxToHtml` 造成的自引用循环（TS2502）
-type _PptxToHtml = typeof pptxToHtml;
-type _PptxToJson = typeof pptxToJson;
-type _PptxToFiles = typeof pptxToFiles;
-type _JsonToPptx = typeof jsonToPptx;
-type _EditPptx = typeof editPptx;
-type _PPTXComposer = typeof PPTXComposer;
-
-/**
- * PPTX转JSON转换器
- * @param fileData - PPTX文件数据
- * @param options - 转换选项
- * @returns 转换结果
- */
-export declare function pptxToJson(
-    fileData: ArrayBuffer,
-    options?: PptxParserOptions
-): Promise<PptxJsonResult | null>;
-
-/**
- * PPTX转文件索引和内容转换器
- * @param fileData - PPTX文件数据
- * @returns 文件索引和内容结果
- */
-export declare function pptxToFiles(
-    fileData: ArrayBuffer
-): Promise<PptxFilesResult>;
-
-// ===========================================================================
-// JSON → PPTX 序列化（Composer / jsonToPptx / editPptx）
-// ===========================================================================
-
-/**
- * 文本运行
- */
-export interface TextRun {
-    /** 运行文本 */
-    text: string;
-    /** 运行样式（覆盖元素级默认值） */
-    options?: {
-        fontSize?: number;
-        color?: string;
-        bold?: boolean;
-        italic?: boolean;
-        underline?: boolean;
-        fontFace?: string;
-        /** 超链接：http(s) 外部链接；'#N' 跳转到第 N 页 */
-        href?: string;
-    };
-}
-
-/**
- * 段落
- */
-export interface TextParagraph {
-    /** 段落文本（与 runs 二选一） */
-    text?: string;
-    /** 段落内运行列表（与 text 二选一） */
-    runs?: TextRun[];
-    /** 对齐：left / center / right / justify */
-    align?: 'left' | 'center' | 'right' | 'justify';
-    /** 是否使用项目符号 */
-    bullet?: boolean;
-}
-
-/**
- * 幻灯片元素（联合类型）
- */
-export type SlideElement =
-    | {
-          type: 'text';
-          x?: number;
-          y?: number;
-          width?: number;
-          height?: number;
-          /** 文本（\n 分段，与 runs/paragraphs 三选一） */
-          text?: string;
-          runs?: TextRun[];
-          paragraphs?: TextParagraph[];
-          align?: 'left' | 'center' | 'right' | 'justify';
-          valign?: 'top' | 'middle' | 'bottom';
-          fontSize?: number;
-          color?: string;
-          bold?: boolean;
-          italic?: boolean;
-          underline?: boolean;
-          fontFace?: string;
-          href?: string;
-          name?: string;
-      }
-    | {
-          type: 'shape';
-          /** 预设几何类型：rect / roundRect / ellipse / triangle 等 */
-          shapeType?: string;
-          x?: number;
-          y?: number;
-          width?: number;
-          height?: number;
-          /** 填充：{color} 或 'none' */
-          fill?: { color: string } | 'none';
-          /** 边框：{color, width(pt)} 或 'none' */
-          line?: { color: string; width?: number } | 'none';
-          /** 旋转角度（度） */
-          rotation?: number;
-          name?: string;
-      }
-    | {
-          type: 'image';
-          x?: number;
-          y?: number;
-          width?: number;
-          height?: number;
-          /** 图片数据：dataURL 或 base64 字符串 */
-          data?: string;
-          /** 远程图片 URL（运行时通过 fetch 下载） */
-          src?: string;
-          /** 图片扩展名（data 为裸 base64 时用于推断格式） */
-          extension?: string;
-          href?: string;
-          name?: string;
-      };
-
-/**
- * 序列化用幻灯片
- */
-export interface ComposerSlide {
-    /** 背景色（如 '#ffffff'） */
-    background?: string;
-    /** 元素列表，按数组顺序即图层顺序（后添加的在上层） */
-    elements?: SlideElement[];
-}
-
-/**
- * 序列化用演示文稿 JSON 树
- */
-export interface ComposerPresentation {
-    /** 元数据（字段与 pptxToJson 返回的 metadata 互通） */
-    metadata?: Record<string, string>;
-    /** 幻灯片尺寸（px），默认 1280x720（16:9） */
-    slideSize?: { width: number; height: number };
-    /** 幻灯片列表 */
-    slides: ComposerSlide[];
-}
-
-/**
- * 序列化选项
- */
-export interface PptxSerializeOptions {
-    /** JSZip 输出类型，默认 'uint8array'（可选 blob/nodebuffer/arraybuffer/base64） */
-    outputType?: 'uint8array' | 'arraybuffer' | 'blob' | 'nodebuffer' | 'base64';
-}
-
-/**
- * JSON 转 PPTX 序列化器
- * @param presentation - 演示文稿 JSON 或 PPTXComposer 实例
- * @param options - 序列化选项
- * @returns PPTX 文件二进制数据
- */
-export declare function jsonToPptx(
-    presentation: ComposerPresentation | PPTXComposer,
-    options?: PptxSerializeOptions
-): Promise<Uint8Array>;
-
-/**
- * 幻灯片构建器（addSlide 回调参数）
- */
-export declare class SlideComposer {
-    background(color: string): SlideComposer;
-    addText(config: (t: any) => void | Record<string, any>): SlideComposer;
-    addShape(config: (s: any) => void | Record<string, any>): SlideComposer;
-    addImage(config: (i: any) => void | Record<string, any>): SlideComposer;
-}
-
-/**
- * 演示文稿流式构建器
- */
-export declare class PPTXComposer {
-    slideSize(width: number, height: number): PPTXComposer;
-    metadata(metadata: Record<string, string>): PPTXComposer;
-    title(value: string): PPTXComposer;
-    author(value: string): PPTXComposer;
-    subject(value: string): PPTXComposer;
-    keywords(value: string): PPTXComposer;
-    description(value: string): PPTXComposer;
-    addSlide(config: (slide: SlideComposer) => void | ComposerSlide): PPTXComposer;
-    toJSON(): ComposerPresentation;
-    save(options?: PptxSerializeOptions): Promise<Uint8Array>;
-}
-
-/**
- * PPTX 编辑器（editPptx 返回值）
- */
-export interface PptxEditor {
-    /** 底层 JSZip 实例 */
-    zip: any;
-    /** 获取幻灯片数量 */
-    getSlideCount(): Promise<number>;
-    /** 获取指定页的简化 XML 树（与 pptxToJson 的 slideContent 同构） */
-    getSlide(slideNum: number): Promise<any>;
-    /** 删除指定页 */
-    deleteSlide(slideNum: number): Promise<void>;
-    /** 重排幻灯片 */
-    moveSlide(from: number, to: number): Promise<void>;
-    /** 写回元数据 */
-    setMetadata(metadata: Record<string, string>): Promise<void>;
-    /** 追加一页 */
-    addSlide(slideJson: ComposerSlide): Promise<void>;
-    /** 保存编辑结果 */
-    save(options?: PptxSerializeOptions): Promise<Uint8Array>;
-}
-
-/**
- * 加载已有 PPTX 并返回编辑器
- * @param fileData - PPTX 文件数据
- * @returns 编辑器实例
- */
-export declare function editPptx(fileData: ArrayBuffer | Uint8Array): Promise<PptxEditor>;
-
-/**
- * PPTX解析器命名空间
- */
-export declare namespace pptxParser {
-    /**
-     * PPTX转HTML转换器
-     */
-    const pptxToHtml: _PptxToHtml;
-
-    /**
-     * PPTX转JSON转换器
-     */
-    const pptxToJson: _PptxToJson;
-
-    /**
-     * PPTX转文件索引和内容转换器
-     */
-    const pptxToFiles: _PptxToFiles;
-
-    /**
-     * JSON转PPTX序列化器
-     */
-    const jsonToPptx: _JsonToPptx;
-
-    /**
-     * PPTX编辑器
-     */
-    const editPptx: _EditPptx;
-
-    /**
-     * 演示文稿流式构建器
-     */
-    const PPTXComposer: _PPTXComposer;
-}
-
-/**
- * 全局PPTX解析器对象
- */
-declare global {
-    interface Window {
-        pptxParser: {
-            pptxToHtml: typeof pptxToHtml;
-            pptxToJson: typeof pptxToJson;
-            pptxToFiles: typeof pptxToFiles;
-            jsonToPptx: typeof jsonToPptx;
-            editPptx: typeof editPptx;
-            PPTXComposer: typeof PPTXComposer;
-        };
-    }
-}
+export { PPTXComposer, pptxToHtml as default, editPptx, jsonToPptx, pptxToFiles, pptxToHtml, pptxToJson };
