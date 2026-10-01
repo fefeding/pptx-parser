@@ -21,12 +21,30 @@ async function renderFirstSlide(data: Uint8Array): Promise<string> {
 
 /** 把序列化出的 a:stretch 替换成 a:tile（生成端暂不支持 tile，改造已有产物模拟 WPS/PowerPoint 的产物） */
 async function toTileBlipFill(data: Uint8Array, attrs: string): Promise<Uint8Array> {
+    return patchBlipFill(data, `<a:tile ${attrs}/>`);
+}
+
+/** 插入 a:srcRect（生成端暂不支持裁剪） */
+async function toSrcRectBlipFill(data: Uint8Array, attrs: string): Promise<Uint8Array> {
+    return patchBlipFill(data, `<a:srcRect ${attrs}/><a:stretch><a:fillRect/></a:stretch>`);
+}
+
+/** 用 a:stretch/a:fillRect 表达同一裁剪（WPS 常见写法） */
+async function toFillRectBlipFill(data: Uint8Array, attrs: string): Promise<Uint8Array> {
+    return patchBlipFill(data, `<a:stretch><a:fillRect ${attrs}/></a:stretch>`);
+}
+
+async function patchBlipFill(data: Uint8Array, replacement: string): Promise<Uint8Array> {
     const zip = await JSZip.loadAsync(data);
     const xml = await zip.file('ppt/slides/slide1.xml').async('string');
-    const patched = xml.replace(/<a:stretch>[\s\S]*?<\/a:stretch>/, `<a:tile ${attrs}/>`);
+    const patched = xml.replace(/<a:stretch>[\s\S]*?<\/a:stretch>/, replacement);
     expect(patched).not.toBe(xml); // 断言替换确实发生，避免测试空转
     zip.file('ppt/slides/slide1.xml', patched);
     return zip.generateAsync({ type: 'uint8array' });
+}
+
+function imageShape() {
+    return { type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 240, height: 160, fill: { type: 'image', data: PNG_64 } };
 }
 
 describe('图片原始尺寸解析（a:tile 平铺的前置条件）', () => {
@@ -66,10 +84,7 @@ describe('图片原始尺寸解析（a:tile 平铺的前置条件）', () => {
 
 describe('形状图片填充 a:tile 平铺（渲染端）', () => {
     it('stretch 模式：整图铺满仍走 objectBoundingBox（无回归）', async () => {
-        const data = await jsonToPptx(shapeDoc({
-            type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 240, height: 160,
-            fill: { type: 'image', data: PNG_64 }
-        }));
+        const data = await jsonToPptx(shapeDoc(imageShape()));
         const html = await renderFirstSlide(data);
 
         expect(html).toContain('<pattern id="imgPtrn_');
@@ -77,10 +92,7 @@ describe('形状图片填充 a:tile 平铺（渲染端）', () => {
     });
 
     it('tile 模式：按图片原始尺寸算出 tile 像素（64px × 50% = 32px）', async () => {
-        const origin = await jsonToPptx(shapeDoc({
-            type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 240, height: 160,
-            fill: { type: 'image', data: PNG_64 }
-        }));
+        const origin = await jsonToPptx(shapeDoc(imageShape()));
         const tiled = await toTileBlipFill(origin, 'sx="50000" sy="50000"');
         const html = await renderFirstSlide(tiled);
 
@@ -90,13 +102,72 @@ describe('形状图片填充 a:tile 平铺（渲染端）', () => {
     });
 
     it('tile 偏移 tx/ty 写入 pattern 的 x/y', async () => {
-        const origin = await jsonToPptx(shapeDoc({
-            type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 240, height: 160,
-            fill: { type: 'image', data: PNG_64 }
-        }));
+        const origin = await jsonToPptx(shapeDoc(imageShape()));
         const tiled = await toTileBlipFill(origin, 'sx="100000" sy="100000" tx="25000" ty="0"');
         const html = await renderFirstSlide(tiled);
 
         expect(html).toMatch(/<pattern id="imgPtrn_\d+" x="16" y="0" width="64" height="64" patternUnits="userSpaceOnUse">/);
+    });
+});
+
+describe('形状图片填充 a:srcRect 源图裁剪（渲染端）', () => {
+    it('无裁剪时不产生 viewBox（无回归）', async () => {
+        const html = await renderFirstSlide(await jsonToPptx(shapeDoc(imageShape())));
+        expect(html).not.toContain('viewBox');
+    });
+
+    it('a:srcRect 四边各裁 25% → 裁剪窗口 viewBox="16 16 32 32"（64px 图）', async () => {
+        const origin = await jsonToPptx(shapeDoc(imageShape()));
+        const cropped = await toSrcRectBlipFill(origin, 'l="25000" t="25000" r="25000" b="25000"');
+        const html = await renderFirstSlide(cropped);
+
+        expect(html).toContain('<svg width="1" height="1" viewBox="16 16 32 32" preserveAspectRatio="none">');
+        expect(html).toContain('width="64" height="64"');
+    });
+
+    it('a:stretch/a:fillRect 表达同一裁剪（WPS 写法）→ viewBox 一致', async () => {
+        const origin = await jsonToPptx(shapeDoc(imageShape()));
+        const cropped = await toFillRectBlipFill(origin, 'l="0" t="0" r="50000" b="50000"');
+        const html = await renderFirstSlide(cropped);
+
+        // 保留左上 1/4：起点 (0,0)、窗口 32x32
+        expect(html).toContain('viewBox="0 0 32 32"');
+    });
+
+    it('平铺 + 裁剪：裁剪窗口映射到每一格', async () => {
+        const origin = await jsonToPptx(shapeDoc(imageShape()));
+        const tiled = await patchBlipFill(origin, '<a:srcRect l="25000" t="25000" r="25000" b="25000"/><a:tile sx="50000" sy="50000"/>');
+        const html = await renderFirstSlide(tiled);
+
+        expect(html).toContain('<svg width="32" height="32" viewBox="16 16 32 32" preserveAspectRatio="none">');
+    });
+});
+
+describe('图片裁剪的 CSS 背景换算（非 SVG 路径）', () => {
+    it('铺满 + 四边各裁 25% → background-size 200% / position 50%', async () => {
+        const data = await jsonToPptx(shapeDoc(imageShape()));
+        const zip = await JSZip.loadAsync(data);
+        const rels = await zip.file('ppt/slides/_rels/slide1.xml.rels').async('string');
+        const rel = [...rels.matchAll(/<Relationship\b[^>]*>/g)].map(m => m[0]).find(s => s.includes('/image"'));
+        const rid = /Id="([^"]+)"/.exec(rel!)?.[1];
+        const target = /Target="([^"]+)"/.exec(rel!)?.[1];
+
+        const warpObj: any = {
+            zip,
+            slideResObj: { [rid!]: { target } },
+            'loaded-images': {},
+            'loaded-image-sizes': {}
+        };
+        const blipFill: any = {
+            'a:blip': { attrs: { 'r:embed': rid } },
+            'a:srcRect': { attrs: { l: '25000', t: '25000', r: '25000', b: '25000' } }
+        };
+        const result: any = await PPTXStyleUtils.getPicFill('slide', blipFill, warpObj);
+
+        expect(result.srcRect).toEqual({ l: 0.25, t: 0.25, r: 0.25, b: 0.25 });
+        // 裁剪窗口占原图 50%，因此放大到 200%；
+        // background-position 的百分比是「图片 p% 对齐容器 p%」，对应值为 l/(1-crop)
+        expect(result.backgroundSize).toBe('200% 200%');
+        expect(result.backgroundPosition).toBe('50% 50%');
     });
 });

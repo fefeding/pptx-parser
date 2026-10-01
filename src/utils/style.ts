@@ -1558,6 +1558,27 @@ function getFillType(node: XmlNode | undefined) {
             return { width: 0, height: 0 };
         }
 
+        /**
+         * 读取图片填充的源裁剪区域。
+         *
+         * 来源优先级：a:blipFill/a:srcRect > a:blipFill/a:stretch/a:fillRect（WPS 常写在后者）。
+         * l/t/r/b 是相对图片各边的千分比（从对应边裁掉的比例），统一转成 0~1 的比例；
+         * 全为 0 表示不裁剪，返回 undefined。
+         */
+        function getSrcRect(node: XmlNode | undefined) {
+            const rectNode = node!["a:srcRect"] || PPTXXmlUtils.getTextByPathList(node, ["a:stretch", "a:fillRect"]);
+            if (rectNode === undefined || rectNode["attrs"] === undefined) {
+                return undefined;
+            }
+            const toRatio = (v: any) => (v === undefined || v === "" || isNaN(parseInt(v))) ? 0 : parseInt(v) / 100000;
+            const attrs = rectNode["attrs"];
+            const rect = { l: toRatio(attrs["l"]), t: toRatio(attrs["t"]), r: toRatio(attrs["r"]), b: toRatio(attrs["b"]) };
+            if (rect.l === 0 && rect.t === 0 && rect.r === 0 && rect.b === 0) {
+                return undefined;
+            }
+            return rect;
+        }
+
         async function getPicFill(type: string, node: XmlNode | undefined, warpObj: WarpObject) {
             //Need to test/////////////////////////////////////////////
             //rId
@@ -1619,6 +1640,7 @@ function getFillType(node: XmlNode | undefined) {
             let backgroundPosition = "center";
             let backgroundRepeat = "no-repeat";
             
+            let tileW = 0, tileH = 0;
             if (tileNode) {
                 // 平铺模式
                 fillMode = "tile";
@@ -1633,7 +1655,9 @@ function getFillType(node: XmlNode | undefined) {
                 let sy = tileNode["attrs"]["sy"];
                 if (sx && sy) {
                     if (hasSize) {
-                        backgroundSize = `${(parseInt(sx) / 100000) * imgSize!.width}px ${(parseInt(sy) / 100000) * imgSize!.height}px`;
+                        tileW = (parseInt(sx) / 100000) * imgSize!.width;
+                        tileH = (parseInt(sy) / 100000) * imgSize!.height;
+                        backgroundSize = `${tileW}px ${tileH}px`;
                     } else {
                         let widthPercent = parseInt(sx) / 100000 * 100;
                         let heightPercent = parseInt(sy) / 100000 * 100;
@@ -1662,8 +1686,31 @@ function getFillType(node: XmlNode | undefined) {
                     backgroundSize = "cover";
                 }
             }
+
+            // 源图裁剪（a:srcRect，WPS 也可能写成 a:stretch/a:fillRect）：
+            // 把裁剪窗口按填充模式换算成 CSS 背景的 size/position。
+            const srcRect = getSrcRect(node);
+            if (srcRect !== undefined) {
+                const cropW = Math.max(0.01, 1 - srcRect.l - srcRect.r);
+                const cropH = Math.max(0.01, 1 - srcRect.t - srcRect.b);
+                if (fillMode === "tile" && tileW > 0 && tileH > 0) {
+                    // 平铺：一格显示裁剪区域，图片整体放大 1/crop 倍
+                    const dw = tileW / cropW;
+                    const dh = tileH / cropH;
+                    backgroundSize = `${dw}px ${dh}px`;
+                    backgroundPosition = `${-srcRect.l * dw}px ${-srcRect.t * dh}px`;
+                } else {
+                    // 铺满：按元素尺寸放大 1/crop 倍。
+                    // background-position 的百分比语义是“图片 p% 处对齐容器 p% 处”，
+                    // 故真实偏移 -l*Dw 对应的百分比为 l/(1-crop)。
+                    backgroundSize = `${100 / cropW}% ${100 / cropH}%`;
+                    const posX = (cropW >= 1) ? 0 : (srcRect.l / (1 - cropW)) * 100;
+                    const posY = (cropH >= 1) ? 0 : (srcRect.t / (1 - cropH)) * 100;
+                    backgroundPosition = `${posX}% ${posY}%`;
+                }
+            }
             
-            // 返回包含图像和填充模式的对象（width/height 为图片原始像素尺寸，供 a:tile 平铺使用）
+            // 返回包含图像和填充模式的对象（width/height 为图片原始像素尺寸，供 a:tile 平铺与裁剪使用）
             return {
                 "img": img,
                 "fillMode": fillMode,
@@ -1671,7 +1718,8 @@ function getFillType(node: XmlNode | undefined) {
                 "backgroundPosition": backgroundPosition,
                 "backgroundRepeat": backgroundRepeat,
                 "width": (imgSize === undefined) ? 0 : imgSize.width,
-                "height": (imgSize === undefined) ? 0 : imgSize.height
+                "height": (imgSize === undefined) ? 0 : imgSize.height,
+                "srcRect": getSrcRect(node)
             };
         }
         function getPatternFill(node: XmlNode | undefined, warpObj: WarpObject) {
@@ -2954,11 +3002,28 @@ function getFillType(node: XmlNode | undefined) {
             // 处理 fill 参数是对象的情况
             let fillUrl = fill;
             let width = 0, height = 0;
+            let srcRect: { l: number; t: number; r: number; b: number } | undefined;
             if (typeof fill === 'object' && fill.img) {
                 fillUrl = fill.img;
                 // getPicFill 已从图片二进制解析出原始像素尺寸
                 width = Number(fill.width) || 0;
                 height = Number(fill.height) || 0;
+                srcRect = fill.srcRect;
+            }
+            if (srcRect === undefined) {
+                srcRect = getSrcRect(PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:blipFill"]));
+            }
+            // 源图裁剪窗口（图片坐标系）。尺寸未知时用 100 作归一化基准，
+            // 此时与不裁剪时一样是拉伸铺满，裁剪比例仍然正确。
+            const baseW = (width > 0) ? width : 100;
+            const baseH = (height > 0) ? height : 100;
+            let viewBox = "";
+            if (srcRect !== undefined) {
+                const vx = srcRect.l * baseW;
+                const vy = srcRect.t * baseH;
+                const vw = Math.max(1, (1 - srcRect.l - srcRect.r) * baseW);
+                const vh = Math.max(1, (1 - srcRect.t - srcRect.b) * baseH);
+                viewBox = ` viewBox="${vx} ${vy} ${vw} ${vh}"`;
             }
             // 兜底：老调用方只传 URL 时，退回 DOM 探测（浏览器里图片已缓存时可拿到尺寸）
             if (width === 0 || height === 0) {
@@ -3027,10 +3092,27 @@ function getFillType(node: XmlNode | undefined) {
             }
 
             fillUrl = PPTXXmlUtils.escapeHtml(fillUrl);
+            // 有裁剪时套一层带 viewBox 的 <svg> 建立新视口，把裁剪窗口映射到 pattern 的一格；
+            // preserveAspectRatio="none" 保证裁剪区域被拉伸铺满该格（与 PowerPoint 一致）。
+            // 无裁剪时保持原有 <image> 直出，避免多一层视口影响旧渲染结果。
+            const imageTag = (w: any, h: any, extraAttrs: string = "") =>
+                `<image  xlink:href="${fillUrl}" x="0" y="0" width="${w}" height="${h}" ${imgOpacity} ${filterUrl}${extraAttrs}></image>`;
             if (sx > 0 && sy > 0) {
-                ptrn += `<image  xlink:href="${fillUrl}" x="0" y="0" width="${sx}" height="${sy}" ${imgOpacity} ${filterUrl}></image>`;
+                if (viewBox !== "") {
+                    // 平铺 + 裁剪：裁剪窗口映射到一格
+                    ptrn += `<svg width="${sx}" height="${sy}"${viewBox} preserveAspectRatio="none">` +
+                        imageTag(baseW, baseH) + `</svg>`;
+                } else {
+                    // 平铺（无裁剪）：整张图缩放到一格
+                    ptrn += imageTag(sx, sy);
+                }
+            } else if (viewBox !== "") {
+                // 铺满 + 裁剪：objectBoundingBox 下 width/height=1 即整个形状包围盒
+                ptrn += `<svg width="1" height="1"${viewBox} preserveAspectRatio="none">` +
+                    imageTag(baseW, baseH) + `</svg>`;
             } else {
-                ptrn += `<image  xlink:href="${fillUrl}" preserveAspectRatio="none" width="1" height="1" ${imgOpacity} ${filterUrl}></image>`;
+                // 铺满（无裁剪）：整张图拉伸到包围盒
+                ptrn += imageTag("1", "1", ' preserveAspectRatio="none"');
             }
             ptrn += '</pattern>';
 
