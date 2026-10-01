@@ -12,6 +12,8 @@ import { jsonToPptx, pptxToJson } from '../dist/ppt-parser.esm.js';
 
 // ---- 测试用图片（base64）----
 const BLUE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAZUlEQVR42u3QQREAAAQAML20E9qXHM4eK7DI6vksBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAgPsWcJEihvVdy3EAAAAASUVORK5CYII=';
+// 四象限色块图（32x32：左上红/右上绿/左下蓝/右下黄 + 中心黑块），用于平铺与裁剪的肉眼验证
+const QUAD_PNG = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAVElEQVR42mO4o6b2nxIsttiLIsww6oBRB4w6YNQBow4Ycg4QlFDHi0cdMPQcoJr8+j8pmJADfp0RJQmPOmDoOQAdk2rhqANGHTDqgFEHjDpg0DkAAOrUMfjFkhTuAAAAAElFTkSuQmCC';
 const ORANGE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAZklEQVR42u3QIQ0AAAgAMDz9LS3RkINx8QKPrpzPQoAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECLhvAaF00mjwgbtAAAAAAElFTkSuQmCC';
 
 // 自定义主题 XML（覆盖默认主题，演示 T17：accent1..6 改为自定义色）
@@ -145,11 +147,20 @@ slides.push(page('T5 · 主题色引用（scheme:）', [
 ]));
 
 // ============ T6 形状图片填充 + 图案填充 ============
-slides.push(page('T6 · 形状图片填充 / 图案填充', [
+slides.push(page('T6 · 形状图片填充 / 图案填充 / 平铺裁剪', [
     { type: 'shape', shapeType: 'rect', x: 60, y: 120, width: 240, height: 160,
         fill: { type: 'image', data: `data:image/png;base64,${BLUE_PNG}` } },
     { type: 'shape', shapeType: 'roundRect', x: 340, y: 120, width: 240, height: 160,
-        fill: { type: 'pattern', prst: 'diagCross', fg: '#ef4444', bg: '#fef3c7' } }
+        fill: { type: 'pattern', prst: 'diagCross', fg: '#ef4444', bg: '#fef3c7' } },
+    // 平铺 + 源图裁剪：取四象限图左上 1/4，以图片 25% 尺寸为一格平铺
+    { type: 'shape', shapeType: 'rect', x: 620, y: 120, width: 240, height: 160,
+        fill: {
+            type: 'image', data: `data:image/png;base64,${QUAD_PNG}`,
+            tile: { sx: 0.25, sy: 0.25 },
+            srcRect: { l: 0, t: 0, r: 0.5, b: 0.5 }
+        } },
+    { type: 'text', x: 60, y: 300, width: 800, height: 60, fontSize: 14, color: '#475569',
+        text: '左：图片铺满｜中：图案填充 diagCross｜右：图片平铺 25% + 裁剪左上 1/4' }
 ]));
 
 // ============ T7 形状几何调整值 avLst ============
@@ -336,6 +347,8 @@ async function selfCheck() {
     assert('T6 形状图片填充 blipFill', /<a:blipFill/.test(slideXml[5]));
     assert('T6 图片填充 r:embed 关系', /<a:blip r:embed="rId\d+"\/>/.test(slideXml[5]));
     assert('T6 图案填充 pattFill', /<a:pattFill/.test(slideXml[5]));
+    assert('T6 图片平铺 a:tile', /<a:tile sx="25000" sy="25000" tx="0" ty="0"\/>/.test(slideXml[5]));
+    assert('T6 源图裁剪 a:srcRect', /<a:srcRect l="0" t="0" r="50000" b="50000"\/>/.test(slideXml[5]));
     // 素材必须是有效 PNG：此前用了一段截断的 base64，图片填充在浏览器里整块不可见
     const pngSig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     const bluePngBuf = Buffer.from(BLUE_PNG, 'base64');

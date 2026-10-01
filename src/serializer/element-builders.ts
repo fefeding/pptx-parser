@@ -17,7 +17,7 @@
 
 import { xmlNode, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml, type BuilderNode } from './xml-builder';
 import { REL_TYPES, DEFAULT_TABLE_STYLE_ID } from './templates';
-import type { PptxBackground, PptxTransition } from '../types/pptx-document';
+import type { PptxBackground, PptxTransition, PptxImageSrcRect, PptxImageTile } from '../types/pptx-document';
 
 /** 关系记录（写入 slide rels） */
 export interface SerializerRel {
@@ -144,7 +144,13 @@ export interface TableBorders {
 /** 形状填充/边框/特效（供 SerializerElement 使用） */
 export interface ShapeFillSolid { type?: 'solid'; color?: string; transparency?: number; }
 export interface ShapeFillGradient { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; }
-export interface ShapeFillImage { type: 'image'; data?: string; src?: string; extension?: string; }
+export interface ShapeFillImage {
+    type: 'image'; data?: string; src?: string; extension?: string;
+    /** 源图裁剪（a:srcRect），各边裁掉的比例，取值 0~1 */
+    srcRect?: PptxImageSrcRect;
+    /** 平铺（a:tile）：sx/sy 每格占图片的比例，tx/ty 偏移，取值 0~1；不传则拉伸铺满 */
+    tile?: PptxImageTile;
+}
 export interface ShapeFillPattern { type: 'pattern'; prst: string; fg?: string; bg?: string; }
 export interface ShapeLineSpec { color?: string; width?: number; transparency?: number; dashType?: string; }
 export interface ShapeShadowSpec { type?: 'outer' | 'inner'; color?: string; blur?: number; distance?: number; angle?: number; transparency?: number; }
@@ -727,6 +733,40 @@ function colorNode(color: string): BuilderNode {
     return xmlNode('a:srgbClr', { val: colorToHex(color) });
 }
 
+/** 0~1 的比例 → OOXML 千分比整数（a:srcRect / a:tile 的 l/t/r/b/sx/sy/tx/ty 均为此单位） */
+function ratioThousandth(v: unknown, def: number): number {
+    const n = Number(v);
+    if (!isFinite(n)) return Math.round(def * 100000);
+    return Math.round(Math.min(1, Math.max(0, n)) * 100000);
+}
+
+/**
+ * 构造 a:blipFill 中除 a:blip 之外的子节点。
+ * 顺序遵循 CT_BlipFillProperties：srcRect 在前，其后 stretch 与 tile 二选一。
+ * 未指定 tile 时写 a:stretch/a:fillRect（拉伸铺满），与 PowerPoint 默认一致。
+ */
+function buildBlipFillRects(srcRect?: PptxImageSrcRect | null, tile?: PptxImageTile | null): BuilderNode[] {
+    const rects: BuilderNode[] = [];
+    if (srcRect) {
+        const l = ratioThousandth(srcRect.l, 0);
+        const t = ratioThousandth(srcRect.t, 0);
+        const r = ratioThousandth(srcRect.r, 0);
+        const b = ratioThousandth(srcRect.b, 0);
+        if (l !== 0 || t !== 0 || r !== 0 || b !== 0) {
+            rects.push(xmlNode('a:srcRect', { l, t, r, b }));
+        }
+    }
+    rects.push(tile
+        ? xmlNode('a:tile', {
+            sx: ratioThousandth(tile.sx, 1),
+            sy: ratioThousandth(tile.sy, 1),
+            tx: ratioThousandth(tile.tx, 0),
+            ty: ratioThousandth(tile.ty, 0)
+        })
+        : xmlNode('a:stretch', null, xmlNode('a:fillRect')));
+    return rects;
+}
+
 /** 构造填充节点（solidFill / gradFill / blipFill / pattFill / noFill）；transparency 写入 a:alpha */
 async function buildFillNode(ctx: SerializerContext, fill: SerializerElement['fill']): Promise<BuilderNode | null> {
     if (fill === undefined) return null; // 未指定填充则继承主题
@@ -747,7 +787,7 @@ async function buildFillNode(ctx: SerializerContext, fill: SerializerElement['fi
         const mediaName = `image${ctx.mediaIndex}.${ext}`;
         ctx.media.push({ name: mediaName, base64 });
         const embedRelId = addRelationship(ctx, REL_TYPES.image, `../media/${mediaName}`);
-        return xmlNode('a:blipFill', null, xmlNode('a:blip', { 'r:embed': embedRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect')));
+        return xmlNode('a:blipFill', null, xmlNode('a:blip', { 'r:embed': embedRelId }), ...buildBlipFillRects(img.srcRect, img.tile));
     }
     if ((fill as ShapeFillPattern).type === 'pattern') {
         const p = fill as ShapeFillPattern;
@@ -1609,7 +1649,7 @@ export async function buildBackground(bg: string | PptxBackground | null | undef
         bgPrChildren = [
             xmlNode('a:blipFill', null,
                 xmlNode('a:blip', { 'r:embed': embedRelId }),
-                xmlNode('a:stretch', null, xmlNode('a:fillRect'))
+                ...buildBlipFillRects(bg.srcRect, bg.tile)
             )
         ];
     }

@@ -92,6 +92,17 @@ export interface PptxFillGradient { type: 'gradient'; direction?: 'horizontal' |
 /** 形状填充：颜色串 / {color} / {type:'solid',...} / {type:'gradient',...} / 'none' / null */
 export type PptxFill = string | PptxFillSolid | PptxFillGradient | 'none' | null;
 
+/**
+ * 图片填充的源图裁剪（a:srcRect）：从图片各边裁掉的比例，取值 0~1。
+ * 四者皆为 0 表示不裁剪（等于不传）。
+ */
+export interface PptxImageSrcRect { l?: number; t?: number; r?: number; b?: number; }
+/**
+ * 图片填充的平铺（a:tile）：sx/sy 为每格占图片原始尺寸的比例，tx/ty 为平铺偏移，取值 0~1。
+ * 指定 tile 即使用平铺，否则为拉伸铺满（a:stretch）。
+ */
+export interface PptxImageTile { sx?: number; sy?: number; tx?: number; ty?: number; }
+
 /** 形状边框：{ color, width(pt), transparency, dashType } / 'none'(无边框) / null(继承) */
 export interface PptxLineStyle { color?: string; width?: number; transparency?: number; dashType?: string; }
 export type PptxLine = PptxLineStyle | 'none' | null;
@@ -118,7 +129,13 @@ export type PptxBackground =
     | string                                   // 纯色（#RRGGBB 或颜色名），等价 { type:'solid', color }
     | { type: 'solid'; color: string }
     | { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[] }
-    | { type: 'image'; data?: string; src?: string; extension?: string };
+    | {
+        type: 'image'; data?: string; src?: string; extension?: string;
+        /** 源图裁剪（a:srcRect），0~1 */
+        srcRect?: PptxImageSrcRect;
+        /** 平铺（a:tile），0~1；不传则为拉伸铺满 */
+        tile?: PptxImageTile;
+    };
 
 /** 幻灯片过渡效果（解析自 p:transition） */
 export interface PptxTransition {

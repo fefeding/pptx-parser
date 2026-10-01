@@ -47,6 +47,83 @@ function imageShape() {
     return { type: 'shape', shapeType: 'rect', x: 0, y: 0, width: 240, height: 160, fill: { type: 'image', data: PNG_64 } };
 }
 
+describe('生成端：写入 a:tile / a:srcRect', () => {
+    it('未指定时仍写 a:stretch/a:fillRect（默认拉伸铺满，无回归）', async () => {
+        const data = await jsonToPptx(shapeDoc(imageShape()));
+        const xml = await (await JSZip.loadAsync(data)).file('ppt/slides/slide1.xml').async('string');
+
+        expect(xml).toContain('<a:stretch><a:fillRect/></a:stretch>');
+        expect(xml).not.toContain('<a:tile');
+        expect(xml).not.toContain('<a:srcRect');
+    });
+
+    it('tile：sx/sy/tx/ty 以千分比写入，且不再写 a:stretch', async () => {
+        const data = await jsonToPptx(shapeDoc({
+            ...imageShape(),
+            fill: { type: 'image', data: PNG_64, tile: { sx: 0.5, sy: 0.5 } }
+        }));
+        const xml = await (await JSZip.loadAsync(data)).file('ppt/slides/slide1.xml').async('string');
+
+        expect(xml).toContain('<a:tile sx="50000" sy="50000" tx="0" ty="0"/>');
+        expect(xml).not.toContain('<a:stretch');
+    });
+
+    it('srcRect：l/t/r/b 以千分比写入，并保留拉伸铺满', async () => {
+        const data = await jsonToPptx(shapeDoc({
+            ...imageShape(),
+            fill: { type: 'image', data: PNG_64, srcRect: { l: 0.25, t: 0.25, r: 0.25, b: 0.25 } }
+        }));
+        const xml = await (await JSZip.loadAsync(data)).file('ppt/slides/slide1.xml').async('string');
+
+        expect(xml).toContain('<a:srcRect l="25000" t="25000" r="25000" b="25000"/>');
+        expect(xml).toContain('<a:stretch><a:fillRect/></a:stretch>');
+    });
+
+    it('同时指定：srcRect 在前、tile 在后（符合 CT_BlipFillProperties 顺序）', async () => {
+        const data = await jsonToPptx(shapeDoc({
+            ...imageShape(),
+            fill: {
+                type: 'image', data: PNG_64,
+                srcRect: { l: 0, t: 0, r: 0.5, b: 0.5 },
+                tile: { sx: 0.25, sy: 0.25, tx: 0.1, ty: 0 }
+            }
+        }));
+        const xml = await (await JSZip.loadAsync(data)).file('ppt/slides/slide1.xml').async('string');
+
+        expect(xml).toMatch(/<a:srcRect[^>]*\/><a:tile[^>]*\/>/);
+        expect(xml).toContain('<a:tile sx="25000" sy="25000" tx="10000" ty="0"/>');
+    });
+
+    it('越界值被收敛到 [0,1]', async () => {
+        const data = await jsonToPptx(shapeDoc({
+            ...imageShape(),
+            fill: { type: 'image', data: PNG_64, tile: { sx: 2, sy: -1 }, srcRect: { r: 5 } }
+        }));
+        const xml = await (await JSZip.loadAsync(data)).file('ppt/slides/slide1.xml').async('string');
+
+        expect(xml).toContain('<a:tile sx="100000" sy="0" tx="0" ty="0"/>');
+        expect(xml).toContain('<a:srcRect l="0" t="0" r="100000" b="0"/>');
+    });
+
+    it('幻灯片背景图片同样支持 tile / srcRect', async () => {
+        const data = await jsonToPptx({
+            slideSize: { width: 640, height: 360 },
+            slides: [{
+                background: {
+                    type: 'image', data: PNG_64,
+                    tile: { sx: 0.5, sy: 0.5 },
+                    srcRect: { l: 0.25, t: 0, r: 0, b: 0 }
+                },
+                elements: []
+            }]
+        });
+        const xml = await (await JSZip.loadAsync(data)).file('ppt/slides/slide1.xml').async('string');
+
+        expect(xml).toContain('<a:srcRect l="25000" t="0" r="0" b="0"/>');
+        expect(xml).toContain('<a:tile sx="50000" sy="50000" tx="0" ty="0"/>');
+    });
+});
+
 describe('图片原始尺寸解析（a:tile 平铺的前置条件）', () => {
     it('PNG：从 IHDR 读出 64x64', () => {
         const buf = Uint8Array.from(Buffer.from(PNG_64.split(',')[1], 'base64'));
