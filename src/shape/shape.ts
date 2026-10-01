@@ -353,16 +353,17 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     //console.log(svgBgImg)
                     result += svgBgImg;
                 } else if (clrFillType == "PATTERN_FILL") {
-                    let styleText = fillColor;
-                    if (styleText in warpObj.styleTable) {
-                        styleText += `do-nothing: ${svgCssName};`;
-                    }
-                    warpObj.styleTable[styleText] = {
-                        "name": svgCssName,
-                        "text": styleText
-                    };
-                    //}
-                    fillColor = "none";
+                    // 图案填充：生成 SVG <pattern> 平铺定义，形状用 fill="url(#pattPtrn_xx)" 引用。
+                    // 不再走 styleTable 的 CSS background —— SVG 元素的 background 不会按路径裁剪，
+                    // 且以图案文本为 key 会让多个形状互相覆盖（后写入者覆盖前者）。
+                    // 图案可能来自形状自身，也可能继承自所属组合（a:grpFill → p:grpSpPr）。
+                    const ownPattFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:pattFill"]);
+                    const pattHost = (ownPattFill !== undefined || pNode === undefined)
+                        ? node
+                        : { "a:pattFill": PPTXXmlUtils.getTextByPathList(pNode, ["p:grpSpPr", "a:pattFill"]) };
+                    const svgPattFill = PPTXStyleUtils.getSvgPatternFill(pattHost, shpId, warpObj);
+                    result += svgPattFill;
+                    fillColor = (svgPattFill === "") ? "none" : `url(#pattPtrn_${shpId})`;
                 } else {
                     if (clrFillType != "SOLID_FILL" && clrFillType != "PATTERN_FILL" &&
                         (shapType == "arc" ||

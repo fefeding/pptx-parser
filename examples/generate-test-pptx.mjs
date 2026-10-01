@@ -11,8 +11,8 @@ import JSZip from 'jszip';
 import { jsonToPptx, pptxToJson } from '../dist/ppt-parser.esm.js';
 
 // ---- 测试用图片（base64）----
-const BLUE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAOklEQVR42u3OMQEAAAgDoJk/aRZw0gJ6mUm3bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2T9cCAr0H9dQAAAAASUVORK5CYII=';
-const ORANGE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAOklEQVR42u3OMQEAAAgDoJk/aRZw0gJ6mUm3bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2bdu2T9cCAr0H9dQAAAAASUVORK5CYII=';
+const BLUE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAZUlEQVR42u3QQREAAAQAML20E9qXHM4eK7DI6vksBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAgPsWcJEihvVdy3EAAAAASUVORK5CYII=';
+const ORANGE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAZklEQVR42u3QIQ0AAAgAMDz9LS3RkINx8QKPrpzPQoAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAAQIECLhvAaF00mjwgbtAAAAAAElFTkSuQmCC';
 
 // 自定义主题 XML（覆盖默认主题，演示 T17：accent1..6 改为自定义色）
 const CUSTOM_THEME = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -334,7 +334,12 @@ async function selfCheck() {
     assert('T5 schemeClr 引用', /<a:schemeClr/.test(slideXml[4]));
     // T6 图片/图案填充
     assert('T6 形状图片填充 blipFill', /<a:blipFill/.test(slideXml[5]));
+    assert('T6 图片填充 r:embed 关系', /<a:blip r:embed="rId\d+"\/>/.test(slideXml[5]));
     assert('T6 图案填充 pattFill', /<a:pattFill/.test(slideXml[5]));
+    // 素材必须是有效 PNG：此前用了一段截断的 base64，图片填充在浏览器里整块不可见
+    const pngSig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const bluePngBuf = Buffer.from(BLUE_PNG, 'base64');
+    assert('T6 图片素材为有效 PNG', bluePngBuf.subarray(0, 8).equals(pngSig) && bluePngBuf.includes(Buffer.from('IEND')));
     // T7 调整值 avLst
     assert('T7 几何调整 avLst', /<a:avLst/.test(slideXml[6]));
     // T8 翻转

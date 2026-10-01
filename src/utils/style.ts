@@ -140,12 +140,10 @@ function getFillType(node: XmlNode | undefined) {
                     }
                 } else if (fillType === "PIC_FILL") {
                     if (isSvgMode) {
-                        // 当 isSvgMode 为 true 时，返回图像 URL 而不是整个对象
-                        if (typeof fillColor === 'object' && fillColor.img) {
-                            return fillColor.img;
-                        } else {
-                            return fillColor;
-                        }
+                        // SVG 模式下平铺（a:tile）需要图片原始像素尺寸才能算出 tile 大小，
+                        // 因此这里返回完整对象（含 img / width / height / 平铺参数），
+                        // 而不是只返回图片 URL。
+                        return fillColor;
                     } else {
                         if (typeof fillColor === 'object' && fillColor.img) {
                             return `background-image:url(${fillColor.img}); background-size: ${fillColor.backgroundSize}; background-position: ${fillColor.backgroundPosition}; background-repeat: ${fillColor.backgroundRepeat};`;
@@ -1490,6 +1488,76 @@ function getFillType(node: XmlNode | undefined) {
                 "rot": rot
             }
         }
+        /**
+         * 直接从图片二进制头部解析原始像素宽高（PNG / JPEG / GIF / BMP / WEBP）。
+         *
+         * PPTX 的平铺（a:tile/@sx、@sy）是相对图片原始尺寸的比例，必须拿到真实
+         * 像素尺寸才能算出 tile 的绝对大小；旧实现用同步的 new Image() 探测，
+         * 而浏览器里图片尚未加载时 image.width 恒为 0，平铺尺寸会被算成 0 而退回铺满。
+         */
+        function getImageSizeFromBuffer(buf: ArrayBuffer): { width: number; height: number } {
+            const dv = new DataView(buf);
+            const u8 = new Uint8Array(buf);
+
+            // PNG: 签名 8B + 长度(4) + "IHDR" + width(4) + height(4)
+            if (u8.length > 24 && u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4E && u8[3] === 0x47) {
+                return { width: dv.getUint32(16, false), height: dv.getUint32(20, false) };
+            }
+            // GIF: "GIF8" + width(2, LE) + height(2, LE)
+            if (u8.length > 10 && u8[0] === 0x47 && u8[1] === 0x49 && u8[2] === 0x46) {
+                return { width: dv.getUint16(6, true), height: dv.getUint16(8, true) };
+            }
+            // BMP: "BM" + ... + width(18) + height(22)，高度可能为负（自下而上）
+            if (u8.length > 26 && u8[0] === 0x42 && u8[1] === 0x4D) {
+                return { width: dv.getInt32(18, true), height: Math.abs(dv.getInt32(22, true)) };
+            }
+            // WEBP: "RIFF" + size(4) + "WEBP" + chunkFourCC
+            if (u8.length > 30 && u8[0] === 0x52 && u8[1] === 0x49 && u8[2] === 0x46 && u8[3] === 0x46 &&
+                u8[8] === 0x57 && u8[9] === 0x45 && u8[10] === 0x42 && u8[11] === 0x50) {
+                const fourCC = String.fromCharCode(u8[12], u8[13], u8[14], u8[15]);
+                if (fourCC === "VP8 ") {
+                    return { width: dv.getUint16(26, true) & 0x3FFF, height: dv.getUint16(28, true) & 0x3FFF };
+                }
+                if (fourCC === "VP8L") {
+                    const bits = dv.getUint32(21, true);
+                    return { width: (bits & 0x3FFF) + 1, height: ((bits >> 14) & 0x3FFF) + 1 };
+                }
+                if (fourCC === "VP8X") {
+                    return {
+                        width: (u8[24] | (u8[25] << 8) | (u8[26] << 16)) + 1,
+                        height: (u8[27] | (u8[28] << 8) | (u8[29] << 16)) + 1
+                    };
+                }
+            }
+            // JPEG: 遍历 marker 段，SOFn 段内为 height(2) + width(2)
+            if (u8.length > 4 && u8[0] === 0xFF && u8[1] === 0xD8) {
+                let offset = 2;
+                while (offset + 9 < u8.length) {
+                    if (u8[offset] !== 0xFF) {
+                        offset++;
+                        continue;
+                    }
+                    const marker = u8[offset + 1];
+                    // 无长度字段的独立 marker（SOI / TEM / RSTn）
+                    if (marker === 0xD8 || marker === 0x01 || (marker >= 0xD0 && marker <= 0xD7)) {
+                        offset += 2;
+                        continue;
+                    }
+                    const len = dv.getUint16(offset + 2, false);
+                    const isSOF = marker >= 0xC0 && marker <= 0xCF &&
+                        marker !== 0xC4 && marker !== 0xC8 && marker !== 0xCC; // DHT / JPG / DAC 不是 SOF
+                    if (isSOF) {
+                        return { width: dv.getUint16(offset + 7, false), height: dv.getUint16(offset + 5, false) };
+                    }
+                    if (len < 2) {
+                        break;
+                    }
+                    offset += 2 + len;
+                }
+            }
+            return { width: 0, height: 0 };
+        }
+
         async function getPicFill(type: string, node: XmlNode | undefined, warpObj: WarpObject) {
             //Need to test/////////////////////////////////////////////
             //rId
@@ -1511,7 +1579,8 @@ function getFillType(node: XmlNode | undefined) {
                 return undefined;
             }
             img = PPTXXmlUtils.getTextByPathList(warpObj, ["loaded-images", imgPath]); //, type, rId
-            if (img === undefined) {
+            let imgSize = PPTXXmlUtils.getTextByPathList(warpObj, ["loaded-image-sizes", imgPath]);
+            if (img === undefined || imgSize === undefined) {
                  // 确定上下文类型用于路径解析
                 let context = 'slide';
                 if (type == "slideMasterBg") {
@@ -1531,9 +1600,16 @@ function getFillType(node: XmlNode | undefined) {
                 }
                 let imgArrayBuffer = await imgFile.async("arraybuffer");
                 let imgMimeType = PPTXXmlUtils.getMimeType(imgExt ?? '');
-                img = `data:${imgMimeType};base64,${PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer)}`;
-                //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
-                setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
+                if (img === undefined) {
+                    img = `data:${imgMimeType};base64,${PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer)}`;
+                    //warpObj["loaded-images"][imgPath] = img; //"defaultTextStyle": defaultTextStyle,
+                    setTextByPathList(warpObj, ["loaded-images", imgPath], img); //, type, rId
+                }
+                if (imgSize === undefined) {
+                    // 原始像素尺寸：a:tile 平铺的 tile 大小是相对它的比例
+                    imgSize = getImageSizeFromBuffer(imgArrayBuffer);
+                    setTextByPathList(warpObj, ["loaded-image-sizes", imgPath], imgSize);
+                }
             }
             // 处理图像属性 - Tile, Stretch, or Display Portion of Image
             let tileNode = node!["a:tile"];
@@ -1548,22 +1624,34 @@ function getFillType(node: XmlNode | undefined) {
                 fillMode = "tile";
                 backgroundRepeat = "repeat";
                 
+                // a:tile/@sx、@sy、@tx、@ty 都是相对图片原始尺寸的比例，
+                // 拿到真实像素尺寸时按像素计算（与 PowerPoint 一致），拿不到才退回百分比。
+                const hasSize = imgSize !== undefined && imgSize.width > 0 && imgSize.height > 0;
+
                 // 处理平铺大小
                 let sx = tileNode["attrs"]["sx"];
                 let sy = tileNode["attrs"]["sy"];
                 if (sx && sy) {
-                    let widthPercent = parseInt(sx) / 100000 * 100;
-                    let heightPercent = parseInt(sy) / 100000 * 100;
-                    backgroundSize = `${widthPercent}% ${heightPercent}%`;
+                    if (hasSize) {
+                        backgroundSize = `${(parseInt(sx) / 100000) * imgSize!.width}px ${(parseInt(sy) / 100000) * imgSize!.height}px`;
+                    } else {
+                        let widthPercent = parseInt(sx) / 100000 * 100;
+                        let heightPercent = parseInt(sy) / 100000 * 100;
+                        backgroundSize = `${widthPercent}% ${heightPercent}%`;
+                    }
                 }
                 
                 // 处理平铺偏移
                 let tx = tileNode["attrs"]["tx"];
                 let ty = tileNode["attrs"]["ty"];
                 if (tx && ty) {
-                    let xPercent = parseInt(tx) / 100000 * 100;
-                    let yPercent = parseInt(ty) / 100000 * 100;
-                    backgroundPosition = `${xPercent}% ${yPercent}%`;
+                    if (hasSize) {
+                        backgroundPosition = `${(parseInt(tx) / 100000) * imgSize!.width}px ${(parseInt(ty) / 100000) * imgSize!.height}px`;
+                    } else {
+                        let xPercent = parseInt(tx) / 100000 * 100;
+                        let yPercent = parseInt(ty) / 100000 * 100;
+                        backgroundPosition = `${xPercent}% ${yPercent}%`;
+                    }
                 }
             } else if (stretchNode) {
                 // 拉伸模式
@@ -1575,13 +1663,15 @@ function getFillType(node: XmlNode | undefined) {
                 }
             }
             
-            // 返回包含图像和填充模式的对象
+            // 返回包含图像和填充模式的对象（width/height 为图片原始像素尺寸，供 a:tile 平铺使用）
             return {
                 "img": img,
                 "fillMode": fillMode,
                 "backgroundSize": backgroundSize,
                 "backgroundPosition": backgroundPosition,
-                "backgroundRepeat": backgroundRepeat
+                "backgroundRepeat": backgroundRepeat,
+                "width": (imgSize === undefined) ? 0 : imgSize.width,
+                "height": (imgSize === undefined) ? 0 : imgSize.height
             };
         }
         function getPatternFill(node: XmlNode | undefined, warpObj: WarpObject) {
@@ -1662,6 +1752,24 @@ function getFillType(node: XmlNode | undefined) {
             // upDiag(Upward Diagonal)
             // vert(Vertical)
             switch (prst) {
+                case "horz":
+                    return [`repeating-linear-gradient(0deg, #${fgColor} 0 1px, transparent 1px 8px)#${bgColor};`];
+                    break
+                case "vert":
+                    return [`repeating-linear-gradient(90deg, #${fgColor} 0 1px, transparent 1px 8px)#${bgColor};`];
+                    break
+                case "upDiag":
+                    return [`repeating-linear-gradient(45deg, #${fgColor} 0 1px, transparent 1px 5px)#${bgColor};`];
+                    break
+                case "dnDiag":
+                    return [`repeating-linear-gradient(-45deg, #${fgColor} 0 1px, transparent 1px 5px)#${bgColor};`];
+                    break
+                case "cross":
+                    return [`repeating-linear-gradient(0deg, #${fgColor} 0 1px, transparent 1px 6px), repeating-linear-gradient(90deg, #${fgColor} 0 1px, transparent 1px 6px)#${bgColor};`];
+                    break
+                case "diagCross":
+                    return [`repeating-linear-gradient(45deg, #${fgColor} 0 1px, transparent 1px 6px), repeating-linear-gradient(-45deg, #${fgColor} 0 1px, transparent 1px 6px)#${bgColor};`];
+                    break
                 case "smGrid":
                     return [`linear-gradient(to right,  #${fgColor} -1px, transparent 1px ), linear-gradient(to bottom,  #${fgColor} -1px, transparent 1px)  #${bgColor};`, "4px 4px"];
                     break
@@ -1866,7 +1974,9 @@ function getFillType(node: XmlNode | undefined) {
                     return [`radial-gradient(#${fgColor} ${px_pr_ary![0]}, transparent ${px_pr_ary![1]}),#${bgColor};`, px_pr_ary![2]];
                     break
                 default:
-                    return [0, 0];
+                    // 未收录的图案：用前景色 45° 斜线兜底。
+                    // 原实现返回 [0, 0] 会生成 “background: 0;” 这类无效 CSS，图案形状会整块消失。
+                    return [`repeating-linear-gradient(45deg, #${fgColor} 0 1px, transparent 1px 6px)#${bgColor};`, "8px 8px"];
             }
         }
 
@@ -2843,19 +2953,33 @@ function getFillType(node: XmlNode | undefined) {
         function getSvgImagePattern(node: XmlNode | undefined, fill: any, shpId: any, warpObj: WarpObject) {
             // 处理 fill 参数是对象的情况
             let fillUrl = fill;
+            let width = 0, height = 0;
             if (typeof fill === 'object' && fill.img) {
                 fillUrl = fill.img;
+                // getPicFill 已从图片二进制解析出原始像素尺寸
+                width = Number(fill.width) || 0;
+                height = Number(fill.height) || 0;
             }
-            
-            let pic_dim = getBase64ImageDimensions(fillUrl);
-            let width = pic_dim![0];
-            let height = pic_dim![1];
+            // 兜底：老调用方只传 URL 时，退回 DOM 探测（浏览器里图片已缓存时可拿到尺寸）
+            if (width === 0 || height === 0) {
+                let pic_dim = getBase64ImageDimensions(fillUrl);
+                width = (pic_dim !== undefined && pic_dim[0]) ? pic_dim[0] : width;
+                height = (pic_dim !== undefined && pic_dim[1]) ? pic_dim[1] : height;
+            }
             let blipFillNode = node!["p:spPr"]["a:blipFill"];
-            let sx = 0, sy = 0;
+            let sx = 0, sy = 0, tx = 0, ty = 0;
             let tileNode = PPTXXmlUtils.getTextByPathList(blipFillNode, ["a:tile", "attrs"])
             if (tileNode !== undefined && tileNode["sx"] !== undefined) {
+                // tile 的 sx/sy/tx/ty 是相对图片原始尺寸的比例；
+                // 原始尺寸未知时 sx 会算成 0，此时退回整图铺满（见下方 objectBoundingBox 分支）。
                 sx = (parseInt(tileNode["sx"]) / 100000) * width;
                 sy = (parseInt(tileNode["sy"]) / 100000) * height;
+                if (tileNode["tx"] !== undefined) {
+                    tx = (parseInt(tileNode["tx"]) / 100000) * width;
+                }
+                if (tileNode["ty"] !== undefined) {
+                    ty = (parseInt(tileNode["ty"]) / 100000) * height;
+                }
             }
 
             let blipNode = node!["p:spPr"]["a:blipFill"]["a:blip"];
@@ -2863,13 +2987,11 @@ function getFillType(node: XmlNode | undefined) {
             let imgOpacity = "";
             if (tialphaModFixNode !== undefined && tialphaModFixNode["amt"] !== undefined && tialphaModFixNode["amt"] != "") {
                 const amt = parseInt(tialphaModFixNode["amt"]) / 100000;
-                let opacity = amt;
-                let imgOpacity = `opacity='${opacity}'`;
-
+                imgOpacity = `opacity='${amt}'`;
             }
             let ptrn = '';
-            if (sx !== undefined && sx != 0) {
-                ptrn = `<pattern id="imgPtrn_${shpId}" x="0" y="0"  width="${sx}" height="${sy}" patternUnits="userSpaceOnUse">`;
+            if (sx > 0 && sy > 0) {
+                ptrn = `<pattern id="imgPtrn_${shpId}" x="${tx}" y="${ty}" width="${sx}" height="${sy}" patternUnits="userSpaceOnUse">`;
             } else {
                 ptrn = `<pattern id="imgPtrn_${shpId}"  patternContentUnits="objectBoundingBox"  width="1" height="1">`;
             }
@@ -2894,17 +3016,18 @@ function getFillType(node: XmlNode | undefined) {
                 })
 
                 if (clr_ary.length == 2) {
-
-                    fillterNode = `<filter id="svg_image_duotone"> <feColorMatrix type="matrix" values=".33 .33 .33 0 0.33 .33 .33 0 0.33 .33 .33 0 00 0 0 1 0"></feColorMatrix><feComponentTransfer color-interpolation-filters="sRGB"><feFuncR type="table" tableValues="${clr_ary[0].r / 255} ${clr_ary[1].r / 255}"></feFuncR><feFuncG type="table" tableValues="${clr_ary[0].g / 255} ${clr_ary[1].g / 255}"></feFuncG><feFuncB type="table" tableValues="${clr_ary[0].b / 255} ${clr_ary[1].b / 255}"></feFuncB></feComponentTransfer> </filter>`;
+                    // filter id 需要按形状区分：同一份文档里多个带 duotone 的图片填充会共享同一个 id，
+                    // 后者会覆盖前者，导致所有形状都用最后一组的双色调。
+                    const duotoneId = `svg_image_duotone_${shpId}`;
+                    fillterNode = `<filter id="${duotoneId}"> <feColorMatrix type="matrix" values=".33 .33 .33 0 0.33 .33 .33 0 0.33 .33 .33 0 00 0 0 1 0"></feColorMatrix><feComponentTransfer color-interpolation-filters="sRGB"><feFuncR type="table" tableValues="${clr_ary[0].r / 255} ${clr_ary[1].r / 255}"></feFuncR><feFuncG type="table" tableValues="${clr_ary[0].g / 255} ${clr_ary[1].g / 255}"></feFuncG><feFuncB type="table" tableValues="${clr_ary[0].b / 255} ${clr_ary[1].b / 255}"></feFuncB></feComponentTransfer> </filter>`;
+                    filterUrl = `filter="url(#${duotoneId})"`;
                 }
-
-                filterUrl = 'filter="url(#svg_image_duotone)"';
 
                 ptrn += fillterNode;
             }
 
             fillUrl = PPTXXmlUtils.escapeHtml(fillUrl);
-            if (sx !== undefined && sx != 0) {
+            if (sx > 0 && sy > 0) {
                 ptrn += `<image  xlink:href="${fillUrl}" x="0" y="0" width="${sx}" height="${sy}" ${imgOpacity} ${filterUrl}></image>`;
             } else {
                 ptrn += `<image  xlink:href="${fillUrl}" preserveAspectRatio="none" width="1" height="1" ${imgOpacity} ${filterUrl}></image>`;
@@ -2912,6 +3035,166 @@ function getFillType(node: XmlNode | undefined) {
             ptrn += '</pattern>';
 
             return ptrn;
+        }
+
+        /** hex（6/8 位，可带 #）→ { color: '#rrggbb', opacity }，8 位时末字节作为透明度 */
+        function svgFillColor(raw: any, fallback: string) {
+            const hex = String(raw === undefined || raw === null || raw === "" ? fallback : raw).replace("#", "");
+            if (/^[0-9a-fA-F]{8}$/.test(hex)) {
+                return { color: `#${hex.slice(0, 6)}`, opacity: (parseInt(hex.slice(6, 8), 16) / 255).toFixed(3) };
+            }
+            return { color: `#${hex}`, opacity: "1" };
+        }
+
+        /**
+         * 把 OOXML 的图案样式（a:pattFill/@prst）翻译成一块 SVG 平铺 tile。
+         * 图案在 PowerPoint 中即固定尺寸的重复图形，因此统一用 4/8/16px 的方格近似；
+         * tile 边长为正整数，绘制内容以 tile 左上角为原点。
+         * @returns { size, body } —— body 为 tile 内的 SVG 图元串
+         */
+        function buildPatternTile(prst: string, fg: string, fgOpacity: string) {
+            const stroke = (d: string, width: number, dash?: string) =>
+                `<path d="${d}" fill="none" stroke="${fg}" stroke-opacity="${fgOpacity}" stroke-width="${width}"` +
+                (dash ? ` stroke-dasharray="${dash}"` : "") + "/>";
+            const fillPath = (d: string) => `<path d="${d}" fill="${fg}" fill-opacity="${fgOpacity}"/>`;
+
+            // 线条族：[方向, tile 边长, 线宽, dasharray]
+            const lineFamilies: Record<string, [string, number, number, string]> = {
+                horz: ["h", 8, 1, ""],
+                ltHorz: ["h", 8, 1, ""],
+                dkHorz: ["h", 8, 3, ""],
+                narHorz: ["h", 4, 1, ""],
+                dashHorz: ["h", 8, 2, "4 4"],
+                vert: ["v", 8, 1, ""],
+                ltVert: ["v", 8, 1, ""],
+                dkVert: ["v", 8, 3, ""],
+                narVert: ["v", 4, 1, ""],
+                dashVert: ["v", 8, 2, "4 4"],
+                dnDiag: ["dn", 8, 1, ""],
+                ltDnDiag: ["dn", 4, 1, ""],
+                dkDnDiag: ["dn", 8, 3, ""],
+                wdDnDiag: ["dn", 8, 4, ""],
+                dashDnDiag: ["dn", 8, 2, "4 4"],
+                upDiag: ["up", 8, 1, ""],
+                ltUpDiag: ["up", 4, 1, ""],
+                dkUpDiag: ["up", 8, 3, ""],
+                wdUpDiag: ["up", 8, 4, ""],
+                dashUpDiag: ["up", 8, 2, "4 4"]
+            };
+            const family = lineFamilies[prst];
+            if (family !== undefined) {
+                const [dir, size, width, dash] = family;
+                const half = size / 2;
+                let d = "";
+                if (dir === "h") {
+                    d = `M0 ${half}H${size}`;
+                } else if (dir === "v") {
+                    d = `M${half} 0V${size}`;
+                } else if (dir === "dn") {
+                    // ↘ 线族：主对角线 + 两条半段（平铺后拼成完整线，使间距减半）
+                    d = `M0 0L${size} ${size}M${half} 0L${size} ${half}M0 ${half}L${half} ${size}`;
+                } else {
+                    // ↗ 线族
+                    d = `M0 ${size}L${size} 0M0 ${half}L${half} 0M${half} ${size}L${size} ${half}`;
+                }
+                return { size, body: stroke(d, width, dash || undefined) };
+            }
+
+            switch (prst) {
+                case "cross":
+                    return { size: 8, body: stroke("M0 4H8M4 0V8", 2) };
+                case "diagCross":
+                    return { size: 8, body: stroke("M0 0L8 8M8 0L0 8", 2) };
+                case "smGrid":
+                    return { size: 4, body: stroke("M0 0H4M0 0V4", 1) };
+                case "lgGrid":
+                    return { size: 8, body: stroke("M0 0H8M0 0V8", 2) };
+                case "dotGrid":
+                    return { size: 8, body: stroke("M0 4H8M4 0V8", 1, "2 2") };
+                case "smCheck":
+                    return { size: 4, body: fillPath("M0 0h2v2h-2zM2 2h2v2h-2z") };
+                case "lgCheck":
+                    return { size: 8, body: fillPath("M0 0h4v4h-4zM4 4h4v4h-4z") };
+                case "dotDmnd":
+                    return { size: 4, body: fillPath("M2 0L4 2L2 4L0 2Z") };
+                case "solidDmnd":
+                    return { size: 8, body: fillPath("M4 1L7 4L4 7L1 4Z") };
+                case "openDmnd":
+                    return { size: 8, body: stroke("M4 1L7 4L4 7L1 4Z", 1) };
+                case "smConfetti":
+                    return { size: 8, body: fillPath("M1 1h1v1h-1zM5 2h1v1h-1zM3 5h1v1h-1z") };
+                case "lgConfetti":
+                    return { size: 16, body: fillPath("M2 2h3v3h-3zM9 5h3v3h-3zM5 10h3v3h-3z") };
+                case "horzBrick":
+                    return { size: 8, body: stroke("M0 0H8M0 4H8M2 0V4M6 4V8", 1.5) };
+                case "diagBrick":
+                    return { size: 8, body: stroke("M0 4L4 0M4 8L8 4M0 4L4 8M4 0L8 4", 1.5) };
+                case "weave":
+                    return { size: 8, body: stroke("M0 2H8M0 6H8M2 0V8M6 0V8", 1) };
+                case "trellis":
+                    return { size: 8, body: stroke("M0 0H8M0 0V8M0 8L8 0", 1) };
+                case "plaid":
+                    return { size: 8, body: stroke("M0 4H8M4 0V8", 3) };
+                case "shingle":
+                case "wave":
+                    return { size: 8, body: stroke("M0 2Q2 0 4 2T8 2M0 6Q2 4 4 6T8 6", 1) };
+                case "zigZag":
+                    return { size: 8, body: stroke("M0 4L2 2L4 4L6 2L8 4", 1) };
+                case "sphere":
+                    return {
+                        size: 8,
+                        body: `<circle cx="4" cy="4" r="2.6" fill="${fg}" fill-opacity="${fgOpacity}"/>` +
+                            `<circle cx="3.2" cy="3.2" r="0.8" fill="#ffffff" fill-opacity="0.55"/>`
+                    };
+                case "divot":
+                    return { size: 4, body: `<circle cx="2" cy="2" r="1.1" fill="${fg}" fill-opacity="${fgOpacity}"/>` };
+            }
+
+            // 点阵族 pct5..pct90：覆盖率越高点越密（√ 关系保证视觉灰度与百分比接近）
+            const pct = /^pct(\d+)$/.exec(prst);
+            if (pct !== null) {
+                const size = 16;
+                const n = Math.min(15, Math.max(1, Math.round(Math.sqrt(Number(pct[1]) / 100) * size)));
+                const step = size / n;
+                const dots: string[] = [];
+                for (let r = 0; r < n; r++) {
+                    for (let c = 0; c < n; c++) {
+                        const x = (c * step + step / 2).toFixed(2);
+                        const y = (r * step + step / 2).toFixed(2);
+                        dots.push(`M${x} ${y}h0.9v0.9h-0.9z`);
+                    }
+                }
+                return { size, body: fillPath(dots.join("")) };
+            }
+
+            // 未收录的图案：底铺 bgClr + 45° 前景细线，至少保证形状可见且能看出是图案
+            return { size: 8, body: stroke("M0 8L8 0", 1) };
+        }
+
+        /**
+         * 图案填充（a:pattFill）→ SVG <pattern> 定义（供 fill="url(#pattPtrn_<shpId>)") 引用）。
+         *
+         * 不复用 CSS background 的原因：SVG 形状的填充需要被路径裁剪（圆角/异形），
+         * 且同一图案的多个形状若共用一个 CSS 类会互相覆盖。
+         * node 可为形状（p:spPr/a:pattFill）或组合填充片段（a:pattFill）。
+         */
+        function getSvgPatternFill(node: XmlNode | undefined, shpId: any, warpObj: WarpObject) {
+            if (node === undefined) {
+                return "";
+            }
+            const pattFill = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:pattFill"]) ||
+                PPTXXmlUtils.getTextByPathList(node, ["a:pattFill"]);
+            if (pattFill === undefined) {
+                return "";
+            }
+            const prst = PPTXXmlUtils.getTextByPathList(pattFill, ["attrs", "prst"]) || "pct50";
+            const fg = svgFillColor(getSolidFill(pattFill["a:fgClr"], undefined, undefined, warpObj), "000000");
+            const bg = svgFillColor(getSolidFill(pattFill["a:bgClr"], undefined, undefined, warpObj), "FFFFFF");
+            const tile = buildPatternTile(prst, fg.color, fg.opacity);
+
+            return `<pattern id="pattPtrn_${shpId}" width="${tile.size}" height="${tile.size}" patternUnits="userSpaceOnUse">` +
+                `<rect width="${tile.size}" height="${tile.size}" fill="${bg.color}" fill-opacity="${bg.opacity}"/>` +
+                `${tile.body}</pattern>`;
         }
 
         function getBase64ImageDimensions(imgSrc: any) {
@@ -3984,6 +4267,8 @@ const PPTXStyleUtils = {
         getMiddleStops,
         SVGangle,
         getSvgImagePattern,
+        getSvgPatternFill,
+        getImageSizeFromBuffer,
         getBase64ImageDimensions,
         getVerticalAlign,
         getContentDir,
