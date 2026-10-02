@@ -347,6 +347,8 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
             zip.file(`${dir}layout${d.index}.xml`, d.layoutXml);
             zip.file(`${dir}colors${d.index}.xml`, d.colorsXml);
             zip.file(`${dir}quickStyle${d.index}.xml`, d.quickStyleXml);
+            // 缓存绘图部件 dsp:drawing：无独立 .rels（不引用其他 diagram 部件）
+            zip.file(`${dir}drawing${d.index}.xml`, d.drawingXml);
             zip.file(`${dir}_rels/data${d.index}.xml.rels`,
                 buildRelationshipsXml([
                     { relId: 'rId1', type: REL_TYPES.diagramLayout, target: `layout${d.index}.xml` },
@@ -457,6 +459,9 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
             const override = `<Override PartName="/ppt/diagrams/${kind}${idx}.xml" ContentType="${DIAGRAM_CT[kind]}"/>`;
             contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
         }
+        // 缓存绘图部件（Microsoft 扩展 CT，注意 ms-office 前缀）
+        const drawOverride = `<Override PartName="/ppt/diagrams/drawing${idx}.xml" ContentType="application/vnd.ms-office.drawingml.diagramDrawing+xml"/>`;
+        contentTypeXml = contentTypeXml.replace('</Types>', `${drawOverride}</Types>`);
     }
     // __raw 回退部件 Content-Types 覆盖
     for (const part of allRawParts) {

@@ -49,6 +49,52 @@ function findDiagramShapeList(root: unknown) {
 }
 
 /**
+ * 解析兜底：当标准 drawing 与 data 内嵌绘图都缺失时，从 dataN.xml 的节点树（dgm:pt/dsdgm:pt +
+ * dgm:cxn/dsdgm:cxn）做简单层级布局，保证不空白。仅用于第三方工具生成/旧版自产等缺失绘图信息的场景。
+ * @param {Object} data - dataN.xml 解析对象（dgm:dataModel / dsdgm:dataModel）
+ * @returns {string} 层级缩进的 HTML
+ */
+function buildDiagramHtmlFromData(data: any): string {
+    if (!data) return '';
+    const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const extractText = (p: any): string => {
+        const ts = findAllNodes(p, 'a:t');
+        for (const t of ts) { const v = (t as any).text ?? (t as any).attrs?.val; if (v) return String(v); }
+        for (const key of ['dsdgm:str', 'dgm:str', 'str']) {
+            const ss = findAllNodes(p, key);
+            for (const s of ss) { const v = (s as any).attrs?.val; if (v) return String(v); }
+        }
+        return '';
+    };
+    const pts = [...findAllNodes(data, 'dgm:pt'), ...findAllNodes(data, 'dsdgm:pt')];
+    const byId: Record<string, { id: string; text: string; children: string[]; parent: string | null }> = {};
+    let rootId: string | null = null;
+    for (const p of pts) {
+        const id = p?.attrs?.modelId;
+        if (!id) continue;
+        byId[id] = { id, text: extractText(p), children: [], parent: null };
+        if (p.attrs?.type === 'doc') rootId = id;
+    }
+    const cxns = [...findAllNodes(data, 'dgm:cxn'), ...findAllNodes(data, 'dsdgm:cxn')];
+    for (const c of cxns) {
+        const s = c?.attrs?.srcId, d = c?.attrs?.destId;
+        if (s && d && byId[s] && byId[d]) { byId[s].children.push(d); byId[d].parent = s; }
+    }
+    const root = (rootId && byId[rootId]) ? byId[rootId]
+        : (Object.values(byId).find(x => !x.parent) || null);
+    if (!root) return '';
+    const colors = ['#1CADE4', '#2E7D32', '#ED6C02', '#9C27B0', '#C62828', '#00796B'];
+    const render = (n: { text: string; children: string[] }, depth: number): string => {
+        const pad = 16 + depth * 30;
+        const col = colors[depth % colors.length];
+        let h = `<div style="margin:6px 0 6px ${pad}px;padding:8px 14px;background:${col};color:#fff;border-radius:6px;display:inline-block;font-size:16px;white-space:pre-wrap;">${esc(n.text)}</div><div style="clear:both;"></div>`;
+        for (const c of n.children) h += render(byId[c], depth + 1);
+        return h;
+    };
+    return `<div class="smartart-fallback" style="width:100%;box-sizing:border-box;padding:8px;">${render(root, 0)}</div>`;
+}
+
+/**
  * 生成 Diagram HTML
  * @param {Object} node - 节点
  * @param {Object} wrapObj - 包装对象
@@ -89,8 +135,9 @@ async function genDiagram(node: XmlNode | undefined, wrapObj: WarpObject, source
     const dgmLayout = await PPTXXmlUtils.readXmlFile(zip, dgmLayoutFileName);
     const dgmQuickStyle = await PPTXXmlUtils.readXmlFile(zip, dgmQuickStyleFileName);
 
-    // 优先用数据部件内嵌的绘图；PowerPoint 生成的缓存绘图部件（drawing1.xml）作为回退
-    const spArray = findDiagramShapeList(dgmData) || findDiagramShapeList(wrapObj.diagramContent);
+    // 优先用标准缓存绘图部件（Microsoft dsp:drawing，含完整形状/填充/文字，与 PowerPoint 对齐）；
+    // 其次用数据部件内嵌的绘图（本生成器兜底）；两者皆无时降级为节点树文本布局
+    const spArray = findDiagramShapeList(wrapObj.diagramContent) || findDiagramShapeList(dgmData);
     let result = '';
 
     if (spArray !== undefined) {
@@ -100,6 +147,9 @@ async function genDiagram(node: XmlNode | undefined, wrapObj: WarpObject, source
         }
         const resolvedResults = await Promise.all(results);
         result = resolvedResults.join('');
+    } else {
+        // 解析兜底：drawing 缺失（如第三方工具生成/旧版自产），从 dataN.xml 的节点树做简单层级布局
+        result = buildDiagramHtmlFromData(dgmData);
     }
 
     // 处理组合缩放 - 当diagram在group-abs类型组合中时需要应用缩放

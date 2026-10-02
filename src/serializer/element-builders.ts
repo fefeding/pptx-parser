@@ -45,14 +45,16 @@ export interface SerializerChart {
     /** 嵌入工作簿数据（用于生成 WPS 兼容的 xlsx） */
     workbook?: ChartWorkbookData;
 }
-/** SmartArt 图示部件记录（data/layout/colors/quickStyle 四件套，编号共享） */
+/** SmartArt 图示部件记录（data/layout/colors/quickStyle 四件套 + drawing，编号共享） */
 export interface SerializerDiagram {
-    /** 部件编号（与 dataN/layoutN/colorsN/quickStyleN 的 N 一致） */
+    /** 部件编号（与 dataN/layoutN/colorsN/quickStyleN/drawingN 的 N 一致） */
     index: number;
     dataXml: string;
     layoutXml: string;
     colorsXml: string;
     quickStyleXml: string;
+    /** 缓存绘图部件 drawingN.xml（Microsoft 标准 dsp:drawing，含按布局算好的形状/填充/文字） */
+    drawingXml: string;
 }
 /** SmartArt 图示节点（层级结构，叶子含 text） */
 export interface DiagramNode {
@@ -1679,11 +1681,15 @@ function buildDiagramDataModel(nodes: DiagramNode[]): string {
             const x = Math.round(depth * EMU * 1.4);
             const y = Math.round(row * EMU * 0.7);
             row++;
+            const fill = ['accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6'][depth % 6];
             sps.push(
                 `<p:sp><p:nvSpPr><p:cNvPr id="${mid}" name="Node${mid}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
                 `<p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="2286000" cy="370840"/></a:xfrm>` +
-                `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>` +
-                `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr/><a:t>${text}</a:t></a:r></a:p></p:txBody></p:sp>`
+                `<a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom>` +
+                `<a:solidFill><a:schemeClr val="${fill}"/></a:solidFill>` +
+                `<a:ln><a:solidFill><a:schemeClr val="lt1"/></a:solidFill></a:ln>` +
+                `</p:spPr>` +
+                `<p:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="en-US" sz="1400" b="1"><a:solidFill><a:schemeClr val="lt1"/></a:solidFill></a:rPr><a:t>${text}</a:t></a:r></a:p></p:txBody></p:sp>`
             );
             if (node.children && node.children.length) walk(node.children, mid, depth + 1);
         }
@@ -1741,6 +1747,142 @@ function buildDiagramQuickStyle(type: string, seed: number): string {
         `<dgm:catLst/><dgm:varLst/><dgm:styleLblLst/></dgm:quickStyleDef>`;
 }
 
+/** dsp:drawing (缓存绘图) 命名空间 —— 注意是 microsoft 扩展命名空间，解析端会整体 dsp:→p: 替换 */
+const DSP_NS = 'http://schemas.microsoft.com/office/drawing/2008/diagram';
+const A_NS = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+
+/** 单个 SmartArt 节点布局结果（EMU 坐标系，相对 drawing 画布原点） */
+interface DiagShape {
+    x: number; y: number; w: number; h: number;
+    text: string;
+    /** 填充主题色（accent1..accent6） */
+    fill: string;
+}
+
+function countNodes(ns: DiagramNode[]): number {
+    let c = 0;
+    for (const n of ns) { c++; if (n.children) c += countNodes(n.children); }
+    return c;
+}
+function maxDepth(ns: DiagramNode[], d = 0): number {
+    let m = d;
+    for (const n of ns) if (n.children) m = Math.max(m, maxDepth(n.children, d + 1));
+    return m;
+}
+
+/**
+ * 按 diagramType 计算各节点的绝对位置/尺寸（EMU）。
+ * 这是与 PowerPoint 布局引擎"意图对齐"的简化布局（非像素级），保证：
+ * 形状带主题色填充与白色文字、层级/循环/金字塔等结构清晰可见。
+ */
+function layoutDiagram(type: string, nodes: DiagramNode[], W: number, H: number): DiagShape[] {
+    const out: DiagShape[] = [];
+    const accents = ['accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6'];
+    const push = (s: Omit<DiagShape, 'fill'>, depth: number, idx: number) =>
+        out.push({ ...s, fill: accents[(type === 'list' || type === 'process') ? idx % 6 : depth % 6] });
+
+    if (type === 'list' || type === 'process') {
+        const n = Math.max(1, countNodes(nodes));
+        const gap = Math.round(H * 0.04);
+        const cellH = Math.round((H - gap * (n - 1)) / n);
+        let i = 0;
+        const walk = (ns: DiagramNode[]) => {
+            for (const node of ns) {
+                push({ x: Math.round(W * 0.04), y: i * (cellH + gap), w: Math.round(W * 0.92), h: cellH, text: node.text }, 0, i);
+                i++;
+                if (node.children) walk(node.children);
+            }
+        };
+        walk(nodes);
+    } else if (type === 'hierarchy' || type === 'orgChart') {
+        const depthMax = Math.max(1, maxDepth(nodes) + 1);
+        const levelH = Math.round(H / depthMax);
+        const boxH = Math.round(levelH * 0.72);
+        const boxW = Math.round(Math.min(W * 0.26, W / Math.max(2, countNodes(nodes) / depthMax)));
+        const place = (ns: DiagramNode[], x0: number, x1: number, depth: number) => {
+            const span = (x1 - x0) / ns.length;
+            ns.forEach((node, idx) => {
+                const cx0 = x0 + span * idx, cx1 = x0 + span * (idx + 1);
+                const x = Math.round((cx0 + cx1) / 2 - boxW / 2);
+                const y = Math.round(depth * levelH + (levelH - boxH) / 2);
+                push({ x, y, w: boxW, h: boxH, text: node.text }, depth, 0);
+                if (node.children && node.children.length) place(node.children, cx0, cx1, depth + 1);
+            });
+        };
+        place(nodes, 0, W, 0);
+    } else if (type === 'cycle') {
+        const n = Math.max(1, countNodes(nodes));
+        const boxW = Math.round(Math.min(W * 0.22, H * 0.22));
+        const boxH = boxW;
+        const cx = W / 2, cy = H / 2;
+        const rx = W / 2 - boxW / 2 - Math.round(W * 0.05);
+        const ry = H / 2 - boxH / 2 - Math.round(H * 0.05);
+        let i = 0;
+        const walk = (ns: DiagramNode[]) => {
+            for (const node of ns) {
+                const ang = (2 * Math.PI * i) / n - Math.PI / 2;
+                push({ x: Math.round(cx + rx * Math.cos(ang) - boxW / 2), y: Math.round(cy + ry * Math.sin(ang) - boxH / 2), w: boxW, h: boxH, text: node.text }, 0, i);
+                i++;
+                if (node.children) walk(node.children);
+            }
+        };
+        walk(nodes);
+    } else if (type === 'pyramid') {
+        const n = Math.max(1, countNodes(nodes));
+        const cellH = Math.round(H / n);
+        let i = 0;
+        const walk = (ns: DiagramNode[]) => {
+            for (const node of ns) {
+                const t = (i + 0.5) / n;
+                const w = Math.round(W * (0.34 + 0.62 * t));
+                push({ x: Math.round((W - w) / 2), y: Math.round(i * cellH), w, h: cellH - Math.round(H * 0.02), text: node.text }, 0, i);
+                i++;
+                if (node.children) walk(node.children);
+            }
+        };
+        walk(nodes);
+    } else {
+        return layoutDiagram('list', nodes, W, H);
+    }
+    return out;
+}
+
+/**
+ * 构建缓存绘图部件 drawingN.xml（dsp:drawing 根）。
+ * 写入按 layoutDiagram 算好的每个节点 dsp:sp（a:xfrm 绝对坐标 + a:solidFill 主题色 + 白色文字）。
+ * 这是与 PowerPoint 对齐的关键：PowerPoint 打开即呈现完整图示，解析端走 diagramDrawing 回退路径渲染同款。
+ * @param type diagramType
+ * @param seed 部件编号（= diagramIndex）
+ * @param nodes 节点树
+ * @param W drawing 画布宽（EMU，= graphicFrame 宽）
+ * @param H drawing 画布高（EMU，= graphicFrame 高）
+ */
+function buildDiagramDrawing(type: string, seed: number, nodes: DiagramNode[], W: number, H: number): string {
+    const shapes = layoutDiagram(type, nodes, W, H);
+    let spid = 2;
+    const sps = shapes.map((s, idx) => {
+        const id = spid++;
+        const modelId = diagramUniqueId(seed * 100 + idx + 1);
+        const sz = Math.max(900, Math.min(2200, Math.round((s.h / 914400) * 1200))); // 字号随框高自适应（EMU→pt*100）
+        return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
+            `<dsp:spPr bwMode="auto"><a:xfrm><a:off x="${s.x}" y="${s.y}"/><a:ext cx="${s.w}" cy="${s.h}"/></a:xfrm>` +
+            `<a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom>` +
+            `<a:solidFill><a:schemeClr val="${s.fill}"/></a:solidFill>` +
+            `<a:ln><a:solidFill><a:schemeClr val="lt1"/></a:solidFill></a:ln>` +
+            `</dsp:spPr>` +
+            `<dsp:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/>` +
+            `<a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="en-US" sz="${sz}" b="1"><a:solidFill><a:schemeClr val="lt1"/></a:solidFill></a:rPr>` +
+            `<a:t>${escapeXml(s.text)}</a:t></a:r></a:p></dsp:txBody></dsp:sp>`;
+    }).join('');
+
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<dsp:drawing xmlns:dsp="${DSP_NS}" xmlns:a="${A_NS}" xmlns:r="${NS.r}">` +
+        `<dsp:spTree><dsp:nvGrpSpPr><dsp:cNvPr id="1" name="Diagram"/><dsp:cNvGrpSpPr/><dsp:nvPr/></dsp:nvGrpSpPr>` +
+        `<dsp:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${W}" cy="${H}"/><a:chOff x="0" y="0"/><a:chExt cx="${W}" cy="${H}"/></a:xfrm></dsp:grpSpPr>` +
+        sps +
+        `</dsp:spTree></dsp:drawing>`;
+}
+
 /**
  * 构建 SmartArt 图示元素（p:graphicFrame + 原生 diagrams/* 部件）
  * 生成 data/layout/colors/quickStyle 四件套，并登记幻灯片 → dataN.xml 关系；
@@ -1762,12 +1904,17 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
     const layoutXml = buildDiagramLayout(dgmType, n);
     const colorsXml = buildDiagramColors(dgmType, n);
     const quickStyleXml = buildDiagramQuickStyle(dgmType, n);
-    // 标准 SmartArt：slide 通过 dgm:relIds 引用四个 diagram 部件（colors/data/layout/quickStyle）
+    // 缓存绘图部件（Microsoft 标准 dsp:drawing）：按布局算好的形状/填充/文字，解析端与 PowerPoint 对齐
+    const drawW = pxToEmu(el.width || 400);
+    const drawH = pxToEmu(el.height || 300);
+    const drawingXml = buildDiagramDrawing(dgmType, n, nodes, drawW, drawH);
+    // 标准 SmartArt：slide 通过 dgm:relIds 引用 data/layout/colors/quickStyle；另挂 diagramDrawing 关系
     const dataRelId = addRelationship(ctx, REL_TYPES.diagramData, `../diagrams/data${n}.xml`);
     const colorsRelId = addRelationship(ctx, REL_TYPES.diagramColors, `../diagrams/colors${n}.xml`);
     const layoutRelId = addRelationship(ctx, REL_TYPES.diagramLayout, `../diagrams/layout${n}.xml`);
     const quickStyleRelId = addRelationship(ctx, REL_TYPES.diagramQuickStyle, `../diagrams/quickStyle${n}.xml`);
-    ctx.diagrams.push({ index: n, dataXml, layoutXml, colorsXml, quickStyleXml });
+    const drawingRelId = addRelationship(ctx, REL_TYPES.diagramDrawing, `../diagrams/drawing${n}.xml`);
+    ctx.diagrams.push({ index: n, dataXml, layoutXml, colorsXml, quickStyleXml, drawingXml });
 
     const id = ctx.nextElementId++;
     return xmlNode('p:graphicFrame',
