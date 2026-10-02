@@ -156,10 +156,19 @@ export interface PptxChartSeries {
     color?: string;
 }
 
-/** 图表类型 */
+/** 图表分组方式（堆叠/百分比堆叠等） */
+export type ChartGrouping = 'clustered' | 'stacked' | 'percentStacked' | 'standard';
+
+/** 图表类型（ECMA-376 plotArea 下全部图表节点） */
 export type PptxChartType =
-    | 'barChart' | 'lineChart' | 'areaChart'
-    | 'pieChart' | 'pie3DChart' | 'scatterChart' | string;
+    | 'barChart' | 'bar3DChart'
+    | 'lineChart' | 'line3DChart'
+    | 'areaChart' | 'area3DChart'
+    | 'pieChart' | 'pie3DChart' | 'doughnutChart' | 'ofPieChart'
+    | 'scatterChart' | 'bubbleChart'
+    | 'radarChart' | 'stockChart'
+    | 'surfaceChart' | 'surface3DChart'
+    | string;
 
 /** __raw 载荷：原始 OOXML 子树及其依赖关系（解析端产出，生成端原样回写） */
 export interface PptxRawPayload {
@@ -290,6 +299,26 @@ export interface PptxChartElement extends PptxElementBase {
     barDir?: 'bar' | 'col';
     categories?: string[];
     series?: PptxChartSeries[];
+    /** 分组/堆叠方式：stacked、percentStacked 等（bar/line/area 系有效） */
+    grouping?: ChartGrouping;
+    /** 甜甜圈内径百分比（0-100，默认 50） */
+    holeSize?: number;
+    /** 折线/散点是否平滑 */
+    smooth?: boolean;
+    /** 折线/散点是否显示数据标记 */
+    marker?: boolean;
+    /** 子母饼图（ofPieChart）的第二绘图区类型 */
+    ofPieType?: 'pie' | 'bar';
+    /** 数值轴/数据标签的数字格式码（如 0.00%、#,##0） */
+    numberFormat?: string;
+    /** 气泡图：立体显示 */
+    bubble3D?: boolean;
+    /** 气泡图：显示负气泡 */
+    showNegBubbles?: boolean;
+    /** 气泡图：气泡缩放百分比（默认 100） */
+    bubbleScale?: number;
+    /** 曲面图：线框模式 */
+    wireframe?: boolean;
 }
 
 /** 表格单元格 */

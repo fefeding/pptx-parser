@@ -332,5 +332,6 @@ export const REL_TYPES = {
     diagramData: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramData',
     diagramLayout: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramLayout',
     diagramColors: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramColors',
-    diagramQuickStyle: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramQuickStyle'
+    diagramQuickStyle: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramQuickStyle',
+    oleObject: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject'
 };

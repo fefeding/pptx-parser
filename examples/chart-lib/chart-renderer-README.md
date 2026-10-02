@@ -4,7 +4,8 @@
 
 ## 功能特性
 
-- 支持多种图表类型：折线图、柱状图、饼图、3D 饼图、面积图、散点图
+- 支持多种图表类型：折线/柱状/饼图/面积/散点/甜甜圈/气泡/雷达/股票等 2D 图表
+- 支持真 3D 图表（3D 柱/折线/曲面），基于 echarts-gl 的 3D 坐标系渲染
 - 使用 ECharts 图表库
 - 自动处理数据格式转换（特别是饼图）
 - 支持图表样式（颜色、边距、图例位置等）
@@ -77,12 +78,49 @@ chartRenderer.renderCharts(result.charts);
   - `style` (Object): 图表样式
 
 **支持的图表类型:**
+
+*2D（ECharts 原生，始终可用）*
 - `lineChart`: 折线图
 - `barChart`: 柱状图
 - `pieChart`: 饼图
-- `pie3DChart`: 3D 饼图
+- `pie3DChart`: 3D 饼图（由多层 2D 饼图模拟）
 - `areaChart`: 面积图
 - `scatterChart`: 散点图
+- `doughnutChart`: 甜甜圈图（内径取 `c:holeSize`）
+- `bubbleChart`: 气泡图
+- `radarChart`: 雷达图
+- `stockChart`: 股票图（蜡烛图）
+
+*真 3D（需引入 echarts-gl，见下文）*
+- `bar3DChart` → `bar3D`
+- `line3DChart` → `line3D`
+- `area3DChart` → `line3D`（GL 无 area3D）
+- `surfaceChart` / `surface3DChart` → `surface`（需 ≥2 系列构成点阵，否则降级 `line3D`）
+- `ofPieChart` → `pie`
+
+## 真 3D 渲染（echarts-gl）
+
+3D 图表依赖 [echarts-gl](https://github.com/ecomfe/echarts-gl)，需**在 echarts 之后**加载：
+
+```html
+<script src="chart-lib/echarts.min.js"></script>
+<script src="chart-lib/echarts-gl.min.js"></script>
+```
+
+- UMD 引入时脚本会自行挂载 `window['echarts-gl']`，渲染器据此判断 3D 能力；
+  若走 ESM 打包（如 Vite），需手动暴露：`window['echarts-gl'] = echartsGL`。
+- 未加载 echarts-gl 时，上述 3D 类型自动降级为同族 2D 渲染，不会报错。
+
+渲染器会把 OOXML 的 `c:view3D` 属性映射到 `grid3D.viewControl`：
+
+| OOXML `c:view3D` | ECharts GL | 说明 |
+| --- | --- | --- |
+| `rotX`（0-90，默认 30） | `viewControl.alpha` | 俯仰角 |
+| `rotY`（0-360，默认 20） | `viewControl.beta` | 绕竖轴旋转 |
+| `depthPercent`（默认 100） | `grid3D.boxDepth` | 厚度 |
+| `rAngAx = 1` | `projection: 'orthographic'` | 直角轴（否则透视） |
+
+注意：3D 系列由单一 series 承载多系列数据，故 3D 图表不输出可逐项开关的图例。
 
 #### `updateChart(chartId, newChartInfo)`
 

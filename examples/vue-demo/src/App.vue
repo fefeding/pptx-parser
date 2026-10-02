@@ -162,12 +162,17 @@ import { ref, shallowRef, computed, nextTick, watch, onMounted, onUnmounted } fr
 import { pptxToHtml, pptxToJson } from '@fefeding/ppt-parser'
 import JSZip from 'jszip'
 import * as echarts from 'echarts'
+// echarts-gl：注册 bar3D / line3D / surface 等真 3D 坐标系，须在 echarts 之后引入
+import * as echartsGL from 'echarts-gl'
 import { chartRenderer } from '../../chart-lib/chart-renderer.js'
 
 // 设置全局 JSZip 对象，供 ppt-parser 使用
 ;(window as any).JSZip = JSZip
 ;(window as any).echarts = echarts
 ;(window as any).chartRenderer = chartRenderer
+// chart-renderer 通过该全局标志判断 3D 能力；UMD 引入时会自动挂载，
+// 这里走 ESM 打包路径，需手动暴露
+;(window as any)['echarts-gl'] = echartsGL
 
 interface Slide {
   html: string

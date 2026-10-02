@@ -112,15 +112,42 @@ export class ChartRenderer {
      */
     prepareEChartsOption(chartInfo) {
         const chartData = chartInfo.data;
-        const chartType = this.mapChartType(chartInfo.type);
+        const pptxType = chartInfo.type;
+
+        // 真 3D：echarts-gl 可用时优先用 3D 坐标系渲染，否则降级为同族 2D
+        if (this.isGL3DAvailable()) {
+            const glType = this.map3DChartType(pptxType, chartData);
+            if (glType) {
+                const opt3d = this.prepare3DOption(chartInfo, glType);
+                if (opt3d) return opt3d;
+            }
+        }
+
+        const chartType = this.mapChartType(pptxType);
 
         if (!chartType) {
-            console.warn(`Unsupported chart type: ${chartInfo.type}`);
+            console.warn(`Unsupported chart type: ${pptxType}`);
             return null;
         }
 
+        // 雷达图：需要独立的 radar + series 结构，没有笛卡尔坐标轴
+        if (chartType === 'radar') {
+            const radar = this.prepareRadarSeries(chartData, chartInfo);
+            const option = {
+                tooltip: { trigger: 'item' },
+                legend: this.getLegendConfig(chartInfo),
+                radar: radar.radar,
+                series: radar.series
+            };
+            this.applyChartBackground(option, chartInfo.style);
+            if (chartInfo.title || chartInfo.style?.title) {
+                option.title = this.getTitleConfig(chartInfo.title, chartInfo.style?.title);
+            }
+            return option;
+        }
+
         const isPieChart = chartType === 'pie';
-        const is3DPie = chartInfo.type === 'pie3DChart';
+        const is3DPie = pptxType === 'pie3DChart';
         const option = {
             tooltip: {
                 trigger: isPieChart ? 'item' : 'axis'
@@ -154,6 +181,178 @@ export class ChartRenderer {
                 right: '5%',
                 containLabel: true
             };
+        }
+
+        return option;
+    }
+
+    /**
+     * 是否具备真 3D 渲染能力（echarts-gl 已加载并完成 3D 坐标系/系列注册）
+     * @returns {boolean}
+     */
+    isGL3DAvailable() {
+        try {
+            if (typeof window === 'undefined' || !window.echarts) return false;
+            // echarts-gl 的 UMD 构建挂载 window['echarts-gl']，加载时即完成注册
+            return !!(window['echarts-gl'] || window.echartsGL);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * PPTX 3D 图表类型 → echarts-gl 系列类型
+     * @param {string} pptxType - PPTX 图表类型
+     * @param {Array} chartData - 图表数据（surface 需据规模判断能否构成网格）
+     * @returns {string|null} echarts-gl 系列类型；非 3D 类型返回 null
+     */
+    map3DChartType(pptxType, chartData) {
+        if (pptxType === 'bar3DChart') return 'bar3D';
+        if (pptxType === 'line3DChart') return 'line3D';
+        // echarts-gl 无 area3D，按 3D 折线呈现
+        if (pptxType === 'area3DChart') return 'line3D';
+        if (pptxType === 'surfaceChart' || pptxType === 'surface3DChart') {
+            // surface 需要 M×N 规则点阵才能三角化成网格；单系列退化为 3D 折线
+            const isGrid = Array.isArray(chartData) && chartData.length >= 2
+                && chartData.every(s => Array.isArray(s.values) && s.values.length >= 2);
+            return isGrid ? 'surface' : 'line3D';
+        }
+        return null;
+    }
+
+    /**
+     * 从首个系列的 xlabels 取 3D 类别轴（按 idx 升序）
+     * @param {Array} chartData - 图表数据
+     * @returns {Array<string>} 类别名列表
+     */
+    get3DCategories(chartData) {
+        const first = chartData.find(s => s && s.xlabels);
+        if (!first) return [];
+        return Object.keys(first.xlabels)
+            .sort((a, b) => Number(a) - Number(b))
+            .map(k => first.xlabels[k]);
+    }
+
+    /**
+     * 准备 echarts-gl 真 3D 配置
+     * @param {Object} chartInfo - 图表信息
+     * @param {string} glType - echarts-gl 系列类型
+     * @returns {Object|null} 配置对象；数据不足以构成 3D 时返回 null（调用方降级为 2D）
+     */
+    prepare3DOption(chartInfo, glType) {
+        const chartData = chartInfo.data;
+        if (!Array.isArray(chartData) || chartData.length === 0) return null;
+
+        const categories = this.get3DCategories(chartData);
+        if (!categories.length) return null;
+
+        const style = chartInfo.style || {};
+        const view3D = style.view3D || {};
+        const seriesNames = chartData.map((s, i) => s.key || `Series ${i + 1}`);
+
+        // 系列取色顺序与 2D 路径保持一致
+        const colorOf = (series) => {
+            const st = series && series.style;
+            if (!st) return undefined;
+            const c = st.fillColor
+                || (st.gradientFill && st.gradientFill.color && st.gradientFill.color[0]);
+            return c ? (String(c).startsWith('#') ? c : '#' + c) : undefined;
+        };
+
+        // 数据点：[x=类别下标, y=系列下标, z=数值]
+        const pointAt = (ci, si) => {
+            const vals = (chartData[si] && chartData[si].values) || [];
+            const v = vals[ci];
+            const z = v && v.y !== undefined ? parseFloat(v.y) : 0;
+            return isNaN(z) ? 0 : z;
+        };
+
+        let series;
+        let yAxis3D;
+        if (glType === 'line3D') {
+            // 每个 PPTX 系列一条 3D 折线，沿 y 轴错开，可用图例区分
+            yAxis3D = { type: 'value', name: '' };
+            series = chartData.map((s, si) => {
+                const cfg = {
+                    name: seriesNames[si],
+                    type: 'line3D',
+                    lineStyle: { width: 3 },
+                    data: Array.from({ length: (s.values || []).length },
+                        (_, ci) => [ci, si, pointAt(ci, si)])
+                };
+                const c = colorOf(s);
+                if (c) cfg.lineStyle.color = c;
+                return cfg;
+            });
+        } else if (glType === 'surface') {
+            yAxis3D = { type: 'category', data: seriesNames, name: '' };
+            const data = [];
+            chartData.forEach((s, si) => {
+                (s.values || []).forEach((_, ci) => data.push([ci, si, pointAt(ci, si)]));
+            });
+            series = [{
+                name: seriesNames[0],
+                type: 'surface',
+                wireframe: { show: style.wireframe === true },
+                shading: 'lambert',
+                data
+            }];
+        } else {
+            // bar3D：单一系列承载全部柱体，按所属系列着色
+            yAxis3D = { type: 'category', data: seriesNames, name: '' };
+            const data = [];
+            chartData.forEach((s, si) => {
+                (s.values || []).forEach((_, ci) => {
+                    const item = { value: [ci, si, pointAt(ci, si)] };
+                    const c = colorOf(s);
+                    if (c) item.itemStyle = { color: c };
+                    data.push(item);
+                });
+            });
+            series = [{
+                name: seriesNames[0],
+                type: 'bar3D',
+                shading: 'lambert',
+                bevelSize: 0.3,
+                bevelSmoothness: 2,
+                data
+            }];
+        }
+
+        // OOXML view3D：rotX(0-90) 俯仰 / rotY(0-360) 旋转 / depthPercent 厚度 / rAngAx 直角轴
+        const rotX = view3D.rotX !== undefined ? Number(view3D.rotX) : 30;
+        const rotY = view3D.rotY !== undefined ? Number(view3D.rotY) : 20;
+        const depthPercent = view3D.depthPercent !== undefined ? Number(view3D.depthPercent) : 100;
+
+        const option = {
+            tooltip: {},
+            xAxis3D: { type: 'category', data: categories, name: '' },
+            yAxis3D,
+            zAxis3D: { type: 'value', name: '' },
+            grid3D: {
+                boxWidth: 120,
+                boxHeight: 70,
+                boxDepth: Math.max(20, Math.min(200, 80 * (depthPercent / 100))),
+                viewControl: {
+                    alpha: Math.max(0, Math.min(90, rotX)),
+                    beta: ((rotY % 360) + 360) % 360,
+                    // rAngAx=1 为直角轴（正交投影），否则透视投影
+                    projection: view3D.rAngAx === true ? 'orthographic' : 'perspective',
+                    autoRotate: false
+                },
+                light: {
+                    main: { intensity: 1.2, shadow: true },
+                    ambient: { intensity: 0.3 }
+                }
+            },
+            series
+            // 说明：3D 系列由单一 series 承载多系列数据，图例无法逐项开关，故不输出 legend
+        };
+
+        this.applyChartBackground(option, style);
+
+        if (chartInfo.title || style.title) {
+            option.title = this.getTitleConfig(chartInfo.title, style.title);
         }
 
         return option;
@@ -299,10 +498,22 @@ export class ChartRenderer {
         const typeMap = {
             'lineChart': 'line',
             'barChart': 'bar',
+            'bar3DChart': 'bar',
             'pieChart': 'pie',
             'pie3DChart': 'pie',
+            'doughnutChart': 'pie',
             'areaChart': 'line',
-            'scatterChart': 'scatter'
+            'scatterChart': 'scatter',
+            'bubbleChart': 'scatter',
+            'radarChart': 'radar',
+            'stockChart': 'candlestick',
+            'surfaceChart': 'line',
+            // 3D 变体在 ECharts 无原生对应，降级为同族 2D 类型渲染
+            'line3DChart': 'line',
+            'area3DChart': 'line',
+            'surface3DChart': 'line',
+            // 子母饼图按饼图渲染
+            'ofPieChart': 'pie'
         };
         return typeMap[pptxType] || null;
     }
@@ -316,7 +527,11 @@ export class ChartRenderer {
     prepareSeries(chartInfo, echartsType) {
         const chartData = chartInfo.data;
         const isPieChart = echartsType === 'pie';
-        const isAreaChart = chartInfo.type === 'areaChart';
+        const isAreaChart = chartInfo.type === 'areaChart' || chartInfo.type === 'area3DChart';
+        const chartStyle = chartInfo.style || {};
+        // 堆叠 / 百分比堆叠：同一 stack 名使系列堆叠
+        const stackName = (chartStyle.grouping === 'stacked' || chartStyle.grouping === 'percentStacked')
+            ? 'total' : undefined;
 
         if (!Array.isArray(chartData)) {
             console.error('Chart data is not an array');
@@ -331,6 +546,11 @@ export class ChartRenderer {
         // 散点图需要特殊的数据格式
         if (echartsType === 'scatter') {
             return this.prepareScatterSeries(chartData, chartInfo);
+        }
+
+        // 股票图（蜡烛图）
+        if (echartsType === 'candlestick') {
+            return this.prepareStockSeries(chartData, chartInfo);
         }
 
         // 折线图、柱状图、面积图
@@ -353,9 +573,20 @@ export class ChartRenderer {
                 name: series.key || `Series ${index + 1}`,
                 type: echartsType,
                 data: seriesData,
-                smooth: isAreaChart,
+                smooth: isAreaChart || chartStyle.smooth === true,
                 areaStyle: isAreaChart ? {} : undefined
             };
+
+            // 堆叠（stacked / percentStacked）
+            if (stackName) {
+                seriesConfig.stack = stackName;
+            }
+
+            // 数据标记：显式关闭时隐藏符号
+            if (chartStyle.marker === false) {
+                seriesConfig.showSymbol = false;
+                seriesConfig.symbol = 'none';
+            }
 
             // 应用系列颜色
             if (series.style) {
@@ -388,6 +619,7 @@ export class ChartRenderer {
         const series = chartData[0];
         const chartStyle = chartInfo.style || {};
         const is3D = chartInfo.type === 'pie3DChart';
+        const isDoughnut = chartInfo.type === 'doughnutChart';
         const data = [];
 
         if (Array.isArray(series.values)) {
@@ -429,11 +661,21 @@ export class ChartRenderer {
             });
         }
 
-        // 标准 2D 饼图
+        // 甜甜圈内径取 c:holeSize（百分比，默认 50）；外径固定 68%
+        let holePercent = 50;
+        if (chartStyle.holeSize !== undefined) {
+            holePercent = Number(chartStyle.holeSize);
+        }
+        if (isNaN(holePercent)) {
+            holePercent = 50;
+        }
+        holePercent = Math.max(1, Math.min(90, holePercent));
+
+        // 标准 2D 饼图 / 甜甜圈图
         const pieConfig = {
             name: series.key || 'Series 1',
             type: 'pie',
-            radius: '50%',
+            radius: isDoughnut ? [`${holePercent * 0.76}%`, '68%'] : '50%',
             data: data,
             label: {
                 show: true,
@@ -612,13 +854,20 @@ export class ChartRenderer {
             return [config];
         }
 
-        // 形态 B：多系列统一形态
+        // 形态 B：多系列统一形态（含气泡图的 size）
         return chartData.map((series, index) => {
             let data = [];
             const vals = series.values;
             if (Array.isArray(vals)) {
+                const hasSize = vals.some(v => v && typeof v === 'object' && 'size' in v);
                 data = vals.map(v => {
                     if (v && typeof v === 'object' && 'x' in v && 'y' in v) {
+                        if (hasSize) {
+                            return {
+                                value: [Number(v.x), Number(v.y)],
+                                symbolSize: Math.max(6, Number(v.size) * 4)
+                            };
+                        }
                         return [Number(v.x), Number(v.y)];
                     }
                     return Array.isArray(v) ? v : v;
@@ -646,6 +895,76 @@ export class ChartRenderer {
 
             return seriesConfig;
         });
+    }
+
+    /**
+     * 准备雷达图系列
+     * @param {Array} chartData - 图表数据（与柱状/折线一致的统一形态）
+     * @param {Object} chartInfo - 图表信息
+     * @returns {Object} { radar, series }
+     */
+    prepareRadarSeries(chartData, chartInfo) {
+        // indicator 为空数组会让 echarts 在初始化雷达坐标系时抛错，返回最小可用结构
+        const emptyRadar = () => ({ radar: { indicator: [{ name: '', max: 1 }] }, series: [] });
+
+        if (!Array.isArray(chartData) || chartData.length === 0) {
+            return emptyRadar();
+        }
+        const first = chartData[0];
+        const cats = first.xlabels || {};
+
+        let maxVal = 0;
+        chartData.forEach(s => (s.values || []).forEach(v => {
+            const y = v && v.y != null ? Number(v.y) : 0;
+            if (y > maxVal) maxVal = y;
+        }));
+        if (maxVal <= 0) maxVal = 1;
+
+        // indicator 必须与数据点数一一对应且非空。
+        // OOXML 雷达图常省略 c:cat（即无类别名），此时按数据点下标生成占位名。
+        const pointCount = Math.max(
+            0,
+            ...chartData.map(s => (s.values || []).length),
+            Object.keys(cats).length
+        );
+        if (pointCount === 0) {
+            return emptyRadar();
+        }
+        const names = Array.from({ length: pointCount }, (_, i) => {
+            const label = cats[i] !== undefined ? cats[i] : cats[String(i)];
+            return label !== undefined && label !== '' ? String(label) : `指标 ${i + 1}`;
+        });
+
+        const indicator = names.map(name => ({ name, max: maxVal * 1.1 }));
+        const series = chartData.map((s, i) => ({
+            name: s.key || `Series ${i + 1}`,
+            type: 'radar',
+            data: [{
+                name: s.key || `Series ${i + 1}`,
+                value: (s.values || []).map(v => v && v.y != null ? Number(v.y) : 0)
+            }]
+        }));
+
+        return { radar: { indicator }, series };
+    }
+
+    /**
+     * 准备股票图（蜡烛图）系列
+     * @param {Array} chartData - 图表数据（values 为 [open,close,low,high] 数组）
+     * @param {Object} chartInfo - 图表信息
+     * @returns {Array} 系列配置数组
+     */
+    prepareStockSeries(chartData, chartInfo) {
+        if (!Array.isArray(chartData)) {
+            console.error('Chart data is not an array');
+            return [];
+        }
+
+        return chartData.map((series, index) => ({
+            name: series.key || `Series ${index + 1}`,
+            type: 'candlestick',
+            data: Array.isArray(series.values) ? series.values : []
+        }));
     }
 
     /**

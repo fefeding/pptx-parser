@@ -2568,8 +2568,19 @@ function getFillType(node: XmlNode | undefined) {
     if (!colName) {
         colName = PPTXXmlUtils.getTextByPathList(innerNode, ["c:tx", "c:v"]) || index;
     }
-    // Category (string or number)
+    // 散点图：c:xVal/c:yVal（无 c:cat/c:val），提取为 [{x, y}] 点数组
     let rowNames: any = {};
+    if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:xVal", "c:numRef", "c:numCache", "c:pt"]) !== undefined) {
+        const xs: number[] = [];
+        eachElement(innerNode["c:xVal"]["c:numRef"]["c:numCache"]["c:pt"], (ptNode: any) => {
+            xs.push(parseFloat(ptNode["c:v"])); return "";
+        });
+        eachElement(innerNode["c:yVal"]["c:numRef"]["c:numCache"]["c:pt"], (ptNode: any, i: any) => {
+            dataRow.push({ x: xs[i] !== undefined ? xs[i] : i, y: parseFloat(ptNode["c:v"]) });
+            return "";
+        });
+    } else
+    // Category (string or number)
     if (PPTXXmlUtils.getTextByPathList(innerNode, ["c:cat", "c:strRef", "c:strCache", "c:pt"]) !== undefined) {
         eachElement(innerNode["c:cat"]["c:strRef"]["c:strCache"]["c:pt"], (innerNode: any, index: any) => {
     rowNames[innerNode["attrs"]["idx"]] = innerNode["c:v"];
@@ -4270,6 +4281,12 @@ function extractChartAxisStyle(plotAreaNode: any, axisType: any, warpObj: WarpOb
         }
     }
     
+    // 提取数字格式（如 0.00% / #,##0）
+    const numFmt = PPTXXmlUtils.getTextByPathList(axisNode, ["c:numFmt"]);
+    if (numFmt && numFmt["attrs"] && numFmt["attrs"]["formatCode"]) {
+        style.numberFormat = numFmt["attrs"]["formatCode"];
+    }
+
     // 提取轴网格线样式
     if (axisType === "c:valAx") {
         const majorGridlines = PPTXXmlUtils.getTextByPathList(axisNode, ["c:majorGridlines"]);

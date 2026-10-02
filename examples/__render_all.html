@@ -1,0 +1,69 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>render</title>
+<style>body{margin:0}.slide-scaler{display:inline-block}</style></head>
+<body>
+<div id="host"></div>
+<script src="chart-lib/echarts.min.js"></script>
+<script src="chart-lib/echarts-gl.min.js"></script>
+<script type="module">
+import pptxToHtml from '../dist/ppt-parser.browser.js';
+import { chartRenderer } from './chart-lib/chart-renderer.js';
+
+window.__out = { charts: [], errors: [], done: false };
+const f = new URLSearchParams(location.search).get('f');
+const buf = await (await fetch(f)).arrayBuffer();
+const result = await pptxToHtml(buf, { slideMode: false, keyBoardShortCut: false });
+
+// 插入幻灯片 HTML（创建图表容器 div）
+const host = document.getElementById('host');
+if (result.styles && result.styles.global) {
+    const s = document.createElement('style'); s.innerHTML = result.styles.global; host.appendChild(s);
+}
+result.slides.forEach(slide => {
+    const c = document.createElement('div'); c.innerHTML = slide.html;
+    const scaler = document.createElement('div'); scaler.className = 'slide-scaler';
+    scaler.appendChild(c.firstChild); host.appendChild(scaler);
+});
+
+// 渲染图表
+if (result.charts && result.charts.length) {
+    chartRenderer.renderCharts(result.charts);
+}
+
+// 等待 echarts 渲染完成后收集结果
+await new Promise(r => setTimeout(r, 1500));
+
+result.charts.forEach(info => {
+    const el = document.getElementById(info.chartId);
+    if (!el) {
+        window.__out.errors.push({ chartId: info.chartId, type: info.type, error: 'container not found' });
+        return;
+    }
+    const inst = echarts.getInstanceByDom(el);
+    if (!inst) {
+        window.__out.errors.push({ chartId: info.chartId, type: info.type, error: 'no echarts instance' });
+        return;
+    }
+    const opt = inst.getOption();
+    const series = (opt.series || []).map(s => ({
+        type: s.type,
+        dataLen: Array.isArray(s.data) ? s.data.length : 0
+    }));
+    window.__out.charts.push({
+        chartId: info.chartId,
+        pptxType: info.type,
+        title: info.title,
+        seriesTypes: series.map(s => s.type),
+        seriesDataLens: series.map(s => s.dataLen),
+        hasRadar: !!(opt.radar && opt.radar.indicator && opt.radar.indicator.length),
+        radarN: opt.radar && opt.radar.indicator ? opt.radar.indicator.length : 0,
+        hasXAxis: !!(opt.xAxis),
+        hasYAxis: !!(opt.yAxis),
+        hasVisualMap: !!(opt.visualMap),
+        hasGeo3D: !!(opt.geo3D || opt.surface3D)
+    });
+});
+window.__out.total = result.charts.length;
+window.__out.done = true;
+</script>
+</body></html>

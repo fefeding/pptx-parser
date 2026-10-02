@@ -23,8 +23,19 @@ import type {
     PptxDocument, PptxSlide, PptxElement, PptxTextElement, PptxShapeElement,
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
-    PptxDiagramElement, PptxRawElement, TextAlign, VAlign
+    PptxDiagramElement, PptxRawElement, TextAlign, VAlign, ChartGrouping
 } from '../types/pptx-document';
+
+/** plotArea 下可能出现的全部图表节点（ECMA-376 全集），用于反向提取时判定图表类型 */
+const CHART_PLOT_TYPES = [
+    'c:barChart', 'c:bar3DChart',
+    'c:lineChart', 'c:line3DChart',
+    'c:areaChart', 'c:area3DChart',
+    'c:pieChart', 'c:pie3DChart', 'c:doughnutChart', 'c:ofPieChart',
+    'c:scatterChart', 'c:bubbleChart',
+    'c:radarChart', 'c:stockChart',
+    'c:surfaceChart', 'c:surface3DChart'
+];
 
 /** 1pt = 12700 EMU */
 const EMU_PER_PT = 12700;
@@ -370,16 +381,18 @@ function extractChart(chartXml: any): Partial<PptxChartElement> | undefined {
         const plotArea = chart['c:plotArea'];
         if (!plotArea) return undefined;
 
-        // 图表类型
-        const chartTypes = ['c:barChart', 'c:lineChart', 'c:areaChart', 'c:pieChart', 'c:pie3DChart', 'c:scatterChart'];
+        // 图表类型：取 plotArea 下首个图表节点（组合图取第一个 plot）
         let chartNode: any = null;
         let chartType = 'barChart';
-        for (const ct of chartTypes) {
-            if (plotArea[ct]) { chartNode = plotArea[ct]; chartType = ct.replace('c:', ''); break; }
+        for (const ct of CHART_PLOT_TYPES) {
+            const node = asArray(plotArea[ct])[0];
+            if (node) { chartNode = node; chartType = ct.replace('c:', ''); break; }
         }
         if (!chartNode) return undefined;
 
         const isScatter = chartType === 'scatterChart';
+        const isBubble = chartType === 'bubbleChart';
+        const isStock = chartType === 'stockChart';
 
         // 类别（位于首个 series 的 c:cat 下）
         const firstSer = asArray(chartNode['c:ser'])[0];
@@ -403,6 +416,16 @@ function extractChart(chartXml: any): Partial<PptxChartElement> | undefined {
             if (isScatter) {
                 s.x = numCacheValues(ser['c:xVal']);
                 s.y = numCacheValues(ser['c:yVal']);
+            } else if (isBubble) {
+                // 气泡图：x/y 为坐标，values 复用为气泡大小（与生成端一致）
+                s.x = numCacheValues(ser['c:xVal']);
+                s.y = numCacheValues(ser['c:yVal']);
+                s.values = numCacheValues(ser['c:bubbleSize']);
+            } else if (isStock) {
+                s.open = numCacheValues(ser['c:openVal']);
+                s.high = numCacheValues(ser['c:highVal']);
+                s.low = numCacheValues(ser['c:lowVal']);
+                s.close = numCacheValues(ser['c:closeVal']);
             } else {
                 s.values = numCacheValues(ser['c:val']);
             }
@@ -428,6 +451,57 @@ function extractChart(chartXml: any): Partial<PptxChartElement> | undefined {
         if (categories.length) out.categories = categories;
         if (title) out.title = title.trim();
         out.legend = legend;
+
+        // 读取子节点属性值的快捷方式
+        const attrOf = (parent: any, tag: string): string | undefined => {
+            const n = parent && parent[tag];
+            return n && n.attrs ? n.attrs.val : undefined;
+        };
+
+        // 分组/堆叠与方向
+        const grouping = attrOf(chartNode, 'c:grouping');
+        if (grouping) out.grouping = grouping as ChartGrouping;
+        const barDir = attrOf(chartNode, 'c:barDir');
+        if (barDir === 'bar' || barDir === 'col') out.barDir = barDir;
+        const varyColors = attrOf(chartNode, 'c:varyColors');
+        if (varyColors !== undefined) out.varyColors = varyColors === '1';
+
+        // 甜甜圈内径 / 子母饼图类型
+        const holeSize = attrOf(chartNode, 'c:holeSize');
+        if (holeSize !== undefined && holeSize !== '') out.holeSize = Number(holeSize);
+        const ofPieType = attrOf(chartNode, 'c:ofPieType');
+        if (ofPieType === 'pie' || ofPieType === 'bar') out.ofPieType = ofPieType;
+
+        // 平滑线 / 数据标记（取自首个系列）
+        const smoothVal = attrOf(firstSer, 'c:smooth');
+        if (smoothVal !== undefined) out.smooth = smoothVal !== '0';
+        const markerNode = firstSer && firstSer['c:marker'];
+        if (markerNode) {
+            const symbol = attrOf(markerNode, 'c:symbol');
+            out.marker = symbol !== 'none';
+        }
+
+        // 数字格式：数值轴优先，其次数据标签
+        const valAx = asArray(plotArea['c:valAx'])[0];
+        const numFmt = (valAx && valAx['c:numFmt'] && valAx['c:numFmt'].attrs && valAx['c:numFmt'].attrs.formatCode)
+            || (chartNode['c:dLbls'] && chartNode['c:dLbls']['c:numFmt']
+                && chartNode['c:dLbls']['c:numFmt'].attrs && chartNode['c:dLbls']['c:numFmt'].attrs.formatCode);
+        if (numFmt) out.numberFormat = String(numFmt);
+
+        // 气泡图属性
+        if (isBubble) {
+            const b3d = attrOf(chartNode, 'c:bubble3D');
+            const negB = attrOf(chartNode, 'c:showNegBubbles');
+            const scale = attrOf(chartNode, 'c:bubbleScale');
+            if (b3d !== undefined) out.bubble3D = b3d === '1';
+            if (negB !== undefined) out.showNegBubbles = negB === '1';
+            if (scale !== undefined) out.bubbleScale = Number(scale);
+        }
+
+        // 曲面图线框
+        const wireframe = attrOf(chartNode, 'c:wireframe');
+        if (wireframe !== undefined) out.wireframe = wireframe === '1';
+
         return out;
     } catch {
         return undefined;
@@ -915,9 +989,20 @@ async function graphicFrameToChart(
         height: xf ? xf.height : 400,
         series: (chartSemantic && chartSemantic.series) || []
     };
-    if (chartSemantic && chartSemantic.categories) chartEl.categories = chartSemantic.categories;
-    if (chartSemantic && chartSemantic.title) chartEl.title = chartSemantic.title;
-    if (chartSemantic && chartSemantic.legend !== undefined) chartEl.legend = chartSemantic.legend;
+    if (!chartSemantic) return chartEl;
+
+    // 透传语义层已提取的图表属性（缺失字段保持不写，交由生成端取默认）
+    const passKeys: (keyof PptxChartElement)[] = [
+        'categories', 'title', 'legend', 'grouping', 'varyColors', 'barDir',
+        'holeSize', 'smooth', 'marker', 'ofPieType', 'numberFormat',
+        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe'
+    ];
+    const src = chartSemantic as unknown as Record<string, unknown>;
+    const dst = chartEl as unknown as Record<string, unknown>;
+    for (const k of passKeys) {
+        const v = src[k as string];
+        if (v !== undefined) dst[k as string] = v;
+    }
     return chartEl;
 }
 

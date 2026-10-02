@@ -221,20 +221,87 @@ slides.push(page('T10 · 单元格内边距/对角线/表格样式', [
         text: '样式：Medium Style 2 - Accent 1（首行强调色底+白字、白色网格线）｜内边距：左上 20/10px，其余用默认 9.6/4.8px' }
 ]));
 
-// ============ T11 图表类型与特性扩展 ============
-slides.push(page('T11 · 图表类型扩展（3D/环/气泡/雷达/股票/曲面 + 数据标签/图例）', [
-    { type: 'chart', chartType: 'bar3DChart', title: '3D柱', x: 40, y: 120, width: 320, height: 200,
-        categories: ['Q1', 'Q2', 'Q3'], series: [{ name: 'A', values: [10, 20, 15] }] },
-    { type: 'chart', chartType: 'doughnutChart', title: '环图', legend: 'b', x: 380, y: 120, width: 320, height: 200,
-        categories: ['a', 'b', 'c'], series: [{ name: '占比', values: [40, 35, 25] }] },
-    { type: 'chart', chartType: 'bubbleChart', title: '气泡', x: 720, y: 120, width: 320, height: 200,
-        series: [{ name: 'b', x: [1, 2, 3], y: [2, 3, 1], values: [3, 4, 2] }] },
-    { type: 'chart', chartType: 'radarChart', title: '雷达', dataLabels: { showValue: true }, x: 40, y: 340, width: 320, height: 200,
-        series: [{ name: 'r', values: [1, 2, 3, 4] }] },
-    { type: 'chart', chartType: 'stockChart', title: '股票', x: 380, y: 340, width: 320, height: 200,
-        series: [{ name: 's', open: [1, 2, 3], high: [4, 5, 6], low: [0, 1, 2], close: [2, 3, 4] }] },
-    { type: 'chart', chartType: 'surfaceChart', title: '曲面', x: 720, y: 340, width: 320, height: 200,
-        series: [{ name: 'f', values: [1, 2, 3] }] }
+// ============ T11 图表类型全覆盖（一）基础二维：柱/折/面/饼/散点 + 分组/平滑/标记/系列色/数字格式 ============
+// 6 张图覆盖 5 种基础二维类型 + barDir/grouping/smooth/marker/varyColors/numberFormat/series.color/dataLabels
+slides.push(page('T11 · 图表全覆盖（一）基础二维 + 分组/平滑/标记/格式', [
+    // 1. barChart：col + clustered + 多系列 + 系列颜色 + 图例
+    { type: 'chart', chartType: 'barChart', title: '柱状（clustered+系列色）', legend: 'r', x: 40, y: 110, width: 380, height: 200,
+        categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+        series: [{ name: '产品A', values: [10, 20, 15, 25], color: '#6366f1' }, { name: '产品B', values: [15, 10, 20, 18], color: '#ec4899' }] },
+    // 2. lineChart：smooth + marker + 多系列
+    { type: 'chart', chartType: 'lineChart', title: '折线（smooth+marker）', legend: 'r', x: 440, y: 110, width: 380, height: 200,
+        smooth: true, marker: true, categories: ['1月', '2月', '3月', '4月'],
+        series: [{ name: '北京', values: [5, 15, 10, 20] }, { name: '上海', values: [10, 8, 18, 12] }] },
+    // 3. areaChart：stacked + 多系列
+    { type: 'chart', chartType: 'areaChart', title: '面积（stacked）', legend: 'r', x: 840, y: 110, width: 380, height: 200,
+        grouping: 'stacked', categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+        series: [{ name: '前年', values: [10, 15, 12, 18] }, { name: '去年', values: [15, 20, 18, 25] }] },
+    // 4. pieChart：varyColors + 数据标签(百分比)
+    { type: 'chart', chartType: 'pieChart', title: '饼图（varyColors+百分比标签）', legend: 'b', x: 40, y: 330, width: 380, height: 200,
+        varyColors: true, dataLabels: { showPercent: true },
+        categories: ['研发', '销售', '运营', '其他'],
+        series: [{ name: '占比', values: [40, 30, 20, 10] }] },
+    // 5. scatterChart：marker + 多系列
+    { type: 'chart', chartType: 'scatterChart', title: '散点（marker）', legend: 'r', x: 440, y: 330, width: 380, height: 200,
+        marker: true,
+        series: [{ name: '组1', x: [1, 2, 3, 4, 5], y: [2, 4, 3, 5, 6] }, { name: '组2', x: [1, 2, 3, 4, 5], y: [5, 3, 4, 2, 1] }] },
+    // 6. barChart：barDir='bar'(横向) + percentStacked + numberFormat
+    { type: 'chart', chartType: 'barChart', title: '横向百分比堆叠（#,##0%）', legend: 'r', x: 840, y: 330, width: 380, height: 200,
+        barDir: 'bar', grouping: 'percentStacked', numberFormat: '#,##0%',
+        categories: ['A', 'B', 'C'],
+        series: [{ name: '已完', values: [30, 50, 20] }, { name: '未完', values: [70, 50, 80] }] }
+]));
+
+// ============ T11 图表类型全覆盖（二）3D：柱/折/面/饼/曲面 + 线框 ============
+slides.push(page('T11 · 图表全覆盖（二）3D 图表 + wireframe', [
+    { type: 'chart', chartType: 'bar3DChart', title: '3D柱', legend: 'r', x: 40, y: 110, width: 380, height: 200,
+        categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+        series: [{ name: 'A', values: [10, 20, 15, 25] }, { name: 'B', values: [15, 10, 20, 18] }] },
+    { type: 'chart', chartType: 'line3DChart', title: '3D折线', legend: 'r', x: 440, y: 110, width: 380, height: 200,
+        categories: ['1月', '2月', '3月', '4月'],
+        series: [{ name: 'S1', values: [5, 15, 10, 20] }, { name: 'S2', values: [10, 8, 18, 12] }] },
+    { type: 'chart', chartType: 'area3DChart', title: '3D面积', legend: 'r', x: 840, y: 110, width: 380, height: 200,
+        categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+        series: [{ name: '前年', values: [10, 15, 12, 18] }, { name: '去年', values: [15, 20, 18, 25] }] },
+    { type: 'chart', chartType: 'pie3DChart', title: '3D饼图（varyColors）', legend: 'b', x: 40, y: 330, width: 380, height: 200,
+        varyColors: true, categories: ['A', 'B', 'C', 'D'],
+        series: [{ name: '占比', values: [40, 30, 20, 10] }] },
+    // surface3DChart 需要 ≥2 系列才会渲染真曲面（1 系列降级为 line3D）
+    { type: 'chart', chartType: 'surface3DChart', title: '3D曲面（wireframe）', legend: 'r', x: 440, y: 330, width: 380, height: 200,
+        wireframe: true, categories: ['X1', 'X2', 'X3'],
+        series: [{ name: 'Y1', values: [1, 2, 3] }, { name: 'Y2', values: [2, 3, 1] }, { name: 'Y3', values: [3, 1, 2] }] },
+    { type: 'chart', chartType: 'bar3DChart', title: '3D横向柱（barDir=bar）', legend: 'r', x: 840, y: 330, width: 380, height: 200,
+        barDir: 'bar', categories: ['A', 'B', 'C'],
+        series: [{ name: 'S1', values: [10, 20, 15] }] }
+]));
+
+// ============ T11 图表类型全覆盖（三）特殊：环/子母饼/气泡/雷达/股票/曲面 ============
+slides.push(page('T11 · 图表全覆盖（三）特殊图表 + holeSize/ofPieType/bubble3D', [
+    // 1. doughnutChart：holeSize + 数据标签
+    { type: 'chart', chartType: 'doughnutChart', title: '环图（holeSize=30）', legend: 'b', x: 40, y: 110, width: 380, height: 200,
+        holeSize: 30, dataLabels: { showValue: true },
+        categories: ['A', 'B', 'C', 'D'],
+        series: [{ name: '占比', values: [40, 35, 15, 10] }] },
+    // 2. ofPieChart：ofPieType='bar'（子母饼→复合条饼）
+    { type: 'chart', chartType: 'ofPieChart', title: '子母饼（ofPieType=bar）', legend: 'b', x: 440, y: 110, width: 380, height: 200,
+        ofPieType: 'bar', categories: ['主1', '主2', '主3', '子1', '子2'],
+        series: [{ name: 'S', values: [30, 25, 20, 15, 10] }] },
+    // 3. bubbleChart：bubble3D + bubbleScale
+    { type: 'chart', chartType: 'bubbleChart', title: '气泡（bubble3D+scale=150）', legend: 'r', x: 840, y: 110, width: 380, height: 200,
+        bubble3D: true, bubbleScale: 150,
+        series: [{ name: 'b', x: [1, 2, 3, 4], y: [2, 3, 1, 5], values: [3, 4, 2, 6] }] },
+    // 4. radarChart：多系列 + 类别 + 数据标签（此前无类别会崩溃，已修复）
+    { type: 'chart', chartType: 'radarChart', title: '雷达（多系列+标签）', legend: 'r', x: 40, y: 330, width: 380, height: 200,
+        dataLabels: { showValue: true }, categories: ['速度', '力量', '技巧', '耐力'],
+        series: [{ name: '选手A', values: [80, 70, 90, 60] }, { name: '选手B', values: [60, 90, 70, 80] }] },
+    // 5. stockChart：开高低收 + 高低点连线
+    { type: 'chart', chartType: 'stockChart', title: '股票（K线）', legend: 'r', x: 440, y: 330, width: 380, height: 200,
+        categories: ['Day1', 'Day2', 'Day3', 'Day4'],
+        series: [{ name: 'OHLC', open: [10, 12, 11, 13], high: [15, 16, 14, 17], low: [8, 10, 9, 11], close: [12, 11, 13, 15] }] },
+    // 6. surfaceChart：wireframe + 多系列
+    { type: 'chart', chartType: 'surfaceChart', title: '曲面（wireframe）', legend: 'r', x: 840, y: 330, width: 380, height: 200,
+        wireframe: true, categories: ['X1', 'X2', 'X3'],
+        series: [{ name: 'Y1', values: [1, 2, 3] }, { name: 'Y2', values: [2, 3, 1] }] }
 ]));
 
 // ============ T12 图片裁剪 + 调整/透明度 ============
@@ -307,7 +374,7 @@ const pres = {
         author: 'pptx-parser',
         subject: '真机打开验证',
         keywords: 'serializer;test;T1-T19',
-        description: '覆盖 T1-T19 全部生成能力'
+        description: '覆盖 T1-T19 全部生成能力（T11 图表 16 类型全覆盖）'
     },
     customProps: { '部门': '研发', '版本': '1.0', '项目': 'pptx-parser' },
     slides
@@ -342,7 +409,7 @@ async function selfCheck() {
     const checks = [];
     const assert = (name, cond) => checks.push({ name, ok: !!cond });
 
-    assert('页数=19', result.slides.length === 19);
+    assert('页数=21', result.slides.length === 21);
     assert('slideSize=1280x720', result.slideSize.width === 1280 && result.slideSize.height === 720);
     assert('metadata.title', result.metadata.title === 'PPTX 序列化能力全覆盖（每功能点一页）');
     assert('metadata.keywords', result.metadata.keywords === 'serializer;test;T1-T19');
@@ -395,31 +462,58 @@ async function selfCheck() {
     // 表格样式 ID 必须在 tableStyles.xml 中有对应定义，否则 WPS/PowerPoint 会退化成无网格
     assert('T10 表格样式 tableStyleId', /<a:tableStyleId>\{5C22544A-7EE6-4342-B048-85BDC9FD1C3A\}<\/a:tableStyleId>/.test(slideXml[9]));
     assert('T10 tableStyles 含样式定义', /styleId="\{5C22544A-7EE6-4342-B048-85BDC9FD1C3A\}"/.test(tableStylesXml));
-    // T11 图表类型
+    // T11 图表类型（16 种全覆盖）
+    assert('T11 c:barChart', /<c:barChart>/.test(chartAll));
     assert('T11 c:bar3DChart', /<c:bar3DChart/.test(chartAll));
+    assert('T11 c:lineChart', /<c:lineChart>/.test(chartAll));
+    assert('T11 c:line3DChart', /<c:line3DChart/.test(chartAll));
+    assert('T11 c:areaChart', /<c:areaChart>/.test(chartAll));
+    assert('T11 c:area3DChart', /<c:area3DChart/.test(chartAll));
+    assert('T11 c:pieChart', /<c:pieChart>/.test(chartAll));
+    assert('T11 c:pie3DChart', /<c:pie3DChart/.test(chartAll));
     assert('T11 c:doughnutChart', /<c:doughnutChart/.test(chartAll));
+    assert('T11 c:ofPieChart', /<c:ofPieChart/.test(chartAll));
+    assert('T11 c:scatterChart', /<c:scatterChart/.test(chartAll));
     assert('T11 c:bubbleChart', /<c:bubbleChart/.test(chartAll));
     assert('T11 c:radarChart', /<c:radarChart/.test(chartAll));
     assert('T11 c:stockChart', /<c:stockChart/.test(chartAll));
-    assert('T11 c:surfaceChart', /<c:surfaceChart/.test(chartAll));
+    assert('T11 c:surfaceChart', /<c:surfaceChart>/.test(chartAll));
+    assert('T11 c:surface3DChart', /<c:surface3DChart/.test(chartAll));
+    // T11 图表特性
     assert('T11 数据标签 dLbls', /<c:dLbls/.test(chartAll));
     assert('T11 图例位置 legendPos', /<c:legendPos/.test(chartAll));
-    // T12 裁剪/调整
-    assert('T12 裁剪 srcRect', /<a:srcRect/.test(slideXml[11]));
-    assert('T12 调整 lum/alphaModFix', /<a:lum|<a:alphaModFix/.test(slideXml[11]));
+    assert('T11 分组 stacked', /<c:grouping val="stacked"/.test(chartAll));
+    assert('T11 分组 percentStacked', /<c:grouping val="percentStacked"/.test(chartAll));
+    assert('T11 横向 barDir=bar', /<c:barDir val="bar"/.test(chartAll));
+    assert('T11 平滑 smooth', /<c:smooth val="1"/.test(chartAll));
+    assert('T11 标记 marker', /<c:marker><c:symbol val="circle"/.test(chartAll));
+    assert('T11 环图 holeSize=30', /<c:holeSize val="30"/.test(chartAll));
+    assert('T11 子母饼 ofPieType=bar', /<c:ofPieType val="bar"/.test(chartAll));
+    assert('T11 数字格式 numberFormat', /formatCode="#,##0%"/.test(chartAll));
+    assert('T11 气泡 bubble3D', /<c:bubble3D val="1"/.test(chartAll));
+    assert('T11 气泡 bubbleScale=150', /<c:bubbleScale val="150"/.test(chartAll));
+    assert('T11 曲面 wireframe', /<c:wireframe val="1"/.test(chartAll));
+    assert('T11 饼图 varyColors', /<c:varyColors val="1"/.test(chartAll));
+    assert('T11 百分比标签 showPercent', /<c:showPercent val="1"/.test(chartAll));
+    assert('T11 雷达 radarStyle', /<c:radarStyle val="standard"/.test(chartAll));
+    assert('T11 股票 hiLowLines', /<c:hiLowLines/.test(chartAll));
+    assert('T11 系列颜色 spPr', /<c:spPr><a:solidFill><a:srgbClr/.test(chartAll));
+    // T12 裁剪/调整（T11 占 3 页，索引 +2）
+    assert('T12 裁剪 srcRect', /<a:srcRect/.test(slideXml[13]));
+    assert('T12 调整 lum/alphaModFix', /<a:lum|<a:alphaModFix/.test(slideXml[13]));
     // T13 动画
-    assert('T13 p:timing', /<p:timing/.test(slideXml[12]));
-    assert('T13 动画目标 spTgt', /<p:spTgt/.test(slideXml[12]));
+    assert('T13 p:timing', /<p:timing/.test(slideXml[14]));
+    assert('T13 动画目标 spTgt', /<p:spTgt/.test(slideXml[14]));
     // T14 切换/自动播放/隐藏
-    assert('T14 隐藏 show="0"', /show="0"/.test(slideXml[13]));
-    assert('T14 自动播放 afterTime', /afterTime/.test(slideXml[13]));
-    assert('T14 切换 transition', /<p:transition/.test(slideXml[13]));
+    assert('T14 隐藏 show="0"', /show="0"/.test(slideXml[15]));
+    assert('T14 自动播放 afterTime', /afterTime/.test(slideXml[15]));
+    assert('T14 切换 transition', /<p:transition/.test(slideXml[15]));
     // T15 视频/音频
-    assert('T15 视频/音频节点', /videoFile|audioFile/.test(slideXml[14]));
+    assert('T15 视频/音频节点', /videoFile|audioFile/.test(slideXml[16]));
     assert('T15 媒体部件 mp4/m4a', Object.keys(zip.files).some(f => /ppt\/media\/.+\.(mp4|m4a)$/.test(f)));
     // T16 SmartArt（部件编号按页内 diagramIndex，此处 data1.xml）
     assert('T16 diagrams/dataN.xml', Object.keys(zip.files).some(f => /^ppt\/diagrams\/data\d+\.xml$/.test(f)));
-    assert('T16 graphicFrame+dgm:rel', /<p:graphicFrame/.test(slideXml[15]) && /dgm:rel/.test(slideXml[15]));
+    assert('T16 graphicFrame+dgm:rel', /<p:graphicFrame/.test(slideXml[17]) && /dgm:rel/.test(slideXml[17]));
     // T17 自定义主题
     assert('T17 自定义主题色 6366F1', (await zip.file('ppt/theme/theme1.xml').async('string')).includes('6366F1'));
     // T18 批注（comments 部件按 slideIndex 命名，用正则匹配任意编号）

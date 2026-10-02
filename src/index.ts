@@ -4,7 +4,7 @@ import { PPTXXmlUtils } from './utils/xml';
 import { PPTXStyleUtils } from './utils/style';
 import { PPTXTextUtils } from './utils/text';
 import { PPTXShapeUtils } from './shape/shape';
-import { processMsgQueue, processSingleMsg } from './utils/chart';
+import { processMsgQueue, processSingleMsg, extractChartsFromSlide } from './utils/chart';
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants';
 import { jsonToPptx, editPptx } from './serializer/json-to-pptx';
 import { PPTXComposer } from './serializer/composer';
@@ -745,6 +745,10 @@ async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings
 
         // Step 3: Process slides and keep as structured data
         for (const slideData of parsedData.slides) {
+            // 本链路不做 HTML 转换，需独立扫描一次图表部件，
+            // 否则 msgQueue 始终为空、结果 charts 恒为 []
+            await extractChartsFromSlide(slideData.data, zip);
+
             result.slides.push({
                 data: slideData.data,
                 slideNum: slideData.slideNum,

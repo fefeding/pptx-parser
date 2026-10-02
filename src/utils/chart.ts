@@ -89,6 +89,19 @@ async function genChart(node: XmlNode | undefined, warpObj: WarpObject, parentNo
     }
     const chart = PPTXXmlUtils.getTextByPathList(chartSpace, ["c:chart"]);
     const plotArea = PPTXXmlUtils.getTextByPathList(chart, ["c:plotArea"]);
+    collectChartEntries(chartSpace, chart, plotArea, warpObj);
+
+    return result;
+}
+
+/**
+ * 将一个 c:chartSpace 的图表数据提取为 createChart 消息并压入消息队列。
+ *
+ * 抽离为独立函数，供 HTML 生成链路（genChart）与纯 JSON 解析链路共用，
+ * 使 pptxToJson 无需经过 HTML 转换也能拿到图表数据。
+ */
+function collectChartEntries(chartSpace: any, chart: any, plotArea: any, warpObj: WarpObject) {
+    if (!plotArea) return;
 
     // 提取3D视图属性
     const view3D = PPTXXmlUtils.getTextByPathList(chart, ["c:view3D"]);
@@ -102,7 +115,22 @@ async function genChart(node: XmlNode | undefined, warpObj: WarpObject, parentNo
 
     // 提取图表类型特定属性
     const chartType = Object.keys(plotArea).find(key => key.startsWith('c:') && key.endsWith('Chart'));
-    const varyColors = chartType ? PPTXXmlUtils.getTextByPathList(plotArea[chartType], ["c:varyColors", "attrs", "val"]) : undefined;
+    // 组合图/多 plot 场景下同类型节点可能是数组，统一取首个
+    const chartTypeNode = chartType
+        ? (Array.isArray(plotArea[chartType]) ? plotArea[chartType][0] : plotArea[chartType])
+        : undefined;
+    const varyColors = chartTypeNode ? PPTXXmlUtils.getTextByPathList(chartTypeNode, ["c:varyColors", "attrs", "val"]) : undefined;
+    // 分组（clustered / stacked / percentStacked / standard）与甜甜圈内径
+    const grouping = chartTypeNode ? PPTXXmlUtils.getTextByPathList(chartTypeNode, ["c:grouping", "attrs", "val"]) : undefined;
+    const holeSize = chartTypeNode ? PPTXXmlUtils.getTextByPathList(chartTypeNode, ["c:holeSize", "attrs", "val"]) : undefined;
+    // 平滑线与数据标记取自首个系列（同类型节点可能有多条 ser）
+    const firstSerNode = chartTypeNode
+        ? (Array.isArray(chartTypeNode["c:ser"]) ? chartTypeNode["c:ser"][0] : chartTypeNode["c:ser"])
+        : undefined;
+    const smoothVal = firstSerNode ? PPTXXmlUtils.getTextByPathList(firstSerNode, ["c:smooth", "attrs", "val"]) : undefined;
+    const markerSymbol = firstSerNode
+        ? PPTXXmlUtils.getTextByPathList(firstSerNode, ["c:marker", "c:symbol", "attrs", "val"])
+        : undefined;
 
     // 提取系列数据点的样式（dPt）和爆炸效果（explosion）
     let dataPointStyles: Array<Record<string, unknown>> = [];
@@ -152,6 +180,10 @@ async function genChart(node: XmlNode | undefined, warpObj: WarpObject, parentNo
         valueAxis: PPTXStyleUtils.extractChartAxisStyle(plotArea, "c:valAx", warpObj),
         view3D: view3DProps,
         varyColors: varyColors === "1",
+        grouping: grouping,
+        holeSize: holeSize !== undefined && holeSize !== "" ? Number(holeSize) : undefined,
+        smooth: smoothVal !== undefined ? smoothVal !== "0" : undefined,
+        marker: markerSymbol !== undefined ? markerSymbol !== "none" : undefined,
         dataPointStyles: dataPointStyles,
         title: chartTitleObj.style
     };
@@ -237,6 +269,54 @@ async function genChart(node: XmlNode | undefined, warpObj: WarpObject, parentNo
                 };
                 warpObj.msgQueue.push(chartData);
                 break;
+            case "c:bar3DChart":
+            case "c:doughnutChart":
+            case "c:radarChart":
+            case "c:surfaceChart":
+            case "c:surface3DChart":
+            case "c:line3DChart":
+            case "c:area3DChart":
+            case "c:ofPieChart": {
+                const t = key.replace(/^c:/, '');
+                chartData = {
+                    "type": "createChart",
+                    "data": {
+                        "chartId": `chart${warpObj.chartId.value++}`,
+                        "chartType": t,
+                        "chartData": PPTXStyleUtils.extractChartData(plotArea[key]["c:ser"], warpObj),
+                        "style": chartStyle,
+                        "title": chartTitle
+                    }
+                };
+                warpObj.msgQueue.push(chartData);
+                break;
+            }
+            case "c:bubbleChart":
+                chartData = {
+                    "type": "createChart",
+                    "data": {
+                        "chartId": `chart${warpObj.chartId.value++}`,
+                        "chartType": "bubbleChart",
+                        "chartData": extractBubbleData(plotArea[key]["c:ser"]),
+                        "style": chartStyle,
+                        "title": chartTitle
+                    }
+                };
+                warpObj.msgQueue.push(chartData);
+                break;
+            case "c:stockChart":
+                chartData = {
+                    "type": "createChart",
+                    "data": {
+                        "chartId": `chart${warpObj.chartId.value++}`,
+                        "chartType": "stockChart",
+                        "chartData": extractStockData(plotArea[key]["c:ser"]),
+                        "style": chartStyle,
+                        "title": chartTitle
+                    }
+                };
+                warpObj.msgQueue.push(chartData);
+                break;
             case "c:catAx":
                 break;
             case "c:valAx":
@@ -244,8 +324,121 @@ async function genChart(node: XmlNode | undefined, warpObj: WarpObject, parentNo
             default:
         }
     }
+}
 
-    return result;
+/**
+ * 独立扫描一页幻灯片内的图表部件，产出 createChart 消息（不依赖 HTML 生成流程）。
+ *
+ * 用于 pptxToJson：该链路不做 HTML 转换，若不在此处补扫描，
+ * 结果中的 charts 将恒为空数组。
+ */
+async function extractChartsFromSlide(slideData: any, zip: any): Promise<void> {
+    if (!slideData || !zip) return;
+    const spTree = slideData.slideContent
+        && slideData.slideContent["p:sld"]
+        && slideData.slideContent["p:sld"]["p:cSld"]
+        && slideData.slideContent["p:sld"]["p:cSld"]["p:spTree"];
+    if (!spTree) return;
+
+    const frames: any[] = [];
+    collectGraphicFrames(spTree, frames);
+    if (!frames.length) return;
+
+    const warpObj = Object.assign({}, slideData, { zip }) as WarpObject;
+    const resObj = slideData.slideResObj || {};
+
+    for (const frame of frames) {
+        const chartRef = frame && frame["a:graphic"]
+            && frame["a:graphic"]["a:graphicData"]
+            && frame["a:graphic"]["a:graphicData"]["c:chart"];
+        const rid = chartRef && chartRef["attrs"] && chartRef["attrs"]["r:id"];
+        if (!rid) continue;
+
+        const target = resObj[rid] && resObj[rid].target;
+        if (!target) continue;
+
+        const content = await PPTXXmlUtils.readXmlFile(zip, target);
+        const chartSpace = content && PPTXXmlUtils.getTextByPathList(content, ["c:chartSpace"]);
+        if (!chartSpace) continue;
+
+        const chart = PPTXXmlUtils.getTextByPathList(chartSpace, ["c:chart"]);
+        const plotArea = chart && PPTXXmlUtils.getTextByPathList(chart, ["c:plotArea"]);
+        collectChartEntries(chartSpace, chart, plotArea, warpObj);
+    }
+}
+
+/** 递归收集 spTree 下所有 p:graphicFrame 节点（含组合内的） */
+function collectGraphicFrames(node: any, out: any[]): void {
+    if (!node || typeof node !== "object") return;
+    for (const key of Object.keys(node)) {
+        if (key === "attrs" || key === "innerText") continue;
+        const child = node[key];
+        if (!child || typeof child !== "object") continue;
+        const items = Array.isArray(child) ? child : [child];
+        for (const item of items) {
+            if (key === "p:graphicFrame") {
+                out.push(item);
+                continue;
+            }
+            collectGraphicFrames(item, out);
+        }
+    }
+}
+
+/** 从 numRef 缓存提取数值数组（按 idx 排序） */
+function numCacheValues(node: any): number[] {
+    if (!node || !node["c:numRef"] || !node["c:numRef"]["c:numCache"]) return [];
+    const pts = node["c:numRef"]["c:numCache"]["c:pt"];
+    if (!pts) return [];
+    const arr = Array.isArray(pts) ? pts : [pts];
+    return arr
+        .map((p: any) => ({ idx: parseInt(p["attrs"]?.["idx"] ?? "0", 10), v: parseFloat(p["c:v"]) }))
+        .sort((a: any, b: any) => a.idx - b.idx)
+        .map((o: any) => o.v);
+}
+
+/** 从系列节点的 c:tx/c:strRef 提取系列名 */
+function chartSeriesName(ser: any): string | undefined {
+    const pt = PPTXXmlUtils.getTextByPathList(ser, ["c:tx", "c:strRef", "c:strCache", "c:pt"]);
+    if (!pt) return undefined;
+    return Array.isArray(pt) ? pt[0]["c:v"] : pt["c:v"];
+}
+
+/** 气泡图：xVal / yVal / bubbleSize → { key, values:[{x,y,size}] } */
+function extractBubbleData(serNode: any): Array<Record<string, unknown>> {
+    if (!serNode) return [];
+    const sers = Array.isArray(serNode) ? serNode : [serNode];
+    return sers.map((ser: any, i: number) => {
+        const xs = numCacheValues(ser["c:xVal"]);
+        const ys = numCacheValues(ser["c:yVal"]);
+        const sizes = numCacheValues(ser["c:bubbleSize"]);
+        const n = Math.max(xs.length, ys.length, sizes.length);
+        const values = [];
+        for (let k = 0; k < n; k++) {
+            values.push({ x: xs[k], y: ys[k], size: sizes[k] });
+        }
+        return { key: chartSeriesName(ser) || `Series ${i + 1}`, values, xlabels: {}, style: {} };
+    });
+}
+
+/** 股票图：open/high/low/close → { key, values:[[open,close,low,high]...], xlabels }（ECharts 蜡烛图格式） */
+function extractStockData(serNode: any): Array<Record<string, unknown>> {
+    if (!serNode) return [];
+    const sers = Array.isArray(serNode) ? serNode : [serNode];
+    return sers.map((ser: any, i: number) => {
+        const open = numCacheValues(ser["c:openVal"]);
+        const high = numCacheValues(ser["c:highVal"]);
+        const low = numCacheValues(ser["c:lowVal"]);
+        const close = numCacheValues(ser["c:closeVal"]);
+        const n = Math.max(open.length, high.length, low.length, close.length);
+        const values: number[][] = [];
+        const xlabels: string[] = [];
+        for (let k = 0; k < n; k++) {
+            values.push([open[k], close[k], low[k], high[k]]);
+            xlabels.push(String(k + 1));
+        }
+        return { key: chartSeriesName(ser) || `Series ${i + 1}`, values, xlabels, style: {} };
+    });
 }
 
 /**
@@ -358,5 +551,6 @@ function processSingleMsg(data: any, callbacks: any) {
 export {
     genChart,
     processMsgQueue,
-    processSingleMsg
+    processSingleMsg,
+    extractChartsFromSlide
 };

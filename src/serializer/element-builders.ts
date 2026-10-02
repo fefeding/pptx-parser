@@ -31,10 +31,19 @@ export interface SerializerMedia {
     name: string;
     base64: string;
 }
+/** 图表嵌入工作簿的行列数据（用于生成 xlsx） */
+export interface ChartWorkbookData {
+    /** 表头行：系列名称（A1=系列名，B1/C1...=各列名） */
+    headers: string[];
+    /** 数据行：每行为 [cat, val1, val2, ...] 或 [x, y, size, ...] */
+    rows: (string | number)[][];
+}
 /** 图表部件记录 */
 export interface SerializerChart {
     name: string;
     xml: string;
+    /** 嵌入工作簿数据（用于生成 WPS 兼容的 xlsx） */
+    workbook?: ChartWorkbookData;
 }
 /** SmartArt 图示部件记录（data/layout/colors/quickStyle 四件套，编号共享） */
 export interface SerializerDiagram {
@@ -257,6 +266,26 @@ export interface SerializerElement {
     legend?: boolean;
     /** 图表数据标签：true=显示值，或细粒度控制各显示项 */
     dataLabels?: boolean | { showValue?: boolean; showPercent?: boolean; showSeries?: boolean; showCategory?: boolean };
+    /** 图表分组/堆叠方式：bar 系默认 clustered，line/area 系默认 standard；支持 stacked / percentStacked */
+    grouping?: string;
+    /** 甜甜圈内径百分比（0-100，默认 50） */
+    holeSize?: number;
+    /** 折线/散点平滑线 */
+    smooth?: boolean;
+    /** 折线/散点数据标记 */
+    marker?: boolean;
+    /** 子母饼图（ofPieChart）第二绘图区类型，默认 pie */
+    ofPieType?: string;
+    /** 数值轴与数据标签的数字格式码（如 0.00% / #,##0） */
+    numberFormat?: string;
+    /** 气泡图：立体显示 */
+    bubble3D?: boolean;
+    /** 气泡图：显示负气泡 */
+    showNegBubbles?: boolean;
+    /** 气泡图：气泡缩放百分比（默认 100） */
+    bubbleScale?: number;
+    /** 曲面图：线框模式 */
+    wireframe?: boolean;
     /** 分组（type:'group'）：子元素坐标体系。'local'=相对组左上角的局部坐标（OOXML 标准，默认）；'page'=页绝对坐标（构建时减 group 偏移做相对化） */
     childrenCoordinates?: 'local' | 'page';
     /** 表格：行数据 */
@@ -999,8 +1028,8 @@ function buildChartElement(ctx: SerializerContext, el: SerializerElement) {
     const chartNum = ctx.chartIndex;
     const chartName = `chart${chartNum}.xml`;
     const relId = addRelationship(ctx, REL_TYPES.chart, `../charts/${chartName}`);
-    const xml = buildChartXml(el);
-    ctx.charts.push({ name: chartName, xml });
+    const { xml, workbook } = buildChartXml(el);
+    ctx.charts.push({ name: chartName, xml, workbook });
 
     return xmlNode('p:graphicFrame',
         null,
@@ -1050,19 +1079,31 @@ function numRefXml(values: unknown[], col: string) {
  * @param {Object} el - 图表元素 JSON
  * @returns {string} chart 部件 XML
  */
-function buildChartXml(el: SerializerElement) {
+function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWorkbookData } {
     const type = el.chartType || 'barChart';
-    const isPie = /pie/i.test(type);
+    // 不能用 /pie/i —— 会把 ofPieChart（子母饼图）误判为普通饼图，导致缺必需的 c:ofPieType
+    const isPie = type === 'pieChart' || type === 'pie3DChart';
+    const isDoughnut = type === 'doughnutChart';
+    const isOfPie = type === 'ofPieChart';
+    const isPieLike = isPie || isDoughnut || isOfPie; // 饼类（无坐标轴）
     const isScatter = type === 'scatterChart';
     const isStock = type === 'stockChart';
     const isRadar = type === 'radarChart';
-    const isSurface = type === 'surfaceChart';
-    const is3D = /3D$/i.test(type);
-    const isDoughnut = type === 'doughnutChart';
+    const isSurface = type === 'surfaceChart' || type === 'surface3DChart';
+    const is3D = /3D/i.test(type); // 注意：bar3DChart / pie3DChart 以 3DChart 结尾，不能用 /3D$/
     const isBubble = type === 'bubbleChart';
+    const isBarLike = type === 'barChart' || type === 'bar3DChart';
+    const isLineArea = type === 'lineChart' || type === 'areaChart' ||
+        type === 'line3DChart' || type === 'area3DChart';
     const cats = el.categories || [];
     const series = el.series || [];
-    const varyColors = el.varyColors !== undefined ? (el.varyColors ? 1 : 0) : (isPie ? 1 : 0);
+    const varyColors = el.varyColors !== undefined
+        ? (el.varyColors ? 1 : 0)
+        : (isPie || isDoughnut || isOfPie ? 1 : 0);
+    // 分组/堆叠：bar 系默认 clustered，line/area 系默认 standard（其余类型无此元素）
+    const groupingVal = el.grouping
+        ? String(el.grouping)
+        : (isBarLike ? 'clustered' : isLineArea ? 'standard' : '');
 
     const serXml = series.map((s: ChartSeriesSpec, i: number) => {
         const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
@@ -1070,6 +1111,8 @@ function buildChartXml(el: SerializerElement) {
         let data;
         if (isScatter) {
             data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
+        } else if (isBubble) {
+            data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal><c:bubbleSize>${numRefXml(s.values || [], 'D')}</c:bubbleSize>`;
         } else if (isStock) {
             data = `<c:openVal>${numRefXml(s.open || [], 'B')}</c:openVal>` +
                 `<c:highVal>${numRefXml(s.high || [], 'C')}</c:highVal>` +
@@ -1079,33 +1122,83 @@ function buildChartXml(el: SerializerElement) {
             data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
         }
         const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
-        return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${data}</c:ser>`;
+        // marker 位于数据之前，smooth 位于数据之后（CT_LineSer / CT_ScatterSer 的元素顺序）
+        const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
+        const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
+        const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
+        return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${data}${smoothXml}</c:ser>`;
     }).join('');
 
-    // 图表类型特定根（含轴 id，散点/柱状/折线/面积需要）
-    let plotChart;
-    if (isPie || isDoughnut) {
-        plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}</c:${type}>`;
-    } else if (isBubble) {
-        plotChart = `<c:${type}>${serXml}</c:${type}>`;
-    } else if (isRadar) {
-        plotChart = `<c:${type}><c:radarStyle val="standard"/>${serXml}</c:${type}>`;
-    } else if (isStock) {
-        plotChart = `<c:${type}><c:hiLowLines/><c:serLines/>${serXml}</c:${type}>`;
-    } else if (isSurface) {
-        plotChart = `<c:${type}><c:bandFmts/>${serXml}</c:${type}>`;
-    } else {
-        const dir = (type === 'barChart' || type === 'bar3DChart') ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
-        const grouping = (type === 'lineChart' || type === 'areaChart') ? '<c:grouping val="standard"/>' : '';
-        plotChart = `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serXml}` +
-            `<c:axId val="111"/><c:axId val="112"/></c:${type}>`;
-    }
-    const view3D = is3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="0"/></c:view3D>' : '';
+    // 数字格式码：同时作用于数据标签与数值轴
+    const numFmtXml = el.numberFormat
+        ? `<c:numFmt formatCode="${escapeXml(el.numberFormat)}" sourceLinked="0"/>`
+        : '';
 
-    // 坐标轴（饼图除外）
+    // 数据标签必须位于各图表类型节点内部（CT_Chart 本身不含 dLbls 元素）
+    const dlObj = (el.dataLabels && typeof el.dataLabels === 'object') ? el.dataLabels : null;
+    const dLblsInner = el.dataLabels
+        ? `<c:dLbls>${numFmtXml}<c:showVal val="${(el.dataLabels === true || !!dlObj?.showValue) ? 1 : 0}"/>` +
+          `<c:showPercent val="${dlObj?.showPercent ? 1 : 0}"/><c:showSer val="${dlObj?.showSeries ? 1 : 0}"/>` +
+          `<c:showCatName val="${dlObj?.showCategory ? 1 : 0}"/></c:dLbls>`
+        : '';
+
+    // 图表类型特定根（含轴 id；饼类无轴）
+    const axIds2 = `<c:axId val="111"/><c:axId val="112"/>`;
+    const axIds3 = `<c:axId val="111"/><c:axId val="112"/><c:axId val="113"/>`;
+    // 需要序列轴 serAx 的类型：所有 3D 图表 + 曲面图（CT_SurfaceChart 的 serAx 为必需）
+    const needsSerAx = is3D || isSurface;
+    const axIds = needsSerAx ? axIds3 : axIds2;
+    // 各分支均严格按对应 CT_*Chart 的子元素顺序输出，否则 PowerPoint/WPS 会静默忽略
+    let plotChart;
+    if (isOfPie) {
+        // c:ofPieType 是 CT_OfPieChart 的必需元素，缺失时子母饼图无法识别
+        const ofPieType = el.ofPieType === 'bar' ? 'bar' : 'pie';
+        plotChart = `<c:${type}><c:ofPieType val="${ofPieType}"/><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}` +
+            `<c:gapWidth val="100"/><c:splitType val="auto"/><c:splitPos val="0"/>` +
+            `<c:secondPieSize val="75"/><c:serLines/></c:${type}>`;
+    } else if (isDoughnut) {
+        const holeSize = el.holeSize !== undefined ? el.holeSize : 50;
+        plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}<c:holeSize val="${holeSize}"/></c:${type}>`;
+    } else if (isPie) {
+        plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}</c:${type}>`;
+    } else if (isBubble) {
+        const bubble3DXml = el.bubble3D ? '<c:bubble3D val="1"/>' : '';
+        const bubbleScaleXml = el.bubbleScale !== undefined ? `<c:bubbleScale val="${el.bubbleScale}"/>` : '';
+        const showNegXml = el.showNegBubbles ? '<c:showNegBubbles val="1"/>' : '';
+        plotChart = `<c:${type}>${serXml}${dLblsInner}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIds}</c:${type}>`;
+    } else if (isRadar) {
+        plotChart = `<c:${type}><c:radarStyle val="standard"/>${serXml}${dLblsInner}${axIds}</c:${type}>`;
+    } else if (isStock) {
+        // CT_StockChart 无 c:serLines（该元素属于 ofPieChart），高低点连线用 hiLowLines
+        plotChart = `<c:${type}>${serXml}${dLblsInner}<c:hiLowLines/>${axIds}</c:${type}>`;
+    } else if (isSurface) {
+        // CT_SurfaceChart 不含 dLbls
+        const wireframeXml = el.wireframe ? '<c:wireframe val="1"/>' : '';
+        plotChart = `<c:${type}>${wireframeXml}${serXml}<c:bandFmts/>${axIds}</c:${type}>`;
+    } else {
+        const dir = isBarLike ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
+        const grouping = groupingVal ? `<c:grouping val="${groupingVal}"/>` : '';
+        const markerXml = (el.marker && isLineArea) ? '<c:marker><c:symbol val="circle"/></c:marker>' : '';
+        plotChart = `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}${markerXml}${axIds}</c:${type}>`;
+    }
+
+    // 3D 视图需置于 c:chart 下（ECMA-376：view3D 属于 CT_Chart，位于 plotArea 之前）
+    const view3D = is3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="20"/><c:depthPercent val="100"/></c:view3D>' : '';
+
+    // 坐标轴（饼类除外；3D 图表与曲面图还需第三个序列轴 serAx）
+    // 散点图/气泡图：X/Y 轴均为值轴（c:valAx），不能用类别轴（ECMA-376 CT_ScatterChart）
+    // 所有轴补全 WPS 必需的 c:crosses/c:tickLblPos/c:numFmt 等元素
+    const isXYValAx = isScatter || isBubble; // X 轴也是值轴
     let axes = '';
-    if (!isPie) {
-        axes = `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:crossAx val="112"/></c:catAx><c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111"/><c:majorGridlines/></c:valAx>`;
+    if (!isPieLike) {
+        const catOrValAxX = isXYValAx
+            ? `<c:valAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorGridlines/><c:tickLblPos val="low"/><c:crossAx val="112"/><c:crosses val="autoZero"/></c:valAx>`
+            : `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:tickLblPos val="low"/><c:crossAx val="${needsSerAx ? 113 : 112}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
+        const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/><c:majorGridlines/><c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
+        axes = catOrValAxX + valAxY;
+        if (needsSerAx) {
+            axes += `<c:serAx><c:axId val="113"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/><c:crossAx val="111"/><c:crosses val="autoZero"/></c:serAx>`;
+        }
     }
 
     const titleXml = el.title
@@ -1117,20 +1210,95 @@ function buildChartXml(el: SerializerElement) {
     const legendXml = el.legend !== false && el.legend !== undefined
         ? `<c:legend><c:legendPos val="${typeof el.legend === 'string' ? el.legend : 'r'}"/><c:overlay val="0"/></c:legend>`
         : '';
-    const dlObj = (el.dataLabels && typeof el.dataLabels === 'object') ? el.dataLabels : null;
-    const dLblsXml = el.dataLabels
-        ? `<c:dLbls><c:showVal val="${(el.dataLabels === true || !!dlObj?.showValue) ? 1 : 0}"/>` +
-          `<c:showPercent val="${dlObj?.showPercent ? 1 : 0}"/><c:showSer val="${dlObj?.showSeries ? 1 : 0}"/>` +
-          `<c:showCatName val="${dlObj?.showCategory ? 1 : 0}"/></c:dLbls>`
-        : '';
 
     const autoTitleDeleted = `<c:autoTitleDeleted val="${el.title ? 0 : 1}"/>`;
 
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
-        `<c:chartSpace xmlns:c="${NS.c}" xmlns:a="${NS.a}" xmlns:r="${NS.r}">` +
-        `<c:chart>${titleXml}${autoTitleDeleted}` +
-        `<c:plotArea><c:layout/>${plotChart}${view3D}${axes}</c:plotArea>` +
-        `${dLblsXml}${legendXml}<c:plotVisOnly val="1"/></c:chart></c:chartSpace>`;
+    // 构建嵌入工作簿数据（WPS 要求图表必须关联 xlsx，即使 numCache 已内联数据）
+    const workbook = buildChartWorkbookData(type, cats, series);
+
+    return {
+        xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+            `<c:chartSpace xmlns:c="${NS.c}" xmlns:a="${NS.a}" xmlns:r="${NS.r}">` +
+            `<c:date1904 val="0"/><c:roundedCorners val="0"/>` +
+            `<c:chart>${titleXml}${autoTitleDeleted}${view3D}` +
+            `<c:plotArea><c:layout><c:manualLayout><c:layoutTarget val="inner"/><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="0"/><c:y val="0"/><c:w val="1"/><c:h val="1"/></c:manualLayout></c:layout>${plotChart}${axes}</c:plotArea>` +
+            `${legendXml}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>`,
+        workbook
+    };
+}
+
+/** 根据图表类型构建嵌入工作簿的行列数据 */
+function buildChartWorkbookData(type: string, cats: string[], series: ChartSeriesSpec[]): ChartWorkbookData {
+    const isScatter = type === 'scatterChart';
+    const isBubble = type === 'bubbleChart';
+    const isStock = type === 'stockChart';
+
+    if (isScatter || isBubble) {
+        // 散点/气泡：每系列占一组列（X, Y, [Size]），系列名放表头
+        const headers: string[] = [];
+        const colGroups: number[][][] = []; // 每系列的列数据
+        for (const s of series) {
+            const cols: number[][] = [];
+            cols.push(s.x || []);
+            cols.push(s.y || []);
+            headers.push(s.name || 'Series');
+            headers.push('X');
+            headers.push('Y');
+            if (isBubble) {
+                cols.push(s.values || []);
+                headers.push('Size');
+            }
+            colGroups.push(cols);
+        }
+        const maxLen = Math.max(...colGroups.flat().map(c => c.length), 0);
+        const rows: (string | number)[][] = [];
+        for (let r = 0; r < maxLen; r++) {
+            const row: (string | number)[] = [];
+            for (const cols of colGroups) {
+                for (const col of cols) {
+                    row.push(col[r] !== undefined ? col[r] : '');
+                }
+            }
+            rows.push(row);
+        }
+        return { headers, rows };
+    }
+
+    if (isStock) {
+        // 股票图：Open/High/Low/Close
+        const headers = ['Open', 'High', 'Low', 'Close'];
+        const s = series[0] || {};
+        const open = s.open || [];
+        const high = s.high || [];
+        const low = s.low || [];
+        const close = s.close || s.values || [];
+        const maxLen = Math.max(open.length, high.length, low.length, close.length, 0);
+        const rows: (string | number)[][] = [];
+        for (let r = 0; r < maxLen; r++) {
+            rows.push([
+                open[r] !== undefined ? open[r] : '',
+                high[r] !== undefined ? high[r] : '',
+                low[r] !== undefined ? low[r] : '',
+                close[r] !== undefined ? close[r] : ''
+            ]);
+        }
+        return { headers, rows };
+    }
+
+    // 普通图表：类别在 A 列，每系列占一列
+    const headers = ['Category', ...series.map(s => s.name || 'Series')];
+    const maxLen = Math.max(cats.length, ...series.map(s => (s.values || []).length), 0);
+    const rows: (string | number)[][] = [];
+    for (let r = 0; r < maxLen; r++) {
+        const row: (string | number)[] = [cats[r] !== undefined ? cats[r] : ''];
+        for (const s of series) {
+            const vals = s.values || [];
+            row.push(vals[r] !== undefined ? vals[r] : '');
+        }
+        rows.push(row);
+    }
+    return { headers, rows };
+}
 }
 
 /** 表格级边框默认（type:'table' 元素的 border/borders 透传） */

@@ -127,6 +127,96 @@ function normalizePresentation(input: unknown): PresentationJson {
  *        （uint8array / arraybuffer / blob / nodebuffer / base64）
  * @returns {Promise<Uint8Array>} PPTX 文件二进制数据
  */
+/** 列号转字母（1→A, 2→B, 27→AA） */
+function colToLetter(col: number): string {
+    let s = '';
+    while (col > 0) {
+        const m = (col - 1) % 26;
+        s = String.fromCharCode(65 + m) + s;
+        col = Math.floor((col - 1) / 26);
+    }
+    return s;
+}
+
+/** 构建嵌入图表的最小 xlsx 工作簿（WPS 兼容必需） */
+async function buildChartXlsx(workbook: { headers: string[]; rows: (string | number)[][] }): Promise<Uint8Array> {
+    const xlsxZip = new JSZip();
+    // 收集共享字符串
+    const strings: string[] = [];
+    const strIndex = new Map<string, number>();
+    const getStrIdx = (s: string): number => {
+        if (!strIndex.has(s)) { strIndex.set(s, strings.length); strings.push(s); }
+        return strIndex.get(s)!;
+    };
+
+    // 构建 sheet1.xml 行数据
+    const allRows = [workbook.headers, ...workbook.rows];
+    const sheetRows = allRows.map((row, rIdx) => {
+        const cells = row.map((val, cIdx) => {
+            const ref = `${colToLetter(cIdx + 1)}${rIdx + 1}`;
+            if (typeof val === 'number') {
+                return `<c r="${ref}" t="n"><v>${val}</v></c>`;
+            }
+            const s = String(val);
+            if (s === '') return `<c r="${ref}"/>`;
+            return `<c r="${ref}" t="s"><v>${getStrIdx(s)}</v></c>`;
+        }).join('');
+        return `<row r="${rIdx + 1}">${cells}</row>`;
+    }).join('');
+
+    const sstXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${strings.length}" uniqueCount="${strings.length}">` +
+        strings.map(s => `<si><t xml:space="preserve">${escapeXml(s)}</t></si>`).join('') +
+        `</sst>`;
+
+    const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+        `<sheetData>${sheetRows}</sheetData></worksheet>`;
+
+    const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ` +
+        `xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
+        `<sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+
+    const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+        `<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>` +
+        `<fills count="1"><fill><patternFill patternType="none"/></fill></fills>` +
+        `<borders count="1"><border/></borders>` +
+        `<cellStyleXfs count="1"><xf/></cellStyleXfs>` +
+        `<cellXfs count="1"><xf/></cellXfs></styleSheet>`;
+
+    const ctXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+        `<Default Extension="xml" ContentType="application/xml"/>` +
+        `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+        `<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
+        `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>` +
+        `<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>` +
+        `</Types>`;
+
+    const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+
+    const wbRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>` +
+        `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
+        `<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`;
+
+    xlsxZip.file('[Content_Types].xml', ctXml);
+    xlsxZip.file('_rels/.rels', rootRels);
+    xlsxZip.file('xl/workbook.xml', workbookXml);
+    xlsxZip.file('xl/_rels/workbook.xml.rels', wbRels);
+    xlsxZip.file('xl/worksheets/sheet1.xml', sheetXml);
+    xlsxZip.file('xl/styles.xml', stylesXml);
+    xlsxZip.file('xl/sharedStrings.xml', sstXml);
+
+    return xlsxZip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+}
+
 async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutputType } = {}) {
     const pres = normalizePresentation(presentation);
     const slideSize = pres.slideSize || { width: 1280, height: 720 };
@@ -136,6 +226,7 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     const slideRefs = [];       // presentation.xml 中的引用 { relId, target }
     const allMediaExts = new Set();
     const allChartNames = [];   // 图表部件名（用于 Content-Types 覆盖）
+    const allWorkbookNames = []; // 嵌入工作簿名（用于 Content-Types 覆盖）
     const allNotesSlides: number[] = [];  // 备注部件编号（用于 Content-Types 覆盖）
     const commentsSlideIndices: number[] = [];  // 含批注的幻灯片编号（用于 Content-Types 覆盖）
     const allDiagramIndices: number[] = [];  // 图示部件编号（用于 Content-Types 覆盖）
@@ -230,10 +321,23 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
             allMediaExts.add((media.name.split('.').pop() ?? '').toLowerCase());
         }
 
-        // 图表部件
+        // 图表部件（含嵌入工作簿 + chart rels，WPS 兼容必需）
         for (const chart of ctx.charts) {
             zip.file(`ppt/charts/${chart.name}`, chart.xml);
             allChartNames.push(chart.name);
+            // 生成嵌入 xlsx 工作簿
+            if (chart.workbook) {
+                const wbNum = allChartNames.length; // workbook 编号与 chart 编号一致
+                const wbName = `workbook${wbNum}.xlsx`;
+                const xlsxData = await buildChartXlsx(chart.workbook);
+                zip.file(`ppt/embeddings/${wbName}`, xlsxData);
+                allWorkbookNames.push(wbName);
+                // chart rels：oleObject 关系指向嵌入工作簿
+                zip.file(`ppt/charts/_rels/${chart.name}.rels`,
+                    buildRelationshipsXml([
+                        { relId: 'rId1', type: REL_TYPES.oleObject, target: `../embeddings/${wbName}` }
+                    ]));
+            }
         }
 
         // 图示部件（data/layout/colors/quickStyle 四件套 + dataN.xml.rels）
@@ -320,6 +424,11 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     // 图表部件 Content-Types 覆盖
     for (const chartName of allChartNames) {
         const override = `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`;
+        contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
+    }
+    // 嵌入工作簿 Content-Types 覆盖（WPS 兼容必需）
+    for (const wbName of allWorkbookNames) {
+        const override = `<Override PartName="/ppt/embeddings/${wbName}" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>`;
         contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
     }
     // 备注部件 Content-Types 覆盖
@@ -688,10 +797,22 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
                 mediaExts.add((media.name.split('.').pop() ?? '').toLowerCase());
             }
 
-            // 图表部件
+            // 图表部件（含嵌入工作簿 + chart rels）
+            const newCtWorkbooks = [];
             for (const chart of ctx.charts) {
                 zip.file(`ppt/charts/${chart.name}`, chart.xml);
                 newCtCharts.push(chart.name);
+                if (chart.workbook) {
+                    const wbNum = newCtCharts.length;
+                    const wbName = `workbook${wbNum}.xlsx`;
+                    const xlsxData = await buildChartXlsx(chart.workbook);
+                    zip.file(`ppt/embeddings/${wbName}`, xlsxData);
+                    newCtWorkbooks.push(wbName);
+                    zip.file(`ppt/charts/_rels/${chart.name}.rels`,
+                        buildRelationshipsXml([
+                            { relId: 'rId1', type: REL_TYPES.oleObject, target: `../embeddings/${wbName}` }
+                        ]));
+                }
             }
 
             // 图示部件（data/layout/colors/quickStyle 四件套 + dataN.xml.rels）
@@ -764,6 +885,11 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
             for (const chartName of newCtCharts) {
                 if (!newCt.includes(`/ppt/charts/${chartName}`)) {
                     newCt = newCt.replace('</Types>', `<Override PartName="/ppt/charts/${chartName}" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>`);
+                }
+            }
+            for (const wbName of newCtWorkbooks) {
+                if (!newCt.includes(`/ppt/embeddings/${wbName}`)) {
+                    newCt = newCt.replace('</Types>', `<Override PartName="/ppt/embeddings/${wbName}" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/></Types>`);
                 }
             }
             for (const idx of newCtDiagrams) {
