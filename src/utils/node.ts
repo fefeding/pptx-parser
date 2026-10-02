@@ -36,8 +36,16 @@ function findDiagramShapeList(root: unknown) {
         visited.add(current);
 
         const drawing = current['p:drawing'];
-        const sp = drawing && drawing['p:spTree'] && drawing['p:spTree']['p:sp'];
-        if (sp) return Array.isArray(sp) ? sp : [sp];
+        const tree = drawing && drawing['p:spTree'];
+        if (tree) {
+            const sp = tree['p:sp'];
+            const cxn = tree['p:cxnSp'];
+            const collected = [
+                ...(sp ? (Array.isArray(sp) ? sp : [sp]) : []),
+                ...(cxn ? (Array.isArray(cxn) ? cxn : [cxn]) : [])
+            ];
+            if (collected.length) return collected;
+        }
 
         for (const key of Object.keys(current)) {
             if (key === 'attrs') continue;
@@ -142,8 +150,12 @@ async function genDiagram(node: XmlNode | undefined, wrapObj: WarpObject, source
 
     if (spArray !== undefined) {
         const results = [];
-        for (const dspSp of spArray) {
-            results.push(processSpNode(dspSp, node, wrapObj, 'diagramBg', shapeType));
+        for (const dspShape of spArray) {
+            if (dspShape && dspShape['p:nvCxnSpPr']) {
+                results.push(processCxnSpNode(dspShape, node, wrapObj, 'diagramBg', shapeType, settings));
+            } else {
+                results.push(processSpNode(dspShape, node, wrapObj, 'diagramBg', shapeType));
+            }
         }
         const resolvedResults = await Promise.all(results);
         result = resolvedResults.join('');
