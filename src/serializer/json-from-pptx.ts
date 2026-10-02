@@ -55,6 +55,22 @@ function asArray<T = any>(v: T | T[] | undefined): T[] {
     return Array.isArray(v) ? v : [v];
 }
 
+/** 取节点的首个同名子节点（tXml 中重复节点为数组） */
+function firstChild(parent: any, tag: string): any {
+    if (!parent || typeof parent !== 'object') return null;
+    const v = parent[tag];
+    if (v === undefined || v === null) return null;
+    return Array.isArray(v) ? v[0] : v;
+}
+
+/** 读取节点属性中的数值（缺失/空/非法返回 undefined） */
+function readNumAttr(node: any, attr: string): number | undefined {
+    const raw = node && node.attrs ? node.attrs[attr] : undefined;
+    if (raw === undefined || raw === null || raw === '') return undefined;
+    const n = Number(raw);
+    return isFinite(n) ? n : undefined;
+}
+
 /** EMU → px（保留两位小数） */
 function emuToPx(emu: unknown): number {
     const n = Number(emu) || 0;
@@ -1059,6 +1075,29 @@ async function picToImage(
     }
     if (xf && xf.rotation) imgEl.rotation = xf.rotation;
     if (name) imgEl.name = String(name);
+
+    // 裁剪：a:srcRect 是 p:blipFill 的子节点（与 a:blip 同级），千分比 → 0~1 比例
+    const srcRect = firstChild(node['p:blipFill'], 'a:srcRect');
+    if (srcRect) {
+        const crop: { l?: number; r?: number; t?: number; b?: number } = {};
+        for (const side of ['l', 'r', 't', 'b'] as const) {
+            const v = readNumAttr(srcRect, side);
+            if (v) crop[side] = v / 100000;
+        }
+        if (Object.keys(crop).length > 0) imgEl.crop = crop;
+    }
+    // 调整：a:lum（bright/contrast 属性）与 a:alphaModFix（amt 属性）是 a:blip 的子节点
+    const lum = firstChild(blip, 'a:lum');
+    const bright = readNumAttr(lum, 'bright');
+    const contrast = readNumAttr(lum, 'contrast');
+    const alphaFix = readNumAttr(firstChild(blip, 'a:alphaModFix'), 'amt');
+    if (bright !== undefined || contrast !== undefined || alphaFix !== undefined) {
+        const adj: { brightness?: number; contrast?: number; transparency?: number } = {};
+        if (bright !== undefined) adj.brightness = bright / 1000;
+        if (contrast !== undefined) adj.contrast = contrast / 1000;
+        if (alphaFix !== undefined) adj.transparency = Math.round((100 - alphaFix / 1000) * 100) / 100;
+        imgEl.imageAdjust = adj;
+    }
     return imgEl;
 }
 

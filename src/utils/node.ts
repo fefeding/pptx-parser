@@ -533,6 +533,50 @@ async function processCxnSpNode(node: XmlNode | undefined, parentNode: XmlNode |
 }
 
 /**
+ * 读取图片裁剪区域（a:blipFill/a:srcRect，WPS 也可能写在 a:stretch/a:fillRect）。
+ * l/t/r/b 是各边裁掉的比例（千分比 → 0~1），全为 0 视为不裁剪。
+ */
+function getPicSrcRect(node: XmlNode | undefined): { l: number; t: number; r: number; b: number } | undefined {
+    const rectNode = PPTXXmlUtils.getTextByPathList(node, ['p:blipFill', 'a:srcRect'])
+        || PPTXXmlUtils.getTextByPathList(node, ['p:blipFill', 'a:stretch', 'a:fillRect']);
+    const attrs = rectNode && rectNode.attrs;
+    if (attrs === undefined) return undefined;
+    const toRatio = (v: any) => {
+        const n = parseInt(v);
+        return (v === undefined || v === '' || isNaN(n)) ? 0 : n / 100000;
+    };
+    const rect = { l: toRatio(attrs.l), t: toRatio(attrs.t), r: toRatio(attrs.r), b: toRatio(attrs.b) };
+    if (!rect.l && !rect.t && !rect.r && !rect.b) return undefined;
+    return rect;
+}
+
+/**
+ * 读取图片效果：a:lum（bright/contrast，千分比）→ CSS filter，a:alphaModFix（amt）→ CSS opacity。
+ * 两者都是 a:blip 的子节点，此前渲染端完全忽略，导致亮度/对比度/透明度不生效。
+ */
+function getPicEffectStyle(node: XmlNode | undefined): string {
+    const blip = PPTXXmlUtils.getTextByPathList(node, ['p:blipFill', 'a:blip']);
+    if (blip === undefined) return '';
+    let style = '';
+    const lum = PPTXXmlUtils.getTextByPathList(blip, ['a:lum', 'attrs']);
+    if (lum !== undefined) {
+        const filters: string[] = [];
+        const bright = parseInt(lum.bright);
+        const contrast = parseInt(lum.contrast);
+        // CSS 以 100% 为基准，0 为原图；bright/contrast 是千分比偏移量
+        if (!isNaN(bright) && bright !== 0) filters.push(`brightness(${Math.max(0, 100 + bright / 1000)}%)`);
+        if (!isNaN(contrast) && contrast !== 0) filters.push(`contrast(${Math.max(0, 100 + contrast / 1000)}%)`);
+        if (filters.length > 0) style += `filter: ${filters.join(' ')};`;
+    }
+    const alpha = PPTXXmlUtils.getTextByPathList(blip, ['a:alphaModFix', 'attrs']);
+    if (alpha !== undefined) {
+        const amt = parseInt(alpha.amt);
+        if (!isNaN(amt) && amt < 100000) style += `opacity: ${Math.max(0, amt / 100000)};`;
+    }
+    return style;
+}
+
+/**
  * 处理图片节点
  * @param {Object} node - 图片节点
  * @param {Object} parentNode - 父节点（用于组合元素的坐标计算）
@@ -546,6 +590,9 @@ async function processPicNode(node: XmlNode | undefined, parentNode: XmlNode | u
     if (!node) return '';
     const order = node.attrs?.order;
     const rid = node['p:blipFill']['a:blip'].attrs['r:embed'];
+    // 图片裁剪（a:srcRect）与效果（a:lum / a:alphaModFix）
+    const picSrcRect = getPicSrcRect(node);
+    const picEffectStyle = getPicEffectStyle(node);
     
     let resObj;
     if (source === 'slideMasterBg') {
@@ -750,13 +797,25 @@ async function processPicNode(node: XmlNode | undefined, parentNode: XmlNode | u
         'is-gif': (mimeType === 'image/gif') ? 'true' : 'false'
     });
 
-    let result = `<div class='block content' style='${position}${size} z-index: ${order};transform: rotate(${rotate}deg);'${dataAttrs}>`;
+    // 裁剪时容器需裁剪溢出内容（img 会被放大并负向偏移来呈现裁剪窗口）
+    const clipStyle = picSrcRect ? ' overflow: hidden;' : '';
+    let result = `<div class='block content' style='${position}${size} z-index: ${order};transform: rotate(${rotate}deg);${clipStyle}'${dataAttrs}>`;
     
     if ((vdoNode === undefined && audioNode === undefined) || !mediaProcess || !mediaSupportFlag) {
         const base64Data = PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer);
         // 检测GIF格式，添加autoplay支持（GIF自动播放是浏览器默认行为）
         const gifAttrs = (mimeType === 'image/gif') ? 'autoplay loop muted playsinline' : '';
-        result += `<img src='data:${mimeType};base64,${base64Data}' style='width: 100%; height: 100%' ${gifAttrs}/>`;
+        // 裁剪：img 放大 1/(1-l-r) 倍并按裁剪起点负向偏移，配合容器 overflow:hidden 得到裁剪窗口。
+        // 偏移量按“容器宽度的百分比”计，故为 l/(1-l-r)。
+        let imgGeomStyle = 'width: 100%; height: 100%;';
+        if (picSrcRect) {
+            const cropW = Math.max(0.01, 1 - picSrcRect.l - picSrcRect.r);
+            const cropH = Math.max(0.01, 1 - picSrcRect.t - picSrcRect.b);
+            imgGeomStyle = `position: absolute; left: ${(-picSrcRect.l / cropW * 100).toFixed(4)}%;`
+                + ` top: ${(-picSrcRect.t / cropH * 100).toFixed(4)}%;`
+                + ` width: ${(100 / cropW).toFixed(4)}%; height: ${(100 / cropH).toFixed(4)}%; max-width: none;`;
+        }
+        result += `<img src='data:${mimeType};base64,${base64Data}' style='${imgGeomStyle}${picEffectStyle}' ${gifAttrs}/>`;
     } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
         if (vdoNode !== undefined && !isVideoLink) {
             result += `<video src='${videoBlob}' autoplay loop muted controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;

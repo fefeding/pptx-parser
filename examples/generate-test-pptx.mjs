@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import JSZip from 'jszip';
-import { jsonToPptx, pptxToJson } from '../dist/ppt-parser.esm.js';
+import { jsonToPptx, pptxToJson, pptxToStandard } from '../dist/ppt-parser.esm.js';
 
 // ---- 测试用图片（base64）----
 const BLUE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAZUlEQVR42u3QQREAAAQAML20E9qXHM4eK7DI6vksBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAgPsWcJEihvVdy3EAAAAASUVORK5CYII=';
@@ -305,11 +305,17 @@ slides.push(page('T11 · 图表全覆盖（三）特殊图表 + holeSize/ofPieTy
 ]));
 
 // ============ T12 图片裁剪 + 调整/透明度 ============
+// 裁剪/亮度/对比度在纯色图上不可见，故用四象限色块图（QUAD_PNG）做肉眼可验的对照：
+// 左＝原图，中＝四边各裁 10%（内容被放大、边缘被切掉），右＝调整（提亮 + 加对比 + 10% 透明）
 slides.push(page('T12 · 图片裁剪 / 调整(亮度/对比度/透明度)', [
-    { type: 'image', data: `data:image/png;base64,${BLUE_PNG}`, x: 60, y: 120, width: 240, height: 240,
+    { type: 'image', data: `data:image/png;base64,${QUAD_PNG}`, x: 60, y: 120, width: 240, height: 240, name: 'Original' },
+    { type: 'image', data: `data:image/png;base64,${QUAD_PNG}`, x: 360, y: 120, width: 240, height: 240,
         crop: { l: 0.1, r: 0.1, t: 0.1, b: 0.1 }, name: 'Crop' },
-    { type: 'image', data: `data:image/png;base64,${ORANGE_PNG}`, x: 360, y: 120, width: 240, height: 240,
-        imageAdjust: { brightness: 20, contrast: 30, transparency: 10 }, name: 'Adjust' }
+    { type: 'image', data: `data:image/png;base64,${ORANGE_PNG}`, x: 660, y: 120, width: 240, height: 240,
+        imageAdjust: { brightness: 20, contrast: 30, transparency: 10 }, name: 'Adjust' },
+    { type: 'text', x: 60, y: 380, width: 1040, height: 40,
+        text: '左：原图　中：四边各裁 10%（边缘被切、内容放大）　右：亮度 +20 / 对比度 +30 / 透明 10%',
+        color: '#475569', fontSize: 16 }
 ]));
 
 // ============ T13 动画 timing ============
@@ -391,6 +397,8 @@ async function selfCheck() {
     const ab = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     const result = await pptxToJson(ab);
     const zip = await JSZip.loadAsync(buffer);
+    // 语义 round-trip：走与 jsonToPptx 同源的 PptxDocument，用于校验属性可无损回读
+    const std = await pptxToStandard(ab);
 
     const slideXml = [];
     for (let i = 1; i <= result.slides.length; i++) {
@@ -499,8 +507,25 @@ async function selfCheck() {
     assert('T11 股票 hiLowLines', /<c:hiLowLines/.test(chartAll));
     assert('T11 系列颜色 spPr', /<c:spPr><a:solidFill><a:srgbClr/.test(chartAll));
     // T12 裁剪/调整（T11 占 3 页，索引 +2）
-    assert('T12 裁剪 srcRect', /<a:srcRect/.test(slideXml[13]));
-    assert('T12 调整 lum/alphaModFix', /<a:lum|<a:alphaModFix/.test(slideXml[13]));
+    // 逐块取出 a:blip 的内容，按 ECMA-376 校验子元素归属：
+    //  - a:srcRect 属 CT_BlipFillProperties（p:blipFill 的子节点），放进 a:blip 内即非法
+    //  - a:lum / a:alphaModFix 属 CT_Blip（a:blip 的子节点）
+    // 末尾 [^/]> 用于排除自闭合 <a:blip .../>（无子元素）
+    const blipBlocks = [...slideXml[13].matchAll(/<a:blip\b[^>]*[^/]>([\s\S]*?)<\/a:blip>/g)].map(m => m[1]);
+    assert('T12 裁剪 srcRect 与 blip 同级且值为千分比', /<a:blip [^>]*\/><a:srcRect l="10000" r="10000" t="10000" b="10000"\/>/.test(slideXml[13]));
+    assert('T12 srcRect 未误置于 blip 内', blipBlocks.every(b => !b.includes('srcRect')));
+    // 调整：a:lum 用 bright/contrast 属性（同一元素），不存在 a:contrast 元素
+    assert('T12 亮度/对比度 lum', /<a:lum bright="20000" contrast="30000"\/>/.test(slideXml[13]));
+    assert('T12 无非法 a:contrast 元素', !/<a:contrast/.test(slideXml[13]));
+    assert('T12 透明度 alphaModFix amt', /<a:alphaModFix amt="90000"\/>/.test(slideXml[13]));
+    assert('T12 无非法 val 属性', !/<a:(lum|alphaModFix) val=/.test(slideXml[13]));
+    assert('T12 lum/alphaModFix 位于 blip 内', blipBlocks.some(b => b.includes('a:lum') && b.includes('a:alphaModFix')));
+    // T12 round-trip：解析端需回读出裁剪与调整（此前完全未解析，往返即丢失）
+    const t12Back = std.slides.filter(s => (s.elements || []).some(e => e.name === 'Crop'))[0];
+    const cropEl = t12Back && t12Back.elements.find(e => e.name === 'Crop');
+    const adjEl = t12Back && t12Back.elements.find(e => e.name === 'Adjust');
+    assert('T12 round-trip 裁剪回读', !!cropEl && Math.abs((cropEl.crop || {}).l - 0.1) < 1e-6 && Math.abs((cropEl.crop || {}).b - 0.1) < 1e-6);
+    assert('T12 round-trip 调整回读', !!adjEl && adjEl.imageAdjust && adjEl.imageAdjust.brightness === 20 && adjEl.imageAdjust.contrast === 30 && adjEl.imageAdjust.transparency === 10);
     // T13 动画
     assert('T13 p:timing', /<p:timing/.test(slideXml[14]));
     assert('T13 动画目标 spTgt', /<p:spTgt/.test(slideXml[14]));

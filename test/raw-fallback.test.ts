@@ -188,9 +188,14 @@ describe('__raw 无损回退序列化（SmartArt）', () => {
         const zip = await JSZip.loadAsync(out);
 
         const media = Object.keys(zip.files).filter(p => p.startsWith('ppt/media/') && !zip.files[p].dir);
-        const charts = Object.keys(zip.files).filter(p => p.startsWith('ppt/charts/') && !zip.files[p].dir);
+        // 仅统计图表部件本体：ppt/charts/_rels/*.rels 是 WPS 兼容所需的 oleObject 关系，不属于图表部件
+        const charts = Object.keys(zip.files).filter(p => /^ppt\/charts\/chart\d+\.xml$/.test(p));
         expect(media.sort()).toEqual(['ppt/media/image1.png', 'ppt/media/image2.png']);
         expect(charts.sort()).toEqual(['ppt/charts/chart1.xml', 'ppt/charts/chart2.xml']);
+        // 每个图表部件都需带嵌入工作簿（WPS 要求图表经 oleObject 关系引用 xlsx）
+        expect(Object.keys(zip.files).filter(p => /^ppt\/charts\/_rels\/chart\d+\.xml\.rels$/.test(p)).sort())
+            .toEqual(['ppt/charts/_rels/chart1.xml.rels', 'ppt/charts/_rels/chart2.xml.rels']);
+        expect(Object.keys(zip.files).filter(p => /^ppt\/embeddings\/.*\.xlsx$/.test(p)).length).toBe(2);
 
         // 两页的图表关系不得指向同一部件
         const rels1 = await zip.file('ppt/slides/_rels/slide1.xml.rels')!.async('string');

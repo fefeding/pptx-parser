@@ -312,7 +312,7 @@ describe('图表生成（原生 OOXML chart 部件）', () => {
         expect(chartXml).not.toContain('<c:cat>');
     });
 
-    it('股票图生成 open/high/low/close 四引用与 hiLowLines/serLines', async () => {
+    it('股票图生成 open/high/low/close 四引用与 hiLowLines', async () => {
         const composer = new PPTXComposer();
         composer.addSlide(slide => {
             slide.addChart({
@@ -331,7 +331,10 @@ describe('图表生成（原生 OOXML chart 部件）', () => {
         expect(chartXml).toContain('<c:lowVal>');
         expect(chartXml).toContain('<c:closeVal>');
         expect(chartXml).toContain('<c:hiLowLines/>');
-        expect(chartXml).toContain('<c:serLines/>');
+        // c:serLines 属于 CT_OfPieChart，CT_StockChart 中不存在该元素（写入即非法 OOXML）
+        expect(chartXml).not.toContain('<c:serLines');
+        expect(chartXml).toContain('<c:date1904 val="0"/>');
+        expect(chartXml).toContain('<c:roundedCorners val="0"/>');
     });
 
     it('雷达图含 radarStyle、曲面图含 bandFmts', async () => {

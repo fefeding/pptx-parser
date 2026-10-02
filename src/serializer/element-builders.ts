@@ -967,22 +967,30 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
         cNvPrChildren = xmlNode('a:hlinkClick', { 'r:id': hlinkRelId });
     }
 
-    // 裁剪 / 调整 → blip 子节点（a:srcRect / a:lum / a:contrast / a:alphaModFix）
+    // 图片调整 → a:blip 的子节点（CT_Blip 的 EG_EffectProperties 选择组）
+    // a:lum 的亮度/对比度是同一个元素的两个属性（bright / contrast），不存在 a:contrast 元素。
     const blipChildren: BuilderNode[] = [];
+    let srcRectNode: BuilderNode | null = null;
+    if (el.imageAdjust) {
+        const adj = el.imageAdjust;
+        const lumAttrs: Record<string, number> = {};
+        // bright / contrast 均为 ST_FixedPercentage（千分比，-100000..100000），±100% → ±100000
+        if (adj.brightness != null) lumAttrs.bright = Math.round(adj.brightness * 1000);
+        if (adj.contrast != null) lumAttrs.contrast = Math.round(adj.contrast * 1000);
+        if (Object.keys(lumAttrs).length > 0) blipChildren.push(xmlNode('a:lum', lumAttrs));
+        // 透明度 → 不透明度：CT_AlphaModulateFixedEffect 的属性是 amt（非 val）
+        if (adj.transparency != null) blipChildren.push(xmlNode('a:alphaModFix', { amt: Math.round((100 - adj.transparency) * 1000) }));
+    }
+    // 裁剪：a:srcRect 是 p:blipFill 的子节点（与 a:blip 同级），不能放进 a:blip 内，
+    // 否则 schema 校验失败导致整个 blip 的调整/裁剪被忽略。单位同为千分比。
     if (el.crop) {
         const c = el.crop;
         const srect: Record<string, number> = {};
-        if (c.l != null) srect.l = Math.round(c.l * 1000);
-        if (c.r != null) srect.r = Math.round(c.r * 1000);
-        if (c.t != null) srect.t = Math.round(c.t * 1000);
-        if (c.b != null) srect.b = Math.round(c.b * 1000);
-        blipChildren.push(xmlNode('a:srcRect', srect));
-    }
-    if (el.imageAdjust) {
-        const adj = el.imageAdjust;
-        if (adj.brightness != null) blipChildren.push(xmlNode('a:lum', { val: Math.round((100 + adj.brightness) * 1000) }));
-        if (adj.contrast != null) blipChildren.push(xmlNode('a:contrast', { val: Math.round((100 + adj.contrast) * 1000) }));
-        if (adj.transparency != null) blipChildren.push(xmlNode('a:alphaModFix', { val: Math.round((100 - adj.transparency) * 1000) }));
+        if (c.l != null) srect.l = ratioThousandth(c.l, 0);
+        if (c.r != null) srect.r = ratioThousandth(c.r, 0);
+        if (c.t != null) srect.t = ratioThousandth(c.t, 0);
+        if (c.b != null) srect.b = ratioThousandth(c.b, 0);
+        if (srect.l || srect.r || srect.t || srect.b) srcRectNode = xmlNode('a:srcRect', srect);
     }
 
     return xmlNode('p:pic',
@@ -996,6 +1004,7 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
         xmlNode('p:blipFill',
             null,
             xmlNode('a:blip', { 'r:embed': embedRelId }, ...blipChildren),
+            ...(srcRectNode ? [srcRectNode] : []),
             xmlNode('a:stretch', null, xmlNode('a:fillRect'))
         ),
         xmlNode('p:spPr',
@@ -1298,7 +1307,6 @@ function buildChartWorkbookData(type: string, cats: string[], series: ChartSerie
         rows.push(row);
     }
     return { headers, rows };
-}
 }
 
 /** 表格级边框默认（type:'table' 元素的 border/borders 透传） */
