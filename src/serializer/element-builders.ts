@@ -86,6 +86,11 @@ export interface SerializerContext {
     mediaIndex: number;
     chartIndex: number;
     diagramIndex: number;
+    /**
+     * 本次生成引用到的表格样式 ID：用于在 tableStyles.xml 中补上等价定义，
+     * 否则 WPS/PowerPoint 找不到该 GUID 会退化成「无样式无网格」
+     */
+    tableStyleIds?: Set<string>;
 }
 /** createElementContext 的选项 */
 export interface ElementContextOptions {
@@ -363,7 +368,9 @@ export function createElementContext(options: ElementContextOptions = {}): Seria
         /** 图示部件列表（生成后由上层写入 ppt/diagrams/） */
         diagrams: ([] as SerializerDiagram[]),
         /** 图示自增编号 */
-        diagramIndex: options.startDiagramIndex || 0
+        diagramIndex: options.startDiagramIndex || 0,
+        /** 引用到的表格样式 ID（供 tableStyles.xml 补定义） */
+        tableStyleIds: new Set<string>()
     };
 }
 
@@ -1195,26 +1202,29 @@ function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell, table
     if (cell.fill) {
         tcPrChildren.push(xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(cell.fill) })));
     }
-    // 单元格内边距
-    if (cell.inset) {
-        const ins = cell.inset;
-        const insAttrs: Record<string, number> = {};
-        if (ins.l != null) insAttrs.l = pxToEmu(ins.l);
-        if (ins.r != null) insAttrs.r = pxToEmu(ins.r);
-        if (ins.t != null) insAttrs.t = pxToEmu(ins.t);
-        if (ins.b != null) insAttrs.b = pxToEmu(ins.b);
-        tcPrChildren.push(xmlNode('a:tableCellInsets', insAttrs));
-    }
-    // 对角线边框
+    // 对角线边框（a:lnTlToBr / a:lnBlToTr 本身就是 CT_LineProperties：
+    // w/cap/cmpd/algn 与 a:solidFill 直接挂在它上面，不能再嵌一层 a:ln，否则 PowerPoint/WPS 会忽略）
     const diag = cell.borders && cell.borders.diagonal;
     if (diag) {
         const dc = (cell.border && cell.border.color) || '#000000';
         const dw = (cell.border && cell.border.width != null) ? cell.border.width : 1;
-        const dLine = xmlNode('a:ln', { w: ptToEmu(dw) }, xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(dc) })));
-        if (diag === 'tlBr' || diag === 'both') tcPrChildren.push(xmlNode('a:lnTlToBr', null, dLine));
-        if (diag === 'blTr' || diag === 'both') tcPrChildren.push(xmlNode('a:lnBlToTr', null, dLine));
+        const diagLine = (tag: string) => xmlNode(tag, { w: ptToEmu(dw), cap: 'flat', cmpd: 'sng', algn: 'ctr' },
+            xmlNode('a:solidFill', xmlNode('a:srgbClr', { val: colorToHex(dc) })));
+        if (diag === 'tlBr' || diag === 'both') tcPrChildren.push(diagLine('a:lnTlToBr'));
+        if (diag === 'blTr' || diag === 'both') tcPrChildren.push(diagLine('a:lnBlToTr'));
     }
+
+    // 单元格内边距：OOXML 中是 a:tcPr 的属性（marL/marR/marT/marB），
+    // 之前写成自定义元素 <a:tableCellInsets> 属于非法 OOXML，PowerPoint/WPS 会整体忽略
     const anchorMap: Record<string, string | null> = { top: 't', middle: 'ctr', bottom: 'b' };
+    const tcPrAttrs: Record<string, unknown> = { anchor: anchorMap[cell.valign ?? 'top'] ?? null };
+    if (cell.inset) {
+        const ins = cell.inset;
+        if (ins.l != null) tcPrAttrs.marL = pxToEmu(ins.l);
+        if (ins.r != null) tcPrAttrs.marR = pxToEmu(ins.r);
+        if (ins.t != null) tcPrAttrs.marT = pxToEmu(ins.t);
+        if (ins.b != null) tcPrAttrs.marB = pxToEmu(ins.b);
+    }
 
     return xmlNode('a:tc', attrs,
         xmlNode('a:txBody', null,
@@ -1222,7 +1232,7 @@ function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell, table
             xmlNode('a:lstStyle'),
             ...paragraphs.map((p) => buildParagraph(ctx, p, defaults))
         ),
-        xmlNode('a:tcPr', { anchor: anchorMap[cell.valign ?? 'top'] ?? null }, ...tcPrChildren)
+        xmlNode('a:tcPr', tcPrAttrs, ...tcPrChildren)
     );
 }
 
@@ -1261,6 +1271,11 @@ function buildTableElement(ctx: SerializerContext, el: SerializerElement): Build
                 : (rows.length ? height / rows.length : 0)));
 
     const gridCols = colWidths.map((w) => xmlNode('a:gridCol', { w: pxToEmu(w) }));
+    // 记录引用到的样式 ID：写 tableStyles.xml 时为其补上等价定义
+    const tableStyleId = el.tableStyleId || DEFAULT_TABLE_STYLE_ID;
+    if (ctx.tableStyleIds) {
+        ctx.tableStyleIds.add(tableStyleId);
+    }
     const trNodes = rows.map((row, ri) =>
         xmlNode('a:tr', { h: pxToEmu(rowHeights[ri]) },
             ...(row.cells || []).map((cell) => {
@@ -1288,7 +1303,7 @@ function buildTableElement(ctx: SerializerContext, el: SerializerElement): Build
                 xmlNode('a:tbl', null,
                     xmlNode('a:tblPr', { firstRow: 1, bandRow: 1 },
                         // tableStyleId 必须是 a:tblPr 的子元素（写成属性为非法 OOXML，PowerPoint/解析器都无法识别）
-                        xmlNode('a:tableStyleId', null, el.tableStyleId || DEFAULT_TABLE_STYLE_ID)),
+                        xmlNode('a:tableStyleId', null, tableStyleId)),
                     xmlNode('a:tblGrid', null, ...gridCols),
                     ...trNodes
                 )

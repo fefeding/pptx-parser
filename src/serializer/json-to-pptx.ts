@@ -162,10 +162,15 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     }
     const hasComments = commentAuthors.size > 0;
 
+    // 各页引用到的表格样式 ID：写 ppt/tableStyles.xml 时为它们补等价定义，
+    // 否则未知 GUID 会让表格在 WPS/PowerPoint 里退化成「无样式无网格」
+    const tableStyleIds = new Set<string>();
+
     for (const i of pres.slides.keys()){
         const slideIndex = i + 1;
         const ctx = createElementContext({ startMediaIndex: mediaIndex, startChartIndex: chartIndex, startDiagramIndex: diagramIndex });
         const slideRoot = await buildSlideRoot(ctx, pres.slides[i]);
+        ctx.tableStyleIds?.forEach((id) => tableStyleIds.add(id));
 
         zip.file(`ppt/slides/slide${slideIndex}.xml`, toXmlDocument(slideRoot));
 
@@ -293,7 +298,7 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', buildRelationshipsXml(LAYOUT_RELS));
     zip.file('ppt/presProps.xml', buildPresPropsXml());
     zip.file('ppt/viewProps.xml', buildViewPropsXml());
-    zip.file('ppt/tableStyles.xml', buildTableStylesXml());
+    zip.file('ppt/tableStyles.xml', buildTableStylesXml([...tableStyleIds]));
 
     // ===== docProps =====
     zip.file('docProps/core.xml', buildCorePropsXml(pres.metadata));

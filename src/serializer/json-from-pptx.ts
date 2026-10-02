@@ -113,7 +113,7 @@ function readRunStyle(rPr: any): Partial<PptxTextRun> {
  * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
  * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
  */
-function extractTxBody(txBody: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string } {
+function extractTxBody(txBody: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
     let text = '';
@@ -122,6 +122,8 @@ function extractTxBody(txBody: any): { paragraphs: PptxParagraph[]; hasText: boo
     const bodyPr = txBody['a:bodyPr'];
     const valign = bodyPr && bodyPr.attrs && bodyPr.attrs.anchor
         ? VALIGN_MAP[bodyPr.attrs.anchor] : undefined;
+    const textDirection = bodyPr && bodyPr.attrs && bodyPr.attrs.vert
+        ? String(bodyPr.attrs.vert) : undefined;
 
     for (const pNode of asArray(txBody['a:p'])) {
         const pPr = pNode['a:pPr'];
@@ -175,13 +177,13 @@ function extractTxBody(txBody: any): { paragraphs: PptxParagraph[]; hasText: boo
         if (valign) (para as any).valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text };
+    return { paragraphs, hasText, valign, text, textDirection };
 }
 
 /** 提取一个 p:sp 的文本为正文段落 */
-function extractTextBody(spNode: any): { paragraphs: PptxParagraph[]; hasText: boolean } {
-    const { paragraphs, hasText } = extractTxBody(spNode && spNode['p:txBody']);
-    return { paragraphs, hasText };
+function extractTextBody(spNode: any): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string } {
+    const { paragraphs, hasText, textDirection } = extractTxBody(spNode && spNode['p:txBody']);
+    return { paragraphs, hasText, textDirection };
 }
 
 /** 从 p:spPr 读取几何/填充/边框/特效 */
@@ -651,7 +653,7 @@ async function nodeToElement(
     }
     // p:sp / p:cxnSp → text 或 shape
     const spPr = node['p:spPr'];
-    const { paragraphs, hasText } = extractTextBody(node);
+    const { paragraphs, hasText, textDirection } = extractTextBody(node);
     const geom = spPr && spPr['a:prstGeom'];
 
     if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
@@ -668,6 +670,7 @@ async function nodeToElement(
         };
         if (xf && xf.rotation) textEl.rotation = xf.rotation;
         if (name) textEl.name = String(name);
+        if (textDirection) textEl.textDirection = textDirection;
         // 元素级默认对齐（取首段）
         if (paragraphs[0]) {
             if (paragraphs[0].align) textEl.align = paragraphs[0].align;

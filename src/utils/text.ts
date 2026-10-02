@@ -383,6 +383,35 @@ function getTextWidth(html: string) {
     }
 
     /**
+     * 文字方向（a:bodyPr/@vert，ST_TextVerticalType）映射到 CSS writing-mode，
+     * 让 HTML 预览也能正确竖排。
+     * - eaVert / wordArtVert：东亚竖排 / 逐字堆积（字符直立）
+     * - vert / vert270：整体旋转 90°（浏览器对 text-orientation: sideways 支持不全，用 mixed 近似）
+     * - mongolianVert：蒙古文竖排（竖列向左）
+     * - horz / 缺省：横排
+     */
+    function getVerticalWritingModeStyle(textBodyNode: XmlNode | undefined): string {
+        if (textBodyNode === undefined) return "";
+        let vert = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "vert"]);
+        if (vert === undefined) return "";
+        switch (vert) {
+            case "eaVert":
+            case "wordArtVert":
+                return "writing-mode: vertical-rl; text-orientation: upright;";
+            case "wordArtVertRtl":
+                return "writing-mode: vertical-rl; text-orientation: upright; direction: rtl;";
+            case "mongolianVert":
+                return "writing-mode: vertical-lr; text-orientation: upright;";
+            case "vert":
+            case "vert270":
+                return "writing-mode: vertical-rl; text-orientation: mixed;";
+            case "horz":
+            default:
+                return "";
+        }
+    }
+
+    /**
      * 获取bodyPr的内边距设置
      * @param {Object} textBodyNode - 文本体节点
      * @param {string} type - 形状类型
@@ -391,6 +420,9 @@ function getTextWidth(html: string) {
      */
     function getBodyPrPadding(textBodyNode: XmlNode, type: string, anchor: string) {
         let paddingStyle = "";
+
+        // 竖排：在文本体最外层容器上开启 writing-mode，内部段落随之竖排
+        let vertStyle = (type !== "table") ? getVerticalWritingModeStyle(textBodyNode) : "";
 
         // 获取bodyPr的各个内边距属性
         let lIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "lIns"]);
@@ -439,7 +471,7 @@ function getTextWidth(html: string) {
                 heightStyle = "height: 100%;";
             }
 
-            paddingStyle = `<div style="padding: ${tInsPx}px ${rInsPx}px ${bInsPx}px ${lInsPx}px; box-sizing: border-box; ${heightStyle}">`;
+            paddingStyle = `<div style="padding: ${tInsPx}px ${rInsPx}px ${bInsPx}px ${lInsPx}px; box-sizing: border-box; ${heightStyle}${vertStyle}">`;
         }
 
         return paddingStyle;
@@ -2398,6 +2430,52 @@ function getTextWidth(html: string) {
             emitBorder("top", lin_top);
             emitBorder("right", lin_right);
             emitBorder("bottom", lin_bottm);
+
+            // 单元格内边距：a:tcPr 的 marL/marR/marT/marB（EMU）。
+            // 省略时按 ECMA-376 的默认值——左右 0.1 英寸（91440 EMU）、上下 0.05 英寸（45720 EMU），
+            // 与 PowerPoint 的默认单元格边距一致（此前完全不支持，文字总是紧贴单元格左上角）。
+            const tcPrAttrs: any = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr", "attrs"]) || {};
+            const emuToPx = (v: any, defEmu: number) => {
+                const n = parseInt(v);
+                const emu = isNaN(n) ? defEmu : n;
+                return Math.round((emu / 9525) * 100) / 100; // 914400 EMU = 1 inch = 96px
+            };
+            colStyl += `padding:${emuToPx(tcPrAttrs["marT"], 45720)}px ${emuToPx(tcPrAttrs["marR"], 91440)}px ` +
+                `${emuToPx(tcPrAttrs["marB"], 45720)}px ${emuToPx(tcPrAttrs["marL"], 91440)}px;`;
+
+            // 对角线边框：a:tcPr/a:lnTlToBr（左上→右下）与 a:lnBlToTr（左下→右上）。
+            // 用内联 SVG 作为背景图绘制（CSS 渐变按盒子的角落关键字定位，宽高不等时
+            // 不会正好落在两个角上；SVG 用 viewBox + non-scaling-stroke 可以精确连线且线宽不随缩放变化）。
+            const diagLineInfo = (n: any) => {
+                if (n === undefined || n === null || typeof n !== 'object') return undefined;
+                // 兼容旧产物把线属性嵌在外层 a:lnTlToBr 里的写法
+                const ln = (!Array.isArray(n) && n["a:ln"] !== undefined) ? n["a:ln"] : n;
+                // getSolidFill 接收 a:solidFill 节点本身
+                const solidFill = PPTXXmlUtils.getTextByPathList(ln, ["a:solidFill"]);
+                const color = PPTXStyleUtils.getSolidFill(solidFill, undefined, undefined, warpObj);
+                if (typeof color !== 'string' || color === '') return undefined;
+                const wEmu = parseInt(PPTXXmlUtils.getTextByPathList(ln, ["attrs", "w"]));
+                return {
+                    color: (color.length === 8) ? tinycolor(color).toRgbString() : `#${color}`,
+                    width: (isNaN(wEmu) ? 12700 : wEmu) / 12700 // EMU → pt（约等于 px）
+                };
+            };
+            const diagLayers: string[] = [];
+            const pushDiag = (info: any, reversed: boolean) => {
+                if (info === undefined) return;
+                const coords = reversed ? "0 100 100 0" : "0 0 100 100";
+                const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'>` +
+                    `<line x1='${coords.split(' ')[0]}' y1='${coords.split(' ')[1]}' x2='${coords.split(' ')[2]}' y2='${coords.split(' ')[3]}' ` +
+                    `stroke='${info.color}' stroke-width='${info.width}' vector-effect='non-scaling-stroke'/></svg>`;
+                // 生成的 <td> 用单引号包裹 style 属性，SVG 里的单引号必须一并编码，
+                // 否则会提前结束 style 属性导致整条背景声明被丢弃
+                diagLayers.push(`url("data:image/svg+xml,${encodeURIComponent(svg).replace(/'/g, '%27')}")`);
+            };
+            pushDiag(diagLineInfo(lin_top_left_to_bottom_right), false);
+            pushDiag(diagLineInfo(lin_bottom_left_to_top_right), true);
+            if (diagLayers.length > 0) {
+                colStyl += `background-image:${diagLayers.join(',')};background-size:100% 100%;`;
+            }
 
             //cell fill color custom
             let getCelFill = PPTXXmlUtils.getTextByPathList(tcNodes, ["a:tcPr"]);

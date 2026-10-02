@@ -59,21 +59,22 @@ export function buildViewPropsXml() {
  * 使用内置 GUID 可让 PowerPoint 直接解析，同时我们在 tableStyles.xml 中给出等价定义供解析器使用。
  */
 export const DEFAULT_TABLE_STYLE_ID = '{5940675A-B579-460E-94D1-54222C63F5DA}';
-
 /**
- * 表格样式模板（tableStyles.xml）
- *
- * 根元素必须是 DrawingML 命名空间下的 a:tblStyleLst（解析端按 ["a:tblStyleLst"]["a:tblStyle"] 读取）；
- * 并给出默认样式的完整定义（纯网格线），使表格在解析端也能渲染出完整网格而非只剩单元格自定义边。
- * @returns {string} tableStyles.xml 内容
+ * 内置 “Medium Style 2 - Accent 1”：首行/首列强调色底 + 白色文字 + 白色网格线。
+ * 同样在 tableStyles.xml 中给出等价定义，避免依赖 WPS/PowerPoint 各自的内置样式表。
  */
-export function buildTableStylesXml() {
-    const edge = (side: string) =>
-        `<a:${side}><a:ln w="12700" cmpd="sng"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></a:${side}>`;
-    const grid = ['left', 'right', 'top', 'bottom', 'insideH', 'insideV'].map(edge).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
-        `<a:tblStyleLst xmlns:a="${NS.a}" def="${DEFAULT_TABLE_STYLE_ID}">` +
-        `<a:tblStyle styleId="${DEFAULT_TABLE_STYLE_ID}" styleName="Table Grid">` +
+export const ACCENT_TABLE_STYLE_ID = '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}';
+
+/** 六向网格线（颜色以 DrawingML 颜色片段给出，如 `<a:srgbClr val="000000"/>`） */
+function tableGridEdges(colorXml: string): string {
+    const edge = (side: string) => `<a:${side}><a:ln w="12700" cmpd="sng"><a:solidFill>${colorXml}</a:solidFill></a:ln></a:${side}>`;
+    return ['left', 'right', 'top', 'bottom', 'insideH', 'insideV'].map(edge).join('');
+}
+
+/** Table Grid 等价定义（黑网格 + 首行加粗） */
+function tableGridStyleXml(styleId: string): string {
+    const grid = tableGridEdges('<a:srgbClr val="000000"/>');
+    return `<a:tblStyle styleId="${styleId}" styleName="Table Grid">` +
         `<a:wholeTbl>` +
         `<a:tcTxStyle b="off"><a:fontRef idx="minor"/><a:schemeClr val="dk1"/></a:tcTxStyle>` +
         `<a:tcStyle><a:tcBdr>${grid}</a:tcBdr></a:tcStyle>` +
@@ -82,8 +83,45 @@ export function buildTableStylesXml() {
         `<a:tcTxStyle b="on"><a:fontRef idx="minor"/><a:schemeClr val="dk1"/></a:tcTxStyle>` +
         `<a:tcStyle><a:tcBdr>${grid}</a:tcBdr></a:tcStyle>` +
         `</a:firstRow>` +
-        `</a:tblStyle>` +
-        `</a:tblStyleLst>`;
+        `</a:tblStyle>`;
+}
+
+/** Medium Style 2 - Accent 1 等价定义（强调色底纹 + 白色网格线） */
+function accentTableStyleXml(styleId: string): string {
+    const grid = tableGridEdges('<a:schemeClr val="lt1"/>');
+    const accentFill = `<a:fill><a:solidFill><a:schemeClr val="accent1"/></a:solidFill></a:fill>`;
+    // 交替行：强调色 40%（lumMod 40% + lumOff 60% ≈ 原色 40% 亮度）
+    const bandFill = `<a:fill><a:solidFill><a:schemeClr val="accent1"><a:lumMod val="40000"/><a:lumOff val="60000"/></a:schemeClr></a:solidFill></a:fill>`;
+    return `<a:tblStyle styleId="${styleId}" styleName="Medium Style 2 - Accent 1">` +
+        `<a:wholeTbl>` +
+        `<a:tcTxStyle b="off"><a:fontRef idx="minor"/><a:schemeClr val="lt1"/></a:tcTxStyle>` +
+        `<a:tcStyle><a:tcBdr>${grid}</a:tcBdr>${accentFill}</a:tcStyle>` +
+        `</a:wholeTbl>` +
+        `<a:band1Horz><a:tcStyle>${bandFill}</a:tcStyle></a:band1Horz>` +
+        `<a:firstRow>` +
+        `<a:tcTxStyle b="on"><a:fontRef idx="minor"/><a:schemeClr val="lt1"/></a:tcTxStyle>` +
+        `<a:tcStyle><a:tcBdr>${grid}</a:tcBdr>${accentFill}</a:tcStyle>` +
+        `</a:firstRow>` +
+        `</a:tblStyle>`;
+}
+
+/**
+ * 表格样式模板（tableStyles.xml）
+ *
+ * 根元素必须是 DrawingML 命名空间下的 a:tblStyleLst（解析端按 ["a:tblStyleLst"]["a:tblStyle"] 读取）。
+ * 除内置的两个样式外，还会为文档实际引用到的每个 tableStyleId 补一份等价定义 ——
+ * WPS/PowerPoint 与本解析器遇到未知 GUID 都会退化为「无样式无网格」，表格会整个看不见边框。
+ *
+ * @param {string[]} [styleIds] - 文档中引用到的表格样式 ID
+ * @returns {string} tableStyles.xml 内容
+ */
+export function buildTableStylesXml(styleIds: string[] = []) {
+    const ids = new Set<string>([DEFAULT_TABLE_STYLE_ID, ...styleIds]);
+    const styles = [...ids]
+        .map((id) => (id === ACCENT_TABLE_STYLE_ID ? accentTableStyleXml(id) : tableGridStyleXml(id)))
+        .join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<a:tblStyleLst xmlns:a="${NS.a}" def="${DEFAULT_TABLE_STYLE_ID}">${styles}</a:tblStyleLst>`;
 }
 
 /**

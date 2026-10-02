@@ -199,22 +199,26 @@ slides.push(page('T9 · 文本框内边距 / 竖排', [
 ]));
 
 // ============ T10 单元格内边距 + 对角线边框 + 表格样式 ============
+// tableStyleId 用内置的 “Medium Style 2 - Accent 1”（强调色底纹 + 白色网格线）；
+// 生成端会把该 ID 的等价定义写进 ppt/tableStyles.xml —— 未知 GUID 会让 WPS/PowerPoint 退化成「无样式无网格」。
 slides.push(page('T10 · 单元格内边距/对角线/表格样式', [
-    { type: 'table', x: 60, y: 120, width: 900, height: 260, tableStyleId: '{2D1D2E6E-9063-44E1-9D16-7D619778F921}',
-        borders: { diagonal: 'tlBr' },
+    { type: 'table', x: 60, y: 120, width: 900, height: 260,
+        tableStyleId: '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}',
         rows: [
             { cells: [
-                { text: '内边距', inset: { l: 20, r: 20, t: 10, b: 10 } },
-                { text: '对角线', borders: { diagonal: 'tlBr' } },
-                { text: '样式' }
+                { text: '内边距 20px', inset: { l: 20, r: 20, t: 10, b: 10 } },
+                { text: '对角线 tlBr', borders: { diagonal: 'tlBr' } },
+                { text: '对角线 both', borders: { diagonal: 'both' } }
             ] },
             { cells: [
-                { text: 'A', inset: { l: 10, r: 10, t: 10, b: 10 } },
+                { text: 'A：默认内边距' },
                 { text: 'B' },
                 { text: 'C' }
             ] }
         ]
-    }
+    },
+    { type: 'text', x: 60, y: 400, width: 900, height: 40, fontSize: 14, color: '#475569',
+        text: '样式：Medium Style 2 - Accent 1（首行强调色底+白字、白色网格线）｜内边距：左上 20/10px，其余用默认 9.6/4.8px' }
 ]));
 
 // ============ T11 图表类型与特性扩展 ============
@@ -327,6 +331,7 @@ async function selfCheck() {
     }
     const all = slideXml.join('\n');
     const contentTypes = await zip.file('[Content_Types].xml').async('string');
+    const tableStylesXml = await zip.file('ppt/tableStyles.xml').async('string');
 
     const chartXml = [];
     for (const name of Object.keys(zip.files)) {
@@ -380,9 +385,16 @@ async function selfCheck() {
     // 必须落在合法枚举内，否则 PowerPoint/WPS 会忽略该属性
     assert('T9 竖排 vert 合法', /vert="(horz|vert|vert270|wordArtVert|eaVert|mongolianVert|wordArtVertRtl)"/.test(slideXml[8]));
     // T10 对角线/内边距/样式
-    assert('T10 对角线 lnTlToBr/lnBlToTr', /<a:lnTlToBr|<a:lnBlToTr/.test(slideXml[9]));
-    assert('T10 单元格内边距 tableCellInsets', /<a:tableCellInsets/.test(slideXml[9]));
-    assert('T10 表格样式 tableStyleId', /<a:tableStyleId>/.test(slideXml[9]));
+    // 对角线：a:lnTlToBr 本身就是线属性（CT_LineProperties），不能再嵌一层 a:ln
+    assert('T10 对角线 lnTlToBr', /<a:lnTlToBr w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill>/.test(slideXml[9]));
+    assert('T10 对角线 lnBlToTr', /<a:lnBlToTr w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill>/.test(slideXml[9]));
+    assert('T10 对角线无双层 a:ln', !/<a:lnTlToBr><a:ln/.test(slideXml[9]));
+    // 内边距必须是 a:tcPr 的属性（marL/marR/marT/marB），写成独立元素属于非法 OOXML
+    assert('T10 单元格内边距 marL/marT', /<a:tcPr anchor="t" marL="190500" marR="190500" marT="95250" marB="95250"\/>/.test(slideXml[9]));
+    assert('T10 无非法 tableCellInsets', !/tableCellInsets/.test(slideXml[9]));
+    // 表格样式 ID 必须在 tableStyles.xml 中有对应定义，否则 WPS/PowerPoint 会退化成无网格
+    assert('T10 表格样式 tableStyleId', /<a:tableStyleId>\{5C22544A-7EE6-4342-B048-85BDC9FD1C3A\}<\/a:tableStyleId>/.test(slideXml[9]));
+    assert('T10 tableStyles 含样式定义', /styleId="\{5C22544A-7EE6-4342-B048-85BDC9FD1C3A\}"/.test(tableStylesXml));
     // T11 图表类型
     assert('T11 c:bar3DChart', /<c:bar3DChart/.test(chartAll));
     assert('T11 c:doughnutChart', /<c:doughnutChart/.test(chartAll));
