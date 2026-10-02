@@ -19,6 +19,41 @@ import { xmlNode, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml,
 import { REL_TYPES, DEFAULT_TABLE_STYLE_ID } from './templates';
 import type { PptxBackground, PptxTransition, PptxImageSrcRect, PptxImageTile } from '../types/pptx-document';
 
+/**
+ * OOXML 预设几何（ST_PresetGeometryType）白名单。
+ * 序列化时若 shapeType 不在该集合内，则回退为 'rect'，避免写出非标准 prst 导致渲染端落入未实现分支。
+ */
+const PRESET_GEOMETRIES = new Set<string>([
+    'accentBorderCallout1', 'accentBorderCallout2', 'accentBorderCallout3', 'accentCallout1', 'accentCallout2', 'accentCallout3',
+    'actionButtonBackPrevious', 'actionButtonBeginning', 'actionButtonBlank', 'actionButtonDocument', 'actionButtonEnd',
+    'actionButtonForwardNext', 'actionButtonHelp', 'actionButtonHome', 'actionButtonInformation', 'actionButtonMovie',
+    'actionButtonReturn', 'actionButtonSound', 'arc', 'bentArrow', 'bentUpArrow', 'bevel', 'blockArc', 'bracePair',
+    'bracketPair', 'callout1', 'callout2', 'callout3', 'can', 'chartPlus', 'chartStar', 'chartX', 'chevron', 'chord',
+    'circularArrow', 'cloud', 'cloudCallout', 'corner', 'cube', 'curvedDownArrow', 'curvedLeftArrow', 'curvedRightArrow',
+    'curvedUpArrow', 'decagon', 'diagonalStripe', 'diamond', 'dodecagon', 'donut', 'doubleWave', 'downArrow',
+    'downArrowCallout', 'ellipse', 'ellipseRibbon', 'ellipseRibbon2', 'flowChartAlternateProcess', 'flowChartCollate',
+    'flowChartConnector', 'flowChartDecision', 'flowChartDelay', 'flowChartDisplay', 'flowChartDocument', 'flowChartExtract',
+    'flowChartInputOutput', 'flowChartInternalStorage', 'flowChartMagneticDrum', 'flowChartMagneticTape', 'flowChartManualInput',
+    'flowChartManualOperation', 'flowChartMerge', 'flowChartMultidocument', 'flowChartOfflineStorage', 'flowChartOnlineStorage',
+    'flowChartOr', 'flowChartPredefinedProcess', 'flowChartPreparation', 'flowChartProcess', 'flowChartPunchedCard',
+    'flowChartPunchedTape', 'flowChartSummingJunction', 'flowChartTerminator', 'folderTab', 'frame', 'funnel', 'gear6', 'gear9',
+    'halfFrame', 'heart', 'heptagon', 'hexagon', 'homePlate', 'horizontalScroll', 'irregularSeal1', 'irregularSeal2',
+    'leftArrow', 'leftArrowCallout', 'leftBrace', 'leftBracket', 'leftCircularArrow', 'leftRightArrow', 'leftRightArrowCallout',
+    'leftRightCircularArrow', 'leftRightUpArrow', 'leftUpArrow', 'lightningBolt', 'line', 'lineInv', 'moon',
+    'nonIsoscelesTrapezoid', 'notchedRightArrow', 'octagon', 'parallelogram', 'pentagon', 'pentagonBlock', 'pie', 'pieWedge',
+    'plaque', 'plus', 'plusMinus', 'quadArrow', 'quadArrowCallout', 'rectangularCallout', 'ribbon', 'ribbon2', 'rightArrow',
+    'rightArrowCallout', 'rightBrace', 'rightBracket', 'round1Rect', 'round2DiagRect', 'round2SameRect', 'roundRect',
+    'rtTriangle', 'snip1Rect', 'snip2DiagRect', 'snip2SameRect', 'snipRoundRect', 'sun', 'swooshArrow', 'teardrop', 'trapezoid',
+    'triangle', 'upArrow', 'upArrowCallout', 'upDownArrow', 'upDownArrowCallout', 'uturnArrow', 'verticalScroll', 'wave',
+    'wedgeEllipseCallout', 'wedgeRectCallout', 'wedgeRoundRectCallout', 'x', 'foldedCorner', 'smileyFace'
+]);
+
+/** 校验 shapeType 是否为合法 OOXML 预设几何，非法则回退 'rect' */
+function normalizeShapeType(t?: string): string {
+    if (!t) return 'rect';
+    return PRESET_GEOMETRIES.has(t) ? t : 'rect';
+}
+
 /** 关系记录（写入 slide rels） */
 export interface SerializerRel {
     relId: string;
@@ -935,7 +970,7 @@ async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) 
         xmlNode('p:spPr',
             null,
             buildXfrm(el),
-            xmlNode('a:prstGeom', { prst: el.shapeType || 'rect' },
+            xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) },
                 el.adjust && Object.keys(el.adjust).length
                     ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
                     : xmlNode('a:avLst')),
@@ -1782,9 +1817,10 @@ function layoutDiagram(type: string, nodes: DiagramNode[], W: number, H: number)
     const accents = ['accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6'];
     /** 连线粗细（EMU），用细长矩形充当连接线，避免依赖连接器渲染 */
     const lw = Math.max(1, Math.round(pxToEmu(2)));
-    /** 追加一段轴对齐连线（kind='line'，无线框无文字） */
+    /** 追加一段轴对齐连线（kind='line'）：标准 cxnSp 直线连接器，包围盒退化（一维为 0 表示纯水平/纯垂直） */
     const line = (x: number, y: number, w: number, h: number) => {
-        if (w <= 0 || h <= 0) return;
+        // 允许退化（一维为 0 表示纯水平/垂直直线连接器），两维皆为 0 则跳过
+        if (w < 0 || h < 0 || (w === 0 && h === 0)) return;
         out.push({ x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h), text: '', fill: accents[0], kind: 'line' });
     };
     const push = (s: Omit<DiagShape, 'fill'>, depth: number, idx: number) =>
@@ -1805,7 +1841,7 @@ function layoutDiagram(type: string, nodes: DiagramNode[], W: number, H: number)
         walk(nodes);
         // 相邻节点间的垂直连接线（流程感）
         for (let k = 0; k < n - 1; k++) {
-            line(W * 0.5 - lw / 2, k * (cellH + gap) + cellH, lw, gap);
+            line(W * 0.5, k * (cellH + gap) + cellH, 0, gap);
         }
     } else if (type === 'hierarchy' || type === 'orgChart') {
         const depthMax = Math.max(1, maxDepth(nodes) + 1);
@@ -1835,12 +1871,12 @@ function layoutDiagram(type: string, nodes: DiagramNode[], W: number, H: number)
         // 肘形连线：父底中心 →（竖）层间中线 →（横）子中心 →（竖）子顶中心（对齐 PowerPoint 组织结构图）
         for (const lk of links) {
             const midY = (lk.pyB + lk.cyT) / 2;
-            line(lk.px - lw / 2, lk.pyB, lw, midY - lk.pyB);
+            line(lk.px, lk.pyB, 0, midY - lk.pyB);
             if (Math.abs(lk.cx - lk.px) > lw) {
                 const x1 = Math.min(lk.px, lk.cx), x2 = Math.max(lk.px, lk.cx);
-                line(x1, midY - lw / 2, x2 - x1, lw);
+                line(x1, midY, x2 - x1, 0);
             }
-            line(lk.cx - lw / 2, midY, lw, lk.cyT - midY);
+            line(lk.cx, midY, 0, lk.cyT - midY);
         }
     } else if (type === 'cycle') {
         const n = Math.max(1, countNodes(nodes));
@@ -1897,13 +1933,15 @@ function buildDiagramDrawing(type: string, seed: number, nodes: DiagramNode[], W
         const modelId = diagramUniqueId(seed * 100 + idx + 1);
         const xfrm = `<a:xfrm><a:off x="${s.x}" y="${s.y}"/><a:ext cx="${s.w}" cy="${s.h}"/></a:xfrm>`;
         if (s.kind === 'line') {
-            // 连线：细长矩形，无边框、无文字（解析端按普通形状渲染为线，PowerPoint 同样呈现为连线）
-            return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
+            // 连线：标准 dsp:cxnSp（解析端重写为 p:cxnSp）直线连接器，a:prstGeom=straightConnector1，
+            // 包围盒退化（一维为 0 表示纯水平/垂直），线宽与颜色由 a:ln 表达（无填充、无文字）。
+            const lwEmu = Math.max(9525, Math.round(pxToEmu(2)));
+            return `<dsp:cxnSp modelId="${escapeXml(modelId)}"><dsp:nvCxnSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvCxnSpPr><a:stCxn id="0" idx="0"/><a:endCxn id="0" idx="0"/></dsp:cNvCxnSpPr><dsp:nvPr/></dsp:nvCxnSpPr>` +
                 `<dsp:spPr bwMode="auto">${xfrm}` +
-                `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-                `<a:solidFill><a:schemeClr val="${s.fill}"/></a:solidFill>` +
+                `<a:prstGeom prst="straightConnector1"><a:avLst/></a:prstGeom>` +
+                `<a:ln w="${lwEmu}"><a:solidFill><a:schemeClr val="${s.fill}"/></a:solidFill></a:ln>` +
                 `</dsp:spPr>` +
-                `<dsp:txBody><a:bodyPr/><a:lstStyle/><a:p/></dsp:txBody></dsp:sp>`;
+                `</dsp:cxnSp>`;
         }
         const sz = Math.max(900, Math.min(2200, Math.round((s.h / 914400) * 1200))); // 字号随框高自适应（EMU→pt*100）
         return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +

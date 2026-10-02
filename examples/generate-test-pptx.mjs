@@ -359,7 +359,7 @@ slides.push(page('T17 · 自定义主题覆盖（options.theme）', [
 
 // ============ T18 批注 comments ============
 slides.push(page('T18 · 批注 comments', [
-    { type: 'shape', shapeType: 'note', x: 200, y: 200, width: 300, height: 120, fill: { color: '#fde68a' } }
+    { type: 'shape', shapeType: 'foldedCorner', x: 200, y: 200, width: 300, height: 120, fill: { color: '#fde68a' } }
 ], {
     comments: [
         { author: 'Alice', text: '这是一条批注', dt: '2026-01-01T00:00:00Z' },
@@ -549,6 +549,13 @@ async function selfCheck() {
     // T19 自定义属性
     assert('T19 custom.xml', !!zip.file('docProps/custom.xml'));
     assert('T19 自定义属性内容', /研发/.test(await zip.file('docProps/custom.xml').async('string')));
+    // T18/T19 语义层 round-trip：pptxToStandard 须能回读批注与自定义属性
+    const t18Comments = std.slides[19] && std.slides[19].comments;
+    assert('T18 语义回读 comments', Array.isArray(t18Comments) && t18Comments.length === 2
+        && t18Comments[0].author === 'Alice' && t18Comments[0].text === '这是一条批注'
+        && t18Comments[1].author === 'Bob');
+    assert('T19 语义回读 customProps', !!std.customProps && std.customProps['部门'] === '研发'
+        && std.customProps['版本'] === '1.0' && std.customProps['项目'] === 'pptx-parser');
 
     let failed = 0;
     for (const c of checks) {

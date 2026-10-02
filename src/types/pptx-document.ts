@@ -562,6 +562,11 @@ export interface PptxDocument {
     slideSize: SlideSize;
     /** 文档元数据 */
     metadata?: PptxMetadata;
+    /**
+     * 文档自定义属性（解析端自 docProps/custom.xml 产出，生成端写回 docProps/custom.xml）
+     * 键为属性名，值为字符串（其他类型统一转为字符串）
+     */
+    customProps?: Record<string, string>;
     /** 幻灯片列表（顺序即显示顺序） */
     slides: PptxSlide[];
     /**

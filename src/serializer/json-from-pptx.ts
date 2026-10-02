@@ -764,6 +764,16 @@ export async function extractSlideToStandard(
         if (transition) slide.transition = transition;
         const notes = extractNotes(slideData.notesContent);
         if (notes) slide.notes = notes;
+        // 批注（解析端已从 ppt/comments/commentsN.xml 解析并挂在 slideData.comments）
+        const comments = slideData && slideData.comments;
+        if (Array.isArray(comments) && comments.length) {
+            slide.comments = comments.map((c: any) => ({
+                author: c.author,
+                text: c.text || '',
+                dt: c.dt,
+                pos: (c.x != null || c.y != null) ? { x: c.x, y: c.y } : undefined
+            }));
+        }
 
         if (spTree) {
             const shapeNodes: { key: string; node: any }[] = [];
@@ -1209,5 +1219,9 @@ export async function buildStandardDocument(
         slides
     };
     if (parsedData.metadata) doc.metadata = parsedData.metadata;
+    // 文档自定义属性（解析端已自 docProps/custom.xml 解析）
+    if (parsedData.customProps && Object.keys(parsedData.customProps).length) {
+        doc.customProps = parsedData.customProps;
+    }
     return doc;
 }

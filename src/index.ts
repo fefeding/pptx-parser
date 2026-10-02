@@ -46,9 +46,38 @@ interface PptxMetadata {
     language?: string;
 }
 
+/** 单页批注（来自 ppt/comments/commentsN.xml） */
+interface CommentItem {
+    author: string;
+    text: string;
+    dt?: string;
+    x?: number;
+    y?: number;
+}
+
+/** 解析 ppt/comments/commentsN.xml 为批注数组（authorId 映射为作者名） */
+function parseComments(xml: any, authors: Record<string, string>): CommentItem[] {
+    if (!xml || !xml['p:cmLst']) return [];
+    const cms = xml['p:cmLst']['p:cm'];
+    const arr = Array.isArray(cms) ? cms : (cms ? [cms] : []);
+    return arr.map((cm: any) => {
+        const attrs = cm.attrs || {};
+        const pos = cm['p:pos'];
+        const text = cm['p:text'];
+        return {
+            author: authors[String(attrs.authorId)] || 'Author',
+            text: typeof text === 'string' ? text : (text && text['#text']) || '',
+            dt: attrs.dt,
+            x: pos && pos.attrs && pos.attrs.x ? Number(pos.attrs.x) : undefined,
+            y: pos && pos.attrs && pos.attrs.y ? Number(pos.attrs.y) : undefined
+        };
+    });
+}
+
 /** 单页解析数据（承载 processNodesInSlide 所需的 warp 上下文字段） */
 interface SlideDataRecord {
     index: number;
+    comments?: CommentItem[];
     slideContent: XmlNode;
     slideLayoutContent?: XmlNode;
     slideMasterContent?: XmlNode;
@@ -196,6 +225,42 @@ async function parsePPTXInternal(zip: JSZip, msgQueue: ChartQueueItem[], setting
         metadata = {};
     }
 
+    // 解析文档自定义属性（docProps/custom.xml）
+    let customProps: Record<string, string> = {};
+    try {
+        const customContent = await PPTXXmlUtils.readXmlFile(zip, "docProps/custom.xml");
+        if (customContent && customContent["Properties"]) {
+            const props = customContent["Properties"]["property"];
+            const arr = Array.isArray(props) ? props : (props ? [props] : []);
+            for (const p of arr) {
+                const name = p && p.attrs && p.attrs.name;
+                if (!name) continue;
+                const valKey = p ? Object.keys(p).find(k => k !== 'attrs' && k !== 'order') : undefined;
+                const raw = valKey ? p[valKey] : undefined;
+                customProps[name] = (typeof raw === 'string' ? raw : (raw && raw['#text'])) || '';
+            }
+        }
+    } catch {
+        customProps = {};
+    }
+
+    // 解析批注作者表（ppt/commentAuthors.xml）：id -> name
+    const commentAuthors: Record<string, string> = {};
+    try {
+        const authorsContent = await PPTXXmlUtils.readXmlFile(zip, "ppt/commentAuthors.xml");
+        if (authorsContent && authorsContent["p:commentAuthors"]) {
+            const authors = authorsContent["p:commentAuthors"]["p:cmAuthor"];
+            const arr = Array.isArray(authors) ? authors : (authors ? [authors] : []);
+            for (const a of arr) {
+                const id = a && a.attrs && a.attrs.id;
+                const name = a && a.attrs && a.attrs.name;
+                if (id !== undefined) commentAuthors[String(id)] = name || 'Author';
+            }
+        }
+    } catch {
+        // ignore
+    }
+
     const filesInfo = await PPTXXmlUtils.getContentTypes(zip);
     const slideSize = await PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
 
@@ -227,7 +292,19 @@ async function parsePPTXInternal(zip: JSZip, msgQueue: ChartQueueItem[], setting
 
         // Process slide and get structured data
         const slideData = await processSingleSlideStructured(zip, filename, i, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle);
-        
+
+        // 解析本页批注（通过 slide rels 中的 comments 关系定位 commentsN.xml）
+        try {
+            const resObj: Record<string, any> = (slideData as any).slideResObj || {};
+            const commentEntry = Object.values(resObj).find((e: any) => e && e.type === 'comments');
+            if (commentEntry) {
+                const cXml = await PPTXXmlUtils.readXmlFile(zip, commentEntry.target);
+                (slideData as any).comments = parseComments(cXml, commentAuthors);
+            }
+        } catch {
+            // ignore
+        }
+
         slides.push({
             slideNum: slideNumber,
             fileName: fileNameNoExt,
@@ -245,6 +322,7 @@ async function parsePPTXInternal(zip: JSZip, msgQueue: ChartQueueItem[], setting
         slideSize,
         thumbnail,
         metadata,
+        customProps,
         executionTime: dateAfter.getTime() - dateBefore.getTime()
     };
 }
@@ -503,7 +581,7 @@ async function processSingleSlideStructured(zip: JSZip, slideFileName: string, i
  * @param {JSZip} zip - The JSZip instance
  * @returns {Promise<string>} Slide HTML
  */
-async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: SlideSize, settings: ParseSettings, zip: JSZip, slideNum: number | undefined) {
+async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: SlideSize, settings: ParseSettings, zip: JSZip, slideNum: number | undefined, customProps?: Record<string, string>) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -577,6 +655,31 @@ async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: Sli
         }
     }
 
+    // ===== 批注可视化（来自 ppt/comments/commentsN.xml）=====
+    const comments = (slideData as any).comments as CommentItem[] | undefined;
+    if (comments && comments.length) {
+        const emuToPx = (e?: number) => (e == null ? 0 : e / 9525);
+        const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const noteHtml = comments.map((c, i) => {
+            const left = c.x != null ? emuToPx(c.x) : (slideSize.width - 220);
+            const top = c.y != null ? emuToPx(c.y) : (8 + i * 76);
+            return `<div class="pptx-comment" style="position:absolute;left:${left}px;top:${top}px;width:200px;box-sizing:border-box;background:#fff7cc;border:1px solid #f1d27a;border-radius:8px;padding:8px 10px;box-shadow:0 2px 6px rgba(0,0,0,.15);font:12px/1.4 sans-serif;color:#3b2f00;z-index:60;">` +
+                `<div style="font-weight:700;margin-bottom:2px;">${esc(c.author)}</div>` +
+                `<div style="white-space:pre-wrap;">${esc(c.text)}</div>` +
+                (c.dt ? `<div style="margin-top:4px;font-size:10px;color:#8a7a3a;">${esc(String(c.dt).slice(0, 10))}</div>` : '') +
+                `</div>`;
+        }).join('');
+        result += `<div class="pptx-comments">${noteHtml}</div>`;
+    }
+
+    // ===== 文档自定义属性可视化（docProps/custom.xml，文档级，逐页展示）=====
+    if (customProps && Object.keys(customProps).length) {
+        const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const rows = Object.entries(customProps).map(([k, v]) => `<div>${esc(k)}: ${esc(v)}</div>`).join('');
+        result += `<div class="pptx-custom-props" style="position:absolute;left:8px;bottom:8px;max-width:260px;box-sizing:border-box;font:11px/1.45 sans-serif;color:#334155;background:rgba(255,255,255,.85);border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px;box-shadow:0 1px 3px rgba(0,0,0,.12);z-index:50;">` +
+            `<div style="font-weight:600;margin-bottom:3px;">文档自定义属性</div>${rows}</div>`;
+    }
+
     return `${result}</div></section>`;
 }
 
@@ -646,12 +749,13 @@ async function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettings
                 global: ""
             },
             metadata,
+            customProps: parsedData.customProps,
             charts: [] as Array<Record<string, unknown>>
         };
 
         // Step 3: Process slides and convert to HTML
         for (const slideData of parsedData.slides) {
-            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum, parsedData.customProps);
             const sldAttrs = (slideData.data as any).slideContent && (slideData.data as any).slideContent["p:sld"] && (slideData.data as any).slideContent["p:sld"].attrs;
             const hidden = !!(sldAttrs && String(sldAttrs.show) === "0");
             result.slides.push({
@@ -762,6 +866,7 @@ async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings
                 global: genGlobalCSS(styleTable)
             },
             metadata,
+            customProps: parsedData.customProps,
             charts: [] as Array<Record<string, unknown>>
         };
 
