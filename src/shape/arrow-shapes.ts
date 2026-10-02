@@ -79,93 +79,77 @@ export function renderArrow(shapType: string, w: number, h: number, imgFillFlg: 
  * @param {XmlNode} node - 形状节点
  * @returns {Object} 包含 adj1, adj2 值的对象
  */
-function readAdjustmentParams(node: XmlNode, w: number, h: number): { sAdj1_val: number; sAdj2_val: number } {
-    const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-    let sAdj1: string | undefined, sAdj1_val = 0.25;
-    let sAdj2: string | undefined, sAdj2_val = 0.5;
-
-    if (shapAdjst) {
-        for (const item of shapAdjst) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
-            if (sAdjName === "adj1") {
-                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                sAdj1 = fmla;
-                sAdj1_val = parseInt(fmla.substr(4)) / 200000;
-            } else if (sAdjName === "adj2") {
-                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                sAdj2 = fmla;
-                const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
-                const maxConst = w / h;  // 会在调用处重新计算
-                sAdj2_val = sAdj2Val2 / maxConst;
-            }
+/**
+ * 读取 a:avLst 中的 adj1/adj2 原始值（100000 = 100%），未提供时回退到预设默认值 50000
+ * —— 与 PowerPoint/WPS 一致（非法/缺失的 gd 会被忽略并用默认值）。
+ *
+ * 这里保持 OOXML 的原始语义，不做提前换算：
+ *   rightArrow / leftArrow：dx1 = ss*a2/100000（箭头长度），dy1 = h*a1/200000（半箭身厚度）
+ *   upArrow / downArrow   ：dy1 = ss*a2/100000，dx1 = w*a1/200000
+ */
+function readArrowAdj(node: XmlNode): { adj1: number; adj2: number } {
+    let adj1 = 50000;
+    let adj2 = 50000;
+    const gdList = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+    // 单个 gd 时解析结果是对象而非数组，这里统一成数组处理
+    const items: any[] = Array.isArray(gdList) ? gdList : (gdList ? [gdList] : []);
+    for (const item of items) {
+        const name = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
+        const fmla = String(PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]) || "");
+        const val = parseInt(fmla.replace(/^\s*val\s+/, ""));
+        if (isNaN(val)) continue;
+        if (name === "adj1") {
+            adj1 = val;
+        } else if (name === "adj2") {
+            adj2 = val;
         }
     }
+    return { adj1, adj2 };
+}
 
-    return { sAdj1_val, sAdj2_val };
+/** 收敛到 [min, max] */
+function clampValue(v: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, v));
 }
 
 /**
  * 渲染基础箭头形状
  */
 function renderBasicArrow(shapType: string, w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, node: XmlNode): string {
-    let { sAdj1_val, sAdj2_val } = readAdjustmentParams(node, w, h);
-    const max_sAdj2_const = w / h;
-
-    // 重新读取并计算 sAdj2_val（因为需要正确的 max_sAdj2_const）
-    const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-    if (shapAdjst) {
-        for (const item of shapAdjst) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
-            if (sAdjName === "adj2") {
-                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
-                sAdj2_val = sAdj2Val2 / max_sAdj2_const;
-            }
-        }
-    }
-
+    const { adj1, adj2 } = readArrowAdj(node);
+    const ss = Math.min(w, h);
+    const a1 = clampValue(adj1, 0, 100000);
     let points: string;
-    if (shapType === "rightArrow") {
-        points = `${w} ${h / 2},${sAdj2_val * w} 0,${sAdj2_val * w} ${sAdj1_val * h},0 ${sAdj1_val * h},0 ${(1 - sAdj1_val) * h},${sAdj2_val * w} ${(1 - sAdj1_val) * h}, ${sAdj2_val * w} ${h}`;
-    } else if (shapType === "leftArrow") {
-        points = `0 ${h / 2},${sAdj2_val * w} ${h},${sAdj2_val * w} ${(1 - sAdj1_val) * h},${w} ${(1 - sAdj1_val) * h},${w} ${sAdj1_val * h},${sAdj2_val * w} ${sAdj1_val * h}, ${sAdj2_val * w} 0`;
-    } else if (shapType === "upArrow") {
-        // upArrow 使用不同的宽高比计算
-        const max_sAdj2_const_up = h / w;
-        const { sAdj1_val: sAdj1_up, sAdj2_val: sAdj2_up } = readAdjustmentParams(node, w, h);
-        const shapAdjst_up = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        let sAdj2_val_up = 0.5;
 
-        if (shapAdjst_up) {
-            for (const item of shapAdjst_up) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
-                if (sAdjName === "adj2") {
-                    const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                    const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
-                    sAdj2_val_up = sAdj2Val2 / max_sAdj2_const_up;
-                }
-            }
+    if (shapType === "rightArrow" || shapType === "leftArrow") {
+        // a2 上限 = 100000*w/ss（预设公式 maxAdj2），箭头长度 dx1 = ss*a2/100000，
+        // 半箭身厚度 dy1 = h*a1/200000；箭头肩部位于距箭尖 dx1 处。
+        const a2 = clampValue(adj2, 0, 100000 * w / ss);
+        const dx1 = ss * a2 / 100000;
+        const dy1 = h * a1 / 200000;
+        const y1 = h / 2 - dy1;
+        const y2 = h / 2 + dy1;
+        if (shapType === "rightArrow") {
+            const x1 = w - dx1;
+            points = `0 ${y1},${x1} ${y1},${x1} 0,${w} ${h / 2},${x1} ${h},${x1} ${y2},0 ${y2}`;
+        } else {
+            const x1 = dx1;
+            points = `${w} ${y1},${x1} ${y1},${x1} 0,0 ${h / 2},${x1} ${h},${x1} ${y2},${w} ${y2}`;
         }
-
-        points = `${w / 2} 0,0 ${sAdj2_val_up * h},${(0.5 - sAdj1_up) * w} ${sAdj2_val_up * h},${(0.5 - sAdj1_up) * w} ${h},${(0.5 + sAdj1_up) * w} ${h},${(0.5 + sAdj1_up) * w} ${sAdj2_val_up * h}, ${w} ${sAdj2_val_up * h}`;
-    } else { // downArrow
-        const max_sAdj2_const_down = h / w;
-        const { sAdj1_val: sAdj1_down, sAdj2_val: sAdj2_down } = readAdjustmentParams(node, w, h);
-        const shapAdjst_down = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        let sAdj2_val_down = 0.5;
-
-        if (shapAdjst_down) {
-            for (const item of shapAdjst_down) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
-                if (sAdjName === "adj2") {
-                    const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                    const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
-                    sAdj2_val_down = sAdj2Val2 / max_sAdj2_const_down;
-                }
-            }
+    } else {
+        // upArrow / downArrow：主轴为高度，箭头长度 dy1 = ss*a2/100000，半箭身厚度 dx1 = w*a1/200000
+        const a2 = clampValue(adj2, 0, 100000 * h / ss);
+        const dy1 = ss * a2 / 100000;
+        const dx1 = w * a1 / 200000;
+        const x1 = w / 2 - dx1;
+        const x2 = w / 2 + dx1;
+        if (shapType === "upArrow") {
+            const y1 = dy1;
+            points = `${x1} ${h},${x1} ${y1},0 ${y1},${w / 2} 0,${w} ${y1},${x2} ${y1},${x2} ${h}`;
+        } else {
+            const y1 = h - dy1;
+            points = `${x1} 0,${x1} ${y1},0 ${y1},${w / 2} ${h},${w} ${y1},${x2} ${y1},${x2} 0`;
         }
-
-        points = `${(0.5 - sAdj1_down) * w} 0,${(0.5 - sAdj1_down) * w} ${(1 - sAdj2_val_down) * h},0 ${(1 - sAdj2_val_down) * h},${w / 2} ${h},${w} ${(1 - sAdj2_val_down) * h},${(0.5 + sAdj1_down) * w} ${(1 - sAdj2_val_down) * h}, ${(0.5 + sAdj1_down) * w} 0`;
     }
 
     return buildPolygon(points, imgFillFlg, grndFillFlg, fillColor, border, shpId);
@@ -175,50 +159,33 @@ function renderBasicArrow(shapType: string, w: number, h: number, imgFillFlg: bo
  * 渲染双向箭头
  */
 function renderDoubleArrow(shapType: string, w: number, h: number, imgFillFlg: boolean, grndFillFlg: boolean, fillColor: string, border: ShapeBorder, shpId: string, node: XmlNode): string {
-    let sAdj1_val = 0.25;
-    let sAdj2_val = 0.5;
-    const max_sAdj2_const = w / h;
-
-    const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-    if (shapAdjst) {
-        for (const item of shapAdjst) {
-            const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
-            if (sAdjName === "adj1") {
-                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                sAdj1_val = parseInt(fmla.substr(4)) / 200000;
-            } else if (sAdjName === "adj2") {
-                const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
-                sAdj2_val = sAdj2Val2 / max_sAdj2_const;
-            }
-        }
-    }
-
+    const { adj1, adj2 } = readArrowAdj(node);
+    const ss = Math.min(w, h);
+    const a1 = clampValue(adj1, 0, 100000);
     let points: string;
+
     if (shapType === "leftRightArrow") {
-        points = `0 ${h / 2},${sAdj2_val * w} 0,${sAdj2_val * w} ${h},0 ${h},${w} ${h / 2},${sAdj2_val * w} ${w},${sAdj2_val * w} ${h},${sAdj2_val * w} 0`;
-    } else { // upDownArrow
-        // upDownArrow 使用不同的宽高比计算
-        sAdj1_val = 0.25;
-        sAdj2_val = 0.5;
-        const max_sAdj2_const_ud = h / w;
-
-        const shapAdjst_ud = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-        if (shapAdjst_ud) {
-            for (const item of shapAdjst_ud) {
-                const sAdjName = PPTXXmlUtils.getTextByPathList(item, ["attrs", "name"]);
-                if (sAdjName === "adj1") {
-                    const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                    sAdj1_val = parseInt(fmla.substr(4)) / 200000;
-                } else if (sAdjName === "adj2") {
-                    const fmla = PPTXXmlUtils.getTextByPathList(item, ["attrs", "fmla"]);
-                    const sAdj2Val2 = parseInt(fmla.substr(4)) / 100000;
-                    sAdj2_val = sAdj2Val2 / max_sAdj2_const_ud;
-                }
-            }
-        }
-
-        points = `${w / 2} 0,${w} ${sAdj2_val * h},${w} ${h}, ${sAdj2_val * w} ${h},${w / 2} ${h},0 ${sAdj2_val * h},0 ${sAdj2_val * h},${sAdj1_val * w} 0, ${sAdj1_val * w} 0`;
+        // 左右各一个箭头：箭头长度 dx = ss*a2/100000，半箭身厚度 dy1 = h*a1/200000
+        const a2 = clampValue(adj2, 0, 100000 * w / ss);
+        const dx = ss * a2 / 100000;
+        const x1 = dx;
+        const x2 = w - dx;
+        const dy1 = h * a1 / 200000;
+        const y1 = h / 2 - dy1;
+        const y2 = h / 2 + dy1;
+        points = `0 ${y1},${x1} ${y1},${x1} 0,0 ${h / 2},${x1} ${h},${x1} ${y2},` +
+            `${x2} ${y2},${x2} ${h},${w} ${h / 2},${x2} 0,${x2} ${y1}`;
+    } else {
+        // upDownArrow：上下各一个箭头
+        const a2 = clampValue(adj2, 0, 100000 * h / ss);
+        const dy = ss * a2 / 100000;
+        const y1 = dy;
+        const y2 = h - dy;
+        const dx1 = w * a1 / 200000;
+        const x1 = w / 2 - dx1;
+        const x2 = w / 2 + dx1;
+        points = `${x1} ${h},${x1} ${y2},0 ${y2},${w / 2} ${h},${w} ${y2},${x2} ${y2},` +
+            `${x2} ${y1},${w} ${y1},${w / 2} 0,0 ${y1},${x1} ${y1}`;
     }
 
     return buildPolygon(points, imgFillFlg, grndFillFlg, fillColor, border, shpId);

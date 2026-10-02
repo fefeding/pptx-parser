@@ -228,7 +228,10 @@ export interface PptxTextElement extends PptxElementBase {
     href?: string;
     /** 文本框内边距（px）：{ l, r, t, b } */
     inset?: { l?: number; r?: number; t?: number; b?: number };
-    /** 文字方向：'wordArtVertical' / 'eaVertical' / 'vert' / 'horz'（默认横排） */
+    /**
+     * 文字方向（a:bodyPr/@vert，ST_TextVerticalType）：'horz' | 'vert' | 'vert270' | 'wordArtVert' | 'eaVert' | 'mongolianVert' | 'wordArtVertRtl'（默认横排）。
+     * 中文竖排用 'eaVert'，逐字堆积用 'wordArtVert'。
+     */
     textDirection?: string;
 }
 
@@ -245,7 +248,10 @@ export interface PptxShapeElement extends PptxElementBase {
     line?: PptxLine;
     /** 形状特效：阴影 / 发光（对应 a:effectLst） */
     effects?: PptxShapeEffects;
-    /** 几何调整值（圆角半径 / 箭头尺寸 / 星形尖角等），如 { adj: 25000 } */
+    /**
+     * 几何调整值，key 为该预设形状的 OOXML gd 名（roundRect/snip 用 `adj`，
+     * 箭头/标注/星形用 `adj1`/`adj2`/…），如 { adj: 25000 }、{ adj1: 50000, adj2: 40000 }
+     */
     adjust?: Record<string, number>;
 }
 

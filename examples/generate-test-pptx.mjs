@@ -173,8 +173,14 @@ slides.push(page('T6 · 形状图片填充 / 图案填充 / 平铺裁剪', [
 slides.push(page('T7 · 形状几何调整 avLst', [
     { type: 'shape', shapeType: 'roundRect', x: 60, y: 120, width: 240, height: 120,
         fill: { color: '#6366f1' }, adjust: { adj: 30000 } },
+    // adjust 的 key 必须是 OOXML 的 gd 名（rightArrow 为 adj1/adj2）：
+    // adj1 = 箭身厚度（相对高度），adj2 = 箭头长度（dx1 = min(w,h) * adj2 / 100000）
     { type: 'shape', shapeType: 'rightArrow', x: 340, y: 120, width: 240, height: 120,
-        fill: { color: '#10b981' }, adjust: { arrowWidth: 50000, arrowLength: 40000 } }
+        fill: { color: '#10b981' }, adjust: { adj1: 50000, adj2: 40000 } },
+    { type: 'shape', shapeType: 'rightArrow', x: 620, y: 120, width: 240, height: 120,
+        fill: { color: '#0ea5e9' }, adjust: { adj1: 30000, adj2: 100000 } },
+    { type: 'text', x: 60, y: 300, width: 900, height: 40, fontSize: 14, color: '#475569',
+        text: '圆角矩形 adj=30000｜箭头 adj1=50000/adj2=40000（箭头长 20%）｜箭头 adj1=30000/adj2=100000（箭头长 50%、箭身更细）' }
 ]));
 
 // ============ T8 水平/垂直翻转 ============
@@ -187,7 +193,9 @@ slides.push(page('T8 · 水平/垂直翻转', [
 // ============ T9 文本框内边距 + 竖排 ============
 slides.push(page('T9 · 文本框内边距 / 竖排', [
     { type: 'text', x: 60, y: 120, width: 240, height: 200, text: '内边距 l/r/t/b=20', fontSize: 16, color: '#0f172a', inset: { l: 20, r: 20, t: 20, b: 20 } },
-    { type: 'text', x: 360, y: 120, width: 160, height: 320, text: '竖排文字', fontSize: 22, color: '#7c3aed', textDirection: 'wordArtVertical' }
+    // textDirection 必须是合法的 ST_TextVerticalType（eaVert=东亚竖排/竖排，wordArtVert=堆积），
+    // 写成 'wordArtVertical' 这类非枚举值会被 PowerPoint/WPS 静默忽略并回退横排
+    { type: 'text', x: 360, y: 120, width: 160, height: 320, text: '竖排文字', fontSize: 22, color: '#7c3aed', textDirection: 'eaVert' }
 ]));
 
 // ============ T10 单元格内边距 + 对角线边框 + 表格样式 ============
@@ -362,11 +370,15 @@ async function selfCheck() {
     assert('T6 图片素材为有效 PNG', bluePngBuf.subarray(0, 8).equals(pngSig) && bluePngBuf.includes(Buffer.from('IEND')));
     // T7 调整值 avLst
     assert('T7 几何调整 avLst', /<a:avLst/.test(slideXml[6]));
+    // key 必须是 OOXML 的 gd 名（adj/adj1/adj2），否则 WPS/PowerPoint 会忽略并回退默认值
+    assert('T7 圆角 adj', /<a:gd name="adj" fmla="val 30000"\/>/.test(slideXml[6]));
+    assert('T7 箭头 adj1/adj2', /<a:gd name="adj1" fmla="val 50000"\/><a:gd name="adj2" fmla="val 40000"\/>/.test(slideXml[6]));
     // T8 翻转
     assert('T8 翻转 flipH/flipV', /flipH="1"|flipV="1"/.test(slideXml[7]));
     // T9 内边距/竖排
     assert('T9 内边距 lIns', /lIns=/.test(slideXml[8]));
-    assert('T9 竖排 vert', /vert=/.test(slideXml[8]));
+    // 必须落在合法枚举内，否则 PowerPoint/WPS 会忽略该属性
+    assert('T9 竖排 vert 合法', /vert="(horz|vert|vert270|wordArtVert|eaVert|mongolianVert|wordArtVertRtl)"/.test(slideXml[8]));
     // T10 对角线/内边距/样式
     assert('T10 对角线 lnTlToBr/lnBlToTr', /<a:lnTlToBr|<a:lnBlToTr/.test(slideXml[9]));
     assert('T10 单元格内边距 tableCellInsets', /<a:tableCellInsets/.test(slideXml[9]));

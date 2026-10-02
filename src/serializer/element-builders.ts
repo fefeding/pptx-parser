@@ -270,11 +270,19 @@ export interface SerializerElement {
     flipH?: boolean;
     /** 垂直翻转 */
     flipV?: boolean;
-    /** 几何调整值（圆角半径 / 箭头尺寸 / 星形尖角等），如 { adj: 25000 } */
+    /**
+     * 几何调整值，key 必须是该预设形状在 OOXML 中的 gd 名（不是自拟别名），
+     * 否则 PowerPoint/WPS 会忽略并回退到默认值。
+     * 常见：roundRect/snip 用 `adj`；箭头/标注/星形用 `adj1`/`adj2`/`adj3`…
+     * 例：{ adj: 25000 }、{ adj1: 50000, adj2: 40000 }（rightArrow 的箭身厚度与箭头长度）
+     */
     adjust?: Record<string, number>;
     /** 文本框内边距（px）：{ l, r, t, b } */
     inset?: { l?: number; r?: number; t?: number; b?: number };
-    /** 文字方向：'wordArtVertical' / 'eaVertical' / 'vert' / 'horz'（默认横排） */
+    /**
+     * 文字方向（a:bodyPr/@vert，ST_TextVerticalType）：'horz' | 'vert' | 'vert270' | 'wordArtVert' | 'eaVert' | 'mongolianVert' | 'wordArtVertRtl'（默认横排）。
+     * 中文竖排用 'eaVert'，逐字堆积用 'wordArtVert'。非枚举值会被 PowerPoint/WPS 忽略（回退横排），因此这里会做归一/丢弃。
+     */
     textDirection?: string;
     /** 图片裁剪（百分比 0-100）：{ l, r, t, b } */
     crop?: { l?: number; r?: number; t?: number; b?: number };
@@ -670,13 +678,35 @@ function normalizeParagraphs(el: SerializerElement): ParagraphSpec[] {
  * @param {Object} el - 文本元素 JSON
  * @returns {Object} p:sp 节点
  */
+/** a:bodyPr/@vert 的合法取值（ST_TextVerticalType） */
+const TEXT_VERTICAL_TYPES = new Set([
+    'horz', 'vert', 'vert270', 'wordArtVert', 'eaVert', 'mongolianVert', 'wordArtVertRtl'
+]);
+/** 历史误用值 → 合法枚举值（写成非枚举值会被 PowerPoint/WPS 静默忽略而回退横排） */
+const TEXT_VERTICAL_ALIASES: Record<string, string> = {
+    wordArtVertical: 'wordArtVert',
+    eaVertical: 'eaVert'
+};
+
+/**
+ * 归一化文字方向：别名转正、非法值丢弃（返回 undefined 时不下发 vert 属性）。
+ * @param {string} [value] - 文字方向原始值
+ * @returns {string|undefined} 合法枚举值
+ */
+function normalizeTextVerticalType(value?: string): string | undefined {
+    if (!value) return undefined;
+    const v = TEXT_VERTICAL_ALIASES[value] ?? value;
+    return TEXT_VERTICAL_TYPES.has(v) ? v : undefined;
+}
+
 function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
     const anchorMap: Record<string, string | null> = { top: null, middle: 'ctr', bottom: 'b' };
     const bodyPrAttrs: Record<string, number | string | null> = { wrap: 'square', rtlCol: 0 };
     const anchor = anchorMap[el.valign ?? 'top'];
     if (anchor) bodyPrAttrs.anchor = anchor;
-    if (el.textDirection) bodyPrAttrs.vert = el.textDirection;
+    const vert = normalizeTextVerticalType(el.textDirection);
+    if (vert) bodyPrAttrs.vert = vert;
     if (el.inset) {
         if (el.inset.l != null) bodyPrAttrs.lIns = pxToEmu(el.inset.l);
         if (el.inset.r != null) bodyPrAttrs.rIns = pxToEmu(el.inset.r);
