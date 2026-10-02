@@ -17739,7 +17739,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
         index
     };
 }
-async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slideNum, customProps) {
+async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slideNum) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -17820,12 +17820,6 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slide
         }).join('');
         result += `<div class="pptx-comments">${noteHtml}</div>`;
     }
-    if (customProps && Object.keys(customProps).length) {
-        const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        const rows = Object.entries(customProps).map(([k, v]) => `<div>${esc(k)}: ${esc(v)}</div>`).join('');
-        result += `<div class="pptx-custom-props" style="position:absolute;left:8px;bottom:8px;max-width:260px;box-sizing:border-box;font:11px/1.45 sans-serif;color:#334155;background:rgba(255,255,255,.85);border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px;box-shadow:0 1px 3px rgba(0,0,0,.12);z-index:50;">` +
-            `<div style="font-weight:600;margin-bottom:3px;">文档自定义属性</div>${rows}</div>`;
-    }
     return `${result}</div></section>`;
 }
 function genGlobalCSS(styleTable) {
@@ -17868,7 +17862,7 @@ async function pptxToHtml(fileData, options) {
             charts: []
         };
         for (const slideData of parsedData.slides) {
-            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum, parsedData.customProps);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum);
             const sldAttrs = slideData.data.slideContent && slideData.data.slideContent["p:sld"] && slideData.data.slideContent["p:sld"].attrs;
             const hidden = !!(sldAttrs && String(sldAttrs.show) === "0");
             result.slides.push({

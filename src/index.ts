@@ -581,7 +581,7 @@ async function processSingleSlideStructured(zip: JSZip, slideFileName: string, i
  * @param {JSZip} zip - The JSZip instance
  * @returns {Promise<string>} Slide HTML
  */
-async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: SlideSize, settings: ParseSettings, zip: JSZip, slideNum: number | undefined, customProps?: Record<string, string>) {
+async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: SlideSize, settings: ParseSettings, zip: JSZip, slideNum: number | undefined) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -672,14 +672,6 @@ async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: Sli
         result += `<div class="pptx-comments">${noteHtml}</div>`;
     }
 
-    // ===== 文档自定义属性可视化（docProps/custom.xml，文档级，逐页展示）=====
-    if (customProps && Object.keys(customProps).length) {
-        const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        const rows = Object.entries(customProps).map(([k, v]) => `<div>${esc(k)}: ${esc(v)}</div>`).join('');
-        result += `<div class="pptx-custom-props" style="position:absolute;left:8px;bottom:8px;max-width:260px;box-sizing:border-box;font:11px/1.45 sans-serif;color:#334155;background:rgba(255,255,255,.85);border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px;box-shadow:0 1px 3px rgba(0,0,0,.12);z-index:50;">` +
-            `<div style="font-weight:600;margin-bottom:3px;">文档自定义属性</div>${rows}</div>`;
-    }
-
     return `${result}</div></section>`;
 }
 
@@ -755,7 +747,7 @@ async function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettings
 
         // Step 3: Process slides and convert to HTML
         for (const slideData of parsedData.slides) {
-            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum, parsedData.customProps);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum);
             const sldAttrs = (slideData.data as any).slideContent && (slideData.data as any).slideContent["p:sld"] && (slideData.data as any).slideContent["p:sld"].attrs;
             const hidden = !!(sldAttrs && String(sldAttrs.show) === "0");
             result.slides.push({
