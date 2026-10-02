@@ -1,0 +1,170 @@
+# API 参考
+
+## 导出清单
+
+```ts
+// 默认导出 = pptxToHtml
+import pptxToHtml, {
+  pptxToJson, pptxToStandard, pptxToFiles,
+  jsonToPptx, editPptx, PPTXComposer
+} from '@fefeding/ppt-parser';
+
+// 类型全部从入口导出（两处）：
+//   export * from './types/pptx-document'   —— PptxDocument / PptxSlide / PptxElement …
+//   export * from './compatibility-types'   —— PptxHtmlResult / PptxEditor / SlideElement …
+```
+
+## 解析选项 `PptxParserOptions`
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `mediaProcess` | `boolean` | `true` | 是否处理媒体（图片等）。关闭可提速，但图片填充/图片元素会缺失 |
+| `themeProcess` | `boolean \| 'colorsAndImageOnly'` | `true` | `true`=完整主题（含母版背景）；`'colorsAndImageOnly'`=只取主题色与背景图 |
+| `incSlide` | `{ width: number; height: number }` | `{0,0}` | 幻灯片尺寸增量调整 |
+| `styleTable` | `Record<string, {name;text;suffix?}>` | `{}` | 自定义样式表；解析过程中会被填充，最终由 `genGlobalCSS` 生成 `styles.global` |
+| `callbacks` | `Callbacks` | - | 见下 |
+
+回调：`onFileStart`、`onError({type,message})`、`onSlide(data,{slideNum,fileName})`、`onThumbnail`、`onSlideSize`、`onGlobalCSS(css)`、`onComplete({executionTime,slideWidth,slideHeight,styleTable,settings})`。
+
+---
+
+## `pptxToHtml(fileData, options?)`
+
+把 PPTX 渲染为可直接在浏览器展示的 HTML。
+
+```ts
+const result = await pptxToHtml(fileData, { mediaProcess: true, themeProcess: true });
+```
+
+返回 `PptxHtmlResult`：
+
+```ts
+{
+  slides: [{ html: string, data: any, slideNum: number, fileName: string, hidden: boolean }],
+  slideSize: { width: number, height: number },   // px
+  thumbnail: string | null,                        // base64 jpeg
+  styles: { global: string },                      // ★ 必须一起注入的 CSS
+  metadata: { title?, author?, created?, … },
+  customProps: Record<string, string>,
+  charts: ChartData[]                              // 图表数据（需自行渲染）
+}
+```
+
+要点：
+- 每页 `html` 根节点是 `<section class='slide' style='width:…px;height:…px'>`，带 `id="slide-N"`；隐藏页带 `data-hidden='true'`，过渡/计时带 `data-transition` / `data-timing`。
+- **必须**把 `styles.global` 作为 `<style>` 注入，类名形如 `_css_1` / `_tbl_cell_css_3`。
+- 图表只输出占位容器 + `result.charts`，需用 echarts 渲染（见 `examples/chart-lib/chart-renderer.js`，要求 `echarts` 为全局）。
+- 批注（`ppt/comments/commentsN.xml`）会以 `.pptx-comment` 气泡渲染在页内；文档自定义属性渲染为左下角面板。
+
+---
+
+## `pptxToJson(fileData, options?)`
+
+返回结构化（简化 XML 树）结果，适合逐节点精读。
+
+```ts
+const json = await pptxToJson(buffer, { mediaProcess: true, themeProcess: true });
+// {
+//   slides: [{ data: ProcessedSlideData, slideNum, fileName }],
+//   slideSize, thumbnail, styles: { global }, metadata, customProps, charts
+// }
+```
+
+`slide.data` 关键字段：`slideContent`（tXml 简化树，根 `p:sld`）、`slideLayoutContent`、`slideMasterContent`、`themeContent`、`slideResObj`（rId → `{type,target}`）、`tableStyles`、`defaultTextStyle`、`notesContent`。
+
+文本提取：简化树里 DrawingML 文本是键 `'a:t'` 对应的字符串，递归收集即可（参考 `examples/parse-pptx.mjs`）。
+
+`mode: 'semantic'` 时额外返回 `result.document`（等价于 `pptxToStandard` 的结果）。
+
+---
+
+## `pptxToStandard(fileData, options?)`
+
+返回 `PptxDocument`（`types/pptx-document.ts`），与 `jsonToPptx` 同一契约，可直接回写。
+
+```ts
+const doc = await pptxToStandard(fileData, { rawDeps: 'all' });
+const out = await jsonToPptx(doc, { outputType: 'uint8array' });
+```
+
+- 解析端对**语义层不支持**的类型（diagram / group / OLE / 未知标签）自动附加 `__raw`（原始节点 + 关系 + 部件），序列化时原样回写，保证不丢信息。
+- 语义类型（text/shape/image/chart/table）默认 `__raw` 只有 `{tag,node}`；要强制原始回写必须先用 `rawDeps: 'all'` 解析，否则 `r:embed` 等引用会悬空。
+- 元素上可设 `rawFallback: true` 强制走 `__raw` 回写。
+
+---
+
+## `pptxToFiles(fileData)`
+
+列出并读出 PPTX 内所有部件，便于直接检查 OOXML。
+
+```ts
+const { files, content } = await pptxToFiles(fileData);
+// files: [{ name, dir, size }]
+// content[name]:
+//   { type:'text', content }                          // xml / rels
+//   { type:'image', format, base64, dataUrl }         // png/jpg/gif/bmp/svg
+//   { type:'binary', base64 }                         // 其它（mp4/m4a/emf…）
+```
+
+**排查真机差异时最有用**：`content['ppt/slides/slide10.xml']` 直接看生成端到底写了什么。
+
+---
+
+## `jsonToPptx(presentation, options?)`
+
+```ts
+const data = await jsonToPptx(pres, {
+  outputType: 'uint8array',   // uint8array | arraybuffer | blob | nodebuffer | base64
+  theme: themeXmlString       // 可选：完整 theme XML（见 examples/generate-test-pptx.mjs 的 CUSTOM_THEME）
+});
+```
+
+- `pres`：`PptxDocument` 或 `PPTXComposer` 实例（有 `toJSON()` 即可）。
+- 约束：`slides` 非空，否则抛 `jsonToPptx: 演示文稿至少需要一页幻灯片`。
+- 写入的部件包含 `ppt/tableStyles.xml`（按文档引用到的 `tableStyleId` 动态补等价定义）、`docProps/custom.xml`、`ppt/comments/commentsN.xml`、`ppt/commentAuthors.xml`、主题、图表、媒体等，无需手工拼装。
+- 返回值类型由 `outputType` 决定；Node 落盘用 `Buffer.from(data)`。
+
+---
+
+## `PPTXComposer`（链式构建）
+
+```ts
+const p = new PPTXComposer();
+p.slideSize(1280, 720).title('标题').author('me');
+p.addSlide((s) => {
+  s.background('#ffffff');
+  s.addText({ x: 60, y: 40, width: 600, height: 60, text: 'Hello', fontSize: 32, bold: true });
+  s.addShape({ shapeType: 'roundRect', x: 60, y: 140, width: 300, height: 160, fill: '#3b82f6' });
+  s.addImage({ x: 400, y: 140, width: 300, height: 200, data: 'data:image/png;base64,…' });
+  s.addChart({ chartType: 'pieChart', x: 60, y: 340, width: 300, height: 200,
+               categories: ['A','B'], series: [{ name: '占比', values: [3, 7] }] });
+  s.addGroup(...); s.addDiagram(...);
+});
+const data = await jsonToPptx(p);
+```
+
+## `editPptx(fileData)`
+
+对已有 PPTX 做页级编辑，不经过语义层，适合"只删一页/追加一页"这类操作。
+
+```ts
+const editor = await editPptx(fileData);
+await editor.getSlideCount();            // 逻辑页数（sldIdLst 顺序）
+await editor.getSlide(3);                // 该页简化 XML 树（与 pptxToJson 的 slideContent 同构）
+await editor.deleteSlide(3);             // 删除（至少保留一页）
+await editor.moveSlide(1, 5);            // 移动页码（会物理重编号 slide 文件并重映射内部跳转）
+await editor.setMetadata({ title: '新标题' });
+await editor.addSlide({ background: '#fff', elements: [ … ] });
+const out = await editor.save({ outputType: 'uint8array' });
+```
+
+`editor.zip` 是底层 JSZip 实例，需要改任意部件可直接操作。
+
+---
+
+## 环境注意事项
+
+- **Node**：`fs.readFile` 得到 Buffer 可直接传入；若要显式 ArrayBuffer，务必切片：
+  `buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)`。
+- **浏览器**：`await file.arrayBuffer()`；或 `<script src="dist/ppt-parser.browser.js">` 后用全局 `pptxParser`。
+- 解析是异步的（内部 JSZip 解压 + 主题/母版读取）；大文件建议开 `callbacks.onSlide` 做进度反馈。
