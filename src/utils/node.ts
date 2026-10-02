@@ -19,6 +19,36 @@ import { genChart } from './chart';
 import { SLIDE_FACTOR } from '../core/constants';
 
 /**
+ * 在 diagram 部件的解析结果中查找内嵌的绘图图元（p:drawing/p:spTree/p:sp）
+ *
+ * 部件根标签不固定：结构级部件为 dsdgm:dataModel / dgm:dataModel，
+ * 缓存绘图部件为 dsp:drawing（读取时已重写为 p:drawing），
+ * 且 readXmlFile 返回的对象最外层键即根标签，故用广度遍历定位而非写死路径。
+ * @param {Object} root - 已解析的部件对象
+ * @returns {Array|undefined} 图元节点数组
+ */
+function findDiagramShapeList(root: unknown) {
+    const visited = new Set<unknown>();
+    const queue: any[] = [root];
+    while (queue.length) {
+        const current = queue.shift();
+        if (!current || typeof current !== 'object' || visited.has(current)) continue;
+        visited.add(current);
+
+        const drawing = current['p:drawing'];
+        const sp = drawing && drawing['p:spTree'] && drawing['p:spTree']['p:sp'];
+        if (sp) return Array.isArray(sp) ? sp : [sp];
+
+        for (const key of Object.keys(current)) {
+            if (key === 'attrs') continue;
+            const child = current[key];
+            if (child && typeof child === 'object') queue.push(child);
+        }
+    }
+    return undefined;
+}
+
+/**
  * 生成 Diagram HTML
  * @param {Object} node - 节点
  * @param {Object} wrapObj - 包装对象
@@ -59,14 +89,13 @@ async function genDiagram(node: XmlNode | undefined, wrapObj: WarpObject, source
     const dgmLayout = await PPTXXmlUtils.readXmlFile(zip, dgmLayoutFileName);
     const dgmQuickStyle = await PPTXXmlUtils.readXmlFile(zip, dgmQuickStyleFileName);
 
-    const dgmDrwSpArray = dgmData ? PPTXXmlUtils.getTextByPathList(dgmData, ['p:drawing', 'p:spTree', 'p:sp']) : undefined;
+    // 优先用数据部件内嵌的绘图；PowerPoint 生成的缓存绘图部件（drawing1.xml）作为回退
+    const spArray = findDiagramShapeList(dgmData) || findDiagramShapeList(wrapObj.diagramContent);
     let result = '';
 
-    if (dgmDrwSpArray !== undefined) {
-        const spArray = Array.isArray(dgmDrwSpArray) ? dgmDrwSpArray : [dgmDrwSpArray];
+    if (spArray !== undefined) {
         const results = [];
         for (const dspSp of spArray) {
-            const txBody = PPTXXmlUtils.getTextByPathList(dspSp, ['p:txBody', 'a:p', 'a:r', 'a:t']);
             results.push(processSpNode(dspSp, node, wrapObj, 'diagramBg', shapeType));
         }
         const resolvedResults = await Promise.all(results);

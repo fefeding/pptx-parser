@@ -77,6 +77,8 @@ interface HtmlSlideResult {
     data: SlideDataRecord | undefined;
     slideNum: number | undefined;
     fileName: string | undefined;
+    /** 隐藏幻灯片（p:sld show="0"） */
+    hidden: boolean;
 }
 
 /** pptxToJson 单页输出（保留结构化数据，不含 html） */
@@ -543,8 +545,25 @@ async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: Sli
         transitionClass = ` data-transition='${JSON.stringify(transitionData)}'`;
     }
 
+    // 隐藏幻灯片（p:sld show="0"）
+    let hiddenClass = "";
+    const sldAttrs = (slideData.slideContent as any)["p:sld"] && (slideData.slideContent as any)["p:sld"].attrs;
+    if (sldAttrs && String(sldAttrs.show) === "0") {
+        hiddenClass = ` data-hidden='true'`;
+    }
+
+    // 计时：自动播放 + 元素动画（p:timing）
+    let timingClass = "";
+    const timingData = extractSlideTiming(slideData.slideContent);
+    if (timingData) {
+        const payload: Record<string, unknown> = {};
+        if (timingData.advanceTime != null) payload.autoplay = timingData.advanceTime;
+        if (timingData.animations.length) payload.animations = timingData.animations;
+        timingClass = ` data-timing='${JSON.stringify(payload)}'`;
+    }
+
     const slideIdAttr = slideNum ? ` id="slide-${slideNum}"` : "";
-    let result = `<section class='slide'${slideIdAttr}${transitionClass} style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
+    let result = `<section class='slide'${slideIdAttr}${transitionClass}${hiddenClass}${timingClass} style='width:${slideSize.width}px; height:${slideSize.height}px;${bgColor}'>`;
     result += bgResult;
 
     const nodes = slideData.slideContent["p:sld"]["p:cSld"]["p:spTree"];
@@ -633,11 +652,14 @@ async function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettings
         // Step 3: Process slides and convert to HTML
         for (const slideData of parsedData.slides) {
             const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum);
+            const sldAttrs = (slideData.data as any).slideContent && (slideData.data as any).slideContent["p:sld"] && (slideData.data as any).slideContent["p:sld"].attrs;
+            const hidden = !!(sldAttrs && String(sldAttrs.show) === "0");
             result.slides.push({
                 html: slideHtml,
                 data: slideData.data,  // Keep structured data for potential reuse
                 slideNum: slideData.slideNum,
-                fileName: slideData.fileName
+                fileName: slideData.fileName,
+                hidden
             });
 
             if (callbacks.onSlide) {
@@ -974,6 +996,71 @@ function extractSlideTransition(slideContent: XmlNode) {
         type: transitionType,
         duration: duration
     };
+}
+
+/**
+ * 提取幻灯片计时（自动播放 + 元素动画），解析自 p:timing
+ * @param {Object} slideContent - 幻灯片内容
+ * @returns {Object|null} { advanceTime, animations:[{spid,type,duration}] } 或 null
+ */
+function extractSlideTiming(slideContent: XmlNode) {
+    const sld: any = (slideContent as any)["p:sld"];
+    const timing = sld && sld["p:timing"];
+    if (!timing) return null;
+
+    const animations: { spid: number; type: string; duration: number }[] = [];
+    let advanceTime: number | undefined;
+
+    // 递归收集所有 p:cTn
+    const allCtn: any[] = [];
+    (function walk(n: any) {
+        if (!n || typeof n !== "object") return;
+        for (const k of Object.keys(n)) {
+            if (k === "p:cTn") {
+                const arr = Array.isArray(n[k]) ? n[k] : [n[k]];
+                for (const c of arr) { allCtn.push(c); walk(c); }
+            } else {
+                const v = n[k];
+                if (Array.isArray(v)) v.forEach(walk);
+                else if (v && typeof v === "object") walk(v);
+            }
+        }
+    })(timing);
+
+    for (const c of allCtn) {
+        // 自动播放：afterTime cond
+        const stCondLst = c["p:stCondLst"];
+        if (stCondLst) {
+            const conds = Array.isArray(stCondLst["p:cond"]) ? stCondLst["p:cond"] : [stCondLst["p:cond"]];
+            for (const cd of conds) {
+                if (cd && cd.attrs && cd.attrs.type === "afterTime" && cd.attrs.val != null) {
+                    advanceTime = Number(cd.attrs.val);
+                }
+            }
+        }
+        // 元素动画：tgtEl > spTgt spid + childTnLst > cTn preset/dur
+        const tgtEl = c["p:tgtEl"];
+        const spTgt = tgtEl && tgtEl["p:spTgt"];
+        const spid = spTgt && spTgt.attrs && spTgt.attrs.spid;
+        if (spid != null) {
+            let preset = "fade";
+            let dur: number | undefined;
+            const childTnLst = c["p:childTnLst"];
+            if (childTnLst) {
+                const inner = Array.isArray(childTnLst["p:cTn"]) ? childTnLst["p:cTn"] : [childTnLst["p:cTn"]];
+                for (const ic of inner) {
+                    if (ic && ic.attrs) {
+                        if (ic.attrs.preset) preset = String(ic.attrs.preset);
+                        if (ic.attrs.dur != null) dur = Number(ic.attrs.dur) / 1000;
+                    }
+                }
+            }
+            const type = ["fade", "flyIn", "zoom", "wipe"].includes(preset) ? preset : "fade";
+            animations.push({ spid: Number(spid), type, duration: dur ?? 1 });
+        }
+    }
+    if (advanceTime == null && animations.length === 0) return null;
+    return { advanceTime, animations };
 }
 
 export default pptxToHtml;

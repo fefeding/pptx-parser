@@ -23,7 +23,7 @@ import type {
     PptxDocument, PptxSlide, PptxElement, PptxTextElement, PptxShapeElement,
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
-    PptxDiagramElement, PptxRawElement, TextAlign, VAlign, ChartGrouping
+    PptxDiagramElement, PptxRawElement, PptxAnimation, TextAlign, VAlign, ChartGrouping
 } from '../types/pptx-document';
 
 /** plotArea 下可能出现的全部图表节点（ECMA-376 全集），用于反向提取时判定图表类型 */
@@ -358,6 +358,77 @@ function extractTransition(slideContent: any): PptxTransition | undefined {
         duration = m[String(t.attrs['spd'])] || 1000;
     }
     return { type, duration };
+}
+
+/** 取形状节点的 cNvPr id（= OOXML 形状 spid） */
+function getShapeId(key: string, node: any): string | undefined {
+    const nvKey: Record<string, string> = {
+        'p:sp': 'p:nvSpPr', 'p:pic': 'p:nvPicPr', 'p:graphicFrame': 'p:nvGraphicFramePr',
+        'p:cxnSp': 'p:nvCxnSpPr', 'p:grpSp': 'p:nvGrpSpPr'
+    };
+    const nv = node && nvKey[key] && node[nvKey[key]];
+    const cNvPr = nv && nv['p:cNvPr'];
+    return cNvPr && cNvPr.attrs && cNvPr.attrs.id != null ? String(cNvPr.attrs.id) : undefined;
+}
+
+/** 解析 p:timing：自动播放 afterTime + 元素进入动画 p:spTgt */
+function extractTiming(slideContent: any, spidToIndex: Map<string, number>): { advanceTime?: number; animations?: PptxAnimation[] } {
+    const sld = slideContent && slideContent['p:sld'];
+    const timing = sld && sld['p:timing'];
+    if (!timing) return {};
+    const result: { advanceTime?: number; animations?: PptxAnimation[] } = {};
+    const animations: PptxAnimation[] = [];
+
+    // 递归收集所有 p:cTn
+    const allCtn: any[] = [];
+    (function walk(n: any) {
+        if (!n || typeof n !== 'object') return;
+        for (const k of Object.keys(n)) {
+            if (k === 'p:cTn') {
+                for (const c of asArray(n[k])) { allCtn.push(c); walk(c); }
+            } else {
+                const v = n[k];
+                if (Array.isArray(v)) v.forEach(walk);
+                else if (v && typeof v === 'object') walk(v);
+            }
+        }
+    })(timing);
+
+    for (const c of allCtn) {
+        // 自动播放：stCondLst 下存在 afterTime cond
+        const stCondLst = c['p:stCondLst'];
+        if (stCondLst) {
+            for (const cond of asArray(stCondLst['p:cond'])) {
+                if (cond && cond.attrs && cond.attrs.type === 'afterTime' && cond.attrs.val != null) {
+                    result.advanceTime = Number(cond.attrs.val);
+                }
+            }
+        }
+        // 元素动画：tgtEl > spTgt spid + childTnLst > cTn preset/dur
+        const tgtEl = c['p:tgtEl'];
+        const spTgt = tgtEl && tgtEl['p:spTgt'];
+        const spid = spTgt && spTgt.attrs && spTgt.attrs.spid;
+        if (spid != null && spidToIndex.has(String(spid))) {
+            let preset = 'fade';
+            let dur: number | undefined;
+            const childTnLst = c['p:childTnLst'];
+            if (childTnLst) {
+                for (const inner of asArray(childTnLst['p:cTn'])) {
+                    if (inner && inner.attrs) {
+                        if (inner.attrs.preset) preset = String(inner.attrs.preset);
+                        if (inner.attrs.dur != null) dur = Number(inner.attrs.dur) / 1000;
+                    }
+                }
+            }
+            animations.push({
+                target: spidToIndex.get(String(spid))!,
+                type: (['fade', 'flyIn', 'zoom', 'wipe'].includes(preset) ? preset : 'fade') as PptxAnimation['type'],
+                duration: dur ?? 1
+            });
+        }
+    }
+    if (animations.length) result.animations = animations;
+    return result;
 }
 
 /** 提取背景 */
@@ -698,10 +769,16 @@ export async function extractSlideToStandard(
             const shapeNodes: { key: string; node: any }[] = [];
             collectShapeNodes(spTree, shapeNodes);
 
+            // spid → 元素索引映射（用于动画 p:spTgt 回指元素位置）
+            const spidToIndex = new Map<string, number>();
+
             for (const { key, node } of shapeNodes) {
+                const spid = getShapeId(key, node);
+                const index = slide.elements.length;
+                if (spid != null) spidToIndex.set(spid, index);
                 try {
                     const el = await nodeToElement(key, node, resObj, zip);
-                    if (!el) continue;
+                    if (!el) { spidToIndex.delete(spid!); continue; }
                     // 统一挂载 __raw 载荷（含标签名，供生成端无损回写）
                     (el as any).__raw = { tag: key, node };
                     // 依赖携带：语义层未覆盖的类型必须附带，否则 __raw 无法独立回写；
@@ -716,11 +793,21 @@ export async function extractSlideToStandard(
                         type: 'raw', x: 0, y: 0, width: 0, height: 0,
                         __raw: { tag: key, node }, rawFallback: true
                     };
+                    spidToIndex.delete(spid!);
                     slide.elements.push(rawEl);
                     if (allDeps) await attachRawDeps(rawEl, node, resObj, zip);
                 }
             }
+
+            // 自动播放 / 元素动画（p:timing）
+            const timing = extractTiming(slideContent, spidToIndex);
+            if (timing.advanceTime != null) slide.advanceTime = timing.advanceTime;
+            if (timing.animations) slide.animations = timing.animations;
         }
+
+        // 隐藏幻灯片（p:sld show="0"）
+        const sldAttrs = slideContent && slideContent['p:sld'] && slideContent['p:sld'].attrs;
+        if (sldAttrs && String(sldAttrs.show) === '0') slide.hidden = true;
     } catch {
         // 整页失败：返回空元素列表（保持结构合法）
     }
@@ -927,7 +1014,8 @@ async function diagramToElement(
     zip: JSZip
 ): Promise<PptxDiagramElement> {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
-    const rel = graphicData && graphicData['dgm:rel'];
+    // OOXML 标准写法是 dgm:relIds（含 r:dm/r:cs/r:lo/r:qs），历史代码只认单数 dgm:rel
+    const rel = graphicData && (graphicData['dgm:relIds'] || graphicData['dgm:rel']);
     const rid = rel && rel.attrs && (rel.attrs['r:dm'] || rel.attrs['r:id']);
     const target = rid ? resObj[String(rid)] && resObj[String(rid)].target : undefined;
     const part = resolvePart(target);

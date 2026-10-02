@@ -216,6 +216,65 @@ window.chartRenderer = chartRenderer;
         .container { margin: 1rem auto; }
         .upload-section { padding: 2rem 1rem; }
     }
+
+    /* ===== 播放演示（动画 / 切换 / 自动播放）===== */
+    #player {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    #player .pptx-holder {
+        position: relative;
+        box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    }
+    #player .pptx-holder.fade-in { animation: pptxSlideIn 0.4s ease; }
+    #player .pptx-holder.fade-out { animation: pptxSlideOut 0.4s ease forwards; }
+    @keyframes pptxSlideIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pptxSlideOut { to { opacity: 0; } }
+
+    .pptx-anim {
+        animation-duration: var(--dur, 1s);
+        animation-fill-mode: both;
+        animation-timing-function: ease;
+    }
+    @keyframes pptxFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pptxFlyIn { from { opacity: 0; transform: translateY(60px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pptxZoom { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pptxWipe { from { opacity: 0; clip-path: inset(0 100% 0 0); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
+    .pptx-fade { animation-name: pptxFade; }
+    .pptx-flyIn { animation-name: pptxFlyIn; }
+    .pptx-zoom { animation-name: pptxZoom; }
+    .pptx-wipe { animation-name: pptxWipe; }
+
+    #player-bar {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        background: rgba(15,23,42,0.7);
+        color: #fff;
+        z-index: 10000;
+        opacity: 0.15;
+        transition: opacity 0.2s;
+    }
+    #player-bar:hover { opacity: 1; }
+    #player-bar .pp-btn {
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+    #player-bar .pp-btn:hover { background: rgba(255,255,255,0.25); }
+    #player-bar .pp-page { margin-left: auto; font-size: 0.85rem; }
 </style>
 </head>
 <body>
@@ -251,6 +310,10 @@ window.chartRenderer = chartRenderer;
             <button id="zoom-out" class="btn btn-secondary" title="缩小">−</button>
             <button id="zoom-label" class="btn btn-secondary" title="点击适应宽度">100%</button>
             <button id="zoom-in" class="btn btn-secondary" title="放大">+</button>
+            <button id="play-btn" class="btn" title="播放演示（动画/切换/自动播放）">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"></path></svg>
+                播放演示
+            </button>
             <button id="fullscreen-btn" class="btn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
                 全屏演示
@@ -391,7 +454,9 @@ async function parseAndRender(fileData) {
 		}
 		
 		// 渲染所有幻灯片（包裹缩放层，支持自适应宽度与手动缩放）
-		result.slides.forEach(slide => {
+		// 隐藏幻灯片（p:sld show="0"）在预览与播放中均跳过
+		const visibleSlides = result.slides.filter(s => !s.hidden);
+		visibleSlides.forEach(slide => {
 			const slideContainer = document.createElement("div");
             slideContainer.innerHTML = slide.html;
 			const slideEl = slideContainer.firstChild;
@@ -500,6 +565,10 @@ async function loadDefaultPptx() {
 }
 
 loadDefaultPptx();
+
+// 暴露缩放函数给播放逻辑模块使用（模块作用域隔离）
+window.applyScale = applyScale;
+window.fitToWidth = fitToWidth;
 </script>
 </script>
 <script type="text/javascript">
@@ -562,6 +631,141 @@ loadDefaultPptx();
             }
         }
     });
+</script>
+
+<!-- 播放演示覆盖层（动画 / 切换 / 自动播放） -->
+<div id="player">
+    <div id="player-bar">
+        <button class="pp-btn" id="player-prev">‹ 上一页</button>
+        <button class="pp-btn" id="player-next">下一页 ›</button>
+        <button class="pp-btn" id="player-exit">✕ 退出</button>
+        <span class="pp-page" id="player-page"></span>
+    </div>
+</div>
+
+<script type="module">
+const player = document.getElementById('player');
+const playerPage = document.getElementById('player-page');
+let playerState = null;
+
+function parseAttr(s) {
+    if (!s) return null;
+    try { return JSON.parse(s); } catch { return null; }
+}
+
+function getVisibleSlideEls() {
+    return [...document.querySelectorAll('#result .slide-scaler > section.slide')]
+        .filter(s => !s.hasAttribute('data-hidden'));
+}
+
+function startPlay() {
+    const slides = getVisibleSlideEls();
+    if (!slides.length) return;
+    // 记录原位，便于退出后还原
+    const originals = slides.map(s => ({ s, parent: s.parentNode, next: s.nextSibling }));
+    const holders = [];
+    slides.forEach(s => {
+        s.style.transform = '';          // 清除预览缩放
+        const holder = document.createElement('div');
+        holder.className = 'pptx-holder';
+        holder.appendChild(s);
+        player.appendChild(holder);
+        holders.push(holder);
+    });
+    playerState = { slides, holders, originals, index: 0, timers: [] };
+    player.style.display = 'flex';
+    showSlide(0);
+}
+
+function showSlide(i) {
+    const st = playerState;
+    st.timers.forEach(clearTimeout); st.timers = [];
+    st.holders.forEach((h, k) => { h.style.display = (k === i) ? '' : 'none'; });
+
+    const cur = st.slides[i];
+    const holder = st.holders[i];
+    const w = cur.offsetWidth || 1280;
+    const h = cur.offsetHeight || 720;
+    const scale = Math.min((window.innerWidth * 0.92) / w, (window.innerHeight * 0.9) / h);
+    cur.style.transform = 'scale(' + scale + ')';
+    cur.style.transformOrigin = 'top left';
+    holder.style.width = (w * scale) + 'px';
+    holder.style.height = (h * scale) + 'px';
+
+    // 切页过渡（淡入）
+    holder.classList.remove('fade-in'); void holder.offsetWidth; holder.classList.add('fade-in');
+
+    runEntrance(cur);
+
+    const timing = parseAttr(cur.getAttribute('data-timing'));
+    if (timing && timing.autoplay != null) {
+        const maxDur = timing.animations
+            ? Math.max.apply(null, timing.animations.map(a => a.duration)) * 1000
+            : 0;
+        st.timers.push(setTimeout(() => nextSlide(), timing.autoplay + maxDur + 500));
+    }
+    playerPage.textContent = (i + 1) + ' / ' + st.slides.length;
+}
+
+function runEntrance(slideEl) {
+    // 清除上一次遗留下的动画状态
+    slideEl.querySelectorAll('.pptx-anim').forEach(el => {
+        el.classList.remove('pptx-anim', 'pptx-fade', 'pptx-flyIn', 'pptx-zoom', 'pptx-wipe');
+        el.style.opacity = ''; el.style.transform = '';
+    });
+    const timing = parseAttr(slideEl.getAttribute('data-timing'));
+    const anims = (timing && timing.animations) || [];
+    if (!anims.length) return;
+    anims.forEach(a => {
+        const el = slideEl.querySelector('[_id="' + a.spid + '"]');
+        if (!el) return;
+        el.classList.remove('pptx-anim', 'pptx-fade', 'pptx-flyIn', 'pptx-zoom', 'pptx-wipe');
+        void el.offsetWidth;
+        el.style.setProperty('--dur', (a.duration || 1) + 's');
+        el.classList.add('pptx-anim', 'pptx-' + (a.type || 'fade'));
+    });
+}
+
+function nextSlide() {
+    const st = playerState; if (!st) return;
+    const ni = st.index + 1;
+    if (ni < st.slides.length) { st.index = ni; showSlide(ni); }
+    else exitPlay();
+}
+function prevSlide() {
+    const st = playerState; if (!st) return;
+    const ni = st.index - 1;
+    if (ni >= 0) { st.index = ni; showSlide(ni); }
+}
+function exitPlay() {
+    const st = playerState; if (!st) return;
+    st.timers.forEach(clearTimeout);
+    st.originals.forEach(o => {
+        if (o.next && o.next.parentNode === o.parent) o.parent.insertBefore(o.s, o.next);
+        else o.parent.appendChild(o.s);
+    });
+    player.style.display = 'none';
+    player.innerHTML = '';
+    playerState = null;
+    if (window.applyScale) window.applyScale();   // 还原预览缩放
+}
+
+document.getElementById('play-btn').addEventListener('click', startPlay);
+document.getElementById('player-next').addEventListener('click', (e) => { e.stopPropagation(); nextSlide(); });
+document.getElementById('player-prev').addEventListener('click', (e) => { e.stopPropagation(); prevSlide(); });
+document.getElementById('player-exit').addEventListener('click', (e) => { e.stopPropagation(); exitPlay(); });
+
+// 点击画面（非控件）翻页；Esc 退出；方向键 / 空格翻页
+player.addEventListener('click', (e) => {
+    if (e.target.closest('#player-bar')) return;
+    nextSlide();
+});
+document.addEventListener('keydown', (e) => {
+    if (!playerState) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); nextSlide(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+    else if (e.key === 'Escape') exitPlay();
+});
 </script>
 </body>
 </html>

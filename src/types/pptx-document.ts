@@ -141,6 +141,18 @@ export type PptxBackground =
 export interface PptxTransition {
     type: string;        // fade/blind/cover/wipe/push/...
     duration: number;    // 毫秒
+    /** 是否允许点击切换（默认 true；false 表示仅自动播放） */
+    advanceOnClick?: boolean;
+}
+
+/** 元素进入动画（解析自 p:timing 的 p:spTgt） */
+export interface PptxAnimation {
+    /** 目标元素索引（slide.elements 中的位置） */
+    target: number;
+    /** 动画类型 */
+    type: 'fade' | 'flyIn' | 'zoom' | 'wipe';
+    /** 持续时间（秒） */
+    duration: number;
 }
 
 /** 图表系列 */
@@ -514,6 +526,12 @@ export interface PptxSlide {
     notes?: string;
     /** 幻灯片批注（生成端写回 ppt/comments/commentsN.xml） */
     comments?: PptxComment[];
+    /** 隐藏幻灯片（解析自 p:sld show="0"，生成端写回） */
+    hidden?: boolean;
+    /** 自动播放：停留毫秒后切换（解析自 p:timing 的 afterTime，生成端写回） */
+    advanceTime?: number;
+    /** 元素进入动画（解析自 p:timing 的 p:spTgt，生成端写回） */
+    animations?: PptxAnimation[];
     elements: PptxElement[];
 }
 

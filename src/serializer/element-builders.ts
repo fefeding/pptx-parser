@@ -1969,7 +1969,7 @@ function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
     }
     let nid = 10;
     for (const a of anims) {
-        const spid = a.target != null ? a.target + 1 : 2; // 元素 id 从 2 起
+        const spid = a.target != null ? a.target + 2 : 2; // 元素 id 从 2 起连续编号
         const preset = a.type === 'flyIn' ? 'flyIn' : a.type === 'zoom' ? 'zoom' : a.type === 'wipe' ? 'wipe' : 'fade';
         const effectChildren: BuilderNode[] = [];
         if (a.duration != null) effectChildren.push(xmlNode('p:cTn', { id: nid++, dur: Math.round(a.duration * 1000), fill: 'hold' }));
