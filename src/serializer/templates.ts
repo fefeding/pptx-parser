@@ -97,7 +97,8 @@ function accentTableStyleXml(styleId: string): string {
         `<a:tcTxStyle b="off"><a:fontRef idx="minor"/><a:schemeClr val="lt1"/></a:tcTxStyle>` +
         `<a:tcStyle><a:tcBdr>${grid}</a:tcBdr>${accentFill}</a:tcStyle>` +
         `</a:wholeTbl>` +
-        `<a:band1Horz><a:tcStyle>${bandFill}</a:tcStyle></a:band1Horz>` +
+        // 区域名必须是 CT_TableStyle 里的 band1H（写成 band1Horz 会被 PowerPoint/WPS 忽略）
+        `<a:band1H><a:tcStyle>${bandFill}</a:tcStyle></a:band1H>` +
         `<a:firstRow>` +
         `<a:tcTxStyle b="on"><a:fontRef idx="minor"/><a:schemeClr val="lt1"/></a:tcTxStyle>` +
         `<a:tcStyle><a:tcBdr>${grid}</a:tcBdr>${accentFill}</a:tcStyle>` +
