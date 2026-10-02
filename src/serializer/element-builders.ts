@@ -1757,6 +1757,8 @@ interface DiagShape {
     text: string;
     /** 填充主题色（accent1..accent6） */
     fill: string;
+    /** 'line' 为连线（细长矩形、无文字无边框），缺省为普通节点 */
+    kind?: 'node' | 'line';
 }
 
 function countNodes(ns: DiagramNode[]): number {
@@ -1778,6 +1780,13 @@ function maxDepth(ns: DiagramNode[], d = 0): number {
 function layoutDiagram(type: string, nodes: DiagramNode[], W: number, H: number): DiagShape[] {
     const out: DiagShape[] = [];
     const accents = ['accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6'];
+    /** 连线粗细（EMU），用细长矩形充当连接线，避免依赖连接器渲染 */
+    const lw = Math.max(1, Math.round(pxToEmu(2)));
+    /** 追加一段轴对齐连线（kind='line'，无线框无文字） */
+    const line = (x: number, y: number, w: number, h: number) => {
+        if (w <= 0 || h <= 0) return;
+        out.push({ x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h), text: '', fill: accents[0], kind: 'line' });
+    };
     const push = (s: Omit<DiagShape, 'fill'>, depth: number, idx: number) =>
         out.push({ ...s, fill: accents[(type === 'list' || type === 'process') ? idx % 6 : depth % 6] });
 
@@ -1794,22 +1803,45 @@ function layoutDiagram(type: string, nodes: DiagramNode[], W: number, H: number)
             }
         };
         walk(nodes);
+        // 相邻节点间的垂直连接线（流程感）
+        for (let k = 0; k < n - 1; k++) {
+            line(W * 0.5 - lw / 2, k * (cellH + gap) + cellH, lw, gap);
+        }
     } else if (type === 'hierarchy' || type === 'orgChart') {
         const depthMax = Math.max(1, maxDepth(nodes) + 1);
         const levelH = Math.round(H / depthMax);
         const boxH = Math.round(levelH * 0.72);
         const boxW = Math.round(Math.min(W * 0.26, W / Math.max(2, countNodes(nodes) / depthMax)));
+        const links: Array<{ px: number; pyB: number; cx: number; cyT: number }> = [];
         const place = (ns: DiagramNode[], x0: number, x1: number, depth: number) => {
             const span = (x1 - x0) / ns.length;
             ns.forEach((node, idx) => {
                 const cx0 = x0 + span * idx, cx1 = x0 + span * (idx + 1);
-                const x = Math.round((cx0 + cx1) / 2 - boxW / 2);
+                const centre = (cx0 + cx1) / 2;
+                const x = Math.round(centre - boxW / 2);
                 const y = Math.round(depth * levelH + (levelH - boxH) / 2);
                 push({ x, y, w: boxW, h: boxH, text: node.text }, depth, 0);
-                if (node.children && node.children.length) place(node.children, cx0, cx1, depth + 1);
+                if (node.children && node.children.length) {
+                    const cspan = (cx1 - cx0) / node.children.length;
+                    const cyT = Math.round((depth + 1) * levelH + (levelH - boxH) / 2);
+                    node.children.forEach((_, ci) => {
+                        links.push({ px: centre, pyB: y + boxH, cx: cx0 + cspan * ci + cspan / 2, cyT });
+                    });
+                    place(node.children, cx0, cx1, depth + 1);
+                }
             });
         };
         place(nodes, 0, W, 0);
+        // 肘形连线：父底中心 →（竖）层间中线 →（横）子中心 →（竖）子顶中心（对齐 PowerPoint 组织结构图）
+        for (const lk of links) {
+            const midY = (lk.pyB + lk.cyT) / 2;
+            line(lk.px - lw / 2, lk.pyB, lw, midY - lk.pyB);
+            if (Math.abs(lk.cx - lk.px) > lw) {
+                const x1 = Math.min(lk.px, lk.cx), x2 = Math.max(lk.px, lk.cx);
+                line(x1, midY - lw / 2, x2 - x1, lw);
+            }
+            line(lk.cx - lw / 2, midY, lw, lk.cyT - midY);
+        }
     } else if (type === 'cycle') {
         const n = Math.max(1, countNodes(nodes));
         const boxW = Math.round(Math.min(W * 0.22, H * 0.22));
@@ -1863,9 +1895,19 @@ function buildDiagramDrawing(type: string, seed: number, nodes: DiagramNode[], W
     const sps = shapes.map((s, idx) => {
         const id = spid++;
         const modelId = diagramUniqueId(seed * 100 + idx + 1);
+        const xfrm = `<a:xfrm><a:off x="${s.x}" y="${s.y}"/><a:ext cx="${s.w}" cy="${s.h}"/></a:xfrm>`;
+        if (s.kind === 'line') {
+            // 连线：细长矩形，无边框、无文字（解析端按普通形状渲染为线，PowerPoint 同样呈现为连线）
+            return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
+                `<dsp:spPr bwMode="auto">${xfrm}` +
+                `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+                `<a:solidFill><a:schemeClr val="${s.fill}"/></a:solidFill>` +
+                `</dsp:spPr>` +
+                `<dsp:txBody><a:bodyPr/><a:lstStyle/><a:p/></dsp:txBody></dsp:sp>`;
+        }
         const sz = Math.max(900, Math.min(2200, Math.round((s.h / 914400) * 1200))); // 字号随框高自适应（EMU→pt*100）
         return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
-            `<dsp:spPr bwMode="auto"><a:xfrm><a:off x="${s.x}" y="${s.y}"/><a:ext cx="${s.w}" cy="${s.h}"/></a:xfrm>` +
+            `<dsp:spPr bwMode="auto">${xfrm}` +
             `<a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom>` +
             `<a:solidFill><a:schemeClr val="${s.fill}"/></a:solidFill>` +
             `<a:ln><a:solidFill><a:schemeClr val="lt1"/></a:solidFill></a:ln>` +
