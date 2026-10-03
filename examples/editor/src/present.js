@@ -53,6 +53,8 @@ function show(i, prevDir) {
     if (oldFrame) oldFrame.remove();
     overlay.appendChild(frame);
   }
+  // 记录当前帧引用，供动画系统使用（避免 querySelector 查到旧帧）
+  state.frame = frame;
 
   // 导航栏
   const bar = overlay.querySelector('.present-bar');
@@ -79,6 +81,12 @@ function applyTransition(oldFrame, newFrame, type, dur, dir) {
   const enterAnim = transitionEnter(type, ms, dir || 'r');
   if (enterAnim) {
     newFrame.style.animation = enterAnim;
+    newFrame.style.animationFillMode = 'forwards';
+    // 过渡结束后清除 animation，避免残留影响元素动画
+    setTimeout(() => {
+      newFrame.style.animation = '';
+      newFrame.style.opacity = '1';
+    }, ms + 60);
   } else {
     newFrame.style.transition = `opacity ${ms}ms ease`;
     requestAnimationFrame(() => { newFrame.style.opacity = '1'; });
@@ -115,15 +123,15 @@ function transitionEnter(type, ms, dir) {
 function transitionExit(type, ms, dir) {
   const map = {
     fade: `presFadeOut ${ms}ms ease`,
-    wipe: null,
+    wipe: `presWipeOut ${ms}ms ease`,
     push: dir === 'r' ? `presPushOutL ${ms}ms ease` : `presPushOutR ${ms}ms ease`,
     cover: null,
-    blinds: null,
-    split: null,
+    blinds: `presBlindsOut ${ms}ms ease`,
+    split: `presSplitOut ${ms}ms ease`,
     zoom: `presZoomOut ${ms}ms ease`,
     fly: null,
     reveal: `presRevealOut ${ms}ms ease`,
-    randomBar: null,
+    randomBar: `presRandomBarOut ${ms}ms ease`,
   };
   return map[type] || null;
 }
@@ -136,7 +144,7 @@ function setupAnimations(slide) {
   if (!anims.length) return;
 
   // 隐藏所有有动画的元素，等待触发
-  const frame = state.overlay.querySelector('.present-frame');
+  const frame = state.frame;
   if (!frame) return;
   for (const a of anims) {
     const el = frame.querySelector(`[data-id="${a.target}"]`);
@@ -168,7 +176,7 @@ function doPlayAnim() {
   if (!state || !state.animQueue.length) return;
   const a = state.animQueue.shift();
   state.animStep++;
-  const frame = state.overlay.querySelector('.present-frame');
+  const frame = state.frame;
   if (!frame) return;
   const el = frame.querySelector(`[data-id="${a.target}"]`);
   if (!el) { playNextAnim(); return; }

@@ -483,14 +483,30 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 @keyframes presPushOutR { from { transform: translateX(0) scale(var(--pres-z,1)); } to { transform: translateX(100%) scale(var(--pres-z,1)); opacity: 0; } }
 @keyframes presCoverR { from { transform: translateX(100%) scale(var(--pres-z,1)); } to { transform: translateX(0) scale(var(--pres-z,1)); } }
 @keyframes presCoverL { from { transform: translateX(-100%) scale(var(--pres-z,1)); } to { transform: translateX(0) scale(var(--pres-z,1)); } }
-@keyframes presBlindsIn { from { clip-path: inset(0 0 0 0); opacity: 0; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+@keyframes presBlindsIn {
+  from { clip-path: polygon(0% 0%,100% 0%,100% 1%,0% 1%,0% 16.67%,100% 16.67%,100% 17.67%,0% 17.67%,0% 33.33%,100% 33.33%,100% 34.33%,0% 34.33%,0% 50%,100% 50%,100% 51%,0% 51%,0% 66.67%,100% 66.67%,100% 67.67%,0% 67.67%,0% 83.33%,100% 83.33%,100% 84.33%,0% 84.33%); }
+  to   { clip-path: polygon(0% 0%,100% 0%,100% 16.67%,0% 16.67%,0% 16.67%,100% 16.67%,100% 33.33%,0% 33.33%,0% 33.33%,100% 33.33%,100% 50%,0% 50%,0% 50%,100% 50%,100% 66.67%,0% 66.67%,0% 66.67%,100% 66.67%,100% 83.33%,0% 83.33%,0% 83.33%,100% 83.33%,100% 100%,0% 100%); }
+}
+@keyframes presBlindsOut {
+  from { clip-path: polygon(0% 0%,100% 0%,100% 16.67%,0% 16.67%,0% 16.67%,100% 16.67%,100% 33.33%,0% 33.33%,0% 33.33%,100% 33.33%,100% 50%,0% 50%,0% 50%,100% 50%,100% 66.67%,0% 66.67%,0% 66.67%,100% 66.67%,100% 83.33%,0% 83.33%,0% 83.33%,100% 83.33%,100% 100%,0% 100%); }
+  to   { clip-path: polygon(0% 0%,100% 0%,100% 1%,0% 1%,0% 16.67%,100% 16.67%,100% 17.67%,0% 17.67%,0% 33.33%,100% 33.33%,100% 34.33%,0% 34.33%,0% 50%,100% 50%,100% 51%,0% 51%,0% 66.67%,100% 66.67%,100% 67.67%,0% 67.67%,0% 83.33%,100% 83.33%,100% 84.33%,0% 84.33%); }
+}
 @keyframes presSplitIn { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes presSplitOut { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 50% 0 50%); } }
 @keyframes presZoomIn { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes presZoomOut { from { transform: scale(1); opacity: 1; } to { transform: scale(2); opacity: 0; } }
 @keyframes presFlyIn { from { transform: translateY(-100%) scale(var(--pres-z,1)); opacity: 0; } to { transform: translateY(0) scale(var(--pres-z,1)); opacity: 1; } }
 @keyframes presRevealIn { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes presRevealOut { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 100% 0); } }
-@keyframes presRandomBarIn { from { clip-path: inset(0 0 0 0); opacity: 0; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+@keyframes presRandomBarIn {
+  from { clip-path: polygon(0% 0%,1% 0%,1% 100%,0% 100%,16.67% 0%,17.67% 0%,17.67% 100%,16.67% 100%,33.33% 0%,34.33% 0%,34.33% 100%,33.33% 100%,50% 0%,51% 0%,51% 100%,50% 100%,66.67% 0%,67.67% 0%,67.67% 100%,66.67% 100%,83.33% 0%,84.33% 0%,84.33% 100%,83.33% 100%); }
+  to   { clip-path: polygon(0% 0%,16.67% 0%,16.67% 100%,0% 100%,16.67% 0%,33.33% 0%,33.33% 100%,16.67% 100%,33.33% 0%,50% 0%,50% 100%,33.33% 100%,50% 0%,66.67% 0%,66.67% 100%,50% 100%,66.67% 0%,83.33% 0%,83.33% 100%,66.67% 100%,83.33% 0%,100% 0%,100% 100%,83.33% 100%); }
+}
+@keyframes presRandomBarOut {
+  from { clip-path: polygon(0% 0%,16.67% 0%,16.67% 100%,0% 100%,16.67% 0%,33.33% 0%,33.33% 100%,16.67% 100%,33.33% 0%,50% 0%,50% 100%,33.33% 100%,50% 0%,66.67% 0%,66.67% 100%,50% 100%,66.67% 0%,83.33% 0%,83.33% 100%,66.67% 100%,83.33% 0%,100% 0%,100% 100%,83.33% 100%); }
+  to   { clip-path: polygon(0% 0%,1% 0%,1% 100%,0% 100%,16.67% 0%,17.67% 0%,17.67% 100%,16.67% 100%,33.33% 0%,34.33% 0%,34.33% 100%,33.33% 100%,50% 0%,51% 0%,51% 100%,50% 100%,66.67% 0%,67.67% 0%,67.67% 100%,66.67% 100%,83.33% 0%,84.33% 0%,84.33% 100%,83.33% 100%); }
+}
+@keyframes presWipeOut { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 100% 0 0); } }
 
 /* ============================ 元素动画 keyframes ============================ */
 /* 进入 */
