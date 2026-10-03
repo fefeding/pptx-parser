@@ -909,7 +909,10 @@ async function processPicNode(node: XmlNode | undefined, parentNode: XmlNode | u
         result += `<img src='data:${mimeType};base64,${base64Data}' style='${imgGeomStyle}${picEffectStyle}' ${gifAttrs}/>`;
     } else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
         if (vdoNode !== undefined && !isVideoLink) {
-            result += `<video src='${videoBlob}' autoplay loop muted controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;
+            // 不再硬编码 muted：静音会让用户无法开启声音，且每次重渲染都会重置静音状态。
+            // 需要保持旧的“静音自动播放”行为时，传入 mediaMuted: true。
+            const mutedAttr = settings.mediaMuted ? ' muted' : '';
+            result += `<video src='${videoBlob}' autoplay loop${mutedAttr} controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;
         } else if (vdoNode !== undefined && isVideoLink) {
             // 使用iframe嵌入视频，支持YouTube/Vimeo等
             // 添加allowfullscreen支持，并设置合适的sandbox权限

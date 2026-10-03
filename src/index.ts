@@ -11,6 +11,7 @@ import { PPTXComposer } from './serializer/composer';
 import { buildStandardDocument, type StandardExtractOptions } from './serializer/json-from-pptx';
 import type { PptxDocument } from './types/pptx-document';
 import type { XmlNode, ParseSettings, ParseCallbacks } from './core/types';
+import baseLayoutCss from './css/pptxjs.css';
 
 /** 图表消息队列条目（由解析阶段产生，交给 processMsgQueue 消费） */
 interface ChartQueueItem {
@@ -691,7 +692,8 @@ async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: Sli
  * @returns {string} CSS text
  */
 function genGlobalCSS(styleTable: StyleTable) {
-    let cssText = "";
+    // 基础布局骨架（.block/.content 等）随 global 一起返回，消费方无需再单独引入 pptxjs.css
+    let cssText = baseLayoutCss + "\n";
     for (const key in styleTable) {
         const suffix = styleTable[key].suffix || "";
         cssText += ` .${styleTable[key].name}${suffix}{${styleTable[key].text}}\n`;
@@ -709,6 +711,7 @@ async function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettings
     // Merge default settings with user options
     const settings: ParseSettings = {
         mediaProcess: true,
+        mediaMuted: false,
         themeProcess: true,
         incSlide: {
             width: 0,
@@ -826,6 +829,7 @@ async function pptxToJson(fileData: PptxFileData, options: Partial<ParseSettings
     // Merge default settings with user options
     const settings: ParseSettings = {
         mediaProcess: true,
+        mediaMuted: false,
         themeProcess: true,
         incSlide: {
             width: 0,
@@ -947,6 +951,7 @@ async function pptxToStandard(fileData: PptxFileData, options: Partial<ParseSett
     // Merge default settings with user options
     const settings: ParseSettings = {
         mediaProcess: true,
+        mediaMuted: false,
         themeProcess: true,
         incSlide: {
             width: 0,

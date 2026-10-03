@@ -45,6 +45,8 @@ export interface Callbacks {
 /** PPTX 解析选项 */
 export interface PptxParserOptions {
     mediaProcess?: boolean;
+    /** 视频是否静音，默认 false（可播放声音）；设为 true 可恢复旧的静音自动播放行为 */
+    mediaMuted?: boolean;
     themeProcess?: boolean | 'colorsAndImageOnly';
     incSlide?: { width: number; height: number };
     styleTable?: StyleTable;

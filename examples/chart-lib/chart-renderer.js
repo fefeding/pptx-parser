@@ -29,11 +29,28 @@ export class ChartRenderer {
 
         charts.forEach(chartInfo => {
             try {
-                this.renderChart(chartInfo);
+                // 把容器作用域传递下去，否则同一份幻灯片 HTML 被渲染多份（缩略图/画布/演示）时会互相串台
+                this.renderChart(chartInfo, container);
             } catch (err) {
                 console.error(`Error rendering chart ${chartInfo.chartId}:`, err);
             }
         });
+    }
+
+    /**
+     * 在指定容器内按 ID 查找图表容器
+     * @param {string} chartId - 图表容器 ID
+     * @param {HTMLElement|null} container - 作用域容器，为 null 时回退到 document
+     * @returns {HTMLElement|null}
+     */
+    findChartElement(chartId, container = null) {
+        if (!container) {
+            return document.getElementById(chartId);
+        }
+        if (container.id === chartId) {
+            return container;
+        }
+        return container.querySelector(`[id="${chartId}"]`);
     }
 
     /**
@@ -44,8 +61,8 @@ export class ChartRenderer {
      * @param {Array} chartInfo.data - 图表数据
      * @param {Object} chartInfo.style - 图表样式
      */
-    renderChart(chartInfo) {
-        const chartElement = document.getElementById(chartInfo.chartId);
+    renderChart(chartInfo, container = null) {
+        const chartElement = this.findChartElement(chartInfo.chartId, container);
         if (!chartElement) {
             console.warn(`Chart element not found: #${chartInfo.chartId}`);
             return;

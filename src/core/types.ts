@@ -61,6 +61,8 @@ export interface ParseSettings {
     /** true = 完整主题处理；'colorsAndImageOnly' = 仅颜色与背景图 */
     themeProcess?: boolean | string;
     mediaProcess?: boolean;
+    /** 视频是否静音，默认 false（可播放声音）；设为 true 可恢复旧的静音自动播放行为 */
+    mediaMuted?: boolean;
     incSlide?: { width: number; height: number };
     styleTable?: Record<string, unknown>;
     callbacks?: ParseCallbacks;

@@ -14,6 +14,18 @@ const banner = `/**
  * MIT License
  */`;
 
+// 把 .css 以内联字符串形式打包，使 src/css/pptxjs.css 成为基础样式的唯一来源
+// （避免消费方各自复制一份样式文件）
+function cssAsString() {
+  return {
+    name: 'css-as-string',
+    transform(code, id) {
+      if (!id.endsWith('.css')) return null;
+      return { code: `export default ${JSON.stringify(code)};`, map: { mappings: '' } };
+    }
+  };
+}
+
 export default [
   // 打包核心代码：输出 ESM + CJS 双格式，不压缩（用于 Node.js 开发）
   {
@@ -37,7 +49,8 @@ export default [
     plugins: [
       nodeResolve({ extensions: ['.ts', '.js', '.json'] }),
       commonjs(),
-      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } })
+      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
+      cssAsString()
     ],
     external: [...Object.keys(pkg.dependencies)]
   },
@@ -61,7 +74,8 @@ export default [
         // 将 CJS 模块转换为 ESM
         include: /node_modules/
       }),
-      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } })
+      typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
+      cssAsString()
     ],
     // 不标记 dependencies 为 external，让它们被打包进去
     // external: []
@@ -70,7 +84,7 @@ export default [
   {
     input: 'src/index.ts',
     output: [{ file: pkg.types, format: 'es' }],
-    plugins: [dts()],
+    plugins: [cssAsString(), dts()],
     external: [...Object.keys(pkg.dependencies)]
   }
 ];

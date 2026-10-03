@@ -458,7 +458,14 @@ tXml.parseStream = (source: string | NodeJS.ReadableStream, chunkSize: number | 
     }
     let stream: NodeJS.ReadableStream;
     if (typeof source === 'string') {
-        const fs = require('fs');
+        // 通过间接引用调用 require：若直接写 require('fs')，打包器会把它提升成顶层静态导入，
+        // 导致浏览器构建产物带上 Node 内建依赖（浏览器环境无法解析）。
+        const nodeRequire: ((id: string) => any) | undefined =
+            typeof require === 'function' ? require : undefined;
+        if (!nodeRequire) {
+            throw new Error('tXml.parseStream: reading from a file path requires a Node.js environment');
+        }
+        const fs = nodeRequire('fs');
         stream = fs.createReadStream(source, { start: chunkSize });
     } else {
         stream = source;

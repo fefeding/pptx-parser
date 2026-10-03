@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.15
+ * @fefeding/ppt-parser v1.0.16
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -1230,7 +1230,11 @@ tXml.parseStream = (source, chunkSize = 0) => {
     }
     let stream;
     if (typeof source === 'string') {
-        const fs = require('fs');
+        const nodeRequire = typeof require === 'function' ? require : undefined;
+        if (!nodeRequire) {
+            throw new Error('tXml.parseStream: reading from a file path requires a Node.js environment');
+        }
+        const fs = nodeRequire('fs');
         stream = fs.createReadStream(source, { start: chunkSize });
     }
     else {
@@ -13782,7 +13786,8 @@ async function processPicNode(node, parentNode, wrapObj, source, shapeType, sett
     }
     else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
         if (vdoNode !== undefined && !isVideoLink) {
-            result += `<video src='${videoBlob}' autoplay loop muted controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;
+            const mutedAttr = settings.mediaMuted ? ' muted' : '';
+            result += `<video src='${videoBlob}' autoplay loop${mutedAttr} controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;
         }
         else if (vdoNode !== undefined && isVideoLink) {
             const iframeAttrs = 'allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"';
@@ -18158,6 +18163,8 @@ async function buildStandardDocument(parsedData, zip, options = {}) {
     return doc;
 }
 
+var baseLayoutCss = ".slide {\n\twidth: 100%;\n\t/*max-width: 920px;*/\n\theight: 690px;\n\tposition: relative;\n\tborder: 1px solid #333;\n\t/* background-color: #EFEFEF; */\n\ttext-align: center;\n\tborder-radius: 10px;\n\t/* box-shadow: 1px 1px 3px #AAA; */\n\toverflow: hidden;\n\t/*transform: scale(0.85);*/\n}\n\n.slide div.block {\n\tposition: absolute;\n\ttop: 0px;\n\tleft: 0px;\n\twidth: 100%;\n}\n\n.slide div.content {\n\tdisplay: flex;\n\tflex-direction: column;\n\t/*\n\tjustify-content: center;\n\talign-items: flex-end;\n\t*/\n}\n\n.slide div.v-up {\n\tjustify-content: flex-start;\n}\n.slide div.v-mid {\n\tjustify-content: center;\n}\n.slide div.v-down {\n\tjustify-content: flex-end;\n}\n\n.slide div.h-left {\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.h-mid {\n\talign-items: center;\n\tjustify-content: center;\n\ttext-align: center;\n}\n.slide div.h-right {\n\talign-items: flex-end;\n\ttext-align: right;\n}\n\n.slide div.up-left {\n\tjustify-content: flex-start;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.up-center {\n\tjustify-content: flex-start;\n\talign-items: center;\n}\n.slide div.up-right {\n\tjustify-content: flex-start;\n\talign-items: flex-end;\n}\n.slide div.center-left {\n\tjustify-content: center;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.center-center {\n\tjustify-content: center;\n\talign-items: center;\n}\n.slide div.center-right {\n\tjustify-content: center;\n\talign-items: flex-end;\n}\n.slide div.down-left {\n\tjustify-content: flex-end;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.down-center {\n\tjustify-content: flex-end;\n\talign-items: center;\n}\n.slide div.down-right {\n\tjustify-content: flex-end;\n\talign-items: flex-end;\n}\n\n\n.slide li.slide {\n\tmargin: 10px 0px;\n\tfont-size: 18px;\n}\n\n.slide table {\n\tposition: absolute;\n}\n\n.slide svg.drawing {\n\tposition: absolute;\n\toverflow: visible;\n}\n\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\n.slide div[style*=\"background-color: inherit\"] {\n\tbackground-color: transparent !important;\n}\n\n/* 针对包含无效边框样式的问题元素 */\n.slide div[style*=\"pxsolidhidden\"] {\n\tborder: none !important;\n}\n\n/* 处理文本换行符 */\n.slide .line-break-br {\n\tdisplay: inline;\n}\n.slide .line-break-br::before {\n\tcontent: \"\\A\";\n\twhite-space: pre;\n}\n\n/*\n#pptx-thumb {\n\tmin-width: 240px;\n\theight: 180px;\n}\n*/";
+
 function parseComments(xml, authors) {
     if (!xml || !xml['p:cmLst'])
         return [];
@@ -18609,7 +18616,7 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slide
     return `${result}</div></section>`;
 }
 function genGlobalCSS(styleTable) {
-    let cssText = "";
+    let cssText = baseLayoutCss + "\n";
     for (const key in styleTable) {
         const suffix = styleTable[key].suffix || "";
         cssText += ` .${styleTable[key].name}${suffix}{${styleTable[key].text}}\n`;
@@ -18619,6 +18626,7 @@ function genGlobalCSS(styleTable) {
 async function pptxToHtml(fileData, options) {
     const settings = {
         mediaProcess: true,
+        mediaMuted: false,
         themeProcess: true,
         incSlide: {
             width: 0,
@@ -18695,6 +18703,7 @@ async function pptxToHtml(fileData, options) {
 async function pptxToJson(fileData, options = {}) {
     const settings = {
         mediaProcess: true,
+        mediaMuted: false,
         themeProcess: true,
         incSlide: {
             width: 0,
@@ -18769,6 +18778,7 @@ async function pptxToJson(fileData, options = {}) {
 async function pptxToStandard(fileData, options = {}) {
     const settings = {
         mediaProcess: true,
+        mediaMuted: false,
         themeProcess: true,
         incSlide: {
             width: 0,
