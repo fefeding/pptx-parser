@@ -300,9 +300,73 @@ export function createSlide(elements = [], opts = {}) {
     notes: opts.notes ?? '',
     hidden: !!opts.hidden,
     transition: opts.transition ?? null,
+    animations: opts.animations ?? [],
     elements
   };
 }
+
+/* ======================= 过渡 / 动画常量 ======================= */
+export const TRANSITIONS = [
+  { value: 'none', name: '无' },
+  { value: 'fade', name: '淡入淡出' },
+  { value: 'wipe', name: '擦除' },
+  { value: 'push', name: '推出' },
+  { value: 'cover', name: '覆盖' },
+  { value: 'blinds', name: '百叶窗' },
+  { value: 'split', name: '分割' },
+  { value: 'reveal', name: '显示' },
+  { value: 'randomBar', name: '随机条' },
+  { value: 'zoom', name: '缩放' },
+  { value: 'fly', name: '飞入' },
+];
+
+export const TRANSITION_SPEEDS = [
+  { value: 500, name: '快' },
+  { value: 800, name: '中' },
+  { value: 1500, name: '慢' },
+];
+
+export const ANIM_CLASSES = [
+  { value: 'entr', name: '进入' },
+  { value: 'exit', name: '退出' },
+  { value: 'emph', name: '强调' },
+];
+
+export const ANIM_TYPES = {
+  entr: [
+    { value: 'flyIn', name: '飞入' },
+    { value: 'fadeIn', name: '淡入' },
+    { value: 'wipeIn', name: '擦除' },
+    { value: 'zoomIn', name: '缩放' },
+    { value: 'riseUp', name: '升起' },
+    { value: 'bounceIn', name: '弹跳' },
+  ],
+  exit: [
+    { value: 'flyOut', name: '飞出' },
+    { value: 'fadeOut', name: '淡出' },
+    { value: 'wipeOut', name: '擦除退出' },
+    { value: 'zoomOut', name: '缩小退出' },
+  ],
+  emph: [
+    { value: 'pulse', name: '脉冲' },
+    { value: 'shake', name: '抖动' },
+    { value: 'flash', name: '闪烁' },
+    { value: 'grow', name: '放大' },
+  ],
+};
+
+export const ANIM_DIRECTIONS = [
+  { value: 'l', name: '← 左' },
+  { value: 'r', name: '→ 右' },
+  { value: 't', name: '↑ 上' },
+  { value: 'b', name: '↓ 下' },
+];
+
+export const ANIM_TRIGGERS = [
+  { value: 'onClick', name: '单击时' },
+  { value: 'withPrev', name: '与上一动画同时' },
+  { value: 'afterPrev', name: '上一动画之后' },
+];
 
 export function createDoc(themeId = 'blue', sizeKey = '16:9') {
   return {
@@ -630,16 +694,31 @@ export function elementToPptx(el) {
 }
 
 export function slideToPptx(slide) {
-  const out = { elements: (slide.elements || []).filter((e) => !e.hidden).map(elementToPptx) };
+  const visibleEls = (slide.elements || []).filter((e) => !e.hidden);
+  const idToIndex = new Map();
+  visibleEls.forEach((e, i) => idToIndex.set(e.id, i));
+  const out = { elements: visibleEls.map(elementToPptx) };
   if (slide.background) out.background = slide.background;
   if (slide.notes) out.notes = slide.notes;
   if (slide.hidden) out.hidden = true;
-  if (slide.transition && slide.transition.type) {
+  if (slide.transition && slide.transition.type && slide.transition.type !== 'none') {
     out.transition = {
       type: slide.transition.type,
       duration: slide.transition.duration || 800,
-      advanceOnClick: true
+      advanceOnClick: slide.transition.advanceOnClick !== false
     };
+  }
+  if (slide.animations && slide.animations.length) {
+    out.animations = slide.animations.map((a) => {
+      const target = idToIndex.has(a.target) ? idToIndex.get(a.target) : (typeof a.target === 'number' ? a.target : 0);
+      const o = { target, type: a.type, duration: a.duration || 0.5 };
+      if (a.presetClass) o.presetClass = a.presetClass;
+      if (a.direction) o.direction = a.direction;
+      if (a.trigger) o.trigger = a.trigger;
+      if (a.delay != null) o.delay = a.delay;
+      if (a.repeat != null) o.repeat = a.repeat;
+      return o;
+    });
   }
   return out;
 }
@@ -837,6 +916,18 @@ export function docFromPptx(pptxDoc) {
     });
     if (s.transition && s.transition.type) {
       slide.transition = { type: s.transition.type, duration: s.transition.duration || 800 };
+    }
+    if (s.animations && s.animations.length) {
+      slide.animations = s.animations.map((a) => {
+        const idx = typeof a.target === 'number' ? a.target : 0;
+        const el = slide.elements[idx];
+        return {
+          target: el ? el.id : (slide.elements[0] ? slide.elements[0].id : ''),
+          type: a.type, duration: a.duration || 0.5,
+          presetClass: a.presetClass, direction: a.direction,
+          trigger: a.trigger, delay: a.delay, repeat: a.repeat
+        };
+      });
     }
     return slide;
   });

@@ -466,3 +466,53 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 .present-nav, .present-exit { border: none; background: rgba(255,255,255,.14); color: #fff; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 13px; }
 .present-nav:hover, .present-exit:hover { background: rgba(255,255,255,.28); }
 .present-idx { color: #fff; font-size: 13px; margin-left: auto; }
+
+/* ============================ 动画列表行 ============================ */
+.anim-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--line-2); }
+.anim-row:last-child { border-bottom: none; }
+.anim-label { font-size: 12px; color: var(--text-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anim-btns { display: flex; gap: 2px; flex: none; }
+
+/* ============================ 过渡 keyframes ============================ */
+@keyframes presFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes presFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes presWipeIn { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes presPushInR { from { transform: translateX(100%) scale(var(--pres-z,1)); opacity: 0; } to { transform: translateX(0) scale(var(--pres-z,1)); opacity: 1; } }
+@keyframes presPushInL { from { transform: translateX(-100%) scale(var(--pres-z,1)); opacity: 0; } to { transform: translateX(0) scale(var(--pres-z,1)); opacity: 1; } }
+@keyframes presPushOutL { from { transform: translateX(0) scale(var(--pres-z,1)); } to { transform: translateX(-100%) scale(var(--pres-z,1)); opacity: 0; } }
+@keyframes presPushOutR { from { transform: translateX(0) scale(var(--pres-z,1)); } to { transform: translateX(100%) scale(var(--pres-z,1)); opacity: 0; } }
+@keyframes presCoverR { from { transform: translateX(100%) scale(var(--pres-z,1)); } to { transform: translateX(0) scale(var(--pres-z,1)); } }
+@keyframes presCoverL { from { transform: translateX(-100%) scale(var(--pres-z,1)); } to { transform: translateX(0) scale(var(--pres-z,1)); } }
+@keyframes presBlindsIn { from { clip-path: inset(0 0 0 0); opacity: 0; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+@keyframes presSplitIn { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes presZoomIn { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes presZoomOut { from { transform: scale(1); opacity: 1; } to { transform: scale(2); opacity: 0; } }
+@keyframes presFlyIn { from { transform: translateY(-100%) scale(var(--pres-z,1)); opacity: 0; } to { transform: translateY(0) scale(var(--pres-z,1)); opacity: 1; } }
+@keyframes presRevealIn { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes presRevealOut { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 100% 0); } }
+@keyframes presRandomBarIn { from { clip-path: inset(0 0 0 0); opacity: 0; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+
+/* ============================ 元素动画 keyframes ============================ */
+/* 进入 */
+@keyframes animFlyInL { from { transform: translateX(-120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes animFlyInR { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes animFlyInT { from { transform: translateY(-120%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes animFlyInB { from { transform: translateY(120%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes animFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes animWipeIn { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes animZoomIn { from { transform: scale(0.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes animRiseUp { from { transform: translateY(60%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes animBounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 70% { transform: scale(0.95); } 100% { transform: scale(1); } }
+/* 退出 */
+@keyframes animFlyOutL { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-120%); opacity: 0; } }
+@keyframes animFlyOutR { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+@keyframes animFlyOutT { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-120%); opacity: 0; } }
+@keyframes animFlyOutB { from { transform: translateY(0); opacity: 1; } to { transform: translateY(120%); opacity: 0; } }
+@keyframes animFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes animWipeOut { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 100% 0 0); } }
+@keyframes animZoomOut { from { transform: scale(1); opacity: 1; } to { transform: scale(0.1); opacity: 0; } }
+/* 强调 */
+@keyframes animPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes animShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@keyframes animFlash { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes animGrow { from { transform: scale(1); } to { transform: scale(1.15); } }

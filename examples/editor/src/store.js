@@ -224,6 +224,8 @@ function normalizeDoc(doc) {
     s.id = s.id || ('s_' + Math.random().toString(36).slice(2, 8));
     s.elements = Array.isArray(s.elements) ? s.elements : [];
     s.notes = s.notes || '';
+    s.animations = Array.isArray(s.animations) ? s.animations : [];
+    if (!s.transition) s.transition = null;
     for (const el of s.elements) normalizeElement(el);
   }
   return doc;

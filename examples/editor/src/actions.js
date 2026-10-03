@@ -411,3 +411,45 @@ export function updateElement(id, patch, opts = {}) {
 }
 
 export { findInDoc };
+
+/* ======================= 过渡 / 动画 ======================= */
+export function setTransition(trans) {
+  store.update((doc) => {
+    doc.slides[store.slideIndex].transition = trans;
+  }, { coalesce: 'trans' });
+}
+
+export function addAnimation(anim) {
+  store.update((doc) => {
+    const slide = doc.slides[store.slideIndex];
+    if (!slide.animations) slide.animations = [];
+    slide.animations.push({ ...anim });
+  });
+}
+
+export function updateAnimation(index, patch) {
+  store.update((doc) => {
+    const slide = doc.slides[store.slideIndex];
+    if (slide.animations && slide.animations[index]) {
+      Object.assign(slide.animations[index], patch);
+    }
+  });
+}
+
+export function removeAnimation(index) {
+  store.update((doc) => {
+    const slide = doc.slides[store.slideIndex];
+    if (slide.animations) slide.animations.splice(index, 1);
+  });
+}
+
+export function moveAnimation(index, dir) {
+  store.update((doc) => {
+    const slide = doc.slides[store.slideIndex];
+    if (!slide.animations) return;
+    const ni = index + dir;
+    if (ni < 0 || ni >= slide.animations.length) return;
+    const [a] = slide.animations.splice(index, 1);
+    slide.animations.splice(ni, 0, a);
+  });
+}

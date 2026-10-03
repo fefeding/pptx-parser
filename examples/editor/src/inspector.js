@@ -3,11 +3,12 @@
  */
 import { store } from './store.js';
 import { h, normalizeColor } from './util.js';
-import { FONT_LIST, FONT_SIZES, getTheme, SHAPES, CHART_TYPES, THEMES, syncTableStyle } from './model.js';
+import { FONT_LIST, FONT_SIZES, getTheme, SHAPES, CHART_TYPES, THEMES, syncTableStyle, TRANSITIONS, TRANSITION_SPEEDS, ANIM_CLASSES, ANIM_TYPES, ANIM_DIRECTIONS, ANIM_TRIGGERS } from './model.js';
 import {
   updateElement, applyTextStyleSel, setElementGeo, setBackground, setBackgroundImage,
   setNotes, alignElements, distribute, zOrder, groupSelection, ungroupSelection,
-  toggleLock, toggleHidden, deleteSelected, duplicateSelected, resizeTable, applyTheme
+  toggleLock, toggleHidden, deleteSelected, duplicateSelected, resizeTable, applyTheme,
+  setTransition, addAnimation, updateAnimation, removeAnimation, moveAnimation
 } from './actions.js';
 import {
   openPalette, openShapePicker, openChartDialog, openTableDialog, openImagePicker
@@ -55,6 +56,12 @@ function renderInspector() {
   else if (single.type === 'table') host.appendChild(section('表格', tableFields(single, els)));
   else if (single.type === 'chart') host.appendChild(section('图表', chartFields(single, els)));
   else if (single.type === 'group') host.appendChild(h('div', { class: 'hint', text: '已组合：可整体移动 / 缩放 / 取消组合。' }));
+
+  // 选中元素的动画编辑
+  if (els.length === 1) {
+    const animSec = buildAnimEditPanel(single);
+    if (animSec) host.appendChild(animSec);
+  }
 }
 
 /* ---------- 通用控件 ---------- */
@@ -344,6 +351,12 @@ function renderDocPanel(host) {
   ]);
   host.appendChild(bgSec);
 
+  // 切换效果
+  host.appendChild(buildTransitionSection(slide));
+
+  // 动画
+  host.appendChild(buildAnimationSection(slide));
+
   // 备注
   const notes = h('textarea', { class: 'notes-area', placeholder: '在此输入演讲者备注…' });
   notes.value = slide.notes || '';
@@ -358,6 +371,121 @@ function buildThemeSelect(current) {
   for (const t of THEMES) sel.appendChild(h('option', { value: t.id, text: t.name }));
   sel.value = current;
   return field('主题', sel);
+}
+
+/* ---------- 切换效果 ---------- */
+function buildTransitionSection(slide) {
+  const trans = slide.transition || {};
+  const typeSel = h('select', { onchange: (e) => {
+    const type = e.target.value;
+    if (type === 'none') { setTransition(null); return; }
+    setTransition({ type, duration: trans.duration || 800, advanceOnClick: true });
+  }});
+  for (const t of TRANSITIONS) typeSel.appendChild(h('option', { value: t.value, text: t.name }));
+  typeSel.value = trans.type || 'none';
+
+  const speedSel = h('select', { onchange: (e) => {
+    setTransition({ type: trans.type || 'fade', duration: parseInt(e.target.value), advanceOnClick: trans.advanceOnClick !== false });
+  }});
+  for (const s of TRANSITION_SPEEDS) speedSel.appendChild(h('option', { value: s.value, text: s.name }));
+  speedSel.value = trans.duration || 800;
+
+  const advCheck = h('input', { type: 'checkbox', onchange: (e) => {
+    setTransition({ type: trans.type || 'fade', duration: trans.duration || 800, advanceOnClick: e.target.checked });
+  }});
+  advCheck.checked = trans.advanceOnClick !== false;
+
+  return section('切换效果', [
+    field('类型', typeSel),
+    field('速度', speedSel),
+    field('点击切换', wrapCheck(advCheck))
+  ]);
+}
+
+/* ---------- 动画 ---------- */
+function buildAnimationSection(slide) {
+  const anims = slide.animations || [];
+  const controls = [];
+
+  // 动画列表
+  for (let i = 0; i < anims.length; i++) {
+    const a = anims[i];
+    const el = store.findElement(a.target);
+    const label = `${i + 1}. ${el ? typeLabel(el.type) : '元素'} · ${animTypeName(a)}`;
+    const row = h('div', { class: 'anim-row' });
+    row.appendChild(h('span', { class: 'anim-label', text: label }));
+    const btns = h('div', { class: 'anim-btns' });
+    btns.appendChild(h('button', { class: 'icon-sm', text: '↑', title: '上移', onclick: (e) => { e.stopPropagation(); moveAnimation(i, -1); } }));
+    btns.appendChild(h('button', { class: 'icon-sm', text: '↓', title: '下移', onclick: (e) => { e.stopPropagation(); moveAnimation(i, 1); } }));
+    btns.appendChild(h('button', { class: 'icon-sm', text: '🗑', title: '删除', onclick: (e) => { e.stopPropagation(); removeAnimation(i); } }));
+    row.appendChild(btns);
+    controls.push(row);
+  }
+
+  // 添加动画按钮
+  const addBtn = h('button', { class: 'mini-btn', text: '＋ 为选中元素添加动画', onclick: (e) => {
+    e.stopPropagation();
+    const sel = store.selected();
+    if (!sel.length) return;
+    const el = sel[0];
+    addAnimation({
+      target: el.id, type: 'flyIn', presetClass: 'entr', duration: 0.5,
+      direction: 'l', trigger: { type: 'onClick' }
+    });
+  }});
+  controls.push(addBtn);
+
+  if (!anims.length) {
+    controls.push(h('div', { class: 'hint', text: '选中一个元素后点击上方按钮添加动画。' }));
+  }
+
+  return section('动画', controls);
+}
+
+function animTypeName(a) {
+  const types = ANIM_TYPES[a.presetClass] || [];
+  const found = types.find((t) => t.value === a.type);
+  return found ? found.name : a.type;
+}
+
+/** 选中元素的动画属性编辑面板 */
+function buildAnimEditPanel(el) {
+  const slide = store.slide;
+  const anims = slide.animations || [];
+  const idx = anims.findIndex((a) => a.target === el.id);
+  if (idx < 0) return null;
+  const a = anims[idx];
+
+  const classSel = h('select', { onchange: (e) => {
+    const cls = e.target.value;
+    const types = ANIM_TYPES[cls] || [];
+    updateAnimation(idx, { presetClass: cls, type: types[0] ? types[0].value : a.type });
+  }});
+  for (const c of ANIM_CLASSES) classSel.appendChild(h('option', { value: c.value, text: c.name }));
+  classSel.value = a.presetClass || 'entr';
+
+  const typeSel = h('select', { onchange: (e) => updateAnimation(idx, { type: e.target.value }) });
+  const types = ANIM_TYPES[a.presetClass] || [];
+  for (const t of types) typeSel.appendChild(h('option', { value: t.value, text: t.name }));
+  typeSel.value = a.type;
+
+  const dirSel = h('select', { onchange: (e) => updateAnimation(idx, { direction: e.target.value }) });
+  for (const d of ANIM_DIRECTIONS) dirSel.appendChild(h('option', { value: d.value, text: d.name }));
+  dirSel.value = a.direction || 'l';
+
+  const trigSel = h('select', { onchange: (e) => updateAnimation(idx, { trigger: { type: e.target.value } }) });
+  for (const t of ANIM_TRIGGERS) trigSel.appendChild(h('option', { value: t.value, text: t.name }));
+  trigSel.value = (a.trigger && a.trigger.type) || 'onClick';
+
+  const durInp = numInput((a.duration || 0.5) * 1000, (v) => updateAnimation(idx, { duration: v / 1000 }), { step: 100, min: 100 });
+
+  return section('动画属性', [
+    field('类别', classSel),
+    field('效果', typeSel),
+    field('方向', dirSel),
+    field('触发', trigSel),
+    field('时长(ms)', durInp)
+  ]);
 }
 
 async function pickBgImage() {

@@ -119,6 +119,22 @@ describe('editor smoke', () => {
     const round = await pptxToStandard(bytes);
     expect(round.slides.length).toBe(store.doc.slides.length);
 
+    // 过渡 + 动画 序列化往返
+    const { setTransition, addAnimation } = await import('./src/actions.js');
+    const firstSlide = store.doc.slides[0];
+    const animTarget = firstSlide.elements.find((e) => e.type === 'text');
+    setTransition({ type: 'fade', duration: 800, advanceOnClick: true });
+    addAnimation({ target: animTarget.id, type: 'flyIn', presetClass: 'entr', duration: 0.5, direction: 'l', trigger: { type: 'onClick' } });
+    const pptxWithAnim = docToPptx(store.doc);
+    expect(pptxWithAnim.slides[0].transition.type).toBe('fade');
+    expect(pptxWithAnim.slides[0].animations.length).toBe(1);
+    expect(pptxWithAnim.slides[0].animations[0].type).toBe('flyIn');
+    const animBytes = await jsonToPptx(pptxWithAnim, { outputType: 'uint8array' });
+    const animRound = await pptxToStandard(animBytes);
+    expect(animRound.slides[0].transition).toBeTruthy();
+    expect(animRound.slides[0].transition.type).toBe('fade');
+    expect(animRound.slides[0].animations.length).toBe(1);
+
     if (ERRORS.length) console.log('CAPTURED ERRORS:\n' + ERRORS.join('\n'));
     expect(ERRORS.length).toBe(0);
   });
