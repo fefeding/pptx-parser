@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.14
+ * @fefeding/ppt-parser v1.0.15
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
