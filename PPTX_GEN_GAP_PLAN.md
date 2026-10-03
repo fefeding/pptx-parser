@@ -150,6 +150,46 @@
 
 ---
 
+## 真实状态核对（2026-10 代码审计）
+
+> 原计划 T1–T19 全部标注 ✅，但逐项核对源码后，部分项为**「文档标注达标、代码实未达标」**。
+> 下表标记真实状态，避免后续误判。
+
+| 项 | 原标注 | 实际状态（审计时） |
+|----|--------|--------------------|
+| T5 主题色 | ✅ | ⚠️ 部分达标：仅支持整串 XML 覆盖，无语义级 `PptxTheme` 对象、无多 `themeN.xml` |
+| T13 动画 | ✅ | ⚠️ 部分达标：仅 4 种 preset（fade/flyIn/zoom/wipe），其余强制退化为 fade；无 `presetId`/触发/延迟 |
+| T14 切换时序 | ✅ | ⚠️ 部分达标：仅有 `@spd` + 12 子元素，缺 `@advTm`/`@advanceOnClick`/方向/音效 |
+| T16 SmartArt | ✅ | 📝 已知限制（合理）：布局四件套 `nodeLst/connLst/ruleLst/algLst` 为空骨架，包合法、可打开，但不渲染真图示 |
+| T17 多母版/版式/占位符 | ✅ | ❌ **虚假标注**：仅写死单一空白版式，无多实例、无 `p:ph`（标题/页脚/页码/日期） |
+| T19 字体嵌入/模板 | ✅ | ⚠️ 部分达标：仅 `docProps/custom.xml`；字体嵌入 `ppt/fonts` 与 `.potx` 全库 0 命中 |
+
+### 本次已修复 / 新增（commit 6095c10）
+
+**生成端**
+- 连接线 `cxnSp`、OLE 嵌入 `p:oleObj`（含显示代理图）、公式 `m:oMath`（OMML via `mc:AlternateContent`）
+- 切换：支持 `@advTm` / 点击切换 / 方向 / 音效；修正 `json-to-pptx.ts` 漏接 `buildTransition` 的 `ctx`
+- 动画：透传真实 preset（不再收敛为 4 种）+ `presetClass`/`presetId`/触发(`onClick`/`withPrev`)/延迟/重复
+- 图表：次坐标轴、坐标轴标题、网格线控制、趋势线
+- 多母版 / 多版式 / 占位符（标题/页脚/页码/日期）真实生成 + `Content-Types` 配套 override
+- 语义级主题（`{colors, fonts}`）+ 多版式 `layout` 指定
+- 文档节 `p:sectionLst`、嵌入字体（`ppt/fonts` + `fontTable.xml`，含 OOXML 混淆）、备注母版、缩略图
+- 形状 dispatch 兼容 `type` 为具体几何名（如 `rect`）与 `type:'shape'+shapeType` 两种写法；白名单补充 `rect` 基础几何
+
+**解析端**
+- 语义链路 `group` 不再扁平化：产出 `PptxGroupElement` 并递归保留嵌套层级（DFS 编号与生成端动画 `spid` 对齐）
+- `video`/`audio` 不再退化为 `image`（识别 `p:pic` 下 `a:videoFile`/`a:audioFile`）
+- 动画 `preset` 透传真实名称（不再收敛为 4 种）及类别/编号/延迟/重复
+
+### 剩余已知限制（解析端，高价值 round-trip）
+
+- OMML 公式解析：`mc:AlternateContent` 仅取 `mc:Fallback` 渲染成图，不解析 `m:oMath`
+- 组合图 multi-plot：`extractChart` 首个命中即 `break`，多图表区只取第一个
+- `a:prstTxWarp` 艺术字、`a:path` 径向渐变、背景 `bgRef` 主题引用、切换 `p:snd`、`a:grpFill` 父级继承、备注进 HTML
+- SmartArt 布局引擎（T16 已知限制）
+
+---
+
 ## 实现与测试约定
 1. 每项从对应 `⬜` 改为 `🔧`（实现中）再到 `✅`（测试通过）。
 2. 类型改动同步更新 `element-builders.ts`（生成端）与 `pptx-document.ts`（统一契约）；解析端如需 round-trip 回读，同步更新 `json-from-pptx.ts`。
