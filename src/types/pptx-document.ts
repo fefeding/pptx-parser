@@ -263,8 +263,14 @@ export type PptxAnimationTrigger =
 
 /** 元素动画（解析自 p:timing 的 p:spTgt，生成端写回 p:timing） */
 export interface PptxAnimation {
-    /** 目标元素索引（slide.elements 中的位置） */
-    target: number;
+    /**
+     * 目标元素标识。
+     * - 字符串：OOXML 形状 spid（cNvPr id），解析端直接透传，生成端直接写入 p:spTgt@spid。
+     *   这是推荐形式，对 group 嵌套场景也正确（spid 全局唯一，不依赖元素排列顺序）。
+     * - 数字：slide.elements 中的扁平位置索引（向后兼容），生成端按 `index + 2` 推算 spid，
+     *   仅适用于无 group 的扁平布局。
+     */
+    target: number | string;
     /**
      * 动画类型（OOXML preset 名）。
      * 解析端透传真实 preset（如 'flyIn'、'wipe'、'bounce'、'path'…），

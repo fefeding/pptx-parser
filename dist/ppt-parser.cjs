@@ -15931,7 +15931,8 @@ function buildTimingNode(slide) {
     }
     let nid = 10;
     for (const a of anims) {
-        const spid = a.target != null ? a.target + 2 : 2;
+        const spid = typeof a.target === 'string' ? a.target
+            : a.target != null ? a.target + 2 : 2;
         const preset = a.type || 'fade';
         const presetClass = (a.presetClass || 'entr');
         const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[preset] ?? 1);
@@ -17259,16 +17260,7 @@ function extractTransition(slideContent) {
     }
     return { type, duration };
 }
-function getShapeId(key, node) {
-    const nvKey = {
-        'p:sp': 'p:nvSpPr', 'p:pic': 'p:nvPicPr', 'p:graphicFrame': 'p:nvGraphicFramePr',
-        'p:cxnSp': 'p:nvCxnSpPr', 'p:grpSp': 'p:nvGrpSpPr'
-    };
-    const nv = node && nvKey[key] && node[nvKey[key]];
-    const cNvPr = nv && nv['p:cNvPr'];
-    return cNvPr && cNvPr.attrs && cNvPr.attrs.id != null ? String(cNvPr.attrs.id) : undefined;
-}
-function extractTiming(slideContent, spidToIndex) {
+function extractTiming(slideContent) {
     const sld = slideContent && slideContent['p:sld'];
     const timing = sld && sld['p:timing'];
     if (!timing)
@@ -17307,7 +17299,7 @@ function extractTiming(slideContent, spidToIndex) {
         const tgtEl = c['p:tgtEl'];
         const spTgt = tgtEl && tgtEl['p:spTgt'];
         const spid = spTgt && spTgt.attrs && spTgt.attrs.spid;
-        if (spid != null && spidToIndex.has(String(spid))) {
+        if (spid != null) {
             let preset = 'fade';
             let dur;
             let presetClass;
@@ -17335,7 +17327,7 @@ function extractTiming(slideContent, spidToIndex) {
                 }
             }
             const anim = {
-                target: spidToIndex.get(String(spid)),
+                target: String(spid),
                 type: preset,
                 duration: dur ?? 1
             };
@@ -17657,15 +17649,7 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             }));
         }
         if (spTree) {
-            const spidToIndex = new Map();
-            let elemIndex = 0;
-            const registerSpid = (spid, el) => {
-                if (spid != null)
-                    spidToIndex.set(spid, elemIndex);
-                elemIndex++;
-            };
             const processNode = async (key, node) => {
-                const spid = getShapeId(key, node);
                 try {
                     const el = await nodeToElement(key, node, resObj, zip);
                     if (!el)
@@ -17674,7 +17658,6 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
                         await attachRawDeps(el, node, resObj, zip);
                     }
-                    registerSpid(spid, el);
                     return el;
                 }
                 catch {
@@ -17682,7 +17665,6 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                         type: 'raw', x: 0, y: 0, width: 0, height: 0,
                         __raw: { tag: key, node }, rawFallback: true
                     };
-                    registerSpid(spid, rawEl);
                     if (allDeps)
                         await attachRawDeps(rawEl, node, resObj, zip);
                     return rawEl;
@@ -17707,7 +17689,6 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                 return out;
             };
             const processGroup = async (node) => {
-                const gid = getShapeId('p:grpSp', node);
                 const inner = node['p:spTree'];
                 const children = inner ? await processTree(inner) : [];
                 const gxf = node['p:grpSpPr'] && node['p:grpSpPr']['a:xfrm'];
@@ -17718,8 +17699,9 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                 const gx = emuToPx(gOff?.x), gy = emuToPx(gOff?.y);
                 const gw = emuToPx(gExt?.cx), gh = emuToPx(gExt?.cy);
                 const chx = emuToPx(chOff?.x), chy = emuToPx(chOff?.y);
-                const chw = emuToPx(chExt?.cx) || 1, chh = emuToPx(chExt?.cy) || 1;
-                const sx = gw / chw, sy = gh / chh;
+                const chw = emuToPx(chExt?.cx), chh = emuToPx(chExt?.cy);
+                const sx = chw > 0 ? gw / chw : 1;
+                const sy = chh > 0 ? gh / chh : 1;
                 for (const c of children) {
                     const lx = c.x || 0, ly = c.y || 0;
                     c.x = (lx - chx) * sx;
@@ -17735,11 +17717,10 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                     children,
                     childrenCoordinates: 'relative'
                 };
-                registerSpid(gid, g);
                 return g;
             };
             slide.elements = await processTree(spTree);
-            const timing = extractTiming(slideContent, spidToIndex);
+            const timing = extractTiming(slideContent);
             if (timing.advanceTime != null)
                 slide.advanceTime = timing.advanceTime;
             if (timing.animations)

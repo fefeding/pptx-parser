@@ -372,7 +372,7 @@ function getShapeId(key: string, node: any): string | undefined {
 }
 
 /** 解析 p:timing：自动播放 afterTime + 元素进入动画 p:spTgt */
-function extractTiming(slideContent: any, spidToIndex: Map<string, number>): { advanceTime?: number; animations?: PptxAnimation[] } {
+function extractTiming(slideContent: any): { advanceTime?: number; animations?: PptxAnimation[] } {
     const sld = slideContent && slideContent['p:sld'];
     const timing = sld && sld['p:timing'];
     if (!timing) return {};
@@ -408,7 +408,7 @@ function extractTiming(slideContent: any, spidToIndex: Map<string, number>): { a
         const tgtEl = c['p:tgtEl'];
         const spTgt = tgtEl && tgtEl['p:spTgt'];
         const spid = spTgt && spTgt.attrs && spTgt.attrs.spid;
-        if (spid != null && spidToIndex.has(String(spid))) {
+        if (spid != null) {
             let preset = 'fade';
             let dur: number | undefined;
             let presetClass: string | undefined;
@@ -432,7 +432,7 @@ function extractTiming(slideContent: any, spidToIndex: Map<string, number>): { a
                 }
             }
             const anim: PptxAnimation = {
-                target: spidToIndex.get(String(spid))!,
+                target: String(spid),
                 type: preset,
                 duration: dur ?? 1
             };
@@ -800,18 +800,7 @@ export async function extractSlideToStandard(
         }
 
         if (spTree) {
-            // spid → 元素扁平序号映射（用于动画 p:spTgt 回指）。
-            // 序号按 DFS 顺序递增（含 group 自身及其子孙），与生成端元素编号一致。
-            const spidToIndex = new Map<string, number>();
-            let elemIndex = 0;
-
-            const registerSpid = (spid: string | undefined, el: PptxElement) => {
-                if (spid != null) spidToIndex.set(spid, elemIndex);
-                elemIndex++;
-            };
-
             const processNode = async (key: string, node: any): Promise<PptxElement | null> => {
-                const spid = getShapeId(key, node);
                 try {
                     const el = await nodeToElement(key, node, resObj, zip);
                     if (!el) return null;
@@ -822,7 +811,6 @@ export async function extractSlideToStandard(
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
                         await attachRawDeps(el, node, resObj, zip);
                     }
-                    registerSpid(spid, el);
                     return el;
                 } catch {
                     // 单元素失败：仅保留原始节点，由 __raw 回退承载
@@ -830,7 +818,6 @@ export async function extractSlideToStandard(
                         type: 'raw', x: 0, y: 0, width: 0, height: 0,
                         __raw: { tag: key, node }, rawFallback: true
                     };
-                    registerSpid(spid, rawEl);
                     if (allDeps) await attachRawDeps(rawEl, node, resObj, zip);
                     return rawEl;
                 }
@@ -856,7 +843,6 @@ export async function extractSlideToStandard(
             // 组合：将 group 内部子元素坐标由「局部（chOff/chExt 空间）」转换为
             // 「相对 group 左上角的偏移」（childrenCoordinates='relative'），生成端据此重建。
             const processGroup = async (node: any): Promise<PptxGroupElement | null> => {
-                const gid = getShapeId('p:grpSp', node);
                 const inner = node['p:spTree'];
                 const children = inner ? await processTree(inner) : [];
 
@@ -868,8 +854,10 @@ export async function extractSlideToStandard(
                 const gx = emuToPx(gOff?.x), gy = emuToPx(gOff?.y);
                 const gw = emuToPx(gExt?.cx), gh = emuToPx(gExt?.cy);
                 const chx = emuToPx(chOff?.x), chy = emuToPx(chOff?.y);
-                const chw = emuToPx(chExt?.cx) || 1, chh = emuToPx(chExt?.cy) || 1;
-                const sx = gw / chw, sy = gh / chh;
+                const chw = emuToPx(chExt?.cx), chh = emuToPx(chExt?.cy);
+                // chExt 缺失或为零时跳过缩放（避免除零导致坐标放大数百倍）
+                const sx = chw > 0 ? gw / chw : 1;
+                const sy = chh > 0 ? gh / chh : 1;
 
                 for (const c of children) {
                     const lx = c.x || 0, ly = c.y || 0;
@@ -884,14 +872,13 @@ export async function extractSlideToStandard(
                     children,
                     childrenCoordinates: 'relative'
                 };
-                registerSpid(gid, g as PptxElement);
                 return g;
             };
 
             slide.elements = await processTree(spTree);
 
             // 自动播放 / 元素动画（p:timing）
-            const timing = extractTiming(slideContent, spidToIndex);
+            const timing = extractTiming(slideContent);
             if (timing.advanceTime != null) slide.advanceTime = timing.advanceTime;
             if (timing.animations) slide.animations = timing.animations;
         }

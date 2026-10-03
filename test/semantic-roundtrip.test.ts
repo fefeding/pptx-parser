@@ -119,8 +119,48 @@ describe('解析端动画 preset 透传', () => {
         });
         const anims = slide.animations || [];
         expect(anims).toHaveLength(2);
+        // 解析端 target 现在是 spid 字符串（cNvPr id），不再是数组索引
+        expect(typeof anims[0].target).toBe('string');
         const swivel = anims.find((a: any) => a.type === 'swivel');
         expect(swivel).toBeDefined();
         expect(swivel.presetClass).toBeDefined(); // 透传类别
+    });
+});
+
+describe('group 子元素动画 round-trip（此前 target 索引偏移导致丢失）', () => {
+    it('group 内子元素的动画能正确往返', async () => {
+        const slide = await roundtrip({
+            slides: [{
+                elements: [
+                    { type: 'rect', x: 0, y: 0, width: 100, height: 100, fill: { color: 'FF0000' } },
+                    {
+                        type: 'group', x: 200, y: 0, width: 300, height: 200,
+                        childrenCoordinates: 'relative',
+                        children: [
+                            { type: 'ellipse', x: 0, y: 0, width: 80, height: 80, fill: { color: '00FF00' } },
+                            { type: 'text', x: 10, y: 10, width: 200, height: 40, text: 'child' }
+                        ]
+                    },
+                    { type: 'text', x: 0, y: 300, width: 100, height: 50, text: 'after-group' }
+                ],
+                animations: [
+                    { target: 0, type: 'fade', duration: 0.5 },
+                    { target: 1, type: 'flyIn', duration: 1, presetClass: 'entr' },
+                    { target: 2, type: 'wipe', duration: 0.8 }
+                ]
+            }]
+        });
+
+        const anims = slide.animations || [];
+        expect(anims).toHaveLength(3);
+        // 所有 target 都应为字符串 spid（不再依赖扁平索引）
+        for (const a of anims) {
+            expect(typeof a.target).toBe('string');
+        }
+        // 确认三种 preset 都保留
+        const types = anims.map((a: any) => a.type);
+        expect(types).toContain('fade');
+        expect(types).toContain('flyIn');
+        expect(types).toContain('wipe');
     });
 });

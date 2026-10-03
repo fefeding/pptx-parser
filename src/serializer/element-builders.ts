@@ -348,8 +348,8 @@ export interface SerializerElement {
     bubbleScale?: number;
     /** 曲面图：线框模式 */
     wireframe?: boolean;
-    /** 分组（type:'group'）：子元素坐标体系。'local'=相对组左上角的局部坐标（OOXML 标准，默认）；'page'=页绝对坐标（构建时减 group 偏移做相对化） */
-    childrenCoordinates?: 'local' | 'page';
+    /** 分组（type:'group'）：子元素坐标体系。'local'=相对组左上角的局部坐标（OOXML 标准，默认）；'page'=页绝对坐标（构建时减 group 偏移做相对化）；'relative'=解析端已从 chOff/chExt 空间换算为相对组左上角偏移（生成端按 local 处理） */
+    childrenCoordinates?: 'local' | 'page' | 'relative';
     /** 表格：行数据 */
     rows?: SerializerTableRow[];
     /** 表格：列宽（px，缺省均分） */
@@ -2808,7 +2808,10 @@ function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
     }
     let nid = 10;
     for (const a of anims) {
-        const spid = a.target != null ? a.target + 2 : 2; // 元素 id 从 2 起连续编号
+        // target 为字符串时直接用作 spid（解析端透传 cNvPr id，对 group 嵌套也正确）；
+        // 为数字时按旧公式 index+2 推算（向后兼容无 group 的扁平布局）
+        const spid = typeof a.target === 'string' ? a.target
+            : a.target != null ? a.target + 2 : 2;
         // preset 透传真实名称（不再收敛为 4 种），未知类型回退 fade
         const preset = a.type || 'fade';
         const presetClass = (a.presetClass || 'entr') as string;
