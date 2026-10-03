@@ -16,16 +16,35 @@
  */
 
 import JSZip from 'jszip';
-import { toXmlDocument, escapeXml } from './xml-builder';
+import { toXmlDocument, nodeToString, escapeXml } from './xml-builder';
+import type { PptxSlideMaster, PptxSlideLayout } from '../types/pptx-document';
 import {
     buildThemeXml, buildSlideMasterXml, buildSlideLayoutXml,
     buildPresPropsXml, buildViewPropsXml, buildTableStylesXml,
     buildPresentationXml, buildRelationshipsXml, buildContentTypesXml,
     buildCorePropsXml, buildAppPropsXml, buildRootRelsXml, buildCustomPropsXml,
     buildCommentsXml, buildCommentAuthorsXml,
+    buildFontTableXml, buildNotesMasterXml, obfuscateFontData,
     MASTER_RELS, LAYOUT_RELS, REL_TYPES
 } from './templates';
-import { createElementContext, buildSlideRoot, buildNotesSlide, type SerializerSlide, type SerializerComment, type SerializerPart, type SerializerRel } from './element-builders';
+
+/** base64 → 字节（Node / 浏览器双兼容） */
+function base64ToBytes(b64: string): Uint8Array {
+    if (typeof Buffer !== 'undefined') return new Uint8Array(Buffer.from(b64, 'base64'));
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+}
+
+/** 字节 → base64（Node / 浏览器双兼容） */
+function bytesToBase64(bytes: Uint8Array): string {
+    if (typeof Buffer !== 'undefined') return Buffer.from(bytes).toString('base64');
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+}
+import { createElementContext, buildSlideRoot, buildNotesSlide, buildElement, type SerializerSlide, type SerializerComment, type SerializerPart, type SerializerRel } from './element-builders';
 import { PPTXXmlUtils } from '../utils/xml';
 
 /** 演示文稿 JSON 树 */
@@ -253,6 +272,27 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     }
     const hasComments = commentAuthors.size > 0;
 
+    // ===== 母版 / 版式规划 =====
+    // 支持多母版多版式：pres.masters[i].layouts[j] 展平为全局版式序列，
+    // 幻灯片通过 slide.layout（0 基下标）指定所用版式。
+    const masters = (pres as any).masters as PptxSlideMaster[] | undefined;
+    const flatLayouts: { masterIdx: number; layout: PptxSlideLayout }[] = [];
+    if (masters && masters.length) {
+        masters.forEach((m, mi) => {
+            // 母版未定义版式时补一个空白版式，保证该母版有可用版式
+            const ls = m.layouts && m.layouts.length ? m.layouts : [{}];
+            for (const l of ls) flatLayouts.push({ masterIdx: mi, layout: l });
+        });
+    }
+    const useMasters = flatLayouts.length > 0;
+    // 多母版时母版占用 rId1..rIdN，幻灯片关系顺延
+    if (useMasters) presRelId = masters!.length + 1;
+    // 每页所用版式部件编号（1 基）
+    const slideLayoutNo: number[] = pres.slides.map((s: any) => {
+        const idx = typeof s.layout === 'number' ? s.layout : 0;
+        return (useMasters && idx >= 0 && idx < flatLayouts.length) ? idx + 1 : 1;
+    });
+
     // 各页引用到的表格样式 ID：写 ppt/tableStyles.xml 时为它们补等价定义，
     // 否则未知 GUID 会让表格在 WPS/PowerPoint 里退化成「无样式无网格」
     const tableStyleIds = new Set<string>();
@@ -265,9 +305,9 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
 
         zip.file(`ppt/slides/slide${slideIndex}.xml`, toXmlDocument(slideRoot));
 
-        // slide 关系：rId1 版式 + 元素产生的图片/超链接/图表关系
+        // slide 关系：rId1 版式（按 slide.layout 指向对应 slideLayoutN）+ 元素产生的关系
         const slideRels = [
-            { relId: 'rId1', type: REL_TYPES.slideLayout, target: '../slideLayouts/slideLayout1.xml' },
+            { relId: 'rId1', type: REL_TYPES.slideLayout, target: `../slideLayouts/slideLayout${slideLayoutNo[i]}.xml` },
             ...ctx.rels
         ];
 
@@ -374,11 +414,15 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     }
 
     // ===== presentation.xml 及其关系 =====
-    zip.file('ppt/presentation.xml', buildPresentationXml(slideSize, slideRefs));
-
-    // presentation.xml.rels：母版 rId1 → 各 slide → theme/presProps/viewProps/tableStyles
+    // 多母版时为每母版分配 rId1..rIdN；节（sections）写入 p:sectionLst
+    const masterRelIds: string[] = useMasters
+        ? masters!.map((_, mi) => `rId${1 + mi}`)
+        : ['rId1'];
+    // presentation.xml.rels：母版 rId1..rIdN → 各 slide → theme/presProps/viewProps/tableStyles
     const presRels = [
-        { relId: 'rId1', type: REL_TYPES.slideMaster, target: 'slideMasters/slideMaster1.xml' },
+        ...masterRelIds.map((rid, mi) => ({
+            relId: rid, type: REL_TYPES.slideMaster, target: `slideMasters/slideMaster${mi + 1}.xml`
+        })),
         ...slideRefs.map(ref => ({ relId: ref.relId, type: REL_TYPES.slide, target: ref.target }))
     ];
     presRels.push(
@@ -390,18 +434,110 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     if (hasComments) {
         presRels.push({ relId: `rId${presRelId++}`, type: REL_TYPES.commentAuthors, target: 'commentAuthors.xml' });
     }
+
+    // 备注母版：有备注时才生成（备注页需挂母版，否则备注区无版式可继承）
+    let notesMasterRelId: string | undefined;
+    if (allNotesSlides.length) {
+        notesMasterRelId = `rId${presRelId++}`;
+        presRels.push({ relId: notesMasterRelId, type: REL_TYPES.notesMaster, target: 'notesMasters/notesMaster1.xml' });
+        zip.file('ppt/notesMasters/notesMaster1.xml', buildNotesMasterXml());
+        zip.file('ppt/notesMasters/_rels/notesMaster1.xml.rels', buildRelationshipsXml([
+            { relId: 'rId1', type: REL_TYPES.theme, target: '../theme/theme1.xml' }
+        ]));
+        // 备注页部件也需指回母版
+        for (const n of allNotesSlides) {
+            zip.file(`ppt/notesSlides/_rels/notesSlide${n}.xml.rels`, buildRelationshipsXml([
+                { relId: 'rId1', type: REL_TYPES.slide, target: `../slides/slide${n}.xml` },
+                { relId: 'rId2', type: REL_TYPES.notesMaster, target: '../notesMasters/notesMaster1.xml' }
+            ]));
+        }
+    }
+
+    // 嵌入字体：ppt/fonts/fontN.fntdata（混淆）+ ppt/fontTable.xml
+    const embeddedFonts = (pres as any).fonts as Array<{ name: string; data: string; panose?: string; bold?: boolean; italic?: boolean; embedType?: 'full' | 'subset' }> | undefined;
+    let hasFontTable = false;
+    if (embeddedFonts && embeddedFonts.length) {
+        hasFontTable = true;
+        const fontRelIds: string[] = [];
+        embeddedFonts.forEach((f, i) => {
+            const no = i + 1;
+            // OOXML 要求嵌入字体经 16 字节循环 XOR 混淆后写入
+            zip.file(`ppt/fonts/font${no}.fntdata`, bytesToBase64(obfuscateFontData(base64ToBytes(f.data))), { base64: true });
+            fontRelIds.push(`rId${no}`);
+        });
+        zip.file('ppt/fontTable.xml', buildFontTableXml(embeddedFonts, fontRelIds));
+        zip.file('ppt/_rels/fontTable.xml.rels', buildRelationshipsXml(
+            fontRelIds.map((rid, i) => ({ relId: rid, type: REL_TYPES.font, target: `fonts/font${i + 1}.fntdata` }))
+        ));
+        presRels.push({ relId: `rId${presRelId++}`, type: REL_TYPES.fontTable, target: 'fontTable.xml' });
+    }
+
+    // presentation.xml 需在关系 id 全部分配后写入（备注母版引用依赖前序分配）
+    zip.file('ppt/presentation.xml', buildPresentationXml(slideSize, slideRefs, {
+        masterRelIds,
+        sections: (pres as any).sections,
+        notesMasterRelId
+    }));
     zip.file('ppt/_rels/presentation.xml.rels', buildRelationshipsXml(presRels));
 
     // ===== 静态部件 =====
-    // 主题 / 母版 / 版式：支持自定义覆盖（options.theme/masterXml/layoutXml 或 pres.theme/slideMaster/slideLayout 提供完整 XML）
+    // 主题：支持语义级定义（{colors, fonts}）与整串 XML 覆盖
     const themeXml = (options && (options as any).theme) || (pres as any).theme;
-    zip.file('ppt/theme/theme1.xml', typeof themeXml === 'string' ? themeXml : buildThemeXml());
-    const masterXml = (options && (options as any).masterXml) || (pres as any).slideMaster;
-    zip.file('ppt/slideMasters/slideMaster1.xml', typeof masterXml === 'string' ? masterXml : buildSlideMasterXml());
-    zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', buildRelationshipsXml(MASTER_RELS));
-    const layoutXml = (options && (options as any).layoutXml) || (pres as any).slideLayout;
-    zip.file('ppt/slideLayouts/slideLayout1.xml', typeof layoutXml === 'string' ? layoutXml : buildSlideLayoutXml());
-    zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', buildRelationshipsXml(LAYOUT_RELS));
+    zip.file('ppt/theme/theme1.xml', buildThemeXml(themeXml));
+
+    // 母版 / 版式上的常驻元素需要走 buildElement（异步），此处统一序列化为 XML 片段
+    const buildElementsXml = async (els: any[] | undefined): Promise<string> => {
+        if (!els || !els.length) return '';
+        const c = createElementContext();
+        const parts: string[] = [];
+        for (const e of els) {
+            const node = await buildElement(c, e);
+            if (node) parts.push(nodeToString(node));
+        }
+        return parts.join('');
+    };
+
+    if (useMasters) {
+        // 多母版：为每个母版写部件，其 rels 指向自身版式 + 主题
+        for (let mi = 0; mi < masters!.length; mi++) {
+            const m = masters![mi];
+            const layoutNos: number[] = [];
+            flatLayouts.forEach((fl, idx) => { if (fl.masterIdx === mi) layoutNos.push(idx + 1); });
+            const masterElementXml = await buildElementsXml(m.elements);
+
+            zip.file(`ppt/slideMasters/slideMaster${mi + 1}.xml`,
+                typeof (m as any).__rawXml === 'string'
+                    ? (m as any).__rawXml
+                    : buildSlideMasterXml(m, layoutNos.map((_, k) => `rId${k + 1}`), masterElementXml));
+
+            const mRels = layoutNos.map((no, k) => ({
+                relId: `rId${k + 1}`, type: REL_TYPES.slideLayout, target: `../slideLayouts/slideLayout${no}.xml`
+            }));
+            mRels.push({ relId: `rId${layoutNos.length + 1}`, type: REL_TYPES.theme, target: '../theme/theme1.xml' });
+            zip.file(`ppt/slideMasters/_rels/slideMaster${mi + 1}.xml.rels`, buildRelationshipsXml(mRels));
+        }
+
+        // 多版式：每个版式写部件，rels 指回所属母版
+        for (let li = 0; li < flatLayouts.length; li++) {
+            const fl = flatLayouts[li];
+            const layoutElementXml = await buildElementsXml(fl.layout.elements);
+            zip.file(`ppt/slideLayouts/slideLayout${li + 1}.xml`,
+                typeof (fl.layout as any).__rawXml === 'string'
+                    ? (fl.layout as any).__rawXml
+                    : buildSlideLayoutXml(fl.layout, layoutElementXml));
+            zip.file(`ppt/slideLayouts/_rels/slideLayout${li + 1}.xml.rels`, buildRelationshipsXml([
+                { relId: 'rId1', type: REL_TYPES.slideMaster, target: `../slideMasters/slideMaster${fl.masterIdx + 1}.xml` }
+            ]));
+        }
+    } else {
+        // 默认单母版单版式（兼容旧用法，支持整串 XML 覆盖）
+        const masterXml = (options && (options as any).masterXml) || (pres as any).slideMaster;
+        zip.file('ppt/slideMasters/slideMaster1.xml', typeof masterXml === 'string' ? masterXml : buildSlideMasterXml());
+        zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', buildRelationshipsXml(MASTER_RELS));
+        const layoutXml = (options && (options as any).layoutXml) || (pres as any).slideLayout;
+        zip.file('ppt/slideLayouts/slideLayout1.xml', typeof layoutXml === 'string' ? layoutXml : buildSlideLayoutXml());
+        zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', buildRelationshipsXml(LAYOUT_RELS));
+    }
     zip.file('ppt/presProps.xml', buildPresPropsXml());
     zip.file('ppt/viewProps.xml', buildViewPropsXml());
     zip.file('ppt/tableStyles.xml', buildTableStylesXml([...tableStyleIds]));
@@ -417,7 +553,10 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
             `<Relationship Id="rIdCustom" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>`);
     }
     zip.file('_rels/.rels', rootRelsXml);
-    let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length);
+    let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length, {
+        masterCount: useMasters ? masters!.length : 1,
+        layoutCount: useMasters ? flatLayouts.length : 1
+    });
     if ((pres as any).customProps) {
         contentTypeXml = contentTypeXml.replace('</Types>',
             `<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>`);
@@ -437,6 +576,28 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     for (const idx of allNotesSlides) {
         const override = `<Override PartName="/ppt/notesSlides/notesSlide${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"/>`;
         contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
+    }
+    // 备注母版 Content-Types 覆盖（有备注时才生成）
+    if (allNotesSlides.length) {
+        contentTypeXml = contentTypeXml.replace('</Types>',
+            `<Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/></Types>`);
+    }
+    // 嵌入字体：fntdata 扩展名声明 + fontTable 覆盖
+    if (hasFontTable) {
+        contentTypeXml = contentTypeXml.replace('</Types>',
+            `<Default Extension="fntdata" ContentType="application/x-fontdata"/>` +
+            `<Override PartName="/ppt/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.fontTable+xml"/></Types>`);
+    }
+    // 缩略图（docProps/thumbnail.*）
+    const thumbnail = (pres as any).thumbnail as { data?: string; extension?: string } | undefined;
+    if (thumbnail && thumbnail.data) {
+        const ext = (thumbnail.extension || 'jpeg').replace(/^\./, '');
+        zip.file(`docProps/thumbnail.${ext}`, thumbnail.data, { base64: true });
+        rootRelsXml = rootRelsXml.replace('</Relationships>',
+            `<Relationship Id="rIdThumb" Type="${REL_TYPES.thumbnail}" Target="docProps/thumbnail.${ext}"/></Relationships>`);
+        zip.file('_rels/.rels', rootRelsXml);
+        contentTypeXml = contentTypeXml.replace('</Types>',
+            `<Override PartName="/docProps/thumbnail.${ext}" ContentType="image/${ext === 'jpg' ? 'jpeg' : ext}"/></Types>`);
     }
     // 批注部件 Content-Types 覆盖（commentsN.xml + commentAuthors.xml）
     if (hasComments) {

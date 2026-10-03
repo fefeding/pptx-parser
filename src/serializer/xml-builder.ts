@@ -17,6 +17,20 @@ export interface BuilderNode {
     tagName: string;
     attrs?: Record<string, string>;
     children?: (string | BuilderNode)[];
+    /**
+     * 原始 XML 片段（如 OMML 公式）。
+     * 存在时序列化直接原样输出，忽略 tagName/attrs/children，且不转义。
+     */
+    raw?: string;
+}
+
+/**
+ * 构造一个「原样输出」节点：用于嵌入外部给定的 XML 片段（如 m:oMathPara）。
+ * @param {string} xml - 合法 XML 片段
+ * @returns {BuilderNode} 节点
+ */
+export function rawXml(xml: string): BuilderNode {
+    return { tagName: '#raw', raw: xml };
 }
 
 /** px → EMU 换算因子（96px = 1inch = 914400EMU） */
@@ -38,6 +52,12 @@ export const NS = {
     dcterms: 'http://purl.org/dc/terms/',
     dcmitype: 'http://purl.org/dc/dcmitype/',
     xsi: 'http://www.w3.org/2001/XMLSchema-instance',
+    /** 标记兼容性（mc:AlternateContent / mc:Choice / mc:Fallback） */
+    mc: 'http://schemas.openxmlformats.org/markup-compatibility/2006',
+    /** Office 2010 扩展（a14:m 承载 OMML 公式） */
+    a14: 'http://schemas.microsoft.com/office/drawing/2010/main',
+    /** Office Math ML（OMML） */
+    m: 'http://schemas.openxmlformats.org/officeDocument/2006/math',
     ext: 'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties'
 };
 
@@ -146,6 +166,8 @@ export function nodeToString(node: string | BuilderNode | null | undefined, inde
     if (typeof node === 'string') {
         return escapeXml(node);
     }
+    // 原始片段（OMML 等）：原样输出
+    if (node.raw !== undefined) return node.raw;
 
     const attrs = node.attrs ?? {};
     const attrStr = Object.keys(attrs)

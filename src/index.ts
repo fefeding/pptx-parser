@@ -581,7 +581,7 @@ async function processSingleSlideStructured(zip: JSZip, slideFileName: string, i
  * @param {JSZip} zip - The JSZip instance
  * @returns {Promise<string>} Slide HTML
  */
-async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: SlideSize, settings: ParseSettings, zip: JSZip, slideNum: number | undefined) {
+async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: SlideSize, settings: ParseSettings, zip: JSZip, slideNum: number | undefined, docCustomProps?: Record<string, string>) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -655,11 +655,12 @@ async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: Sli
         }
     }
 
+    const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
     // ===== 批注可视化（来自 ppt/comments/commentsN.xml）=====
     const comments = (slideData as any).comments as CommentItem[] | undefined;
     if (comments && comments.length) {
         const emuToPx = (e?: number) => (e == null ? 0 : e / 9525);
-        const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const noteHtml = comments.map((c, i) => {
             const left = c.x != null ? emuToPx(c.x) : (slideSize.width - 220);
             const top = c.y != null ? emuToPx(c.y) : (8 + i * 76);
@@ -670,6 +671,15 @@ async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: Sli
                 `</div>`;
         }).join('');
         result += `<div class="pptx-comments">${noteHtml}</div>`;
+    }
+
+    // ===== 文档自定义属性可视化（docProps/custom.xml）=====
+    // 自定义属性是文档级数据，仅在首页渲染一次，避免每页重复
+    if (docCustomProps && slideNum === 1 && Object.keys(docCustomProps).length) {
+        const rows = Object.entries(docCustomProps)
+            .map(([k, v]) => `<div class="pptx-custom-prop"><span class="pptx-custom-prop-name">${esc(k)}</span><span class="pptx-custom-prop-value">${esc(v)}</span></div>`)
+            .join('');
+        result += `<div class="pptx-custom-props" style="position:absolute;left:0;bottom:0;max-width:60%;box-sizing:border-box;background:rgba(255,255,255,.92);border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;font:11px/1.5 sans-serif;color:#334155;z-index:55;">${rows}</div>`;
     }
 
     return `${result}</div></section>`;
@@ -747,7 +757,7 @@ async function pptxToHtml(fileData: PptxFileData, options: Partial<ParseSettings
 
         // Step 3: Process slides and convert to HTML
         for (const slideData of parsedData.slides) {
-            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum, parsedData.customProps);
             const sldAttrs = (slideData.data as any).slideContent && (slideData.data as any).slideContent["p:sld"] && (slideData.data as any).slideContent["p:sld"].attrs;
             const hidden = !!(sldAttrs && String(sldAttrs.show) === "0");
             result.slides.push({
@@ -1105,7 +1115,8 @@ function extractSlideTiming(slideContent: XmlNode) {
     const timing = sld && sld["p:timing"];
     if (!timing) return null;
 
-    const animations: { spid: number; type: string; duration: number }[] = [];
+    // 动画条目除必需字段外，还透传 presetClass/presetId/delay/repeat 等可选属性
+    const animations: Array<{ spid: number; type: string; duration: number } & Record<string, unknown>> = [];
     let advanceTime: number | undefined;
 
     // 递归收集所有 p:cTn
@@ -1142,18 +1153,37 @@ function extractSlideTiming(slideContent: XmlNode) {
         if (spid != null) {
             let preset = "fade";
             let dur: number | undefined;
+            let presetClass: string | undefined;
+            let presetId: number | undefined;
+            let delay: number | undefined;
+            let repeat: number | 'indefinite' | undefined;
             const childTnLst = c["p:childTnLst"];
             if (childTnLst) {
                 const inner = Array.isArray(childTnLst["p:cTn"]) ? childTnLst["p:cTn"] : [childTnLst["p:cTn"]];
                 for (const ic of inner) {
                     if (ic && ic.attrs) {
+                        // preset 透传真实名称（此前仅保留 4 种，其余一律退化为 fade）
                         if (ic.attrs.preset) preset = String(ic.attrs.preset);
                         if (ic.attrs.dur != null) dur = Number(ic.attrs.dur) / 1000;
+                        if (ic.attrs.presetClass) presetClass = String(ic.attrs.presetClass);
+                        if (ic.attrs.presetId != null) presetId = Number(ic.attrs.presetId);
+                        if (ic.attrs.delay != null && ic.attrs.delay !== 'indefinite') delay = Number(ic.attrs.delay) / 1000;
+                        if (ic.attrs.repeatCount != null) {
+                            repeat = ic.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(ic.attrs.repeatCount) / 1000;
+                        }
                     }
                 }
             }
-            const type = ["fade", "flyIn", "zoom", "wipe"].includes(preset) ? preset : "fade";
-            animations.push({ spid: Number(spid), type, duration: dur ?? 1 });
+            const anim: Record<string, unknown> = {
+                spid: Number(spid),
+                type: preset,
+                duration: dur ?? 1
+            };
+            if (presetClass) anim.presetClass = presetClass;
+            if (presetId != null) anim.presetId = presetId;
+            if (delay != null) anim.delay = delay;
+            if (repeat != null) anim.repeat = repeat;
+            animations.push(anim as { spid: number; type: string; duration: number });
         }
     }
     if (advanceTime == null && animations.length === 0) return null;

@@ -60,6 +60,11 @@ export interface PptxTextRun {
     underline?: boolean;
     fontFace?: string;
     href?: string;         // 外部链接或内部跳转 '#N'
+    /**
+     * 字段（a:fld@type）：动态文本，如 'slidenum' 页码、'datetime' 日期。
+     * 解析端读取 a:fld/a:t 作为 text 并回填 type；生成端写出 <a:fld type id><a:t>text</a:t></a:fld>。
+     */
+    field?: string;
 }
 
 /** 段落（可显式 runs，或用 text 配合元素级默认样式） */
@@ -124,6 +129,90 @@ export interface PptxShapeEffects {
     glow?: PptxGlow | boolean;      // true = 默认发光
 }
 
+/**
+ * 三维格式（a:sp3d）：挤出与斜面
+ * 单位：extrusionHeight / contourWidth / bevel 尺寸为 pt（生成端转 EMU）
+ */
+export interface PptxShape3D {
+    /** 挤出高度（pt） */
+    extrusionHeight?: number;
+    /** 轮廓线宽（pt） */
+    contourWidth?: number;
+    /** 挤出颜色（顶面/侧面材质色） */
+    extrusionColor?: string;
+    /** 轮廓颜色 */
+    contourColor?: string;
+    /** 顶部斜面（a:bevelT） */
+    bevelTop?: { width?: number; height?: number; preset?: string };
+    /** 底部斜面（a:bevelB） */
+    bevelBottom?: { width?: number; height?: number; preset?: string };
+    /** 材质类型（a:sp3d@prstMaterial） */
+    material?: string;
+}
+
+/**
+ * 三维场景（a:scene3d）：相机与光照
+ */
+export interface PptxScene3D {
+    /** 相机预设（a:camera@prst，如 'orthographicFront' / 'perspectiveRelaxed'） */
+    camera?: string;
+    /** 相机视场角（a:camera@fov，度） */
+    fov?: number;
+    /** 相机缩放（a:camera@zoom，百分比） */
+    zoom?: number;
+    /** 旋转：绕 X 轴（度） */
+    rotX?: number;
+    /** 旋转：绕 Y 轴（度） */
+    rotY?: number;
+    /** 旋转：绕 Z 轴（度） */
+    rotZ?: number;
+    /** 光照预设（a:lightRig@rig，如 'threePt' / 'balanced'） */
+    lightRig?: string;
+    /** 光照方向（a:lightRig@dir） */
+    lightDir?: string;
+}
+
+/** 形状三维属性集合 */
+export interface Pptx3D {
+    /** 形状自身 3D（a:sp3d） */
+    shape?: PptxShape3D;
+    /** 场景相机/光照（a:scene3d） */
+    scene?: PptxScene3D;
+}
+
+/**
+ * 自定义几何路径（a:custGeom）
+ * 坐标已归一化到 0~1（相对形状宽高），避免依赖 EMU 坐标空间。
+ */
+export interface PptxCustomGeometry {
+    /** 路径填充模式；缺省使用形状自身 fill */
+    paths: PptxGeometryPath[];
+}
+
+/** 自定义几何的单条路径（a:path） */
+export interface PptxGeometryPath {
+    /** 路径宽（归一化坐标空间） */
+    w?: number;
+    /** 路径高（归一化坐标空间） */
+    h?: number;
+    /** 是否闭合（a:path@fill 之外，OOXML 用最后一个 a:close） */
+    closed?: boolean;
+    /** 路径指令序列 */
+    commands: PptxGeometryCommand[];
+}
+
+/** 自定义几何指令（a:moveTo / a:lnTo / a:cubicBezTo / a:quadBezTo / a:arcTo / a:close） */
+export type PptxGeometryCommand =
+    | { type: 'moveTo'; x: number; y: number }
+    | { type: 'lnTo'; x: number; y: number }
+    | { type: 'cubicBezTo'; x1: number; y1: number; x2: number; y2: number; x: number; y: number }
+    | { type: 'quadBezTo'; x1: number; y1: number; x: number; y: number }
+    | { type: 'arcTo'; wR: number; hR: number; stAng: number; swAng: number }
+    | { type: 'close' };
+
+/** 文本框自动适配模式（a:bodyPr 的子元素） */
+export type PptxAutofit = 'none' | 'normal' | 'shape';
+
 /** 背景填充 */
 export type PptxBackground =
     | string                                   // 纯色（#RRGGBB 或颜色名），等价 { type:'solid', color }
@@ -143,16 +232,66 @@ export interface PptxTransition {
     duration: number;    // 毫秒
     /** 是否允许点击切换（默认 true；false 表示仅自动播放） */
     advanceOnClick?: boolean;
+    /**
+     * 自动切换停留时长（毫秒，p:transition@advTm）。
+     * 与 PptxSlide.advanceTime（走 p:timing 的 stCondLst/cond@afterTime）互为等价表达：
+     * 解析时两者都回填，生成时优先写 @advTm（PowerPoint 原生语义），
+     * 只有在未指定 advanceOnClick 时才额外补 timing 条件。
+     */
+    advanceAfterTime?: number;
+    /** 切换方向（p:transition@dir 子元素属性，如 8 向 blinds/wipe） */
+    direction?: string;
+    /**
+     * 切换伴随声音（p:snd）：内嵌音频关系目标或 { name } 内置音效名。
+     * 生成端对内置名写出 p:snd 的 r:embed 关系（需提供 data），
+     * 否则仅记录 name 供上层处理。
+     */
+    sound?: { name?: string; data?: string; extension?: string };
 }
 
-/** 元素进入动画（解析自 p:timing 的 p:spTgt） */
+/** 动画类别（p:cTn@presetClass，ECMA-376 ST_TLAnimateBehavior 分类） */
+export type PptxAnimationClass = 'entr' | 'exit' | 'emph' | 'path' | 'mediacall';
+
+/** 动画触发时机（p:cond@type / p:cond@delay 组合） */
+export type PptxAnimationTrigger =
+    /** 上一动画之后 */
+    | { type: 'afterPrev'; delay?: number }
+    /** 与上一动画同时 */
+    | { type: 'withPrev'; delay?: number }
+    /** 点击时 */
+    | { type: 'onClick'; target?: number; delay?: number };
+
+/** 元素动画（解析自 p:timing 的 p:spTgt，生成端写回 p:timing） */
 export interface PptxAnimation {
     /** 目标元素索引（slide.elements 中的位置） */
     target: number;
-    /** 动画类型 */
-    type: 'fade' | 'flyIn' | 'zoom' | 'wipe';
+    /**
+     * 动画类型（OOXML preset 名）。
+     * 解析端透传真实 preset（如 'flyIn'、'wipe'、'bounce'、'path'…），
+     * 不再收敛为 4 种；无法识别时保留原值。
+     */
+    type: string;
     /** 持续时间（秒） */
     duration: number;
+    /**
+     * 动画类别：进入(entr) / 退出(exit) / 强调(emph) / 路径(path)。
+     * 缺省按 'entr' 处理。
+     */
+    presetClass?: PptxAnimationClass;
+    /** preset 子类型编号（p:cTn@presetId，如 flyIn 的方向变体）；缺省按 type 查表 */
+    presetId?: number;
+    /** 子类型（p:cTn@presetSubtype） */
+    presetSubtype?: number;
+    /** 触发时机；缺省 { type:'afterPrev' } */
+    trigger?: PptxAnimationTrigger;
+    /** 延迟（秒，p:cTn@delay） */
+    delay?: number;
+    /** 重复次数（p:cTn@repeatCount）；'indefinite' 表示循环 */
+    repeat?: number | 'indefinite';
+    /** 方向（如 flyIn 的 'l'/'r'/'t'/'b'） */
+    direction?: string;
+    /** 路径动画的 SVG path 数据（presetClass:'path' 时生效） */
+    path?: string;
 }
 
 /** 图表系列 */
@@ -166,6 +305,40 @@ export interface PptxChartSeries {
     low?: number[];      // 股票图：最低
     close?: number[];    // 股票图：收盘
     color?: string;
+    /**
+     * 系列绑定到哪条数值轴（次坐标轴场景）。
+     * 'secondary' 时生成端写出 c:ser/c:order + c:ser 挂到第二个 c:valAx（除 bar 系用 c:catAx 组合外），
+     * 需要配合图表级 secondaryValueAxis:true 生效。
+     */
+    axis?: 'primary' | 'secondary';
+    /** 数据标签（c:dLbls）覆盖 */
+    dataLabels?: boolean;
+    /** 该系列的趋势线（c:trendline） */
+    trendlines?: PptxTrendline[];
+}
+
+/** 趋势线类型（c:trendlineType@val，ECMA-376） */
+export type PptxTrendlineType =
+    | 'linear' | 'exp' | 'log' | 'poly' | 'movingAvg' | 'power';
+
+/** 趋势线（c:trendline） */
+export interface PptxTrendline {
+    type?: PptxTrendlineType;
+    /** 显示名称（c:trendline/c:trendlineLbl） */
+    name?: string;
+    /** 多项式阶数（type:'poly' 时生效，c:order） */
+    order?: number;
+    /** 移动平均周期（type:'movingAvg' 时生效，c:period） */
+    period?: number;
+    /** 向前/向后预测周期数（c:forward / c:backward） */
+    forward?: number;
+    backward?: number;
+    /** 显示公式 */
+    showEquation?: boolean;
+    /** 显示 R² 值 */
+    showRSquared?: boolean;
+    /** 截距（c:intercept） */
+    intercept?: number;
 }
 
 /** 图表分组方式（堆叠/百分比堆叠等） */
@@ -215,6 +388,10 @@ interface PptxElementBase {
     rawFallback?: boolean;
     /** 元素名称（可选，便于编辑区分） */
     name?: string;
+    /** 替代文本（无障碍，p:cNvPr@descr） */
+    descr?: string;
+    /** 是否为装饰性元素（无障碍，p:cNvPr@title 之外的隐藏标记） */
+    decorative?: boolean;
 }
 
 /** 文本元素 */
@@ -254,6 +431,26 @@ export interface PptxTextElement extends PptxElementBase {
      * 中文竖排用 'eaVert'，逐字堆积用 'wordArtVert'。
      */
     textDirection?: string;
+    /** 分栏数（a:bodyPr@numCol，默认 1） */
+    numCol?: number;
+    /** 栏间距 pt（a:bodyPr@spcCol） */
+    spcCol?: number;
+    /**
+     * 自动适配（a:bodyPr 的子元素）：
+     * - 'none' → a:noAutofit（不缩放）
+     * - 'normal' → a:normAutofit（按 fontScale/lnSpcReduction 缩小字号）
+     * - 'shape' → a:spAutoFit（缩放形状以贴合文本）
+     */
+    autofit?: PptxAutofit;
+    /** 字号缩放百分比（a:normAutofit@fontScale，配合 autofit:'normal'） */
+    fontScale?: number;
+    /** 行距缩减百分比（a:normAutofit@lnSpcReduction，配合 autofit:'normal'） */
+    lnSpcReduction?: number;
+    /**
+     * 艺术字变形预设（a:bodyPr@prstTxWarp 的 a:prstTxWarp@prst），
+     * 如 'textArchUp' / 'textWave' / 'textCircle' / 'textTriangle'。
+     */
+    prstTxWarp?: string;
 }
 
 /** 形状元素 */
@@ -274,6 +471,10 @@ export interface PptxShapeElement extends PptxElementBase {
      * 箭头/标注/星形用 `adj1`/`adj2`/…），如 { adj: 25000 }、{ adj1: 50000, adj2: 40000 }
      */
     adjust?: Record<string, number>;
+    /** 自定义几何（a:custGeom）；指定时优先于 shapeType 的预设几何 */
+    custGeom?: PptxCustomGeometry;
+    /** 三维属性（a:sp3d + a:scene3d） */
+    threeD?: Pptx3D;
 }
 
 /** 图片元素 */
@@ -331,6 +532,24 @@ export interface PptxChartElement extends PptxElementBase {
     bubbleScale?: number;
     /** 曲面图：线框模式 */
     wireframe?: boolean;
+    /** 坐标轴标题（c:axTitle） */
+    axisTitles?: {
+        /** 分类轴标题 */
+        category?: string;
+        /** 数值轴标题 */
+        value?: string;
+        /** 次数值轴标题（secondaryValueAxis 生效时） */
+        secondaryValue?: string;
+    };
+    /**
+     * 启用次数值轴（第二个 c:valAx + 第二个 c:catAx，配合系列 axis:'secondary'）。
+     * 生成端会写出 c:valAx/c:catAx 的第二个实例并分配 axId，同时写 c:barChart 的 c:axIdList。
+     */
+    secondaryValueAxis?: boolean;
+    /** 是否显示数据标签（c:dLbls，系列级可覆盖） */
+    dataLabels?: boolean;
+    /** 网格线：主要/次要（c:majorGridlines / c:minorGridlines） */
+    gridlines?: { major?: boolean; minor?: boolean };
 }
 
 /** 表格单元格 */
@@ -343,6 +562,14 @@ export interface PptxTableCell {
     colSpan?: number;
     /** 跨行数（OOXML rowSpan，默认 1） */
     rowSpan?: number;
+    /**
+     * 被水平合并吞并的单元格（a:tcPr@hMerge="1"）。
+     * OOXML 中被合并区域**仍然存在**这些单元格节点，仅以此标记隐藏，
+     * 缺失会导致 PowerPoint 打开时表格结构错乱。
+     */
+    hMerge?: boolean;
+    /** 被垂直合并吞并的单元格（a:tcPr@vMerge="1"），语义同 hMerge */
+    vMerge?: boolean;
     /** 单元格底色 */
     fill?: string;
     /** 四边统一边框 */
@@ -466,7 +693,7 @@ export interface PptxGroupElement extends PptxElementBase {
      * - 'local'（默认，OOXML 标准）：children 的 x/y 为相对组左上角的局部坐标
      * - 'page'：children 的 x/y 为页绝对坐标，生成时自动减 group 偏移做相对化
      */
-    childrenCoordinates?: 'local' | 'page';
+    childrenCoordinates?: 'local' | 'page' | 'relative';
     /** 子元素（默认相对组左上角的局部坐标；childrenCoordinates:'page' 时为页绝对坐标） */
     children: PptxElement[];
 }
@@ -497,6 +724,69 @@ export interface PptxAudioElement extends PptxElementBase {
     extension?: string;
 }
 
+/**
+ * 连接线元素（p:cxnSp）
+ *
+ * OOXML 连接线用 a:xfrm 描述**起止两点**（而非 left/top/width/height），
+ * 因此这里同时提供：
+ * - `x`/`y`/`width`/`height`：由起止点换算的包围盒（与其他元素坐标体系一致）
+ * - `start`/`end`：精确端点（px），生成端优先用它写出 a:xfrm@off + a:xfrm@ext
+ */
+export interface PptxConnectorElement extends PptxElementBase {
+    type: 'connector';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** 几何类型（如 'straightConnector1' / 'bentConnector3' / 'curvedConnector2'），默认 'straightConnector1' */
+    shapeType?: string;
+    /** 起点（px） */
+    start?: { x: number; y: number };
+    /** 终点（px） */
+    end?: { x: number; y: number };
+    rotation?: number;
+    flipH?: boolean;
+    flipV?: boolean;
+    /** 线型（复用形状边框描述） */
+    line?: PptxLine;
+    /** 几何调整值（a:avLst） */
+    adjust?: Record<string, number>;
+}
+
+/** OLE 嵌入对象元素（p:oleObj，通常外裹 p:graphicFrame） */
+export interface PptxOleElement extends PptxElementBase {
+    type: 'ole';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** 程序标识（p:oleObj@progId），如 'Excel.Sheet.12' / 'PowerPoint.Show.12' */
+    progId?: string;
+    /** 嵌入对象部件名（p:oleObj@r:id 指向 ppt/embeddings/*.xlsx 等） */
+    target?: string;
+    /** 嵌入文件二进制（base64）；提供时生成端写出部件 */
+    data?: string;
+    /** 嵌入文件扩展名（如 'xlsx' / 'docx'） */
+    extension?: string;
+    /** 显示为图标（p:oleObj@showAsIcon="1"） */
+    showAsIcon?: boolean;
+    /** 图标/预览图（a:blip@r:embed） */
+    poster?: { data?: string; src?: string; extension?: string };
+}
+
+/** 公式元素（OMML m:oMathPara / m:oMath，通常位于 mc:AlternateContent 内） */
+export interface PptxMathElement extends PptxElementBase {
+    type: 'math';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** OMML XML 字符串（含 m:oMathPara 或 m:oMath 根节点） */
+    omml?: string;
+    /** 纯文本形式（如 Unicode 线性公式），解析端回退 / 生成端无 omml 时使用 */
+    text?: string;
+}
+
 export type PptxElement =
     | PptxTextElement
     | PptxShapeElement
@@ -507,6 +797,9 @@ export type PptxElement =
     | PptxGroupElement
     | PptxVideoElement
     | PptxAudioElement
+    | PptxConnectorElement
+    | PptxOleElement
+    | PptxMathElement
     | PptxRawElement;
 
 /** 媒体资源（当元素不内联 data 时，通过 id 引用本表） */
@@ -516,8 +809,74 @@ export interface PptxMediaResource {
     mime: string;
 }
 
+/** 占位符类型（p:ph@type，ECMA-376 ST_PlaceholderType 常用子集） */
+export type PptxPlaceholderType =
+    | 'title' | 'ctrTitle' | 'subTitle' | 'body' | 'obj'
+    | 'ftr' | 'sldNum' | 'dt'
+    | 'pic' | 'tbl' | 'chart' | 'media' | 'clipArt' | 'dgm';
+
+/** 母版/版式中的占位符定义（p:sp + p:nvSpPr/p:nvPr/p:ph） */
+export interface PptxPlaceholder {
+    type: PptxPlaceholderType;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** 占位符索引（p:ph@idx），用于与幻灯片元素按 idx 匹配继承 */
+    idx?: number;
+    /** 提示文本（p:ph 无文本时的灰字提示，仅版式层有效） */
+    prompt?: string;
+    /** 元素名称 */
+    name?: string;
+    /** 该占位符的默认文本样式 */
+    fontSize?: number;
+    color?: string;
+    bold?: boolean;
+    fontFace?: string;
+    align?: TextAlign;
+    valign?: VAlign;
+    /** 项目符号默认样式（body 占位符常见） */
+    bullet?: boolean | 'number' | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+}
+
+/** 幻灯片版式（ppt/slideLayouts/slideLayoutN.xml） */
+export interface PptxSlideLayout {
+    /** 版式名称（p:cSld@name） */
+    name?: string;
+    /** 版式背景（缺省继承母版） */
+    background?: PptxBackground;
+    /** 版式上的常驻元素（非占位符，如 logo、装饰） */
+    elements?: PptxElement[];
+    /** 占位符定义 */
+    placeholders?: PptxPlaceholder[];
+    /** 是否显示母版背景图形（p:sldLayout@showMasterSp，默认 true） */
+    showMasterSp?: boolean;
+}
+
+/** 幻灯片母版（ppt/slideMasters/slideMasterN.xml） */
+export interface PptxSlideMaster {
+    /** 母版名称 */
+    name?: string;
+    /** 母版背景 */
+    background?: PptxBackground;
+    /** 母版上的常驻元素 */
+    elements?: PptxElement[];
+    /**
+     * 母版级占位符（title/body/ftr/sldNum/dt 的**默认位置与样式**）。
+     * 版式未覆盖的占位符从这里继承。
+     */
+    placeholders?: PptxPlaceholder[];
+    /** 该母版下的版式列表 */
+    layouts?: PptxSlideLayout[];
+}
+
 /** 幻灯片 */
 export interface PptxSlide {
+    /**
+     * 使用的版式索引（0 基，按 PptxDocument.masters[].layouts 展平后的顺序）。
+     * 省略时使用第 0 个版式。需要多母版/多版式时配合 PptxDocument.masters 使用。
+     */
+    layout?: number;
     /** 背景（缺省继承主题） */
     background?: PptxBackground;
     /** 过渡效果（解析端自 p:transition 产出，生成端写回 p:transition） */
@@ -547,9 +906,81 @@ export interface PptxComment {
     pos?: { x?: number; y?: number };
 }
 
-/** 可选主题覆盖（高级样式；标准 v1.0 暂为宽松结构，后续细化） */
+/** 主题配色方案（a:clrScheme 的 12 个色槽） */
+export interface PptxThemeColorScheme {
+    name?: string;
+    dk1?: string; lt1?: string;
+    dk2?: string; lt2?: string;
+    accent1?: string; accent2?: string; accent3?: string;
+    accent4?: string; accent5?: string; accent6?: string;
+    hlink?: string; folHlink?: string;
+}
+
+/** 主题字体组（a:fontScheme 的 majorFont/minorFont） */
+export interface PptxThemeFonts {
+    /** 拉丁字体 */
+    latin?: string;
+    /** 东亚字体（中日韩） */
+    ea?: string;
+    /** 复杂文种字体（阿拉伯/希伯来等） */
+    cs?: string;
+}
+
+/** 主题字体方案 */
+export interface PptxThemeFontScheme {
+    name?: string;
+    /** 标题字体（majorFont） */
+    major?: PptxThemeFonts;
+    /** 正文字体（minorFont） */
+    minor?: PptxThemeFonts;
+}
+
+/**
+ * 主题定义（a:theme）
+ *
+ * 语义级对象：提供 colors/fonts 时生成端据此构造完整 `themeN.xml`；
+ * 其余未知键允许透传（兼容旧的整串 XML 覆盖用法）。
+ */
 export interface PptxTheme {
+    /** 主题名（a:theme@name） */
+    name?: string;
+    /** 配色方案 */
+    colors?: PptxThemeColorScheme;
+    /** 字体方案 */
+    fonts?: PptxThemeFontScheme;
     [key: string]: unknown;
+}
+
+/** 文档节（presentation.xml 的 p:sectPr / p:section） */
+export interface PptxSection {
+    /** 节名称（p:section@name） */
+    name?: string;
+    /** 该节包含的幻灯片索引（0 基，对应 PptxDocument.slides 下标） */
+    slides: number[];
+}
+
+/** 嵌入字体资源（ppt/fonts/fontN.fntdata + ppt/fontTable.xml） */
+export interface PptxFontResource {
+    /** 字体族名（a:font@typeface，如 'Source Han Sans'） */
+    name: string;
+    /**
+     * 字体数据（base64）。OOXML 要求嵌入字体为 **经 XOR 混淆** 的 fntdata，
+     * 生成端会按 ECMA-376 规则对原始 TTF/OTF 做混淆后写入；
+     * 解析端回读时自动解混淆并还原为原始字节。
+     */
+    data: string;
+    /** panose 分类（a:font@panose，20 位十六进制串） */
+    panose?: string;
+    /** 是否为粗体变体 */
+    bold?: boolean;
+    /** 是否为斜体变体 */
+    italic?: boolean;
+    /**
+     * 嵌入方式：
+     * - 'full'（默认）：完整嵌入（a:font@embed='embed'）
+     * - 'subset'：仅嵌入用到的字形子集
+     */
+    embedType?: 'full' | 'subset';
 }
 
 /**
@@ -574,6 +1005,15 @@ export interface PptxDocument {
      * 解析端默认内联 dataURL 到元素，故通常省略；生成端也可用此表避免重复内联。
      */
     media?: Record<string, PptxMediaResource>;
-    /** 主题覆盖（可选，高级） */
-    theme?: PptxTheme;
+    /** 主题覆盖（可选，高级）：字符串=整串 theme XML；对象=语义级主题定义 */
+    theme?: PptxTheme | string;
+    /**
+     * 母版定义（可选）。提供时生成端按此写出多个 slideMasterN.xml 及其版式，
+     * 并让幻灯片通过 PptxSlide.layout 指定所用版式。省略时退回单一空白版式。
+     */
+    masters?: PptxSlideMaster[];
+    /** 文档节（presentation.xml 的 p:section）；省略时不分节 */
+    sections?: PptxSection[];
+    /** 嵌入字体（ppt/fonts/fontN.fntdata + ppt/fontTable.xml） */
+    fonts?: PptxFontResource[];
 }

@@ -15,9 +15,12 @@
  * @module serializer/element-builders
  */
 
-import { xmlNode, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml, type BuilderNode } from './xml-builder';
+import { xmlNode, rawXml, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, escapeXml, type BuilderNode } from './xml-builder';
 import { REL_TYPES, DEFAULT_TABLE_STYLE_ID } from './templates';
-import type { PptxBackground, PptxTransition, PptxImageSrcRect, PptxImageTile } from '../types/pptx-document';
+import type {
+    PptxBackground, PptxTransition, PptxImageSrcRect, PptxImageTile,
+    PptxTrendline, Pptx3D, PptxCustomGeometry, PptxAutofit, PptxGeometryPath, PptxGeometryCommand
+} from '../types/pptx-document';
 
 /**
  * OOXML 预设几何（ST_PresetGeometryType）白名单。
@@ -31,7 +34,7 @@ const PRESET_GEOMETRIES = new Set<string>([
     'bracketPair', 'callout1', 'callout2', 'callout3', 'can', 'chartPlus', 'chartStar', 'chartX', 'chevron', 'chord',
     'circularArrow', 'cloud', 'cloudCallout', 'corner', 'cube', 'curvedDownArrow', 'curvedLeftArrow', 'curvedRightArrow',
     'curvedUpArrow', 'decagon', 'diagonalStripe', 'diamond', 'dodecagon', 'donut', 'doubleWave', 'downArrow',
-    'downArrowCallout', 'ellipse', 'ellipseRibbon', 'ellipseRibbon2', 'flowChartAlternateProcess', 'flowChartCollate',
+    'downArrowCallout', 'ellipse', 'ellipseRibbon', 'ellipseRibbon2', 'flowChartAlternateProcess', 'flowChartCollate', 'rect',
     'flowChartConnector', 'flowChartDecision', 'flowChartDelay', 'flowChartDisplay', 'flowChartDocument', 'flowChartExtract',
     'flowChartInputOutput', 'flowChartInternalStorage', 'flowChartMagneticDrum', 'flowChartMagneticTape', 'flowChartManualInput',
     'flowChartManualOperation', 'flowChartMerge', 'flowChartMultidocument', 'flowChartOfflineStorage', 'flowChartOnlineStorage',
@@ -45,7 +48,11 @@ const PRESET_GEOMETRIES = new Set<string>([
     'rightArrowCallout', 'rightBrace', 'rightBracket', 'round1Rect', 'round2DiagRect', 'round2SameRect', 'roundRect',
     'rtTriangle', 'snip1Rect', 'snip2DiagRect', 'snip2SameRect', 'snipRoundRect', 'sun', 'swooshArrow', 'teardrop', 'trapezoid',
     'triangle', 'upArrow', 'upArrowCallout', 'upDownArrow', 'upDownArrowCallout', 'uturnArrow', 'verticalScroll', 'wave',
-    'wedgeEllipseCallout', 'wedgeRectCallout', 'wedgeRoundRectCallout', 'x', 'foldedCorner', 'smileyFace'
+    'wedgeEllipseCallout', 'wedgeRectCallout', 'wedgeRoundRectCallout', 'x', 'foldedCorner', 'smileyFace',
+    // 连接线（p:cxnSp 专用几何；缺省会被 normalizeShapeType 回退成 rect）
+    'straightConnector1',
+    'bentConnector2', 'bentConnector3', 'bentConnector4', 'bentConnector5',
+    'curvedConnector2', 'curvedConnector3', 'curvedConnector4', 'curvedConnector5'
 ]);
 
 /** 校验 shapeType 是否为合法 OOXML 预设几何，非法则回退 'rect' */
@@ -158,6 +165,11 @@ export interface RunStyle {
     fontFace?: string;
     href?: string;
     lang?: string;
+    /**
+     * 字段类型（a:fld@type）：如 'slidenum'（页码）/ 'datetime'（日期）。
+     * 设置后该 run 写出 <a:fld type id><a:rPr/><a:t>text</a:t></a:fld> 而非 <a:r>。
+     */
+    field?: string;
 }
 /** 文本运行：{ text, options } 规范格式，或扁平简写格式 */
 export interface TextRunSpec extends RunStyle {
@@ -214,6 +226,13 @@ export interface SerializerTableCell {
     paragraphs?: ParagraphSpec[];
     colSpan?: number;
     rowSpan?: number;
+    /**
+     * 被水平合并吞并（a:tcPr@hMerge="1"）。
+     * OOXML 中被合并区域仍需保留单元格节点，否则 PowerPoint 打开会报结构错乱。
+     */
+    hMerge?: boolean;
+    /** 被垂直合并吞并（a:tcPr@vMerge="1"） */
+    vMerge?: boolean;
     fill?: string;
     /** 四边统一边框（优先于表格级默认） */
     border?: CellBorder;
@@ -249,6 +268,12 @@ export interface ChartSeriesSpec {
     low?: number[];
     close?: number[];
     color?: string;
+    /** 绑定到主/次数值轴（次坐标轴）；需图表级 secondaryValueAxis 配合 */
+    axis?: 'primary' | 'secondary';
+    /** 该系列是否显示数据标签（覆盖图表级 dataLabels） */
+    dataLabels?: boolean;
+    /** 该系列趋势线（c:trendline） */
+    trendlines?: PptxTrendline[];
 }
 /** 幻灯片元素 JSON（text / shape / image / chart） */
 export interface SerializerElement {
@@ -373,9 +398,47 @@ export interface SerializerElement {
     __raw?: unknown;
     /** 强制以 __raw 回写（即使 type 已受语义层支持） */
     rawFallback?: boolean;
+    /** 替代文本（无障碍，p:cNvPr@descr） */
+    descr?: string;
+    /** 分栏数（a:bodyPr@numCol，默认 1；需 >1 才写出） */
+    numCol?: number;
+    /** 栏间距 pt（a:bodyPr@spcCol） */
+    spcCol?: number;
+    /** 文本框自动适配：'none'(a:noAutofit) / 'normal'(a:normAutofit) / 'shape'(a:spAutoFit) */
+    autofit?: PptxAutofit;
+    /** 字号缩放百分比（a:normAutofit@fontScale） */
+    fontScale?: number;
+    /** 行距缩减百分比（a:normAutofit@lnSpcReduction） */
+    lnSpcReduction?: number;
+    /** 艺术字变形预设（a:bodyPr/a:prstTxWarp@prst），如 'textArchUp' */
+    prstTxWarp?: string;
+    /** 自定义几何（a:custGeom）；指定时优先于 shapeType */
+    custGeom?: PptxCustomGeometry;
+    /** 三维属性（a:sp3d + a:scene3d） */
+    threeD?: Pptx3D;
+    /** 连接线（type:'connector'）起点（px），优先于 x/y 推导 */
+    start?: { x: number; y: number };
+    /** 连接线（type:'connector'）终点（px） */
+    end?: { x: number; y: number };
+    /** OLE 程序标识（p:oleObj@progId），如 'Excel.Sheet.12' */
+    progId?: string;
+    /** OLE 嵌入文件路径或部件名 */
+    oleTarget?: string;
+    /** OLE 显示为图标（p:oleObj@showAsIcon） */
+    showAsIcon?: boolean;
+    /** 公式 OMML XML（type:'math'） */
+    omml?: string;
+    /** 坐标轴标题（c:axTitle） */
+    axisTitles?: { category?: string; value?: string; secondaryValue?: string };
+    /** 启用次数值轴（配合系列 axis:'secondary'） */
+    secondaryValueAxis?: boolean;
+    /** 网格线（c:majorGridlines / c:minorGridlines） */
+    gridlines?: { major?: boolean; minor?: boolean };
 }
 /** 幻灯片 JSON */
 export interface SerializerSlide {
+    /** 使用的版式索引（0 基，按 masters[].layouts 展平后的顺序） */
+    layout?: number;
     /** 背景：纯色串 / 渐变 / 图片（与 PptxBackground 同源） */
     background?: string | PptxBackground | null;
     /** 演讲者备注 */
@@ -386,8 +449,23 @@ export interface SerializerSlide {
     advanceTime?: number;
     /** 是否允许点击切换（默认 true；与 advanceTime 配合） */
     advanceOnClick?: boolean;
-    /** 元素动画：[{ target?, type:'fade'|'flyIn'|'zoom'|'wipe', duration? }] */
-    animations?: Array<{ target?: number; type?: string; duration?: number }>;
+    /**
+     * 元素动画。type 为 OOXML preset 名（'fade'/'flyIn'/'wipe'/'zoom'/'bounce'…），
+     * presetClass 支持 entr(进入) / exit(退出) / emph(强调) / path(路径)。
+     */
+    animations?: Array<{
+        target?: number;
+        type?: string;
+        duration?: number;
+        presetClass?: string;
+        presetId?: number;
+        presetSubtype?: number;
+        delay?: number;
+        repeat?: number | 'indefinite';
+        direction?: string;
+        path?: string;
+        trigger?: { type?: 'afterPrev' | 'withPrev' | 'onClick'; target?: number; delay?: number };
+    }>;
     /** 隐藏幻灯片（show="0"） */
     hidden?: boolean;
     /** 幻灯片批注（生成 ppt/comments/commentsN.xml） */
@@ -549,6 +627,24 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
  */
 function buildXfrm(el: SerializerElement) {
     const xfrmAttrs: Record<string, number | string | null> = { rot: el.rotation ? degToRot(el.rotation) : null };
+
+    // 连接线：用起点/终点推导包围盒，方向由 flipH/flipV 表达（OOXML cxnSp 语义）
+    if (el.start && el.end) {
+        const sx = el.start.x ?? 0;
+        const sy = el.start.y ?? 0;
+        const ex = el.end.x ?? 0;
+        const ey = el.end.y ?? 0;
+        const flipH = ex < sx;
+        const flipV = ey < sy;
+        if (flipH || el.flipH) xfrmAttrs.flipH = 1;
+        if (flipV || el.flipV) xfrmAttrs.flipV = 1;
+        return xmlNode('a:xfrm',
+            xfrmAttrs,
+            xmlNode('a:off', { x: pxToEmu(Math.min(sx, ex)), y: pxToEmu(Math.min(sy, ey)) }),
+            xmlNode('a:ext', { cx: pxToEmu(Math.abs(ex - sx)), cy: pxToEmu(Math.abs(ey - sy)) })
+        );
+    }
+
     if (el.flipH) xfrmAttrs.flipH = 1;
     if (el.flipV) xfrmAttrs.flipV = 1;
     return xmlNode('a:xfrm',
@@ -595,21 +691,49 @@ function buildTextRun(ctx: SerializerContext, text: string | undefined, opts: Ru
     const hlink = buildHyperlink(ctx, opts.href);
     if (hlink) rPrChildren.push(hlink);
 
-    return xmlNode('a:r',
-        null,
-        xmlNode('a:rPr',
-            {
-                lang: opts.lang || 'zh-CN',
-                sz: opts.fontSize !== undefined ? ptToSz(opts.fontSize) : null,
-                b: opts.bold ? 1 : null,
-                i: opts.italic ? 1 : null,
-                u: opts.underline ? 'sng' : null,
-                dirty: 0
-            },
-            ...rPrChildren
-        ),
-        xmlNode('a:t', null, String(text))
+    const rPr = xmlNode('a:rPr',
+        {
+            lang: opts.lang || 'zh-CN',
+            sz: opts.fontSize !== undefined ? ptToSz(opts.fontSize) : null,
+            b: opts.bold ? 1 : null,
+            i: opts.italic ? 1 : null,
+            u: opts.underline ? 'sng' : null,
+            dirty: 0
+        },
+        ...rPrChildren
     );
+
+    // 字段（页码/日期等）：写 a:fld 而非 a:r，保留动态语义（否则会被固化为静态文本）
+    if (opts.field) {
+        return xmlNode('a:fld',
+            { id: `{${generateGuid()}}`, type: opts.field },
+            rPr,
+            xmlNode('a:t', null, String(text ?? ''))
+        );
+    }
+
+    return xmlNode('a:r', null, rPr, xmlNode('a:t', null, String(text)));
+}
+
+/**
+ * 生成 RFC4122 v4 形式 GUID（a:fld@id 要求带花括号的 GUID 字符串）
+ */
+function generateGuid(): string {
+    const hex = '0123456789ABCDEF';
+    let out = '';
+    // 8-4-4-4-12
+    for (let i = 0; i < 36; i++) {
+        if (i === 8 || i === 13 || i === 18 || i === 23) {
+            out += '-';
+        } else if (i === 14) {
+            out += '4'; // version 4
+        } else if (i === 19) {
+            out += hex[(Math.random() * 4 | 0) + 8]; // variant 10xx
+        } else {
+            out += hex[Math.random() * 16 | 0];
+        }
+    }
+    return out;
 }
 
 /**
@@ -786,6 +910,27 @@ function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
         if (el.inset.t != null) bodyPrAttrs.tIns = pxToEmu(el.inset.t);
         if (el.inset.b != null) bodyPrAttrs.bIns = pxToEmu(el.inset.b);
     }
+    // 分栏（a:bodyPr@numCol / @spcCol）；numCol 需 >1 才有意义，spcCol 单位为 pt
+    if (el.numCol && el.numCol > 1) bodyPrAttrs.numCol = el.numCol;
+    if (el.spcCol != null) bodyPrAttrs.spcCol = ptToEmu(el.spcCol);
+
+    // a:bodyPr 的子元素顺序（CT_TextBodyProperties）：prstTxWarp → autofit → scene3d → sp3d
+    const bodyPrChildren: BuilderNode[] = [];
+    if (el.prstTxWarp) {
+        bodyPrChildren.push(xmlNode('a:prstTxWarp', { prst: el.prstTxWarp }));
+    }
+    if (el.autofit) {
+        if (el.autofit === 'none') {
+            bodyPrChildren.push(xmlNode('a:noAutofit'));
+        } else if (el.autofit === 'shape') {
+            bodyPrChildren.push(xmlNode('a:spAutoFit'));
+        } else {
+            bodyPrChildren.push(xmlNode('a:normAutofit', {
+                fontScale: el.fontScale != null ? Math.round(el.fontScale * 1000) : null,
+                lnSpcReduction: el.lnSpcReduction != null ? Math.round(el.lnSpcReduction * 1000) : null
+            }));
+        }
+    }
     const defaults = {
         align: el.align,
         fontSize: el.fontSize,
@@ -802,7 +947,7 @@ function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
         null,
         xmlNode('p:nvSpPr',
             null,
-            xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}` }),
+            xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}`, descr: el.descr || null }),
             xmlNode('p:cNvSpPr', { txBox: 1 }),
             xmlNode('p:nvPr')
         ),
@@ -813,9 +958,7 @@ function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
         ),
         xmlNode('p:txBody',
             null,
-            xmlNode('a:bodyPr',
-                bodyPrAttrs
-            ),
+            xmlNode('a:bodyPr', bodyPrAttrs, ...bodyPrChildren),
             xmlNode('a:lstStyle'),
             ...normalizeParagraphs(el).map((p: ParagraphSpec) => buildParagraph(ctx, p, defaults))
         )
@@ -908,6 +1051,148 @@ async function buildFillNode(ctx: SerializerContext, fill: SerializerElement['fi
     return xmlNode('a:solidFill', srgb);
 }
 
+/**
+ * 自定义几何的默认坐标空间（a:path@w/@h）。
+ * 用户既可直接给该空间内的坐标，也可给 0~1 归一化坐标（自动放大到本空间）。
+ */
+const CUSTOM_GEOM_SPACE = 100000;
+
+/**
+ * 构建自定义几何（a:custGeom）
+ *
+ * 位置在 CT_ShapeProperties 中与 a:prstGeom 互斥（二选一）。
+ * @param {Object} geom - 自定义几何定义
+ * @returns {Object} a:custGeom 节点
+ */
+function buildCustomGeometry(geom: PptxCustomGeometry): BuilderNode {
+    const paths = (geom.paths || []).map((p: PptxGeometryPath) => {
+        const w = p.w ?? CUSTOM_GEOM_SPACE;
+        const h = p.h ?? CUSTOM_GEOM_SPACE;
+
+        // 归一化坐标（0~1）识别与放大：所有坐标绝对值 ≤1 时按归一化处理
+        const rawCoords: number[] = [];
+        for (const c of p.commands) {
+            if ('x' in c) rawCoords.push(c.x);
+            if ('y' in c) rawCoords.push(c.y);
+            if ('x1' in c) rawCoords.push(c.x1);
+            if ('y1' in c) rawCoords.push(c.y1);
+            if ('x2' in c) rawCoords.push(c.x2);
+            if ('y2' in c) rawCoords.push(c.y2);
+        }
+        const isNormalized = rawCoords.length > 0 && rawCoords.every(v => Math.abs(v) <= 1.0001);
+        const conv = (v: number) => isNormalized ? Math.round(v * CUSTOM_GEOM_SPACE) : Math.round(v);
+
+        const children: BuilderNode[] = [];
+        for (const c of p.commands) {
+            switch (c.type) {
+                case 'moveTo':
+                    children.push(xmlNode('a:moveTo', null, xmlNode('a:pt', { x: conv(c.x), y: conv(c.y) })));
+                    break;
+                case 'lnTo':
+                    children.push(xmlNode('a:lnTo', null, xmlNode('a:pt', { x: conv(c.x), y: conv(c.y) })));
+                    break;
+                case 'cubicBezTo':
+                    children.push(xmlNode('a:cubicBezTo', null,
+                        xmlNode('a:pt', { x: conv(c.x1), y: conv(c.y1) }),
+                        xmlNode('a:pt', { x: conv(c.x2), y: conv(c.y2) }),
+                        xmlNode('a:pt', { x: conv(c.x), y: conv(c.y) })));
+                    break;
+                case 'quadBezTo':
+                    children.push(xmlNode('a:quadBezTo', null,
+                        xmlNode('a:pt', { x: conv(c.x1), y: conv(c.y1) }),
+                        xmlNode('a:pt', { x: conv(c.x), y: conv(c.y) })));
+                    break;
+                case 'arcTo':
+                    children.push(xmlNode('a:arcTo', { wR: conv(c.wR), hR: conv(c.hR), stAng: c.stAng, swAng: c.swAng }));
+                    break;
+                case 'close':
+                    children.push(xmlNode('a:close'));
+                    break;
+            }
+        }
+        // fill:'norm' 表示闭合填充；显式 closed:false 时用 'none'（仅描边）
+        return xmlNode('a:path', { w, h, fill: p.closed === false ? 'none' : 'norm' }, ...children);
+    });
+
+    return xmlNode('a:custGeom', null,
+        xmlNode('a:avLst'),
+        xmlNode('a:gdLst'),
+        xmlNode('a:ahLst'),
+        xmlNode('a:cxnLst'),
+        xmlNode('a:rect', { l: 'l', t: 't', r: 'r', b: 'b' }),
+        xmlNode('a:pathLst', null, ...paths)
+    );
+}
+
+/**
+ * 构建三维效果节点（a:scene3d + a:sp3d）
+ *
+ * 必须位于 CT_ShapeProperties 的 effectLst 之后、extLst 之前，否则 PowerPoint 会判为非法。
+ * @param {Object} threeD - 三维定义
+ * @returns {Array} 节点数组（可能为空）
+ */
+function build3DNodes(threeD?: Pptx3D): BuilderNode[] {
+    if (!threeD) return [];
+    const nodes: BuilderNode[] = [];
+
+    const scene = threeD.scene;
+    if (scene) {
+        const cameraChildren: BuilderNode[] = [];
+        if (scene.rotX != null || scene.rotY != null || scene.rotZ != null) {
+            // a:rot 的角度单位为 1/60000 度
+            cameraChildren.push(xmlNode('a:rot', {
+                lat: scene.rotX != null ? Math.round(scene.rotX * 60000) : null,
+                lon: scene.rotY != null ? Math.round(scene.rotY * 60000) : null,
+                rev: scene.rotZ != null ? Math.round(scene.rotZ * 60000) : null
+            }));
+        }
+        nodes.push(xmlNode('a:scene3d', null,
+            xmlNode('a:camera', {
+                prst: scene.camera || 'orthographicFront',
+                fov: scene.fov != null ? Math.round(scene.fov * 60000) : null,
+                zoom: scene.zoom != null ? Math.round(scene.zoom * 1000) : null
+            }, ...cameraChildren),
+            xmlNode('a:lightRig', {
+                rig: scene.lightRig || 'balanced',
+                dir: scene.lightDir || 't'
+            })
+        ));
+    }
+
+    const shape = threeD.shape;
+    if (shape) {
+        const children: BuilderNode[] = [];
+        if (shape.bevelTop) {
+            children.push(xmlNode('a:bevelT', {
+                w: shape.bevelTop.width != null ? ptToEmu(shape.bevelTop.width) : null,
+                h: shape.bevelTop.height != null ? ptToEmu(shape.bevelTop.height) : null,
+                prst: shape.bevelTop.preset || null
+            }));
+        }
+        if (shape.bevelBottom) {
+            children.push(xmlNode('a:bevelB', {
+                w: shape.bevelBottom.width != null ? ptToEmu(shape.bevelBottom.width) : null,
+                h: shape.bevelBottom.height != null ? ptToEmu(shape.bevelBottom.height) : null,
+                prst: shape.bevelBottom.preset || null
+            }));
+        }
+        if (shape.extrusionColor) {
+            children.push(xmlNode('a:extrusionClr', null, colorNode(shape.extrusionColor)));
+        }
+        if (shape.contourColor) {
+            children.push(xmlNode('a:contourClr', null, colorNode(shape.contourColor)));
+        }
+        nodes.push(xmlNode('a:sp3d', {
+            // 挤出高度与轮廓线宽均为 ST_PositiveCoordinate（EMU）
+            extrusionH: shape.extrusionHeight != null ? ptToEmu(shape.extrusionHeight) : null,
+            contourW: shape.contourWidth != null ? ptToEmu(shape.contourWidth) : null,
+            prstMaterial: shape.material || null
+        }, ...children));
+    }
+
+    return nodes;
+}
+
 async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
 
@@ -963,20 +1248,25 @@ async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) 
         null,
         xmlNode('p:nvSpPr',
             null,
-            xmlNode('p:cNvPr', { id, name: el.name || `Shape ${id - 1}` }),
+            xmlNode('p:cNvPr', { id, name: el.name || `Shape ${id - 1}`, descr: el.descr || null }),
             xmlNode('p:cNvSpPr'),
             xmlNode('p:nvPr')
         ),
         xmlNode('p:spPr',
             null,
             buildXfrm(el),
-            xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) },
-                el.adjust && Object.keys(el.adjust).length
-                    ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
-                    : xmlNode('a:avLst')),
+            // 自定义几何与预设几何互斥：有 custGeom 时优先
+            el.custGeom
+                ? buildCustomGeometry(el.custGeom)
+                : xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) },
+                    el.adjust && Object.keys(el.adjust).length
+                        ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
+                        : xmlNode('a:avLst')),
             fillNode,
             lineNode,
-            ...(effectNode ? [effectNode] : [])
+            ...(effectNode ? [effectNode] : []),
+            // scene3d / sp3d 必须排在 effectLst 之后
+            ...build3DNodes(el.threeD)
         )
     );
 }
@@ -1121,6 +1411,27 @@ function numRefXml(values: unknown[], col: string) {
 }
 
 /**
+ * 构造趋势线（c:trendline）
+ * 子元素顺序遵循 CT_Trendline：name → spPr → trendlineType → order → period
+ * → forward → backward → intercept → dispRSqr → dispEq → trendlineLbl
+ * @param {Object} t - 趋势线定义
+ * @returns {string} c:trendline XML
+ */
+function buildTrendlineXml(t: PptxTrendline): string {
+    const parts: string[] = [];
+    if (t.name) parts.push(`<c:name>${escapeXml(t.name)}</c:name>`);
+    parts.push(`<c:trendlineType val="${escapeXml(t.type || 'linear')}"/>`);
+    if (t.order != null) parts.push(`<c:order val="${Math.round(t.order)}"/>`);
+    if (t.period != null) parts.push(`<c:period val="${Math.round(t.period)}"/>`);
+    if (t.forward != null) parts.push(`<c:forward val="${Math.round(t.forward)}"/>`);
+    if (t.backward != null) parts.push(`<c:backward val="${Math.round(t.backward)}"/>`);
+    if (t.intercept != null) parts.push(`<c:intercept val="${t.intercept}"/>`);
+    if (t.showRSquared) parts.push('<c:dispRSqr val="1"/>');
+    if (t.showEquation) parts.push('<c:dispEq val="1"/>');
+    return `<c:trendline>${parts.join('')}</c:trendline>`;
+}
+
+/**
  * 生成 c:chartSpace 原生图表 XML（自包含，内联数据缓存，无需外部工作簿）
  * @param {Object} el - 图表元素 JSON
  * @returns {string} chart 部件 XML
@@ -1151,29 +1462,51 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
         ? String(el.grouping)
         : (isBarLike ? 'clustered' : isLineArea ? 'standard' : '');
 
-    const serXml = series.map((s: ChartSeriesSpec, i: number) => {
-        const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
-            `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
-        let data;
-        if (isScatter) {
-            data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
-        } else if (isBubble) {
-            data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal><c:bubbleSize>${numRefXml(s.values || [], 'D')}</c:bubbleSize>`;
-        } else if (isStock) {
-            data = `<c:openVal>${numRefXml(s.open || [], 'B')}</c:openVal>` +
-                `<c:highVal>${numRefXml(s.high || [], 'C')}</c:highVal>` +
-                `<c:lowVal>${numRefXml(s.low || [], 'D')}</c:lowVal>` +
-                `<c:closeVal>${numRefXml(s.close || s.values || [], 'E')}</c:closeVal>`;
-        } else {
-            data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
-        }
-        const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
-        // marker 位于数据之前，smooth 位于数据之后（CT_LineSer / CT_ScatterSer 的元素顺序）
-        const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
-        const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
-        const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
-        return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${data}${smoothXml}</c:ser>`;
-    }).join('');
+    /**
+     * 构造 c:ser 列表（抽成函数以支持次坐标轴：每对坐标轴对应独立的图表节点，
+     * 系列需按 axis 分组，idx/order 在两组间连续编号）
+     * @param {Array} serList - 系列子集
+     * @param {number} offset - idx/order 起始偏移（保证跨节点唯一）
+     * @returns {string} c:ser XML
+     */
+    const buildSerXml = (serList: ChartSeriesSpec[], offset: number): string => {
+        return serList.map((s: ChartSeriesSpec, j: number) => {
+            const i = offset + j;
+            const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
+                `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
+            let data;
+            if (isScatter) {
+                data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
+            } else if (isBubble) {
+                data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal><c:bubbleSize>${numRefXml(s.values || [], 'D')}</c:bubbleSize>`;
+            } else if (isStock) {
+                data = `<c:openVal>${numRefXml(s.open || [], 'B')}</c:openVal>` +
+                    `<c:highVal>${numRefXml(s.high || [], 'C')}</c:highVal>` +
+                    `<c:lowVal>${numRefXml(s.low || [], 'D')}</c:lowVal>` +
+                    `<c:closeVal>${numRefXml(s.close || s.values || [], 'E')}</c:closeVal>`;
+            } else {
+                data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
+            }
+            const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
+            // marker 位于数据之前，smooth 位于数据之后（CT_LineSer / CT_ScatterSer 的元素顺序）
+            const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
+            const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
+            const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
+            // 趋势线：CT_*Ser 中位于数据之前（trendline → errBars → cat/val）
+            const trendlineXml = (s.trendlines || []).map((t: PptxTrendline) => buildTrendlineXml(t)).join('');
+            return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${trendlineXml}${data}${smoothXml}</c:ser>`;
+        }).join('');
+    };
+
+    // 次坐标轴：同一 plotArea 内需要**两个图表节点**，系列按 axis 归属其一
+    const secSeries = el.secondaryValueAxis ? series.filter((s: ChartSeriesSpec) => s.axis === 'secondary') : [];
+    const priSeries = el.secondaryValueAxis && secSeries.length
+        ? series.filter((s: ChartSeriesSpec) => s.axis !== 'secondary')
+        : series;
+    // 仅当主/次两组都非空时才拆分（否则退化为单一节点，避免产生空的第二个图表）
+    const useSecondary = !!el.secondaryValueAxis && secSeries.length > 0 && priSeries.length > 0;
+    const serXml = buildSerXml(useSecondary ? priSeries : series, 0);
+    const serXmlSec = useSecondary ? buildSerXml(secSeries, priSeries.length) : '';
 
     // 数字格式码：同时作用于数据标签与数值轴
     const numFmtXml = el.numberFormat
@@ -1195,38 +1528,44 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
     const needsSerAx = is3D || isSurface;
     const axIds = needsSerAx ? axIds3 : axIds2;
     // 各分支均严格按对应 CT_*Chart 的子元素顺序输出，否则 PowerPoint/WPS 会静默忽略
-    let plotChart;
+    const makePlot = (serPart: string, axIdsPart: string): string => {
     if (isOfPie) {
         // c:ofPieType 是 CT_OfPieChart 的必需元素，缺失时子母饼图无法识别
         const ofPieType = el.ofPieType === 'bar' ? 'bar' : 'pie';
-        plotChart = `<c:${type}><c:ofPieType val="${ofPieType}"/><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}` +
+        return `<c:${type}><c:ofPieType val="${ofPieType}"/><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}` +
             `<c:gapWidth val="100"/><c:splitType val="auto"/><c:splitPos val="0"/>` +
             `<c:secondPieSize val="75"/><c:serLines/></c:${type}>`;
     } else if (isDoughnut) {
         const holeSize = el.holeSize !== undefined ? el.holeSize : 50;
-        plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}<c:holeSize val="${holeSize}"/></c:${type}>`;
+        return `<c:${type}><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}<c:holeSize val="${holeSize}"/></c:${type}>`;
     } else if (isPie) {
-        plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}</c:${type}>`;
+        return `<c:${type}><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}</c:${type}>`;
     } else if (isBubble) {
         const bubble3DXml = el.bubble3D ? '<c:bubble3D val="1"/>' : '';
         const bubbleScaleXml = el.bubbleScale !== undefined ? `<c:bubbleScale val="${el.bubbleScale}"/>` : '';
         const showNegXml = el.showNegBubbles ? '<c:showNegBubbles val="1"/>' : '';
-        plotChart = `<c:${type}>${serXml}${dLblsInner}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIds}</c:${type}>`;
+        return `<c:${type}>${serPart}${dLblsInner}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIdsPart}</c:${type}>`;
     } else if (isRadar) {
-        plotChart = `<c:${type}><c:radarStyle val="standard"/>${serXml}${dLblsInner}${axIds}</c:${type}>`;
+        return `<c:${type}><c:radarStyle val="standard"/>${serPart}${dLblsInner}${axIdsPart}</c:${type}>`;
     } else if (isStock) {
         // CT_StockChart 无 c:serLines（该元素属于 ofPieChart），高低点连线用 hiLowLines
-        plotChart = `<c:${type}>${serXml}${dLblsInner}<c:hiLowLines/>${axIds}</c:${type}>`;
+        return `<c:${type}>${serPart}${dLblsInner}<c:hiLowLines/>${axIdsPart}</c:${type}>`;
     } else if (isSurface) {
         // CT_SurfaceChart 不含 dLbls
         const wireframeXml = el.wireframe ? '<c:wireframe val="1"/>' : '';
-        plotChart = `<c:${type}>${wireframeXml}${serXml}<c:bandFmts/>${axIds}</c:${type}>`;
+        return `<c:${type}>${wireframeXml}${serPart}<c:bandFmts/>${axIdsPart}</c:${type}>`;
     } else {
         const dir = isBarLike ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
         const grouping = groupingVal ? `<c:grouping val="${groupingVal}"/>` : '';
         const markerXml = (el.marker && isLineArea) ? '<c:marker><c:symbol val="circle"/></c:marker>' : '';
-        plotChart = `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}${markerXml}${axIds}</c:${type}>`;
+        return `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}${markerXml}${axIdsPart}</c:${type}>`;
     }
+    };
+
+    // 主坐标轴对（111/112[+113]）；次坐标轴对固定为 211/212
+    const SECONDARY_AX_IDS = `<c:axId val="211"/><c:axId val="212"/>`;
+    const plotChart = makePlot(serXml, axIds)
+        + (useSecondary ? makePlot(serXmlSec, SECONDARY_AX_IDS) : '');
 
     // 3D 视图需置于 c:chart 下（ECMA-376：view3D 属于 CT_Chart，位于 plotArea 之前）
     const view3D = is3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="20"/><c:depthPercent val="100"/></c:view3D>' : '';
@@ -1235,15 +1574,30 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
     // 散点图/气泡图：X/Y 轴均为值轴（c:valAx），不能用类别轴（ECMA-376 CT_ScatterChart）
     // 所有轴补全 WPS 必需的 c:crosses/c:tickLblPos/c:numFmt 等元素
     const isXYValAx = isScatter || isBubble; // X 轴也是值轴
+
+    // 网格线：默认只画主网格线；显式 gridlines:{ major:false } 可关闭，minor:true 追加次网格线
+    const gl = el.gridlines;
+    const majorGl = gl && gl.major === false ? '' : '<c:majorGridlines/>';
+    const minorGl = gl && gl.minor === true ? '<c:minorGridlines/>' : '';
+    // 坐标轴标题（c:axTitle）
+    const axisTitleXml = (t?: string) => t
+        ? `<c:axTitle><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml(t)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:axTitle>`
+        : '';
+
     let axes = '';
     if (!isPieLike) {
         const catOrValAxX = isXYValAx
-            ? `<c:valAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorGridlines/><c:tickLblPos val="low"/><c:crossAx val="112"/><c:crosses val="autoZero"/></c:valAx>`
-            : `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:tickLblPos val="low"/><c:crossAx val="${needsSerAx ? 113 : 112}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
-        const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/><c:majorGridlines/><c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
+            ? `<c:valAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="112"/><c:crosses val="autoZero"/></c:valAx>`
+            : `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="${needsSerAx ? 113 : 112}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
+        const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.value)}<c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
         axes = catOrValAxX + valAxY;
         if (needsSerAx) {
             axes += `<c:serAx><c:axId val="113"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/><c:crossAx val="111"/><c:crosses val="autoZero"/></c:serAx>`;
+        }
+        // 次坐标轴对（211 分类轴 + 212 数值轴）：分类轴隐藏（delete=1），数值轴置右侧
+        if (useSecondary) {
+            axes += `<c:catAx><c:axId val="211"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:tickLblPos val="none"/><c:crossAx val="212"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
+            axes += `<c:valAx><c:axId val="212"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="r"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.secondaryValue)}<c:tickLblPos val="low"/><c:crossAx val="211"/><c:crosses val="max"/><c:crossBetween val="between"/></c:valAx>`;
         }
     }
 
@@ -1391,6 +1745,9 @@ function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell, table
     const attrs: Record<string, unknown> = {};
     if (cell.colSpan && cell.colSpan > 1) attrs.gridSpan = cell.colSpan;
     if (cell.rowSpan && cell.rowSpan > 1) attrs.rowSpan = cell.rowSpan;
+    // 被合并吞并的单元格：仍需输出节点，仅标记 hMerge/vMerge
+    if (cell.hMerge) attrs.hMerge = '1';
+    if (cell.vMerge) attrs.vMerge = '1';
 
     const defaults: RunStyle = {
         align: cell.align,
@@ -1634,7 +1991,27 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
                 xmlNode('a:chExt', { cx: w, cy: h })
             )
         ),
-        ...childNodes
+        // OOXML 要求 group 的子孙必须包在 p:spTree 内，否则 PowerPoint 与解析端均读不到
+        xmlNode('p:spTree',
+            null,
+            xmlNode('p:nvGrpSpPr',
+                null,
+                xmlNode('p:cNvPr', { id: ctx.nextElementId++, name: `${el.name || 'Group'} Inner` }),
+                xmlNode('p:cNvGrpSpPr'),
+                xmlNode('p:nvPr')
+            ),
+            xmlNode('p:grpSpPr',
+                null,
+                xmlNode('a:xfrm',
+                    null,
+                    xmlNode('a:off', { x: 0, y: 0 }),
+                    xmlNode('a:ext', { cx: w, cy: h }),
+                    xmlNode('a:chOff', { x: 0, y: 0 }),
+                    xmlNode('a:chExt', { cx: w, cy: h })
+                )
+            ),
+            ...childNodes
+        )
     );
 }
 
@@ -2025,10 +2402,201 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
     );
 }
 
+/**
+ * 构建连接线元素（p:cxnSp）
+ *
+ * 与 p:sp 的区别：外层是 p:nvCxnSpPr / p:cNvCxnSpPr，且 a:xfrm 语义为起止两点
+ * （若提供 start/end 则由 buildXfrm 推导包围盒 + flipH/flipV 表达方向）。
+ *
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 连接线元素 JSON
+ * @returns {Object} p:cxnSp 节点
+ */
+function buildConnectorElement(ctx: SerializerContext, el: SerializerElement) {
+    const id = ctx.nextElementId++;
+    const line = (el.line && el.line !== 'none') ? el.line as { color?: string; width?: number; dashType?: string } : null;
+
+    const lnChildren: BuilderNode[] = [];
+    if (line && line.color) lnChildren.push(xmlNode('a:solidFill', colorNode(line.color)));
+    if (line && line.dashType) lnChildren.push(xmlNode('a:prstDash', { val: line.dashType }));
+
+    const lnNode = el.line === 'none'
+        ? xmlNode('a:ln', null, xmlNode('a:noFill'))
+        : xmlNode('a:ln', {
+            w: line && line.width != null ? ptToEmu(line.width) : null,
+            cap: 'flat'
+        }, ...lnChildren);
+
+    return xmlNode('p:cxnSp',
+        null,
+        xmlNode('p:nvCxnSpPr',
+            null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Connector ${id - 1}`, descr: el.descr || null }),
+            xmlNode('p:cNvCxnSpPr'),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:spPr',
+            null,
+            buildXfrm(el),
+            xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType || 'straightConnector1') },
+                el.adjust && Object.keys(el.adjust).length
+                    ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
+                    : xmlNode('a:avLst')),
+            lnNode,
+            ...build3DNodes(el.threeD)
+        )
+    );
+}
+
+/**
+ * 构建 OLE 嵌入对象元素（p:graphicFrame + a:graphicData[uri=presentationml/ole] + p:oleObj）
+ *
+ * 结构要点：p:oleObj 必须内嵌一个 p:pic 作为**显示代理图**，否则 PowerPoint 打开时
+ * 对象区域会显示为空白（对象本体只在双击激活时由 progId 对应的程序渲染）。
+ *
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - OLE 元素 JSON
+ * @returns {Object} p:graphicFrame 节点
+ */
+async function buildOleElement(ctx: SerializerContext, el: SerializerElement) {
+    const id = ctx.nextElementId++;
+    const ext = (el.extension || 'bin').replace(/^\./, '');
+
+    // 嵌入部件落到 ppt/embeddings/（与媒体 ppt/media 区分）
+    let oleRelId: string | null = null;
+    if (el.data) {
+        ctx.parts.push({
+            path: `ppt/embeddings/oleObject${ctx.parts.length + 1}.${ext}`,
+            base64: el.data,
+            contentType: 'application/vnd.openxmlformats-officedocument.oleObject',
+            media: true
+        });
+        oleRelId = addRelationship(ctx, REL_TYPES.oleObject, `../embeddings/oleObject${ctx.parts.length}.${ext}`);
+    } else if (el.oleTarget) {
+        oleRelId = addRelationship(ctx, REL_TYPES.oleObject, el.oleTarget);
+    }
+
+    // 显示代理图（poster）
+    let posterRelId: string | null = null;
+    if (el.poster) {
+        const { base64, ext: pExt } = await resolveImageData({ type: 'image', data: el.poster.data, src: el.poster.src, extension: el.poster.extension } as SerializerElement);
+        ctx.mediaIndex++;
+        const pName = `image${ctx.mediaIndex}.${pExt}`;
+        ctx.media.push({ name: pName, base64 });
+        posterRelId = addRelationship(ctx, REL_TYPES.image, `../media/${pName}`);
+    }
+
+    const cx = pxToEmu(el.width || 200);
+    const cy = pxToEmu(el.height || 150);
+
+    const picChildren: BuilderNode[] = [
+        xmlNode('p:nvPicPr', null,
+            xmlNode('p:cNvPr', { id: ctx.nextElementId++, name: `${el.name || 'Object'} Display` }),
+            xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noGrp: 1, noChangeAspect: 1 })),
+            xmlNode('p:nvPr')
+        )
+    ];
+    if (posterRelId) {
+        picChildren.push(xmlNode('p:blipFill', null,
+            xmlNode('a:blip', { 'r:embed': posterRelId }),
+            xmlNode('a:stretch', null, xmlNode('a:fillRect'))
+        ));
+    }
+    picChildren.push(xmlNode('p:spPr', null,
+        xmlNode('a:xfrm', null,
+            xmlNode('a:off', { x: 0, y: 0 }),
+            xmlNode('a:ext', { cx, cy })
+        ),
+        xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))
+    ));
+
+    return xmlNode('p:graphicFrame',
+        null,
+        xmlNode('p:nvGraphicFramePr', null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Object ${id - 1}`, descr: el.descr || null }),
+            xmlNode('p:cNvGraphicFramePr', null, xmlNode('a:graphicFrameLocks', { noGrp: 1 })),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:xfrm', null,
+            xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
+            xmlNode('a:ext', { cx, cy })
+        ),
+        xmlNode('a:graphic', null,
+            xmlNode('a:graphicData', { uri: 'http://schemas.openxmlformats.org/presentationml/2006/ole' },
+                xmlNode('p:oleObj', {
+                    progId: el.progId || 'Package',
+                    'r:id': oleRelId,
+                    showAsIcon: el.showAsIcon ? 1 : 0
+                },
+                ...picChildren
+                )
+            )
+        )
+    );
+}
+
+/**
+ * 构建公式元素（OMML）
+ *
+ * PresentationML 中 OMML 通过 mc:AlternateContent 挂载：
+ * - mc:Choice Requires="a14" 内放 a14:m（OMML 本体，需 m: 命名空间）
+ * - mc:Fallback 放纯文本，保证不支持 OMML 的查看器仍能显示
+ *
+ * @param {Object} ctx - 构建上下文
+ * @param {Object} el - 公式元素 JSON
+ * @returns {Object} p:sp 节点
+ */
+function buildMathElement(ctx: SerializerContext, el: SerializerElement) {
+    const id = ctx.nextElementId++;
+    const text = el.text ?? '';
+
+    const altContent = xmlNode('mc:AlternateContent',
+        {
+            'xmlns:mc': NS.mc,
+            'xmlns:a14': NS.a14,
+            'xmlns:m': NS.m
+        },
+        xmlNode('mc:Choice', { Requires: 'a14' },
+            xmlNode('a14:m', null, el.omml ? rawXml(el.omml) : null)
+        ),
+        xmlNode('mc:Fallback', null,
+            xmlNode('a:t', null, text)
+        )
+    );
+
+    return xmlNode('p:sp',
+        null,
+        xmlNode('p:nvSpPr', null,
+            xmlNode('p:cNvPr', { id, name: el.name || `Math ${id - 1}`, descr: el.descr || null }),
+            xmlNode('p:cNvSpPr', { txBox: 1 }),
+            xmlNode('p:nvPr')
+        ),
+        xmlNode('p:spPr', null,
+            buildXfrm(el),
+            xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))
+        ),
+        xmlNode('p:txBody', null,
+            xmlNode('a:bodyPr', { wrap: 'square', rtlCol: 0 }),
+            xmlNode('a:lstStyle'),
+            xmlNode('a:p', null,
+                el.omml ? altContent : xmlNode('a:r', null,
+                    xmlNode('a:rPr', { lang: 'zh-CN', dirty: 0 }),
+                    xmlNode('a:t', null, text)
+                )
+            )
+        )
+    );
+}
+
 export async function buildElement(ctx: SerializerContext, el: SerializerElement) {
     if (!el || typeof el !== 'object') return null;
     // 显式回退：已支持的语义类型也可用 __raw 原样回写（语义层可能丢失主题色/动画等细节）
     if (el.rawFallback && el.__raw) return buildRawElement(ctx, el);
+    // 形状元素：type 为具体几何名（如 'rect'/'ellipse'）时统一转入 buildShapeElement；
+    // 同时保留 type:'shape'（几何写在 shapeType 字段）的旧用法。
+    if (el.type && PRESET_GEOMETRIES.has(el.type)) {
+        return buildShapeElement(ctx, { ...el, shapeType: el.type });
+    }
     switch (el.type) {
         case 'text':
             return buildTextElement(ctx, el);
@@ -2045,11 +2613,17 @@ export async function buildElement(ctx: SerializerContext, el: SerializerElement
             return buildTableElement(ctx, el);
         case 'group':
             return buildGroupElement(ctx, el);
+        case 'connector':
+            return buildConnectorElement(ctx, el);
+        case 'ole':
+            return buildOleElement(ctx, el);
+        case 'math':
+            return buildMathElement(ctx, el);
         case 'diagram':
             // 有 __raw 载荷（解析端回读）时回落无损回退；否则按语义层生成原生 diagrams 部件
             return el.__raw ? buildRawElement(ctx, el) : buildDiagramElement(ctx, el);
         default:
-            // 语义层未覆盖（SmartArt / 组合 / 连接符 / OLE 等）→ 回退 __raw
+            // 语义层未覆盖 → 回退 __raw
             return buildRawElement(ctx, el);
     }
 }
@@ -2117,11 +2691,48 @@ const TRANSITION_TAG: Record<string, string> = {
  * @param {Object} t - 过渡描述 { type, duration(ms) }
  * @returns {Object|null} p:transition 节点
  */
-export function buildTransition(t: PptxTransition | undefined): BuilderNode | null {
+/**
+ * 常见进入动画的 presetId（p:cTn@presetId）。
+ * PowerPoint 按 preset 名 + presetId 定位具体效果，编号错误会导致动画退化为默认淡入。
+ * 未在表中的 preset 回退 1（PowerPoint 会按 preset 名自行修正）。
+ */
+const ANIMATION_PRESET_IDS: Record<string, number> = {
+    appear: 1, flyIn: 2, fly: 2, blinds: 3, blind: 3, box: 4, checkerboard: 5, checker: 5,
+    circle: 6, crawl: 7, diamond: 8, dissolve: 9, fade: 10, peek: 11, plus: 12,
+    randomBars: 13, random: 13, split: 14, spokes: 15, strips: 16, swivel: 17,
+    wedge: 18, wheel: 19, wipe: 20, zoom: 21, bounce: 22, grow: 23, spin: 24,
+    pulsate: 1, color: 2, transparency: 3, boldFlash: 4, brush: 5, wave: 6
+};
+
+export function buildTransition(t: PptxTransition | undefined, ctx?: SerializerContext): BuilderNode | null {
     if (!t) return null;
     const tag = TRANSITION_TAG[t.type] || 'p:fade';
     const spd = t.duration <= 750 ? '1' : t.duration >= 1500 ? '3' : '2';
-    return xmlNode('p:transition', { spd }, xmlNode(tag));
+
+    const attrs: Record<string, unknown> = { spd };
+    // 自动切换停留时长（毫秒）；与 p:timing 的 afterTime 等价，但 PowerPoint 原生优先读 @advTm
+    if (t.advanceAfterTime != null) attrs.advTm = Math.round(t.advanceAfterTime);
+    // 禁止点击切换（默认允许，故仅在显式 false 时输出）
+    if (t.advanceOnClick === false) attrs.advanceOnClick = 0;
+
+    const children: BuilderNode[] = [];
+    children.push(xmlNode(tag, { dir: t.direction || null }));
+
+    // 切换音效（p:sndAc/p:snd），需内嵌音频媒体并登记 hyperlink 之外的 media 关系
+    if (t.sound && ctx) {
+        const sndAttrs: Record<string, unknown> = {};
+        if (t.sound.name) sndAttrs.name = t.sound.name;
+        if (t.sound.data) {
+            const ext = (t.sound.extension || 'wav').replace(/^\./, '');
+            ctx.mediaIndex++;
+            const mediaName = `sound${ctx.mediaIndex}.${ext}`;
+            ctx.media.push({ name: mediaName, base64: t.sound.data });
+            sndAttrs['r:embed'] = addRelationship(ctx, REL_TYPES.audio, `../media/${mediaName}`);
+        }
+        children.push(xmlNode('p:sndAc', null, xmlNode('p:snd', sndAttrs)));
+    }
+
+    return xmlNode('p:transition', attrs, ...children);
 }
 
 /**
@@ -2182,7 +2793,8 @@ export function buildNotesSlide(notes: string): BuilderNode {
 /** 构建幻灯片计时（自动播放 + 元素动画），生成 p:timing */
 function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
     if (!slide) return null;
-    const adv = slide.advanceTime;
+    // 自动切换时长：slide.advanceTime 与 transition.advanceAfterTime 等价，任一存在即生成计时条件
+    const adv = slide.advanceTime ?? slide.transition?.advanceAfterTime;
     const anims = slide.animations || [];
     if (adv == null && anims.length === 0) return null;
 
@@ -2197,14 +2809,51 @@ function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
     let nid = 10;
     for (const a of anims) {
         const spid = a.target != null ? a.target + 2 : 2; // 元素 id 从 2 起连续编号
-        const preset = a.type === 'flyIn' ? 'flyIn' : a.type === 'zoom' ? 'zoom' : a.type === 'wipe' ? 'wipe' : 'fade';
-        const effectChildren: BuilderNode[] = [];
-        if (a.duration != null) effectChildren.push(xmlNode('p:cTn', { id: nid++, dur: Math.round(a.duration * 1000), fill: 'hold' }));
+        // preset 透传真实名称（不再收敛为 4 种），未知类型回退 fade
+        const preset = a.type || 'fade';
+        const presetClass = (a.presetClass || 'entr') as string;
+        // presetId 优先取显式值，否则查常见 preset 编号表
+        const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[preset] ?? 1);
+
+        // 触发时机 → p:stCondLst/p:cond
+        const trig = a.trigger?.type || 'afterPrev';
+        const condAttrs: Record<string, unknown> = {};
+        if (trig === 'onClick') {
+            // 「点击时开始」：delay=indefinite 表示等待用户触发
+            condAttrs.type = 'begin';
+            condAttrs.event = 'delay';
+            condAttrs.delay = 'indefinite';
+        } else {
+            condAttrs.type = trig === 'withPrev' ? 'withPrev' : 'afterPrev';
+        }
+
+        const effectChildren: BuilderNode[] = [
+            xmlNode('p:stCondLst', null, xmlNode('p:cond', condAttrs))
+        ];
+        if (a.duration != null) {
+            effectChildren.push(xmlNode('p:cTn', { id: nid++, dur: Math.round(a.duration * 1000), fill: 'hold' }));
+        }
+
+        const presetAttrs: Record<string, unknown> = {
+            id: nid++,
+            presetClass,
+            presetId,
+            type: 'withEffect',
+            preset
+        };
+        if (a.presetSubtype != null) presetAttrs.presetSubtype = a.presetSubtype;
+        if (a.delay != null) presetAttrs.delay = Math.round(a.delay * 1000);
+        if (a.repeat != null) presetAttrs.repeatCount = a.repeat === 'indefinite' ? 'indefinite' : Math.round(a.repeat * 1000);
+        // 路径动画：presetClass='path' 时附加 <p:anim ...> 描述路径（简化为保留 path 文本供上层解析）
+        if (presetClass === 'path' && a.path) {
+            presetAttrs.presetSubtype = presetAttrs.presetSubtype ?? 0;
+        }
+
         childNodes.push(xmlNode('p:cTn',
             { id: nid++, fill: 'hold' },
             xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid })),
             xmlNode('p:childTnLst', null,
-                xmlNode('p:cTn', { id: nid++, presetClass: 'entr', presetId: 1, type: 'withEffect', preset }, ...effectChildren)
+                xmlNode('p:cTn', presetAttrs, ...effectChildren)
             )
         ));
     }
@@ -2233,8 +2882,8 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
     // 背景（纯色 / 渐变 / 图片）
     const bgNode = await buildBackground(slide && slide.background, ctx);
 
-    // 过渡效果
-    const transitionNode = buildTransition(slide && slide.transition);
+    // 过渡效果（传入 ctx 以支持切换音效的媒体关系登记）
+    const transitionNode = buildTransition(slide && slide.transition, ctx);
     const timingNode = buildTimingNode(slide);
 
     return xmlNode('p:sld',

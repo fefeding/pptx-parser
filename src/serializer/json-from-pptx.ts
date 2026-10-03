@@ -23,7 +23,7 @@ import type {
     PptxDocument, PptxSlide, PptxElement, PptxTextElement, PptxShapeElement,
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
-    PptxDiagramElement, PptxRawElement, PptxAnimation, TextAlign, VAlign, ChartGrouping
+    PptxDiagramElement, PptxRawElement, PptxAnimation, PptxGroupElement, TextAlign, VAlign, ChartGrouping
 } from '../types/pptx-document';
 
 /** plotArea 下可能出现的全部图表节点（ECMA-376 全集），用于反向提取时判定图表类型 */
@@ -411,20 +411,36 @@ function extractTiming(slideContent: any, spidToIndex: Map<string, number>): { a
         if (spid != null && spidToIndex.has(String(spid))) {
             let preset = 'fade';
             let dur: number | undefined;
+            let presetClass: string | undefined;
+            let presetId: number | undefined;
+            let delay: number | undefined;
+            let repeat: number | 'indefinite' | undefined;
             const childTnLst = c['p:childTnLst'];
             if (childTnLst) {
                 for (const inner of asArray(childTnLst['p:cTn'])) {
                     if (inner && inner.attrs) {
+                        // preset 透传真实名称（不再收敛为 4 种，避免 swivel/bounce 等退化为 fade）
                         if (inner.attrs.preset) preset = String(inner.attrs.preset);
                         if (inner.attrs.dur != null) dur = Number(inner.attrs.dur) / 1000;
+                        if (inner.attrs.presetClass) presetClass = String(inner.attrs.presetClass);
+                        if (inner.attrs.presetId != null) presetId = Number(inner.attrs.presetId);
+                        if (inner.attrs.delay != null && inner.attrs.delay !== 'indefinite') delay = Number(inner.attrs.delay) / 1000;
+                        if (inner.attrs.repeatCount != null) {
+                            repeat = inner.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(inner.attrs.repeatCount) / 1000;
+                        }
                     }
                 }
             }
-            animations.push({
+            const anim: PptxAnimation = {
                 target: spidToIndex.get(String(spid))!,
-                type: (['fade', 'flyIn', 'zoom', 'wipe'].includes(preset) ? preset : 'fade') as PptxAnimation['type'],
+                type: preset,
                 duration: dur ?? 1
-            });
+            };
+            if (presetClass) anim.presetClass = presetClass as PptxAnimation['presetClass'];
+            if (presetId != null) anim.presetId = presetId;
+            if (delay != null) anim.delay = delay;
+            if (repeat != null) anim.repeat = repeat;
+            animations.push(anim);
         }
     }
     if (animations.length) result.animations = animations;
@@ -717,8 +733,12 @@ async function attachRawDeps(
     if (parts.length) el.__raw.parts = parts;
 }
 
-/** 递归收集 spTree 下的图形节点（展开 group） */
-function collectShapeNodes(spTree: any, acc: any[]) {
+/**
+ * 递归收集 spTree 下的图形节点。
+ * @param keepGroups - true 时把 p:grpSp 也作为条目保留（供语义层产出 group 元素）；
+ *                    false 时展开 group（兼容旧调用方 / HTML 渲染链路）。
+ */
+function collectShapeNodes(spTree: any, acc: any[], keepGroups = false) {
     if (!spTree || typeof spTree !== 'object') return;
     for (const key of Object.keys(spTree)) {
         const val = spTree[key];
@@ -726,8 +746,12 @@ function collectShapeNodes(spTree: any, acc: any[]) {
         const nodes = asArray(val);
         for (const node of nodes) {
             if (key === 'p:grpSp') {
-                const inner = node && node['p:spTree'];
-                if (inner) collectShapeNodes(inner, acc);
+                if (keepGroups) {
+                    acc.push({ key, node });
+                } else {
+                    const inner = node && node['p:spTree'];
+                    if (inner) collectShapeNodes(inner, acc, keepGroups);
+                }
             } else if (['p:sp', 'p:pic', 'p:graphicFrame', 'p:cxnSp'].includes(key)) {
                 acc.push({ key, node });
             }
@@ -776,19 +800,21 @@ export async function extractSlideToStandard(
         }
 
         if (spTree) {
-            const shapeNodes: { key: string; node: any }[] = [];
-            collectShapeNodes(spTree, shapeNodes);
-
-            // spid → 元素索引映射（用于动画 p:spTgt 回指元素位置）
+            // spid → 元素扁平序号映射（用于动画 p:spTgt 回指）。
+            // 序号按 DFS 顺序递增（含 group 自身及其子孙），与生成端元素编号一致。
             const spidToIndex = new Map<string, number>();
+            let elemIndex = 0;
 
-            for (const { key, node } of shapeNodes) {
+            const registerSpid = (spid: string | undefined, el: PptxElement) => {
+                if (spid != null) spidToIndex.set(spid, elemIndex);
+                elemIndex++;
+            };
+
+            const processNode = async (key: string, node: any): Promise<PptxElement | null> => {
                 const spid = getShapeId(key, node);
-                const index = slide.elements.length;
-                if (spid != null) spidToIndex.set(spid, index);
                 try {
                     const el = await nodeToElement(key, node, resObj, zip);
-                    if (!el) { spidToIndex.delete(spid!); continue; }
+                    if (!el) return null;
                     // 统一挂载 __raw 载荷（含标签名，供生成端无损回写）
                     (el as any).__raw = { tag: key, node };
                     // 依赖携带：语义层未覆盖的类型必须附带，否则 __raw 无法独立回写；
@@ -796,18 +822,73 @@ export async function extractSlideToStandard(
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
                         await attachRawDeps(el, node, resObj, zip);
                     }
-                    slide.elements.push(el);
+                    registerSpid(spid, el);
+                    return el;
                 } catch {
                     // 单元素失败：仅保留原始节点，由 __raw 回退承载
                     const rawEl: PptxRawElement = {
                         type: 'raw', x: 0, y: 0, width: 0, height: 0,
                         __raw: { tag: key, node }, rawFallback: true
                     };
-                    spidToIndex.delete(spid!);
-                    slide.elements.push(rawEl);
+                    registerSpid(spid, rawEl);
                     if (allDeps) await attachRawDeps(rawEl, node, resObj, zip);
+                    return rawEl;
                 }
-            }
+            };
+
+            // 处理一个 spTree → 元素数组（递归保留 group 层级）
+            const processTree = async (tree: any): Promise<PptxElement[]> => {
+                const acc: { key: string; node: any }[] = [];
+                collectShapeNodes(tree, acc, true);
+                const out: PptxElement[] = [];
+                for (const { key, node } of acc) {
+                    if (key === 'p:grpSp') {
+                        const g = await processGroup(node);
+                        if (g) out.push(g);
+                    } else {
+                        const el = await processNode(key, node);
+                        if (el) out.push(el);
+                    }
+                }
+                return out;
+            };
+
+            // 组合：将 group 内部子元素坐标由「局部（chOff/chExt 空间）」转换为
+            // 「相对 group 左上角的偏移」（childrenCoordinates='relative'），生成端据此重建。
+            const processGroup = async (node: any): Promise<PptxGroupElement | null> => {
+                const gid = getShapeId('p:grpSp', node);
+                const inner = node['p:spTree'];
+                const children = inner ? await processTree(inner) : [];
+
+                const gxf = node['p:grpSpPr'] && node['p:grpSpPr']['a:xfrm'];
+                const gOff = gxf && gxf['a:off'] && gxf['a:off'].attrs;
+                const gExt = gxf && gxf['a:ext'] && gxf['a:ext'].attrs;
+                const chOff = gxf && gxf['a:chOff'] && gxf['a:chOff'].attrs;
+                const chExt = gxf && gxf['a:chExt'] && gxf['a:chExt'].attrs;
+                const gx = emuToPx(gOff?.x), gy = emuToPx(gOff?.y);
+                const gw = emuToPx(gExt?.cx), gh = emuToPx(gExt?.cy);
+                const chx = emuToPx(chOff?.x), chy = emuToPx(chOff?.y);
+                const chw = emuToPx(chExt?.cx) || 1, chh = emuToPx(chExt?.cy) || 1;
+                const sx = gw / chw, sy = gh / chh;
+
+                for (const c of children) {
+                    const lx = c.x || 0, ly = c.y || 0;
+                    c.x = (lx - chx) * sx;
+                    c.y = (ly - chy) * sy;
+                    if (c.width != null) c.width = c.width * sx;
+                    if (c.height != null) c.height = c.height * sy;
+                }
+                const g: PptxGroupElement = {
+                    type: 'group',
+                    x: gx, y: gy, width: gw, height: gh,
+                    children,
+                    childrenCoordinates: 'relative'
+                };
+                registerSpid(gid, g as PptxElement);
+                return g;
+            };
+
+            slide.elements = await processTree(spTree);
 
             // 自动播放 / 元素动画（p:timing）
             const timing = extractTiming(slideContent, spidToIndex);
@@ -1136,6 +1217,60 @@ async function picToImage(
 
     const xf = readXfrm(node, false);
     const name = node['p:nvPicPr'] && node['p:nvPicPr']['p:cNvPr'] && node['p:nvPicPr']['p:cNvPr'].attrs && node['p:nvPicPr']['p:cNvPr'].attrs.name;
+
+    // ===== 媒体（视频 / 音频）=====
+    // 媒体在 OOXML 中仍是 p:pic，区别是 p:nvPr 下挂 a:videoFile / a:audioFile（r:link 指向媒体部件）。
+    // 此前一律按图片解析，导致视频/音频在语义层退化为 image、往返丢失。
+    const nvPr = node['p:nvPicPr'] && node['p:nvPicPr']['p:nvPr'];
+    const mediaNode = nvPr && (nvPr['a:videoFile'] || nvPr['a:audioFile']);
+    if (mediaNode) {
+        const kind: 'video' | 'audio' = nvPr['a:videoFile'] ? 'video' : 'audio';
+        const linkRid = mediaNode.attrs && mediaNode.attrs['r:link'] ? String(mediaNode.attrs['r:link']) : '';
+        const mTarget = resObj[linkRid] && resObj[linkRid].target;
+        const mPart = resolvePart(mTarget);
+        const mExt = ((mPart || mTarget || '').split('.').pop() || (kind === 'video' ? 'mp4' : 'mp3')).toLowerCase();
+
+        let mData: string | undefined;
+        if (mPart) {
+            try {
+                const f = zip.file(mPart);
+                if (f) mData = await f.async('base64');
+            } catch { /* 忽略媒体读取失败 */ }
+        }
+
+        const mediaEl: any = {
+            type: kind,
+            x: xf ? xf.x : 0,
+            y: xf ? xf.y : 0,
+            width: xf ? xf.width : 300,
+            height: xf ? xf.height : 200,
+            extension: mExt
+        };
+        if (mData) mediaEl.data = mData;
+        else if (/^https?:/i.test(String(mTarget))) mediaEl.src = mTarget;
+        else return null;
+        if (xf && xf.rotation) mediaEl.rotation = xf.rotation;
+        if (name) mediaEl.name = String(name);
+
+        // 预览图（poster）：媒体区域的显示帧，走 a:blip@r:embed
+        const pRid = blip && blip.attrs && blip.attrs['r:embed'];
+        if (pRid) {
+            const pTarget = resObj[String(pRid)] && resObj[String(pRid)].target;
+            const pPart = resolvePart(pTarget);
+            if (pPart) {
+                try {
+                    const f = zip.file(pPart);
+                    if (f) {
+                        mediaEl.poster = {
+                            data: await f.async('base64'),
+                            extension: (pPart.split('.').pop() || 'png').toLowerCase()
+                        };
+                    }
+                } catch { /* 忽略预览图读取失败 */ }
+            }
+        }
+        return mediaEl as PptxElement;
+    }
 
     const ext = ((part || target || '').split('.').pop() || 'png').toLowerCase();
     const mimeMap: Record<string, string> = {
