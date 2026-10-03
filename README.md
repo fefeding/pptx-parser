@@ -189,12 +189,15 @@ interface PptxParserOptions {
 
 ## Supported Elements
 
-- **Text** — Rich text, hyperlinks, bullet lists, numbered lists
-- **Images** — PNG, JPEG, SVG, and more
-- **Shapes** — Rectangles, circles, triangles, custom shapes
-- **Tables** — Full table support with custom styling
-- **Charts** — Bar, line, pie, and other chart types
-- **Media** — Video and audio (planned)
+- **Text** — Multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks (external URL or `#N` to jump to slide N), bullet & numbered lists, line spacing, indentation, text box inset, vertical text direction
+- **Shapes** — All preset geometries (`rect`, `roundRect`, `ellipse`, `triangle`, `arrow`, `star5`, `foldedCorner`, …); gradient / solid / picture / pattern fills; picture fill with tiling (`tile`) and source-rectangle cropping (`srcRect`); line style, shadow & glow effects; geometric adjustment (`avLst`); horizontal/vertical flip
+- **Images** — PNG, JPEG, GIF, BMP, WEBP, SVG; base64/dataURL or remote `src`; cropping, brightness/contrast/transparency
+- **Tables** — Full styling: per-cell borders, diagonal borders (`tlBr` / `blTr` / `both`), cell inset, span (`colSpan`/`rowSpan`), fill, alignment, and table styles (`tableStyleId`)
+- **Charts** — Bar/column, line, area, pie/doughnut, ofPie, scatter, bubble, radar, stock, surface (2D & 3D); multi-series, series colors, legend, data labels, grouping, `barDir`, `holeSize`, `ofPieType`, `bubble3D`, `wireframe`
+- **Group** — `group` elements with `childrenCoordinates: 'local' | 'page'`
+- **Diagram** — SmartArt (list / hierarchy / process / cycle / pyramid) with connectors rendered
+- **Media** — Video (`mp4`/`m4v`) and audio (`m4a`/`mp3`) with optional poster
+- **Slide-level** — Background (solid/gradient/image), transition, auto-advance timing, animations, hidden slides, notes, comments, custom document properties
 
 ## Platform Usage
 
@@ -270,6 +273,28 @@ This package includes built-in TypeScript definitions. All interfaces and types 
 - Firefox >= 75
 - Edge >= 80
 - Safari >= 14
+
+## AI Skills
+
+This repository ships a ready-to-use skill for AI coding assistants under [`skills/pptx-parser/`](skills/pptx-parser). It is also published inside the npm tarball (the `skills` entry in `package.json` `files`), so any project depending on `@fefeding/ppt-parser` gets it.
+
+The skill documents the exact contract for **parsing PPTX to HTML / JSON / standard JSON, generating or editing PPTX from JSON, and fixing OOXML compliance issues** — with copy-paste element recipes, a full field reference, and a list of real pitfalls (e.g. `tableCellInsets` is not valid OOXML, `a:lnTlToBr` is itself a line, `tableStyleId` must have a matching definition in `tableStyles.xml`).
+
+```
+skills/pptx-parser/
+├── SKILL.md                 # entry point: capability matrix, quick start, verification workflow, known limits
+├── references/
+│   ├── api.md               # every exported API: signatures, options, return shapes
+│   ├── json-schema.md       # PptxDocument field contract + unit conversions
+│   ├── cookbook.md          # element recipes (text/shape/image/table/chart/group/diagram/media/...)
+│   └── ooxml-pitfalls.md    # real "silently ignored by PowerPoint/WPS" cases + self-check checklist
+└── scripts/
+    ├── pptx-info.mjs        # print file overview (pages, elements, text, metadata, charts)
+    ├── pptx-to-html.mjs     # render a self-contained HTML (needs jsdom in Node)
+    └── json-to-pptx.mjs     # JSON → PPTX, with --check round-trip self-check
+```
+
+Point your AI assistant at `skills/pptx-parser/SKILL.md` (or configure it as a skill) whenever you need to preview, extract, generate, or modify PPTX programmatically.
 
 ## License
 

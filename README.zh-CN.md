@@ -6,7 +6,7 @@
 
 - **简单好用** — 只需几行代码即可解析和转换 PPTX 文件
 - **零依赖** — 不绑定任何框架，适用于任何 JavaScript/TypeScript 项目
-- **双向转换** — 支持 PPTX 到 HTML 或 JSON 的解析
+- **双向转换** — 支持 PPTX 到 HTML 或 JSON 的解析，也能把 JSON（或链式 `PPTXComposer`）序列化回合法的 PPTX 文件
 - **元素丰富** — 文本、形状、表格、图片、图表等全面支持
 - **智能单位转换** — 自动处理 EMU 到 PX 的单位转换
 - **通用模块** — 同时支持 ESM 和 CommonJS
@@ -114,14 +114,86 @@ interface PptxParserOptions {
 }
 ```
 
+## 序列化回 PPTX
+
+### 链式构建（Composer）
+
+```javascript
+import { PPTXComposer } from '@fefeding/ppt-parser';
+
+const composer = new PPTXComposer();
+composer
+  .title('My Deck')
+  .author('me')
+  .addSlide(slide => {
+    slide.background('#ffffff');
+    slide.addText(t => t.value('Hello World').x(100).y(80).fontSize(28).bold());
+    slide.addShape({ shapeType: 'roundRect', x: 100, y: 400, width: 200, height: 80, fill: { color: '#4f46e5' } });
+    slide.addImage({ data: dataUrl, x: 500, y: 400, width: 100, height: 100 });
+  })
+  .addSlide(slide => {
+    // 超链接：外部 URL，或 '#N' 跳转到第 N 页
+    slide.addText(t => t.runs([
+      { text: 'External link', options: { href: 'https://example.com' } },
+      { text: ' / ', options: {} },
+      { text: 'Jump to slide 1', options: { href: '#1' } }
+    ]).x(100).y(100));
+  });
+
+const data = await composer.save(); // Uint8Array
+```
+
+也支持对象式配置：`slide.addText({ text: 'Hi', x: 0, y: 0 })`。
+
+### JSON 转 PPTX
+
+```javascript
+import { jsonToPptx } from '@fefeding/ppt-parser';
+
+const data = await jsonToPptx({
+  metadata: { title: 'My Deck', author: 'me' },
+  slideSize: { width: 1280, height: 720 },  // px，默认 16:9
+  slides: [
+    {
+      background: '#ffffff',
+      elements: [
+        { type: 'text', x: 100, y: 80, width: 600, height: 60, text: 'Title\nSubtitle', fontSize: 24, color: '#1e293b' },
+        { type: 'shape', shapeType: 'ellipse', x: 600, y: 300, width: 150, height: 150, fill: { color: '#ed7d31' }, line: { color: '#000', width: 1 } },
+        { type: 'image', data: dataUrl, x: 100, y: 300, width: 200, height: 150 }
+      ]
+    }
+  ]
+});
+```
+
+支持的元素类型：`text`（多段落、run 内字号/颜色/粗体/斜体/下划线/字体、超链接、项目符号、编号列表、对齐）、预设形状、图片（dataURL / base64 / 远程 `src`）、表格、图表、组合、图示、视频/音频、批注、自定义文档属性。
+
+### 编辑已有 PPTX
+
+```javascript
+import { editPptx } from '@fefeding/ppt-parser';
+
+const editor = await editPptx(fileData);
+await editor.deleteSlide(2);                       // 删除第 2 页
+await editor.moveSlide(1, 3);                      // 调整顺序
+await editor.addSlide({ elements: [/* 同上的元素格式 */] });
+await editor.setMetadata({ title: 'Updated', author: 'me' });
+const updated = await editor.save();
+```
+
+生成的文件可经 `pptxToJson` / `pptxToHtml` 往返解析。
+
 ## 支持的元素
 
-- **文本** — 富文本、超链接、项目符号、编号列表
-- **图片** — PNG、JPEG、SVG 等格式
-- **形状** — 矩形、圆形、三角形、自定义形状
-- **表格** — 完整表格支持，包含自定义样式
-- **图表** — 柱状图、折线图、饼图等
-- **媒体** — 视频和音频（计划中）
+- **文本** — 多段落、run 内字号/颜色/粗体/斜体/下划线/字体、超链接（外部 URL 或 `#N` 跳转到第 N 页）、项目符号与编号列表、行距、缩进、文本框内边距、竖排文字方向
+- **形状** — 全部预设几何（`rect`、`roundRect`、`ellipse`、`triangle`、`arrow`、`star5`、`foldedCorner` 等）；渐变 / 纯色 / 图片 / 图案填充；图片填充支持平铺（`tile`）与源矩形裁剪（`srcRect`）；线型、阴影与发光效果；几何调整（`avLst`）；水平/垂直翻转
+- **图片** — PNG、JPEG、GIF、BMP、WEBP、SVG；base64/dataURL 或远程 `src`；裁剪、亮度/对比度/透明度
+- **表格** — 完整样式：单元格边框、对角线边框（`tlBr` / `blTr` / `both`）、单元格内边距、跨行跨列（`colSpan`/`rowSpan`）、填充、对齐、表格样式（`tableStyleId`）
+- **图表** — 柱状/条形、折线、面积、饼/环、子母饼、散点、气泡、雷达、股票、曲面（2D 与 3D）；多系列、系列颜色、图例、数据标签、分组、`barDir`、`holeSize`、`ofPieType`、`bubble3D`、`wireframe`
+- **组合** — `group` 元素，支持 `childrenCoordinates: 'local' | 'page'`
+- **图示** — SmartArt（list / hierarchy / process / cycle / pyramid），连接线已渲染
+- **媒体** — 视频（`mp4`/`m4v`）与音频（`m4a`/`mp3`），可选封面图
+- **幻灯片级** — 背景（纯色/渐变/图片）、切换、自动播放停留、动画、隐藏页、备注、批注、自定义文档属性
 
 ## 平台使用方式
 
@@ -201,6 +273,28 @@ npm test
 ## 许可证
 
 [MIT](LICENSE)
+
+## AI 技能
+
+本仓库在 [`skills/pptx-parser/`](skills/pptx-parser) 下提供了一份开箱即用的 AI 编程助手技能，同时也随 npm 包一起发布（`package.json` 的 `files` 中已包含 `skills`），因此任何依赖 `@fefeding/ppt-parser` 的项目都能直接获得它。
+
+该技能完整描述了**把 PPTX 解析为 HTML / JSON / 标准 JSON、由 JSON 生成或编辑 PPTX、以及修复 OOXML 合规问题**的精确契约——包含可直接抄的元素配方、完整的字段参考，以及一份真实的「坑位清单」（例如 `tableCellInsets` 不是合法 OOXML、`a:lnTlToBr` 本身就是一条线、`tableStyleId` 必须在 `tableStyles.xml` 中有对应定义等）。
+
+```
+skills/pptx-parser/
+├── SKILL.md                 # 入口：能力矩阵、快速上手、验证工作流、已知限制
+├── references/
+│   ├── api.md               # 全部导出 API 的签名、选项、返回结构
+│   ├── json-schema.md       # PptxDocument 字段契约 + 单位换算
+│   ├── cookbook.md          # 元素配方（文本/形状/图片/表格/图表/组合/图示/媒体/……）
+│   └── ooxml-pitfalls.md    # 真实「被 PowerPoint/WPS 静默忽略」案例 + 自查清单
+└── scripts/
+    ├── pptx-info.mjs        # 打印文件概览（页数、元素、文本、元数据、图表）
+    ├── pptx-to-html.mjs     # 渲染为自包含 HTML（Node 下需 jsdom）
+    └── json-to-pptx.mjs     # JSON → PPTX，并支持 --check 往返自检
+```
+
+当你需要用代码预览、提取、生成或修改 PPTX 时，让 AI 助手读取 `skills/pptx-parser/SKILL.md`（或将其配置为一个技能）即可。
 
 ## 致谢
 

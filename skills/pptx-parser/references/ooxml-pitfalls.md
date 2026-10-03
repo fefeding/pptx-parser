@@ -22,7 +22,7 @@
 | 5 | `vert="wordArtVertical"` | `vert="wordArtVert"`（合法枚举：horz / vert / vert270 / wordArtVert / eaVert / mongolianVert / wordArtVertRtl） | 非法枚举 → 静默回退横排 |
 | 6 | `a:gd name="adj1"` 用在 roundRect | roundRect/snip 用 `adj`；箭头/标注/星形用 `adj1`/`adj2` | 名字不匹配 → 忽略整组 avLst |
 | 7 | `a:buAutoNum type="…"` 用非 `ST_TextAutonumberScheme` 值 | 如 `ea1ChsPeriod` / `arabicPeriod` / `alphaLcPeriod` / `romanUcPeriod` | WPS 回退成默认中文编号 |
-| 8 | 图案填充写进 `styleTable`（以图案文本为 key） | 每个形状生成独立 SVG `<pattern>`，`fill="url(#pattPtrn_<shpId>)"` | key 相同导致多个形状互相覆盖；且 CSS background 不会按路径裁剪 |
+| 8 | 解析端 HTML 渲染：把图案/图片填充塞进同一个 `styleTable`（以图案文本为 key），CSS 用固定 `fill="url(#pattPtrn)"` 这类 id | 每个形状生成独立 SVG `<pattern>`，id 形如 `pattPtrn_<shpId>` / `imgPtrn_<shpId>`，形状用 `fill="url(#…)"` 引用 | 固定 id 时多个形状互相覆盖（后者覆盖前者）；且 CSS background 不会按路径裁剪。**注意：生成端**形状图案填充是标准 `a:pattFill`（prst/fgClr/bgClr），与解析端的 SVG 方案无关 |
 | 9 | 多个 duotone 图片共用固定 `filter id="svg_image_duotone"` | id 按形状加后缀 | 后者覆盖前者，所有形状都用最后一组的双色调 |
 | 10 | 用同步 `new Image()` 探测图片尺寸 | 直接解析图片二进制头（PNG/JPEG/GIF/BMP/WEBP） | 图片未加载时 `image.width` 恒为 0 → `a:tile` 平铺尺寸算成 0 → 静默退回铺满 |
 

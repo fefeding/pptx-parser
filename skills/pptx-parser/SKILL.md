@@ -114,7 +114,7 @@ const data = await jsonToPptx({
 
 | 路径 | 用途 |
 |---|---|
-| `examples/generate-test-pptx.mjs` | 生成能力全覆盖样例（T1–T19，21 页）+ 58 项自检断言，是最好的「能力清单 + 参数写法」参考 |
+| `examples/generate-test-pptx.mjs` | 生成能力全覆盖样例（T1–T19，21 页）+ 93 项自检断言，是最好的「能力清单 + 参数写法」参考 |
 | `examples/round-trip-pptx.mjs` | PPTX → JSON → PPTX 往返，输出页数/元素/文本保真对比 |
 | `examples/parse-pptx.mjs` | 最小解析脚本，打印页数、尺寸、每页文本 |
 | `examples/index.html` | 浏览器预览页（含 echarts 图表渲染接入示例） |
@@ -136,7 +136,7 @@ const data = await jsonToPptx({
 生成或修改 PPTX 后不要凭感觉判断，按下面顺序验证：
 
 1. **构建**（示例脚本从 `dist` 导入）：`npm run build`
-2. **重新解析自检**：`node examples/generate-test-pptx.mjs`（默认会跑 58 项断言）
+2. **重新解析自检**：`node examples/generate-test-pptx.mjs`（默认会跑 93 项断言）
 3. **往返保真**：`node examples/round-trip-pptx.mjs <file>` → 对比页数/元素类型/文本缺失
 4. **单元测试**：`npx vitest run`；**类型**：`npm run type-check`
 5. **肉眼核对**：渲染出 HTML 后用无头浏览器截图
@@ -158,7 +158,7 @@ node skills/pptx-parser/scripts/pptx-to-html.mjs <file.pptx> --page 10 --out /tm
 |---|---|
 | 组合 `group` | 语义提取**丢失组合内的子元素**（T4 页只剩标题）。需要保留组合请改用 `editPptx` 直接操作 XML |
 | 视频 / 音频 | 回读降级为 `image` 元素（媒体数据保留，类型信息丢失） |
-| SmartArt `diagram` | 可回读为 `diagram`（保留 `texts`），还原依赖 `__raw` |
+| SmartArt `diagram` | 可回读为 `diagram`（保留 `texts`，连接线 `cxnSp` 现已渲染为 `straightConnector1`）；还原依赖 `__raw` |
 | 形状 `blipFill` / `pattFill` | 生成端支持（含 tile/srcRect），但 `readSpPr` 未映射回 `PptxFill`，往返会丢失 |
 | 图表 | 解析端只给数据（`result.charts`），HTML 预览需自行用 echarts 渲染 |
 
