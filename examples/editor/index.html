@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Slides 在线编辑器 · pptx-parser 示例</title>
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+
+<!-- ======================= 顶部标题栏 ======================= -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="logo" title="Slides 在线编辑器">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="13" rx="2" fill="#f9ab00" />
+        <rect x="3" y="3" width="18" height="13" rx="2" fill="none" stroke="#e37400" stroke-width="1" />
+        <path d="M12 16v4" stroke="#4285f4" stroke-width="2" stroke-linecap="round" />
+        <path d="M8.5 20h7" stroke="#4285f4" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </span>
+    <div class="title-block">
+      <input id="docTitle" class="doc-title" type="text" value="未命名演示文稿" spellcheck="false" />
+      <div class="title-meta"><span id="saveState">已就绪</span></div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost" id="notesToggle" title="显示 / 隐藏演讲者备注">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M5 4h14v16H8l-3-3z"/><path d="M8 9h8M8 13h6"/></svg>
+      <span>备注</span>
+    </button>
+    <button class="btn btn-ghost" id="gridToggle" title="网格线">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M3 3h18v18H3z"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+      <span>网格</span>
+    </button>
+    <button class="btn btn-primary" id="btnPresentTop" title="从头播放 (F5)">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M5 3l14 9-14 9z" fill="currentColor"/></svg>
+      <span>演示</span>
+    </button>
+    <button class="btn btn-green" id="btnExportTop" title="导出 .pptx">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      <span>导出 PPTX</span>
+    </button>
+  </div>
+</header>
+
+<!-- ======================= 菜单栏 ======================= -->
+<nav class="menubar" id="menubar"></nav>
+
+<!-- ======================= 快捷工具栏 ======================= -->
+<div class="toolbar" id="quickbar"></div>
+
+<!-- ======================= 主工作区 ======================= -->
+<main class="workspace">
+  <!-- 左侧幻灯片导航 -->
+  <aside class="slides-panel" id="slidesPanel">
+    <div class="sp-head">
+      <span>幻灯片</span>
+      <button class="icon-btn" id="addSlideBtn" title="新建幻灯片">＋</button>
+    </div>
+    <div class="sp-list" id="slideList"></div>
+  </aside>
+
+  <!-- 中间画布 -->
+  <section class="canvas-area">
+    <div class="canvas-scroll" id="canvasScroll">
+      <div class="stage" id="stage">
+        <div class="slide-frame" id="frame"></div>
+        <div class="overlay" id="overlay"></div>
+      </div>
+    </div>
+    <div class="notes-bar" id="notesPanel">
+      <div class="nb-head">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M5 4h14v16H8l-3-3z"/></svg>
+        <span>演讲者备注</span>
+        <button class="icon-btn" id="notesClose" title="收起">✕</button>
+      </div>
+      <textarea id="notesInput" placeholder="在此输入本页演讲者备注…"></textarea>
+    </div>
+  </section>
+
+  <!-- 右侧属性面板 -->
+  <aside class="inspector" id="inspector"></aside>
+</main>
+
+<!-- ======================= 状态栏 ======================= -->
+<footer class="statusbar">
+  <span id="statusInfo">就绪</span>
+  <span class="sb-spacer"></span>
+  <span class="sb-chip" id="sbSlideCount">1 页</span>
+  <button class="sb-chip" id="zoomOut" title="缩小">−</button>
+  <button class="sb-chip" id="zoomFit" title="适应窗口">适应</button>
+  <button class="sb-chip" id="zoomVal" title="点击恢复 100%">100%</button>
+  <button class="sb-chip" id="zoomIn" title="放大">＋</button>
+</footer>
+
+<div id="popRoot"></div>
+<div id="modalRoot"></div>
+<div id="presentRoot"></div>
+<div id="toastRoot"></div>
+<input type="file" id="hiddenFile" hidden />
+
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>

@@ -13898,6 +13898,9 @@ function findAllNodes(obj, type) {
     return results;
 }
 
+function rawXml(xml) {
+    return { tagName: '#raw', raw: xml };
+}
 const PX_TO_EMU = 914400 / 96;
 const PT_TO_EMU = 12700;
 const NS = {
@@ -13912,6 +13915,9 @@ const NS = {
     dcterms: 'http://purl.org/dc/terms/',
     dcmitype: 'http://purl.org/dc/dcmitype/',
     xsi: 'http://www.w3.org/2001/XMLSchema-instance',
+    mc: 'http://schemas.openxmlformats.org/markup-compatibility/2006',
+    a14: 'http://schemas.microsoft.com/office/drawing/2010/main',
+    m: 'http://schemas.openxmlformats.org/officeDocument/2006/math',
     ext: 'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties'
 };
 function escapeXml(str) {
@@ -13971,6 +13977,8 @@ function nodeToString(node, indent = '') {
     if (typeof node === 'string') {
         return escapeXml(node);
     }
+    if (node.raw !== undefined)
+        return node.raw;
     const attrs = node.attrs ?? {};
     const attrStr = Object.keys(attrs)
         .map(key => ` ${key}="${escapeXml(attrs[key])}"`)
@@ -13991,14 +13999,136 @@ function toXmlDocument(rootNode) {
 }
 
 const DRAWING_NS = `xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}"`;
-function buildThemeXml() {
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<a:theme xmlns:a="${NS.a}" name="Office Theme"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2><a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2><a:accent3><a:srgbClr val="A5A5A5"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4><a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="Office"><a:majorFont><a:latin typeface="Calibri Light"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="94000"/><a:satMod val="110000"/></a:schemeClr></a:gs><a:gs pos="1000"><a:schemeClr val="phClr"><a:tint val="94000"/><a:satMod val="120000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="94000"/><a:satMod val="120000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="4553000" scaled="0"/></a:gradFill><a:solidFill><a:schemeClr val="phClr"><a:tint val="60000"/><a:satMod val="170000"/></a:schemeClr></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="19050" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst><a:outerShdw blurRad="57150" dist="19050" dir="5400000" algn="ctr" rotWithShape="0"><a:srgbClr val="000000"><a:alpha val="63000"/></a:srgbClr></a:outerShdw></a:effectLst></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"><a:tint val="95000"/><a:satMod val="170000"/></a:schemeClr></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="93000"/><a:satMod val="150000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="97000"/><a:satMod val="130000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+const DEFAULT_THEME_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<a:theme xmlns:a="${NS.a}" name="Office Theme"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2><a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2><a:accent3><a:srgbClr val="A5A5A5"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4><a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="Office"><a:majorFont><a:latin typeface="Calibri Light"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="94000"/><a:satMod val="110000"/></a:schemeClr></a:gs><a:gs pos="1000"><a:schemeClr val="phClr"><a:tint val="94000"/><a:satMod val="120000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="94000"/><a:satMod val="120000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="4553000" scaled="0"/></a:gradFill><a:solidFill><a:schemeClr val="phClr"><a:tint val="60000"/><a:satMod val="170000"/></a:schemeClr></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="19050" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst><a:outerShdw blurRad="57150" dist="19050" dir="5400000" algn="ctr" rotWithShape="0"><a:srgbClr val="000000"><a:alpha val="63000"/></a:srgbClr></a:outerShdw></a:effectLst></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"><a:tint val="95000"/><a:satMod val="170000"/></a:schemeClr></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="93000"/><a:satMod val="150000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="97000"/><a:satMod val="130000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+const THEME_COLOR_DEFAULTS = {
+    dk1: '000000', lt1: 'FFFFFF', dk2: '44546A', lt2: 'E7E6E6',
+    accent1: '4472C4', accent2: 'ED7D31', accent3: 'A5A5A5',
+    accent4: 'FFC000', accent5: '5B9BD5', accent6: '70AD47',
+    hlink: '0563C1', folHlink: '954F72'
+};
+function buildClrScheme(c) {
+    const inner = Object.keys(THEME_COLOR_DEFAULTS)
+        .map(k => {
+        const val = c[k] || THEME_COLOR_DEFAULTS[k];
+        return `<a:${k}><a:srgbClr val="${colorToHex(val)}"/></a:${k}>`;
+    })
+        .join('');
+    return `<a:clrScheme name="${escapeXml(c.name || 'Custom')}">${inner}</a:clrScheme>`;
 }
-function buildSlideMasterXml() {
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:sldMaster ${DRAWING_NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="4400"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="3200"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:otherStyle></p:txStyles></p:sldMaster>`;
+function buildFontScheme(f) {
+    const grp = (tag, g, defLatin) => `<a:${tag}><a:latin typeface="${escapeXml(g?.latin || defLatin)}"/>` +
+        `<a:ea typeface="${escapeXml(g?.ea || '')}"/><a:cs typeface="${escapeXml(g?.cs || '')}"/></a:${tag}>`;
+    return `<a:fontScheme name="${escapeXml(f.name || 'Custom')}">` +
+        grp('majorFont', f.major, 'Calibri Light') + grp('minorFont', f.minor, 'Calibri') +
+        `</a:fontScheme>`;
 }
-function buildSlideLayoutXml() {
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:sldLayout ${DRAWING_NS} type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`;
+function buildThemeXml(theme) {
+    if (typeof theme === 'string')
+        return theme;
+    let xml = DEFAULT_THEME_XML;
+    if (theme?.colors) {
+        xml = xml.replace(/<a:clrScheme[^>]*>[\s\S]*?<\/a:clrScheme>/, buildClrScheme(theme.colors));
+    }
+    if (theme?.fonts) {
+        xml = xml.replace(/<a:fontScheme[^>]*>[\s\S]*?<\/a:fontScheme>/, buildFontScheme(theme.fonts));
+    }
+    if (theme?.name) {
+        xml = xml.replace(/<a:theme([^>]*)name="[^"]*"/, `<a:theme$1name="${escapeXml(theme.name)}"`);
+    }
+    return xml;
+}
+const DEFAULT_MASTER_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:sldMaster ${DRAWING_NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="4400"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="3200"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:otherStyle></p:txStyles></p:sldMaster>`;
+const DEFAULT_LAYOUT_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:sldLayout ${DRAWING_NS} type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`;
+function buildPlaceholderSpXml(ph, id) {
+    const anchorMap = { top: 't', middle: 'ctr', bottom: 'b' };
+    const anchor = ph.valign ? anchorMap[ph.valign] : undefined;
+    const bodyPr = `<a:bodyPr${anchor ? ` anchor="${anchor}"` : ''} rtlCol="0"/>`;
+    const rPrAttrs = ['lang="zh-CN"', 'dirty="0"'];
+    if (ph.fontSize)
+        rPrAttrs.push(`sz="${ptToSz(ph.fontSize)}"`);
+    if (ph.bold)
+        rPrAttrs.push('b="1"');
+    if (ph.fontFace)
+        rPrAttrs.push('');
+    const rPrChildren = ph.fontFace ? `<a:latin typeface="${escapeXml(ph.fontFace)}"/>` : '';
+    const rPr = `<a:rPr ${rPrAttrs.join(' ')}>${rPrChildren}</a:rPr>`;
+    const para = ph.prompt
+        ? `<a:p><a:r>${rPr}<a:t>${escapeXml(ph.prompt)}</a:t></a:r></a:p>`
+        : '<a:p><a:endParaRPr lang="zh-CN" dirty="0"/></a:p>';
+    const idxAttr = ph.idx != null ? ` idx="${ph.idx}"` : '';
+    return `<p:sp>` +
+        `<p:nvSpPr>` +
+        `<p:cNvPr id="${id}" name="${escapeXml(ph.name || `${ph.type} Placeholder ${id - 1}`)}"/>` +
+        `<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+        `<p:nvPr><p:ph type="${escapeXml(ph.type)}"${idxAttr}/></p:nvPr>` +
+        `</p:nvSpPr>` +
+        `<p:spPr>` +
+        `<a:xfrm><a:off x="${pxToEmu(ph.x || 0)}" y="${pxToEmu(ph.y || 0)}"/>` +
+        `<a:ext cx="${pxToEmu(ph.width || 0)}" cy="${pxToEmu(ph.height || 0)}"/></a:xfrm>` +
+        `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+        `</p:spPr>` +
+        `<p:txBody>${bodyPr}<a:lstStyle/>${para}</p:txBody>` +
+        `</p:sp>`;
+}
+function buildBackgroundXml(bg) {
+    if (!bg)
+        return '';
+    if (typeof bg === 'string') {
+        return `<p:bg><p:bgPr><a:solidFill><a:srgbClr val="${colorToHex(bg)}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>`;
+    }
+    if (bg.type === 'solid') {
+        return `<p:bg><p:bgPr><a:solidFill><a:srgbClr val="${colorToHex(bg.color)}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>`;
+    }
+    if (bg.type === 'gradient') {
+        const angMap = { horizontal: 0, vertical: 5400000, diagonal: 4500000 };
+        const ang = angMap[bg.direction || 'horizontal'] ?? 0;
+        const stops = bg.stops
+            .map(s => `<a:gs pos="${Math.round(s.position * 100000)}"><a:srgbClr val="${colorToHex(s.color)}"/></a:gs>`)
+            .join('');
+        return `<p:bg><p:bgPr><a:gradFill rotWithShape="1"><a:gsLst>${stops}</a:gsLst><a:lin ang="${ang}" scaled="0"/></a:gradFill><a:effectLst/></p:bgPr></p:bg>`;
+    }
+    return '';
+}
+function buildSlideMasterXml(master, layoutRelIds, elementXml = '') {
+    if (typeof master === 'string')
+        return master;
+    let xml = DEFAULT_MASTER_XML;
+    const relIds = layoutRelIds && layoutRelIds.length ? layoutRelIds : ['rId1'];
+    const layoutIds = relIds
+        .map((rid, i) => `<p:sldLayoutId id="${2147483649 + i}" r:id="${escapeXml(rid)}"/>`)
+        .join('');
+    xml = xml.replace(/<p:sldLayoutIdLst>[\s\S]*?<\/p:sldLayoutIdLst>/, `<p:sldLayoutIdLst>${layoutIds}</p:sldLayoutIdLst>`);
+    const placeholders = (master?.placeholders || []);
+    const inner = placeholders.map((ph, i) => buildPlaceholderSpXml(ph, 2 + i)).join('') + elementXml;
+    if (inner)
+        xml = xml.replace('</p:spTree>', `${inner}</p:spTree>`);
+    if (master?.background) {
+        const bgXml = buildBackgroundXml(master.background);
+        if (bgXml)
+            xml = xml.replace(/<p:bg>[\s\S]*?<\/p:bg>/, bgXml);
+    }
+    return xml;
+}
+function buildSlideLayoutXml(layout, elementXml = '') {
+    if (typeof layout === 'string')
+        return layout;
+    let xml = DEFAULT_LAYOUT_XML;
+    const placeholders = (layout?.placeholders || []);
+    const inner = placeholders.map((ph, i) => buildPlaceholderSpXml(ph, 2 + i)).join('') + elementXml;
+    if (inner)
+        xml = xml.replace('</p:spTree>', `${inner}</p:spTree>`);
+    if (layout?.name) {
+        xml = xml.replace(/<p:cSld([^>]*)name="[^"]*"/, `<p:cSld$1name="${escapeXml(layout.name)}"`);
+    }
+    if (layout?.showMasterSp === false) {
+        xml = xml.replace('<p:sldLayout ', '<p:sldLayout showMasterSp="0" ');
+    }
+    if (layout?.background) {
+        const bgXml = buildBackgroundXml(layout.background);
+        if (bgXml)
+            xml = xml.replace('<p:spTree>', `${bgXml}<p:spTree>`);
+    }
+    return xml;
 }
 function buildPresPropsXml() {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentationPr xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}"/>`;
@@ -14075,11 +14205,64 @@ function buildCommentAuthorsXml(authors) {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<p:commentAuthors xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}">${items}</p:commentAuthors>`;
 }
-function buildPresentationXml(slideSize, slides) {
+function buildPresentationXml(slideSize, slides, opts = {}) {
     const slideEntries = slides
         .map((s, i) => `<p:sldId id="${256 + i}" r:id="${escapeXml(s.relId)}"/>`)
         .join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slideEntries}</p:sldIdLst><p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="914400"/><p:defaultTextStyle/></p:presentation>`;
+    const masterRelIds = opts.masterRelIds?.length ? opts.masterRelIds : ['rId1'];
+    const masterEntries = masterRelIds
+        .map((rid, i) => `<p:sldMasterId id="${2147483648 + i}" r:id="${escapeXml(rid)}"/>`)
+        .join('');
+    let sectionXml = '';
+    if (opts.sections && opts.sections.length) {
+        const items = opts.sections.map((sec, i) => {
+            const ids = (sec.slides || [])
+                .map(idx => `<p:sldId id="${256 + idx}"/>`)
+                .join('');
+            return `<p:section name="${escapeXml(sec.name || `Section ${i + 1}`)}" id="{${sectionGuid(i)}}"><p:sldIdLst>${ids}</p:sldIdLst></p:section>`;
+        }).join('');
+        sectionXml = `<p:sectionLst>${items}</p:sectionLst>`;
+    }
+    const notesMasterXml = opts.notesMasterRelId
+        ? `<p:notesMasterIdLst><p:notesMasterId r:id="${escapeXml(opts.notesMasterRelId)}"/></p:notesMasterIdLst>`
+        : '';
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst>${masterEntries}</p:sldMasterIdLst>${notesMasterXml}<p:sldIdLst>${slideEntries}</p:sldIdLst>${sectionXml}<p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="914400"/><p:defaultTextStyle/></p:presentation>`;
+}
+const FONT_OBFUSCATION_KEY = [
+    0x05, 0x00, 0xEC, 0x03, 0x4B, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+];
+function obfuscateFontData(bytes) {
+    const out = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) {
+        out[i] = bytes[i] ^ FONT_OBFUSCATION_KEY[i % 16];
+    }
+    return out;
+}
+function buildFontTableXml(fonts, relIds) {
+    const entries = fonts.map((f, i) => {
+        const panose = f.panose ? `<a:panose val="${escapeXml(f.panose)}"/>` : '';
+        const styleAttrs = `${f.bold ? ' b="1"' : ''}${f.italic ? ' i="1"' : ''}`;
+        const subsetted = f.embedType === 'subset' ? '1' : '0';
+        const embedded = relIds[i]
+            ? `<a:embeddedFont embed="embed" subsetted="${subsetted}"><a:fontData r:id="${escapeXml(relIds[i])}"/></a:embeddedFont>`
+            : '';
+        return `<a:font script="Latn" typeface="${escapeXml(f.name)}"${styleAttrs}>${panose}` +
+            `<a:charset val="0"/><a:family val="roman"/><a:pitch val="variable"/>${embedded}</a:font>`;
+    }).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:fontTable ${DRAWING_NS}>${entries}</p:fontTable>`;
+}
+function buildNotesMasterXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:notesMaster ${DRAWING_NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>` +
+        `<p:sp><p:nvSpPr><p:cNvPr id="2" name="Notes Placeholder 1"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr>` +
+        `<p:spPr><a:xfrm><a:off x="685800" y="4400550"/><a:ext cx="5486400" cy="3600450"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>` +
+        `<p:txBody><a:bodyPr rtlCol="0"/><a:lstStyle/><a:p><a:endParaRPr lang="zh-CN" dirty="0"/></a:p></p:txBody></p:sp>` +
+        `</p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:notesStyle><a:lvl1pPr><a:defRPr sz="1200"/></a:lvl1pPr></p:notesStyle></p:notesMaster>`;
+}
+function sectionGuid(seed) {
+    const base = '00000000-0000-4000-8000-000000000000';
+    const suffix = String(seed).padStart(12, '0');
+    return `${base.slice(0, -suffix.length)}${suffix}`;
 }
 function buildRelationshipsXml(rels) {
     const entries = rels
@@ -14087,7 +14270,7 @@ function buildRelationshipsXml(rels) {
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="${NS.rel}">${entries}</Relationships>`;
 }
-function buildContentTypesXml(mediaExts, slideCount) {
+function buildContentTypesXml(mediaExts, slideCount, opts = {}) {
     const MIME_MAP = {
         png: 'image/png',
         jpeg: 'image/jpeg',
@@ -14107,7 +14290,7 @@ function buildContentTypesXml(mediaExts, slideCount) {
         .map(ext => `<Default Extension="${escapeXml(ext)}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/>`)
         .join('');
     const slideOverrides = Array.from({ length: slideCount }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${Array.from({ length: Math.max(1, opts.masterCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideMasters/slideMaster${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>`).join('')}${Array.from({ length: Math.max(1, opts.layoutCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`).join('')}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
 }
 function buildCorePropsXml(metadata) {
     const md = metadata || {};
@@ -14163,7 +14346,11 @@ const REL_TYPES = {
     diagramColors: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramColors',
     diagramQuickStyle: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramQuickStyle',
     diagramDrawing: 'http://schemas.microsoft.com/office/2007/relationships/diagramDrawing',
-    oleObject: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject'
+    oleObject: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject',
+    font: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/font',
+    fontTable: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable',
+    notesMaster: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster',
+    thumbnail: 'http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail'
 };
 
 const PRESET_GEOMETRIES = new Set([
@@ -14174,7 +14361,7 @@ const PRESET_GEOMETRIES = new Set([
     'bracketPair', 'callout1', 'callout2', 'callout3', 'can', 'chartPlus', 'chartStar', 'chartX', 'chevron', 'chord',
     'circularArrow', 'cloud', 'cloudCallout', 'corner', 'cube', 'curvedDownArrow', 'curvedLeftArrow', 'curvedRightArrow',
     'curvedUpArrow', 'decagon', 'diagonalStripe', 'diamond', 'dodecagon', 'donut', 'doubleWave', 'downArrow',
-    'downArrowCallout', 'ellipse', 'ellipseRibbon', 'ellipseRibbon2', 'flowChartAlternateProcess', 'flowChartCollate',
+    'downArrowCallout', 'ellipse', 'ellipseRibbon', 'ellipseRibbon2', 'flowChartAlternateProcess', 'flowChartCollate', 'rect',
     'flowChartConnector', 'flowChartDecision', 'flowChartDelay', 'flowChartDisplay', 'flowChartDocument', 'flowChartExtract',
     'flowChartInputOutput', 'flowChartInternalStorage', 'flowChartMagneticDrum', 'flowChartMagneticTape', 'flowChartManualInput',
     'flowChartManualOperation', 'flowChartMerge', 'flowChartMultidocument', 'flowChartOfflineStorage', 'flowChartOnlineStorage',
@@ -14188,7 +14375,10 @@ const PRESET_GEOMETRIES = new Set([
     'rightArrowCallout', 'rightBrace', 'rightBracket', 'round1Rect', 'round2DiagRect', 'round2SameRect', 'roundRect',
     'rtTriangle', 'snip1Rect', 'snip2DiagRect', 'snip2SameRect', 'snipRoundRect', 'sun', 'swooshArrow', 'teardrop', 'trapezoid',
     'triangle', 'upArrow', 'upArrowCallout', 'upDownArrow', 'upDownArrowCallout', 'uturnArrow', 'verticalScroll', 'wave',
-    'wedgeEllipseCallout', 'wedgeRectCallout', 'wedgeRoundRectCallout', 'x', 'foldedCorner', 'smileyFace'
+    'wedgeEllipseCallout', 'wedgeRectCallout', 'wedgeRoundRectCallout', 'x', 'foldedCorner', 'smileyFace',
+    'straightConnector1',
+    'bentConnector2', 'bentConnector3', 'bentConnector4', 'bentConnector5',
+    'curvedConnector2', 'curvedConnector3', 'curvedConnector4', 'curvedConnector5'
 ]);
 function normalizeShapeType(t) {
     if (!t)
@@ -14280,6 +14470,19 @@ function arrayBufferToBase64(buffer) {
 }
 function buildXfrm(el) {
     const xfrmAttrs = { rot: el.rotation ? degToRot(el.rotation) : null };
+    if (el.start && el.end) {
+        const sx = el.start.x ?? 0;
+        const sy = el.start.y ?? 0;
+        const ex = el.end.x ?? 0;
+        const ey = el.end.y ?? 0;
+        const flipH = ex < sx;
+        const flipV = ey < sy;
+        if (flipH || el.flipH)
+            xfrmAttrs.flipH = 1;
+        if (flipV || el.flipV)
+            xfrmAttrs.flipV = 1;
+        return xmlNode('a:xfrm', xfrmAttrs, xmlNode('a:off', { x: pxToEmu(Math.min(sx, ex)), y: pxToEmu(Math.min(sy, ey)) }), xmlNode('a:ext', { cx: pxToEmu(Math.abs(ex - sx)), cy: pxToEmu(Math.abs(ey - sy)) }));
+    }
     if (el.flipH)
         xfrmAttrs.flipH = 1;
     if (el.flipV)
@@ -14308,14 +14511,37 @@ function buildTextRun(ctx, text, opts = {}) {
     const hlink = buildHyperlink(ctx, opts.href);
     if (hlink)
         rPrChildren.push(hlink);
-    return xmlNode('a:r', null, xmlNode('a:rPr', {
+    const rPr = xmlNode('a:rPr', {
         lang: opts.lang || 'zh-CN',
         sz: opts.fontSize !== undefined ? ptToSz(opts.fontSize) : null,
         b: opts.bold ? 1 : null,
         i: opts.italic ? 1 : null,
         u: opts.underline ? 'sng' : null,
         dirty: 0
-    }, ...rPrChildren), xmlNode('a:t', null, String(text)));
+    }, ...rPrChildren);
+    if (opts.field) {
+        return xmlNode('a:fld', { id: `{${generateGuid()}}`, type: opts.field }, rPr, xmlNode('a:t', null, String(text ?? '')));
+    }
+    return xmlNode('a:r', null, rPr, xmlNode('a:t', null, String(text)));
+}
+function generateGuid() {
+    const hex = '0123456789ABCDEF';
+    let out = '';
+    for (let i = 0; i < 36; i++) {
+        if (i === 8 || i === 13 || i === 18 || i === 23) {
+            out += '-';
+        }
+        else if (i === 14) {
+            out += '4';
+        }
+        else if (i === 19) {
+            out += hex[(Math.random() * 4 | 0) + 8];
+        }
+        else {
+            out += hex[Math.random() * 16 | 0];
+        }
+    }
+    return out;
 }
 const VALID_AUTONUM_TYPES = [
     'alphaLcParenBoth', 'alphaUcParenBoth', 'alphaLcParenR', 'alphaUcParenR', 'alphaLcPeriod', 'alphaUcPeriod',
@@ -14456,6 +14682,28 @@ function buildTextElement(ctx, el) {
         if (el.inset.b != null)
             bodyPrAttrs.bIns = pxToEmu(el.inset.b);
     }
+    if (el.numCol && el.numCol > 1)
+        bodyPrAttrs.numCol = el.numCol;
+    if (el.spcCol != null)
+        bodyPrAttrs.spcCol = ptToEmu(el.spcCol);
+    const bodyPrChildren = [];
+    if (el.prstTxWarp) {
+        bodyPrChildren.push(xmlNode('a:prstTxWarp', { prst: el.prstTxWarp }));
+    }
+    if (el.autofit) {
+        if (el.autofit === 'none') {
+            bodyPrChildren.push(xmlNode('a:noAutofit'));
+        }
+        else if (el.autofit === 'shape') {
+            bodyPrChildren.push(xmlNode('a:spAutoFit'));
+        }
+        else {
+            bodyPrChildren.push(xmlNode('a:normAutofit', {
+                fontScale: el.fontScale != null ? Math.round(el.fontScale * 1000) : null,
+                lnSpcReduction: el.lnSpcReduction != null ? Math.round(el.lnSpcReduction * 1000) : null
+            }));
+        }
+    }
     const defaults = {
         align: el.align,
         fontSize: el.fontSize,
@@ -14467,7 +14715,7 @@ function buildTextElement(ctx, el) {
         href: el.href,
         lang: el.lang
     };
-    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}` }), xmlNode('p:cNvSpPr', { txBox: 1 }), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))), xmlNode('p:txBody', null, xmlNode('a:bodyPr', bodyPrAttrs), xmlNode('a:lstStyle'), ...normalizeParagraphs(el).map((p) => buildParagraph(ctx, p, defaults))));
+    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr', { txBox: 1 }), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))), xmlNode('p:txBody', null, xmlNode('a:bodyPr', bodyPrAttrs, ...bodyPrChildren), xmlNode('a:lstStyle'), ...normalizeParagraphs(el).map((p) => buildParagraph(ctx, p, defaults))));
 }
 function colorNode(color) {
     if (typeof color === 'string' && color.startsWith('scheme:')) {
@@ -14539,6 +14787,109 @@ async function buildFillNode(ctx, fill) {
         srgb.children.push(xmlNode('a:alpha', { val: Math.round((100 - alpha) * 1000) }));
     return xmlNode('a:solidFill', srgb);
 }
+const CUSTOM_GEOM_SPACE = 100000;
+function buildCustomGeometry(geom) {
+    const paths = (geom.paths || []).map((p) => {
+        const w = p.w ?? CUSTOM_GEOM_SPACE;
+        const h = p.h ?? CUSTOM_GEOM_SPACE;
+        const rawCoords = [];
+        for (const c of p.commands) {
+            if ('x' in c)
+                rawCoords.push(c.x);
+            if ('y' in c)
+                rawCoords.push(c.y);
+            if ('x1' in c)
+                rawCoords.push(c.x1);
+            if ('y1' in c)
+                rawCoords.push(c.y1);
+            if ('x2' in c)
+                rawCoords.push(c.x2);
+            if ('y2' in c)
+                rawCoords.push(c.y2);
+        }
+        const isNormalized = rawCoords.length > 0 && rawCoords.every(v => Math.abs(v) <= 1.0001);
+        const conv = (v) => isNormalized ? Math.round(v * CUSTOM_GEOM_SPACE) : Math.round(v);
+        const children = [];
+        for (const c of p.commands) {
+            switch (c.type) {
+                case 'moveTo':
+                    children.push(xmlNode('a:moveTo', null, xmlNode('a:pt', { x: conv(c.x), y: conv(c.y) })));
+                    break;
+                case 'lnTo':
+                    children.push(xmlNode('a:lnTo', null, xmlNode('a:pt', { x: conv(c.x), y: conv(c.y) })));
+                    break;
+                case 'cubicBezTo':
+                    children.push(xmlNode('a:cubicBezTo', null, xmlNode('a:pt', { x: conv(c.x1), y: conv(c.y1) }), xmlNode('a:pt', { x: conv(c.x2), y: conv(c.y2) }), xmlNode('a:pt', { x: conv(c.x), y: conv(c.y) })));
+                    break;
+                case 'quadBezTo':
+                    children.push(xmlNode('a:quadBezTo', null, xmlNode('a:pt', { x: conv(c.x1), y: conv(c.y1) }), xmlNode('a:pt', { x: conv(c.x), y: conv(c.y) })));
+                    break;
+                case 'arcTo':
+                    children.push(xmlNode('a:arcTo', { wR: conv(c.wR), hR: conv(c.hR), stAng: c.stAng, swAng: c.swAng }));
+                    break;
+                case 'close':
+                    children.push(xmlNode('a:close'));
+                    break;
+            }
+        }
+        return xmlNode('a:path', { w, h, fill: p.closed === false ? 'none' : 'norm' }, ...children);
+    });
+    return xmlNode('a:custGeom', null, xmlNode('a:avLst'), xmlNode('a:gdLst'), xmlNode('a:ahLst'), xmlNode('a:cxnLst'), xmlNode('a:rect', { l: 'l', t: 't', r: 'r', b: 'b' }), xmlNode('a:pathLst', null, ...paths));
+}
+function build3DNodes(threeD) {
+    if (!threeD)
+        return [];
+    const nodes = [];
+    const scene = threeD.scene;
+    if (scene) {
+        const cameraChildren = [];
+        if (scene.rotX != null || scene.rotY != null || scene.rotZ != null) {
+            cameraChildren.push(xmlNode('a:rot', {
+                lat: scene.rotX != null ? Math.round(scene.rotX * 60000) : null,
+                lon: scene.rotY != null ? Math.round(scene.rotY * 60000) : null,
+                rev: scene.rotZ != null ? Math.round(scene.rotZ * 60000) : null
+            }));
+        }
+        nodes.push(xmlNode('a:scene3d', null, xmlNode('a:camera', {
+            prst: scene.camera || 'orthographicFront',
+            fov: scene.fov != null ? Math.round(scene.fov * 60000) : null,
+            zoom: scene.zoom != null ? Math.round(scene.zoom * 1000) : null
+        }, ...cameraChildren), xmlNode('a:lightRig', {
+            rig: scene.lightRig || 'balanced',
+            dir: scene.lightDir || 't'
+        })));
+    }
+    const shape = threeD.shape;
+    if (shape) {
+        const children = [];
+        if (shape.bevelTop) {
+            children.push(xmlNode('a:bevelT', {
+                w: shape.bevelTop.width != null ? ptToEmu(shape.bevelTop.width) : null,
+                h: shape.bevelTop.height != null ? ptToEmu(shape.bevelTop.height) : null,
+                prst: shape.bevelTop.preset || null
+            }));
+        }
+        if (shape.bevelBottom) {
+            children.push(xmlNode('a:bevelB', {
+                w: shape.bevelBottom.width != null ? ptToEmu(shape.bevelBottom.width) : null,
+                h: shape.bevelBottom.height != null ? ptToEmu(shape.bevelBottom.height) : null,
+                prst: shape.bevelBottom.preset || null
+            }));
+        }
+        if (shape.extrusionColor) {
+            children.push(xmlNode('a:extrusionClr', null, colorNode(shape.extrusionColor)));
+        }
+        if (shape.contourColor) {
+            children.push(xmlNode('a:contourClr', null, colorNode(shape.contourColor)));
+        }
+        nodes.push(xmlNode('a:sp3d', {
+            extrusionH: shape.extrusionHeight != null ? ptToEmu(shape.extrusionHeight) : null,
+            contourW: shape.contourWidth != null ? ptToEmu(shape.contourWidth) : null,
+            prstMaterial: shape.material || null
+        }, ...children));
+    }
+    return nodes;
+}
 async function buildShapeElement(ctx, el) {
     const id = ctx.nextElementId++;
     const fillNode = await buildFillNode(ctx, el.fill);
@@ -14582,9 +14933,11 @@ async function buildShapeElement(ctx, el) {
         if (effChildren.length)
             effectNode = xmlNode('a:effectLst', null, ...effChildren);
     }
-    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Shape ${id - 1}` }), xmlNode('p:cNvSpPr'), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) }, el.adjust && Object.keys(el.adjust).length
-        ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
-        : xmlNode('a:avLst')), fillNode, lineNode, ...(effectNode ? [effectNode] : [])));
+    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Shape ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr'), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), el.custGeom
+        ? buildCustomGeometry(el.custGeom)
+        : xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) }, el.adjust && Object.keys(el.adjust).length
+            ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
+            : xmlNode('a:avLst')), fillNode, lineNode, ...(effectNode ? [effectNode] : []), ...build3DNodes(el.threeD)));
 }
 async function buildImageElement(ctx, el) {
     const id = ctx.nextElementId++;
@@ -14658,6 +15011,27 @@ function numRefXml(values, col) {
     return `<c:numRef><c:f>Sheet1!$${col}$2:$${col}$${2 + last}</c:f>` +
         `<c:numCache><c:fmtCode>General</c:fmtCode><c:ptCount val="${n}"/>${pts}</c:numCache></c:numRef>`;
 }
+function buildTrendlineXml(t) {
+    const parts = [];
+    if (t.name)
+        parts.push(`<c:name>${escapeXml(t.name)}</c:name>`);
+    parts.push(`<c:trendlineType val="${escapeXml(t.type || 'linear')}"/>`);
+    if (t.order != null)
+        parts.push(`<c:order val="${Math.round(t.order)}"/>`);
+    if (t.period != null)
+        parts.push(`<c:period val="${Math.round(t.period)}"/>`);
+    if (t.forward != null)
+        parts.push(`<c:forward val="${Math.round(t.forward)}"/>`);
+    if (t.backward != null)
+        parts.push(`<c:backward val="${Math.round(t.backward)}"/>`);
+    if (t.intercept != null)
+        parts.push(`<c:intercept val="${t.intercept}"/>`);
+    if (t.showRSquared)
+        parts.push('<c:dispRSqr val="1"/>');
+    if (t.showEquation)
+        parts.push('<c:dispEq val="1"/>');
+    return `<c:trendline>${parts.join('')}</c:trendline>`;
+}
 function buildChartXml(el) {
     const type = el.chartType || 'barChart';
     const isPie = type === 'pieChart' || type === 'pie3DChart';
@@ -14681,31 +15055,42 @@ function buildChartXml(el) {
     const groupingVal = el.grouping
         ? String(el.grouping)
         : (isBarLike ? 'clustered' : isLineArea ? 'standard' : '');
-    const serXml = series.map((s, i) => {
-        const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
-            `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
-        let data;
-        if (isScatter) {
-            data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
-        }
-        else if (isBubble) {
-            data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal><c:bubbleSize>${numRefXml(s.values || [], 'D')}</c:bubbleSize>`;
-        }
-        else if (isStock) {
-            data = `<c:openVal>${numRefXml(s.open || [], 'B')}</c:openVal>` +
-                `<c:highVal>${numRefXml(s.high || [], 'C')}</c:highVal>` +
-                `<c:lowVal>${numRefXml(s.low || [], 'D')}</c:lowVal>` +
-                `<c:closeVal>${numRefXml(s.close || s.values || [], 'E')}</c:closeVal>`;
-        }
-        else {
-            data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
-        }
-        const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
-        const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
-        const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
-        const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
-        return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${data}${smoothXml}</c:ser>`;
-    }).join('');
+    const buildSerXml = (serList, offset) => {
+        return serList.map((s, j) => {
+            const i = offset + j;
+            const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
+                `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
+            let data;
+            if (isScatter) {
+                data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
+            }
+            else if (isBubble) {
+                data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal><c:bubbleSize>${numRefXml(s.values || [], 'D')}</c:bubbleSize>`;
+            }
+            else if (isStock) {
+                data = `<c:openVal>${numRefXml(s.open || [], 'B')}</c:openVal>` +
+                    `<c:highVal>${numRefXml(s.high || [], 'C')}</c:highVal>` +
+                    `<c:lowVal>${numRefXml(s.low || [], 'D')}</c:lowVal>` +
+                    `<c:closeVal>${numRefXml(s.close || s.values || [], 'E')}</c:closeVal>`;
+            }
+            else {
+                data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
+            }
+            const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
+            const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
+            const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
+            const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
+            const trendlineXml = (s.trendlines || []).map((t) => buildTrendlineXml(t)).join('');
+            return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${trendlineXml}${data}${smoothXml}</c:ser>`;
+        }).join('');
+    };
+    const secSeries = el.secondaryValueAxis ? series.filter((s) => s.axis === 'secondary') : [];
+    const priSeries = el.secondaryValueAxis && secSeries.length
+        ? series.filter((s) => s.axis !== 'secondary')
+        : series;
+    const useSecondary = !!el.secondaryValueAxis && secSeries.length > 0 && priSeries.length > 0;
+    const serXml = buildSerXml(useSecondary ? priSeries : series, 0);
+    const serXmlSec = useSecondary ? buildSerXml(secSeries, priSeries.length) : '';
     const numFmtXml = el.numberFormat
         ? `<c:numFmt formatCode="${escapeXml(el.numberFormat)}" sourceLinked="0"/>`
         : '';
@@ -14719,53 +15104,67 @@ function buildChartXml(el) {
     const axIds3 = `<c:axId val="111"/><c:axId val="112"/><c:axId val="113"/>`;
     const needsSerAx = is3D || isSurface;
     const axIds = needsSerAx ? axIds3 : axIds2;
-    let plotChart;
-    if (isOfPie) {
-        const ofPieType = el.ofPieType === 'bar' ? 'bar' : 'pie';
-        plotChart = `<c:${type}><c:ofPieType val="${ofPieType}"/><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}` +
-            `<c:gapWidth val="100"/><c:splitType val="auto"/><c:splitPos val="0"/>` +
-            `<c:secondPieSize val="75"/><c:serLines/></c:${type}>`;
-    }
-    else if (isDoughnut) {
-        const holeSize = el.holeSize !== undefined ? el.holeSize : 50;
-        plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}<c:holeSize val="${holeSize}"/></c:${type}>`;
-    }
-    else if (isPie) {
-        plotChart = `<c:${type}><c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}</c:${type}>`;
-    }
-    else if (isBubble) {
-        const bubble3DXml = el.bubble3D ? '<c:bubble3D val="1"/>' : '';
-        const bubbleScaleXml = el.bubbleScale !== undefined ? `<c:bubbleScale val="${el.bubbleScale}"/>` : '';
-        const showNegXml = el.showNegBubbles ? '<c:showNegBubbles val="1"/>' : '';
-        plotChart = `<c:${type}>${serXml}${dLblsInner}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIds}</c:${type}>`;
-    }
-    else if (isRadar) {
-        plotChart = `<c:${type}><c:radarStyle val="standard"/>${serXml}${dLblsInner}${axIds}</c:${type}>`;
-    }
-    else if (isStock) {
-        plotChart = `<c:${type}>${serXml}${dLblsInner}<c:hiLowLines/>${axIds}</c:${type}>`;
-    }
-    else if (isSurface) {
-        const wireframeXml = el.wireframe ? '<c:wireframe val="1"/>' : '';
-        plotChart = `<c:${type}>${wireframeXml}${serXml}<c:bandFmts/>${axIds}</c:${type}>`;
-    }
-    else {
-        const dir = isBarLike ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
-        const grouping = groupingVal ? `<c:grouping val="${groupingVal}"/>` : '';
-        const markerXml = (el.marker && isLineArea) ? '<c:marker><c:symbol val="circle"/></c:marker>' : '';
-        plotChart = `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serXml}${dLblsInner}${markerXml}${axIds}</c:${type}>`;
-    }
+    const makePlot = (serPart, axIdsPart) => {
+        if (isOfPie) {
+            const ofPieType = el.ofPieType === 'bar' ? 'bar' : 'pie';
+            return `<c:${type}><c:ofPieType val="${ofPieType}"/><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}` +
+                `<c:gapWidth val="100"/><c:splitType val="auto"/><c:splitPos val="0"/>` +
+                `<c:secondPieSize val="75"/><c:serLines/></c:${type}>`;
+        }
+        else if (isDoughnut) {
+            const holeSize = el.holeSize !== undefined ? el.holeSize : 50;
+            return `<c:${type}><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}<c:holeSize val="${holeSize}"/></c:${type}>`;
+        }
+        else if (isPie) {
+            return `<c:${type}><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}</c:${type}>`;
+        }
+        else if (isBubble) {
+            const bubble3DXml = el.bubble3D ? '<c:bubble3D val="1"/>' : '';
+            const bubbleScaleXml = el.bubbleScale !== undefined ? `<c:bubbleScale val="${el.bubbleScale}"/>` : '';
+            const showNegXml = el.showNegBubbles ? '<c:showNegBubbles val="1"/>' : '';
+            return `<c:${type}>${serPart}${dLblsInner}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIdsPart}</c:${type}>`;
+        }
+        else if (isRadar) {
+            return `<c:${type}><c:radarStyle val="standard"/>${serPart}${dLblsInner}${axIdsPart}</c:${type}>`;
+        }
+        else if (isStock) {
+            return `<c:${type}>${serPart}${dLblsInner}<c:hiLowLines/>${axIdsPart}</c:${type}>`;
+        }
+        else if (isSurface) {
+            const wireframeXml = el.wireframe ? '<c:wireframe val="1"/>' : '';
+            return `<c:${type}>${wireframeXml}${serPart}<c:bandFmts/>${axIdsPart}</c:${type}>`;
+        }
+        else {
+            const dir = isBarLike ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
+            const grouping = groupingVal ? `<c:grouping val="${groupingVal}"/>` : '';
+            const markerXml = (el.marker && isLineArea) ? '<c:marker><c:symbol val="circle"/></c:marker>' : '';
+            return `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}${markerXml}${axIdsPart}</c:${type}>`;
+        }
+    };
+    const SECONDARY_AX_IDS = `<c:axId val="211"/><c:axId val="212"/>`;
+    const plotChart = makePlot(serXml, axIds)
+        + (useSecondary ? makePlot(serXmlSec, SECONDARY_AX_IDS) : '');
     const view3D = is3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="20"/><c:depthPercent val="100"/></c:view3D>' : '';
     const isXYValAx = isScatter || isBubble;
+    const gl = el.gridlines;
+    const majorGl = gl && gl.major === false ? '' : '<c:majorGridlines/>';
+    const minorGl = gl && gl.minor === true ? '<c:minorGridlines/>' : '';
+    const axisTitleXml = (t) => t
+        ? `<c:axTitle><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml(t)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:axTitle>`
+        : '';
     let axes = '';
     if (!isPieLike) {
         const catOrValAxX = isXYValAx
-            ? `<c:valAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorGridlines/><c:tickLblPos val="low"/><c:crossAx val="112"/><c:crosses val="autoZero"/></c:valAx>`
-            : `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:tickLblPos val="low"/><c:crossAx val="${needsSerAx ? 113 : 112}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
-        const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/><c:majorGridlines/><c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
+            ? `<c:valAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="112"/><c:crosses val="autoZero"/></c:valAx>`
+            : `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="${needsSerAx ? 113 : 112}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
+        const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.value)}<c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
         axes = catOrValAxX + valAxY;
         if (needsSerAx) {
             axes += `<c:serAx><c:axId val="113"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/><c:crossAx val="111"/><c:crosses val="autoZero"/></c:serAx>`;
+        }
+        if (useSecondary) {
+            axes += `<c:catAx><c:axId val="211"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:tickLblPos val="none"/><c:crossAx val="212"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
+            axes += `<c:valAx><c:axId val="212"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="r"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.secondaryValue)}<c:tickLblPos val="low"/><c:crossAx val="211"/><c:crosses val="max"/><c:crossBetween val="between"/></c:valAx>`;
         }
     }
     const titleXml = el.title
@@ -14885,6 +15284,10 @@ function buildTableCell(ctx, cell, tableBorder) {
         attrs.gridSpan = cell.colSpan;
     if (cell.rowSpan && cell.rowSpan > 1)
         attrs.rowSpan = cell.rowSpan;
+    if (cell.hMerge)
+        attrs.hMerge = '1';
+    if (cell.vMerge)
+        attrs.vMerge = '1';
     const defaults = {
         align: cell.align,
         fontSize: cell.fontSize,
@@ -15029,7 +15432,7 @@ async function buildGroupElement(ctx, el) {
     }
     const w = pxToEmu(el.width || 0);
     const h = pxToEmu(el.height || 0);
-    return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), ...childNodes);
+    return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), xmlNode('p:spTree', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id: ctx.nextElementId++, name: `${el.name || 'Group'} Inner` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: 0, y: 0 }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), ...childNodes));
 }
 async function buildMediaElement(ctx, el, kind) {
     const id = ctx.nextElementId++;
@@ -15328,11 +15731,81 @@ async function buildDiagramElement(ctx, el) {
         'r:qs': quickStyleRelId
     }))));
 }
+function buildConnectorElement(ctx, el) {
+    const id = ctx.nextElementId++;
+    const line = (el.line && el.line !== 'none') ? el.line : null;
+    const lnChildren = [];
+    if (line && line.color)
+        lnChildren.push(xmlNode('a:solidFill', colorNode(line.color)));
+    if (line && line.dashType)
+        lnChildren.push(xmlNode('a:prstDash', { val: line.dashType }));
+    const lnNode = el.line === 'none'
+        ? xmlNode('a:ln', null, xmlNode('a:noFill'))
+        : xmlNode('a:ln', {
+            w: line && line.width != null ? ptToEmu(line.width) : null,
+            cap: 'flat'
+        }, ...lnChildren);
+    return xmlNode('p:cxnSp', null, xmlNode('p:nvCxnSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Connector ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvCxnSpPr'), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType || 'straightConnector1') }, el.adjust && Object.keys(el.adjust).length
+        ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
+        : xmlNode('a:avLst')), lnNode, ...build3DNodes(el.threeD)));
+}
+async function buildOleElement(ctx, el) {
+    const id = ctx.nextElementId++;
+    const ext = (el.extension || 'bin').replace(/^\./, '');
+    let oleRelId = null;
+    if (el.data) {
+        ctx.parts.push({
+            path: `ppt/embeddings/oleObject${ctx.parts.length + 1}.${ext}`,
+            base64: el.data,
+            contentType: 'application/vnd.openxmlformats-officedocument.oleObject',
+            media: true
+        });
+        oleRelId = addRelationship(ctx, REL_TYPES.oleObject, `../embeddings/oleObject${ctx.parts.length}.${ext}`);
+    }
+    else if (el.oleTarget) {
+        oleRelId = addRelationship(ctx, REL_TYPES.oleObject, el.oleTarget);
+    }
+    let posterRelId = null;
+    if (el.poster) {
+        const { base64, ext: pExt } = await resolveImageData({ data: el.poster.data, src: el.poster.src, extension: el.poster.extension });
+        ctx.mediaIndex++;
+        const pName = `image${ctx.mediaIndex}.${pExt}`;
+        ctx.media.push({ name: pName, base64 });
+        posterRelId = addRelationship(ctx, REL_TYPES.image, `../media/${pName}`);
+    }
+    const cx = pxToEmu(el.width || 200);
+    const cy = pxToEmu(el.height || 150);
+    const picChildren = [
+        xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id: ctx.nextElementId++, name: `${el.name || 'Object'} Display` }), xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noGrp: 1, noChangeAspect: 1 })), xmlNode('p:nvPr'))
+    ];
+    if (posterRelId) {
+        picChildren.push(xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': posterRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect'))));
+    }
+    picChildren.push(xmlNode('p:spPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: 0, y: 0 }), xmlNode('a:ext', { cx, cy })), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))));
+    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Object ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvGraphicFramePr', null, xmlNode('a:graphicFrameLocks', { noGrp: 1 })), xmlNode('p:nvPr')), xmlNode('p:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx, cy })), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: 'http://schemas.openxmlformats.org/presentationml/2006/ole' }, xmlNode('p:oleObj', {
+        progId: el.progId || 'Package',
+        'r:id': oleRelId,
+        showAsIcon: el.showAsIcon ? 1 : 0
+    }, ...picChildren))));
+}
+function buildMathElement(ctx, el) {
+    const id = ctx.nextElementId++;
+    const text = el.text ?? '';
+    const altContent = xmlNode('mc:AlternateContent', {
+        'xmlns:mc': NS.mc,
+        'xmlns:a14': NS.a14,
+        'xmlns:m': NS.m
+    }, xmlNode('mc:Choice', { Requires: 'a14' }, xmlNode('a14:m', null, el.omml ? rawXml(el.omml) : null)), xmlNode('mc:Fallback', null, xmlNode('a:t', null, text)));
+    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Math ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr', { txBox: 1 }), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))), xmlNode('p:txBody', null, xmlNode('a:bodyPr', { wrap: 'square', rtlCol: 0 }), xmlNode('a:lstStyle'), xmlNode('a:p', null, el.omml ? altContent : xmlNode('a:r', null, xmlNode('a:rPr', { lang: 'zh-CN', dirty: 0 }), xmlNode('a:t', null, text)))));
+}
 async function buildElement(ctx, el) {
     if (!el || typeof el !== 'object')
         return null;
     if (el.rawFallback && el.__raw)
         return buildRawElement(ctx, el);
+    if (el.type && PRESET_GEOMETRIES.has(el.type)) {
+        return buildShapeElement(ctx, { ...el, shapeType: el.type });
+    }
     switch (el.type) {
         case 'text':
             return buildTextElement(ctx, el);
@@ -15349,6 +15822,12 @@ async function buildElement(ctx, el) {
             return buildTableElement(ctx, el);
         case 'group':
             return buildGroupElement(ctx, el);
+        case 'connector':
+            return buildConnectorElement(ctx, el);
+        case 'ole':
+            return buildOleElement(ctx, el);
+        case 'math':
+            return buildMathElement(ctx, el);
         case 'diagram':
             return el.__raw ? buildRawElement(ctx, el) : buildDiagramElement(ctx, el);
         default:
@@ -15396,12 +15875,39 @@ const TRANSITION_TAG = {
     blinds: 'p:blinds', checker: 'p:checker', circle: 'p:circle', comb: 'p:comb',
     dissolve: 'p:dissolve', random: 'p:random', split: 'p:split', strips: 'p:strips'
 };
-function buildTransition(t) {
+const ANIMATION_PRESET_IDS = {
+    appear: 1, flyIn: 2, fly: 2, blinds: 3, blind: 3, box: 4, checkerboard: 5, checker: 5,
+    circle: 6, crawl: 7, diamond: 8, dissolve: 9, fade: 10, peek: 11, plus: 12,
+    randomBars: 13, random: 13, split: 14, spokes: 15, strips: 16, swivel: 17,
+    wedge: 18, wheel: 19, wipe: 20, zoom: 21, bounce: 22, grow: 23, spin: 24,
+    pulsate: 1, color: 2, transparency: 3, boldFlash: 4, brush: 5, wave: 6
+};
+function buildTransition(t, ctx) {
     if (!t)
         return null;
     const tag = TRANSITION_TAG[t.type] || 'p:fade';
     const spd = t.duration <= 750 ? '1' : t.duration >= 1500 ? '3' : '2';
-    return xmlNode('p:transition', { spd }, xmlNode(tag));
+    const attrs = { spd };
+    if (t.advanceAfterTime != null)
+        attrs.advTm = Math.round(t.advanceAfterTime);
+    if (t.advanceOnClick === false)
+        attrs.advanceOnClick = 0;
+    const children = [];
+    children.push(xmlNode(tag, { dir: t.direction || null }));
+    if (t.sound && ctx) {
+        const sndAttrs = {};
+        if (t.sound.name)
+            sndAttrs.name = t.sound.name;
+        if (t.sound.data) {
+            const ext = (t.sound.extension || 'wav').replace(/^\./, '');
+            ctx.mediaIndex++;
+            const mediaName = `sound${ctx.mediaIndex}.${ext}`;
+            ctx.media.push({ name: mediaName, base64: t.sound.data });
+            sndAttrs['r:embed'] = addRelationship(ctx, REL_TYPES.audio, `../media/${mediaName}`);
+        }
+        children.push(xmlNode('p:sndAc', null, xmlNode('p:snd', sndAttrs)));
+    }
+    return xmlNode('p:transition', attrs, ...children);
 }
 function buildNotesSlide(notes) {
     return xmlNode('p:notesSlide', { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
@@ -15411,7 +15917,7 @@ function buildNotesSlide(notes) {
 function buildTimingNode(slide) {
     if (!slide)
         return null;
-    const adv = slide.advanceTime;
+    const adv = slide.advanceTime ?? slide.transition?.advanceAfterTime;
     const anims = slide.animations || [];
     if (adv == null && anims.length === 0)
         return null;
@@ -15422,11 +15928,42 @@ function buildTimingNode(slide) {
     let nid = 10;
     for (const a of anims) {
         const spid = a.target != null ? a.target + 2 : 2;
-        const preset = a.type === 'flyIn' ? 'flyIn' : a.type === 'zoom' ? 'zoom' : a.type === 'wipe' ? 'wipe' : 'fade';
-        const effectChildren = [];
-        if (a.duration != null)
+        const preset = a.type || 'fade';
+        const presetClass = (a.presetClass || 'entr');
+        const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[preset] ?? 1);
+        const trig = a.trigger?.type || 'afterPrev';
+        const condAttrs = {};
+        if (trig === 'onClick') {
+            condAttrs.type = 'begin';
+            condAttrs.event = 'delay';
+            condAttrs.delay = 'indefinite';
+        }
+        else {
+            condAttrs.type = trig === 'withPrev' ? 'withPrev' : 'afterPrev';
+        }
+        const effectChildren = [
+            xmlNode('p:stCondLst', null, xmlNode('p:cond', condAttrs))
+        ];
+        if (a.duration != null) {
             effectChildren.push(xmlNode('p:cTn', { id: nid++, dur: Math.round(a.duration * 1000), fill: 'hold' }));
-        childNodes.push(xmlNode('p:cTn', { id: nid++, fill: 'hold' }, xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid })), xmlNode('p:childTnLst', null, xmlNode('p:cTn', { id: nid++, presetClass: 'entr', presetId: 1, type: 'withEffect', preset }, ...effectChildren))));
+        }
+        const presetAttrs = {
+            id: nid++,
+            presetClass,
+            presetId,
+            type: 'withEffect',
+            preset
+        };
+        if (a.presetSubtype != null)
+            presetAttrs.presetSubtype = a.presetSubtype;
+        if (a.delay != null)
+            presetAttrs.delay = Math.round(a.delay * 1000);
+        if (a.repeat != null)
+            presetAttrs.repeatCount = a.repeat === 'indefinite' ? 'indefinite' : Math.round(a.repeat * 1000);
+        if (presetClass === 'path' && a.path) {
+            presetAttrs.presetSubtype = presetAttrs.presetSubtype ?? 0;
+        }
+        childNodes.push(xmlNode('p:cTn', { id: nid++, fill: 'hold' }, xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid })), xmlNode('p:childTnLst', null, xmlNode('p:cTn', presetAttrs, ...effectChildren))));
     }
     return xmlNode('p:timing', null, xmlNode('p:tnLst', null, xmlNode('p:par', null, xmlNode('p:cTn', { id: 1, fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterPrev' })), xmlNode('p:childTnLst', null, ...childNodes)))));
 }
@@ -15438,7 +15975,7 @@ async function buildSlideRoot(ctx, slide) {
             elementNodes.push(node);
     }
     const bgNode = await buildBackground(slide && slide.background, ctx);
-    const transitionNode = buildTransition(slide && slide.transition);
+    const transitionNode = buildTransition(slide && slide.transition, ctx);
     const timingNode = buildTimingNode(slide);
     return xmlNode('p:sld', { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
         'xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
@@ -15446,6 +15983,23 @@ async function buildSlideRoot(ctx, slide) {
         show: (slide && slide.hidden) ? 0 : null }, xmlNode('p:cSld', null, bgNode, xmlNode('p:spTree', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id: 1, name: '' }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: 0, y: 0 }), xmlNode('a:ext', { cx: 0, cy: 0 }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: 0, cy: 0 }))), ...elementNodes)), transitionNode, timingNode, xmlNode('p:clrMapOvr', null, xmlNode('a:masterClrMapping')));
 }
 
+function base64ToBytes(b64) {
+    if (typeof Buffer !== 'undefined')
+        return new Uint8Array(Buffer.from(b64, 'base64'));
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++)
+        out[i] = bin.charCodeAt(i);
+    return out;
+}
+function bytesToBase64(bytes) {
+    if (typeof Buffer !== 'undefined')
+        return Buffer.from(bytes).toString('base64');
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++)
+        bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+}
 function toAbsPath(target) {
     if (!target)
         return target;
@@ -15601,6 +16155,22 @@ async function jsonToPptx(presentation, options = {}) {
         }
     }
     const hasComments = commentAuthors.size > 0;
+    const masters = pres.masters;
+    const flatLayouts = [];
+    if (masters && masters.length) {
+        masters.forEach((m, mi) => {
+            const ls = m.layouts && m.layouts.length ? m.layouts : [{}];
+            for (const l of ls)
+                flatLayouts.push({ masterIdx: mi, layout: l });
+        });
+    }
+    const useMasters = flatLayouts.length > 0;
+    if (useMasters)
+        presRelId = masters.length + 1;
+    const slideLayoutNo = pres.slides.map((s) => {
+        const idx = typeof s.layout === 'number' ? s.layout : 0;
+        return (useMasters && idx >= 0 && idx < flatLayouts.length) ? idx + 1 : 1;
+    });
     const tableStyleIds = new Set();
     for (const i of pres.slides.keys()) {
         const slideIndex = i + 1;
@@ -15609,7 +16179,7 @@ async function jsonToPptx(presentation, options = {}) {
         ctx.tableStyleIds?.forEach((id) => tableStyleIds.add(id));
         zip.file(`ppt/slides/slide${slideIndex}.xml`, toXmlDocument(slideRoot));
         const slideRels = [
-            { relId: 'rId1', type: REL_TYPES.slideLayout, target: '../slideLayouts/slideLayout1.xml' },
+            { relId: 'rId1', type: REL_TYPES.slideLayout, target: `../slideLayouts/slideLayout${slideLayoutNo[i]}.xml` },
             ...ctx.rels
         ];
         const slideNotes = pres.slides[i] && pres.slides[i].notes;
@@ -15689,24 +16259,103 @@ async function jsonToPptx(presentation, options = {}) {
             .map(([name, id]) => ({ id, name }));
         zip.file('ppt/commentAuthors.xml', buildCommentAuthorsXml(authors));
     }
-    zip.file('ppt/presentation.xml', buildPresentationXml(slideSize, slideRefs));
+    const masterRelIds = useMasters
+        ? masters.map((_, mi) => `rId${1 + mi}`)
+        : ['rId1'];
     const presRels = [
-        { relId: 'rId1', type: REL_TYPES.slideMaster, target: 'slideMasters/slideMaster1.xml' },
+        ...masterRelIds.map((rid, mi) => ({
+            relId: rid, type: REL_TYPES.slideMaster, target: `slideMasters/slideMaster${mi + 1}.xml`
+        })),
         ...slideRefs.map(ref => ({ relId: ref.relId, type: REL_TYPES.slide, target: ref.target }))
     ];
     presRels.push({ relId: `rId${presRelId++}`, type: REL_TYPES.theme, target: 'theme/theme1.xml' }, { relId: `rId${presRelId++}`, type: REL_TYPES.presProps, target: 'presProps.xml' }, { relId: `rId${presRelId++}`, type: REL_TYPES.viewProps, target: 'viewProps.xml' }, { relId: `rId${presRelId++}`, type: REL_TYPES.tableStyles, target: 'tableStyles.xml' });
     if (hasComments) {
         presRels.push({ relId: `rId${presRelId++}`, type: REL_TYPES.commentAuthors, target: 'commentAuthors.xml' });
     }
+    let notesMasterRelId;
+    if (allNotesSlides.length) {
+        notesMasterRelId = `rId${presRelId++}`;
+        presRels.push({ relId: notesMasterRelId, type: REL_TYPES.notesMaster, target: 'notesMasters/notesMaster1.xml' });
+        zip.file('ppt/notesMasters/notesMaster1.xml', buildNotesMasterXml());
+        zip.file('ppt/notesMasters/_rels/notesMaster1.xml.rels', buildRelationshipsXml([
+            { relId: 'rId1', type: REL_TYPES.theme, target: '../theme/theme1.xml' }
+        ]));
+        for (const n of allNotesSlides) {
+            zip.file(`ppt/notesSlides/_rels/notesSlide${n}.xml.rels`, buildRelationshipsXml([
+                { relId: 'rId1', type: REL_TYPES.slide, target: `../slides/slide${n}.xml` },
+                { relId: 'rId2', type: REL_TYPES.notesMaster, target: '../notesMasters/notesMaster1.xml' }
+            ]));
+        }
+    }
+    const embeddedFonts = pres.fonts;
+    let hasFontTable = false;
+    if (embeddedFonts && embeddedFonts.length) {
+        hasFontTable = true;
+        const fontRelIds = [];
+        embeddedFonts.forEach((f, i) => {
+            const no = i + 1;
+            zip.file(`ppt/fonts/font${no}.fntdata`, bytesToBase64(obfuscateFontData(base64ToBytes(f.data))), { base64: true });
+            fontRelIds.push(`rId${no}`);
+        });
+        zip.file('ppt/fontTable.xml', buildFontTableXml(embeddedFonts, fontRelIds));
+        zip.file('ppt/_rels/fontTable.xml.rels', buildRelationshipsXml(fontRelIds.map((rid, i) => ({ relId: rid, type: REL_TYPES.font, target: `fonts/font${i + 1}.fntdata` }))));
+        presRels.push({ relId: `rId${presRelId++}`, type: REL_TYPES.fontTable, target: 'fontTable.xml' });
+    }
+    zip.file('ppt/presentation.xml', buildPresentationXml(slideSize, slideRefs, {
+        masterRelIds,
+        sections: pres.sections,
+        notesMasterRelId
+    }));
     zip.file('ppt/_rels/presentation.xml.rels', buildRelationshipsXml(presRels));
     const themeXml = (options && options.theme) || pres.theme;
-    zip.file('ppt/theme/theme1.xml', typeof themeXml === 'string' ? themeXml : buildThemeXml());
-    const masterXml = (options && options.masterXml) || pres.slideMaster;
-    zip.file('ppt/slideMasters/slideMaster1.xml', typeof masterXml === 'string' ? masterXml : buildSlideMasterXml());
-    zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', buildRelationshipsXml(MASTER_RELS));
-    const layoutXml = (options && options.layoutXml) || pres.slideLayout;
-    zip.file('ppt/slideLayouts/slideLayout1.xml', typeof layoutXml === 'string' ? layoutXml : buildSlideLayoutXml());
-    zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', buildRelationshipsXml(LAYOUT_RELS));
+    zip.file('ppt/theme/theme1.xml', buildThemeXml(themeXml));
+    const buildElementsXml = async (els) => {
+        if (!els || !els.length)
+            return '';
+        const c = createElementContext();
+        const parts = [];
+        for (const e of els) {
+            const node = await buildElement(c, e);
+            if (node)
+                parts.push(nodeToString(node));
+        }
+        return parts.join('');
+    };
+    if (useMasters) {
+        for (let mi = 0; mi < masters.length; mi++) {
+            const m = masters[mi];
+            const layoutNos = [];
+            flatLayouts.forEach((fl, idx) => { if (fl.masterIdx === mi)
+                layoutNos.push(idx + 1); });
+            const masterElementXml = await buildElementsXml(m.elements);
+            zip.file(`ppt/slideMasters/slideMaster${mi + 1}.xml`, typeof m.__rawXml === 'string'
+                ? m.__rawXml
+                : buildSlideMasterXml(m, layoutNos.map((_, k) => `rId${k + 1}`), masterElementXml));
+            const mRels = layoutNos.map((no, k) => ({
+                relId: `rId${k + 1}`, type: REL_TYPES.slideLayout, target: `../slideLayouts/slideLayout${no}.xml`
+            }));
+            mRels.push({ relId: `rId${layoutNos.length + 1}`, type: REL_TYPES.theme, target: '../theme/theme1.xml' });
+            zip.file(`ppt/slideMasters/_rels/slideMaster${mi + 1}.xml.rels`, buildRelationshipsXml(mRels));
+        }
+        for (let li = 0; li < flatLayouts.length; li++) {
+            const fl = flatLayouts[li];
+            const layoutElementXml = await buildElementsXml(fl.layout.elements);
+            zip.file(`ppt/slideLayouts/slideLayout${li + 1}.xml`, typeof fl.layout.__rawXml === 'string'
+                ? fl.layout.__rawXml
+                : buildSlideLayoutXml(fl.layout, layoutElementXml));
+            zip.file(`ppt/slideLayouts/_rels/slideLayout${li + 1}.xml.rels`, buildRelationshipsXml([
+                { relId: 'rId1', type: REL_TYPES.slideMaster, target: `../slideMasters/slideMaster${fl.masterIdx + 1}.xml` }
+            ]));
+        }
+    }
+    else {
+        const masterXml = (options && options.masterXml) || pres.slideMaster;
+        zip.file('ppt/slideMasters/slideMaster1.xml', typeof masterXml === 'string' ? masterXml : buildSlideMasterXml());
+        zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', buildRelationshipsXml(MASTER_RELS));
+        const layoutXml = (options && options.layoutXml) || pres.slideLayout;
+        zip.file('ppt/slideLayouts/slideLayout1.xml', typeof layoutXml === 'string' ? layoutXml : buildSlideLayoutXml());
+        zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', buildRelationshipsXml(LAYOUT_RELS));
+    }
     zip.file('ppt/presProps.xml', buildPresPropsXml());
     zip.file('ppt/viewProps.xml', buildViewPropsXml());
     zip.file('ppt/tableStyles.xml', buildTableStylesXml([...tableStyleIds]));
@@ -15717,7 +16366,10 @@ async function jsonToPptx(presentation, options = {}) {
         rootRelsXml = rootRelsXml.replace('</Relationships>', `<Relationship Id="rIdCustom" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>`);
     }
     zip.file('_rels/.rels', rootRelsXml);
-    let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length);
+    let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length, {
+        masterCount: useMasters ? masters.length : 1,
+        layoutCount: useMasters ? flatLayouts.length : 1
+    });
     if (pres.customProps) {
         contentTypeXml = contentTypeXml.replace('</Types>', `<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>`);
         zip.file('docProps/custom.xml', buildCustomPropsXml(pres.customProps));
@@ -15733,6 +16385,21 @@ async function jsonToPptx(presentation, options = {}) {
     for (const idx of allNotesSlides) {
         const override = `<Override PartName="/ppt/notesSlides/notesSlide${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"/>`;
         contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
+    }
+    if (allNotesSlides.length) {
+        contentTypeXml = contentTypeXml.replace('</Types>', `<Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/></Types>`);
+    }
+    if (hasFontTable) {
+        contentTypeXml = contentTypeXml.replace('</Types>', `<Default Extension="fntdata" ContentType="application/x-fontdata"/>` +
+            `<Override PartName="/ppt/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.fontTable+xml"/></Types>`);
+    }
+    const thumbnail = pres.thumbnail;
+    if (thumbnail && thumbnail.data) {
+        const ext = (thumbnail.extension || 'jpeg').replace(/^\./, '');
+        zip.file(`docProps/thumbnail.${ext}`, thumbnail.data, { base64: true });
+        rootRelsXml = rootRelsXml.replace('</Relationships>', `<Relationship Id="rIdThumb" Type="${REL_TYPES.thumbnail}" Target="docProps/thumbnail.${ext}"/></Relationships>`);
+        zip.file('_rels/.rels', rootRelsXml);
+        contentTypeXml = contentTypeXml.replace('</Types>', `<Override PartName="/docProps/thumbnail.${ext}" ContentType="image/${ext === 'jpg' ? 'jpeg' : ext}"/></Types>`);
     }
     if (hasComments) {
         const cmOverride = `<Override PartName="/ppt/commentAuthors.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.commentAuthors+xml"/>`;
@@ -16639,6 +17306,10 @@ function extractTiming(slideContent, spidToIndex) {
         if (spid != null && spidToIndex.has(String(spid))) {
             let preset = 'fade';
             let dur;
+            let presetClass;
+            let presetId;
+            let delay;
+            let repeat;
             const childTnLst = c['p:childTnLst'];
             if (childTnLst) {
                 for (const inner of asArray(childTnLst['p:cTn'])) {
@@ -16647,14 +17318,32 @@ function extractTiming(slideContent, spidToIndex) {
                             preset = String(inner.attrs.preset);
                         if (inner.attrs.dur != null)
                             dur = Number(inner.attrs.dur) / 1000;
+                        if (inner.attrs.presetClass)
+                            presetClass = String(inner.attrs.presetClass);
+                        if (inner.attrs.presetId != null)
+                            presetId = Number(inner.attrs.presetId);
+                        if (inner.attrs.delay != null && inner.attrs.delay !== 'indefinite')
+                            delay = Number(inner.attrs.delay) / 1000;
+                        if (inner.attrs.repeatCount != null) {
+                            repeat = inner.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(inner.attrs.repeatCount) / 1000;
+                        }
                     }
                 }
             }
-            animations.push({
+            const anim = {
                 target: spidToIndex.get(String(spid)),
-                type: (['fade', 'flyIn', 'zoom', 'wipe'].includes(preset) ? preset : 'fade'),
+                type: preset,
                 duration: dur ?? 1
-            });
+            };
+            if (presetClass)
+                anim.presetClass = presetClass;
+            if (presetId != null)
+                anim.presetId = presetId;
+            if (delay != null)
+                anim.delay = delay;
+            if (repeat != null)
+                anim.repeat = repeat;
+            animations.push(anim);
         }
     }
     if (animations.length)
@@ -16910,7 +17599,7 @@ async function attachRawDeps(el, node, resObj, zip) {
     if (parts.length)
         el.__raw.parts = parts;
 }
-function collectShapeNodes(spTree, acc) {
+function collectShapeNodes(spTree, acc, keepGroups = false) {
     if (!spTree || typeof spTree !== 'object')
         return;
     for (const key of Object.keys(spTree)) {
@@ -16920,9 +17609,14 @@ function collectShapeNodes(spTree, acc) {
         const nodes = asArray(val);
         for (const node of nodes) {
             if (key === 'p:grpSp') {
-                const inner = node && node['p:spTree'];
-                if (inner)
-                    collectShapeNodes(inner, acc);
+                if (keepGroups) {
+                    acc.push({ key, node });
+                }
+                else {
+                    const inner = node && node['p:spTree'];
+                    if (inner)
+                        collectShapeNodes(inner, acc, keepGroups);
+                }
             }
             else if (['p:sp', 'p:pic', 'p:graphicFrame', 'p:cxnSp'].includes(key)) {
                 acc.push({ key, node });
@@ -16959,37 +17653,88 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             }));
         }
         if (spTree) {
-            const shapeNodes = [];
-            collectShapeNodes(spTree, shapeNodes);
             const spidToIndex = new Map();
-            for (const { key, node } of shapeNodes) {
-                const spid = getShapeId(key, node);
-                const index = slide.elements.length;
+            let elemIndex = 0;
+            const registerSpid = (spid, el) => {
                 if (spid != null)
-                    spidToIndex.set(spid, index);
+                    spidToIndex.set(spid, elemIndex);
+                elemIndex++;
+            };
+            const processNode = async (key, node) => {
+                const spid = getShapeId(key, node);
                 try {
                     const el = await nodeToElement(key, node, resObj, zip);
-                    if (!el) {
-                        spidToIndex.delete(spid);
-                        continue;
-                    }
+                    if (!el)
+                        return null;
                     el.__raw = { tag: key, node };
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
                         await attachRawDeps(el, node, resObj, zip);
                     }
-                    slide.elements.push(el);
+                    registerSpid(spid, el);
+                    return el;
                 }
                 catch {
                     const rawEl = {
                         type: 'raw', x: 0, y: 0, width: 0, height: 0,
                         __raw: { tag: key, node }, rawFallback: true
                     };
-                    spidToIndex.delete(spid);
-                    slide.elements.push(rawEl);
+                    registerSpid(spid, rawEl);
                     if (allDeps)
                         await attachRawDeps(rawEl, node, resObj, zip);
+                    return rawEl;
                 }
-            }
+            };
+            const processTree = async (tree) => {
+                const acc = [];
+                collectShapeNodes(tree, acc, true);
+                const out = [];
+                for (const { key, node } of acc) {
+                    if (key === 'p:grpSp') {
+                        const g = await processGroup(node);
+                        if (g)
+                            out.push(g);
+                    }
+                    else {
+                        const el = await processNode(key, node);
+                        if (el)
+                            out.push(el);
+                    }
+                }
+                return out;
+            };
+            const processGroup = async (node) => {
+                const gid = getShapeId('p:grpSp', node);
+                const inner = node['p:spTree'];
+                const children = inner ? await processTree(inner) : [];
+                const gxf = node['p:grpSpPr'] && node['p:grpSpPr']['a:xfrm'];
+                const gOff = gxf && gxf['a:off'] && gxf['a:off'].attrs;
+                const gExt = gxf && gxf['a:ext'] && gxf['a:ext'].attrs;
+                const chOff = gxf && gxf['a:chOff'] && gxf['a:chOff'].attrs;
+                const chExt = gxf && gxf['a:chExt'] && gxf['a:chExt'].attrs;
+                const gx = emuToPx(gOff?.x), gy = emuToPx(gOff?.y);
+                const gw = emuToPx(gExt?.cx), gh = emuToPx(gExt?.cy);
+                const chx = emuToPx(chOff?.x), chy = emuToPx(chOff?.y);
+                const chw = emuToPx(chExt?.cx) || 1, chh = emuToPx(chExt?.cy) || 1;
+                const sx = gw / chw, sy = gh / chh;
+                for (const c of children) {
+                    const lx = c.x || 0, ly = c.y || 0;
+                    c.x = (lx - chx) * sx;
+                    c.y = (ly - chy) * sy;
+                    if (c.width != null)
+                        c.width = c.width * sx;
+                    if (c.height != null)
+                        c.height = c.height * sy;
+                }
+                const g = {
+                    type: 'group',
+                    x: gx, y: gy, width: gw, height: gh,
+                    children,
+                    childrenCoordinates: 'relative'
+                };
+                registerSpid(gid, g);
+                return g;
+            };
+            slide.elements = await processTree(spTree);
             const timing = extractTiming(slideContent, spidToIndex);
             if (timing.advanceTime != null)
                 slide.advanceTime = timing.advanceTime;
@@ -17295,6 +18040,60 @@ async function picToImage(node, resObj, zip) {
         return null;
     const xf = readXfrm(node, false);
     const name = node['p:nvPicPr'] && node['p:nvPicPr']['p:cNvPr'] && node['p:nvPicPr']['p:cNvPr'].attrs && node['p:nvPicPr']['p:cNvPr'].attrs.name;
+    const nvPr = node['p:nvPicPr'] && node['p:nvPicPr']['p:nvPr'];
+    const mediaNode = nvPr && (nvPr['a:videoFile'] || nvPr['a:audioFile']);
+    if (mediaNode) {
+        const kind = nvPr['a:videoFile'] ? 'video' : 'audio';
+        const linkRid = mediaNode.attrs && mediaNode.attrs['r:link'] ? String(mediaNode.attrs['r:link']) : '';
+        const mTarget = resObj[linkRid] && resObj[linkRid].target;
+        const mPart = resolvePart(mTarget);
+        const mExt = ((mPart || mTarget || '').split('.').pop() || (kind === 'video' ? 'mp4' : 'mp3')).toLowerCase();
+        let mData;
+        if (mPart) {
+            try {
+                const f = zip.file(mPart);
+                if (f)
+                    mData = await f.async('base64');
+            }
+            catch { }
+        }
+        const mediaEl = {
+            type: kind,
+            x: xf ? xf.x : 0,
+            y: xf ? xf.y : 0,
+            width: xf ? xf.width : 300,
+            height: xf ? xf.height : 200,
+            extension: mExt
+        };
+        if (mData)
+            mediaEl.data = mData;
+        else if (/^https?:/i.test(String(mTarget)))
+            mediaEl.src = mTarget;
+        else
+            return null;
+        if (xf && xf.rotation)
+            mediaEl.rotation = xf.rotation;
+        if (name)
+            mediaEl.name = String(name);
+        const pRid = blip && blip.attrs && blip.attrs['r:embed'];
+        if (pRid) {
+            const pTarget = resObj[String(pRid)] && resObj[String(pRid)].target;
+            const pPart = resolvePart(pTarget);
+            if (pPart) {
+                try {
+                    const f = zip.file(pPart);
+                    if (f) {
+                        mediaEl.poster = {
+                            data: await f.async('base64'),
+                            extension: (pPart.split('.').pop() || 'png').toLowerCase()
+                        };
+                    }
+                }
+                catch { }
+            }
+        }
+        return mediaEl;
+    }
     const ext = ((part || target || '').split('.').pop() || 'png').toLowerCase();
     const mimeMap = {
         png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml'
@@ -17735,7 +18534,7 @@ async function processSingleSlideStructured(zip, slideFileName, index, slideSize
         index
     };
 }
-async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slideNum) {
+async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slideNum, docCustomProps) {
     const warpObj = {
         slideLayoutContent: slideData.slideLayoutContent,
         slideLayoutTables: slideData.slideLayoutTables,
@@ -17801,10 +18600,10 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slide
             result += await PPTXNodeUtils.processNodesInSlide(nodeKey, nodes[nodeKey], nodes, warpObj, "slide", "group", settings);
         }
     }
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const comments = slideData.comments;
     if (comments && comments.length) {
         const emuToPx = (e) => (e == null ? 0 : e / 9525);
-        const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const noteHtml = comments.map((c, i) => {
             const left = c.x != null ? emuToPx(c.x) : (slideSize.width - 220);
             const top = c.y != null ? emuToPx(c.y) : (8 + i * 76);
@@ -17815,6 +18614,12 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slide
                 `</div>`;
         }).join('');
         result += `<div class="pptx-comments">${noteHtml}</div>`;
+    }
+    if (docCustomProps && slideNum === 1 && Object.keys(docCustomProps).length) {
+        const rows = Object.entries(docCustomProps)
+            .map(([k, v]) => `<div class="pptx-custom-prop"><span class="pptx-custom-prop-name">${esc(k)}</span><span class="pptx-custom-prop-value">${esc(v)}</span></div>`)
+            .join('');
+        result += `<div class="pptx-custom-props" style="position:absolute;left:0;bottom:0;max-width:60%;box-sizing:border-box;background:rgba(255,255,255,.92);border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;font:11px/1.5 sans-serif;color:#334155;z-index:55;">${rows}</div>`;
     }
     return `${result}</div></section>`;
 }
@@ -17858,7 +18663,7 @@ async function pptxToHtml(fileData, options) {
             charts: []
         };
         for (const slideData of parsedData.slides) {
-            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum);
+            const slideHtml = await convertSlideDataToHtml(slideData.data, slideSize, settings, zip, slideData.slideNum, parsedData.customProps);
             const sldAttrs = slideData.data.slideContent && slideData.data.slideContent["p:sld"] && slideData.data.slideContent["p:sld"].attrs;
             const hidden = !!(sldAttrs && String(sldAttrs.show) === "0");
             result.slides.push({
@@ -18138,6 +18943,10 @@ function extractSlideTiming(slideContent) {
         if (spid != null) {
             let preset = "fade";
             let dur;
+            let presetClass;
+            let presetId;
+            let delay;
+            let repeat;
             const childTnLst = c["p:childTnLst"];
             if (childTnLst) {
                 const inner = Array.isArray(childTnLst["p:cTn"]) ? childTnLst["p:cTn"] : [childTnLst["p:cTn"]];
@@ -18147,11 +18956,32 @@ function extractSlideTiming(slideContent) {
                             preset = String(ic.attrs.preset);
                         if (ic.attrs.dur != null)
                             dur = Number(ic.attrs.dur) / 1000;
+                        if (ic.attrs.presetClass)
+                            presetClass = String(ic.attrs.presetClass);
+                        if (ic.attrs.presetId != null)
+                            presetId = Number(ic.attrs.presetId);
+                        if (ic.attrs.delay != null && ic.attrs.delay !== 'indefinite')
+                            delay = Number(ic.attrs.delay) / 1000;
+                        if (ic.attrs.repeatCount != null) {
+                            repeat = ic.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(ic.attrs.repeatCount) / 1000;
+                        }
                     }
                 }
             }
-            const type = ["fade", "flyIn", "zoom", "wipe"].includes(preset) ? preset : "fade";
-            animations.push({ spid: Number(spid), type, duration: dur ?? 1 });
+            const anim = {
+                spid: Number(spid),
+                type: preset,
+                duration: dur ?? 1
+            };
+            if (presetClass)
+                anim.presetClass = presetClass;
+            if (presetId != null)
+                anim.presetId = presetId;
+            if (delay != null)
+                anim.delay = delay;
+            if (repeat != null)
+                anim.repeat = repeat;
+            animations.push(anim);
         }
     }
     if (advanceTime == null && animations.length === 0)
