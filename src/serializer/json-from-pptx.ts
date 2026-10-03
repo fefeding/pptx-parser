@@ -23,7 +23,8 @@ import type {
     PptxDocument, PptxSlide, PptxElement, PptxTextElement, PptxShapeElement,
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
-    PptxDiagramElement, PptxRawElement, PptxAnimation, PptxGroupElement, TextAlign, VAlign, ChartGrouping
+    PptxDiagramElement, PptxRawElement, PptxAnimation, PptxGroupElement, TextAlign, VAlign, ChartGrouping,
+    PptxFillImage
 } from '../types/pptx-document';
 
 /** plotArea 下可能出现的全部图表节点（ECMA-376 全集），用于反向提取时判定图表类型 */
@@ -237,6 +238,21 @@ function readSpPr(spPr: any): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'lin
             direction = ang >= 45 && ang < 135 ? 'vertical' : (ang >= 22.5 && ang < 67.5 ? 'diagonal' : 'horizontal');
         }
         out.fill = { type: 'gradient', direction, stops };
+    } else if (spPr['a:pattFill']) {
+        // 图案填充（a:pattFill）：prst + 前景/背景色，往返必须保留，否则形状会退化为空白
+        const pf = Array.isArray(spPr['a:pattFill']) ? spPr['a:pattFill'][0] : spPr['a:pattFill'];
+        const prst = pf && pf.attrs && pf.attrs.prst ? String(pf.attrs.prst) : undefined;
+        if (prst) {
+            const patt: any = { type: 'pattern', prst };
+            const fg = readSrgbClr(firstChild(pf, 'a:fgClr'));
+            const bg = readSrgbClr(firstChild(pf, 'a:bgClr'));
+            if (fg) patt.fg = fg;
+            if (bg) patt.bg = bg;
+            out.fill = patt;
+        }
+    } else if (spPr['a:blipFill']) {
+        // 形状图片填充（a:blipFill）需要异步读取媒体，占位标记，由调用方用 readImageFill 覆盖
+        out.fill = undefined;
     } else {
         const color = readSrgbClr(spPr);
         if (color) {
@@ -448,7 +464,11 @@ function extractTiming(slideContent: any): { advanceTime?: number; animations?: 
 }
 
 /** 提取背景 */
-function extractBackground(slideContent: any): PptxBackground | undefined {
+async function extractBackground(
+    slideContent: any,
+    resObj: Record<string, { type?: string; target?: string }>,
+    zip: JSZip
+): Promise<PptxBackground | undefined> {
     const sld = slideContent && slideContent['p:sld'];
     if (!sld) return undefined;
     const bg = sld['p:cSld'] && sld['p:cSld']['p:bg'];
@@ -457,6 +477,11 @@ function extractBackground(slideContent: any): PptxBackground | undefined {
     if (bgPr) {
         const color = readSrgbClr(bgPr);
         if (color) return color;
+        // 图片背景（p:bgPr/a:blipFill）：与形状图片填充一致地内联 base64
+        if (bgPr['a:blipFill']) {
+            const img = await readImageFill(bgPr['a:blipFill'], resObj, zip);
+            if (img) return img;
+        }
         if (bgPr['a:gradFill']) {
             // 简化：记录为 gradient，stops 尽力提取
             const gsLst = bgPr['a:gradFill']['a:gsLst'];
@@ -782,7 +807,7 @@ export async function extractSlideToStandard(
         const resObj: Record<string, { type?: string; target?: string }> = slideData.slideResObj || {};
 
         // 背景 / 过渡 / 备注
-        const bg = extractBackground(slideContent);
+        const bg = await extractBackground(slideContent, resObj, zip);
         if (bg !== undefined) slide.background = bg;
         const transition = extractTransition(slideContent);
         if (transition) slide.transition = transition;
@@ -893,6 +918,73 @@ export async function extractSlideToStandard(
     return slide;
 }
 
+/** 图片扩展名 → MIME（形状图片填充内联为 dataURL 时使用） */
+const IMAGE_MIME: Record<string, string> = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+    bmp: 'image/bmp', svg: 'image/svg+xml', webp: 'image/webp', tiff: 'image/tiff',
+    emf: 'image/emf', wmf: 'image/wmf'
+};
+
+/**
+ * 图片填充（a:blipFill，用于形状 p:spPr 或背景 p:bgPr）→ PptxFillImage。
+ *
+ * 与 p:pic 的处理保持一致：包内部件内联为 dataURL（保证 round-trip 自包含），
+ * 外链图片保留 src 交由生成端下载；同时读取 a:srcRect（裁剪）与 a:tile（平铺），
+ * 这两者在 OOXML 中均为千分比，统一转成 0~1 比例。
+ *
+ * 部件缺失且非外链时返回 undefined（避免生成端拿到不可用的填充）。
+ */
+async function readImageFill(
+    blipFill: any,
+    resObj: Record<string, { type?: string; target?: string }>,
+    zip: JSZip
+): Promise<PptxFillImage | undefined> {
+    const blip = blipFill && blipFill['a:blip'];
+    if (!blip || !blip.attrs || !blip.attrs['r:embed']) return undefined;
+
+    const rid = String(blip.attrs['r:embed']);
+    const target = resObj[rid] && resObj[rid].target;
+    const part = resolvePart(target);
+    const ext = ((part || target || '').split('.').pop() || 'png').toLowerCase();
+    const out: PptxFillImage = { type: 'image', extension: ext };
+
+    if (part) {
+        try {
+            const file = zip.file(part);
+            if (file) {
+                out.data = `data:${IMAGE_MIME[ext] || 'application/octet-stream'};base64,${await file.async('base64')}`;
+            }
+        } catch { /* 忽略媒体读取失败 */ }
+    }
+    if (!out.data) {
+        if (/^https?:/i.test(String(target))) out.src = String(target);
+        else return undefined;
+    }
+
+    // 裁剪：a:srcRect（WPS 也可能写 a:stretch/a:fillRect），千分比 → 0~1 比例
+    const srcRectNode = firstChild(blipFill, 'a:srcRect')
+        || firstChild(firstChild(blipFill, 'a:stretch'), 'a:fillRect');
+    if (srcRectNode) {
+        const rect: { l?: number; t?: number; r?: number; b?: number } = {};
+        for (const side of ['l', 't', 'r', 'b'] as const) {
+            const v = readNumAttr(srcRectNode, side);
+            if (v) rect[side] = v / 100000;
+        }
+        if (Object.keys(rect).length) out.srcRect = rect;
+    }
+    // 平铺：a:tile，sx/sy（每格占原图比例）与 tx/ty（偏移）均为千分比 → 0~1 比例
+    const tileNode = firstChild(blipFill, 'a:tile');
+    if (tileNode) {
+        const tile: { sx?: number; sy?: number; tx?: number; ty?: number } = {};
+        for (const k of ['sx', 'sy', 'tx', 'ty'] as const) {
+            const v = readNumAttr(tileNode, k);
+            if (v !== undefined) tile[k] = v / 100000;
+        }
+        if (Object.keys(tile).length) out.tile = tile;
+    }
+    return out;
+}
+
 /** 单个 OOXML 节点 → PptxElement */
 async function nodeToElement(
     key: string,
@@ -948,6 +1040,11 @@ async function nodeToElement(
         // 形状元素
         const xf = readXfrm(node, false);
         const sp = readSpPr(spPr);
+        // 形状图片填充（a:blipFill）需异步读取媒体部件，readSpPr 无法处理，这里覆盖
+        if (spPr && spPr['a:blipFill']) {
+            const imgFill = await readImageFill(spPr['a:blipFill'], resObj, zip);
+            if (imgFill) sp.fill = imgFill;
+        }
         const name = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvPr'] && node['p:nvSpPr']['p:cNvPr'].attrs && node['p:nvSpPr']['p:cNvPr'].attrs.name;
         const shapeEl: PptxShapeElement = {
             type: 'shape',

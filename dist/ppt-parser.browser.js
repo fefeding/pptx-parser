@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.16
+ * @fefeding/ppt-parser v1.0.17
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -18336,6 +18336,23 @@ function readSpPr(spPr) {
         }
         out.fill = { type: 'gradient', direction, stops };
     }
+    else if (spPr['a:pattFill']) {
+        const pf = Array.isArray(spPr['a:pattFill']) ? spPr['a:pattFill'][0] : spPr['a:pattFill'];
+        const prst = pf && pf.attrs && pf.attrs.prst ? String(pf.attrs.prst) : undefined;
+        if (prst) {
+            const patt = { type: 'pattern', prst };
+            const fg = readSrgbClr(firstChild(pf, 'a:fgClr'));
+            const bg = readSrgbClr(firstChild(pf, 'a:bgClr'));
+            if (fg)
+                patt.fg = fg;
+            if (bg)
+                patt.bg = bg;
+            out.fill = patt;
+        }
+    }
+    else if (spPr['a:blipFill']) {
+        out.fill = undefined;
+    }
     else {
         const color = readSrgbClr(spPr);
         if (color) {
@@ -18554,7 +18571,7 @@ function extractTiming(slideContent) {
         result.animations = animations;
     return result;
 }
-function extractBackground(slideContent) {
+async function extractBackground(slideContent, resObj, zip) {
     const sld = slideContent && slideContent['p:sld'];
     if (!sld)
         return undefined;
@@ -18566,6 +18583,11 @@ function extractBackground(slideContent) {
         const color = readSrgbClr(bgPr);
         if (color)
             return color;
+        if (bgPr['a:blipFill']) {
+            const img = await readImageFill(bgPr['a:blipFill'], resObj, zip);
+            if (img)
+                return img;
+        }
         if (bgPr['a:gradFill']) {
             const gsLst = bgPr['a:gradFill']['a:gsLst'];
             const stops = [];
@@ -18838,7 +18860,7 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             && slideContent['p:sld']['p:cSld']
             && slideContent['p:sld']['p:cSld']['p:spTree'];
         const resObj = slideData.slideResObj || {};
-        const bg = extractBackground(slideContent);
+        const bg = await extractBackground(slideContent, resObj, zip);
         if (bg !== undefined)
             slide.background = bg;
         const transition = extractTransition(slideContent);
@@ -18942,6 +18964,60 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
     }
     return slide;
 }
+const IMAGE_MIME = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+    bmp: 'image/bmp', svg: 'image/svg+xml', webp: 'image/webp', tiff: 'image/tiff',
+    emf: 'image/emf', wmf: 'image/wmf'
+};
+async function readImageFill(blipFill, resObj, zip) {
+    const blip = blipFill && blipFill['a:blip'];
+    if (!blip || !blip.attrs || !blip.attrs['r:embed'])
+        return undefined;
+    const rid = String(blip.attrs['r:embed']);
+    const target = resObj[rid] && resObj[rid].target;
+    const part = resolvePart(target);
+    const ext = ((part || target || '').split('.').pop() || 'png').toLowerCase();
+    const out = { type: 'image', extension: ext };
+    if (part) {
+        try {
+            const file = zip.file(part);
+            if (file) {
+                out.data = `data:${IMAGE_MIME[ext] || 'application/octet-stream'};base64,${await file.async('base64')}`;
+            }
+        }
+        catch { }
+    }
+    if (!out.data) {
+        if (/^https?:/i.test(String(target)))
+            out.src = String(target);
+        else
+            return undefined;
+    }
+    const srcRectNode = firstChild(blipFill, 'a:srcRect')
+        || firstChild(firstChild(blipFill, 'a:stretch'), 'a:fillRect');
+    if (srcRectNode) {
+        const rect = {};
+        for (const side of ['l', 't', 'r', 'b']) {
+            const v = readNumAttr(srcRectNode, side);
+            if (v)
+                rect[side] = v / 100000;
+        }
+        if (Object.keys(rect).length)
+            out.srcRect = rect;
+    }
+    const tileNode = firstChild(blipFill, 'a:tile');
+    if (tileNode) {
+        const tile = {};
+        for (const k of ['sx', 'sy', 'tx', 'ty']) {
+            const v = readNumAttr(tileNode, k);
+            if (v !== undefined)
+                tile[k] = v / 100000;
+        }
+        if (Object.keys(tile).length)
+            out.tile = tile;
+    }
+    return out;
+}
 async function nodeToElement(key, node, resObj, zip) {
     if (key === 'p:graphicFrame') {
         return await graphicFrameToElement(node, resObj, zip);
@@ -18995,6 +19071,11 @@ async function nodeToElement(key, node, resObj, zip) {
     if (geom) {
         const xf = readXfrm(node, false);
         const sp = readSpPr(spPr);
+        if (spPr && spPr['a:blipFill']) {
+            const imgFill = await readImageFill(spPr['a:blipFill'], resObj, zip);
+            if (imgFill)
+                sp.fill = imgFill;
+        }
         const name = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvPr'] && node['p:nvSpPr']['p:cNvPr'].attrs && node['p:nvSpPr']['p:cNvPr'].attrs.name;
         const shapeEl = {
             type: 'shape',

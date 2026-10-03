@@ -94,8 +94,8 @@ export interface PptxGradientStop { color: string; position: number; }
 export interface PptxFillSolid { type?: 'solid'; color?: string; transparency?: number; }
 /** 渐变填充 */
 export interface PptxFillGradient { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: PptxGradientStop[]; }
-/** 形状填充：颜色串 / {color} / {type:'solid',...} / {type:'gradient',...} / 'none' / null */
-export type PptxFill = string | PptxFillSolid | PptxFillGradient | 'none' | null;
+/** 形状填充：颜色串 / {color} / {type:'solid',...} / {type:'gradient',...} / {type:'pattern',...} / {type:'image',...} / 'none' / null */
+export type PptxFill = string | PptxFillSolid | PptxFillGradient | PptxFillPattern | PptxFillImage | 'none' | null;
 
 /**
  * 图片填充的源图裁剪（a:srcRect）：从图片各边裁掉的比例，取值 0~1。
@@ -107,6 +107,17 @@ export interface PptxImageSrcRect { l?: number; t?: number; r?: number; b?: numb
  * 指定 tile 即使用平铺，否则为拉伸铺满（a:stretch）。
  */
 export interface PptxImageTile { sx?: number; sy?: number; tx?: number; ty?: number; }
+/** 图案填充（a:pattFill）：prst 为 OOXML 预设图案名，fg/bg 为前景/背景色 */
+export interface PptxFillPattern { type: 'pattern'; prst: string; fg?: string; bg?: string; }
+/**
+ * 图片填充（a:blipFill）：data 为内联 dataURL，src 为外链地址。
+ * 与 p:pic 一致，round-trip 时自包含。
+ */
+export interface PptxFillImage {
+    type: 'image'; data?: string; src?: string; extension?: string;
+    srcRect?: PptxImageSrcRect;
+    tile?: PptxImageTile;
+}
 
 /** 形状边框：{ color, width(pt), transparency, dashType } / 'none'(无边框) / null(继承) */
 export interface PptxLineStyle { color?: string; width?: number; transparency?: number; dashType?: string; }
