@@ -197,12 +197,20 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 .el-text .tb-body {
   width: 100%; height: 100%; display: flex; flex-direction: column;
   justify-content: flex-start; outline: none; word-break: break-word;
+  position: relative; z-index: 1;
 }
 .el-text .tb-body > div { min-height: 1em; }
-.el-text .tb-body > div.bullet-para { padding-left: 1.2em; position: relative; }
-.el-text .tb-body > div.bullet-para::before { content: "•"; position: absolute; left: 0; }
-.el-text .tb-body > div.num-para { padding-left: 1.5em; position: relative; counter-increment: pnum; }
-.el-text .tb-body > div.num-para::before { content: counter(pnum) "."; position: absolute; left: 0; }
+/* 列表段落：负向首行缩进实现悬挂缩进 */
+.el-text .tb-body > div.bullet-para { padding-left: 1.3em; text-indent: -1.3em; }
+.el-text .tb-body > div.num-para { padding-left: 1.8em; text-indent: -1.8em; }
+/* 编号/符号标记：inline-block 与正文同基线，固定宽度让列表文字对齐 */
+.el-text .tb-body > div .bullet-mark {
+  display: inline-block;
+  min-width: 1.2em;
+  text-align: left;
+  white-space: pre;
+  margin-right: 0.2em;
+}
 .el-table { display: grid; }
 .el-table .cell {
   border: 1px solid #cbd5e1; padding: 4px 6px; overflow: hidden; display: flex;
@@ -449,8 +457,25 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 /* 幻灯片缩略图编号 */
 .slide-num { width: 18px; text-align: right; color: var(--text-2); font-size: 11px; padding-top: 2px; flex: none; }
 .slide-item.hidden .slide-thumb { opacity: .45; }
+.slide-hidden-badge {
+  position: absolute; left: 30px; top: 10px; z-index: 2;
+  font-size: 10px; line-height: 1; padding: 3px 6px; border-radius: 4px;
+  color: #fff; background: rgba(95,99,104,.85); cursor: pointer; user-select: none;
+}
+.slide-hidden-badge:hover { background: rgba(234,67,53,.9); }
 .slide-bar { display: none; gap: 2px; position: absolute; bottom: 6px; right: 6px; }
 .slide-item:hover .slide-bar { display: flex; }
+
+/* 画布批注卡片（与预览端 .pptx-comment 同风格；不可选中，点击穿透） */
+.slide-comment {
+  position: absolute; width: 200px; box-sizing: border-box; z-index: 60;
+  background: #fff7cc; border: 1px solid #f1d27a; border-radius: 8px;
+  padding: 8px 10px; box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  font: 12px/1.4 sans-serif; color: #3b2f00; pointer-events: none;
+}
+.slide-comment .sc-author { font-weight: 700; margin-bottom: 2px; }
+.slide-comment .sc-text { white-space: pre-wrap; }
+.slide-comment .sc-date { margin-top: 4px; font-size: 10px; color: #8a7a3a; }
 
 /* 备注栏默认收起 */
 .notes-bar { height: 32px; }

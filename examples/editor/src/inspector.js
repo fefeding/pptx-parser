@@ -13,7 +13,7 @@ import {
 import {
   openPalette, openShapePicker, openChartDialog, openTableDialog, openImagePicker
 } from './dialogs.js';
-import { readFileAsDataURL } from './util.js';
+import { pickFile, readFileAsDataURL } from './util.js';
 
 let DOM = {};
 export function initInspector(dom) {
@@ -202,19 +202,101 @@ function wrapCheck(input) { const w = h('label', { class: 'chk' }); w.appendChil
 /* ---------- 形状 ---------- */
 function shapeFields(single, els) {
   const ids = els.map((e) => e.id);
-  const fill = single.fill && single.fill !== 'none'
-    ? (typeof single.fill === 'string' ? single.fill : single.fill.color)
-    : null;
-  const fillRow = field('填充', swatchBtn(fill || 'none', (c) => {
-    ids.forEach((id) => updateElement(id, { fill: c ? { type: 'solid', color: c, transparency: 0 } : 'none' }));
-  }, true));
-  const trans = slider('透明度', (single.fill && single.fill.transparency) || 0, (v) => {
-    ids.forEach((id) => {
-      const el = store.findElement(id);
-      const base = el.fill && el.fill !== 'none' ? el.fill : { type: 'solid', color: '#4285F4' };
-      updateElement(id, { fill: { ...base, transparency: Math.round(v) } });
-    });
-  }, 100);
+
+  // 填充类型切换
+  const curFill = single.fill && single.fill !== 'none' ? single.fill : { type: 'solid', color: '#4285F4', transparency: 0 };
+  const curType = (typeof curFill === 'string' ? 'solid' : (curFill.type || 'solid'));
+  const typeSel = h('select', { onchange: (e) => {
+    const type = e.target.value;
+    const next = type === 'none' ? 'none' : type === 'solid' ? { type: 'solid', color: '#4285F4', transparency: 0 }
+      : type === 'gradient' ? { type: 'gradient', direction: 'horizontal', stops: [{ color: '#4285F4', position: 0 }, { color: '#34A853', position: 1 }] }
+      : type === 'image' ? { type: 'image', data: '', tile: { sx: 1, sy: 1 }, srcRect: { l: 0, t: 0, r: 0, b: 0 } }
+      : { type: 'pattern', prst: 'diagCross', fg: '#D93025', bg: '#FFFFFF' };
+    ids.forEach((id) => updateElement(id, { fill: next }));
+  } });
+  ['solid', 'gradient', 'image', 'pattern', 'none'].forEach((t) => typeSel.appendChild(h('option', { value: t, text: ({ solid: '纯色', gradient: '渐变', image: '图片', pattern: '图案', none: '无' })[t] })));
+  typeSel.value = curType;
+  const typeRow = field('填充类型', typeSel);
+
+  const fillControls = [];
+
+  if (curType === 'solid') {
+    const color = typeof curFill === 'string' ? curFill : (curFill.color || '#4285F4');
+    fillControls.push(field('颜色', swatchBtn(color, (c) => {
+      ids.forEach((id) => updateElement(id, { fill: { type: 'solid', color: c || '#4285F4', transparency: curFill.transparency || 0 } }));
+    }, true)));
+    fillControls.push(slider('透明度', (typeof curFill === 'object' && curFill.transparency) || 0, (v) => {
+      const color = typeof curFill === 'string' ? curFill : (curFill.color || '#4285F4');
+      ids.forEach((id) => updateElement(id, { fill: { type: 'solid', color, transparency: Math.round(v) } }));
+    }, 100));
+  } else if (curType === 'gradient') {
+    const stops = curFill.stops || [{ color: '#4285F4', position: 0 }, { color: '#34A853', position: 1 }];
+    fillControls.push(field('方向', (() => {
+      const sel = h('select', { onchange: (e) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, direction: e.target.value } })) });
+      ['horizontal', 'vertical', 'diagonal'].forEach((d) => sel.appendChild(h('option', { value: d, text: ({ horizontal: '水平', vertical: '垂直', diagonal: '对角' })[d] })));
+      sel.value = curFill.direction || 'horizontal';
+      return sel;
+    })()));
+    fillControls.push(field('起点色', swatchBtn(stops[0]?.color || '#4285F4', (c) => {
+      const s = [...stops]; s[0] = { ...s[0], color: c || '#4285F4' };
+      ids.forEach((id) => updateElement(id, { fill: { ...curFill, stops: s } }));
+    }, false)));
+    fillControls.push(field('终点色', swatchBtn(stops[1]?.color || '#34A853', (c) => {
+      const s = [...stops]; s[1] = { ...s[1], color: c || '#34A853' };
+      ids.forEach((id) => updateElement(id, { fill: { ...curFill, stops: s } }));
+    }, false)));
+  } else if (curType === 'pattern') {
+    fillControls.push(field('预设', (() => {
+      const sel = h('select', { onchange: (e) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, prst: e.target.value } })) });
+      const presets = ['pct5','pct10','pct20','pct25','pct30','pct40','pct50','pct60','pct70','pct75','pct80','pct90',
+        'horz','ltHorz','dkHorz','narHorz','dashHorz','vert','ltVert','dkVert','narVert','dashVert',
+        'dnDiag','ltDnDiag','dkDnDiag','wdDnDiag','dashDnDiag','upDiag','ltUpDiag','dkUpDiag','wdUpDiag','dashUpDiag',
+        'cross','diagCross','smGrid','lgGrid','dotGrid','smCheck','lgCheck','dotDmnd','solidDmnd','openDmnd',
+        'smConfetti','lgConfetti','horzBrick','diagBrick','weave','trellis','plaid','shingle','wave','zigZag','sphere','divot'];
+      presets.forEach((p) => sel.appendChild(h('option', { value: p, text: p })));
+      sel.value = curFill.prst || 'diagCross';
+      return sel;
+    })()));
+    fillControls.push(field('前景色', swatchBtn(curFill.fg || '#D93025', (c) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, fg: c || '#D93025' } })), false)));
+    fillControls.push(field('背景色', swatchBtn(curFill.bg || '#FFFFFF', (c) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, bg: c || '#FFFFFF' } })), false)));
+  } else if (curType === 'image') {
+    const tile = curFill.tile || { sx: 1, sy: 1 };
+    const sr = curFill.srcRect || { l: 0, t: 0, r: 0, b: 0 };
+    const imgSrc = curFill.data || curFill.src || '';
+    if (imgSrc) {
+      fillControls.push(field('预览', h('img', {
+        src: imgSrc,
+        style: { width: '100%', height: '92px', objectFit: 'contain', display: 'block', background: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }
+      })));
+    }
+    fillControls.push(field('', h('button', {
+      class: 'mini-btn', text: '选择图片', onclick: async (e) => {
+        e.stopPropagation();
+        const f = await pickFile('image/*');
+        if (!f) return;
+        const data = await readFileAsDataURL(f);
+        ids.forEach((id) => updateElement(id, { fill: { ...curFill, data } }));
+      }
+    })));
+    fillControls.push(h('div', { class: 'hint', text: curFill.data ? '已选择图片' : '尚未选择图片' }));
+    fillControls.push(field('平铺', (() => {
+      const cb = h('input', { type: 'checkbox' });
+      cb.checked = tile.sx != null && tile.sy != null;
+      cb.onchange = () => ids.forEach((id) => {
+        const nextTile = cb.checked ? { sx: 1, sy: 1 } : null;
+        updateElement(id, { fill: { ...curFill, tile: nextTile } });
+      });
+      return wrapCheck(cb);
+    })()));
+    if (tile.sx != null) {
+      fillControls.push(field('横向比例', numInput(tile.sx ?? 1, (v) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, tile: { ...tile, sx: Math.max(0.01, Math.min(2, v)) } } })), { min: 0.01, max: 2, step: 0.05 })));
+      fillControls.push(field('纵向比例', numInput(tile.sy ?? 1, (v) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, tile: { ...tile, sy: Math.max(0.01, Math.min(2, v)) } } })), { min: 0.01, max: 2, step: 0.05 })));
+    }
+    fillControls.push(field('裁剪-左', numInput(sr.l || 0, (v) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, srcRect: { ...sr, l: clamp01(v) } } })), { min: 0, max: 1, step: 0.05 })));
+    fillControls.push(field('裁剪-上', numInput(sr.t || 0, (v) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, srcRect: { ...sr, t: clamp01(v) } } })), { min: 0, max: 1, step: 0.05 })));
+    fillControls.push(field('裁剪-右', numInput(sr.r || 0, (v) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, srcRect: { ...sr, r: clamp01(v) } } })), { min: 0, max: 1, step: 0.05 })));
+    fillControls.push(field('裁剪-下', numInput(sr.b || 0, (v) => ids.forEach((id) => updateElement(id, { fill: { ...curFill, srcRect: { ...sr, b: clamp01(v) } } })), { min: 0, max: 1, step: 0.05 })));
+  }
 
   const lineVal = single.line && single.line !== 'none' ? single.line.color : null;
   const lineRow = field('描边', swatchBtn(lineVal || 'none', (c) => {
@@ -237,21 +319,42 @@ function shapeFields(single, els) {
     openShapePicker(e.currentTarget, (type) => ids.forEach((id) => updateElement(id, { shapeType: type })));
   } });
 
-  return [fillRow, trans, lineRow, lwRow, field('阴影', wrapCheck(shadow)), field('', shapeBtn)];
+  return [typeRow, ...fillControls, lineRow, lwRow, field('阴影', wrapCheck(shadow)), field('', shapeBtn)];
 }
+function clamp01(v) { return Math.max(0, Math.min(1, v)); }
 
 /* ---------- 图片 ---------- */
 function imageFields(single, els) {
   const ids = els.map((e) => e.id);
+  const src = single.src || '';
+  // 选中图片的小预览（带亮度/对比度实时效果）
+  const preview = h('img', {
+    src,
+    style: {
+      width: '100%', height: '92px', objectFit: 'contain', display: 'block',
+      background: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0'
+    }
+  });
+  const adjust = { ...(single.imageAdjust || {}) };
+  const applyFilter = () => {
+    const b = adjust.brightness || 0;
+    const c = adjust.contrast || 0;
+    preview.style.filter = `brightness(${1 + b / 100}) contrast(${1 + c / 100})`;
+  };
+  applyFilter();
   const adj = (k) => slider(k === 'brightness' ? '亮度' : k === 'contrast' ? '对比度' : '透明度',
-    (single.imageAdjust && single.imageAdjust[k]) || 0,
-    (v) => ids.forEach((id) => {
-      const el = store.findElement(id);
-      const a = { ...(el.imageAdjust || {}), [k]: Math.round(v) };
-      updateElement(id, { imageAdjust: a });
-    }), 100, -100);
+    adjust[k] || 0,
+    (v) => {
+      ids.forEach((id) => {
+        const el = store.findElement(id);
+        const a = { ...(el.imageAdjust || {}), [k]: Math.round(v) };
+        updateElement(id, { imageAdjust: a });
+      });
+      adjust[k] = Math.round(v);
+      applyFilter();
+    }, 100, -100);
   const replace = h('button', { class: 'mini-btn', text: '替换图片', onclick: (e) => { e.stopPropagation(); openImagePicker(single); } });
-  return [field('', replace), adj('brightness'), adj('contrast'), adj('transparency')];
+  return [field('预览', preview), field('', replace), adj('brightness'), adj('contrast'), adj('transparency')];
 }
 
 /* ---------- 表格 ---------- */
@@ -274,6 +377,26 @@ function tableFields(single, els) {
   const fs = h('select', { onchange: (e) => { updateElement(id, { fontSize: parseFloat(e.target.value) }); syncTableStyleOn(store.findElement(id)); } });
   FONT_SIZES.forEach((s) => fs.appendChild(h('option', { value: String(s), text: String(s) })));
   fs.value = String(single.fontSize || 14);
+  // 表格级内边距
+  const insetVal = (k, def) => single.inset && single.inset[k] != null ? single.inset[k] : def;
+  const insetInput = (k, label, def) => {
+    const inp = h('input', { type: 'number', value: String(insetVal(k, def)), min: '0', max: '60', style: { width: '56px' } });
+    inp.onchange = () => {
+      const el = store.findElement(id);
+      const cur = { ...(el.inset || {}) };
+      cur[k] = Math.max(0, Math.min(60, Number(inp.value) || 0));
+      updateElement(id, { inset: cur });
+    };
+    return field(label, inp);
+  };
+  const diagSel = h('select', { onchange: (e) => {
+    const val = e.target.value || undefined;
+    const el = store.findElement(id);
+    const rows = el.rows.map((r) => ({ ...r, cells: r.cells.map((c) => ({ ...c, borders: { ...(c.borders || {}), diagonal: val } })) }));
+    updateElement(id, { rows, diagonal: val });
+  } });
+  [['', '无'], ['tlBr', '↘ 左上-右下'], ['blTr', '↙ 左下-右上'], ['both', '✕ 双向']].forEach(([v, t]) => diagSel.appendChild(h('option', { value: v, text: t })));
+  diagSel.value = single.diagonal || '';
   const color = field('文字颜色', swatchBtn(single.color, (c) => { updateElement(id, { color: c }); syncTableStyleOn(store.findElement(id)); }, false));
 
   const edit = h('button', { class: 'mini-btn', text: '编辑内容', onclick: (e) => { e.stopPropagation(); openTableDialog(single); } });
@@ -283,6 +406,9 @@ function tableFields(single, els) {
     row2(border, field('边框', bw)),
     row2(headerFill, cellFill),
     row2(field('字号', fs), color),
+    row2(field('内边距-上', insetInput('t', '上', 4)), field('内边距-下', insetInput('b', '下', 4))),
+    row2(field('内边距-左', insetInput('l', '左', 6)), field('内边距-右', insetInput('r', '右', 6))),
+    field('对角线', diagSel),
     field('', edit)
   ];
 }

@@ -4,7 +4,7 @@
  * 内部模型与 PptxDocument 基本同构（坐标统一 px、字号 pt），
  * 额外补充编辑器需要的字段（id / locked / hidden / headerRow 等）。
  */
-import { uid, clone, normalizeColor, clamp } from './util.js';
+import { uid, clone, normalizeColor, clamp, ptToPx, pxToPt } from './util.js';
 
 /* ======================= 常量 ======================= */
 export const SLIDE_SIZES = {
@@ -61,7 +61,14 @@ export const THEMES = [
   }
 ];
 
-export const getTheme = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
+export const getTheme = (id) => {
+  if (id && typeof id === 'object') return id; // 已解析的主题对象（如导入 PPTX 的自定义主题）
+  return THEMES.find((t) => t.id === id) || THEMES[0];
+};
+
+/** 当前解析 scheme 主题色引用时使用的主题对象（docFromPptx 在导入含自定义主题的 PPTX 时设置） */
+let _activeTheme = 'blue';
+export function setActiveTheme(t) { _activeTheme = t; }
 
 /** 形状库：shapeType（OOXML prstGeom）+ 中文名 + 预览 SVG path */
 export const SHAPES = [
@@ -556,6 +563,8 @@ function cleanRuns(paragraph, el) {
     if (r.italic && !el.italic) run.italic = true;
     if (r.underline && !el.underline) run.underline = true;
     if (r.fontFace && r.fontFace !== el.fontFace) run.fontFace = r.fontFace;
+    if (r.outline) run.outline = r.outline;
+    if (r.shadow) run.shadow = r.shadow;
     return run;
   });
   return runs.length ? runs : [{ text: '' }];
@@ -566,6 +575,18 @@ function fillToPptx(fill) {
   if (typeof fill === 'string') return fill;
   if (fill.type === 'gradient') {
     return { type: 'gradient', direction: fill.direction || 'horizontal', stops: (fill.stops || []).map((s) => ({ color: s.color, position: s.position })) };
+  }
+  if (fill.type === 'pattern') {
+    const out = { type: 'pattern', prst: fill.prst || 'pct10', fg: normalizeColor(fill.fg) || '1A73E8', bg: normalizeColor(fill.bg) || 'FFFFFF' };
+    return out;
+  }
+  if (fill.type === 'image') {
+    const out = { type: 'image', extension: 'png' };
+    if (fill.data) out.data = fill.data;
+    if (fill.src) out.src = fill.src;
+    if (fill.tile) out.tile = fill.tile;
+    if (fill.srcRect) out.srcRect = fill.srcRect;
+    return out;
   }
   const out = { type: 'solid', color: normalizeColor(fill.color) || 'FFFFFF' };
   if (fill.transparency) out.transparency = fill.transparency;
@@ -594,11 +615,29 @@ export function elementToPptx(el) {
       if (el.lineSpacing) out.lineSpacing = el.lineSpacing;
       if (el.bullet) out.bullet = el.bullet === 'number' ? 'number' : true;
       if (el.indent) out.indentLeft = el.indent;
+      if (el.textDirection) out.textDirection = el.textDirection;
+      if (el.inset) out.inset = el.inset;
+      // 写回几何与外观：带文字的形状底，或带填充/边框的纯文本框
+      if (el.shapeType) {
+        out.shapeType = el.shapeType;
+        if (el.adjust && typeof el.adjust === 'object') out.adjust = el.adjust;
+      }
+      const f = fillToPptx(el.fill);
+      if (f !== undefined) out.fill = f;
+      if (el.line) {
+        out.line = el.line !== 'none'
+          ? { color: normalizeColor(el.line.color) || '000000', width: el.line.width || 1, dashType: el.line.dashType || 'solid' }
+          : 'none';
+      }
       out.paragraphs = (el.paragraphs || []).map((p) => {
         const para = { runs: cleanRuns(p, el) };
         if (p.align) para.align = p.align;
-        if (p.bullet) para.bullet = p.bullet === 'number' ? 'number' : { type: 'bullet' };
+        const pb = normalizeBulletOut(p.bullet);
+        if (pb) para.bullet = pb;
         if (p.lineSpacing) para.lineSpacing = p.lineSpacing;
+        if (p.indent != null) para.indent = pxToPt(p.indent);
+        if (p.spaceBefore != null) para.spaceBefore = pxToPt(p.spaceBefore);
+        if (p.spaceAfter != null) para.spaceAfter = pxToPt(p.spaceAfter);
         return para;
       });
       if (!out.paragraphs.length) out.paragraphs = [{ runs: [{ text: '' }] }];
@@ -611,7 +650,15 @@ export function elementToPptx(el) {
       out.line = el.line && el.line !== 'none'
         ? { color: normalizeColor(el.line.color) || '000000', width: el.line.width || 1, dashType: el.line.dashType || 'solid' }
         : 'none';
-      if (el.shadow) out.effects = { shadow: el.shadow };
+      if (el.shadow || el.glow) {
+        out.effects = {};
+        if (el.shadow) out.effects.shadow = el.shadow;
+        if (el.glow) out.effects.glow = el.glow;
+      }
+      if (el.flipH) out.flipH = true;
+      if (el.flipV) out.flipV = true;
+      if (el.adjust && typeof el.adjust === 'object' && Object.keys(el.adjust).length) out.adjust = el.adjust;
+      if (el.custGeom && Array.isArray(el.custGeom.paths) && el.custGeom.paths.length) out.custGeom = el.custGeom;
       return out;
     }
     case 'image': {
@@ -632,6 +679,8 @@ export function elementToPptx(el) {
       out.type = 'table';
       out.colWidths = (el.colWidths || []).map((w) => Math.round(w));
       if (el.border) out.border = { color: normalizeColor(el.border.color) || 'CBD5E1', width: el.border.width ?? 1 };
+      if (el.inset) out.inset = { l: el.inset.l, r: el.inset.r, t: el.inset.t, b: el.inset.b };
+      if (el.tableStyleId) out.tableStyleId = el.tableStyleId;
       out.rows = el.rows.map((row) => ({
         height: Math.round(row.height || 40),
         cells: row.cells.map((c) => {
@@ -644,6 +693,17 @@ export function elementToPptx(el) {
           if (c.fontSize) cell.fontSize = c.fontSize;
           if (c.color) cell.color = normalizeColor(c.color) || undefined;
           if (c.bold) cell.bold = true;
+          if (c.inset) cell.inset = { l: c.inset.l, r: c.inset.r, t: c.inset.t, b: c.inset.b };
+          if (c.borders) {
+            const sides = {};
+            for (const k of ['left', 'right', 'top', 'bottom']) {
+              const b = c.borders[k];
+              if (b === 'none') sides[k] = 'none';
+              else if (b && typeof b === 'object') sides[k] = { color: normalizeColor(b.color) || '#000000', width: b.width ?? 1 };
+            }
+            if (c.borders.diagonal) sides.diagonal = c.borders.diagonal;
+            if (Object.keys(sides).length) cell.borders = sides;
+          }
           return cell;
         })
       }));
@@ -652,7 +712,8 @@ export function elementToPptx(el) {
     case 'chart': {
       out.type = 'chart';
       const [baseType, variant] = String(el.chartType).split('|');
-      out.chartType = baseType;
+      // 曾为 3D 类型的图表，导出时还原原始类型
+      out.chartType = el.chartType3D || baseType;
       if (baseType === 'barChart') {
         out.barDir = variant === 'bar' ? 'bar' : 'col';
         if (variant === 'stacked') out.grouping = 'stacked';
@@ -661,11 +722,23 @@ export function elementToPptx(el) {
       out.legend = !!el.legend;
       out.dataLabels = !!el.dataLabels;
       out.categories = el.categories || [];
+      const isBubble = el.chartType3D === 'bubbleChart';
+      const isScatter = !isBubble && el.chartType === 'scatterChart';
+      const isStock = el.chartType3D === 'stockChart';
       out.series = (el.series || []).map((s) => {
         const ser = { name: s.name || '系列' };
-        if (el.chartType.startsWith('scatterChart')) {
-          ser.x = (s.values || []).map((_, i) => i + 1);
-          ser.y = (s.values || []).map((v) => Number(v) || 0);
+        if (isBubble) {
+          ser.x = (s.values || []).map((v) => v && v.x);
+          ser.y = (s.values || []).map((v) => v && v.y);
+          ser.values = (s.values || []).map((v) => v && v.size);
+        } else if (isScatter) {
+          ser.x = (s.values || []).map((v) => v && v.x);
+          ser.y = (s.values || []).map((v) => v && v.y);
+        } else if (isStock) {
+          ser.open = (s.values || []).map((v) => v && v[0]);
+          ser.close = (s.values || []).map((v) => v && v[1]);
+          ser.low = (s.values || []).map((v) => v && v[2]);
+          ser.high = (s.values || []).map((v) => v && v[3]);
         } else {
           ser.values = (s.values || []).map((v) => Number(v) || 0);
         }
@@ -681,8 +754,26 @@ export function elementToPptx(el) {
     }
     case 'group': {
       out.type = 'group';
-      out.childrenCoordinates = 'page';
+      // 导入的组合子元素为相对坐标，保持 'relative'；编辑器创建的组合为页面绝对坐标 'page'
+      out.childrenCoordinates = el.childrenCoordinates === 'relative' ? 'relative' : 'page';
       out.children = (el.children || []).filter((c) => !c.hidden).map(elementToPptx);
+      return out;
+    }
+    case 'video':
+    case 'audio': {
+      out.type = el.type;
+      if (el.data) out.data = el.data;
+      if (el.src) out.src = el.src;
+      if (el.extension) out.extension = el.extension;
+      if (el.poster) out.poster = el.poster;
+      return out;
+    }
+    case 'diagram': {
+      out.type = 'diagram';
+      out.diagramType = el.diagramType || 'list';
+      out.nodes = (el.texts || []).map((t) => ({ text: t }));
+      // 缓存绘图形状（树形布局），保留以便导出 JSON 后仍能还原树形展示
+      if (Array.isArray(el.shapes) && el.shapes.length) out.shapes = clone(el.shapes);
       return out;
     }
     default: {
@@ -701,6 +792,15 @@ export function slideToPptx(slide) {
   if (slide.background) out.background = slide.background;
   if (slide.notes) out.notes = slide.notes;
   if (slide.hidden) out.hidden = true;
+  // 批注：pos 由 px 转回 EMU（标准 JSON 的批注锚点为 EMU）
+  if (Array.isArray(slide.comments) && slide.comments.length) {
+    out.comments = slide.comments.map((c) => ({
+      author: c.author || 'Author',
+      text: c.text || '',
+      dt: c.dt || undefined,
+      pos: c.pos ? { x: Math.round((Number(c.pos.x) || 0) * 9525), y: Math.round((Number(c.pos.y) || 0) * 9525) } : undefined
+    }));
+  }
   if (slide.transition && slide.transition.type && slide.transition.type !== 'none') {
     out.transition = {
       type: slide.transition.type,
@@ -759,26 +859,78 @@ function pptxRunsToRuns(runs, fallback) {
   return runs.map((r) => ({
     text: String(r.text == null ? '' : r.text),
     fontSize: r.fontSize ?? fallback.fontSize,
-    color: normalizeColor(r.color) || fallback.color,
+    color: colorFromPptx(r.color) || fallback.color,
     bold: !!r.bold,
     italic: !!r.italic,
     underline: !!r.underline,
-    fontFace: r.fontFace || fallback.fontFace
+    fontFace: r.fontFace || fallback.fontFace,
+    outline: r.outline,
+    shadow: r.shadow
   }));
+}
+
+/** 解析 'scheme:<name>' 主题色引用 → 编辑器当前主题（导入 PPTX 的自定义主题或默认蓝主题）下的具体颜色 */
+function resolveSchemeColor(c) {
+  if (typeof c !== 'string' || !c.startsWith('scheme:')) return c;
+  const t = getTheme(_activeTheme);
+  const map = {
+    accent1: t.accents[0], accent2: t.accents[1], accent3: t.accents[2],
+    accent4: t.accents[3], accent5: t.accents[4], accent6: t.accents[5],
+    dk1: t.text, lt1: t.bg, dk2: t.title, lt2: t.panel,
+    tx1: t.text, bg1: t.bg, tx2: t.title, bg2: t.panel,
+    hlink: t.accents[0], folHlink: t.accents[5]
+  };
+  return map[c.slice(7)] || '#202124';
+}
+/** PPTX 颜色 → 编辑器颜色（兼容 scheme 引用 / 裸 hex / #hex） */
+function colorFromPptx(c) {
+  return normalizeColor(resolveSchemeColor(c));
+}
+
+/**
+ * 标准 JSON bullet → 编辑器内部 bullet 表示。
+ * 保留自动编号格式（fmt：chineseCounting 等）与项目符号字符（char），
+ * 布尔值用于常见无格式场景。
+ */
+export function normalizeBulletIn(b) {
+  if (b == null || b === false) return undefined;
+  if (b === 'number' || (typeof b === 'object' && b.type === 'number' && !b.fmt)) return 'number';
+  if (b === true || b === 'bullet') return true;
+  if (typeof b === 'object') {
+    if (b.type === 'number') return { type: 'number', fmt: b.fmt || 'arabicPeriod', start: b.start || 1 };
+    return { type: 'bullet', char: b.char || '•' };
+  }
+  return true;
+}
+
+/** 编辑器内部 bullet → 标准 JSON bullet（保留 fmt/char） */
+export function normalizeBulletOut(b) {
+  if (b == null || b === false) return undefined;
+  if (b === 'number') return 'number';
+  if (b === true || b === 'bullet') return { type: 'bullet' };
+  if (typeof b === 'object' && b.type === 'number') return { type: 'number', fmt: b.fmt, start: b.start };
+  if (typeof b === 'object' && b.char) return { type: 'bullet', char: b.char };
+  return { type: 'bullet' };
 }
 
 function fillFromPptx(fill) {
   if (!fill) return null;
   if (fill === 'none') return 'none';
-  if (typeof fill === 'string') return { type: 'solid', color: normalizeColor(fill) || '#FFFFFF', transparency: 0 };
+  if (typeof fill === 'string') return { type: 'solid', color: colorFromPptx(fill) || '#FFFFFF', transparency: 0 };
   if (fill.type === 'gradient') {
     return {
       type: 'gradient',
       direction: fill.direction || 'horizontal',
-      stops: (fill.stops || []).map((s) => ({ color: normalizeColor(s.color) || '#FFFFFF', position: s.position ?? 0 }))
+      stops: (fill.stops || []).map((s) => ({ color: colorFromPptx(s.color) || '#FFFFFF', position: s.position ?? 0 }))
     };
   }
-  return { type: 'solid', color: normalizeColor(fill.color) || '#FFFFFF', transparency: fill.transparency || 0 };
+  if (fill.type === 'pattern') {
+    return { type: 'pattern', prst: fill.prst || 'pct10', fg: colorFromPptx(fill.fg) || '#1A73E8', bg: colorFromPptx(fill.bg) || '#FFFFFF' };
+  }
+  if (fill.type === 'image') {
+    return { type: 'image', data: fill.data || '', src: fill.src || '', tile: fill.tile || null, srcRect: fill.srcRect || null };
+  }
+  return { type: 'solid', color: colorFromPptx(fill.color) || '#FFFFFF', transparency: fill.transparency || 0 };
 }
 
 function elementFromPptx(pe) {
@@ -792,22 +944,51 @@ function elementFromPptx(pe) {
     case 'text': {
       el.type = 'text';
       el.fontSize = pe.fontSize ?? 18;
-      el.color = normalizeColor(pe.color) || '#202124';
+      el.color = colorFromPptx(pe.color) || '#202124';
       el.bold = !!pe.bold; el.italic = !!pe.italic; el.underline = !!pe.underline;
       el.fontFace = pe.fontFace || '微软雅黑';
       el.align = pe.align || 'left';
       el.valign = pe.valign || 'top';
+      el.textDirection = pe.textDirection || '';
+      el.inset = (pe.inset && typeof pe.inset === 'object') ? {
+        l: pe.inset.l ?? 7.2, r: pe.inset.r ?? 7.2, t: pe.inset.t ?? 3.6, b: pe.inset.b ?? 3.6
+      } : null;
+      // 带文字的形状底（椭圆/饼图/弧线等）：保留几何与外观
+      el.shapeType = pe.shapeType || null;
+      if (pe.adjust && typeof pe.adjust === 'object') el.adjust = pe.adjust;
+      el.fill = fillFromPptx(pe.fill);
+      el.line = pe.line && pe.line !== 'none'
+        ? { color: colorFromPptx(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid' }
+        : (pe.line === 'none' ? 'none' : null);
       el.lineSpacing = typeof pe.lineSpacing === 'number' ? pe.lineSpacing : 1.15;
-      el.bullet = pe.bullet === 'number' ? 'number' : !!pe.bullet;
-      el.indent = pe.indentLeft || 0;
+      // 标准 JSON 的 bullet 是对象 {type:'number'|'bullet',...} 或 'number'/true
+      const eb = pe.bullet;
+      el.bullet = eb ? ((eb === 'number' || (eb.type === 'number')) ? 'number' : true) : false;
+      // indentLeft 单位是 pt，编辑器内部用 px
+      el.indent = pe.indentLeft ? Math.round(ptToPx(pe.indentLeft)) : 0;
       const fallback = { fontSize: el.fontSize, color: el.color, fontFace: el.fontFace };
+      const lineSpacingNum = (ls) => {
+        if (ls == null) return el.lineSpacing;
+        if (typeof ls === 'number') return ls;
+        if (ls.type === 'percent') return ls.value;
+        if (ls.type === 'pt') return Math.max(0.8, Math.round((ls.value / (el.fontSize || 18)) * 100) / 100);
+        return el.lineSpacing;
+      };
       if (pe.paragraphs && pe.paragraphs.length) {
-        el.paragraphs = pe.paragraphs.map((p) => ({
-          runs: p.runs ? pptxRunsToRuns(p.runs, fallback) : [{ text: String(p.text || '') }],
-          align: p.align || el.align,
-          bullet: p.bullet ? (p.bullet === 'number' ? 'number' : true) : undefined,
-          lineSpacing: p.lineSpacing || el.lineSpacing
-        }));
+        el.paragraphs = pe.paragraphs.map((p) => {
+          const pb = p.bullet;
+          return {
+            runs: p.runs ? pptxRunsToRuns(p.runs, fallback) : [{ text: String(p.text || '') }],
+            align: p.align || el.align,
+            // 保留编号格式（fmt：chineseCounting 等）与项目符号字符（char），渲染/导出都需要
+            bullet: normalizeBulletIn(pb),
+            lineSpacing: lineSpacingNum(p.lineSpacing),
+            // 段落级缩进（pt→px）与段前/段后间距（pt→px）
+            indent: p.indent != null ? Math.round(ptToPx(p.indent)) : undefined,
+            spaceBefore: p.spaceBefore != null ? Math.round(ptToPx(p.spaceBefore)) : undefined,
+            spaceAfter: p.spaceAfter != null ? Math.round(ptToPx(p.spaceAfter)) : undefined
+          };
+        });
       } else if (pe.runs && pe.runs.length) {
         el.paragraphs = [{ runs: pptxRunsToRuns(pe.runs, fallback), align: el.align }];
       } else {
@@ -820,9 +1001,16 @@ function elementFromPptx(pe) {
       el.shapeType = pe.shapeType || 'rect';
       el.fill = fillFromPptx(pe.fill);
       el.line = pe.line && pe.line !== 'none'
-        ? { color: normalizeColor(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid' }
+        ? { color: colorFromPptx(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid' }
         : 'none';
       el.shadow = (pe.effects && pe.effects.shadow && typeof pe.effects.shadow === 'object') ? pe.effects.shadow : null;
+      if (el.shadow && el.shadow.color) el.shadow.color = colorFromPptx(el.shadow.color) || '#000000';
+      el.glow = (pe.effects && pe.effects.glow && typeof pe.effects.glow === 'object') ? pe.effects.glow : null;
+      if (el.glow && el.glow.color) el.glow.color = colorFromPptx(el.glow.color) || '#FFFF00';
+      if (pe.flipH) el.flipH = true;
+      if (pe.flipV) el.flipV = true;
+      if (pe.adjust && typeof pe.adjust === 'object') el.adjust = pe.adjust;
+      if (pe.custGeom && Array.isArray(pe.custGeom.paths) && pe.custGeom.paths.length) el.custGeom = pe.custGeom;
       return el;
     }
     case 'image': {
@@ -836,19 +1024,48 @@ function elementFromPptx(pe) {
       el.type = 'table';
       el.colWidths = (pe.colWidths && pe.colWidths.length) ? pe.colWidths.map(Number) : null;
       el.border = pe.border ? { color: normalizeColor(pe.border.color) || '#CBD5E1', width: pe.border.width ?? 1 } : { color: '#CBD5E1', width: 1 };
+      if (pe.inset) el.inset = { l: pe.inset.l, r: pe.inset.r, t: pe.inset.t, b: pe.inset.b };
+      if (pe.tableStyleId) el.tableStyleId = pe.tableStyleId;
       el.rows = (pe.rows || []).map((r) => ({
         height: Number(r.height) || 40,
-        cells: (r.cells || []).map((c) => ({
-          text: c.text || (Array.isArray(c.paragraphs) ? c.paragraphs.map((p) => p.text || '').join('\n') : ''),
-          fill: c.fill ? normalizeColor(c.fill) : null,
-          align: c.align || 'left',
-          valign: c.valign || 'middle',
-          fontSize: c.fontSize || 14,
-          color: normalizeColor(c.color) || '#202124',
-          bold: !!c.bold,
-          colSpan: c.colSpan, rowSpan: c.rowSpan
-        }))
+        cells: (r.cells || []).map((c) => {
+          const hasFill = c.fill && c.fill !== 'none';
+          const hasColor = c.color && c.color !== 'none';
+          const cellInset = c.inset ? { l: c.inset.l, r: c.inset.r, t: c.inset.t, b: c.inset.b } : undefined;
+          const cell = {
+            text: c.text || (Array.isArray(c.paragraphs) ? c.paragraphs.map((p) => p.text || '').join('\n') : ''),
+            fill: hasFill ? colorFromPptx(c.fill) : null,
+            fillCustom: hasFill || undefined,
+            align: c.align || 'left',
+            valign: c.valign || 'middle',
+            fontSize: c.fontSize || 14,
+            color: colorFromPptx(c.color) || '#202124',
+            colorCustom: hasColor || undefined,
+            bold: !!c.bold,
+            colSpan: c.colSpan, rowSpan: c.rowSpan,
+            inset: cellInset,
+            borders: c.borders
+              ? Object.fromEntries(Object.entries(c.borders).map(([k, b]) => [k,
+                  b === 'none' ? 'none'
+                    : (b && typeof b === 'object') ? { color: colorFromPptx(b.color) || '#000000', width: Number(b.width) || 1 } : undefined])
+                .filter(([, v]) => v !== undefined))
+              : undefined
+          };
+          return cell;
+        })
       }));
+      // 根据已有单元格反推表头/单元格默认色，让属性面板与渲染一致
+      const firstRow = el.rows[0];
+      const secondRow = el.rows[1];
+      if (firstRow && firstRow.cells[0] && firstRow.cells[0].fillCustom) {
+        el.headerFill = firstRow.cells[0].fill;
+      }
+      if (secondRow && secondRow.cells[0] && secondRow.cells[0].fillCustom) {
+        el.cellFill = secondRow.cells[0].fill;
+      }
+      // 对角线：目前只保留方向；后续可扩展颜色/线宽
+      const anyDiag = el.rows.find((r) => r.cells.find((c) => c.borders && c.borders.diagonal));
+      if (anyDiag) el.hasDiagonal = true;
       if (!el.colWidths) {
         const cols = el.rows[0] ? el.rows[0].cells.length : 1;
         el.colWidths = new Array(cols).fill(Math.round(el.width / cols));
@@ -862,7 +1079,14 @@ function elementFromPptx(pe) {
     }
     case 'chart': {
       el.type = 'chart';
-      el.chartType = pe.chartType || 'barChart';
+      // 3D/衍生图表类型映射为编辑器支持的 2D 等价类型（保留原始类型供导出还原）
+      const CHART_3D_MAP = {
+        bar3DChart: 'barChart', line3DChart: 'lineChart', area3DChart: 'areaChart',
+        pie3DChart: 'pieChart', surface3DChart: 'areaChart', ofPieChart: 'pieChart',
+        bubbleChart: 'scatterChart', stockChart: 'lineChart'
+      };
+      el.chartType = CHART_3D_MAP[pe.chartType] || pe.chartType || 'barChart';
+      if (CHART_3D_MAP[pe.chartType]) el.chartType3D = pe.chartType;
       el.title = pe.title || '';
       el.legend = pe.legend !== false;
       el.dataLabels = !!pe.dataLabels;
@@ -870,12 +1094,40 @@ function elementFromPptx(pe) {
       el.holeSize = pe.holeSize ?? 50;
       el.smooth = !!pe.smooth;
       el.marker = !!pe.marker;
+      el.view3D = pe.view3D || null;
       el.categories = pe.categories || [];
-      el.series = (pe.series || []).map((s) => ({
-        name: s.name || '系列',
-        values: (s.values || s.y || []).map((v) => Number(v) || 0),
-        color: s.color || ''
-      }));
+      const isBubble = el.chartType3D === 'bubbleChart';
+      const isScatter = !isBubble && el.chartType === 'scatterChart';
+      const isStock = el.chartType3D === 'stockChart';
+      el.series = (pe.series || []).map((s) => {
+        const ser = { name: s.name || '系列', color: s.color || '' };
+        if (isBubble) {
+          ser.values = (s.x || []).map((x, i) => ({
+            x: Number(x) || 0,
+            y: Number((s.y || [])[i]) || 0,
+            size: Number((s.values || [])[i]) || 0
+          }));
+        } else if (isScatter) {
+          ser.values = (s.x || []).map((x, i) => ({
+            x: Number(x) || 0,
+            y: Number((s.y || [])[i]) || 0
+          }));
+        } else if (isStock) {
+          const len = Math.max(
+            (s.open || []).length, (s.close || []).length,
+            (s.low || []).length, (s.high || []).length
+          );
+          ser.values = Array.from({ length: len }, (_, i) => [
+            Number((s.open || [])[i]) || 0,
+            Number((s.close || [])[i]) || 0,
+            Number((s.low || [])[i]) || 0,
+            Number((s.high || [])[i]) || 0
+          ]);
+        } else {
+          ser.values = (s.values || s.y || []).map((v) => Number(v) || 0);
+        }
+        return ser;
+      });
       return el;
     }
     case 'group': {
@@ -889,6 +1141,24 @@ function elementFromPptx(pe) {
         }
         return elementFromPptx(c);
       });
+      // 记录子元素坐标约定：relative=相对组合原点；local 已折算为页面绝对坐标
+      el.childrenCoordinates = pe.childrenCoordinates === 'relative' ? 'relative' : 'page';
+      return el;
+    }
+    case 'video':
+    case 'audio': {
+      el.type = pe.type;
+      el.data = pe.data || '';
+      el.src = pe.src || '';
+      el.extension = pe.extension || '';
+      el.poster = pe.poster || null;
+      return el;
+    }
+    case 'diagram': {
+      el.type = 'diagram';
+      el.texts = (pe.texts || []).map(String);
+      el.shapes = Array.isArray(pe.shapes) ? pe.shapes : [];
+      el.dataPath = pe.dataPath || '';
       return el;
     }
     default: {
@@ -908,6 +1178,21 @@ export function docFromPptx(pptxDoc) {
     Math.abs(SLIDE_SIZES[k].width - doc.slideSize.width) < 4 && Math.abs(SLIDE_SIZES[k].height - doc.slideSize.height) < 4);
   doc.sizeKey = key || 'custom';
   doc.title = (pptxDoc.metadata && pptxDoc.metadata.title) || '导入的演示文稿';
+  // 导入的 PPTX 若携带主题配色（a:theme/a:clrScheme），提前设置为当前主题，确保下方 elementFromPptx
+  // 解析 'scheme:<name>' 引用时使用该主题，而非默认蓝主题
+  const th = pptxDoc.theme;
+  if (th && th.colors) {
+    const c = th.colors;
+    doc.theme = {
+      id: 'imported', name: th.name || '导入主题',
+      bg: c.lt1 || '#FFFFFF', panel: c.lt2 || c.lt1 || '#FFFFFF',
+      text: c.dk1 || '#202124', title: c.dk2 || c.dk1 || '#202124',
+      accent: c.accent1 || '#1A73E8',
+      accents: [c.accent1, c.accent2, c.accent3, c.accent4, c.accent5, c.accent6]
+        .map((x) => x || '#1A73E8')
+    };
+    setActiveTheme(doc.theme);
+  }
   doc.slides = (pptxDoc.slides || []).map((s) => {
     const slide = createSlide((s.elements || []).map(elementFromPptx), {
       background: s.background || null,
@@ -916,6 +1201,15 @@ export function docFromPptx(pptxDoc) {
     });
     if (s.transition && s.transition.type) {
       slide.transition = { type: s.transition.type, duration: s.transition.duration || 800 };
+    }
+    // 批注：pos 由 EMU 转 px（与元素坐标一致），导出时再转回
+    if (Array.isArray(s.comments) && s.comments.length) {
+      slide.comments = s.comments.map((c) => ({
+        author: c.author || 'Author',
+        text: c.text || '',
+        dt: c.dt || '',
+        pos: c.pos ? { x: (Number(c.pos.x) || 0) / 9525, y: (Number(c.pos.y) || 0) / 9525 } : null
+      }));
     }
     if (s.animations && s.animations.length) {
       slide.animations = s.animations.map((a) => {

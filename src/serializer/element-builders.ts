@@ -621,11 +621,12 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
 }
 
 /**
- * 构建位置节点（a:xfrm）
+ * 构建位置节点（a:xfrm / p:xfrm）
  * @param {Object} el - 含 x/y/width/height/rotation 的元素
- * @returns {Object} a:xfrm 节点
+ * @param {string} tag - 节点标签：p:sp/cxnSp 内用 a:xfrm；p:graphicFrame 下必须是 p:xfrm（ECMA-376）
+ * @returns {Object} xfrm 节点
  */
-function buildXfrm(el: SerializerElement) {
+function buildXfrm(el: SerializerElement, tag: 'a:xfrm' | 'p:xfrm' = 'a:xfrm') {
     const xfrmAttrs: Record<string, number | string | null> = { rot: el.rotation ? degToRot(el.rotation) : null };
 
     // 连接线：用起点/终点推导包围盒，方向由 flipH/flipV 表达（OOXML cxnSp 语义）
@@ -638,7 +639,7 @@ function buildXfrm(el: SerializerElement) {
         const flipV = ey < sy;
         if (flipH || el.flipH) xfrmAttrs.flipH = 1;
         if (flipV || el.flipV) xfrmAttrs.flipV = 1;
-        return xmlNode('a:xfrm',
+        return xmlNode(tag,
             xfrmAttrs,
             xmlNode('a:off', { x: pxToEmu(Math.min(sx, ex)), y: pxToEmu(Math.min(sy, ey)) }),
             xmlNode('a:ext', { cx: pxToEmu(Math.abs(ex - sx)), cy: pxToEmu(Math.abs(ey - sy)) })
@@ -647,7 +648,7 @@ function buildXfrm(el: SerializerElement) {
 
     if (el.flipH) xfrmAttrs.flipH = 1;
     if (el.flipV) xfrmAttrs.flipV = 1;
-    return xmlNode('a:xfrm',
+    return xmlNode(tag,
         xfrmAttrs,
         xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
         xmlNode('a:ext', { cx: pxToEmu(el.width || 0), cy: pxToEmu(el.height || 0) })
@@ -1370,12 +1371,13 @@ function buildChartElement(ctx: SerializerContext, el: SerializerElement) {
     return xmlNode('p:graphicFrame',
         null,
         xmlNode('p:nvGraphicFramePr',
-            null,
-            xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }),
-            xmlNode('p:cNvGraphicFramePr'),
-            xmlNode('p:nvPr')
+        null,
+        xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }),
+        xmlNode('p:cNvGraphicFramePr'),
+        xmlNode('p:nvPr')
         ),
-        buildXfrm(el),
+        // p:graphicFrame 下必须是 p:xfrm（a:xfrm 不符合 schema，解析端/PowerPoint 无法读取位置）
+        buildXfrm(el, 'p:xfrm'),
         xmlNode('a:graphic',
             null,
             xmlNode('a:graphicData',
@@ -1991,27 +1993,8 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
                 xmlNode('a:chExt', { cx: w, cy: h })
             )
         ),
-        // OOXML 要求 group 的子孙必须包在 p:spTree 内，否则 PowerPoint 与解析端均读不到
-        xmlNode('p:spTree',
-            null,
-            xmlNode('p:nvGrpSpPr',
-                null,
-                xmlNode('p:cNvPr', { id: ctx.nextElementId++, name: `${el.name || 'Group'} Inner` }),
-                xmlNode('p:cNvGrpSpPr'),
-                xmlNode('p:nvPr')
-            ),
-            xmlNode('p:grpSpPr',
-                null,
-                xmlNode('a:xfrm',
-                    null,
-                    xmlNode('a:off', { x: 0, y: 0 }),
-                    xmlNode('a:ext', { cx: w, cy: h }),
-                    xmlNode('a:chOff', { x: 0, y: 0 }),
-                    xmlNode('a:chExt', { cx: w, cy: h })
-                )
-            ),
-            ...childNodes
-        )
+        // OOXML（CT_GroupShape）：grpSp 的子形状是其直接子节点，不包 p:spTree
+        ...childNodes
     );
 }
 
@@ -2045,7 +2028,11 @@ async function buildMediaElement(ctx: SerializerContext, el: SerializerElement, 
             xmlNode('p:nvPr', null, mediaFileNode)
         ),
         xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': posterRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect'))),
-        xmlNode('p:spPr', null, xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')))
+        xmlNode('p:spPr',
+            null,
+            // 媒体 pic 必须带位置尺寸，否则解析端与 PowerPoint 都无法定位
+            buildXfrm(el),
+            xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')))
     );
 }
 

@@ -40,12 +40,9 @@ class Store {
 
   /* ---------- 初始化 ---------- */
   init() {
-    let doc = null;
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) doc = normalizeDoc(JSON.parse(raw));
-    } catch { doc = null; }
-    this.doc = doc && doc.slides && doc.slides.length ? doc : createStarterDoc();
+    // 不再从 localStorage 恢复文档：打开过的 PPTX 不做持久化缓存，每次启动从默认文档开始
+    try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
+    this.doc = createStarterDoc();
     try {
       const ui = JSON.parse(localStorage.getItem(LS_UI) || '{}');
       if (ui.showGrid != null) this.showGrid = !!ui.showGrid;
@@ -206,11 +203,9 @@ class Store {
   }
   persist = debounce(() => {
     if (this._loading) return;
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify(this.doc));
-      const st = document.getElementById('saveState');
-      if (st) { st.textContent = '已自动保存 ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); }
-    } catch { /* ignore quota */ }
+    // 文档不再写入 localStorage（按要求不缓存打开过的 PPTX），仅更新状态栏提示
+    const st = document.getElementById('saveState');
+    if (st) { st.textContent = '已修改（未缓存）'; }
   }, 800);
 }
 

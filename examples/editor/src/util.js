@@ -57,13 +57,11 @@ export function normalizeColor(input) {
   if (!c) return null;
   if (NAMED[c] !== undefined) return NAMED[c];
   if (c === 'none' || c === 'transparent') return null;
-  if (c[0] === '#') {
-    c = c.slice(1);
-    if (c.length === 3) c = c.split('').map((x) => x + x).join('');
-    if (c.length === 8) c = c.slice(0, 6);
-    if (/^[0-9a-f]{6}$/.test(c)) return '#' + c.toUpperCase();
-    return null;
-  }
+  if (c[0] === '#') c = c.slice(1);
+  // 裸 hex（OOXML srgbClr 输出不带 #）与带 # 的写法都接受
+  if (c.length === 3) c = c.split('').map((x) => x + x).join('');
+  if (c.length === 8) c = c.slice(0, 6);
+  if (/^[0-9a-f]{6}$/.test(c)) return '#' + c.toUpperCase();
   if (c.startsWith('rgb')) {
     const nums = c.replace(/[^0-9.,]/g, '').split(',').map(Number);
     if (nums.length >= 3) return rgbToHex(nums[0], nums[1], nums[2]);

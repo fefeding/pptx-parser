@@ -4,7 +4,7 @@
 import { store } from './store.js';
 import { h } from './util.js';
 import { renderThumbInto } from './render.js';
-import { addSlide, duplicateSlide, deleteSlide, moveSlide } from './actions.js';
+import { addSlide, duplicateSlide, deleteSlide, moveSlide, toggleSlideHidden } from './actions.js';
 import { openMenu } from './dialogs.js';
 import { applyLayout } from './actions.js';
 
@@ -56,15 +56,29 @@ function renderSlideList() {
         { label: '上移', disabled: i === 0, action: () => moveSlide(i, i - 1) },
         { label: '下移', disabled: i === store.doc.slides.length - 1, action: () => moveSlide(i, i + 1) },
         'sep',
+        { label: slide.hidden ? '显示幻灯片' : '隐藏幻灯片', action: () => toggleSlideHidden(i) },
         { label: '删除', danger: true, action: () => deleteSlide(i) }
       ], { class: 'ctx-menu' });
     });
     const num = h('div', { class: 'slide-num', text: String(i + 1) });
     const thumb = h('div', { class: 'slide-thumb' });
     renderThumbInto(thumb, slide, store.doc);
+    if (slide.hidden) {
+      const badge = h('div', {
+        class: 'slide-hidden-badge',
+        title: '已隐藏（放映时跳过）— 点击可显示',
+        text: '⊘ 已隐藏',
+        onclick: (e) => { e.stopPropagation(); toggleSlideHidden(i); }
+      });
+      item.appendChild(badge);
+    }
     const bar = h('div', { class: 'slide-bar' });
     bar.appendChild(h('button', { class: 'mini-btn', text: '＋', title: '在此后新建', onclick: (e) => { e.stopPropagation(); addSlide('titleBody'); } }));
     bar.appendChild(h('button', { class: 'mini-btn', text: '⧉', title: '复制', onclick: (e) => { e.stopPropagation(); duplicateSlide(i); } }));
+    bar.appendChild(h('button', {
+      class: 'mini-btn', text: slide.hidden ? '👁' : '⊘', title: slide.hidden ? '显示幻灯片' : '隐藏幻灯片（放映时跳过）',
+      onclick: (e) => { e.stopPropagation(); toggleSlideHidden(i); }
+    }));
     bar.appendChild(h('button', { class: 'mini-btn', text: '🗑', title: '删除', onclick: (e) => { e.stopPropagation(); deleteSlide(i); } }));
     item.append(num, thumb, bar);
     host.appendChild(item);

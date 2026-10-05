@@ -280,6 +280,12 @@ export function moveSlide(from, to) {
   store.setSlide(to, { force: true });
 }
 
+/** 隐藏 / 显示幻灯片（隐藏页在放映时跳过，导入的 PPTX show="0" 也会带此标记） */
+export function toggleSlideHidden(index = store.slideIndex) {
+  const idx = Math.max(0, Math.min(index, store.doc.slides.length - 1));
+  store.update((d) => { d.slides[idx].hidden = !d.slides[idx].hidden; });
+}
+
 export function applyLayout(layoutId) {
   const theme = getTheme(store.doc.theme);
   const elements = (store.doc, buildSlideFromLayout(layoutId, store.doc.theme, store.doc.slideSize).elements);

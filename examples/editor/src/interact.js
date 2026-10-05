@@ -2,7 +2,7 @@
  * 画布交互：渲染、选择、拖拽/缩放/旋转、框选、双击编辑、键盘快捷键
  */
 import { store } from './store.js';
-import { renderSlideInto, elementRect, rotatedRect } from './render.js';
+import { renderSlideInto, elementRect, rotatedRect, effectMargin, disposeAllCharts } from './render.js';
 import { h, clamp, unionBBox, rotatePoint, debounce } from './util.js';
 import { parseBody, focusBody, blurBody } from './richtext.js';
 import { cloneElement, nudge, deleteSelected, paste, copySelected, duplicateSelected, selectAll, groupSelection, ungroupSelection } from './actions.js';
@@ -29,6 +29,7 @@ export function renderCanvas() {
   if (!doc) return;
   const slide = store.slide;
   const W = doc.slideSize.width, H = doc.slideSize.height;
+  disposeAllCharts();
   renderSlideInto(DOM.frame, slide, doc, {
     grid: store.showGrid,
     scale: store.zoom,
@@ -72,6 +73,7 @@ export function updateSelection() {
       style: {
         left: `${rect.x}px`, top: `${rect.y}px`, width: `${rect.width}px`, height: `${rect.height}px`,
         transform: rotation ? `rotate(${rotation}deg)` : '',
+        transformOrigin: 'center center',
         borderColor: opts.group ? '#1a73e8' : '#1a73e8',
         borderWidth: `${1 / zoom}px`
       }
@@ -108,13 +110,23 @@ export function updateSelection() {
   if (els.length === 1) {
     const el = els[0];
     const rect = elementRect(el);
+    const m = effectMargin(el);
+    rect.x -= m.left; rect.y -= m.top;
+    rect.width += m.left + m.right;
+    rect.height += m.top + m.bottom;
     drawBox(rect, el.rotation, { handles: !el.locked, rotatable: !el.locked, id: el.id, locked: el.locked });
   } else {
+    const expandedRects = [];
     for (const el of els) {
       const rect = elementRect(el);
+      const m = effectMargin(el);
+      rect.x -= m.left; rect.y -= m.top;
+      rect.width += m.left + m.right;
+      rect.height += m.top + m.bottom;
+      expandedRects.push(rect);
       drawBox(rect, el.rotation, { group: false, handles: false, locked: el.locked });
     }
-    const box = unionBBox(els.map(elementRect));
+    const box = unionBBox(expandedRects);
     drawBox(box, 0, { group: true, handles: true, id: 'multi' });
   }
   DOM.overlay.appendChild(layer);

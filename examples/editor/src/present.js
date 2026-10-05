@@ -14,7 +14,11 @@ export function startPresent(startIndex = 0) {
   if (!overlay) return;
   overlay.innerHTML = '';
   overlay.classList.add('on');
-  const idx = clamp(startIndex, 0, doc.slides.length - 1);
+  // 隐藏页不参与放映：从 startIndex 起找第一个可见页；若之前无可见页则取其后最近的可见页
+  const vis = doc.slides.map((s, i) => s.hidden ? -1 : i).filter((i) => i >= 0);
+  if (!vis.length) return;
+  let idx = vis.find((i) => i >= startIndex);
+  if (idx === undefined) idx = vis[0];
   state = { index: idx, overlay, doc, animQueue: [], animStep: 0 };
   document.addEventListener('keydown', onKey);
   overlay.addEventListener('click', onClick);
@@ -268,15 +272,24 @@ function onClick(e) {
   }
   next();
 }
-function next() { if (state.index < state.doc.slides.length - 1) show(state.index + 1, 'r'); }
-function prev() { if (state.index > 0) show(state.index - 1, 'l'); }
+function visibleIndexes() { return state.doc.slides.map((s, i) => s.hidden ? -1 : i).filter((i) => i >= 0); }
+function next() {
+  const vis = visibleIndexes();
+  const pos = vis.indexOf(state.index);
+  if (pos >= 0 && pos < vis.length - 1) show(vis[pos + 1], 'r');
+}
+function prev() {
+  const vis = visibleIndexes();
+  const pos = vis.indexOf(state.index);
+  if (pos > 0) show(vis[pos - 1], 'l');
+}
 
 function onKey(e) {
   if (!state) return;
   if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
   else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
-  else if (e.key === 'Home') show(0, 'r');
-  else if (e.key === 'End') show(state.doc.slides.length - 1, 'r');
+  else if (e.key === 'Home') { const v = visibleIndexes(); if (v.length) show(v[0], 'r'); }
+  else if (e.key === 'End') { const v = visibleIndexes(); if (v.length) show(v[v.length - 1], 'r'); }
   else if (e.key === 'Escape') exit();
 }
 

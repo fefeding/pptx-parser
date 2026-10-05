@@ -65,6 +65,10 @@ export interface PptxTextRun {
      * 解析端读取 a:fld/a:t 作为 text 并回填 type；生成端写出 <a:fld type id><a:t>text</a:t></a:fld>。
      */
     field?: string;
+    /** 文字描边（a:rPr/a:ln）：{ color, width(pt) } */
+    outline?: { color?: string; width?: number } | 'none';
+    /** 文字外阴影（a:rPr/a:effectLst/a:outerShdw）：{ color, blur(px), x(px), y(px), alpha } */
+    shadow?: { color?: string; blur?: number; x?: number; y?: number; alpha?: number };
 }
 
 /** 段落（可显式 runs，或用 text 配合元素级默认样式） */
@@ -419,6 +423,16 @@ export interface PptxTextElement extends PptxElementBase {
     width: number;
     height: number;
     rotation?: number;
+    flipH?: boolean;
+    flipV?: boolean;
+    /** 底层形状类型（带文字的形状，如椭圆/饼图/弧线；编辑器据此还原形状底） */
+    shapeType?: string;
+    /** 底层形状填充（与 PptxShapeElement.fill 同构） */
+    fill?: PptxFill;
+    /** 底层形状边框 */
+    line?: PptxLine;
+    /** 几何调整值（带文字的形状，如 arc/pie 的 adj） */
+    adjust?: Record<string, number>;
     align?: TextAlign;
     valign?: VAlign;
     /** 段落级默认样式（纯 text 模式透传给每个段落）：列表/行距/段间距/缩进 */
@@ -479,6 +493,8 @@ export interface PptxShapeElement extends PptxElementBase {
     width: number;
     height: number;
     rotation?: number;
+    flipH?: boolean;
+    flipV?: boolean;
     fill?: PptxFill;
     line?: PptxLine;
     /** 形状特效：阴影 / 发光（对应 a:effectLst） */
@@ -549,6 +565,17 @@ export interface PptxChartElement extends PptxElementBase {
     bubbleScale?: number;
     /** 曲面图：线框模式 */
     wireframe?: boolean;
+    /** 三维视角（c:view3D）：旋转/厚度/直角轴 */
+    view3D?: {
+        /** 俯仰角（0-90） */
+        rotX?: number;
+        /** 旋转角（0-360） */
+        rotY?: number;
+        /** 厚度百分比（默认 100） */
+        depthPercent?: number;
+        /** 是否为直角轴（正交投影） */
+        rAngAx?: boolean;
+    };
     /** 坐标轴标题（c:axTitle） */
     axisTitles?: {
         /** 分类轴标题 */
@@ -662,10 +689,44 @@ export interface PptxDiagramNode {
 }
 
 /**
+ * 图示缓存绘图中的单个形状（解析自 Microsoft 缓存绘图部件 ppt/diagrams/drawingN.xml）。
+ * 坐标为 px、相对图示框左上角；连接线沿包围盒对角绘制（flipH/flipV 决定方向）。
+ */
+export interface PptxDiagramShape {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** OOXML 预设几何：roundRect / ellipse / rect / straightConnector1 ... */
+    prst?: string;
+    /** 连接线（无填充文字，仅描边） */
+    connector?: boolean;
+    /** 填充色（#RRGGBB），'none' 表示无填充 */
+    fill?: string;
+    /** 描边色（#RRGGBB） */
+    lineColor?: string;
+    /** 描边宽度（pt） */
+    lineWidth?: number;
+    /** 节点文字（多段以 \n 连接） */
+    text?: string;
+    /** 字号（pt） */
+    fontSize?: number;
+    /** 文字颜色（#RRGGBB） */
+    color?: string;
+    bold?: boolean;
+    /** 水平对齐：'l' | 'ctr' | 'r' */
+    align?: string;
+    /** 垂直对齐：'t' | 'ctr' | 'b' */
+    anchor?: string;
+    flipH?: boolean;
+    flipV?: boolean;
+}
+
+/**
  * SmartArt / 图示元素（解析自 p:graphicFrame/a:graphicData[uri=diagram]，或创作生成）
  *
  * 创作时提供 diagramType + nodes 即可生成原生 diagrams/* 部件；
- * 解析端仅保留可读文本（texts）与原始节点（__raw），还原依赖 __raw 回退。
+ * 解析端保留可读文本（texts）、缓存绘图形状（shapes）与原始节点（__raw）。
  */
 export interface PptxDiagramElement extends PptxElementBase {
     type: 'diagram';
@@ -679,6 +740,8 @@ export interface PptxDiagramElement extends PptxElementBase {
     nodes?: PptxDiagramNode[];
     /** 图示数据部件（ppt/diagrams/dataN.xml）中的文本内容，按文档顺序（解析端） */
     texts?: string[];
+    /** 缓存绘图形状（解析自 drawingN.xml，含树形布局坐标，供编辑器/渲染端还原） */
+    shapes?: PptxDiagramShape[];
     /** 数据部件路径（便于调试与二次读取） */
     dataPath?: string;
 }

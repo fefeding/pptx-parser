@@ -35,6 +35,8 @@ function boot() {
   });
   store.on('slide', () => { renderCanvas(); syncTopbar(); });
   store.on('zoom', () => { renderCanvas(); updateZoom(); });
+  // 选中变化：仅重绘选择框（无需重建画布，避免丢失文本编辑光标）
+  store.on('sel', () => updateSelection());
 
   bindTopbar();
   bindZoomBar();

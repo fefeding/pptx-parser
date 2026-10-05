@@ -1759,17 +1759,17 @@ function _typeof(obj) {
 
 var trimLeft = /^\s+/;
 var trimRight = /\s+$/;
-function tinycolor$2(color, opts) {
+function tinycolor$3(color, opts) {
   color = color ? color : "";
   opts = opts || {};
 
   // If input is already a tinycolor, return itself
-  if (color instanceof tinycolor$2) {
+  if (color instanceof tinycolor$3) {
     return color;
   }
   // If we are called as a function, call using new instead
-  if (!(this instanceof tinycolor$2)) {
-    return new tinycolor$2(color, opts);
+  if (!(this instanceof tinycolor$3)) {
+    return new tinycolor$3(color, opts);
   }
   var rgb = inputToRGB(color);
   this._originalInput = color, this._r = rgb.r, this._g = rgb.g, this._b = rgb.b, this._a = rgb.a, this._roundA = Math.round(100 * this._a) / 100, this._format = opts.format || rgb.format;
@@ -1784,7 +1784,7 @@ function tinycolor$2(color, opts) {
   if (this._b < 1) this._b = Math.round(this._b);
   this._ok = rgb.ok;
 }
-tinycolor$2.prototype = {
+tinycolor$3.prototype = {
   isDark: function isDark() {
     return this.getBrightness() < 128;
   },
@@ -1905,7 +1905,7 @@ tinycolor$2.prototype = {
     var secondHex8String = hex8String;
     var gradientType = this._gradientType ? "GradientType = 1, " : "";
     if (secondColor) {
-      var s = tinycolor$2(secondColor);
+      var s = tinycolor$3(secondColor);
       secondHex8String = "#" + rgbaToArgbHex(s._r, s._g, s._b, s._a);
     }
     return "progid:DXImageTransform.Microsoft.gradient(" + gradientType + "startColorstr=" + hex8String + ",endColorstr=" + secondHex8String + ")";
@@ -1954,7 +1954,7 @@ tinycolor$2.prototype = {
     return formattedString || this.toHexString();
   },
   clone: function clone() {
-    return tinycolor$2(this.toString());
+    return tinycolor$3(this.toString());
   },
   _applyModification: function _applyModification(fn, args) {
     var color = fn.apply(null, [this].concat([].slice.call(args)));
@@ -2014,7 +2014,7 @@ tinycolor$2.prototype = {
 
 // If input is an object, force 1 into "1.0" to handle ratios properly
 // String input requires "1.0" as input, so 1 will be treated as 1
-tinycolor$2.fromRatio = function (color, opts) {
+tinycolor$3.fromRatio = function (color, opts) {
   if (_typeof(color) == "object") {
     var newColor = {};
     for (var i in color) {
@@ -2028,7 +2028,7 @@ tinycolor$2.fromRatio = function (color, opts) {
     }
     color = newColor;
   }
-  return tinycolor$2(color, opts);
+  return tinycolor$3(color, opts);
 };
 
 // Given a string or object, convert that input to RGB
@@ -2284,12 +2284,12 @@ function rgbaToArgbHex(r, g, b, a) {
 
 // `equals`
 // Can be called with any tinycolor input
-tinycolor$2.equals = function (color1, color2) {
+tinycolor$3.equals = function (color1, color2) {
   if (!color1 || !color2) return false;
-  return tinycolor$2(color1).toRgbString() == tinycolor$2(color2).toRgbString();
+  return tinycolor$3(color1).toRgbString() == tinycolor$3(color2).toRgbString();
 };
-tinycolor$2.random = function () {
-  return tinycolor$2.fromRatio({
+tinycolor$3.random = function () {
+  return tinycolor$3.fromRatio({
     r: Math.random(),
     g: Math.random(),
     b: Math.random()
@@ -2303,51 +2303,51 @@ tinycolor$2.random = function () {
 
 function _desaturate(color, amount) {
   amount = amount === 0 ? 0 : amount || 10;
-  var hsl = tinycolor$2(color).toHsl();
+  var hsl = tinycolor$3(color).toHsl();
   hsl.s -= amount / 100;
   hsl.s = clamp01(hsl.s);
-  return tinycolor$2(hsl);
+  return tinycolor$3(hsl);
 }
 function _saturate(color, amount) {
   amount = amount === 0 ? 0 : amount || 10;
-  var hsl = tinycolor$2(color).toHsl();
+  var hsl = tinycolor$3(color).toHsl();
   hsl.s += amount / 100;
   hsl.s = clamp01(hsl.s);
-  return tinycolor$2(hsl);
+  return tinycolor$3(hsl);
 }
 function _greyscale(color) {
-  return tinycolor$2(color).desaturate(100);
+  return tinycolor$3(color).desaturate(100);
 }
 function _lighten(color, amount) {
   amount = amount === 0 ? 0 : amount || 10;
-  var hsl = tinycolor$2(color).toHsl();
+  var hsl = tinycolor$3(color).toHsl();
   hsl.l += amount / 100;
   hsl.l = clamp01(hsl.l);
-  return tinycolor$2(hsl);
+  return tinycolor$3(hsl);
 }
 function _brighten(color, amount) {
   amount = amount === 0 ? 0 : amount || 10;
-  var rgb = tinycolor$2(color).toRgb();
+  var rgb = tinycolor$3(color).toRgb();
   rgb.r = Math.max(0, Math.min(255, rgb.r - Math.round(255 * -(amount / 100))));
   rgb.g = Math.max(0, Math.min(255, rgb.g - Math.round(255 * -(amount / 100))));
   rgb.b = Math.max(0, Math.min(255, rgb.b - Math.round(255 * -(amount / 100))));
-  return tinycolor$2(rgb);
+  return tinycolor$3(rgb);
 }
 function _darken(color, amount) {
   amount = amount === 0 ? 0 : amount || 10;
-  var hsl = tinycolor$2(color).toHsl();
+  var hsl = tinycolor$3(color).toHsl();
   hsl.l -= amount / 100;
   hsl.l = clamp01(hsl.l);
-  return tinycolor$2(hsl);
+  return tinycolor$3(hsl);
 }
 
 // Spin takes a positive or negative amount within [-360, 360] indicating the change of hue.
 // Values outside of this range will be wrapped into this range.
 function _spin(color, amount) {
-  var hsl = tinycolor$2(color).toHsl();
+  var hsl = tinycolor$3(color).toHsl();
   var hue = (hsl.h + amount) % 360;
   hsl.h = hue < 0 ? 360 + hue : hue;
-  return tinycolor$2(hsl);
+  return tinycolor$3(hsl);
 }
 
 // Combination Functions
@@ -2356,19 +2356,19 @@ function _spin(color, amount) {
 // <https://github.com/infusion/jQuery-xcolor/blob/master/jquery.xcolor.js>
 
 function _complement(color) {
-  var hsl = tinycolor$2(color).toHsl();
+  var hsl = tinycolor$3(color).toHsl();
   hsl.h = (hsl.h + 180) % 360;
-  return tinycolor$2(hsl);
+  return tinycolor$3(hsl);
 }
 function polyad(color, number) {
   if (isNaN(number) || number <= 0) {
     throw new Error("Argument to polyad must be a positive number");
   }
-  var hsl = tinycolor$2(color).toHsl();
-  var result = [tinycolor$2(color)];
+  var hsl = tinycolor$3(color).toHsl();
+  var result = [tinycolor$3(color)];
   var step = 360 / number;
   for (var i = 1; i < number; i++) {
-    result.push(tinycolor$2({
+    result.push(tinycolor$3({
       h: (hsl.h + i * step) % 360,
       s: hsl.s,
       l: hsl.l
@@ -2377,13 +2377,13 @@ function polyad(color, number) {
   return result;
 }
 function _splitcomplement(color) {
-  var hsl = tinycolor$2(color).toHsl();
+  var hsl = tinycolor$3(color).toHsl();
   var h = hsl.h;
-  return [tinycolor$2(color), tinycolor$2({
+  return [tinycolor$3(color), tinycolor$3({
     h: (h + 72) % 360,
     s: hsl.s,
     l: hsl.l
-  }), tinycolor$2({
+  }), tinycolor$3({
     h: (h + 216) % 360,
     s: hsl.s,
     l: hsl.l
@@ -2392,25 +2392,25 @@ function _splitcomplement(color) {
 function _analogous(color, results, slices) {
   results = results || 6;
   slices = slices || 30;
-  var hsl = tinycolor$2(color).toHsl();
+  var hsl = tinycolor$3(color).toHsl();
   var part = 360 / slices;
-  var ret = [tinycolor$2(color)];
+  var ret = [tinycolor$3(color)];
   for (hsl.h = (hsl.h - (part * results >> 1) + 720) % 360; --results;) {
     hsl.h = (hsl.h + part) % 360;
-    ret.push(tinycolor$2(hsl));
+    ret.push(tinycolor$3(hsl));
   }
   return ret;
 }
 function _monochromatic(color, results) {
   results = results || 6;
-  var hsv = tinycolor$2(color).toHsv();
+  var hsv = tinycolor$3(color).toHsv();
   var h = hsv.h,
     s = hsv.s,
     v = hsv.v;
   var ret = [];
   var modification = 1 / results;
   while (results--) {
-    ret.push(tinycolor$2({
+    ret.push(tinycolor$3({
       h: h,
       s: s,
       v: v
@@ -2423,10 +2423,10 @@ function _monochromatic(color, results) {
 // Utility Functions
 // ---------------------
 
-tinycolor$2.mix = function (color1, color2, amount) {
+tinycolor$3.mix = function (color1, color2, amount) {
   amount = amount === 0 ? 0 : amount || 50;
-  var rgb1 = tinycolor$2(color1).toRgb();
-  var rgb2 = tinycolor$2(color2).toRgb();
+  var rgb1 = tinycolor$3(color1).toRgb();
+  var rgb2 = tinycolor$3(color2).toRgb();
   var p = amount / 100;
   var rgba = {
     r: (rgb2.r - rgb1.r) * p + rgb1.r,
@@ -2434,7 +2434,7 @@ tinycolor$2.mix = function (color1, color2, amount) {
     b: (rgb2.b - rgb1.b) * p + rgb1.b,
     a: (rgb2.a - rgb1.a) * p + rgb1.a
   };
-  return tinycolor$2(rgba);
+  return tinycolor$3(rgba);
 };
 
 // Readability Functions
@@ -2443,9 +2443,9 @@ tinycolor$2.mix = function (color1, color2, amount) {
 
 // `contrast`
 // Analyze the 2 colors and returns the color contrast defined by (WCAG Version 2)
-tinycolor$2.readability = function (color1, color2) {
-  var c1 = tinycolor$2(color1);
-  var c2 = tinycolor$2(color2);
+tinycolor$3.readability = function (color1, color2) {
+  var c1 = tinycolor$3(color1);
+  var c2 = tinycolor$3(color2);
   return (Math.max(c1.getLuminance(), c2.getLuminance()) + 0.05) / (Math.min(c1.getLuminance(), c2.getLuminance()) + 0.05);
 };
 
@@ -2459,8 +2459,8 @@ tinycolor$2.readability = function (color1, color2) {
 // *Example*
 //    tinycolor.isReadable("#000", "#111") => false
 //    tinycolor.isReadable("#000", "#111",{level:"AA",size:"large"}) => false
-tinycolor$2.isReadable = function (color1, color2, wcag2) {
-  var readability = tinycolor$2.readability(color1, color2);
+tinycolor$3.isReadable = function (color1, color2, wcag2) {
+  var readability = tinycolor$3.readability(color1, color2);
   var wcag2Parms, out;
   out = false;
   wcag2Parms = validateWCAG2Parms(wcag2);
@@ -2488,7 +2488,7 @@ tinycolor$2.isReadable = function (color1, color2, wcag2) {
 //    tinycolor.mostReadable(tinycolor.mostReadable("#123", ["#124", "#125"],{includeFallbackColors:true}).toHexString();  // "#ffffff"
 //    tinycolor.mostReadable("#a8015a", ["#faf3f3"],{includeFallbackColors:true,level:"AAA",size:"large"}).toHexString(); // "#faf3f3"
 //    tinycolor.mostReadable("#a8015a", ["#faf3f3"],{includeFallbackColors:true,level:"AAA",size:"small"}).toHexString(); // "#ffffff"
-tinycolor$2.mostReadable = function (baseColor, colorList, args) {
+tinycolor$3.mostReadable = function (baseColor, colorList, args) {
   var bestColor = null;
   var bestScore = 0;
   var readability;
@@ -2498,27 +2498,27 @@ tinycolor$2.mostReadable = function (baseColor, colorList, args) {
   level = args.level;
   size = args.size;
   for (var i = 0; i < colorList.length; i++) {
-    readability = tinycolor$2.readability(baseColor, colorList[i]);
+    readability = tinycolor$3.readability(baseColor, colorList[i]);
     if (readability > bestScore) {
       bestScore = readability;
-      bestColor = tinycolor$2(colorList[i]);
+      bestColor = tinycolor$3(colorList[i]);
     }
   }
-  if (tinycolor$2.isReadable(baseColor, bestColor, {
+  if (tinycolor$3.isReadable(baseColor, bestColor, {
     level: level,
     size: size
   }) || !includeFallbackColors) {
     return bestColor;
   } else {
     args.includeFallbackColors = false;
-    return tinycolor$2.mostReadable(baseColor, ["#fff", "#000"], args);
+    return tinycolor$3.mostReadable(baseColor, ["#fff", "#000"], args);
   }
 };
 
 // Big List of Colors
 // ------------------
 // <https://www.w3.org/TR/css-color-4/#named-colors>
-var names = tinycolor$2.names = {
+var names = tinycolor$3.names = {
   aliceblue: "f0f8ff",
   antiquewhite: "faebd7",
   aqua: "0ff",
@@ -2671,7 +2671,7 @@ var names = tinycolor$2.names = {
 };
 
 // Make it easy to access colors via `hexNames[hex]`
-var hexNames = tinycolor$2.hexNames = flip(names);
+var hexNames = tinycolor$3.hexNames = flip(names);
 
 // Utilities
 // ---------
@@ -2922,7 +2922,7 @@ function validateWCAG2Parms(parms) {
   };
 }
 
-const tinycolor$1 = (color, opts) => new tinycolor$2(color, opts);
+const tinycolor$2 = (color, opts) => new tinycolor$3(color, opts);
 function getFillType(node) {
     let fillType = "";
     if (node === undefined) {
@@ -3034,7 +3034,7 @@ async function getShapeFill(node, pNode, isSvgMode, warpObj, source) {
         }
         else {
             if (isSvgMode) {
-                let color = tinycolor$1(fillColor);
+                let color = tinycolor$2(fillColor);
                 fillColor = color.toRgbString();
                 return fillColor;
             }
@@ -4409,7 +4409,7 @@ function getSolidFill(node, clrMap, phClr, warpObj) {
     let isAlpha = false;
     let alpha = parseInt(PPTXXmlUtils.getTextByPathList(clrNode, ["a:alpha", "attrs", "val"])) / 100000;
     if (!isNaN(alpha)) {
-        let al_color = tinycolor$1(color);
+        let al_color = tinycolor$2(color);
         al_color.setAlpha(alpha);
         color = al_color.toHex8();
         isAlpha = true;
@@ -4727,62 +4727,62 @@ function eachElement(node, doFunction) {
     return result;
 }
 function applyShade(rgbStr, shadeValue, isAlpha) {
-    let color = tinycolor$1(rgbStr).toHsl();
+    let color = tinycolor$2(rgbStr).toHsl();
     shadeValue = Math.max(0, Math.min(1, shadeValue));
     let cacl_l = Math.max(0, Math.min(1, color.l * shadeValue));
     if (isAlpha)
-        return tinycolor$1({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-    return tinycolor$1({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
+        return tinycolor$2({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
+    return tinycolor$2({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
 }
 function applyTint(rgbStr, tintValue, isAlpha) {
-    let color = tinycolor$1(rgbStr).toHsl();
+    let color = tinycolor$2(rgbStr).toHsl();
     tintValue = Math.max(0, Math.min(1, tintValue));
     let cacl_l = Math.max(0, Math.min(1, color.l * tintValue + (1 - tintValue)));
     if (isAlpha)
-        return tinycolor$1({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-    return tinycolor$1({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
+        return tinycolor$2({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
+    return tinycolor$2({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
 }
 function applyLumOff(rgbStr, offset, isAlpha) {
-    let color = tinycolor$1(rgbStr).toHsl();
+    let color = tinycolor$2(rgbStr).toHsl();
     let lum = offset + color.l;
     if (lum >= 1) {
         if (isAlpha)
-            return tinycolor$1({ h: color.h, s: color.s, l: 1, a: color.a }).toHex8();
-        return tinycolor$1({ h: color.h, s: color.s, l: 1, a: color.a }).toHex();
+            return tinycolor$2({ h: color.h, s: color.s, l: 1, a: color.a }).toHex8();
+        return tinycolor$2({ h: color.h, s: color.s, l: 1, a: color.a }).toHex();
     }
     if (isAlpha)
-        return tinycolor$1({ h: color.h, s: color.s, l: lum, a: color.a }).toHex8();
-    return tinycolor$1({ h: color.h, s: color.s, l: lum, a: color.a }).toHex();
+        return tinycolor$2({ h: color.h, s: color.s, l: lum, a: color.a }).toHex8();
+    return tinycolor$2({ h: color.h, s: color.s, l: lum, a: color.a }).toHex();
 }
 function applyLumMod(rgbStr, multiplier, isAlpha) {
-    let color = tinycolor$1(rgbStr).toHsl();
+    let color = tinycolor$2(rgbStr).toHsl();
     let cacl_l = color.l * multiplier;
     if (cacl_l >= 1) {
         cacl_l = 1;
     }
     if (isAlpha)
-        return tinycolor$1({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
-    return tinycolor$1({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
+        return tinycolor$2({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex8();
+    return tinycolor$2({ h: color.h, s: color.s, l: cacl_l, a: color.a }).toHex();
 }
 function applyHueMod(rgbStr, multiplier, isAlpha) {
-    let color = tinycolor$1(rgbStr).toHsl();
+    let color = tinycolor$2(rgbStr).toHsl();
     let cacl_h = color.h * multiplier;
     if (cacl_h >= 360) {
         cacl_h = cacl_h - 360;
     }
     if (isAlpha)
-        return tinycolor$1({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
-    return tinycolor$1({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
+        return tinycolor$2({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex8();
+    return tinycolor$2({ h: cacl_h, s: color.s, l: color.l, a: color.a }).toHex();
 }
 function applySatMod(rgbStr, multiplier, isAlpha) {
-    let color = tinycolor$1(rgbStr).toHsl();
+    let color = tinycolor$2(rgbStr).toHsl();
     let cacl_s = color.s * multiplier;
     if (cacl_s >= 1) {
         cacl_s = 1;
     }
     if (isAlpha)
-        return tinycolor$1({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex8();
-    return tinycolor$1({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex();
+        return tinycolor$2({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex8();
+    return tinycolor$2({ h: color.h, s: cacl_s, l: color.l, a: color.a }).toHex();
 }
 function rgba2hex(rgbaStr) {
     let a, rgb = rgbaStr.replace(/\s/g, '').match(/^rgba?\((\d+),(\d+),(\d+),?([^,\s)]+)?/i), alpha = (rgb && rgb[4] || "").trim(), hex = rgb ?
@@ -4836,7 +4836,7 @@ function getSvgGradient(w, h, angl, color_arry, shpId) {
     svg += svgAngle;
     const rawStops = [];
     for (let i = 0; i < sal; i++) {
-        const tinClr = tinycolor$1(`#${color_arry[i]}`);
+        const tinClr = tinycolor$2(`#${color_arry[i]}`);
         const rgb = tinClr.toRgb();
         rawStops.push({
             offset: parseFloat(stopsArray[i]) / 100,
@@ -4947,7 +4947,7 @@ function getSvgImagePattern(node, fill, shpId, warpObj) {
                 let obj = {};
                 obj[clr_type] = duotoneNode[clr_type];
                 let hexClr = getSolidFill(obj, undefined, undefined, warpObj);
-                let color = tinycolor$1(`#${hexClr}`);
+                let color = tinycolor$2(`#${hexClr}`);
                 clr_ary.push(color.toRgb());
             }
         });
@@ -5926,7 +5926,7 @@ const PPTXStyleUtils = {
     getColor
 };
 
-const tinycolor = (color, opts) => new tinycolor$2(color, opts);
+const tinycolor$1 = (color, opts) => new tinycolor$3(color, opts);
 let is_first_br = false;
 function getTextWidth(html) {
     let div = document.createElement('div');
@@ -6528,7 +6528,7 @@ async function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, w
             if (bultColor[0] !== undefined && bultColor[0] != "") {
                 let bulletColorValue = bultColor[0];
                 if (bulletColorValue.length === 8) {
-                    let colorObj = tinycolor(bulletColorValue);
+                    let colorObj = tinycolor$1(bulletColorValue);
                     bulletColorValue = colorObj.toRgbString();
                 }
                 else {
@@ -6611,7 +6611,7 @@ async function genBuChar(node, i, spNode, textBodyNode, pFontStyle, idx, type, w
         if (bultColor && bultColor[0] !== undefined && bultColor[0] != "") {
             let bulletNumColorValue = bultColor[0];
             if (bulletNumColorValue.length === 8) {
-                let colorObj = tinycolor(bulletNumColorValue);
+                let colorObj = tinycolor$1(bulletNumColorValue);
                 bulletNumColorValue = colorObj.toRgbString();
             }
             else {
@@ -7059,7 +7059,7 @@ async function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, sli
         if (linkID === undefined && fontClrPr[0] !== undefined && fontClrPr[0] != "") {
             let colorValue = fontClrPr[0];
             if (colorValue.length === 8) {
-                let colorObj = tinycolor(colorValue);
+                let colorObj = tinycolor$1(colorValue);
                 colorValue = colorObj.toRgbString();
             }
             else {
@@ -7076,7 +7076,7 @@ async function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, sli
         if (fontClrPr[3] !== undefined && fontClrPr[3] != "") {
             let highlightColorValue = fontClrPr[3];
             if (highlightColorValue.length === 8) {
-                let colorObj = tinycolor(highlightColorValue);
+                let colorObj = tinycolor$1(highlightColorValue);
                 highlightColorValue = colorObj.toRgbString();
             }
             else {
@@ -7142,7 +7142,7 @@ async function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, sli
         let highlightColor = PPTXStyleUtils.getSolidFill(highlight, undefined, undefined, warpObj);
         if (highlightColor !== undefined && highlightColor != "") {
             if (highlightColor.length === 8) {
-                let colorObj = tinycolor(highlightColor);
+                let colorObj = tinycolor$1(highlightColor);
                 highlightColor = colorObj.toRgbString();
             }
             else {
@@ -7305,7 +7305,7 @@ async function genTable(node, warpObj, shapeType) {
     }
     if (tbl_bgcolor !== "" && typeof tbl_bgcolor === 'string') {
         if (tbl_bgcolor.length === 8) {
-            let colorObj = tinycolor(tbl_bgcolor);
+            let colorObj = tinycolor$1(tbl_bgcolor);
             tbl_bgcolor = colorObj.toRgbString();
         }
         else {
@@ -7480,7 +7480,7 @@ async function genTable(node, warpObj, shapeType) {
         if (fontClrPr !== undefined && typeof fontClrPr === 'string') {
             let tableColorValue = fontClrPr;
             if (tableColorValue.length === 8) {
-                let colorObj = tinycolor(tableColorValue);
+                let colorObj = tinycolor$1(tableColorValue);
                 tableColorValue = colorObj.toRgbString();
             }
             else {
@@ -7491,7 +7491,7 @@ async function genTable(node, warpObj, shapeType) {
         rowsStyl += ((fontWeight != "") ? ` font-weight:${fontWeight};` : "");
         if (fillColor !== undefined && fillColor != "" && typeof fillColor === 'string') {
             if (fillColor.length === 8) {
-                let colorObj = tinycolor(fillColor);
+                let colorObj = tinycolor$1(fillColor);
                 fillColor = colorObj.toRgbString();
             }
             else {
@@ -7773,7 +7773,7 @@ async function getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTb
             return undefined;
         const wEmu = parseInt(PPTXXmlUtils.getTextByPathList(ln, ["attrs", "w"]));
         return {
-            color: (color.length === 8) ? tinycolor(color).toRgbString() : `#${color}`,
+            color: (color.length === 8) ? tinycolor$1(color).toRgbString() : `#${color}`,
             width: (isNaN(wEmu) ? 12700 : wEmu) / 12700
         };
     };
@@ -7840,7 +7840,7 @@ async function getTableCellParams(tcNodes, getColsGrid, row_idx, col_idx, thisTb
     colStyl += ((colFontClrPr !== "" && typeof colFontClrPr === 'string') ?
         ((colFontClrPr.length === 8) ?
             (() => {
-                let colorObj = tinycolor(colFontClrPr);
+                let colorObj = tinycolor$1(colFontClrPr);
                 return `color: ${colorObj.toRgbString()};`;
             })() :
             `color: #${colFontClrPr};`) : "");
@@ -15157,7 +15157,7 @@ function degToRot(deg) {
 function colorToHex(color) {
     if (color === undefined || color === null || color === '')
         return '000000';
-    const c = new tinycolor$2(String(color));
+    const c = new tinycolor$3(String(color));
     if (!c.isValid())
         return '000000';
     return c.toHexString().replace('#', '').toUpperCase();
@@ -15680,7 +15680,7 @@ function arrayBufferToBase64(buffer) {
     }
     return Buffer.from(bytes).toString('base64');
 }
-function buildXfrm(el) {
+function buildXfrm(el, tag = 'a:xfrm') {
     const xfrmAttrs = { rot: el.rotation ? degToRot(el.rotation) : null };
     if (el.start && el.end) {
         const sx = el.start.x ?? 0;
@@ -15693,13 +15693,13 @@ function buildXfrm(el) {
             xfrmAttrs.flipH = 1;
         if (flipV || el.flipV)
             xfrmAttrs.flipV = 1;
-        return xmlNode('a:xfrm', xfrmAttrs, xmlNode('a:off', { x: pxToEmu(Math.min(sx, ex)), y: pxToEmu(Math.min(sy, ey)) }), xmlNode('a:ext', { cx: pxToEmu(Math.abs(ex - sx)), cy: pxToEmu(Math.abs(ey - sy)) }));
+        return xmlNode(tag, xfrmAttrs, xmlNode('a:off', { x: pxToEmu(Math.min(sx, ex)), y: pxToEmu(Math.min(sy, ey)) }), xmlNode('a:ext', { cx: pxToEmu(Math.abs(ex - sx)), cy: pxToEmu(Math.abs(ey - sy)) }));
     }
     if (el.flipH)
         xfrmAttrs.flipH = 1;
     if (el.flipV)
         xfrmAttrs.flipV = 1;
-    return xmlNode('a:xfrm', xfrmAttrs, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: pxToEmu(el.width || 0), cy: pxToEmu(el.height || 0) }));
+    return xmlNode(tag, xfrmAttrs, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: pxToEmu(el.width || 0), cy: pxToEmu(el.height || 0) }));
 }
 function buildHyperlink(ctx, href) {
     if (!href)
@@ -16201,7 +16201,7 @@ function buildChartElement(ctx, el) {
     const relId = addRelationship(ctx, REL_TYPES.chart, `../charts/${chartName}`);
     const { xml, workbook } = buildChartXml(el);
     ctx.charts.push({ name: chartName, xml, workbook });
-    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), buildXfrm(el), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: NS.c }, xmlNode('c:chart', { 'xmlns:c': NS.c, 'xmlns:r': NS.r, 'r:id': relId }))));
+    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), buildXfrm(el, 'p:xfrm'), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: NS.c }, xmlNode('c:chart', { 'xmlns:c': NS.c, 'xmlns:r': NS.r, 'r:id': relId }))));
 }
 function strRefXml(values, col) {
     const n = values.length;
@@ -16644,7 +16644,7 @@ async function buildGroupElement(ctx, el) {
     }
     const w = pxToEmu(el.width || 0);
     const h = pxToEmu(el.height || 0);
-    return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), xmlNode('p:spTree', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id: ctx.nextElementId++, name: `${el.name || 'Group'} Inner` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: 0, y: 0 }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), ...childNodes));
+    return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), ...childNodes);
 }
 async function buildMediaElement(ctx, el, kind) {
     const id = ctx.nextElementId++;
@@ -16666,7 +16666,7 @@ async function buildMediaElement(ctx, el, kind) {
     const mediaFileNode = kind === 'video'
         ? xmlNode('a:videoFile', { 'r:link': embedRelId })
         : xmlNode('a:audioFile', { 'r:link': embedRelId });
-    return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id, name: el.name || `${kind} ${id}` }), xmlNode('p:cNvPicPr'), xmlNode('p:nvPr', null, mediaFileNode)), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': posterRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))));
+    return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id, name: el.name || `${kind} ${id}` }), xmlNode('p:cNvPicPr'), xmlNode('p:nvPr', null, mediaFileNode)), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': posterRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))));
 }
 const DGML_NS = 'http://schemas.openxmlformats.org/drawingml/2006/diagram';
 function diagramUniqueId(seed) {
@@ -18147,6 +18147,7 @@ class PPTXComposer {
     }
 }
 
+const tinycolor = (color, opts) => new tinycolor$3(color, opts);
 const CHART_PLOT_TYPES = [
     'c:barChart', 'c:bar3DChart',
     'c:lineChart', 'c:line3DChart',
@@ -18203,14 +18204,19 @@ function resolvePart(target) {
     return `ppt/${target.replace(/^(\.\.\/)+/, '').replace(/^\/+/, '')}`;
 }
 function readSrgbClr(node) {
-    const c = node && (node['a:srgbClr'] || (node['a:solidFill'] && node['a:solidFill']['a:srgbClr']));
-    return c && c.attrs && c.attrs.val ? String(c.attrs.val) : undefined;
+    const srgb = node && (node['a:srgbClr'] || (node['a:solidFill'] && node['a:solidFill']['a:srgbClr']));
+    if (srgb && srgb.attrs && srgb.attrs.val)
+        return String(srgb.attrs.val);
+    const sch = node && (node['a:schemeClr'] || (node['a:solidFill'] && node['a:solidFill']['a:schemeClr']));
+    if (sch && sch.attrs && sch.attrs.val)
+        return 'scheme:' + String(sch.attrs.val);
+    return undefined;
 }
 function readRunText(runNode) {
     const t = runNode && runNode['a:t'];
     return typeof t === 'string' ? t : '';
 }
-function readRunStyle(rPr) {
+function readRunStyle(rPr, themeMap = {}) {
     const style = {};
     if (!rPr)
         return style;
@@ -18223,7 +18229,7 @@ function readRunStyle(rPr) {
         style.italic = true;
     if (attrs.u && attrs.u !== 'none')
         style.underline = true;
-    const color = readSrgbClr(rPr);
+    const color = spColor(rPr['a:solidFill'], themeMap) || readSrgbClr(rPr);
     if (color)
         style.color = color;
     const latin = rPr['a:latin'];
@@ -18232,9 +18238,38 @@ function readRunStyle(rPr) {
     const hlink = rPr['a:hlinkClick'];
     if (hlink && hlink.attrs && hlink.attrs['r:id'])
         style.href = String(hlink.attrs['r:id']);
+    const ln = rPr['a:ln'];
+    if (ln) {
+        if (ln['a:noFill']) {
+            style.outline = 'none';
+        }
+        else {
+            const lnColor = spColor(ln['a:solidFill'], themeMap);
+            const w = ln.attrs && ln.attrs.w != null ? emuToPt(ln.attrs.w) : 1;
+            style.outline = { color: lnColor, width: w };
+        }
+    }
+    const outerShdw = rPr['a:effectLst'] && rPr['a:effectLst']['a:outerShdw'];
+    if (outerShdw && outerShdw.attrs) {
+        const attrs = outerShdw.attrs;
+        const dist = Number(attrs.dist) || 0;
+        const dir = Number(attrs.dir) || 0;
+        const blur = Number(attrs.blurRad) || 0;
+        const rad = (dir / 60000) * Math.PI / 180;
+        const shColor = spColor(outerShdw, themeMap);
+        const alphaNode = (outerShdw['a:srgbClr'] || outerShdw['a:schemeClr']) && (outerShdw['a:srgbClr'] || outerShdw['a:schemeClr'])['a:alpha'];
+        const alpha = alphaNode && alphaNode.attrs ? Math.round(Number(alphaNode.attrs.val) / 1000) / 100 : undefined;
+        style.shadow = {
+            color: shColor,
+            blur: Math.round(emuToPt(blur) * 100) / 100,
+            x: Math.round(Math.cos(rad) * emuToPt(dist) * 100) / 100,
+            y: Math.round(Math.sin(rad) * emuToPt(dist) * 100) / 100,
+            alpha
+        };
+    }
     return style;
 }
-function extractTxBody(txBody) {
+function extractTxBody(txBody, themeMap = {}) {
     const paragraphs = [];
     let hasText = false;
     let text = '';
@@ -18245,6 +18280,16 @@ function extractTxBody(txBody) {
         ? VALIGN_MAP[bodyPr.attrs.anchor] : undefined;
     const textDirection = bodyPr && bodyPr.attrs && bodyPr.attrs.vert
         ? String(bodyPr.attrs.vert) : undefined;
+    let inset;
+    if (bodyPr && bodyPr.attrs) {
+        const a = bodyPr.attrs;
+        const l = a.lIns != null ? emuToPx(a.lIns) : undefined;
+        const r = a.rIns != null ? emuToPx(a.rIns) : undefined;
+        const t = a.tIns != null ? emuToPx(a.tIns) : undefined;
+        const b = a.bIns != null ? emuToPx(a.bIns) : undefined;
+        if (l != null || r != null || t != null || b != null)
+            inset = { l, r, t, b };
+    }
     for (const pNode of asArray(txBody['a:p'])) {
         const pPr = pNode['a:pPr'];
         const pAttrs = (pPr && pPr.attrs) || {};
@@ -18280,7 +18325,7 @@ function extractTxBody(txBody) {
             if (t)
                 hasText = true;
             paraText += t;
-            runs.push({ text: t, ...readRunStyle(runNode['a:rPr']) });
+            runs.push({ text: t, ...readRunStyle(runNode['a:rPr'], themeMap) });
         }
         if (paraText)
             text += (text ? '\n' : '') + paraText;
@@ -18305,13 +18350,16 @@ function extractTxBody(txBody) {
             para.valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection };
+    return { paragraphs, hasText, valign, text, textDirection, inset };
 }
-function extractTextBody(spNode) {
-    const { paragraphs, hasText, textDirection } = extractTxBody(spNode && spNode['p:txBody']);
-    return { paragraphs, hasText, textDirection };
+function extractTextBody(spNode, themeMap = {}) {
+    return extractTxBody(spNode && spNode['p:txBody'], themeMap);
 }
-function readSpPr(spPr) {
+function spColor(node, themeMap) {
+    const c = resolveColorNode(node, themeMap);
+    return c ? tinycolor(c).toHexString().toUpperCase().replace(/^#/, '') : undefined;
+}
+function readSpPr(spPr, themeMap = {}) {
     const out = { shapeType: 'rect' };
     if (!spPr)
         return out;
@@ -18326,7 +18374,7 @@ function readSpPr(spPr) {
         const gsLst = gf['a:gsLst'];
         const stops = (gsLst ? asArray(gsLst['a:gs']) : []).map((gs) => {
             const pos = gs && gs.attrs ? Number(gs.attrs.pos) / 100000 : 0;
-            return { color: readSrgbClr(gs) || '#000000', position: pos };
+            return { color: spColor(gs, themeMap) || '000000', position: pos };
         });
         const lin = gf['a:lin'];
         let direction = 'horizontal';
@@ -18341,8 +18389,8 @@ function readSpPr(spPr) {
         const prst = pf && pf.attrs && pf.attrs.prst ? String(pf.attrs.prst) : undefined;
         if (prst) {
             const patt = { type: 'pattern', prst };
-            const fg = readSrgbClr(firstChild(pf, 'a:fgClr'));
-            const bg = readSrgbClr(firstChild(pf, 'a:bgClr'));
+            const fg = spColor(firstChild(pf, 'a:fgClr'), themeMap);
+            const bg = spColor(firstChild(pf, 'a:bgClr'), themeMap);
             if (fg)
                 patt.fg = fg;
             if (bg)
@@ -18354,11 +18402,11 @@ function readSpPr(spPr) {
         out.fill = undefined;
     }
     else {
-        const color = readSrgbClr(spPr);
+        const solid = spPr['a:solidFill'];
+        const color = spColor(solid, themeMap);
         if (color) {
-            const solid = spPr['a:solidFill'];
-            const srgb = solid && solid['a:srgbClr'];
-            const alphaNode = (solid && solid['a:alpha']) || (srgb && srgb['a:alpha']);
+            const colorNodeAny = solid && (solid['a:srgbClr'] || solid['a:schemeClr']);
+            const alphaNode = colorNodeAny && colorNodeAny['a:alpha'];
             const transparency = alphaNode && alphaNode.attrs ? Math.round(100 - Number(alphaNode.attrs.val) / 1000) : undefined;
             out.fill = transparency != null ? { type: 'solid', color, transparency } : color;
         }
@@ -18369,10 +18417,11 @@ function readSpPr(spPr) {
             out.line = 'none';
         }
         else {
-            const color = readSrgbClr(ln);
+            const color = spColor(ln['a:solidFill'], themeMap);
             const w = ln.attrs && ln.attrs.w ? emuToPt(ln.attrs.w) : DEFAULT_LN_PT;
-            const srgb = ln['a:solidFill'] && ln['a:solidFill']['a:srgbClr'];
-            const alphaNode = srgb && srgb['a:alpha'];
+            const solidLn = ln['a:solidFill'];
+            const colorNodeAny = solidLn && (solidLn['a:srgbClr'] || solidLn['a:schemeClr']);
+            const alphaNode = colorNodeAny && colorNodeAny['a:alpha'];
             const transparency = alphaNode && alphaNode.attrs ? Math.round(100 - Number(alphaNode.attrs.val) / 1000) : undefined;
             const dash = ln['a:prstDash'] && ln['a:prstDash'].attrs && ln['a:prstDash'].attrs.val;
             const lineObj = { width: w };
@@ -18426,18 +18475,43 @@ function readSpPr(spPr) {
     return out;
 }
 function readXfrm(node, isGraphicFrame) {
-    const xf = isGraphicFrame ? node['p:xfrm'] : (node['p:spPr'] && node['p:spPr']['a:xfrm']);
+    const xf = isGraphicFrame
+        ? (node['p:xfrm'] || node['a:xfrm'])
+        : (node['p:spPr'] && node['p:spPr']['a:xfrm']);
     if (!xf || !xf['a:off'])
         return null;
     const off = (xf['a:off'] && xf['a:off'].attrs) || {};
     const ext = (xf['a:ext'] && xf['a:ext'].attrs) || {};
-    return {
+    const attrs = xf.attrs || {};
+    const out = {
         x: emuToPx(off.x),
         y: emuToPx(off.y),
         width: emuToPx(ext.cx),
         height: emuToPx(ext.cy),
-        rotation: rotToDeg(xf.attrs && xf.attrs.rot)
+        rotation: rotToDeg(attrs.rot)
     };
+    if (attrs.flipH === 1 || attrs.flipH === '1' || attrs.flipH === true)
+        out.flipH = true;
+    if (attrs.flipV === 1 || attrs.flipV === '1' || attrs.flipV === true)
+        out.flipV = true;
+    return out;
+}
+function readAdjust(prstGeom) {
+    const avLst = prstGeom && prstGeom['a:avLst'];
+    if (!avLst)
+        return undefined;
+    const gds = asArray(avLst['a:gd']);
+    if (!gds.length)
+        return undefined;
+    const adj = {};
+    for (const g of gds) {
+        const name = g && g.attrs && g.attrs.name;
+        const fmla = g && g.attrs && g.attrs.fmla;
+        const m = fmla && /val\s+(\d+)/.exec(String(fmla));
+        if (name && m)
+            adj[name] = Number(m[1]);
+    }
+    return Object.keys(adj).length ? adj : undefined;
 }
 function extractNotes(notesContent) {
     if (!notesContent)
@@ -18571,41 +18645,45 @@ function extractTiming(slideContent) {
         result.animations = animations;
     return result;
 }
-async function extractBackground(slideContent, resObj, zip) {
-    const sld = slideContent && slideContent['p:sld'];
-    if (!sld)
-        return undefined;
-    const bg = sld['p:cSld'] && sld['p:cSld']['p:bg'];
-    if (!bg)
-        return undefined;
-    const bgPr = bg['p:bgPr'];
-    if (bgPr) {
-        const color = readSrgbClr(bgPr);
-        if (color)
-            return color;
-        if (bgPr['a:blipFill']) {
-            const img = await readImageFill(bgPr['a:blipFill'], resObj, zip);
-            if (img)
-                return img;
-        }
-        if (bgPr['a:gradFill']) {
-            const gsLst = bgPr['a:gradFill']['a:gsLst'];
-            const stops = [];
-            for (const gs of asArray(gsLst && gsLst['a:gs'])) {
-                const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
-                const c = readSrgbClr(gs);
-                if (c)
-                    stops.push({ color: c, position: pos });
+async function extractBackground(slideContent, resObj, zip, fallbacks = []) {
+    const parts = [
+        { content: slideContent, res: resObj }, ...fallbacks
+    ];
+    for (const part of parts) {
+        const sld = part.content && (part.content['p:sld'] || part.content['p:sldLayout'] || part.content['p:sldMaster']);
+        const bg = sld && sld['p:cSld'] && sld['p:cSld']['p:bg'];
+        if (!bg)
+            continue;
+        const bgPr = bg['p:bgPr'];
+        if (bgPr) {
+            const color = readSrgbClr(bgPr);
+            if (color)
+                return color;
+            if (bgPr['a:blipFill'] && part.res) {
+                const img = await readImageFill(bgPr['a:blipFill'], part.res, zip);
+                if (img)
+                    return img;
             }
-            const lin = bgPr['a:gradFill']['a:lin'];
-            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) : 0;
-            const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
-            return { type: 'gradient', direction, stops };
+            if (bgPr['a:gradFill']) {
+                const gsLst = bgPr['a:gradFill']['a:gsLst'];
+                const stops = [];
+                for (const gs of asArray(gsLst && gsLst['a:gs'])) {
+                    const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
+                    const c = readSrgbClr(gs);
+                    if (c)
+                        stops.push({ color: c, position: pos });
+                }
+                const lin = bgPr['a:gradFill']['a:lin'];
+                const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) : 0;
+                const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+                return { type: 'gradient', direction, stops };
+            }
         }
+        return undefined;
     }
     return undefined;
 }
-function extractChart(chartXml) {
+function extractChart(chartXml, themeMap = {}) {
     try {
         const chart = chartXml && chartXml['c:chartSpace'] && chartXml['c:chartSpace']['c:chart'];
         if (!chart)
@@ -18644,14 +18722,15 @@ function extractChart(chartXml) {
             const s = {};
             if (name)
                 s.name = name;
-            if (isScatter) {
-                s.x = numCacheValues(ser['c:xVal']);
+            if (isScatter || isBubble) {
+                let xv = numCacheValues(ser['c:xVal']);
+                if (!xv.length)
+                    xv = numCacheValues(ser['c:cat']);
+                s.x = xv;
                 s.y = numCacheValues(ser['c:yVal']);
-            }
-            else if (isBubble) {
-                s.x = numCacheValues(ser['c:xVal']);
-                s.y = numCacheValues(ser['c:yVal']);
-                s.values = numCacheValues(ser['c:bubbleSize']);
+                if (isBubble) {
+                    s.values = numCacheValues(ser['c:bubbleSize']);
+                }
             }
             else if (isStock) {
                 s.open = numCacheValues(ser['c:openVal']);
@@ -18662,7 +18741,8 @@ function extractChart(chartXml) {
             else {
                 s.values = numCacheValues(ser['c:val']);
             }
-            const serColor = readSrgbClr(ser);
+            const serSpPr = ser['c:spPr'];
+            const serColor = serSpPr ? spColor(serSpPr['a:solidFill'], themeMap) : undefined;
             if (serColor)
                 s.color = serColor;
             series.push(s);
@@ -18732,6 +18812,21 @@ function extractChart(chartXml) {
         const wireframe = attrOf(chartNode, 'c:wireframe');
         if (wireframe !== undefined)
             out.wireframe = wireframe === '1';
+        const v3dNode = chartNode['c:view3D'];
+        if (v3dNode && v3dNode.attrs) {
+            const va = v3dNode.attrs;
+            const v3d = {};
+            if (va.rotX !== undefined)
+                v3d.rotX = parseFloat(va.rotX);
+            if (va.rotY !== undefined)
+                v3d.rotY = parseFloat(va.rotY);
+            if (va.depthPercent !== undefined)
+                v3d.depthPercent = parseFloat(va.depthPercent);
+            if (va.rAngAx !== undefined)
+                v3d.rAngAx = va.rAngAx === '1';
+            if (Object.keys(v3d).length)
+                out.view3D = v3d;
+        }
         return out;
     }
     catch {
@@ -18839,9 +18934,7 @@ function collectShapeNodes(spTree, acc, keepGroups = false) {
                     acc.push({ key, node });
                 }
                 else {
-                    const inner = node && node['p:spTree'];
-                    if (inner)
-                        collectShapeNodes(inner, acc, keepGroups);
+                    collectShapeNodes(node, acc, keepGroups);
                 }
             }
             else if (['p:sp', 'p:pic', 'p:graphicFrame', 'p:cxnSp'].includes(key)) {
@@ -18860,7 +18953,10 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             && slideContent['p:sld']['p:cSld']
             && slideContent['p:sld']['p:cSld']['p:spTree'];
         const resObj = slideData.slideResObj || {};
-        const bg = await extractBackground(slideContent, resObj, zip);
+        const bg = await extractBackground(slideContent, resObj, zip, [
+            { content: slideData.slideLayoutContent, res: slideData.layoutResObj },
+            { content: slideData.slideMasterContent, res: slideData.masterResObj }
+        ]);
         if (bg !== undefined)
             slide.background = bg;
         const transition = extractTransition(slideContent);
@@ -18879,9 +18975,16 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             }));
         }
         if (spTree) {
+            const themeMap = {};
+            if (slideData.themeContent) {
+                Object.assign(themeMap, themeColorsFromContent(slideData.themeContent));
+            }
+            if (!Object.keys(themeMap).length && options.theme) {
+                Object.assign(themeMap, themeColorsFromTheme(options.theme));
+            }
             const processNode = async (key, node) => {
                 try {
-                    const el = await nodeToElement(key, node, resObj, zip);
+                    const el = await nodeToElement(key, node, resObj, zip, themeMap);
                     if (!el)
                         return null;
                     el.__raw = { tag: key, node };
@@ -18919,8 +19022,8 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                 return out;
             };
             const processGroup = async (node) => {
-                const inner = node['p:spTree'];
-                const children = inner ? await processTree(inner) : [];
+                const legacyInner = node['p:spTree'];
+                const children = legacyInner ? await processTree(legacyInner) : await processTree(node);
                 const gxf = node['p:grpSpPr'] && node['p:grpSpPr']['a:xfrm'];
                 const gOff = gxf && gxf['a:off'] && gxf['a:off'].attrs;
                 const gExt = gxf && gxf['a:ext'] && gxf['a:ext'].attrs;
@@ -18950,6 +19053,14 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                 return g;
             };
             slide.elements = await processTree(spTree);
+            if (slideData.tableStyles) {
+                slideData.tableStyles._themeContent = slideData.themeContent;
+                for (const el of slide.elements) {
+                    if (el.type === 'table') {
+                        applyTableStyle(el, slideData.tableStyles, options.theme);
+                    }
+                }
+            }
             const timing = extractTiming(slideContent);
             if (timing.advanceTime != null)
                 slide.advanceTime = timing.advanceTime;
@@ -19018,15 +19129,79 @@ async function readImageFill(blipFill, resObj, zip) {
     }
     return out;
 }
-async function nodeToElement(key, node, resObj, zip) {
+function readCustGeom(custGeom) {
+    const pathLst = custGeom && custGeom['a:pathLst'];
+    const pathArr = asArray(pathLst && pathLst['a:path']);
+    const paths = [];
+    for (const path of pathArr) {
+        if (!path || typeof path !== 'object')
+            continue;
+        const w = Number(path.attrs && path.attrs.w) || undefined;
+        const h = Number(path.attrs && path.attrs.h) || undefined;
+        const cmds = [];
+        const collected = [];
+        for (const k of Object.keys(path)) {
+            if (k === 'attrs')
+                continue;
+            for (const child of asArray(path[k])) {
+                if (child && typeof child === 'object') {
+                    collected.push({ order: Number(child.attrs && child.attrs.order) || 0, key: k, node: child });
+                }
+            }
+        }
+        collected.sort((a, b) => a.order - b.order);
+        const pt = (node, i) => {
+            const p = asArray(node && node['a:pt'])[i];
+            return p && p.attrs ? { x: Number(p.attrs.x) || 0, y: Number(p.attrs.y) || 0 } : { x: 0, y: 0 };
+        };
+        let hasClose = false;
+        for (const { key, node } of collected) {
+            switch (key) {
+                case 'a:moveTo': {
+                    const p = pt(node, 0);
+                    cmds.push({ type: 'moveTo', x: p.x, y: p.y });
+                    break;
+                }
+                case 'a:lnTo': {
+                    const p = pt(node, 0);
+                    cmds.push({ type: 'lnTo', x: p.x, y: p.y });
+                    break;
+                }
+                case 'a:cubicBezTo': {
+                    const p1 = pt(node, 0), p2 = pt(node, 1), p3 = pt(node, 2);
+                    cmds.push({ type: 'cubicBezTo', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, x: p3.x, y: p3.y });
+                    break;
+                }
+                case 'a:quadBezTo': {
+                    const p1 = pt(node, 0), p2 = pt(node, 1);
+                    cmds.push({ type: 'quadBezTo', x1: p1.x, y1: p1.y, x: p2.x, y: p2.y });
+                    break;
+                }
+                case 'a:arcTo': {
+                    const a = node.attrs || {};
+                    cmds.push({ type: 'arcTo', wR: Number(a.wR) || 0, hR: Number(a.hR) || 0, stAng: Number(a.stAng) || 0, swAng: Number(a.swAng) || 0 });
+                    break;
+                }
+                case 'a:close':
+                    cmds.push({ type: 'close' });
+                    hasClose = true;
+                    break;
+            }
+        }
+        if (cmds.length)
+            paths.push({ w, h, commands: cmds, closed: hasClose || undefined });
+    }
+    return paths.length ? { paths } : undefined;
+}
+async function nodeToElement(key, node, resObj, zip, themeMap = {}) {
     if (key === 'p:graphicFrame') {
-        return await graphicFrameToElement(node, resObj, zip);
+        return await graphicFrameToElement(node, resObj, zip, themeMap);
     }
     if (key === 'p:pic') {
         return await picToImage(node, resObj, zip);
     }
     const spPr = node['p:spPr'];
-    const { paragraphs, hasText, textDirection } = extractTextBody(node);
+    const { paragraphs, hasText, textDirection, inset } = extractTextBody(node, themeMap);
     const geom = spPr && spPr['a:prstGeom'];
     if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
         const xf = readXfrm(node, false);
@@ -19041,10 +19216,54 @@ async function nodeToElement(key, node, resObj, zip) {
         };
         if (xf && xf.rotation)
             textEl.rotation = xf.rotation;
+        if (xf && xf.flipH)
+            textEl.flipH = true;
+        if (xf && xf.flipV)
+            textEl.flipV = true;
         if (name)
             textEl.name = String(name);
         if (textDirection)
             textEl.textDirection = textDirection;
+        if (inset)
+            textEl.inset = inset;
+        const isPureTextBox = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1';
+        const hasNonRectShape = geom && geom.attrs && geom.attrs.prst && String(geom.attrs.prst) !== 'rect' && !isPureTextBox;
+        try {
+            const spVis = readSpPr(spPr, themeMap);
+            if (spPr && spPr['a:blipFill']) {
+                const imgFill = await readImageFill(spPr['a:blipFill'], resObj, zip);
+                if (imgFill)
+                    spVis.fill = imgFill;
+            }
+            const pStyle = node['p:style'];
+            if (pStyle && typeof pStyle === 'object') {
+                const tables = await getThemeStyleTables(zip);
+                if (spVis.fill === undefined && pStyle['a:fillRef']) {
+                    const ref = resolveThemeStyleRef(pStyle['a:fillRef'], tables.fills, themeMap);
+                    if (ref)
+                        spVis.fill = ref.color;
+                }
+                if (spVis.line === undefined && pStyle['a:lnRef']) {
+                    const ref = resolveThemeStyleRef(pStyle['a:lnRef'], tables.lines, themeMap);
+                    if (ref)
+                        spVis.line = { width: ref.widthPt || DEFAULT_LN_PT, color: ref.color };
+                }
+            }
+            if (hasNonRectShape && spVis.shapeType)
+                textEl.shapeType = spVis.shapeType;
+            if (hasNonRectShape) {
+                const visAdjust = readAdjust(geom);
+                if (visAdjust)
+                    textEl.adjust = visAdjust;
+            }
+            if (spVis.fill !== undefined)
+                textEl.fill = spVis.fill;
+            if (spVis.line !== undefined)
+                textEl.line = spVis.line;
+        }
+        catch (e) {
+            console.warn('[json-from-pptx] 文本形状外观提取失败（跳过外观）:', e instanceof Error ? (e.message + '\n' + String(e.stack).split('\n')[1]) : e);
+        }
         if (paragraphs[0]) {
             if (paragraphs[0].align)
                 textEl.align = paragraphs[0].align;
@@ -19068,13 +19287,33 @@ async function nodeToElement(key, node, resObj, zip) {
         }
         return textEl;
     }
-    if (geom) {
+    if (geom || (spPr && spPr['a:custGeom'])) {
         const xf = readXfrm(node, false);
-        const sp = readSpPr(spPr);
+        const sp = readSpPr(spPr, themeMap);
         if (spPr && spPr['a:blipFill']) {
             const imgFill = await readImageFill(spPr['a:blipFill'], resObj, zip);
             if (imgFill)
                 sp.fill = imgFill;
+        }
+        const pStyle = node['p:style'];
+        if (pStyle && typeof pStyle === 'object') {
+            const tables = await getThemeStyleTables(zip);
+            if (sp.fill === undefined && pStyle['a:fillRef']) {
+                const ref = resolveThemeStyleRef(pStyle['a:fillRef'], tables.fills, themeMap);
+                if (ref)
+                    sp.fill = ref.color;
+            }
+            if (pStyle['a:lnRef']) {
+                const ref = resolveThemeStyleRef(pStyle['a:lnRef'], tables.lines, themeMap);
+                if (ref) {
+                    if (sp.line === undefined) {
+                        sp.line = { width: ref.widthPt || DEFAULT_LN_PT, color: ref.color };
+                    }
+                    else if (sp.line !== 'none' && sp.line && typeof sp.line === 'object' && !sp.line.color) {
+                        sp.line.color = ref.color;
+                    }
+                }
+            }
         }
         const name = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvPr'] && node['p:nvSpPr']['p:cNvPr'].attrs && node['p:nvSpPr']['p:cNvPr'].attrs.name;
         const shapeEl = {
@@ -19093,6 +19332,19 @@ async function nodeToElement(key, node, resObj, zip) {
             shapeEl.effects = sp.effects;
         if (xf && xf.rotation)
             shapeEl.rotation = xf.rotation;
+        if (xf && xf.flipH)
+            shapeEl.flipH = true;
+        if (xf && xf.flipV)
+            shapeEl.flipV = true;
+        const adjust = geom ? readAdjust(geom) : undefined;
+        if (adjust)
+            shapeEl.adjust = adjust;
+        const custGeom = spPr && spPr['a:custGeom'];
+        if (custGeom) {
+            const cg = readCustGeom(custGeom);
+            if (cg)
+                shapeEl.custGeom = cg;
+        }
         if (name)
             shapeEl.name = String(name);
         return shapeEl;
@@ -19127,7 +19379,43 @@ function readGraphicFrameName(node) {
     const name = cNvPr && cNvPr.attrs && cNvPr.attrs.name;
     return name ? String(name) : undefined;
 }
-function tableToElement(tbl, node) {
+function readInsetsFromAttrs(attrs) {
+    if (!attrs)
+        return undefined;
+    const out = {};
+    if (attrs.marL != null)
+        out.l = emuToPx(attrs.marL);
+    if (attrs.marR != null)
+        out.r = emuToPx(attrs.marR);
+    if (attrs.marT != null)
+        out.t = emuToPx(attrs.marT);
+    if (attrs.marB != null)
+        out.b = emuToPx(attrs.marB);
+    return Object.keys(out).length ? out : undefined;
+}
+function readTableInsets(tblPr) {
+    if (!tblPr)
+        return undefined;
+    const mar = tblPr['a:tableCellMar'];
+    if (!mar)
+        return undefined;
+    const side = (k) => {
+        const n = mar['a:' + k];
+        return n && n.attrs && n.attrs.w != null ? emuToPx(n.attrs.w) : undefined;
+    };
+    const out = {};
+    const l = side('left'), r = side('right'), t = side('top'), b = side('bottom');
+    if (l != null)
+        out.l = l;
+    if (r != null)
+        out.r = r;
+    if (t != null)
+        out.t = t;
+    if (b != null)
+        out.b = b;
+    return Object.keys(out).length ? out : undefined;
+}
+function tableToElement(tbl, node, themeMap = {}) {
     const xf = readXfrm(node, true);
     const el = {
         type: 'table',
@@ -19145,6 +19433,34 @@ function tableToElement(tbl, node) {
         .map((c) => (c && c.attrs && c.attrs.w ? emuToPx(c.attrs.w) : 0));
     if (colWidths.length)
         el.colWidths = colWidths;
+    const tblPr = tbl && tbl['a:tblPr'];
+    if (tblPr) {
+        const styleIdNode = tblPr['a:tableStyleId'];
+        if (styleIdNode) {
+            const sid = typeof styleIdNode === 'string' ? styleIdNode : (styleIdNode.text != null ? String(styleIdNode.text) : undefined);
+            if (sid)
+                el.tableStyleId = sid;
+        }
+        const attrs = tblPr.attrs || {};
+        const flags = {};
+        if (attrs.firstRow != null)
+            flags.firstRow = String(attrs.firstRow) === '1';
+        if (attrs.bandRow != null)
+            flags.bandRow = String(attrs.bandRow) === '1';
+        if (attrs.lastRow != null)
+            flags.lastRow = String(attrs.lastRow) === '1';
+        if (attrs.firstCol != null)
+            flags.firstCol = String(attrs.firstCol) === '1';
+        if (attrs.lastCol != null)
+            flags.lastCol = String(attrs.lastCol) === '1';
+        if (attrs.bandCol != null)
+            flags.bandCol = String(attrs.bandCol) === '1';
+        if (Object.keys(flags).length)
+            el.tableStyleFlags = flags;
+        const inset = readTableInsets(tblPr);
+        if (inset)
+            el.inset = inset;
+    }
     const rowHeights = [];
     for (const tr of asArray(tbl && tbl['a:tr'])) {
         const row = { cells: [] };
@@ -19157,7 +19473,7 @@ function tableToElement(tbl, node) {
                 cell.colSpan = Number(attrs.gridSpan);
             if (attrs.rowSpan && Number(attrs.rowSpan) > 1)
                 cell.rowSpan = Number(attrs.rowSpan);
-            const { paragraphs, text } = extractTxBody(tc && tc['a:txBody']);
+            const { paragraphs, text } = extractTxBody(tc && tc['a:txBody'], themeMap);
             if (paragraphs.length > 1) {
                 cell.paragraphs = paragraphs;
             }
@@ -19188,6 +19504,9 @@ function tableToElement(tbl, node) {
                     cell.fill = fill;
                 if (tcPr.attrs && tcPr.attrs.anchor)
                     cell.valign = VALIGN_MAP[tcPr.attrs.anchor];
+                const cellInset = readInsetsFromAttrs(tcPr.attrs);
+                if (cellInset)
+                    cell.inset = cellInset;
                 const edgeKey = { L: 'left', R: 'right', T: 'top', B: 'bottom' };
                 const borders = {};
                 let hasBorder = false;
@@ -19207,6 +19526,20 @@ function tableToElement(tbl, node) {
                         hasBorder = true;
                     }
                 }
+                const diagTl = tcPr['a:lnTlToBr'];
+                const diagBl = tcPr['a:lnBlToTr'];
+                if (diagTl && diagBl) {
+                    borders.diagonal = 'both';
+                    hasBorder = true;
+                }
+                else if (diagTl) {
+                    borders.diagonal = 'tlBr';
+                    hasBorder = true;
+                }
+                else if (diagBl) {
+                    borders.diagonal = 'blTr';
+                    hasBorder = true;
+                }
                 if (hasBorder)
                     cell.borders = borders;
             }
@@ -19219,7 +19552,455 @@ function tableToElement(tbl, node) {
         el.rowHeights = rowHeights;
     return el;
 }
-async function diagramToElement(node, resObj, zip) {
+function themeColorsFromTheme(theme) {
+    const map = {};
+    if (!theme || !theme.colors)
+        return map;
+    for (const [k, v] of Object.entries(theme.colors)) {
+        const hex = String(v).replace(/^#/, '').toUpperCase();
+        if (/^[0-9A-F]{6}$/.test(hex))
+            map[k.toLowerCase()] = '#' + hex;
+    }
+    return map;
+}
+function themeColorsFromContent(themeContent) {
+    const map = {};
+    if (!themeContent)
+        return map;
+    const clrScheme = themeContent['a:theme']
+        && themeContent['a:theme']['a:themeElements']
+        && themeContent['a:theme']['a:themeElements']['a:clrScheme'];
+    if (!clrScheme)
+        return map;
+    const slots = ['dk1', 'lt1', 'dk2', 'lt2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6', 'hlink', 'folHlink'];
+    for (const slot of slots) {
+        const node = clrScheme['a:' + slot];
+        if (!node)
+            continue;
+        const srgb = node['a:srgbClr'];
+        const sys = node['a:sysClr'];
+        const val = (srgb && srgb.attrs && srgb.attrs.val)
+            || (sys && sys.attrs && (sys.attrs.lastClr || sys.attrs.val));
+        if (val)
+            map[slot] = '#' + String(val).replace(/^#/, '').toUpperCase();
+    }
+    return map;
+}
+const themeStylesCache = new WeakMap();
+async function getThemeStyleTables(zip) {
+    const cached = themeStylesCache.get(zip);
+    if (cached)
+        return cached;
+    const tables = { fills: [], lines: [] };
+    try {
+        const xml = await PPTXXmlUtils.readXmlFile(zip, 'ppt/theme/theme1.xml');
+        const fmt = xml && xml['a:theme']
+            && xml['a:theme']['a:themeElements']
+            && xml['a:theme']['a:themeElements']['a:fmtScheme'];
+        if (fmt) {
+            const listOf = (lstNode) => {
+                if (!lstNode || typeof lstNode !== 'object')
+                    return [];
+                const out = [];
+                for (const key of Object.keys(lstNode)) {
+                    if (key === 'attrs')
+                        continue;
+                    for (const child of asArray(lstNode[key])) {
+                        if (child && typeof child === 'object')
+                            out.push(child);
+                    }
+                }
+                return out;
+            };
+            tables.fills = listOf(fmt['a:fillStyleLst']);
+            tables.lines = listOf(fmt['a:lnStyleLst']);
+        }
+    }
+    catch { }
+    themeStylesCache.set(zip, tables);
+    return tables;
+}
+function resolveThemeStyleRef(refNode, styleList, themeMap) {
+    if (!refNode || !refNode.attrs || !styleList.length)
+        return undefined;
+    let idx = Number(refNode.attrs.idx) || 1;
+    if (idx < 1)
+        idx = 1;
+    const raw = styleList[(idx - 1) % styleList.length];
+    if (!raw || typeof raw !== 'object')
+        return undefined;
+    const lnInner = asArray(raw['a:ln'])[0];
+    const entry = (lnInner && typeof lnInner === 'object') ? lnInner : raw;
+    const refColor = resolveColorNode(refNode, themeMap);
+    const colorMap = refColor ? { ...themeMap, phclr: refColor } : themeMap;
+    const fillNode = entry['a:solidFill'] || entry['a:gradFill'] || entry;
+    let color = resolveColorNode(fillNode['a:solidFill'], colorMap)
+        || ((fillNode['a:schemeClr'] || fillNode['a:srgbClr']) ? resolveColorNode(fillNode, colorMap) : undefined);
+    if (!color) {
+        const grad = fillNode['a:gradFill'] || (fillNode['a:gsLst'] ? fillNode : undefined);
+        const gsLst = grad && grad['a:gsLst'];
+        color = resolveColorNode(asArray(gsLst && gsLst['a:gs'])[0], colorMap);
+    }
+    if (!color)
+        return undefined;
+    const wAttr = (entry.attrs && entry.attrs.w != null) ? entry.attrs.w
+        : (raw.attrs && raw.attrs.w != null) ? raw.attrs.w : undefined;
+    const w = wAttr != null ? emuToPt(wAttr) : undefined;
+    return { color, widthPt: w };
+}
+function resolveColorNode(node, themeMap) {
+    if (!node)
+        return undefined;
+    let base;
+    let modNode;
+    const srgb = node['a:srgbClr'];
+    if (srgb && srgb.attrs && srgb.attrs.val) {
+        base = '#' + String(srgb.attrs.val).replace(/^#/, '').toUpperCase();
+        modNode = srgb;
+    }
+    const sch = node['a:schemeClr'];
+    if (sch && sch.attrs && sch.attrs.val) {
+        const key = String(sch.attrs.val).toLowerCase();
+        const mapped = themeMap[key];
+        base = mapped || '#' + String(sch.attrs.val).replace(/^#/, '').toUpperCase();
+        modNode = sch;
+    }
+    if (!base)
+        return undefined;
+    let tc = tinycolor(base);
+    if (modNode) {
+        const readMod = (tag) => {
+            const n = modNode[tag];
+            return n && n.attrs && n.attrs.val != null ? Number(n.attrs.val) : undefined;
+        };
+        const tint = readMod('a:tint');
+        const shade = readMod('a:shade');
+        const lumMod = readMod('a:lumMod');
+        const lumOff = readMod('a:lumOff');
+        const alpha = readMod('a:alpha');
+        if (tint != null)
+            tc = tinycolor$3.mix(tc, '#FFFFFF', tint / 1000);
+        if (shade != null)
+            tc = tinycolor$3.mix(tc, '#000000', shade / 1000);
+        if (lumMod != null) {
+            const hsl = tc.toHsl();
+            hsl.l = Math.max(0, Math.min(1, hsl.l * (lumMod / 100000)));
+            tc = tinycolor(hsl);
+        }
+        if (lumOff != null) {
+            const hsl = tc.toHsl();
+            hsl.l = Math.max(0, Math.min(1, hsl.l + lumOff / 100000));
+            tc = tinycolor(hsl);
+        }
+        if (alpha != null) {
+            const a = Math.max(0, Math.min(1, tc.getAlpha() * (alpha / 100000)));
+            tc.setAlpha(a);
+            return tc.toRgbString();
+        }
+    }
+    return tc.toHexString().toUpperCase();
+}
+function readLineStyle(ln, themeMap) {
+    if (!ln)
+        return undefined;
+    const node = ln['a:ln'] || ln;
+    if (node['a:noFill'])
+        return 'none';
+    const attrs = node.attrs || {};
+    const width = attrs.w != null ? Math.round(Number(attrs.w) / EMU_PER_PT) : DEFAULT_LN_PT;
+    const color = resolveColorNode(node['a:solidFill'], themeMap)
+        || resolveColorNode(node, themeMap) || '#000000';
+    return { color, width };
+}
+function readTableStylePart(part, themeMap) {
+    if (!part)
+        return undefined;
+    const out = {};
+    const tcStyle = part['a:tcStyle'];
+    if (tcStyle) {
+        const fillNode = tcStyle['a:fill'] && (tcStyle['a:fill']['a:solidFill'] || tcStyle['a:fill']);
+        if (fillNode)
+            out.fill = resolveColorNode(fillNode, themeMap);
+        const bdr = tcStyle['a:tcBdr'];
+        if (bdr) {
+            const sides = {};
+            const sideMap = { left: 'left', right: 'right', top: 'top', bottom: 'bottom' };
+            let has = false;
+            for (const [xml, key] of Object.entries(sideMap)) {
+                const v = readLineStyle(bdr['a:' + xml], themeMap);
+                if (v !== undefined) {
+                    sides[key] = v;
+                    has = true;
+                }
+            }
+            const insideH = bdr['a:insideH'];
+            const insideV = bdr['a:insideV'];
+            if (insideH !== undefined) {
+                sides.insideH = readLineStyle(insideH, themeMap);
+                has = true;
+            }
+            if (insideV !== undefined) {
+                sides.insideV = readLineStyle(insideV, themeMap);
+                has = true;
+            }
+            if (has)
+                out.borders = sides;
+        }
+    }
+    const txStyle = part['a:tcTxStyle'];
+    if (txStyle) {
+        const fontRef = txStyle['a:fontRef'];
+        const defRPr = txStyle['a:defRPr'];
+        const colorNode = txStyle['a:schemeClr'] || txStyle['a:srgbClr'] || (fontRef && (fontRef['a:schemeClr'] || fontRef['a:srgbClr']));
+        if (colorNode)
+            out.color = resolveColorNode(colorNode, themeMap) || resolveColorNode(txStyle, themeMap);
+        if (txStyle.attrs) {
+            if (txStyle.attrs.b != null)
+                out.bold = String(txStyle.attrs.b) === '1' || String(txStyle.attrs.b) === 'on';
+            if (txStyle.attrs.i != null)
+                out.italic = String(txStyle.attrs.i) === '1' || String(txStyle.attrs.i) === 'on';
+        }
+        if (defRPr && defRPr.attrs) {
+            if (defRPr.attrs.b != null)
+                out.bold = String(defRPr.attrs.b) === '1' || String(defRPr.attrs.b) === 'on';
+            if (defRPr.attrs.sz != null)
+                out.fontSize = Math.round(Number(defRPr.attrs.sz) / 100);
+        }
+    }
+    return Object.keys(out).length ? out : undefined;
+}
+function applyTableStyle(el, tableStyles, theme) {
+    const styleId = el.tableStyleId;
+    if (!styleId || !tableStyles)
+        return;
+    const themeMap = tableStyles._themeContent
+        ? themeColorsFromContent(tableStyles._themeContent)
+        : (theme ? themeColorsFromTheme(theme) : {});
+    const styleLst = tableStyles['a:tblStyleLst'] || tableStyles;
+    const styles = asArray(styleLst['a:tblStyle']);
+    const style = styles.find((s) => s && s.attrs && s.attrs.styleId === styleId);
+    if (!style)
+        return;
+    const flags = el.tableStyleFlags || {};
+    const parts = {};
+    const names = ['wholeTbl', 'firstRow', 'lastRow', 'band1H', 'band2H', 'firstCol', 'lastCol', 'band1V', 'band2V', 'nwCell', 'neCell', 'swCell', 'seCell'];
+    for (const n of names) {
+        const part = readTableStylePart(style['a:' + n], themeMap);
+        if (part)
+            parts[n] = part;
+    }
+    if (Object.keys(parts).length === 0)
+        return;
+    const rowCount = el.rows.length;
+    const colCount = Math.max(1, ...el.rows.map((r) => (r.cells || []).length));
+    function mergeInto(cell, part) {
+        if (!part)
+            return;
+        if (part.fill != null)
+            cell.fill = cell.fillExplicit ?? part.fill;
+        if (part.color != null)
+            cell.color = cell.colorExplicit ?? part.color;
+        if (part.bold != null && !cell.boldExplicit)
+            cell.bold = part.bold;
+        if (part.italic != null && !cell.italicExplicit)
+            cell.italic = part.italic;
+        if (part.fontSize != null && cell.fontSizeExplicit == null)
+            cell.fontSize = part.fontSize;
+        if (part.borders) {
+            if (!cell.borders)
+                cell.borders = {};
+            for (const [k, v] of Object.entries(part.borders)) {
+                if (cell.bordersExplicit && cell.bordersExplicit[k] !== undefined)
+                    continue;
+                cell.borders[k] = v;
+            }
+        }
+    }
+    for (let ri = 0; ri < rowCount; ri++) {
+        const row = el.rows[ri];
+        for (let ci = 0; ci < (row.cells || []).length; ci++) {
+            const cell = row.cells[ci];
+            cell.fillExplicit = cell.fill;
+            cell.colorExplicit = cell.color;
+            cell.boldExplicit = cell.bold;
+            cell.italicExplicit = cell.italic;
+            cell.fontSizeExplicit = cell.fontSize;
+            cell.bordersExplicit = cell.borders ? { ...cell.borders } : undefined;
+            mergeInto(cell, parts.wholeTbl);
+            if (flags.bandRow) {
+                if ((ri % 2) === 0 && parts.band2H)
+                    mergeInto(cell, parts.band2H);
+                if ((ri % 2) === 1 && parts.band1H)
+                    mergeInto(cell, parts.band1H);
+            }
+            if (flags.bandCol) {
+                if ((ci % 2) === 0 && parts.band2V)
+                    mergeInto(cell, parts.band2V);
+                if ((ci % 2) === 1 && parts.band1V)
+                    mergeInto(cell, parts.band1V);
+            }
+            if (flags.firstRow && ri === 0 && parts.firstRow)
+                mergeInto(cell, parts.firstRow);
+            if (flags.lastRow && ri === rowCount - 1 && parts.lastRow)
+                mergeInto(cell, parts.lastRow);
+            if (flags.firstCol && ci === 0 && parts.firstCol)
+                mergeInto(cell, parts.firstCol);
+            if (flags.lastCol && ci === colCount - 1 && parts.lastCol)
+                mergeInto(cell, parts.lastCol);
+            delete cell.fillExplicit;
+            delete cell.colorExplicit;
+            delete cell.boldExplicit;
+            delete cell.italicExplicit;
+            delete cell.fontSizeExplicit;
+            delete cell.bordersExplicit;
+        }
+    }
+}
+const MS_DIAGRAM_DRAWING_REL = 'http://schemas.microsoft.com/office/2007/relationships/diagramDrawing';
+function findDiagramDrawingPath(resObj) {
+    for (const rel of Object.values(resObj || {})) {
+        if (!rel || !rel.target)
+            continue;
+        if (rel.type === MS_DIAGRAM_DRAWING_REL || /diagrams\/drawing\d+\.xml$/i.test(String(rel.target))) {
+            return resolvePart(rel.target);
+        }
+    }
+    return undefined;
+}
+function readDiagramShapeText(txBody, themeMap) {
+    if (!txBody)
+        return undefined;
+    const anchor = txBody['a:bodyPr'] && txBody['a:bodyPr'].attrs ? String(txBody['a:bodyPr'].attrs.anchor || '') : '';
+    const lines = [];
+    let fontSize, color, bold, align;
+    for (const p of asArray(txBody['a:p'])) {
+        if (!p || typeof p !== 'object')
+            continue;
+        if (!align && p['a:pPr'] && p['a:pPr'].attrs && p['a:pPr'].attrs.algn)
+            align = String(p['a:pPr'].attrs.algn);
+        let line = '';
+        for (const r of asArray(p['a:r'])) {
+            if (!r || typeof r !== 'object')
+                continue;
+            const t = r['a:t'];
+            if (typeof t !== 'string')
+                continue;
+            line += t;
+            const rPr = r['a:rPr'];
+            if (rPr && rPr.attrs) {
+                if (fontSize === undefined && rPr.attrs.sz != null)
+                    fontSize = Math.round(Number(rPr.attrs.sz) / 100) || undefined;
+                if (bold === undefined && rPr.attrs.b != null)
+                    bold = String(rPr.attrs.b) === '1' || String(rPr.attrs.b) === 'on';
+            }
+            if (color === undefined && rPr)
+                color = resolveColorNode(rPr['a:solidFill'], themeMap) || readSrgbClr(rPr);
+        }
+        lines.push(line);
+    }
+    const text = lines.join('\n');
+    if (!text.trim() && fontSize === undefined && color === undefined)
+        return { text: text || undefined, anchor: anchor || undefined };
+    return { text: text || undefined, fontSize, color, bold, align, anchor: anchor || undefined };
+}
+async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH) {
+    const drawingPath = findDiagramDrawingPath(resObj);
+    if (!drawingPath)
+        return undefined;
+    let drawingXml;
+    try {
+        drawingXml = await PPTXXmlUtils.readXmlFile(zip, drawingPath);
+    }
+    catch {
+        return undefined;
+    }
+    const spTree = drawingXml && drawingXml['dsp:drawing'] && drawingXml['dsp:drawing']['dsp:spTree'];
+    if (!spTree)
+        return undefined;
+    const gxf = spTree['dsp:grpSpPr'] && spTree['dsp:grpSpPr']['a:xfrm'];
+    const chOffAttrs = gxf && gxf['a:chOff'] && gxf['a:chOff'].attrs || {};
+    const chExtAttrs = gxf && gxf['a:chExt'] && gxf['a:chExt'].attrs || {};
+    const chX = Number(chOffAttrs.x) || 0, chY = Number(chOffAttrs.y) || 0;
+    const chW = Number(chExtAttrs.cx) || 0, chH = Number(chExtAttrs.cy) || 0;
+    const mapX = (v) => chW > 0 ? ((Number(v) || 0) - chX) / chW * frameW : emuToPx(v);
+    const mapY = (v) => chH > 0 ? ((Number(v) || 0) - chY) / chH * frameH : emuToPx(v);
+    const mapW = (v) => chW > 0 ? (Number(v) || 0) / chW * frameW : emuToPx(v);
+    const mapH = (v) => chH > 0 ? (Number(v) || 0) / chH * frameH : emuToPx(v);
+    const shapes = [];
+    const pushShape = (sp, isConnector) => {
+        if (!sp || typeof sp !== 'object')
+            return;
+        const spPr = sp['dsp:spPr'];
+        const xf = spPr && spPr['a:xfrm'];
+        const off = (xf && xf['a:off'] && xf['a:off'].attrs) || {};
+        const ext = (xf && xf['a:ext'] && xf['a:ext'].attrs) || {};
+        const width = mapW(ext.cx), height = mapH(ext.cy);
+        if (!isFinite(width) || !isFinite(height) || (width <= 0 && height <= 0))
+            return;
+        const geom = spPr && spPr['a:prstGeom'];
+        const shape = {
+            x: Math.round(mapX(off.x) * 100) / 100,
+            y: Math.round(mapY(off.y) * 100) / 100,
+            width: Math.round(width * 100) / 100,
+            height: Math.round(height * 100) / 100
+        };
+        if (geom && geom.attrs && geom.attrs.prst)
+            shape.prst = String(geom.attrs.prst);
+        const xattrs = (xf && xf.attrs) || {};
+        if (String(xattrs.flipH) === '1')
+            shape.flipH = true;
+        if (String(xattrs.flipV) === '1')
+            shape.flipV = true;
+        if (isConnector) {
+            shape.connector = true;
+            const ln = spPr && spPr['a:ln'];
+            if (ln) {
+                const lc = resolveColorNode(ln['a:solidFill'], themeMap);
+                if (lc)
+                    shape.lineColor = lc;
+                if (ln.attrs && ln.attrs.w != null)
+                    shape.lineWidth = emuToPt(ln.attrs.w);
+            }
+            shapes.push(shape);
+            return;
+        }
+        const fill = spPr && resolveColorNode(spPr['a:solidFill'], themeMap);
+        if (fill)
+            shape.fill = fill;
+        else if (spPr && spPr['a:noFill'])
+            shape.fill = 'none';
+        const ln = spPr && spPr['a:ln'];
+        if (ln && !ln['a:noFill']) {
+            const lc = resolveColorNode(ln['a:solidFill'], themeMap);
+            if (lc) {
+                shape.lineColor = lc;
+                shape.lineWidth = ln.attrs && ln.attrs.w != null ? emuToPt(ln.attrs.w) : 1;
+            }
+        }
+        const txt = readDiagramShapeText(sp['dsp:txBody'], themeMap);
+        if (txt) {
+            if (txt.text)
+                shape.text = txt.text;
+            if (txt.fontSize)
+                shape.fontSize = txt.fontSize;
+            if (txt.color)
+                shape.color = txt.color;
+            if (txt.bold)
+                shape.bold = true;
+            if (txt.align)
+                shape.align = txt.align;
+            if (txt.anchor)
+                shape.anchor = txt.anchor;
+        }
+        shapes.push(shape);
+    };
+    for (const sp of asArray(spTree['dsp:sp']))
+        pushShape(sp, false);
+    for (const cxn of asArray(spTree['dsp:cxnSp']))
+        pushShape(cxn, true);
+    return shapes.length ? shapes : undefined;
+}
+async function diagramToElement(node, resObj, zip, themeMap = {}) {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
     const rel = graphicData && (graphicData['dgm:relIds'] || graphicData['dgm:rel']);
     const rid = rel && rel.attrs && (rel.attrs['r:dm'] || rel.attrs['r:id']);
@@ -19248,22 +20029,28 @@ async function diagramToElement(node, resObj, zip) {
         el.texts = texts;
     if (part)
         el.dataPath = part;
+    try {
+        const shapes = await extractDiagramShapes(resObj, zip, themeMap, el.width, el.height);
+        if (shapes)
+            el.shapes = shapes;
+    }
+    catch { }
     return el;
 }
-async function graphicFrameToElement(node, resObj, zip) {
+async function graphicFrameToElement(node, resObj, zip, themeMap = {}) {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
     if (!graphicData)
         return null;
     const uri = graphicData.attrs && graphicData.attrs.uri ? String(graphicData.attrs.uri) : '';
     const tbl = graphicData['a:tbl'];
     if (tbl)
-        return tableToElement(tbl, node);
+        return tableToElement(tbl, node, themeMap);
     if (graphicData['dgm:rel'] || uri === URI_DIAGRAM || /diagram/.test(uri)) {
-        return await diagramToElement(node, resObj, zip);
+        return await diagramToElement(node, resObj, zip, themeMap);
     }
-    return await graphicFrameToChart(node, resObj, zip);
+    return await graphicFrameToChart(node, resObj, zip, themeMap);
 }
-async function graphicFrameToChart(node, resObj, zip) {
+async function graphicFrameToChart(node, resObj, zip, themeMap = {}) {
     const chartRef = node['a:graphic']
         && node['a:graphic']['a:graphicData']
         && node['a:graphic']['a:graphicData']['c:chart'];
@@ -19275,7 +20062,7 @@ async function graphicFrameToChart(node, resObj, zip) {
     let chartSemantic;
     if (part) {
         const chartXml = await PPTXXmlUtils.readXmlFile(zip, part);
-        chartSemantic = extractChart(chartXml);
+        chartSemantic = extractChart(chartXml, themeMap);
     }
     const xf = readXfrm(node, true);
     const chartEl = {
@@ -19322,12 +20109,18 @@ async function picToImage(node, resObj, zip) {
         const mTarget = resObj[linkRid] && resObj[linkRid].target;
         const mPart = resolvePart(mTarget);
         const mExt = ((mPart || mTarget || '').split('.').pop() || (kind === 'video' ? 'mp4' : 'mp3')).toLowerCase();
+        const mediaMimeMap = {
+            mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', avi: 'video/x-msvideo',
+            mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', aac: 'audio/aac', ogg: 'audio/ogg', wma: 'audio/x-ms-wma'
+        };
         let mData;
         if (mPart) {
             try {
                 const f = zip.file(mPart);
-                if (f)
-                    mData = await f.async('base64');
+                if (f) {
+                    const b64 = await f.async('base64');
+                    mData = `data:${mediaMimeMap[mExt] || 'application/octet-stream'};base64,${b64}`;
+                }
             }
             catch { }
         }
@@ -19357,9 +20150,11 @@ async function picToImage(node, resObj, zip) {
                 try {
                     const f = zip.file(pPart);
                     if (f) {
+                        const pExt = (pPart.split('.').pop() || 'png').toLowerCase();
+                        const pb64 = await f.async('base64');
                         mediaEl.poster = {
-                            data: await f.async('base64'),
-                            extension: (pPart.split('.').pop() || 'png').toLowerCase()
+                            data: `data:${IMAGE_MIME[pExt] || 'image/png'};base64,${pb64}`,
+                            extension: pExt
                         };
                     }
                 }
@@ -19433,7 +20228,8 @@ async function picToImage(node, resObj, zip) {
     return imgEl;
 }
 async function buildStandardDocument(parsedData, zip, options = {}) {
-    const slides = await Promise.all((parsedData.slides || []).map(async (s) => extractSlideToStandard(s.data, zip, options)));
+    const theme = await extractTheme(zip);
+    const slides = await Promise.all((parsedData.slides || []).map(async (s) => extractSlideToStandard(s.data, zip, { ...options, theme: theme })));
     const doc = {
         version: '1.0',
         slideSize: parsedData.slideSize,
@@ -19444,7 +20240,38 @@ async function buildStandardDocument(parsedData, zip, options = {}) {
     if (parsedData.customProps && Object.keys(parsedData.customProps).length) {
         doc.customProps = parsedData.customProps;
     }
+    if (theme)
+        doc.theme = theme;
     return doc;
+}
+async function extractTheme(zip) {
+    try {
+        const file = zip.file('ppt/theme/theme1.xml');
+        if (!file)
+            return undefined;
+        const xml = await PPTXXmlUtils.readXmlFile(zip, 'ppt/theme/theme1.xml');
+        const clr = xml && xml['a:theme'] && xml['a:theme']['a:themeElements'] && xml['a:theme']['a:themeElements']['a:clrScheme'];
+        if (!clr)
+            return undefined;
+        const colors = {};
+        const slots = ['dk1', 'lt1', 'dk2', 'lt2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6', 'hlink', 'folHlink'];
+        for (const slot of slots) {
+            const node = clr['a:' + slot];
+            if (!node)
+                continue;
+            const srgb = node['a:srgbClr'];
+            const sys = node['a:sysClr'];
+            const val = (srgb && srgb.attrs && srgb.attrs.val)
+                || (sys && sys.attrs && sys.attrs.lastClr);
+            if (val)
+                colors[slot] = '#' + String(val).toUpperCase();
+        }
+        const name = xml['a:theme'] && xml['a:theme'].attrs && xml['a:theme'].attrs.name;
+        return { name: name ? String(name) : undefined, colors: colors };
+    }
+    catch {
+        return undefined;
+    }
 }
 
 var baseLayoutCss = ".slide {\n\twidth: 100%;\n\t/*max-width: 920px;*/\n\theight: 690px;\n\tposition: relative;\n\tborder: 1px solid #333;\n\t/* background-color: #EFEFEF; */\n\ttext-align: center;\n\tborder-radius: 10px;\n\t/* box-shadow: 1px 1px 3px #AAA; */\n\toverflow: hidden;\n\t/*transform: scale(0.85);*/\n}\n\n.slide div.block {\n\tposition: absolute;\n\ttop: 0px;\n\tleft: 0px;\n\twidth: 100%;\n}\n\n.slide div.content {\n\tdisplay: flex;\n\tflex-direction: column;\n\t/*\n\tjustify-content: center;\n\talign-items: flex-end;\n\t*/\n}\n\n.slide div.v-up {\n\tjustify-content: flex-start;\n}\n.slide div.v-mid {\n\tjustify-content: center;\n}\n.slide div.v-down {\n\tjustify-content: flex-end;\n}\n\n.slide div.h-left {\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.h-mid {\n\talign-items: center;\n\tjustify-content: center;\n\ttext-align: center;\n}\n.slide div.h-right {\n\talign-items: flex-end;\n\ttext-align: right;\n}\n\n.slide div.up-left {\n\tjustify-content: flex-start;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.up-center {\n\tjustify-content: flex-start;\n\talign-items: center;\n}\n.slide div.up-right {\n\tjustify-content: flex-start;\n\talign-items: flex-end;\n}\n.slide div.center-left {\n\tjustify-content: center;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.center-center {\n\tjustify-content: center;\n\talign-items: center;\n}\n.slide div.center-right {\n\tjustify-content: center;\n\talign-items: flex-end;\n}\n.slide div.down-left {\n\tjustify-content: flex-end;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.down-center {\n\tjustify-content: flex-end;\n\talign-items: center;\n}\n.slide div.down-right {\n\tjustify-content: flex-end;\n\talign-items: flex-end;\n}\n\n\n.slide li.slide {\n\tmargin: 10px 0px;\n\tfont-size: 18px;\n}\n\n.slide table {\n\tposition: absolute;\n}\n\n.slide svg.drawing {\n\tposition: absolute;\n\toverflow: visible;\n}\n\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\n.slide div[style*=\"background-color: inherit\"] {\n\tbackground-color: transparent !important;\n}\n\n/* 针对包含无效边框样式的问题元素 */\n.slide div[style*=\"pxsolidhidden\"] {\n\tborder: none !important;\n}\n\n/* 处理文本换行符 */\n.slide .line-break-br {\n\tdisplay: inline;\n}\n.slide .line-break-br::before {\n\tcontent: \"\\A\";\n\twhite-space: pre;\n}\n\n/*\n#pptx-thumb {\n\tmin-width: 240px;\n\theight: 180px;\n}\n*/";

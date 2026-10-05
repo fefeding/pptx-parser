@@ -187,6 +187,14 @@ export class ChartRenderer {
             option.xAxis = this.getXAxisConfig(chartInfo, xAxisData);
             option.yAxis = this.getYAxisConfig(chartInfo);
 
+            // 散点/气泡使用数值 X 轴；股票图无类别时仍用类目轴（以索引为 X），
+            // 避免 [open,close,low,high] 在数值轴上被误读为 [x,open,close,low]。
+            if (chartType === 'scatter') {
+                option.xAxis.type = 'value';
+                option.xAxis.data = undefined;
+                option.xAxis.boundaryGap = undefined;
+            }
+
             // 应用图表区域布局
             option.grid = this.getGridConfig(chartInfo);
         } else if (isPieChart) {
@@ -876,7 +884,7 @@ export class ChartRenderer {
             let data = [];
             const vals = series.values;
             if (Array.isArray(vals)) {
-                const hasSize = vals.some(v => v && typeof v === 'object' && 'size' in v);
+                const hasSize = vals.some(v => v && typeof v === 'object' && typeof v.size === 'number' && isFinite(v.size));
                 data = vals.map(v => {
                     if (v && typeof v === 'object' && 'x' in v && 'y' in v) {
                         if (hasSize) {
