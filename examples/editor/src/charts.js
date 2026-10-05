@@ -61,7 +61,8 @@ export function renderChartSVG(el, opts = {}) {
       const ang = (v / total) * Math.PI * 2;
       const end = start + ang;
       if (v <= 0) { start = end; return; }
-      const color = (ser.color && i === 0 && !el.varyColors) ? ser.color : palette[i % palette.length];
+      const color = (ser.pointColors && ser.pointColors[i])
+        || ((ser.color && i === 0 && !el.varyColors) ? ser.color : palette[i % palette.length]);
       const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start);
       const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end);
       const large = ang > Math.PI ? 1 : 0;

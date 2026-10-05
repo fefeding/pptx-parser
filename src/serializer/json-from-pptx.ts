@@ -188,7 +188,7 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}): Partial<
  * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
  * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
  */
-function extractTxBody(txBody: any, themeMap: Record<string, string> = {}): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number } } {
+function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
     let text = '';
@@ -199,6 +199,8 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}): { pa
         ? VALIGN_MAP[bodyPr.attrs.anchor] : undefined;
     const textDirection = bodyPr && bodyPr.attrs && bodyPr.attrs.vert
         ? String(bodyPr.attrs.vert) : undefined;
+    // 不换行（a:bodyPr@wrap="none"）：与预览端一致，文本不自动折行
+    const noWrap = bodyPr && bodyPr.attrs && bodyPr.attrs.wrap === 'none' ? true : undefined;
     // 内边距（a:bodyPr/@lIns/rIns/tIns/bIns，EMU → px）
     let inset: { l?: number; r?: number; t?: number; b?: number } | undefined;
     if (bodyPr && bodyPr.attrs) {
@@ -242,11 +244,24 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}): { pa
 
         const runs: PptxTextRun[] = [];
         let paraText = '';
-        for (const runNode of asArray(pNode['a:r'])) {
+        // 按文档顺序交错处理 a:r 与 a:br（simplify 为每个节点写入全局递增 attrs.order）
+        const ordered: Array<{ n: any; br: boolean }> = [
+            ...asArray(pNode['a:r']).map((n: any) => ({ n, br: false })),
+            ...asArray(pNode['a:br']).map((n: any) => ({ n, br: true }))
+        ].sort((x, y) => ((x.n && x.n.attrs && x.n.attrs.order) || 0) - ((y.n && y.n.attrs && y.n.attrs.order) || 0));
+        for (const { n: runNode, br } of ordered) {
+            if (br) {
+                // <a:br/>：段内软换行
+                runs.push({ text: '', break: true });
+                continue;
+            }
             const t = readRunText(runNode);
             if (t) hasText = true;
             paraText += t;
-            runs.push({ text: t, ...readRunStyle(runNode['a:rPr'], themeMap) });
+            const st = readRunStyle(runNode['a:rPr'], themeMap);
+            // run 无显式字色时回退到形状 p:style/a:fontRef 的默认色
+            if (!st.color && fallbackColor) st.color = fallbackColor;
+            runs.push({ text: t, ...st });
         }
         if (paraText) text += (text ? '\n' : '') + paraText;
 
@@ -259,15 +274,19 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}): { pa
         if (indentLeft != null) para.indentLeft = indentLeft;
         if (indentRight != null) para.indentRight = indentRight;
         if (indent != null) para.indent = indent;
+        // 从右到左段落（a:pPr@rtl="1"）：RTL 段落缺省右对齐
+        if (pAttrs.rtl === '1' || pAttrs.rtl === 1) para.rtl = true;
         if (valign) (para as any).valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset };
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap };
 }
 
 /** 提取一个 p:sp 的文本为正文段落 */
-function extractTextBody(spNode: any, themeMap: Record<string, string> = {}): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number } } {
-    return extractTxBody(spNode && spNode['p:txBody'], themeMap);
+function extractTextBody(spNode: any, themeMap: Record<string, string> = {}): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean } {
+    // p:style/a:fontRef 的颜色是形状文本的默认字色（run 无显式色时生效，与预览端一致）
+    const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
+    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor);
 }
 
 /** 解析颜色并去掉前导 # / alpha，保持与历史 readSrgbClr 返回格式一致（RRGGBB） */
@@ -554,7 +573,8 @@ async function extractBackground(
     slideContent: any,
     resObj: Record<string, { type?: string; target?: string }>,
     zip: JSZip,
-    fallbacks: Array<{ content: any; res?: Record<string, { type?: string; target?: string }> }> = []
+    fallbacks: Array<{ content: any; res?: Record<string, { type?: string; target?: string }> }> = [],
+    themeMap: Record<string, string> = {}
 ): Promise<PptxBackground | undefined> {
     const parts: Array<{ content: any; res?: Record<string, { type?: string; target?: string }> }> = [
         { content: slideContent, res: resObj }, ...fallbacks
@@ -565,7 +585,7 @@ async function extractBackground(
         if (!bg) continue;
         const bgPr = bg['p:bgPr'];
         if (bgPr) {
-            const color = readSrgbClr(bgPr);
+            const color = spColor(bgPr, themeMap) || readSrgbClr(bgPr);
             if (color) return color;
             // 图片背景（p:bgPr/a:blipFill）：与形状图片填充一致地内联 base64
             if (bgPr['a:blipFill'] && part.res) {
@@ -573,16 +593,18 @@ async function extractBackground(
                 if (img) return img;
             }
             if (bgPr['a:gradFill']) {
-                // 简化：记录为 gradient，stops 尽力提取
+                // 渐变背景：stop 颜色经 resolveColorNode 解析（scheme 引用 + tint/lumMod 等修饰），
+                // path（circle/shape/ray）渐变按线性渐变近似记录
                 const gsLst = bgPr['a:gradFill']['a:gsLst'];
                 const stops: { color: string; position: number }[] = [];
                 for (const gs of asArray(gsLst && gsLst['a:gs'])) {
                     const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
-                    const c = readSrgbClr(gs);
+                    const c = spColor(gs, themeMap) || readSrgbClr(gs);
                     if (c) stops.push({ color: c, position: pos });
                 }
                 const lin = bgPr['a:gradFill']['a:lin'];
-                const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) : 0;
+                // ang 为 1/60000 度，需换算：90°→vertical、45°→diagonal、其余 horizontal
+                const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
                 const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
                 return { type: 'gradient', direction, stops };
             }
@@ -596,10 +618,28 @@ async function extractBackground(
 /** 从 c:chartSpace 反向提取图表语义 */
 function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Partial<PptxChartElement> | undefined {
     try {
-        const chart = chartXml && chartXml['c:chartSpace'] && chartXml['c:chartSpace']['c:chart'];
+        const chartSpace = chartXml && chartXml['c:chartSpace'];
+        const chart = chartSpace && chartSpace['c:chart'];
         if (!chart) return undefined;
         const plotArea = chart['c:plotArea'];
         if (!plotArea) return undefined;
+
+        // 图表区填充（c:chartSpace/c:spPr）：solidFill 直接取色；gradFill 取首个渐变 stop 近似
+        let spaceFill: string | undefined;
+        const spaceSpPr = chartSpace['c:spPr'];
+        if (spaceSpPr) {
+            const solid = spColor(spaceSpPr['a:solidFill'], themeMap);
+            if (solid) {
+                spaceFill = solid;
+            } else if (spaceSpPr['a:noFill']) {
+                spaceFill = 'none';
+            } else {
+                const gsLst = spaceSpPr['a:gradFill'] && spaceSpPr['a:gradFill']['a:gsLst'];
+                const gs0 = asArray(gsLst && gsLst['a:gs'])[0];
+                const gradCol = gs0 ? spColor(gs0, themeMap) : undefined;
+                if (gradCol) spaceFill = gradCol;
+            }
+        }
 
         // 图表类型：取 plotArea 下首个图表节点（组合图取第一个 plot）
         let chartNode: any = null;
@@ -655,6 +695,32 @@ function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Par
             const serSpPr = ser['c:spPr'];
             const serColor = serSpPr ? spColor(serSpPr['a:solidFill'], themeMap) : undefined;
             if (serColor) s.color = serColor;
+            // 逐点填充色（c:dPt）：饼/环等 varyColors 场景每点可带独立 spPr；
+            // solidFill 直接取色，gradFill 取首个渐变 stop 近似
+            const dPts = asArray(ser['c:dPt']);
+            if (dPts.length) {
+                const nPts = Math.max(s.values ? s.values.length : 0, ...(dPts.map((d: any) => {
+                    const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
+                    return idx + 1;
+                })));
+                if (nPts > 0) {
+                    const pc: (string | undefined)[] = new Array(nPts).fill(undefined);
+                    for (const d of dPts) {
+                        const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
+                        if (idx < 0) continue;
+                        const dSpPr = d['c:spPr'];
+                        if (!dSpPr) continue;
+                        const c = spColor(dSpPr['a:solidFill'], themeMap)
+                            || (() => {
+                                const gsLst = dSpPr['a:gradFill'] && dSpPr['a:gradFill']['a:gsLst'];
+                                const gs0 = asArray(gsLst && gsLst['a:gs'])[0];
+                                return gs0 ? spColor(gs0, themeMap) : undefined;
+                            })();
+                        if (c) pc[idx] = c;
+                    }
+                    s.pointColors = pc;
+                }
+            }
             series.push(s);
         }
 
@@ -672,6 +738,7 @@ function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Par
 
         const legend = !!chart['c:legend'];
         const out: Partial<PptxChartElement> = { chartType, series };
+        if (spaceFill !== undefined) out.spaceFill = spaceFill;
         if (categories.length) out.categories = categories;
         if (title) out.title = title.trim();
         out.legend = legend;
@@ -917,11 +984,21 @@ export async function extractSlideToStandard(
 
         const resObj: Record<string, { type?: string; target?: string }> = slideData.slideResObj || {};
 
+        // 主题色映射（scheme 名 → #RRGGBB）：优先用该页实际主题（slideData.themeContent），
+        // 回退到全局默认主题（options.theme）。避免多主题文件（如 Sample_12）用错主题。
+        const themeMap: Record<string, string> = {};
+        if (slideData.themeContent) {
+            Object.assign(themeMap, themeColorsFromContent(slideData.themeContent));
+        }
+        if (!Object.keys(themeMap).length && options.theme) {
+            Object.assign(themeMap, themeColorsFromTheme(options.theme));
+        }
+
         // 背景 / 过渡 / 备注（slide → layout → master 继承）
         const bg = await extractBackground(slideContent, resObj, zip, [
             { content: slideData.slideLayoutContent, res: slideData.layoutResObj },
             { content: slideData.slideMasterContent, res: slideData.masterResObj }
-        ]);
+        ], themeMap);
         if (bg !== undefined) slide.background = bg;
         const transition = extractTransition(slideContent);
         if (transition) slide.transition = transition;
@@ -939,18 +1016,9 @@ export async function extractSlideToStandard(
         }
 
         if (spTree) {
-            // 主题色映射（scheme 名 → #RRGGBB）：优先用该页实际主题（slideData.themeContent），
-            // 回退到全局默认主题（options.theme）。避免多主题文件（如 Sample_12）用错主题。
-            const themeMap: Record<string, string> = {};
-            if (slideData.themeContent) {
-                Object.assign(themeMap, themeColorsFromContent(slideData.themeContent));
-            }
-            if (!Object.keys(themeMap).length && options.theme) {
-                Object.assign(themeMap, themeColorsFromTheme(options.theme));
-            }
             const processNode = async (key: string, node: any): Promise<PptxElement | null> => {
                 try {
-                    const el = await nodeToElement(key, node, resObj, zip, themeMap);
+                    const el = await nodeToElement(key, node, resObj, zip, themeMap, slideData.themeContent);
                     if (!el) return null;
                     // 统一挂载 __raw 载荷（含标签名，供生成端无损回写）
                     (el as any).__raw = { tag: key, node };
@@ -1035,6 +1103,13 @@ export async function extractSlideToStandard(
                         applyTableStyle(el as PptxTableElement, slideData.tableStyles, options.theme);
                     }
                 }
+            }
+
+            // 元素内残留的 'scheme:<name>' 引用按该页真实主题解析为绝对色。
+            // PPTX 标准：主题色由该页所属母版绑定的主题决定；多主题文件（如 Sample_12）
+            // 中不同页可绑定不同主题，若留给渲染端按全局主题解析会取错颜色。
+            if (Object.keys(themeMap).length) {
+                for (const el of slide.elements) resolveSchemeRefs(el, themeMap);
             }
 
             // 自动播放 / 元素动画（p:timing）
@@ -1181,7 +1256,8 @@ async function nodeToElement(
     node: any,
     resObj: Record<string, { type?: string; target?: string }>,
     zip: JSZip,
-    themeMap: Record<string, string> = {}
+    themeMap: Record<string, string> = {},
+    themeContent?: any
 ): Promise<PptxElement | null> {
     if (key === 'p:graphicFrame') {
         return await graphicFrameToElement(node, resObj, zip, themeMap);
@@ -1191,7 +1267,7 @@ async function nodeToElement(
     }
     // p:sp / p:cxnSp → text 或 shape
     const spPr = node['p:spPr'];
-    const { paragraphs, hasText, textDirection, inset } = extractTextBody(node, themeMap);
+    const { paragraphs, hasText, textDirection, inset, noWrap } = extractTextBody(node, themeMap);
     const geom = spPr && spPr['a:prstGeom'];
 
     if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
@@ -1212,6 +1288,7 @@ async function nodeToElement(
         if (name) textEl.name = String(name);
         if (textDirection) textEl.textDirection = textDirection;
         if (inset) textEl.inset = inset;
+        if (noWrap) textEl.noWrap = noWrap;
         // 提取形状外观（填充/边框/特效）。纯文本框（txBox=1）也可能带背景填充，
         // 因此统一读取 spPr；只有「非矩形 + 非纯文本框」才保留 shapeType/adjust，
         // 避免把普通矩形文本框渲染成异形。
@@ -1225,14 +1302,21 @@ async function nodeToElement(
             }
             const pStyle = node['p:style'];
             if (pStyle && typeof pStyle === 'object') {
-                const tables = await getThemeStyleTables(zip);
+                const tables = await getThemeStyleTables(zip, themeContent);
                 if (spVis.fill === undefined && pStyle['a:fillRef']) {
                     const ref = resolveThemeStyleRef(pStyle['a:fillRef'], tables.fills, themeMap);
-                    if (ref) spVis.fill = ref.color;
+                    if (ref) spVis.fill = ref.gradient || ref.color;
                 }
                 if (spVis.line === undefined && pStyle['a:lnRef']) {
                     const ref = resolveThemeStyleRef(pStyle['a:lnRef'], tables.lines, themeMap);
                     if (ref) spVis.line = { width: ref.widthPt || DEFAULT_LN_PT, color: ref.color };
+                }
+                if (pStyle['a:effectRef']) {
+                    const ref = resolveThemeEffectRef(pStyle['a:effectRef'], tables.effects, themeMap);
+                    if (ref && ref.shadow) {
+                        spVis.effects = spVis.effects || {};
+                        spVis.effects.shadow = ref.shadow;
+                    }
                 }
             }
             if (hasNonRectShape && spVis.shapeType) textEl.shapeType = spVis.shapeType;
@@ -1242,6 +1326,7 @@ async function nodeToElement(
             }
             if (spVis.fill !== undefined) textEl.fill = spVis.fill;
             if (spVis.line !== undefined) textEl.line = spVis.line;
+            if (spVis.effects) textEl.effects = spVis.effects;
         } catch (e) {
             console.warn('[json-from-pptx] 文本形状外观提取失败（跳过外观）:', e instanceof Error ? (e.message + '\n' + String(e.stack).split('\n')[1]) : e);
         }
@@ -1276,10 +1361,10 @@ async function nodeToElement(
         // 否则大量 PowerPoint 原生形状（仅带样式引用）会丢失填充与描边
         const pStyle = node['p:style'];
         if (pStyle && typeof pStyle === 'object') {
-            const tables = await getThemeStyleTables(zip);
+            const tables = await getThemeStyleTables(zip, themeContent);
             if (sp.fill === undefined && pStyle['a:fillRef']) {
                 const ref = resolveThemeStyleRef(pStyle['a:fillRef'], tables.fills, themeMap);
-                if (ref) sp.fill = ref.color;
+                if (ref) sp.fill = ref.gradient || ref.color;
             }
             if (pStyle['a:lnRef']) {
                 const ref = resolveThemeStyleRef(pStyle['a:lnRef'], tables.lines, themeMap);
@@ -1289,6 +1374,13 @@ async function nodeToElement(
                     } else if (sp.line !== 'none' && sp.line && typeof sp.line === 'object' && !sp.line.color) {
                         sp.line.color = ref.color;
                     }
+                }
+            }
+            if (pStyle['a:effectRef']) {
+                const ref = resolveThemeEffectRef(pStyle['a:effectRef'], tables.effects, themeMap);
+                if (ref && ref.shadow) {
+                    sp.effects = sp.effects || {};
+                    sp.effects.shadow = ref.shadow;
                 }
             }
         }
@@ -1448,6 +1540,7 @@ function tableToElement(tbl: any, node: any, themeMap: Record<string, string> = 
                 }
             }
             if (paragraphs[0] && paragraphs[0].align) cell.align = paragraphs[0].align;
+            else if (paragraphs[0] && (paragraphs[0] as any).rtl) cell.align = 'right'; // RTL 段落缺省起点对齐=右
 
             // 单元格属性：底色、垂直对齐、边框、内边距、对角线
             const tcPr = tc && tc['a:tcPr'];
@@ -1516,6 +1609,26 @@ function themeColorsFromTheme(theme?: { colors?: Record<string, string> }): Reco
     return map;
 }
 
+/**
+ * 递归把元素树中残留的 'scheme:<name>' 颜色引用解析为绝对色（themeMap 命中时替换）。
+ * 未命中的引用保持原样（由渲染端按全局主题兜底）。
+ */
+function resolveSchemeRefs(value: any, themeMap: Record<string, string>): void {
+    if (Array.isArray(value)) {
+        for (const v of value) resolveSchemeRefs(v, themeMap);
+        return;
+    }
+    if (!value || typeof value !== 'object') return;
+    for (const [k, v] of Object.entries(value)) {
+        if (typeof v === 'string' && v.startsWith('scheme:')) {
+            const hex = themeMap[v.slice(7).toLowerCase()];
+            if (hex) (value as any)[k] = hex;
+        } else if (v && typeof v === 'object') {
+            resolveSchemeRefs(v, themeMap);
+        }
+    }
+}
+
 /** 从 theme1.xml 原始内容建立 scheme 色映射 */
 function themeColorsFromContent(themeContent: any): Record<string, string> {
     const map: Record<string, string> = {};
@@ -1534,20 +1647,26 @@ function themeColorsFromContent(themeContent: any): Record<string, string> {
             || (sys && sys.attrs && (sys.attrs.lastClr || sys.attrs.val));
         if (val) map[slot] = '#' + String(val).replace(/^#/, '').toUpperCase();
     }
+    // clrMap 别名：tx1/bg1/tx2/bg2 是引用方常用写法（母版 clrMap 默认把 bg2→lt2 等）
+    const aliases: Record<string, string> = { tx1: 'dk1', bg1: 'lt1', tx2: 'dk2', bg2: 'lt2' };
+    for (const [alias, slot] of Object.entries(aliases)) {
+        if (map[slot] && !map[alias]) map[alias] = map[slot];
+    }
     return map;
 }
 
-/** 主题样式表（fmtScheme 的 fillStyleLst / lnStyleLst），供 p:style 的 fillRef/lnRef 解析 */
-interface ThemeStyleTables { fills: any[]; lines: any[]; }
+/** 主题样式表（fmtScheme 的 fillStyleLst / lnStyleLst / effectStyleLst），供 p:style 的 fillRef/lnRef/effectRef 解析 */
+interface ThemeStyleTables { fills: any[]; lines: any[]; effects: any[]; }
 const themeStylesCache = new WeakMap<object, ThemeStyleTables>();
 
-/** 读取并缓存主题样式表（同一 zip 只解析一次） */
-async function getThemeStyleTables(zip: JSZip): Promise<ThemeStyleTables> {
-    const cached = themeStylesCache.get(zip);
+/** 读取并缓存主题样式表（同一 zip / 主题只解析一次） */
+async function getThemeStyleTables(zip: JSZip, themeContent?: any): Promise<ThemeStyleTables> {
+    const cacheKey = themeContent || zip;
+    const cached = themeStylesCache.get(cacheKey);
     if (cached) return cached;
-    const tables: ThemeStyleTables = { fills: [], lines: [] };
+    const tables: ThemeStyleTables = { fills: [], lines: [], effects: [] };
     try {
-        const xml = await PPTXXmlUtils.readXmlFile(zip, 'ppt/theme/theme1.xml');
+        const xml = themeContent || await PPTXXmlUtils.readXmlFile(zip, 'ppt/theme/theme1.xml');
         const fmt = xml && xml['a:theme']
             && xml['a:theme']['a:themeElements']
             && xml['a:theme']['a:themeElements']['a:fmtScheme'];
@@ -1565,6 +1684,7 @@ async function getThemeStyleTables(zip: JSZip): Promise<ThemeStyleTables> {
             };
             tables.fills = listOf(fmt['a:fillStyleLst']);
             tables.lines = listOf(fmt['a:lnStyleLst']);
+            tables.effects = listOf(fmt['a:effectStyleLst']);
         }
     } catch { /* 主题缺失时跳过样式引用解析 */ }
     themeStylesCache.set(zip, tables);
@@ -1579,7 +1699,7 @@ function resolveThemeStyleRef(
     refNode: any,
     styleList: any[],
     themeMap: Record<string, string>
-): { color: string; widthPt?: number } | undefined {
+): { color: string; gradient?: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[] }; widthPt?: number } | undefined {
     if (!refNode || !refNode.attrs || !styleList.length) return undefined;
     let idx = Number(refNode.attrs.idx) || 1;
     if (idx < 1) idx = 1;
@@ -1595,16 +1715,89 @@ function resolveThemeStyleRef(
     const fillNode = entry['a:solidFill'] || entry['a:gradFill'] || entry;
     let color = resolveColorNode(fillNode['a:solidFill'], colorMap)
         || ((fillNode['a:schemeClr'] || fillNode['a:srgbClr']) ? resolveColorNode(fillNode, colorMap) : undefined);
+    // 渐变样式（fillStyleLst[1] 等）：完整提取所有 stop（按 phClr 逐个解析）与方向
+    let gradient: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[] } | undefined;
     if (!color) {
         const grad = fillNode['a:gradFill'] || (fillNode['a:gsLst'] ? fillNode : undefined);
         const gsLst = grad && grad['a:gsLst'];
-        color = resolveColorNode(asArray(gsLst && gsLst['a:gs'])[0], colorMap);
+        const gsNodes = asArray(gsLst && gsLst['a:gs']);
+        const stops = gsNodes
+            .map((gs: any) => {
+                const c = resolveColorNode(gs, colorMap);
+                const pos = gs && gs.attrs && gs.attrs.pos != null ? Number(gs.attrs.pos) / 100000 : 0;
+                return c ? { color: c, position: pos } : undefined;
+            })
+            .filter((s: any): s is { color: string; position: number } => !!s);
+        if (stops.length) {
+            color = stops[0].color;
+            gradient = { type: 'gradient', stops };
+            const lin = grad && grad['a:lin'];
+            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
+            gradient.direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+        }
     }
     if (!color) return undefined;
     const wAttr = (entry.attrs && entry.attrs.w != null) ? entry.attrs.w
         : (raw.attrs && raw.attrs.w != null) ? raw.attrs.w : undefined;
     const w = wAttr != null ? emuToPt(wAttr) : undefined;
-    return { color, widthPt: w };
+    return { color, gradient, widthPt: w };
+}
+
+/** 把 resolveColorNode 的结果拆成 #RRGGBB + 不透明度百分比（兼容 rgb()/rgba() 字符串） */
+function splitColorAlpha(color?: string): { hex?: string; alphaPct?: number } {
+    if (!color) return {};
+    const m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(String(color).trim());
+    if (m) {
+        const hex = '#' + [m[1], m[2], m[3]]
+            .map((n) => Number(n).toString(16).padStart(2, '0'))
+            .join('').toUpperCase();
+        return { hex, alphaPct: m[4] != null ? Math.round(Number(m[4]) * 100) : undefined };
+    }
+    return { hex: (color.startsWith('#') ? color : '#' + color).toUpperCase() };
+}
+
+/**
+ * 解析 p:style 的 effectRef 主题样式引用，得到形状/文本的外阴影。
+ * OOXML 中 effectRef@idx 为样式表索引（0 = 无主题效果）。PowerPoint/预览端对
+ * effectStyleLst 实际以 0 基访问（idx=2 → 第三项「强烈阴影」），本解析与之对齐，
+ * 让带 effectRef 的形状（如 arc2）显示与预览一致的外阴影。
+ */
+function resolveThemeEffectRef(
+    refNode: any,
+    styleList: any[],
+    themeMap: Record<string, string>
+): { shadow?: { type: 'outer'; blur?: number; distance?: number; angle?: number; color?: string; transparency?: number } } | undefined {
+    if (!refNode || !refNode.attrs || !styleList.length) return undefined;
+    const idx = Number(refNode.attrs.idx) || 0;
+    if (idx <= 0) return undefined;
+    const raw = styleList[idx < styleList.length ? idx : idx - 1];
+    if (!raw || typeof raw !== 'object') return undefined;
+    const effLst = raw['a:effectLst'];
+    if (!effLst) return undefined;
+    const outer = effLst['a:outerShdw'];
+    if (!outer || !outer.attrs) return undefined;
+    const a = outer.attrs;
+    const refColor = resolveColorNode(refNode, themeMap);
+    const colorMap = refColor ? { ...themeMap, phclr: refColor } : themeMap;
+    let color = resolveColorNode(outer, colorMap)
+        || resolveColorNode(outer['a:srgbClr'], colorMap)
+        || resolveColorNode(outer['a:schemeClr'], colorMap);
+    // resolveColorNode 在带 a:alpha 时返回 rgb()/rgba() 字符串，这里拆成 hex + 不透明度
+    const parsed = splitColorAlpha(color);
+    color = parsed.hex;
+    const alphaNode = (outer['a:srgbClr'] || outer['a:schemeClr'] || {})['a:alpha'];
+    // a:alpha val=60000 → 60% 不透明度；PptxShapeEffects 内部统一用 transparency = 100 - alpha%
+    const alphaPct = parsed.alphaPct != null
+        ? parsed.alphaPct
+        : (alphaNode && alphaNode.attrs ? Math.round(Number(alphaNode.attrs.val) / 1000) : undefined);
+    const shadow: any = { type: 'outer' };
+    if (a.blurRad != null) shadow.blur = Math.round(emuToPt(a.blurRad) * 100) / 100;
+    if (a.dist != null) shadow.distance = Math.round(emuToPt(a.dist) * 100) / 100;
+    if (a.dir != null) shadow.angle = Math.round(Number(a.dir) / 60000);
+    if (color) shadow.color = color.replace(/^#/, '').toUpperCase();
+    if (alphaPct != null) shadow.transparency = 100 - alphaPct;
+    if (shadow.color || shadow.blur != null || shadow.distance != null) return { shadow };
+    return undefined;
 }
 
 /** 解析 a:solidFill / a:srgbClr / a:schemeClr 为 #RRGGBB（含主题色变换） */
@@ -1636,9 +1829,20 @@ function resolveColorNode(node: any, themeMap: Record<string, string>): string |
         const lumMod = readMod('a:lumMod');
         const lumOff = readMod('a:lumOff');
         const alpha = readMod('a:alpha');
-        // tinycolor2 v1.6+ 的 mix 为静态方法（实例上无 mix）
-        if (tint != null) tc = TinyColor.mix(tc, '#FFFFFF', tint / 1000);
-        if (shade != null) tc = TinyColor.mix(tc, '#000000', shade / 1000);
+        // 与预览端 getSolidFill/applyTint 保持一致：采用 OOXML 标准 HSL 公式
+        // tint：l' = l * t + (1 - t)（变亮）；shade：l' = l * s（变暗）。t/s 为 0~1 比例。
+        if (tint != null) {
+            const t = Math.max(0, Math.min(1, tint / 100000));
+            const hsl = tc.toHsl();
+            hsl.l = Math.max(0, Math.min(1, hsl.l * t + (1 - t)));
+            tc = tinycolor(hsl);
+        }
+        if (shade != null) {
+            const s = Math.max(0, Math.min(1, shade / 100000));
+            const hsl = tc.toHsl();
+            hsl.l = Math.max(0, Math.min(1, hsl.l * s));
+            tc = tinycolor(hsl);
+        }
         if (lumMod != null) {
             const hsl = tc.toHsl();
             hsl.l = Math.max(0, Math.min(1, hsl.l * (lumMod / 100000)));
@@ -2033,7 +2237,7 @@ async function graphicFrameToChart(
     const passKeys: (keyof PptxChartElement)[] = [
         'categories', 'title', 'legend', 'grouping', 'varyColors', 'barDir',
         'holeSize', 'smooth', 'marker', 'ofPieType', 'numberFormat',
-        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe'
+        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe', 'spaceFill'
     ];
     const src = chartSemantic as unknown as Record<string, unknown>;
     const dst = chartEl as unknown as Record<string, unknown>;

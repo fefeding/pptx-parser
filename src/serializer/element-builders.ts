@@ -188,6 +188,8 @@ export interface ParagraphSpec {
     indentLeft?: number;
     indentRight?: number;
     indent?: number;
+    /** 从右到左段落（a:pPr@rtl="1"） */
+    rtl?: boolean;
 }
 /** 单元格/表格边框：颜色 + 线宽(pt) */
 export interface CellBorder {
@@ -268,6 +270,8 @@ export interface ChartSeriesSpec {
     low?: number[];
     close?: number[];
     color?: string;
+    /** 逐点填充色（c:dPt）：下标对应 values，undefined 表示无覆盖 */
+    pointColors?: (string | undefined)[];
     /** 绑定到主/次数值轴（次坐标轴）；需图表级 secondaryValueAxis 配合 */
     axis?: 'primary' | 'secondary';
     /** 该系列是否显示数据标签（覆盖图表级 dataLabels） */
@@ -322,6 +326,8 @@ export interface SerializerElement {
     chartType?: string;
     categories?: string[];
     series?: ChartSeriesSpec[];
+    /** 图表区填充（c:chartSpace/c:spPr）：'none' 或 #RRGGBB；缺省透明 */
+    spaceFill?: string;
     varyColors?: boolean;
     barDir?: string;
     title?: string;
@@ -789,6 +795,7 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
     const p = paragraph || {};
 
     const pPrAttrs: Record<string, number | string | null> = { algn: alignMap[p.align || defaults.align || 'left'] || null };
+    if ((p as ParagraphSpec & { rtl?: boolean }).rtl) pPrAttrs.rtl = 1;
     if (p.indentLeft != null) pPrAttrs.marL = ptToEmu(p.indentLeft);
     if (p.indentRight != null) pPrAttrs.marR = ptToEmu(p.indentRight);
     if (p.indent != null) pPrAttrs.indent = ptToEmu(p.indent);
@@ -829,10 +836,12 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
     // 运行列表：显式 runs 优先，否则用 text + 元素级默认样式
     let runs;
     if (Array.isArray(p.runs) && p.runs.length > 0) {
-        runs = p.runs.map((r: TextRunSpec) => {
+        runs = p.runs.flatMap((r: TextRunSpec & { break?: boolean }) => {
+            // 软换行（a:br）：本 run 之前强制换行
+            if ((r as any).break) return [xmlNode('a:br', null) as unknown as BuilderNode];
             // 兼容两种格式：{ text, options: {...} }（规范）与 { text, color, ... }（扁平简写）
             const { text, options, ...flat } = r;
-            return buildTextRun(ctx, text, { ...defaults, ...(options || {}), ...flat });
+            return [buildTextRun(ctx, text, { ...defaults, ...(options || {}), ...flat })];
         });
     } else {
         runs = [buildTextRun(ctx, p.text !== undefined ? p.text : '', defaults)];
@@ -1490,13 +1499,19 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
                 data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
             }
             const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
+            // 逐点填充（c:dPt）：位于 spPr/marker 之后、trendline/cat 之前（CT_*Ser 顺序）
+            const dPtXml = (s.pointColors || [])
+                .map((c: string | undefined, pi: number) => c
+                    ? `<c:dPt><c:idx val="${pi}"/><c:spPr><a:solidFill><a:srgbClr val="${colorToHex(c)}"/></a:solidFill></c:spPr></c:dPt>`
+                    : '')
+                .join('');
             // marker 位于数据之前，smooth 位于数据之后（CT_LineSer / CT_ScatterSer 的元素顺序）
             const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
             const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
             const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
             // 趋势线：CT_*Ser 中位于数据之前（trendline → errBars → cat/val）
             const trendlineXml = (s.trendlines || []).map((t: PptxTrendline) => buildTrendlineXml(t)).join('');
-            return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${trendlineXml}${data}${smoothXml}</c:ser>`;
+            return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${dPtXml}${trendlineXml}${data}${smoothXml}</c:ser>`;
         }).join('');
     };
 
@@ -1618,13 +1633,18 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
     // 构建嵌入工作簿数据（WPS 要求图表必须关联 xlsx，即使 numCache 已内联数据）
     const workbook = buildChartWorkbookData(type, cats, series);
 
+    // 图表区填充（c:chartSpace/c:spPr）：位于 </c:chart> 之后（CT_ChartSpace 顺序）
+    const spaceFillSpPr = el.spaceFill
+        ? `<c:spPr>${el.spaceFill === 'none' ? '<a:noFill/>' : `<a:solidFill><a:srgbClr val="${colorToHex(el.spaceFill)}"/></a:solidFill>`}</c:spPr>`
+        : '';
+
     return {
         xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
             `<c:chartSpace xmlns:c="${NS.c}" xmlns:a="${NS.a}" xmlns:r="${NS.r}">` +
             `<c:date1904 val="0"/><c:roundedCorners val="0"/>` +
             `<c:chart>${titleXml}${autoTitleDeleted}${view3D}` +
             `<c:plotArea><c:layout><c:manualLayout><c:layoutTarget val="inner"/><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="0"/><c:y val="0"/><c:w val="1"/><c:h val="1"/></c:manualLayout></c:layout>${plotChart}${axes}</c:plotArea>` +
-            `${legendXml}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>`,
+            `${legendXml}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>${spaceFillSpPr}</c:chartSpace>`,
         workbook
     };
 }
@@ -2640,7 +2660,8 @@ export async function buildBackground(bg: string | PptxBackground | null | undef
             xmlNode('a:gs', { pos: Math.round((s.position || 0) * 100000) },
                 xmlNode('a:srgbClr', { val: colorToHex(s.color) }))
         );
-        const ang = bg.direction === 'vertical' ? 90 : bg.direction === 'diagonal' ? 45 : 0;
+        // a:lin@ang 单位为 1/60000 度
+        const ang = (bg.direction === 'vertical' ? 90 : bg.direction === 'diagonal' ? 45 : 0) * 60000;
         bgPrChildren = [
             xmlNode('a:gradFill', null,
                 xmlNode('a:gsLst', null, ...stops),

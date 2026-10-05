@@ -1636,7 +1636,8 @@ function getFillType(node: XmlNode | undefined) {
             let tileNode = node!["a:tile"];
             let stretchNode = node!["a:stretch"];
             let fillMode = "stretch";
-            let backgroundSize = "cover";
+            // OOXML a:stretch（缺省即 stretch）：整图拉伸铺满目标矩形，非 cover 等比裁剪
+            let backgroundSize = "100% 100%";
             let backgroundPosition = "center";
             let backgroundRepeat = "no-repeat";
             
@@ -1678,13 +1679,9 @@ function getFillType(node: XmlNode | undefined) {
                     }
                 }
             } else if (stretchNode) {
-                // 拉伸模式
+                // 拉伸模式：整图拉伸铺满（OOXML 标准），非 cover 裁剪
                 fillMode = "stretch";
-                let fillRect = stretchNode["a:fillRect"];
-                if (fillRect) {
-                    // 处理填充矩形
-                    backgroundSize = "cover";
-                }
+                backgroundSize = "100% 100%";
             }
 
             // 源图裁剪（a:srcRect，WPS 也可能写成 a:stretch/a:fillRect）：

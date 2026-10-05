@@ -28,14 +28,27 @@ const browser = await chromium.launch({
 /* ================= 预览端 ================= */
 {
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+  // 拦截示例首页默认异步加载的远程示例 PPTX，避免与上传文件竞态导致重复渲染
+  await page.route('**/pptx.js.org/**', (route) => route.abort());
   await page.goto('http://127.0.0.1:8770/examples/index.html');
   await page.waitForTimeout(800);
   const input = await page.$('#uploadFileInput');
   await input.setInputFiles({ name: 'Sample_12.pptx', mimeType: MIME, buffer: fileBuffer });
-  await input.evaluate((el) => el.dispatchEvent(new Event('change', { bubbles: true })));
   await page.waitForTimeout(6000);
+  // 等待上传渲染完成（默认示例已被拦截，应恰好 12 张）
+  await page.waitForFunction(() => document.querySelectorAll('#result .slide').length >= 12, null, { timeout: 15000 }).catch(() => {});
   const slides = await page.$$('.slide');
   console.log('preview slides:', slides.length);
+  // 等待预览端图表（ECharts canvas）渲染完成
+  await page.waitForFunction(() => {
+    const frames = document.querySelectorAll('#result .slide');
+    return Array.from(frames).every((f) => {
+      const charts = f.querySelectorAll('.el-chart, canvas');
+      if (!charts.length) return true;
+      return Array.from(charts).every((c) => c.querySelector('canvas') || c.querySelector('svg') || c.tagName === 'CANVAS');
+    });
+  }, null, { timeout: 8000 }).catch(() => {});
+  await page.waitForTimeout(500);
   for (let i = 0; i < slides.length; i++) {
     await slides[i].screenshot({ path: path.join(OUT, `p${i}.png`) });
   }
@@ -76,7 +89,16 @@ const browser = await chromium.launch({
       const { store } = await import('./src/store.js');
       store.setSlide(idx, { force: true });
     }, i);
-    await page.waitForTimeout(700);
+    // 等字体就绪 + ECharts 图表异步 init（rAF）完成，避免截图截到未渲染态
+    await page.evaluate(() => document.fonts ? document.fonts.ready : Promise.resolve());
+    await page.waitForFunction(() => {
+      const frame = document.querySelector('#stage .slide-frame');
+      if (!frame) return false;
+      const charts = frame.querySelectorAll('.el-chart');
+      if (!charts.length) return true;
+      return Array.from(charts).every((c) => c.querySelector('canvas') || c.querySelector('svg'));
+    }, null, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(500);
     const frame = await page.$('#stage .slide-frame');
     if (frame) await frame.screenshot({ path: path.join(OUT, `e${i}.png`) });
   }

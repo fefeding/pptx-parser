@@ -65,6 +65,8 @@ export interface PptxTextRun {
      * 解析端读取 a:fld/a:t 作为 text 并回填 type；生成端写出 <a:fld type id><a:t>text</a:t></a:fld>。
      */
     field?: string;
+    /** 软换行（a:br）：本 run 之前强制换行，text 为空 */
+    break?: boolean;
     /** 文字描边（a:rPr/a:ln）：{ color, width(pt) } */
     outline?: { color?: string; width?: number } | 'none';
     /** 文字外阴影（a:rPr/a:effectLst/a:outerShdw）：{ color, blur(px), x(px), y(px), alpha } */
@@ -72,6 +74,7 @@ export interface PptxTextRun {
 }
 
 /** 段落（可显式 runs，或用 text 配合元素级默认样式） */
+
 export interface PptxParagraph {
     text?: string;
     runs?: PptxTextRun[];
@@ -90,6 +93,8 @@ export interface PptxParagraph {
     indentRight?: number;
     /** 悬挂缩进 pt（a:pPr@indent，项目符号相对文本的缩进） */
     indent?: number;
+    /** 从右到左段落（a:pPr@rtl="1"）；缺省 LTR。RTL 段落默认右对齐 */
+    rtl?: boolean;
 }
 
 /** 渐变填充色标 */
@@ -326,6 +331,8 @@ export interface PptxChartSeries {
     low?: number[];      // 股票图：最低
     close?: number[];    // 股票图：收盘
     color?: string;
+    /** 逐点填充色（c:dPt）：下标对应 values，undefined 表示该点无覆盖 */
+    pointColors?: (string | undefined)[];
     /**
      * 系列绑定到哪条数值轴（次坐标轴场景）。
      * 'secondary' 时生成端写出 c:ser/c:order + c:ser 挂到第二个 c:valAx（除 bar 系用 c:catAx 组合外），
@@ -482,6 +489,12 @@ export interface PptxTextElement extends PptxElementBase {
      * 如 'textArchUp' / 'textWave' / 'textCircle' / 'textTriangle'。
      */
     prstTxWarp?: string;
+    /**
+     * 不换行（a:bodyPr@wrap="none"）：文本不自动折行（与预览端一致）。
+     */
+    noWrap?: boolean;
+    /** 底层形状特效（阴影/发光），来自 spPr/a:effectLst 或 p:style/a:effectRef 主题样式 */
+    effects?: PptxShapeEffects;
 }
 
 /** 形状元素 */
@@ -541,6 +554,8 @@ export interface PptxChartElement extends PptxElementBase {
     height: number;
     title?: string;
     legend?: boolean;
+    /** 图表区填充（c:chartSpace/c:spPr）：'none' 或 #RRGGBB；缺省透明 */
+    spaceFill?: string;
     varyColors?: boolean;
     barDir?: 'bar' | 'col';
     categories?: string[];

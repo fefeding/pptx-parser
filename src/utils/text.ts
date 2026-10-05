@@ -1534,11 +1534,11 @@ function getTextWidth(html: string) {
 
 
                 //console.log("genSpanElement defLinkClr: ", defLinkClr, "rPrlinkClr:", rPrlinkClr)
-                // 对于超链接，优先使用主题中的超链接颜色，而不是文本运行中的颜色定义
-                // 注释掉下面的覆盖逻辑，让超链接始终使用主题颜色
-                // if (rPrlinkClr !== undefined && rPrlinkClr != "") {
-                //     defLinkClr = rPrlinkClr;
-                // }
+                // OOXML 标准：run 显式 solidFill 优先于主题 hlink 色（PowerPoint 行为一致）；
+                // run 无显式色时才回退到主题超链接色
+                if (rPrlinkClr !== undefined && rPrlinkClr != "") {
+                    defLinkClr = rPrlinkClr;
+                }
             }
             /////////////////////////////////////////////////////////////////////////////////////
             //getFontColor

@@ -20,15 +20,20 @@ function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
   return ['M', fmt(start.x), fmt(start.y), 'A', fmt(w), fmt(h), 0, largeArcFlag, clockwise ? '0' : '1', fmt(end.x), fmt(end.y)].join(' ');
 }
 
-/** 与预览端 shapeArcAlt 相同：逐度折线逼近的弧（rX/rY 为半径） */
-function shapeArcAlt(cX, cY, rX, rY, stAng, endAng) {
+/**
+ * 与预览端 shapeArcAlt 相同：逐度折线逼近的弧（rX/rY 为半径）。
+ * moveTo=false 时首点用 L 续接当前子路径（对应 src/shape/shape.ts 里的 .replace("M","L")），
+ * 否则会多开子路径导致闭合图形出现内接多边形伪影。
+ */
+function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, moveTo = true) {
   let d = '';
   let angle = stAng;
+  const head = moveTo ? 'M' : 'L';
   if (endAng >= stAng) {
     while (angle <= endAng) {
       const rad = angle * Math.PI / 180;
       const x = cX + Math.cos(rad) * rX, y = cY + Math.sin(rad) * rY;
-      if (angle === stAng) d = ` M${fmt(x)} ${fmt(y)}`;
+      if (angle === stAng) d = ` ${head}${fmt(x)} ${fmt(y)}`;
       d += ` L${fmt(x)} ${fmt(y)}`;
       angle++;
     }
@@ -36,7 +41,7 @@ function shapeArcAlt(cX, cY, rX, rY, stAng, endAng) {
     while (angle > endAng) {
       const rad = angle * Math.PI / 180;
       const x = cX + Math.cos(rad) * rX, y = cY + Math.sin(rad) * rY;
-      if (angle === stAng) d = ` M ${fmt(x)} ${fmt(y)}`;
+      if (angle === stAng) d = ` ${head}${fmt(x)} ${fmt(y)}`;
       d += ` L ${fmt(x)} ${fmt(y)}`;
       angle--;
     }
@@ -131,13 +136,14 @@ export function presetShapePath(prst, w, h, adj = {}, opts = {}) {
       const a1deg = stAng1 * 180 / Math.PI;
       const a2deg = stAng2 * 180 / Math.PI;
       const swDeg = swAng * 180 / Math.PI;
-      const d = `M${0},${h / 2}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 180, 270)}` +
-        `${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 270, 360)}` +
-        `${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 0, 90)}` +
-        `${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 90, 180)} z` +
-        `M${x1},${y1}${shapeArcAlt(w / 2, h / 2, iwd2, ihd2, a1deg, a1deg + swDeg)} z` +
-        `M${x2},${y2}${shapeArcAlt(w / 2, h / 2, iwd2, ihd2, a2deg, a2deg + swDeg)} z`;
-      return { d };
+      const d = `M${0},${h / 2}${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 180, 270, false)}` +
+        `${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 270, 360, false)}` +
+        `${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 0, 90, false)}` +
+        `${shapeArcAlt(w / 2, h / 2, w / 2, h / 2, 90, 180, false)} z` +
+        `M${x1},${y1}${shapeArcAlt(w / 2, h / 2, iwd2, ihd2, a1deg, a1deg + swDeg, false)} z` +
+        `M${x2},${y2}${shapeArcAlt(w / 2, h / 2, iwd2, ihd2, a2deg, a2deg + swDeg, false)} z`;
+      // 两条内部弧线构成斜杠“镂空”，需用 evenOdd 填充规则让背景透出
+      return { d, fillRule: 'evenodd' };
     }
     case 'smileyFace': {
       // 与预览端 misc-shapes 逐式移植（眼睛为退化弧线，实际只显示脸 + 嘴）
@@ -211,10 +217,10 @@ export function presetShapePath(prst, w, h, adj = {}, opts = {}) {
       const bd2 = Math.max(bd - th, 0);
       const x3 = th + bd2, x8 = w - aw2, x6 = x8 - aw2, x7 = x6 + dh2;
       const x4 = x9 - bd, x5 = x7 - bd2;
-      const d = `M${0},${h} L${0},${bd}${shapeArcAlt(bd, bd, bd, bd, 180, 270)}` +
-        ` L${x4},${0}${shapeArcAlt(x4, bd, bd, bd, 270, 360)}` +
+      const d = `M${0},${h} L${0},${bd}${shapeArcAlt(bd, bd, bd, bd, 180, 270, false)}` +
+        ` L${x4},${0}${shapeArcAlt(x4, bd, bd, bd, 270, 360, false)}` +
         ` L${x9},${y4} L${w},${y4} L${x8},${y5} L${x6},${y4} L${x7},${y4} L${x7},${x3}` +
-        `${shapeArcAlt(x5, x3, bd2, bd2, 0, -90)} L${x3},${th}${shapeArcAlt(x3, x3, bd2, bd2, 270, 180)} L${th},${h} z`;
+        `${shapeArcAlt(x5, x3, bd2, bd2, 0, -90, false)} L${x3},${th}${shapeArcAlt(x3, x3, bd2, bd2, 270, 180, false)} L${th},${h} z`;
       return { d };
     }
     case 'wedgeRectCallout': {
@@ -343,8 +349,8 @@ export function presetShapePath(prst, w, h, adj = {}, opts = {}) {
       const wd2 = w / 2;
       const rot = prst === 'flowChartMagneticDrum' ? `rotate(90 ${w / 2},${h / 2})` : '';
       const d = `${shapeArcAlt(wd2, y1, wd2, y1, 0, 180)}` +
-        `${shapeArcAlt(wd2, y1, wd2, y1, 180, 360)}` +
-        ` L${w},${y3}${shapeArcAlt(wd2, y3, wd2, y1, 0, 180)} L${0},${y1}`;
+        `${shapeArcAlt(wd2, y1, wd2, y1, 180, 360, false)}` +
+        ` L${w},${y3}${shapeArcAlt(wd2, y3, wd2, y1, 0, 180, false)} L${0},${y1}`;
       return { d, transform: rot || undefined };
     }
     case 'flowChartMultidocument': {

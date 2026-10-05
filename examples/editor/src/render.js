@@ -93,8 +93,9 @@ export function backgroundStyle(bg, theme) {
   }
   if (bg.type === 'image') {
     const url = bg.data || bg.src || '';
+    // OOXML 背景图 blipFill（a:stretch）：整图拉伸铺满画布（非 cover 裁剪）
     return {
-      background: `${normalizeColor(theme?.bg) || '#FFFFFF'} url("${url}") center / cover no-repeat`
+      background: `${normalizeColor(theme?.bg) || '#FFFFFF'} url("${url}") center / 100% 100% no-repeat`
     };
   }
   return { background: normalizeColor(bg.color) || '#FFFFFF' };
@@ -102,6 +103,8 @@ export function backgroundStyle(bg, theme) {
 
 /* ======================= 元素渲染 ======================= */
 const DASH_MAP = { solid: 'solid', dash: 'dashed', dashDot: 'dashed', dotted: 'dotted', lgDash: 'dashed', sysDot: 'dotted' };
+/** 文字外阴影最小柔化半径（pt）：run 级 outerShdw 常省略 blurRad，硬边阴影与预览端差异明显 */
+const TEXT_SHADOW_MIN_BLUR_PT = 2;
 
 function boxStyle(el) {
   const r = elementRect(el);
@@ -137,7 +140,8 @@ function shapeVisual(el) {
         style.background = `url("${url}") repeat`;
         style.backgroundSize = `${(sx * 100).toFixed(2)}% ${(sy * 100).toFixed(2)}%`;
       } else {
-        style.background = `url("${url}") center / cover no-repeat`;
+        // OOXML a:stretch/fillRect：整图拉伸铺满形状（非 cover 裁剪）
+        style.background = `url("${url}") center / 100% 100% no-repeat`;
       }
     } else if (fill.type === 'pattern') {
       // 图案填充：交给 renderElement 用 SVG <pattern> 渲染（与预览端一致，支持圆角/异形裁剪）
@@ -296,7 +300,8 @@ function applyShapeImageFill(inner, el) {
   const tile = fill.tile || {};
   const hasTile = tile.sx != null || tile.sy != null;
   if (!hasCrop && !hasTile) {
-    inner.style.background = `url("${url}") center / cover no-repeat`;
+    // OOXML a:stretch/fillRect：整图拉伸铺满形状（非 cover 裁剪）
+    inner.style.background = `url("${url}") center / 100% 100% no-repeat`;
     return;
   }
 
@@ -332,7 +337,7 @@ function applyShapeImageFill(inner, el) {
     inner.style.backgroundColor = 'transparent';
   };
   // 加载失败则保持占位：拉伸铺满原图
-  img.onerror = () => { inner.style.background = `url("${url}") center / cover no-repeat`; };
+  img.onerror = () => { inner.style.background = `url("${url}") center / 100% 100% no-repeat`; };
   img.src = url;
 }
 
@@ -362,8 +367,17 @@ function alphaNumber(n, upper) {
   return upper ? out.toUpperCase() : out;
 }
 const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
+function hebrewNumber(n) {
+  // 简单 22 字母表循环（与 PowerPoint 的 hebrew 编号近似）
+  let out = '', rest = Math.max(0, n - 1);
+  do { out = HEBREW_LETTERS[rest % HEBREW_LETTERS.length] + out; rest = Math.floor(rest / HEBREW_LETTERS.length) - 1; } while (rest >= 0);
+  return out || HEBREW_LETTERS[0];
+}
 function formatAutoNum(fmt, n) {
   switch (fmt) {
+    case 'hebrew1Minus': return `${hebrewNumber(n)}-`;
+    case 'hebrew2Minus': return `${hebrewNumber(n)}-`;
     case 'arabicPeriod': return `${n}.`;
     case 'arabicParenR': return `${n})`;
     case 'arabicParenBoth': return `(${n})`;
@@ -400,7 +414,7 @@ function renderTextBody(el, ctx) {
   const body = h('div', { class: 'tb-body' });
   const vmap = { top: 'flex-start', middle: 'center', bottom: 'flex-end' };
   body.style.justifyContent = vmap[el.valign] || 'flex-start';
-  body.style.whiteSpace = 'pre-wrap';
+  body.style.whiteSpace = el.noWrap ? 'nowrap' : 'pre-wrap';
   body.style.counterReset = 'pnum 0';
   // 竖排文字（a:bodyPr/@vert）：eaVert/vert 等 → CSS writing-mode
   if (el.textDirection && el.textDirection !== 'horz') {
@@ -412,10 +426,15 @@ function renderTextBody(el, ctx) {
     body.style.padding = `${el.inset.t || 0}px ${el.inset.r || 0}px ${el.inset.b || 0}px ${el.inset.l || 0}px`;
   }
   // 编号状态机：连续编号段落共用一个计数器，遇到非编号段落则重置
-  let numState = null;
-  (el.paragraphs || []).forEach((p) => {
+  let numState = null;  (el.paragraphs || []).forEach((p) => {
     const para = h('div', {});
-    para.style.textAlign = p.align || el.align || 'left';
+    // 从右到左段落（a:pPr@rtl）：dir=rtl 且缺省右对齐（OOXML 语义）
+    if (p.rtl) {
+      para.dir = 'rtl';
+      para.style.textAlign = p.align || el.align || 'right';
+    } else {
+      para.style.textAlign = p.align || el.align || 'left';
+    }
     if (p.lineSpacing) para.style.lineHeight = String(p.lineSpacing);
     const bullet = p.bullet ?? el.bullet;
     const firstRun = (p.runs || [])[0] || {};
@@ -462,6 +481,11 @@ function renderTextBody(el, ctx) {
     if (p.spaceBefore) para.style.marginTop = `${p.spaceBefore}px`;
     if (p.spaceAfter) para.style.marginBottom = `${p.spaceAfter}px`;
     (p.runs || []).forEach((run) => {
+      if (run.break) {
+        // 软换行（a:br）：空文本 run 渲染为 <br>
+        para.appendChild(document.createElement('br'));
+        return;
+      }
       const span = document.createElement('span');
       span.textContent = run.text == null ? '' : String(run.text);
       const st = span.style;
@@ -485,7 +509,9 @@ function renderTextBody(el, ctx) {
         const sc = normalizeColor(run.shadow.color);
         if (sc) {
           const a = run.shadow.alpha != null ? run.shadow.alpha : 1;
-          shadows.push(`${ptToPx(run.shadow.x || 0)}px ${ptToPx(run.shadow.y || 0)}px ${ptToPx(run.shadow.blur || 0)}px ${withAlpha(sc, a * 100)}`);
+          // 文字外阴影常省略 blurRad（OOXML 缺省 0），预览端按最小柔化半径渲染，这里对齐给 2pt
+          const blur = run.shadow.blur != null ? run.shadow.blur : 0;
+          shadows.push(`${ptToPx(run.shadow.x || 0)}px ${ptToPx(run.shadow.y || 0)}px ${ptToPx(Math.max(blur, TEXT_SHADOW_MIN_BLUR_PT))}px ${withAlpha(sc, a * 100)}`);
         }
       }
       if (shadows.length) st.textShadow = shadows.join(',');
@@ -515,7 +541,8 @@ function renderTableBody(el) {
   grid.style.gridTemplateColumns = colWidths.map((w) => `${(Number(w) || 1) * wScale}px`).join(' ');
   const sumH = rows.reduce((a, r) => a + (Number(r.height) || 0), 0) || 1;
   const hScale = (el.height || 200) / sumH;
-  grid.style.gridTemplateRows = rows.map((r) => `${(Number(r.height) || 40) * hScale}px`).join(' ');
+  // OOXML trHeight 是最小行高：内容更高时行自动撑高（与 PowerPoint/预览端一致）
+  grid.style.gridTemplateRows = rows.map((r) => `minmax(${((Number(r.height) || 40) * hScale).toFixed(1)}px, auto)`).join(' ');
 
   const bw = Math.max(0.5, ptToPx(el.border?.width ?? 1));
   const bc = normalizeColor(el.border?.color) || '#CBD5E1';
@@ -734,6 +761,12 @@ export function renderElement(el, ctx = {}) {
       const needsShapeBg = el.shapeType && el.shapeType !== 'rect';
       const needsTextBoxBg = el.fill || (el.line && el.line !== 'none');
       if (needsShapeBg || needsTextBoxBg) {
+        const { effects } = shapeVisual(el);
+        // 阴影 / 发光：带形状底（弧线/饼图/椭圆等）的描边/填充层背后放一层 SVG 滤镜
+        if (effects && (effects.shadow || effects.glow)) {
+          const fx = shapeEffectSvg(el, effects);
+          if (fx) node.appendChild(fx);
+        }
         const presetSvg = needsShapeBg ? presetShapeSvg(el) : null;
         if (presetSvg) {
           node.appendChild(presetSvg);
@@ -1048,6 +1081,12 @@ function renderChartEl(el, ctx) {
   const wrap = h('div', { class: 'el-chart', style: { width: '100%', height: '100%' } });
   wrap.id = 'chart_' + (ctx.chartScope || 'canvas') + '_' + el.id;
   const theme = getTheme(ctx.theme);
+  // 图表区填充（c:chartSpace/c:spPr）：'none' 透明，缺省透明，色值铺满
+  if (el.spaceFill === 'none') {
+    wrap.style.background = 'transparent';
+  } else if (el.spaceFill && el.spaceFill !== 'none') {
+    wrap.style.background = normalizeColor(el.spaceFill) || 'transparent';
+  }
 
   // 优先用 ECharts（与预览端一致的 option 构建，支持 3D）；缺库时回退到内置 SVG
   if (typeof window !== 'undefined' && window.echarts && chartRenderer && chartRenderer.prepareEChartsOption) {
@@ -1222,6 +1261,56 @@ function shapeGeometry(el) {
   }
 }
 
+/**
+ * 阴影/发光层的轮廓几何：优先用与本体同源的预设路径（presetShapePath），
+ * 保证 arc/pie/箭头等异形的阴影跟随真实轮廓；无预设路径时回退 CSS 几何
+ * （clip-path 多边形 / border-radius 圆角矩形或椭圆）。
+ * 无填充 + 有描边的形状（arc 弧线、noSmoking 等）用描边轮廓，避免阴影糊成实心块。
+ */
+function effectGeometry(el, W, H) {
+  const fill = presetFillColor(el);
+  const strokeOnly = fill === 'none' || fill == null;
+  const lineColor = el.line && el.line !== 'none' ? normalizeColor(el.line.color) : null;
+  const lineW = el.line && el.line !== 'none' ? Math.max(0.5, ptToPx(el.line.width || 0.75)) : 0;
+  // 1) 预设几何（本体就用 presetShapeSvg 渲染，阴影同源）
+  if (el.shapeType && el.shapeType !== 'rect' && fill !== null) {
+    const geo = presetShapePath(el.shapeType, W, H, el.adjust || {});
+    if (geo && geo.d) {
+      let tf = geo.transform || '';
+      if (el.flipH || el.flipV) tf += ` scale(${el.flipH ? -1 : 1},${el.flipV ? -1 : 1})`;
+      const tfAttr = tf.trim() ? ` transform="${tf.trim()}"` : '';
+      const useStroke = strokeOnly && lineColor;
+      const parts = [`<path d="${geo.d}"${tfAttr} fill="${useStroke || geo.noFill || !fill ? 'none' : fill}"${geo.fillRule ? ` fill-rule="${geo.fillRule}"` : ''}${useStroke ? ` stroke="${lineColor}" stroke-width="${lineW.toFixed(2)}" stroke-linecap="round"` : ''}/>`];
+      (geo.strokes || []).forEach((s) => {
+        parts.push(`<path d="${s.d}"${tfAttr} fill="none" stroke="#000" stroke-width="${(s.width || Math.max(1, W * 0.05)).toFixed(2)}" stroke-linecap="round"/>`);
+      });
+      return parts.join('');
+    }
+  }
+  // 2) CSS 几何回退
+  const geo = shapeGeometry(el);
+  if (geo.clipPath) {
+    const m = geo.clipPath.match(/polygon\(([^)]+)\)/);
+    if (m) {
+      const pts = m[1].trim().split(/\s*,\s*/).map((p) => p.trim().split(/\s+/).map((v) => parseFloat(v)));
+      return `<polygon points="${pts.map(([x, y]) => `${(x / 100 * W).toFixed(2)},${(y / 100 * H).toFixed(2)}`).join(' ')}"/>`;
+    }
+    return `<rect x="0" y="0" width="${W}" height="${H}"/>`;
+  }
+  if (geo.borderRadius) {
+    const br = geo.borderRadius;
+    const strokeAttrs = strokeOnly && lineColor ? ` fill="none" stroke="${lineColor}" stroke-width="${lineW.toFixed(2)}"` : '';
+    if (br === '50%') {
+      return `<ellipse cx="${(W / 2).toFixed(2)}" cy="${(H / 2).toFixed(2)}" rx="${(W / 2).toFixed(2)}" ry="${(H / 2).toFixed(2)}"${strokeAttrs}/>`;
+    }
+    const num = parseFloat(br);
+    const rx = br.endsWith('%') ? (num / 100 * W) : num;
+    const ry = br.endsWith('%') ? (num / 100 * H) : num;
+    return `<rect x="0" y="0" width="${W}" height="${H}" rx="${rx.toFixed(2)}" ry="${ry.toFixed(2)}"${strokeAttrs}/>`;
+  }
+  return `<rect x="0" y="0" width="${W}" height="${H}"/>`;
+}
+
 let _fxUid = 0;
 /**
  * 阴影/发光用内联 SVG 滤镜层渲染（与 pptxToHtml 同一套 feGaussianBlur + feFlood + feComposite 算法）。
@@ -1232,31 +1321,10 @@ let _fxUid = 0;
 function shapeEffectSvg(el, effects) {
   if (!effects || (!effects.shadow && !effects.glow)) return null;
   const W = el.width || 100, H = el.height || 100;
-  const geo = shapeGeometry(el);
-  let geom;
-  if (geo.clipPath) {
-    const m = geo.clipPath.match(/polygon\(([^)]+)\)/);
-    if (m) {
-      const pts = m[1].trim().split(/\s*,\s*/).map((p) => p.trim().split(/\s+/).map((v) => parseFloat(v)));
-      geom = `<polygon points="${pts.map(([x, y]) => `${(x / 100 * W).toFixed(2)},${(y / 100 * H).toFixed(2)}`).join(' ')}"/>`;
-    } else {
-      geom = `<rect x="0" y="0" width="${W}" height="${H}"/>`;
-    }
-  } else if (geo.borderRadius) {
-    const br = geo.borderRadius;
-    if (br === '50%') {
-      geom = `<ellipse cx="${(W / 2).toFixed(2)}" cy="${(H / 2).toFixed(2)}" rx="${(W / 2).toFixed(2)}" ry="${(H / 2).toFixed(2)}"/>`;
-    } else {
-      const num = parseFloat(br);
-      const rx = br.endsWith('%') ? (num / 100 * W) : num;
-      const ry = br.endsWith('%') ? (num / 100 * H) : num;
-      geom = `<rect x="0" y="0" width="${W}" height="${H}" rx="${rx.toFixed(2)}" ry="${ry.toFixed(2)}"/>`;
-    }
-  } else {
-    geom = `<rect x="0" y="0" width="${W}" height="${H}"/>`;
-  }
+  const geom = effectGeometry(el, W, H);
 
-  const SHADOW_SIGMA_RATIO = 0.29, GLOW_DILATE_RATIO = 0.38, GLOW_SIGMA_RATIO = 0.17;
+  // blurRad 是「半径」，与 CSS 模糊半径换算到高斯标准差约为其一半（σ ≈ R / 2）
+  const SHADOW_SIGMA_RATIO = 0.5, GLOW_DILATE_RATIO = 0.38, GLOW_SIGMA_RATIO = 0.17;
   const defs = [];
   const layers = [];
   const uid = 'efx' + (_fxUid++);
@@ -1276,7 +1344,10 @@ function shapeEffectSvg(el, effects) {
     const sigma = Math.max(0.5, s.blur * SHADOW_SIGMA_RATIO);
     const margin = Math.ceil(Math.max(Math.abs(s.dx), Math.abs(s.dy)) + sigma * 3) + 2;
     const fid = uid + '_s';
-    defs.push(`<filter id="${fid}" filterUnits="userSpaceOnUse" x="${-margin}" y="${-margin}" width="${W + margin * 2}" height="${H + margin * 2}" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="${sigma.toFixed(2)}" result="b"/><feOffset in="b" dx="${s.dx}" dy="${s.dy}" result="o"/><feFlood flood-color="${s.color}" result="c"/><feComposite in="c" in2="o" operator="in"/></filter>`);
+    const sc = normalizeColor(s.color) || '#000000';
+    // transparency=0..100：0 表示完全不透明，100 表示完全透明
+    const opacity = s.transparency != null ? Math.max(0, Math.min(1, (100 - s.transparency) / 100)) : 1;
+    defs.push(`<filter id="${fid}" filterUnits="userSpaceOnUse" x="${-margin}" y="${-margin}" width="${W + margin * 2}" height="${H + margin * 2}" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="${sigma.toFixed(2)}" result="b"/><feOffset in="b" dx="${s.dx}" dy="${s.dy}" result="o"/><feFlood flood-color="${sc}" flood-opacity="${opacity.toFixed(2)}" result="c"/><feComposite in="c" in2="o" operator="in"/></filter>`);
     layers.push(`<g filter="url(#${fid})">${geom}</g>`);
   }
 

@@ -2915,7 +2915,7 @@ async function getPicFill(type, node, warpObj) {
     let tileNode = node["a:tile"];
     let stretchNode = node["a:stretch"];
     let fillMode = "stretch";
-    let backgroundSize = "cover";
+    let backgroundSize = "100% 100%";
     let backgroundPosition = "center";
     let backgroundRepeat = "no-repeat";
     let tileW = 0, tileH = 0;
@@ -2952,10 +2952,7 @@ async function getPicFill(type, node, warpObj) {
     }
     else if (stretchNode) {
         fillMode = "stretch";
-        let fillRect = stretchNode["a:fillRect"];
-        if (fillRect) {
-            backgroundSize = "cover";
-        }
+        backgroundSize = "100% 100%";
     }
     const srcRect = getSrcRect(node);
     if (srcRect !== undefined) {
@@ -5844,7 +5841,10 @@ async function genSpanElement(node, rIndex, pNode, textBodyNode, pFontStyle, sli
     }
     if (linkID !== undefined) {
         let linkClrNode = PPTXXmlUtils.getTextByPathList(node, ["a:rPr", "a:solidFill"]);
-        PPTXStyleUtils.getSolidFill(linkClrNode, undefined, undefined, warpObj);
+        let rPrlinkClr = PPTXStyleUtils.getSolidFill(linkClrNode, undefined, undefined, warpObj);
+        if (rPrlinkClr !== undefined && rPrlinkClr != "") {
+            defLinkClr = rPrlinkClr;
+        }
     }
     let fontClrPr = await PPTXStyleUtils.getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type, warpObj);
     let fontClrType = fontClrPr[2];
@@ -13783,7 +13783,8 @@ async function processPicNode(node, parentNode, wrapObj, source, shapeType, sett
     else if ((vdoNode !== undefined || audioNode !== undefined) && mediaProcess && mediaSupportFlag) {
         if (vdoNode !== undefined && !isVideoLink) {
             const mutedAttr = settings.mediaMuted ? ' muted' : '';
-            result += `<video src='${videoBlob}' autoplay loop${mutedAttr} controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;
+            const posterData = `data:${mimeType};base64,${PPTXXmlUtils.base64ArrayBuffer(imgArrayBuffer)}`;
+            result += `<video src='${videoBlob}' poster='${posterData}'${mutedAttr} controls style='width: 100%; height: 100%'>Your browser does not support the video tag.</video>`;
         }
         else if (vdoNode !== undefined && isVideoLink) {
             const iframeAttrs = 'allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"';
@@ -14579,6 +14580,8 @@ function buildParagraph(ctx, paragraph, defaults) {
     const alignMap = { left: 'l', center: 'ctr', right: 'r', justify: 'just' };
     const p = paragraph || {};
     const pPrAttrs = { algn: alignMap[p.align || defaults.align || 'left'] || null };
+    if (p.rtl)
+        pPrAttrs.rtl = 1;
     if (p.indentLeft != null)
         pPrAttrs.marL = ptToEmu(p.indentLeft);
     if (p.indentRight != null)
@@ -14619,9 +14622,11 @@ function buildParagraph(ctx, paragraph, defaults) {
     const pPr = xmlNode('a:pPr', pPrAttrs, ...pPrChildren);
     let runs;
     if (Array.isArray(p.runs) && p.runs.length > 0) {
-        runs = p.runs.map((r) => {
+        runs = p.runs.flatMap((r) => {
+            if (r.break)
+                return [xmlNode('a:br', null)];
             const { text, options, ...flat } = r;
-            return buildTextRun(ctx, text, { ...defaults, ...(options || {}), ...flat });
+            return [buildTextRun(ctx, text, { ...defaults, ...(options || {}), ...flat })];
         });
     }
     else {
@@ -15082,11 +15087,16 @@ function buildChartXml(el) {
                 data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
             }
             const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
+            const dPtXml = (s.pointColors || [])
+                .map((c, pi) => c
+                ? `<c:dPt><c:idx val="${pi}"/><c:spPr><a:solidFill><a:srgbClr val="${colorToHex(c)}"/></a:solidFill></c:spPr></c:dPt>`
+                : '')
+                .join('');
             const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
             const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
             const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
             const trendlineXml = (s.trendlines || []).map((t) => buildTrendlineXml(t)).join('');
-            return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${trendlineXml}${data}${smoothXml}</c:ser>`;
+            return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${dPtXml}${trendlineXml}${data}${smoothXml}</c:ser>`;
         }).join('');
     };
     const secSeries = el.secondaryValueAxis ? series.filter((s) => s.axis === 'secondary') : [];
@@ -15182,13 +15192,16 @@ function buildChartXml(el) {
         : '';
     const autoTitleDeleted = `<c:autoTitleDeleted val="${el.title ? 0 : 1}"/>`;
     const workbook = buildChartWorkbookData(type, cats, series);
+    const spaceFillSpPr = el.spaceFill
+        ? `<c:spPr>${el.spaceFill === 'none' ? '<a:noFill/>' : `<a:solidFill><a:srgbClr val="${colorToHex(el.spaceFill)}"/></a:solidFill>`}</c:spPr>`
+        : '';
     return {
         xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
             `<c:chartSpace xmlns:c="${NS.c}" xmlns:a="${NS.a}" xmlns:r="${NS.r}">` +
             `<c:date1904 val="0"/><c:roundedCorners val="0"/>` +
             `<c:chart>${titleXml}${autoTitleDeleted}${view3D}` +
             `<c:plotArea><c:layout><c:manualLayout><c:layoutTarget val="inner"/><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="0"/><c:y val="0"/><c:w val="1"/><c:h val="1"/></c:manualLayout></c:layout>${plotChart}${axes}</c:plotArea>` +
-            `${legendXml}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>`,
+            `${legendXml}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>${spaceFillSpPr}</c:chartSpace>`,
         workbook
     };
 }
@@ -15857,7 +15870,7 @@ async function buildBackground(bg, ctx) {
     }
     else if (bg.type === 'gradient') {
         const stops = (bg.stops || []).map(s => xmlNode('a:gs', { pos: Math.round((s.position || 0) * 100000) }, xmlNode('a:srgbClr', { val: colorToHex(s.color) })));
-        const ang = bg.direction === 'vertical' ? 90 : bg.direction === 'diagonal' ? 45 : 0;
+        const ang = (bg.direction === 'vertical' ? 90 : bg.direction === 'diagonal' ? 45 : 0) * 60000;
         bgPrChildren = [
             xmlNode('a:gradFill', null, xmlNode('a:gsLst', null, ...stops), xmlNode('a:lin', { ang, scaled: 1 }))
         ];
@@ -17062,7 +17075,7 @@ function readRunStyle(rPr, themeMap = {}) {
     }
     return style;
 }
-function extractTxBody(txBody, themeMap = {}) {
+function extractTxBody(txBody, themeMap = {}, fallbackColor) {
     const paragraphs = [];
     let hasText = false;
     let text = '';
@@ -17073,6 +17086,7 @@ function extractTxBody(txBody, themeMap = {}) {
         ? VALIGN_MAP[bodyPr.attrs.anchor] : undefined;
     const textDirection = bodyPr && bodyPr.attrs && bodyPr.attrs.vert
         ? String(bodyPr.attrs.vert) : undefined;
+    const noWrap = bodyPr && bodyPr.attrs && bodyPr.attrs.wrap === 'none' ? true : undefined;
     let inset;
     if (bodyPr && bodyPr.attrs) {
         const a = bodyPr.attrs;
@@ -17113,12 +17127,23 @@ function extractTxBody(txBody, themeMap = {}) {
         const indent = pAttrs.indent != null ? emuToPt(pAttrs.indent) : undefined;
         const runs = [];
         let paraText = '';
-        for (const runNode of asArray(pNode['a:r'])) {
+        const ordered = [
+            ...asArray(pNode['a:r']).map((n) => ({ n, br: false })),
+            ...asArray(pNode['a:br']).map((n) => ({ n, br: true }))
+        ].sort((x, y) => ((x.n && x.n.attrs && x.n.attrs.order) || 0) - ((y.n && y.n.attrs && y.n.attrs.order) || 0));
+        for (const { n: runNode, br } of ordered) {
+            if (br) {
+                runs.push({ text: '', break: true });
+                continue;
+            }
             const t = readRunText(runNode);
             if (t)
                 hasText = true;
             paraText += t;
-            runs.push({ text: t, ...readRunStyle(runNode['a:rPr'], themeMap) });
+            const st = readRunStyle(runNode['a:rPr'], themeMap);
+            if (!st.color && fallbackColor)
+                st.color = fallbackColor;
+            runs.push({ text: t, ...st });
         }
         if (paraText)
             text += (text ? '\n' : '') + paraText;
@@ -17139,14 +17164,17 @@ function extractTxBody(txBody, themeMap = {}) {
             para.indentRight = indentRight;
         if (indent != null)
             para.indent = indent;
+        if (pAttrs.rtl === '1' || pAttrs.rtl === 1)
+            para.rtl = true;
         if (valign)
             para.valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset };
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap };
 }
 function extractTextBody(spNode, themeMap = {}) {
-    return extractTxBody(spNode && spNode['p:txBody'], themeMap);
+    const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
+    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor);
 }
 function spColor(node, themeMap) {
     const c = resolveColorNode(node, themeMap);
@@ -17438,7 +17466,7 @@ function extractTiming(slideContent) {
         result.animations = animations;
     return result;
 }
-async function extractBackground(slideContent, resObj, zip, fallbacks = []) {
+async function extractBackground(slideContent, resObj, zip, fallbacks = [], themeMap = {}) {
     const parts = [
         { content: slideContent, res: resObj }, ...fallbacks
     ];
@@ -17449,7 +17477,7 @@ async function extractBackground(slideContent, resObj, zip, fallbacks = []) {
             continue;
         const bgPr = bg['p:bgPr'];
         if (bgPr) {
-            const color = readSrgbClr(bgPr);
+            const color = spColor(bgPr, themeMap) || readSrgbClr(bgPr);
             if (color)
                 return color;
             if (bgPr['a:blipFill'] && part.res) {
@@ -17462,12 +17490,12 @@ async function extractBackground(slideContent, resObj, zip, fallbacks = []) {
                 const stops = [];
                 for (const gs of asArray(gsLst && gsLst['a:gs'])) {
                     const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
-                    const c = readSrgbClr(gs);
+                    const c = spColor(gs, themeMap) || readSrgbClr(gs);
                     if (c)
                         stops.push({ color: c, position: pos });
                 }
                 const lin = bgPr['a:gradFill']['a:lin'];
-                const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) : 0;
+                const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
                 const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
                 return { type: 'gradient', direction, stops };
             }
@@ -17478,12 +17506,31 @@ async function extractBackground(slideContent, resObj, zip, fallbacks = []) {
 }
 function extractChart(chartXml, themeMap = {}) {
     try {
-        const chart = chartXml && chartXml['c:chartSpace'] && chartXml['c:chartSpace']['c:chart'];
+        const chartSpace = chartXml && chartXml['c:chartSpace'];
+        const chart = chartSpace && chartSpace['c:chart'];
         if (!chart)
             return undefined;
         const plotArea = chart['c:plotArea'];
         if (!plotArea)
             return undefined;
+        let spaceFill;
+        const spaceSpPr = chartSpace['c:spPr'];
+        if (spaceSpPr) {
+            const solid = spColor(spaceSpPr['a:solidFill'], themeMap);
+            if (solid) {
+                spaceFill = solid;
+            }
+            else if (spaceSpPr['a:noFill']) {
+                spaceFill = 'none';
+            }
+            else {
+                const gsLst = spaceSpPr['a:gradFill'] && spaceSpPr['a:gradFill']['a:gsLst'];
+                const gs0 = asArray(gsLst && gsLst['a:gs'])[0];
+                const gradCol = gs0 ? spColor(gs0, themeMap) : undefined;
+                if (gradCol)
+                    spaceFill = gradCol;
+            }
+        }
         let chartNode = null;
         let chartType = 'barChart';
         for (const ct of CHART_PLOT_TYPES) {
@@ -17538,6 +17585,33 @@ function extractChart(chartXml, themeMap = {}) {
             const serColor = serSpPr ? spColor(serSpPr['a:solidFill'], themeMap) : undefined;
             if (serColor)
                 s.color = serColor;
+            const dPts = asArray(ser['c:dPt']);
+            if (dPts.length) {
+                const nPts = Math.max(s.values ? s.values.length : 0, ...(dPts.map((d) => {
+                    const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
+                    return idx + 1;
+                })));
+                if (nPts > 0) {
+                    const pc = new Array(nPts).fill(undefined);
+                    for (const d of dPts) {
+                        const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
+                        if (idx < 0)
+                            continue;
+                        const dSpPr = d['c:spPr'];
+                        if (!dSpPr)
+                            continue;
+                        const c = spColor(dSpPr['a:solidFill'], themeMap)
+                            || (() => {
+                                const gsLst = dSpPr['a:gradFill'] && dSpPr['a:gradFill']['a:gsLst'];
+                                const gs0 = asArray(gsLst && gsLst['a:gs'])[0];
+                                return gs0 ? spColor(gs0, themeMap) : undefined;
+                            })();
+                        if (c)
+                            pc[idx] = c;
+                    }
+                    s.pointColors = pc;
+                }
+            }
             series.push(s);
         }
         let title;
@@ -17553,6 +17627,8 @@ function extractChart(chartXml, themeMap = {}) {
         }
         const legend = !!chart['c:legend'];
         const out = { chartType, series };
+        if (spaceFill !== undefined)
+            out.spaceFill = spaceFill;
         if (categories.length)
             out.categories = categories;
         if (title)
@@ -17746,10 +17822,17 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             && slideContent['p:sld']['p:cSld']
             && slideContent['p:sld']['p:cSld']['p:spTree'];
         const resObj = slideData.slideResObj || {};
+        const themeMap = {};
+        if (slideData.themeContent) {
+            Object.assign(themeMap, themeColorsFromContent(slideData.themeContent));
+        }
+        if (!Object.keys(themeMap).length && options.theme) {
+            Object.assign(themeMap, themeColorsFromTheme(options.theme));
+        }
         const bg = await extractBackground(slideContent, resObj, zip, [
             { content: slideData.slideLayoutContent, res: slideData.layoutResObj },
             { content: slideData.slideMasterContent, res: slideData.masterResObj }
-        ]);
+        ], themeMap);
         if (bg !== undefined)
             slide.background = bg;
         const transition = extractTransition(slideContent);
@@ -17768,16 +17851,9 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             }));
         }
         if (spTree) {
-            const themeMap = {};
-            if (slideData.themeContent) {
-                Object.assign(themeMap, themeColorsFromContent(slideData.themeContent));
-            }
-            if (!Object.keys(themeMap).length && options.theme) {
-                Object.assign(themeMap, themeColorsFromTheme(options.theme));
-            }
             const processNode = async (key, node) => {
                 try {
-                    const el = await nodeToElement(key, node, resObj, zip, themeMap);
+                    const el = await nodeToElement(key, node, resObj, zip, themeMap, slideData.themeContent);
                     if (!el)
                         return null;
                     el.__raw = { tag: key, node };
@@ -17853,6 +17929,10 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                         applyTableStyle(el, slideData.tableStyles, options.theme);
                     }
                 }
+            }
+            if (Object.keys(themeMap).length) {
+                for (const el of slide.elements)
+                    resolveSchemeRefs(el, themeMap);
             }
             const timing = extractTiming(slideContent);
             if (timing.advanceTime != null)
@@ -17986,7 +18066,7 @@ function readCustGeom(custGeom) {
     }
     return paths.length ? { paths } : undefined;
 }
-async function nodeToElement(key, node, resObj, zip, themeMap = {}) {
+async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent) {
     if (key === 'p:graphicFrame') {
         return await graphicFrameToElement(node, resObj, zip, themeMap);
     }
@@ -17994,7 +18074,7 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}) {
         return await picToImage(node, resObj, zip);
     }
     const spPr = node['p:spPr'];
-    const { paragraphs, hasText, textDirection, inset } = extractTextBody(node, themeMap);
+    const { paragraphs, hasText, textDirection, inset, noWrap } = extractTextBody(node, themeMap);
     const geom = spPr && spPr['a:prstGeom'];
     if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
         const xf = readXfrm(node, false);
@@ -18019,6 +18099,8 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}) {
             textEl.textDirection = textDirection;
         if (inset)
             textEl.inset = inset;
+        if (noWrap)
+            textEl.noWrap = noWrap;
         const isPureTextBox = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1';
         const hasNonRectShape = geom && geom.attrs && geom.attrs.prst && String(geom.attrs.prst) !== 'rect' && !isPureTextBox;
         try {
@@ -18030,16 +18112,23 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}) {
             }
             const pStyle = node['p:style'];
             if (pStyle && typeof pStyle === 'object') {
-                const tables = await getThemeStyleTables(zip);
+                const tables = await getThemeStyleTables(zip, themeContent);
                 if (spVis.fill === undefined && pStyle['a:fillRef']) {
                     const ref = resolveThemeStyleRef(pStyle['a:fillRef'], tables.fills, themeMap);
                     if (ref)
-                        spVis.fill = ref.color;
+                        spVis.fill = ref.gradient || ref.color;
                 }
                 if (spVis.line === undefined && pStyle['a:lnRef']) {
                     const ref = resolveThemeStyleRef(pStyle['a:lnRef'], tables.lines, themeMap);
                     if (ref)
                         spVis.line = { width: ref.widthPt || DEFAULT_LN_PT, color: ref.color };
+                }
+                if (pStyle['a:effectRef']) {
+                    const ref = resolveThemeEffectRef(pStyle['a:effectRef'], tables.effects, themeMap);
+                    if (ref && ref.shadow) {
+                        spVis.effects = spVis.effects || {};
+                        spVis.effects.shadow = ref.shadow;
+                    }
                 }
             }
             if (hasNonRectShape && spVis.shapeType)
@@ -18053,6 +18142,8 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}) {
                 textEl.fill = spVis.fill;
             if (spVis.line !== undefined)
                 textEl.line = spVis.line;
+            if (spVis.effects)
+                textEl.effects = spVis.effects;
         }
         catch (e) {
             console.warn('[json-from-pptx] 文本形状外观提取失败（跳过外观）:', e instanceof Error ? (e.message + '\n' + String(e.stack).split('\n')[1]) : e);
@@ -18090,11 +18181,11 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}) {
         }
         const pStyle = node['p:style'];
         if (pStyle && typeof pStyle === 'object') {
-            const tables = await getThemeStyleTables(zip);
+            const tables = await getThemeStyleTables(zip, themeContent);
             if (sp.fill === undefined && pStyle['a:fillRef']) {
                 const ref = resolveThemeStyleRef(pStyle['a:fillRef'], tables.fills, themeMap);
                 if (ref)
-                    sp.fill = ref.color;
+                    sp.fill = ref.gradient || ref.color;
             }
             if (pStyle['a:lnRef']) {
                 const ref = resolveThemeStyleRef(pStyle['a:lnRef'], tables.lines, themeMap);
@@ -18105,6 +18196,13 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}) {
                     else if (sp.line !== 'none' && sp.line && typeof sp.line === 'object' && !sp.line.color) {
                         sp.line.color = ref.color;
                     }
+                }
+            }
+            if (pStyle['a:effectRef']) {
+                const ref = resolveThemeEffectRef(pStyle['a:effectRef'], tables.effects, themeMap);
+                if (ref && ref.shadow) {
+                    sp.effects = sp.effects || {};
+                    sp.effects.shadow = ref.shadow;
                 }
             }
         }
@@ -18290,6 +18388,8 @@ function tableToElement(tbl, node, themeMap = {}) {
             }
             if (paragraphs[0] && paragraphs[0].align)
                 cell.align = paragraphs[0].align;
+            else if (paragraphs[0] && paragraphs[0].rtl)
+                cell.align = 'right';
             const tcPr = tc && tc['a:tcPr'];
             if (tcPr) {
                 const fill = readSrgbClr(tcPr);
@@ -18356,6 +18456,25 @@ function themeColorsFromTheme(theme) {
     }
     return map;
 }
+function resolveSchemeRefs(value, themeMap) {
+    if (Array.isArray(value)) {
+        for (const v of value)
+            resolveSchemeRefs(v, themeMap);
+        return;
+    }
+    if (!value || typeof value !== 'object')
+        return;
+    for (const [k, v] of Object.entries(value)) {
+        if (typeof v === 'string' && v.startsWith('scheme:')) {
+            const hex = themeMap[v.slice(7).toLowerCase()];
+            if (hex)
+                value[k] = hex;
+        }
+        else if (v && typeof v === 'object') {
+            resolveSchemeRefs(v, themeMap);
+        }
+    }
+}
 function themeColorsFromContent(themeContent) {
     const map = {};
     if (!themeContent)
@@ -18377,16 +18496,22 @@ function themeColorsFromContent(themeContent) {
         if (val)
             map[slot] = '#' + String(val).replace(/^#/, '').toUpperCase();
     }
+    const aliases = { tx1: 'dk1', bg1: 'lt1', tx2: 'dk2', bg2: 'lt2' };
+    for (const [alias, slot] of Object.entries(aliases)) {
+        if (map[slot] && !map[alias])
+            map[alias] = map[slot];
+    }
     return map;
 }
 const themeStylesCache = new WeakMap();
-async function getThemeStyleTables(zip) {
-    const cached = themeStylesCache.get(zip);
+async function getThemeStyleTables(zip, themeContent) {
+    const cacheKey = themeContent || zip;
+    const cached = themeStylesCache.get(cacheKey);
     if (cached)
         return cached;
-    const tables = { fills: [], lines: [] };
+    const tables = { fills: [], lines: [], effects: [] };
     try {
-        const xml = await PPTXXmlUtils.readXmlFile(zip, 'ppt/theme/theme1.xml');
+        const xml = themeContent || await PPTXXmlUtils.readXmlFile(zip, 'ppt/theme/theme1.xml');
         const fmt = xml && xml['a:theme']
             && xml['a:theme']['a:themeElements']
             && xml['a:theme']['a:themeElements']['a:fmtScheme'];
@@ -18407,6 +18532,7 @@ async function getThemeStyleTables(zip) {
             };
             tables.fills = listOf(fmt['a:fillStyleLst']);
             tables.lines = listOf(fmt['a:lnStyleLst']);
+            tables.effects = listOf(fmt['a:effectStyleLst']);
         }
     }
     catch { }
@@ -18429,17 +18555,86 @@ function resolveThemeStyleRef(refNode, styleList, themeMap) {
     const fillNode = entry['a:solidFill'] || entry['a:gradFill'] || entry;
     let color = resolveColorNode(fillNode['a:solidFill'], colorMap)
         || ((fillNode['a:schemeClr'] || fillNode['a:srgbClr']) ? resolveColorNode(fillNode, colorMap) : undefined);
+    let gradient;
     if (!color) {
         const grad = fillNode['a:gradFill'] || (fillNode['a:gsLst'] ? fillNode : undefined);
         const gsLst = grad && grad['a:gsLst'];
-        color = resolveColorNode(asArray(gsLst && gsLst['a:gs'])[0], colorMap);
+        const gsNodes = asArray(gsLst && gsLst['a:gs']);
+        const stops = gsNodes
+            .map((gs) => {
+            const c = resolveColorNode(gs, colorMap);
+            const pos = gs && gs.attrs && gs.attrs.pos != null ? Number(gs.attrs.pos) / 100000 : 0;
+            return c ? { color: c, position: pos } : undefined;
+        })
+            .filter((s) => !!s);
+        if (stops.length) {
+            color = stops[0].color;
+            gradient = { type: 'gradient', stops };
+            const lin = grad && grad['a:lin'];
+            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
+            gradient.direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+        }
     }
     if (!color)
         return undefined;
     const wAttr = (entry.attrs && entry.attrs.w != null) ? entry.attrs.w
         : (raw.attrs && raw.attrs.w != null) ? raw.attrs.w : undefined;
     const w = wAttr != null ? emuToPt(wAttr) : undefined;
-    return { color, widthPt: w };
+    return { color, gradient, widthPt: w };
+}
+function splitColorAlpha(color) {
+    if (!color)
+        return {};
+    const m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(String(color).trim());
+    if (m) {
+        const hex = '#' + [m[1], m[2], m[3]]
+            .map((n) => Number(n).toString(16).padStart(2, '0'))
+            .join('').toUpperCase();
+        return { hex, alphaPct: m[4] != null ? Math.round(Number(m[4]) * 100) : undefined };
+    }
+    return { hex: (color.startsWith('#') ? color : '#' + color).toUpperCase() };
+}
+function resolveThemeEffectRef(refNode, styleList, themeMap) {
+    if (!refNode || !refNode.attrs || !styleList.length)
+        return undefined;
+    const idx = Number(refNode.attrs.idx) || 0;
+    if (idx <= 0)
+        return undefined;
+    const raw = styleList[idx < styleList.length ? idx : idx - 1];
+    if (!raw || typeof raw !== 'object')
+        return undefined;
+    const effLst = raw['a:effectLst'];
+    if (!effLst)
+        return undefined;
+    const outer = effLst['a:outerShdw'];
+    if (!outer || !outer.attrs)
+        return undefined;
+    const a = outer.attrs;
+    const refColor = resolveColorNode(refNode, themeMap);
+    const colorMap = refColor ? { ...themeMap, phclr: refColor } : themeMap;
+    let color = resolveColorNode(outer, colorMap)
+        || resolveColorNode(outer['a:srgbClr'], colorMap)
+        || resolveColorNode(outer['a:schemeClr'], colorMap);
+    const parsed = splitColorAlpha(color);
+    color = parsed.hex;
+    const alphaNode = (outer['a:srgbClr'] || outer['a:schemeClr'] || {})['a:alpha'];
+    const alphaPct = parsed.alphaPct != null
+        ? parsed.alphaPct
+        : (alphaNode && alphaNode.attrs ? Math.round(Number(alphaNode.attrs.val) / 1000) : undefined);
+    const shadow = { type: 'outer' };
+    if (a.blurRad != null)
+        shadow.blur = Math.round(emuToPt(a.blurRad) * 100) / 100;
+    if (a.dist != null)
+        shadow.distance = Math.round(emuToPt(a.dist) * 100) / 100;
+    if (a.dir != null)
+        shadow.angle = Math.round(Number(a.dir) / 60000);
+    if (color)
+        shadow.color = color.replace(/^#/, '').toUpperCase();
+    if (alphaPct != null)
+        shadow.transparency = 100 - alphaPct;
+    if (shadow.color || shadow.blur != null || shadow.distance != null)
+        return { shadow };
+    return undefined;
 }
 function resolveColorNode(node, themeMap) {
     if (!node)
@@ -18471,10 +18666,18 @@ function resolveColorNode(node, themeMap) {
         const lumMod = readMod('a:lumMod');
         const lumOff = readMod('a:lumOff');
         const alpha = readMod('a:alpha');
-        if (tint != null)
-            tc = TinyColor.mix(tc, '#FFFFFF', tint / 1000);
-        if (shade != null)
-            tc = TinyColor.mix(tc, '#000000', shade / 1000);
+        if (tint != null) {
+            const t = Math.max(0, Math.min(1, tint / 100000));
+            const hsl = tc.toHsl();
+            hsl.l = Math.max(0, Math.min(1, hsl.l * t + (1 - t)));
+            tc = tinycolor(hsl);
+        }
+        if (shade != null) {
+            const s = Math.max(0, Math.min(1, shade / 100000));
+            const hsl = tc.toHsl();
+            hsl.l = Math.max(0, Math.min(1, hsl.l * s));
+            tc = tinycolor(hsl);
+        }
         if (lumMod != null) {
             const hsl = tc.toHsl();
             hsl.l = Math.max(0, Math.min(1, hsl.l * (lumMod / 100000)));
@@ -18872,7 +19075,7 @@ async function graphicFrameToChart(node, resObj, zip, themeMap = {}) {
     const passKeys = [
         'categories', 'title', 'legend', 'grouping', 'varyColors', 'barDir',
         'holeSize', 'smooth', 'marker', 'ofPieType', 'numberFormat',
-        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe'
+        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe', 'spaceFill'
     ];
     const src = chartSemantic;
     const dst = chartEl;

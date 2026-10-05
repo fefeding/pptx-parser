@@ -554,6 +554,17 @@ export function buildSlideFromLayout(layoutId, themeId, slideSize, extra = {}) {
 }
 
 /* ======================= 内部模型 → PptxDocument ======================= */
+/** 自动编号前缀（单元格纯文本用）：支持 hebrew 与常见数字/字母编号 */
+const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
+function autoNumPrefix(fmt, n) {
+  if (fmt === 'hebrew1Minus' || fmt === 'hebrew2Minus') {
+    let out = '', rest = Math.max(0, n - 1);
+    do { out = HEBREW_LETTERS[rest % HEBREW_LETTERS.length] + out; rest = Math.floor(rest / HEBREW_LETTERS.length) - 1; } while (rest >= 0);
+    return (out || HEBREW_LETTERS[0]) + '-';
+  }
+  return `${n}.`;
+}
+
 function cleanRuns(paragraph, el) {
   const runs = (paragraph.runs || []).map((r) => {
     const run = { text: r.text == null ? '' : String(r.text) };
@@ -565,6 +576,7 @@ function cleanRuns(paragraph, el) {
     if (r.fontFace && r.fontFace !== el.fontFace) run.fontFace = r.fontFace;
     if (r.outline) run.outline = r.outline;
     if (r.shadow) run.shadow = r.shadow;
+    if (r.break) run.break = true;
     return run;
   });
   return runs.length ? runs : [{ text: '' }];
@@ -629,9 +641,16 @@ export function elementToPptx(el) {
           ? { color: normalizeColor(el.line.color) || '000000', width: el.line.width || 1, dashType: el.line.dashType || 'solid' }
           : 'none';
       }
+      if (el.shadow || el.glow) {
+        out.effects = {};
+        if (el.shadow) out.effects.shadow = el.shadow;
+        if (el.glow) out.effects.glow = el.glow;
+      }
+      if (el.noWrap) out.noWrap = true;
       out.paragraphs = (el.paragraphs || []).map((p) => {
         const para = { runs: cleanRuns(p, el) };
         if (p.align) para.align = p.align;
+        if (p.rtl) para.rtl = true;
         const pb = normalizeBulletOut(p.bullet);
         if (pb) para.bullet = pb;
         if (p.lineSpacing) para.lineSpacing = p.lineSpacing;
@@ -743,8 +762,13 @@ export function elementToPptx(el) {
           ser.values = (s.values || []).map((v) => Number(v) || 0);
         }
         if (s.color) ser.color = normalizeColor(s.color) || undefined;
+        // 逐点填充色（c:dPt 回写）
+        if (s.pointColors && s.pointColors.some((c) => c)) {
+          ser.pointColors = (s.pointColors || []).map((c) => (c ? normalizeColor(c) || undefined : undefined));
+        }
         return ser;
       });
+      if (el.spaceFill) out.spaceFill = el.spaceFill;
       if (/pie|doughnut/i.test(baseType)) out.varyColors = true;
       if (el.grouping && el.grouping !== 'clustered') out.grouping = el.grouping;
       if (baseType === 'doughnutChart') out.holeSize = el.holeSize ?? 50;
@@ -865,7 +889,9 @@ function pptxRunsToRuns(runs, fallback) {
     underline: !!r.underline,
     fontFace: r.fontFace || fallback.fontFace,
     outline: r.outline,
-    shadow: r.shadow
+    shadow: r.shadow,
+    // 软换行（a:br）：空文本 run，渲染为 <br>
+    break: !!r.break
   }));
 }
 
@@ -950,6 +976,7 @@ function elementFromPptx(pe) {
       el.align = pe.align || 'left';
       el.valign = pe.valign || 'top';
       el.textDirection = pe.textDirection || '';
+      el.noWrap = !!pe.noWrap;
       el.inset = (pe.inset && typeof pe.inset === 'object') ? {
         l: pe.inset.l ?? 7.2, r: pe.inset.r ?? 7.2, t: pe.inset.t ?? 3.6, b: pe.inset.b ?? 3.6
       } : null;
@@ -960,6 +987,11 @@ function elementFromPptx(pe) {
       el.line = pe.line && pe.line !== 'none'
         ? { color: colorFromPptx(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid' }
         : (pe.line === 'none' ? 'none' : null);
+      // 带文字形状的阴影/发光（来自 spPr/a:effectLst 或 p:style/a:effectRef 主题样式）
+      el.shadow = (pe.effects && pe.effects.shadow && typeof pe.effects.shadow === 'object') ? pe.effects.shadow : null;
+      if (el.shadow && el.shadow.color) el.shadow.color = colorFromPptx(el.shadow.color) || '#000000';
+      el.glow = (pe.effects && pe.effects.glow && typeof pe.effects.glow === 'object') ? pe.effects.glow : null;
+      if (el.glow && el.glow.color) el.glow.color = colorFromPptx(el.glow.color) || '#FFFF00';
       el.lineSpacing = typeof pe.lineSpacing === 'number' ? pe.lineSpacing : 1.15;
       // 标准 JSON 的 bullet 是对象 {type:'number'|'bullet',...} 或 'number'/true
       const eb = pe.bullet;
@@ -983,6 +1015,8 @@ function elementFromPptx(pe) {
             // 保留编号格式（fmt：chineseCounting 等）与项目符号字符（char），渲染/导出都需要
             bullet: normalizeBulletIn(pb),
             lineSpacing: lineSpacingNum(p.lineSpacing),
+            // 从右到左段落（a:pPr@rtl）：RTL 段落缺省右对齐
+            rtl: !!p.rtl,
             // 段落级缩进（pt→px）与段前/段后间距（pt→px）
             indent: p.indent != null ? Math.round(ptToPx(p.indent)) : undefined,
             spaceBefore: p.spaceBefore != null ? Math.round(ptToPx(p.spaceBefore)) : undefined,
@@ -1033,7 +1067,17 @@ function elementFromPptx(pe) {
           const hasColor = c.color && c.color !== 'none';
           const cellInset = c.inset ? { l: c.inset.l, r: c.inset.r, t: c.inset.t, b: c.inset.b } : undefined;
           const cell = {
-            text: c.text || (Array.isArray(c.paragraphs) ? c.paragraphs.map((p) => p.text || '').join('\n') : ''),
+            // 段落形态（runs）拼为纯文本；带自动编号的段落前置编号文本（hebrew2Minus 等）
+            text: c.text || (Array.isArray(c.paragraphs)
+              ? c.paragraphs.map((p, pi) => {
+                  const t = (p.runs || []).map((r) => (r.text == null ? '' : String(r.text))).join('');
+                  const b = p.bullet;
+                  if (b && typeof b === 'object' && b.type === 'number') {
+                    return autoNumPrefix(b.fmt || 'arabicPeriod', (b.start || 1) + pi) + ' ' + t;
+                  }
+                  return t;
+                }).join('\n')
+              : ''),
             fill: hasFill ? colorFromPptx(c.fill) : null,
             fillCustom: hasFill || undefined,
             align: c.align || 'left',
@@ -1095,12 +1139,17 @@ function elementFromPptx(pe) {
       el.smooth = !!pe.smooth;
       el.marker = !!pe.marker;
       el.view3D = pe.view3D || null;
+      // 图表区填充（c:chartSpace/c:spPr）：'none' 或 #RRGGBB
+      el.spaceFill = pe.spaceFill === 'none' ? 'none' : (normalizeColor(pe.spaceFill) || '');
       el.categories = pe.categories || [];
       const isBubble = el.chartType3D === 'bubbleChart';
       const isScatter = !isBubble && el.chartType === 'scatterChart';
       const isStock = el.chartType3D === 'stockChart';
       el.series = (pe.series || []).map((s) => {
-        const ser = { name: s.name || '系列', color: s.color || '' };
+        const ser = { name: s.name || '系列', color: normalizeColor(s.color) || '' };
+        if (s.pointColors && s.pointColors.some((c) => c)) {
+          ser.pointColors = (s.pointColors || []).map((c) => (c ? normalizeColor(c) || undefined : undefined));
+        }
         if (isBubble) {
           ser.values = (s.x || []).map((x, i) => ({
             x: Number(x) || 0,
