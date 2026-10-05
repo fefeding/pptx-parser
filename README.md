@@ -132,7 +132,7 @@ const data = await jsonToPptx({
 });
 ```
 
-Supported elements: text (multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks, bullets, alignment), preset shapes, and images (dataURL / base64 / remote URL via `src`).
+Supported elements: text (multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks, bullets, numbered lists, outline, shadow, dynamic fields), preset shapes (gradient/solid/picture/pattern fills, tiling, cropping, shadow, glow, 3D extrusion, custom geometry), images (dataURL/base64/remote URL, cropping, brightness/contrast/transparency), tables (per-cell borders, diagonal borders, spans, styles), charts (2D/3D, multi-series, trendlines, secondary axis, point colors, gridlines), groups, diagrams (SmartArt), connectors, video/audio, OLE objects, math formulas, and more.
 
 ### Edit Existing PPTX
 
@@ -189,15 +189,19 @@ interface PptxParserOptions {
 
 ## Supported Elements
 
-- **Text** — Multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks (external URL or `#N` to jump to slide N), bullet & numbered lists, line spacing, indentation, text box inset, vertical text direction
-- **Shapes** — All preset geometries (`rect`, `roundRect`, `ellipse`, `triangle`, `arrow`, `star5`, `foldedCorner`, …); gradient / solid / picture / pattern fills; picture fill with tiling (`tile`) and source-rectangle cropping (`srcRect`); line style, shadow & glow effects; geometric adjustment (`avLst`); horizontal/vertical flip
+- **Text** — Multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks (external URL or `#N` to jump to slide N), bullet & numbered lists, line spacing, indentation, text box inset, vertical text direction, multi-column, autofit, WordArt transforms, run-level outline & shadow, dynamic fields (slide number, datetime)
+- **Shapes** — All preset geometries (`rect`, `roundRect`, `ellipse`, `triangle`, `arrow`, `star5`, `foldedCorner`, …); gradient / solid / picture / pattern fills; picture fill with tiling (`tile`) and source-rectangle cropping (`srcRect`); line style, shadow & glow effects; geometric adjustment (`avLst`); horizontal/vertical flip; custom geometry paths (`custGeom`); 3D extrusion, bevel, camera & lighting (`threeD`)
 - **Images** — PNG, JPEG, GIF, BMP, WEBP, SVG; base64/dataURL or remote `src`; cropping, brightness/contrast/transparency
-- **Tables** — Full styling: per-cell borders, diagonal borders (`tlBr` / `blTr` / `both`), cell inset, span (`colSpan`/`rowSpan`), fill, alignment, and table styles (`tableStyleId`)
-- **Charts** — Bar/column, line, area, pie/doughnut, ofPie, scatter, bubble, radar, stock, surface (2D & 3D); multi-series, series colors, legend, data labels, grouping, `barDir`, `holeSize`, `ofPieType`, `bubble3D`, `wireframe`
-- **Group** — `group` elements with `childrenCoordinates: 'local' | 'page'`
-- **Diagram** — SmartArt (list / hierarchy / process / cycle / pyramid) with connectors rendered
+- **Tables** — Full styling: per-cell borders, diagonal borders (`tlBr` / `blTr` / `both`), cell inset, span (`colSpan`/`rowSpan`), merge (`hMerge`/`vMerge`), fill, alignment, and table styles (`tableStyleId`)
+- **Charts** — Bar/column, line, area, pie/doughnut, ofPie, scatter, bubble, radar, stock, surface (2D & 3D); multi-series, series colors, per-point colors (`pointColors`), legend, data labels, grouping, `barDir`, `holeSize`, `ofPieType`, `bubble3D`, `wireframe`, 3D view (`view3D`), secondary axis, trendlines, gridlines, axis titles
+- **Group** — `group` elements with `childrenCoordinates: 'local' | 'page' | 'relative'`
+- **Diagram** — SmartArt (list / hierarchy / process / cycle / pyramid) with cached drawing shapes and connectors
+- **Connector** — Connection lines (`straightConnector1` / `bentConnector3` / `curvedConnector2`) with precise start/end points
 - **Media** — Video (`mp4`/`m4v`) and audio (`m4a`/`mp3`) with optional poster
-- **Slide-level** — Background (solid/gradient/image), transition, auto-advance timing, animations, hidden slides, notes, comments, custom document properties
+- **OLE** — Embedded objects (Excel sheets, etc.) with icon/poster
+- **Math** — OMML formulas
+- **Slide-level** — Background (solid/gradient/image), transition (with sound/direction), auto-advance timing, animations (entr/exit/emph/path with triggers), hidden slides, notes, comments, custom document properties
+- **Document-level** — Masters/layouts/placeholders, sections, embedded fonts (with XOR obfuscation), semantic theme (colors/fonts)
 
 ## Platform Usage
 

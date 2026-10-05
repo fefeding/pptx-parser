@@ -166,7 +166,7 @@ const data = await jsonToPptx({
 });
 ```
 
-支持的元素类型：`text`（多段落、run 内字号/颜色/粗体/斜体/下划线/字体、超链接、项目符号、编号列表、对齐）、预设形状、图片（dataURL / base64 / 远程 `src`）、表格、图表、组合、图示、视频/音频、批注、自定义文档属性。
+支持的元素类型：`text`（多段落、run 内字号/颜色/粗体/斜体/下划线/字体、超链接、项目符号、编号列表、描边、阴影、动态字段）、预设形状（渐变/纯色/图片/图案填充、平铺/裁剪、阴影/发光、三维挤出、自定义几何）、图片（dataURL / base64 / 远程 `src`、裁剪/亮度/对比度/透明度）、表格（单元格边框/对角线/跨行跨列/合并/样式）、图表（2D/3D、多系列、趋势线、次坐标轴、逐点配色、网格线）、组合、图示（SmartArt）、连接线、视频/音频、OLE 嵌入对象、公式、批注、自定义文档属性等。
 
 ### 编辑已有 PPTX
 
@@ -185,15 +185,19 @@ const updated = await editor.save();
 
 ## 支持的元素
 
-- **文本** — 多段落、run 内字号/颜色/粗体/斜体/下划线/字体、超链接（外部 URL 或 `#N` 跳转到第 N 页）、项目符号与编号列表、行距、缩进、文本框内边距、竖排文字方向
-- **形状** — 全部预设几何（`rect`、`roundRect`、`ellipse`、`triangle`、`arrow`、`star5`、`foldedCorner` 等）；渐变 / 纯色 / 图片 / 图案填充；图片填充支持平铺（`tile`）与源矩形裁剪（`srcRect`）；线型、阴影与发光效果；几何调整（`avLst`）；水平/垂直翻转
+- **文本** — 多段落、run 内字号/颜色/粗体/斜体/下划线/字体、超链接（外部 URL 或 `#N` 跳转到第 N 页）、项目符号与编号列表、行距、缩进、文本框内边距、竖排文字方向、分栏、自动适配、艺术字变形、run 级描边与阴影、动态字段（页码/日期）
+- **形状** — 全部预设几何（`rect`、`roundRect`、`ellipse`、`triangle`、`arrow`、`star5`、`foldedCorner` 等）；渐变 / 纯色 / 图片 / 图案填充；图片填充支持平铺（`tile`）与源矩形裁剪（`srcRect`）；线型、阴影与发光效果；几何调整（`avLst`）；水平/垂直翻转；自定义几何路径（`custGeom`）；三维挤出/斜面/相机/光照（`threeD`）
 - **图片** — PNG、JPEG、GIF、BMP、WEBP、SVG；base64/dataURL 或远程 `src`；裁剪、亮度/对比度/透明度
-- **表格** — 完整样式：单元格边框、对角线边框（`tlBr` / `blTr` / `both`）、单元格内边距、跨行跨列（`colSpan`/`rowSpan`）、填充、对齐、表格样式（`tableStyleId`）
-- **图表** — 柱状/条形、折线、面积、饼/环、子母饼、散点、气泡、雷达、股票、曲面（2D 与 3D）；多系列、系列颜色、图例、数据标签、分组、`barDir`、`holeSize`、`ofPieType`、`bubble3D`、`wireframe`
-- **组合** — `group` 元素，支持 `childrenCoordinates: 'local' | 'page'`
-- **图示** — SmartArt（list / hierarchy / process / cycle / pyramid），连接线已渲染
+- **表格** — 完整样式：单元格边框、对角线边框（`tlBr` / `blTr` / `both`）、单元格内边距、跨行跨列（`colSpan`/`rowSpan`）、合并（`hMerge`/`vMerge`）、填充、对齐、表格样式（`tableStyleId`）
+- **图表** — 柱状/条形、折线、面积、饼/环、子母饼、散点、气泡、雷达、股票、曲面（2D 与 3D）；多系列、系列颜色、逐点配色（`pointColors`）、图例、数据标签、分组、`barDir`、`holeSize`、`ofPieType`、`bubble3D`、`wireframe`、三维视角（`view3D`）、次坐标轴、趋势线、网格线、坐标轴标题
+- **组合** — `group` 元素，支持 `childrenCoordinates: 'local' | 'page' | 'relative'`
+- **图示** — SmartArt（list / hierarchy / process / cycle / pyramid），含缓存绘图形状与连接线
+- **连接线** — `connector`（`straightConnector1` / `bentConnector3` / `curvedConnector2`），支持精确起止端点
 - **媒体** — 视频（`mp4`/`m4v`）与音频（`m4a`/`mp3`），可选封面图
-- **幻灯片级** — 背景（纯色/渐变/图片）、切换、自动播放停留、动画、隐藏页、备注、批注、自定义文档属性
+- **OLE** — 嵌入对象（Excel 表格等），可显示为图标
+- **公式** — OMML 数学公式
+- **幻灯片级** — 背景（纯色/渐变/图片）、切换（含声音/方向）、自动播放停留、动画（entr/exit/emph/path + 触发时机）、隐藏页、备注、批注、自定义文档属性
+- **文档级** — 母版/版式/占位符、文档分节、嵌入字体（自动 XOR 混淆）、语义级主题（配色/字体）
 
 ## 平台使用方式
 

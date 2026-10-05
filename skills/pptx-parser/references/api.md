@@ -87,9 +87,15 @@ const doc = await pptxToStandard(fileData, { rawDeps: 'all' });
 const out = await jsonToPptx(doc, { outputType: 'uint8array' });
 ```
 
+选项：
+- `rawDeps: 'all'` — 为语义类型（text/shape/image/chart/table）也附带 `__raw.rels`/`__raw.parts`，否则只有 `{tag, node}`
+- 其余解析选项同 `PptxParserOptions`（`mediaProcess`、`themeProcess` 等）
+
 - 解析端对**语义层不支持**的类型（diagram / group / OLE / 未知标签）自动附加 `__raw`（原始节点 + 关系 + 部件），序列化时原样回写，保证不丢信息。
 - 语义类型（text/shape/image/chart/table）默认 `__raw` 只有 `{tag,node}`；要强制原始回写必须先用 `rawDeps: 'all'` 解析，否则 `r:embed` 等引用会悬空。
 - 元素上可设 `rawFallback: true` 强制走 `__raw` 回写。
+- 解析端图片/媒体统一输出完整 `data:<mime>;base64,<b64>` dataURL。
+- 主题色引用（`scheme:accent1`）解析时按该页真实主题（`themeContent`）解析为绝对色，多主题文件中不同页可绑定不同主题。
 
 ---
 
@@ -115,11 +121,14 @@ const { files, content } = await pptxToFiles(fileData);
 ```ts
 const data = await jsonToPptx(pres, {
   outputType: 'uint8array',   // uint8array | arraybuffer | blob | nodebuffer | base64
-  theme: themeXmlString       // 可选：完整 theme XML（见 examples/generate-test-pptx.mjs 的 CUSTOM_THEME）
+  theme: themeXmlString       // 可选：完整 theme XML 字符串（见 examples/generate-test-pptx.mjs 的 CUSTOM_THEME）
 });
 ```
 
 - `pres`：`PptxDocument` 或 `PPTXComposer` 实例（有 `toJSON()` 即可）。
+- `pres.theme`：可传 `PptxTheme` 语义对象（`{ name, colors, fonts }`），生成端据此构造完整 `themeN.xml`；也可传整串 XML 字符串覆盖。
+- `pres.masters`：提供时生成端按此写出多个 `slideMasterN.xml` 及其版式，幻灯片通过 `PptxSlide.layout` 指定所用版式。
+- `pres.fonts`：嵌入字体（生成端自动做 XOR 混淆为 `fntdata`）。
 - 约束：`slides` 非空，否则抛 `jsonToPptx: 演示文稿至少需要一页幻灯片`。
 - 写入的部件包含 `ppt/tableStyles.xml`（按文档引用到的 `tableStyleId` 动态补等价定义）、`docProps/custom.xml`、`ppt/comments/commentsN.xml`、`ppt/commentAuthors.xml`、主题、图表、媒体等，无需手工拼装。
 - 返回值类型由 `outputType` 决定；Node 落盘用 `Buffer.from(data)`。
@@ -154,11 +163,16 @@ await editor.getSlide(3);                // 该页简化 XML 树（与 pptxToJso
 await editor.deleteSlide(3);             // 删除（至少保留一页）
 await editor.moveSlide(1, 5);            // 移动页码（会物理重编号 slide 文件并重映射内部跳转）
 await editor.setMetadata({ title: '新标题' });
-await editor.addSlide({ background: '#fff', elements: [ … ] });
+await editor.addSlide({
+  background: '#fff',
+  transition: { type: 'fade', duration: 1000 },
+  animations: [{ target: 1, type: 'flyIn', duration: 0.5, presetClass: 'entr' }],
+  elements: [ … ]
+});
 const out = await editor.save({ outputType: 'uint8array' });
 ```
 
-`editor.zip` 是底层 JSZip 实例，需要改任意部件可直接操作。
+`editor.zip` 是底层 JSZip 实例，需要改任意部件可直接操作。`addSlide` 支持 `transition` 和 `animations`（与 `PptxSlide` 同构）。
 
 ---
 

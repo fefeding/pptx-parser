@@ -102,11 +102,15 @@ const data = await jsonToPptx({
 
 ## 元素类型速查
 
-`slides[i].elements` 支持：`text`、`shape`、`image`、`chart`、`table`、`diagram`（SmartArt）、`group`、`video`、`audio`、`raw`（解析兜底）。
+`slides[i].elements` 支持：`text`、`shape`、`image`、`chart`、`table`、`diagram`（SmartArt）、`group`、`connector`（连接线）、`video`、`audio`、`ole`（嵌入对象）、`math`（公式）、`raw`（解析兜底）。
 
 - 坐标 `x/y/width/height` 统一为 **px**（96 DPI）；内部按 `SLIDE_FACTOR = 96/914400` 与 EMU 互转
 - 字体大小统一为 **pt**，线宽为 **pt**，透明度/裁剪/平铺为 **0~1 或 0~100** 的比例（见下文各字段注释）
-- 颜色用 `#RRGGBB`（也支持 `scheme:accent1` 这类主题色引用写法，见 cookbook）
+- 颜色用 `#RRGGBB`（也支持 `scheme:accent1` 这类主题色引用写法，解析端会按该页真实主题解析为绝对色）
+- 文本 run 支持 `outline`（描边）、`shadow`（外阴影）、`field`（动态字段如页码）、`break`（软换行）
+- 形状支持 `custGeom`（自定义几何路径）、`threeD`（三维挤出/相机/光照）、`effects`（阴影/发光）
+- 图表支持 `view3D`（三维视角）、`secondaryValueAxis`（双轴）、`trendlines`（趋势线）、`pointColors`（逐点配色）、`gridlines`（网格线）
+- 文档级支持 `masters`（母版/版式/占位符）、`sections`（分节）、`fonts`（嵌入字体）、`theme`（语义级主题对象）
 
 逐个字段的权威定义见 [`references/json-schema.md`](references/json-schema.md)；可直接抄的片段见 [`references/cookbook.md`](references/cookbook.md)。
 
@@ -119,6 +123,7 @@ const data = await jsonToPptx({
 | `examples/parse-pptx.mjs` | 最小解析脚本，打印页数、尺寸、每页文本 |
 | `examples/index.html` | 浏览器预览页（含 echarts 图表渲染接入示例） |
 | `examples/chart-lib/` | `chart-renderer.js` + echarts，用于渲染 `result.charts` |
+| `examples/editor/` | 在线编辑器示例（导入 PPTX → 检视/编辑形状与图表 → 导出） |
 | `examples/vue-demo/` | Vue 集成示例 |
 | `test/*.test.ts` | 每项能力的回归测试，也是「预期行为」的权威说明 |
 | `skills/pptx-parser/scripts/` | 本 skill 附带的三个可运行脚本（见下） |
@@ -156,9 +161,11 @@ node skills/pptx-parser/scripts/pptx-to-html.mjs <file.pptx> --page 10 --out /tm
 
 | 场景 | 实测行为 |
 |---|---|
-| 组合 `group` | 语义提取**丢失组合内的子元素**（T4 页只剩标题）。需要保留组合请改用 `editPptx` 直接操作 XML |
-| 视频 / 音频 | 回读降级为 `image` 元素（媒体数据保留，类型信息丢失） |
-| SmartArt `diagram` | 可回读为 `diagram`（保留 `texts`，连接线 `cxnSp` 现已渲染为 `straightConnector1`）；还原依赖 `__raw` |
+| 组合 `group` | 解析端已提取子元素（`childrenCoordinates: 'relative'`，坐标已换算到组内相对偏移），往返保真 |
+| 视频 / 音频 | 回读降级为 `image` 元素（媒体数据保留，类型信息丢失）；生成端从 JSON 创作时支持 `video`/`audio` |
+| SmartArt `diagram` | 解析端保留 `texts`（文本）+ `shapes`（缓存绘图形状，含坐标/连接线）+ `__raw`；创作端可用 `diagramType`+`nodes` 生成原生 diagrams 部件 |
+| 连接线 `connector` | 生成端支持（`start`/`end` 精确端点）；解析端在图示缓存绘图中以 `PptxDiagramShape.connector=true` 提取，普通页面的 `p:cxnSp` 当前解析为 `shape` |
+| OLE / 公式 | 类型定义完整、生成端支持；解析端目前按 `raw` 兜底（依赖 `__raw` 回写） |
 | 形状 `blipFill` / `pattFill` | 生成端支持（含 tile/srcRect），但 `readSpPr` 未映射回 `PptxFill`，往返会丢失 |
 | 图表 | 解析端只给数据（`result.charts`），HTML 预览需自行用 echarts 渲染 |
 
