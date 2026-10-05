@@ -264,6 +264,16 @@ function animCSS(a, ms) {
 
 function onClick(e) {
   if (e.target.closest('.present-exit') || e.target.closest('.present-nav')) return;
+  // 超链接：内部跳转（run.href='#N' → a[data-slide-jump]）翻到对应页；外部链接放行浏览器默认行为
+  const link = e.target.closest && e.target.closest('a[data-slide-jump]');
+  if (link) {
+    e.preventDefault();
+    e.stopPropagation();
+    const n = parseInt(link.dataset.slideJump, 10);
+    if (!isNaN(n)) show(n - 1);
+    return;
+  }
+  if (e.target.closest && e.target.closest('a[href^="http"]')) return;
   // 先尝试播放下一个 onClick 动画
   if (state && state.animQueue.length) {
     const a = state.animQueue[0];

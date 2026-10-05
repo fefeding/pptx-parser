@@ -194,6 +194,13 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 .el.locked { cursor: default; }
 .el.hidden-el { display: none; }
 .el-image img { width: 100%; height: 100%; display: block; }
+/* 音视频：原生 <video> 默认不接收指针事件，否则会抢走画布的拖拽/缩放；
+   选中（.is-sel，由 interact.js 维护）后才放开，可用原生控件播放/拖动进度 */
+.el-media video { pointer-events: none; }
+.el.is-sel .el-media video { pointer-events: auto; }
+.el-media .media-badge { display: flex; align-items: center; justify-content: center; }
+/* 选中时用原生控件操作，隐藏自绘的播放徽标，避免双重播放入口 */
+.el.is-sel .el-media .media-badge { display: none; }
 .el-text .tb-body {
   width: 100%; height: 100%; display: flex; flex-direction: column;
   justify-content: flex-start; outline: none; word-break: break-word;
@@ -210,6 +217,12 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   text-align: left;
   white-space: pre;
   margin-right: 0.2em;
+}
+/* 图片项目符号（a:buBlp）：img 尺寸由 JS 按 buSzPct 设置，这里只兜底对齐 */
+.el-text .tb-body > div .bullet-img img {
+  display: inline-block;
+  max-width: none;
+  object-fit: contain;
 }
 .el-table { display: grid; }
 .el-table .cell {

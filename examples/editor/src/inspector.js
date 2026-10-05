@@ -11,8 +11,10 @@ import {
   setTransition, addAnimation, updateAnimation, removeAnimation, moveAnimation
 } from './actions.js';
 import {
-  openPalette, openShapePicker, openChartDialog, openTableDialog, openImagePicker
+  openPalette, openShapePicker, openChartDialog, openTableDialog, openImagePicker,
+  openMediaDialog, openMediaPicker, openPosterPicker
 } from './dialogs.js';
+import { defaultMediaPoster } from './model.js';
 import { pickFile, readFileAsDataURL } from './util.js';
 
 let DOM = {};
@@ -56,6 +58,7 @@ function renderInspector() {
   else if (single.type === 'table') host.appendChild(section('表格', tableFields(single, els)));
   else if (single.type === 'chart') host.appendChild(section('图表', chartFields(single, els)));
   else if (single.type === 'group') host.appendChild(h('div', { class: 'hint', text: '已组合：可整体移动 / 缩放 / 取消组合。' }));
+  else if (single.type === 'video' || single.type === 'audio') host.appendChild(section(typeLabel(single.type), mediaFields(single)));
 
   // 选中元素的动画编辑
   if (els.length === 1) {
@@ -357,6 +360,38 @@ function imageFields(single, els) {
   return [field('预览', preview), field('', replace), adj('brightness'), adj('contrast'), adj('transparency')];
 }
 
+/* ---------- 音视频 ---------- */
+function mediaFields(single) {
+  const isVideo = single.type === 'video';
+  const posterSrc = (single.poster && (single.poster.data || single.poster.src)) || defaultMediaPoster(single.type);
+  // 预览：视频取海报（加载真实视频在面板里太重），音频直接显示喇叭封面
+  const preview = h('img', {
+    src: posterSrc,
+    style: {
+      width: '100%', height: '92px', objectFit: 'contain', display: 'block',
+      background: '#0F172A', borderRadius: '6px', border: '1px solid #e2e8f0'
+    }
+  });
+  const name = h('input', { value: single.name || '', placeholder: isVideo ? '视频名称' : '音频名称' });
+  // 与面板内其他输入框一致：输入时不触发全局快捷键
+  name.addEventListener('keydown', (e) => e.stopPropagation());
+  name.addEventListener('change', () => { if (single.id) updateElement(single.id, { name: name.value.trim() }); });
+
+  const size = h('div', { class: 'hint', style: { marginTop: '2px' } });
+  const refreshSize = () => {
+    const kb = (String(single.data || '').length * 0.75 / 1024).toFixed(0);
+    size.textContent = `媒体：${single.extension || '未知'} · 约 ${kb} KB`;
+  };
+  refreshSize();
+
+  const btns = h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
+    h('button', { class: 'mini-btn', text: '替换媒体…', onclick: (e) => { e.stopPropagation(); openMediaPicker(single); } }),
+    h('button', { class: 'mini-btn', text: '替换海报图…', onclick: (e) => { e.stopPropagation(); openPosterPicker(single); } }),
+    h('button', { class: 'mini-btn', text: '更多…', onclick: (e) => { e.stopPropagation(); openMediaDialog(single); } })
+  );
+  return [field('预览', preview), field('名称', name), field('', btns), field('', size)];
+}
+
 /* ---------- 表格 ---------- */
 function tableFields(single, els) {
   const id = single.id;
@@ -637,5 +672,5 @@ function slider(label, value, onInput, max = 100, min = 0) {
 }
 
 function typeLabel(t) {
-  return ({ text: '文本框', shape: '形状', image: '图片', table: '表格', chart: '图表', group: '组合', raw: '其他元素' })[t] || t;
+  return ({ text: '文本框', shape: '形状', image: '图片', table: '表格', chart: '图表', video: '视频', audio: '音频', group: '组合', raw: '其他元素' })[t] || t;
 }

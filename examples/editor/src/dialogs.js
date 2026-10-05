@@ -3,7 +3,7 @@
  */
 import { h, $, clone, normalizeColor, pickFile, readFileAsDataURL, toast } from './util.js';
 import { store } from './store.js';
-import { SHAPES, CHART_TYPES, getTheme, SLIDE_SIZES, THEMES, syncTableStyle } from './model.js';
+import { SHAPES, CHART_TYPES, getTheme, SLIDE_SIZES, THEMES, syncTableStyle, defaultMediaPoster } from './model.js';
 import { renderChartSVG } from './charts.js';
 import { resizeTable, updateElement, setSlideSize, applyTheme } from './actions.js';
 
@@ -349,6 +349,115 @@ export async function openImagePicker(el) {
   const data = await readFileAsDataURL(file);
   if (el && el.id) updateElement(el.id, { data });
   else toast('请先选中一个图片元素');
+}
+
+/* ======================= 音视频 ======================= */
+
+/** 媒体类型 → accept 过滤串（与 ppt-parser 的 MEDIA_MIME 对齐） */
+const MEDIA_ACCEPT = {
+  video: 'video/*,.mp4,.m4v,.mov,.webm,.avi',
+  audio: 'audio/*,.mp3,.m4a,.wav,.aac,.ogg,.wma'
+};
+
+const mediaExt = (name) => String(name || '').split('.').pop().toLowerCase();
+
+/** 替换媒体源（视频/音频文件） */
+export async function openMediaPicker(el) {
+  if (!el || !el.id) { toast('请先选中一个音频或视频元素'); return; }
+  const file = await pickFile(MEDIA_ACCEPT[el.type] || '*/*');
+  if (!file) return;
+  const data = await readFileAsDataURL(file);
+  updateElement(el.id, {
+    data,
+    extension: mediaExt(file.name),
+    name: el.name || file.name.replace(/\.[^.]+$/, '')
+  });
+}
+
+/** 替换海报/占位图 */
+export async function openPosterPicker(el) {
+  if (!el || !el.id) { toast('请先选中一个音频或视频元素'); return; }
+  const file = await pickFile('image/*');
+  if (!file) return;
+  updateElement(el.id, {
+    poster: { data: await readFileAsDataURL(file), extension: mediaExt(file.name) }
+  });
+}
+
+/**
+ * 音视频编辑对话框（双击打开）：预览、名称、替换媒体源、替换/恢复海报图。
+ * 与图片的 openImagePicker 分开：媒体元素除媒体源外还有海报图与播放行为。
+ */
+export function openMediaDialog(el) {
+  if (!el || (el.type !== 'video' && el.type !== 'audio')) return;
+  const isVideo = el.type === 'video';
+  const wrap = h('div', {});
+
+  // 预览：视频可播；音频显示封面（原生控件在极小尺寸下不可用）
+  const preview = h('div', {
+    style: {
+      background: '#0F172A', borderRadius: '8px', padding: '8px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '120px', marginBottom: '10px'
+    }
+  });
+  const buildPreview = () => {
+    preview.innerHTML = '';
+    const posterSrc = (el.poster && (el.poster.data || el.poster.src)) || defaultMediaPoster(el.type);
+    if (isVideo) {
+      const v = document.createElement('video');
+      if (el.data || el.src) v.src = el.data || el.src;
+      v.poster = posterSrc;
+      v.controls = true;
+      v.preload = 'metadata';
+      v.style.cssText = 'width:100%;max-width:420px;border-radius:6px;background:#000';
+      preview.appendChild(v);
+    } else {
+      const img = h('img', { src: posterSrc, style: { width: '96px', height: '96px', objectFit: 'contain' } });
+      const a = document.createElement('audio');
+      if (el.data || el.src) a.src = el.data || el.src;
+      a.controls = true;
+      a.style.cssText = 'margin-left:12px;max-width:280px';
+      preview.append(img, a);
+    }
+  };
+  buildPreview();
+
+  const nameInput = h('input', { value: el.name || '', placeholder: isVideo ? '视频名称' : '音频名称' });
+
+  const row = h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } });
+  const replaceBtn = h('button', {
+    class: 'btn', text: '替换媒体…',
+    onclick: async (e) => { e.stopPropagation(); await openMediaPicker(el); buildPreview(); }
+  });
+  const posterBtn = h('button', {
+    class: 'btn', text: '替换海报图…',
+    onclick: async (e) => { e.stopPropagation(); await openPosterPicker(el); buildPreview(); }
+  });
+  const resetBtn = h('button', {
+    class: 'btn', text: '恢复默认海报',
+    onclick: (e) => {
+      e.stopPropagation();
+      updateElement(el.id, { poster: { data: defaultMediaPoster(el.type), extension: 'svg' } });
+      buildPreview();
+    }
+  });
+  row.append(replaceBtn, posterBtn, resetBtn);
+
+  wrap.append(
+    preview,
+    h('div', { class: 'mfield' }, h('label', { class: 'f', text: '名称' }), nameInput),
+    h('div', { class: 'mfield' }, h('label', { class: 'f', text: '媒体' }), row)
+  );
+
+  openModal({
+    title: isVideo ? '编辑视频' : '编辑音频',
+    body: wrap,
+    width: '480px',
+    onOk: () => {
+      const v = nameInput.value.trim();
+      if (v && v !== el.name) updateElement(el.id, { name: v });
+    }
+  });
 }
 
 /* ======================= 页面设置 ======================= */

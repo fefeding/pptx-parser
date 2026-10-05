@@ -73,7 +73,17 @@ function getTextWidth(html: string) {
             }
 
             // 获取bodyPr的内边距设置
-            let bodyPrPadding = getBodyPrPadding(textBodyNode, type, anchor);
+            // OOXML a:xfrm@rot 作用于整个形状，文字应随形状一起旋转。
+            // 形状轮廓由外层 <svg> 的 rotate 负责，文字是独立 DOM，需单独补一份旋转。
+            let shapeRotation = "";
+            if (type !== "table") {
+                const rotAttr = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "attrs", "rot"]);
+                const rotDeg = PPTXXmlUtils.angleToDegrees(rotAttr as any);
+                if (rotDeg !== 0) {
+                    shapeRotation = `transform: rotate(${rotDeg}deg); transform-origin: center;`;
+                }
+            }
+            let bodyPrPadding = getBodyPrPadding(textBodyNode, type, anchor, shapeRotation);
             text += bodyPrPadding;
 
             let pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
@@ -197,15 +207,21 @@ function getTextWidth(html: string) {
                 if (sld_prg_width_val !== null && !isNoWrap) {
                     // 减去内边距宽度，得到实际可用宽度
                     let availableWidth = sld_prg_width_val - lInsPx - rInsPx;
-                                
+                                    
                     // 对于圆形/椭圆类形状，应用额外的安全边距（减少5%）以确保正确换行
                     if (isCircularShape) {
                         availableWidth = availableWidth * 0.95;
                     }
-                                
+                                    
                     sld_prg_width = `width:${Math.max(0, Math.round(availableWidth * 100) / 100)}px;`;
                 } else if (sld_prg_width_val === null) {
                     sld_prg_width = "width:inherit;";
+                }
+                // 表格单元格：宽度必须跟随实际内容盒（gridCol 宽 - 单元格内边距 - 边框）。
+                // 用 prg_width_node（未扣 lIns/rIns 的 gridCol 原始宽）会撑出内容盒，
+                // 在 table-layout: fixed 下表现为文字越过单元格右边框。
+                if (type === "table") {
+                    sld_prg_width = "width:100%;";
                 }
                 let sld_prg_height = ""; // 移除高度设置，避免段落叠加
                 let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
@@ -416,9 +432,10 @@ function getTextWidth(html: string) {
      * @param {Object} textBodyNode - 文本体节点
      * @param {string} type - 形状类型
      * @param {string} anchor - 垂直对齐方式（t=顶部, ctr=居中, b=底部）
+     * @param {string} rotationStyle - 随形状旋转的 CSS（transform/origin），空串不旋转
      * @returns {string} CSS padding字符串
      */
-    function getBodyPrPadding(textBodyNode: XmlNode, type: string, anchor: string) {
+    function getBodyPrPadding(textBodyNode: XmlNode, type: string, anchor: string, rotationStyle?: string) {
         let paddingStyle = "";
 
         // 竖排：在文本体最外层容器上开启 writing-mode，内部段落随之竖排
@@ -471,7 +488,7 @@ function getTextWidth(html: string) {
                 heightStyle = "height: 100%;";
             }
 
-            paddingStyle = `<div style="padding: ${tInsPx}px ${rInsPx}px ${bInsPx}px ${lInsPx}px; box-sizing: border-box; ${heightStyle}${vertStyle}">`;
+            paddingStyle = `<div style="padding: ${tInsPx}px ${rInsPx}px ${bInsPx}px ${lInsPx}px; box-sizing: border-box; ${heightStyle}${rotationStyle || ""}${vertStyle}">`;
         }
 
         return paddingStyle;
@@ -1900,11 +1917,27 @@ function getTextWidth(html: string) {
                 tbl_bgcolor = `background-color: ${tbl_bgcolor};`;
             }
             ////////////////////////////////////////////////////////////////////////////////////////////
-            let tableHtml = `<table ${tblDir} style='border-collapse: collapse;` +
+            // 列宽以 a:tblGrid/a:gridCol 为准（OOXML 里是权威值）。
+            // 不输出 <colgroup> 时浏览器按内容自动排布，table-layout: auto 允许表格
+            // 撑到 max(指定宽, 最小内容宽)，实测会比 graphicFrame 框宽多出约 8%。
+            // 配合 table-layout: fixed 让列宽严格生效，单元格内文字按框换行（与 PowerPoint 一致）。
+            const colsGridArr: any[] = getColsGrid === undefined
+                ? []
+                : (getColsGrid.constructor === Array ? getColsGrid : [getColsGrid]);
+            const colgroupHtml = colsGridArr.length
+                ? `<colgroup>` + colsGridArr
+                    .map((gc: any) => {
+                        const wEmu = parseInt(PPTXXmlUtils.getTextByPathList(gc, ["attrs", "w"]) as any);
+                        const wPx = isNaN(wEmu) ? '' : ` style="width: ${Math.round(wEmu * SLIDE_FACTOR * 100) / 100}px;"`;
+                        return `<col${wPx} />`;
+                    }).join('') + `</colgroup>`
+                : '';
+
+            let tableHtml = `<table ${tblDir} style='border-collapse: collapse; table-layout: fixed;` +
                 PPTXXmlUtils.getPosition(workingXfrmNode, node, undefined, undefined, shapeType) +
                 PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) +
                 ` z-index: ${order};` +
-                `${tbl_bgcolor}'>`;
+                `${tbl_bgcolor}'>` + colgroupHtml;
 
             let trNodes = tableNode["a:tr"];
             if (trNodes.constructor !== Array) {

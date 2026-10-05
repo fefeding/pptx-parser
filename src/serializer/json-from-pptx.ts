@@ -136,8 +136,8 @@ function readRunText(runNode: any): string {
     return typeof t === 'string' ? t : '';
 }
 
-/** 读取运行级样式（a:rPr）：含文字描边 a:ln */
-function readRunStyle(rPr: any, themeMap: Record<string, string> = {}): Partial<PptxTextRun> {
+/** 读取运行级样式（a:rPr）：含文字描边 a:ln 与超链接 a:hlinkClick */
+function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined): Partial<PptxTextRun> {
     const style: Partial<PptxTextRun> = {};
     if (!rPr) return style;
     const attrs = rPr.attrs || {};
@@ -149,8 +149,16 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}): Partial<
     if (color) style.color = color;
     const latin = rPr['a:latin'];
     if (latin && latin.attrs && latin.attrs.typeface) style.fontFace = String(latin.attrs.typeface);
-    const hlink = rPr['a:hlinkClick'];
-    if (hlink && hlink.attrs && hlink.attrs['r:id']) style.href = String(hlink.attrs['r:id']);
+    const hlink = rPr['a:hlinkClick'] || rPr['a:hlinkHover'];
+    if (hlink && hlink.attrs && hlink.attrs['r:id']) {
+        // r:id 是关系 id，需解析成实际 URL（外部 http(s) 或内部 '#N' 跳转）。
+        // 存裸 rId 的话，渲染端无从下手、回写端还会把它再当成一个新关系的目标。
+        const resolved = resolveHref ? resolveHref(String(hlink.attrs['r:id'])) : undefined;
+        if (resolved) {
+            style.href = resolved;
+            if (hlink.attrs.tooltip) style.hrefTooltip = String(hlink.attrs.tooltip);
+        }
+    }
     // 文字描边（a:ln）
     const ln = rPr['a:ln'];
     if (ln) {
@@ -188,7 +196,7 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}): Partial<
  * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
  * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
  */
-function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean } {
+function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
     let text = '';
@@ -217,14 +225,29 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
         const pAttrs = (pPr && pPr.attrs) || {};
         const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : undefined;
 
-        // 列表样式：自动编号 / 项目符号
+        // 列表样式：自动编号 / 字符项目符号 / 图片项目符号
         let bullet: any;
-        if (pPr && pPr['a:buAutoNum'] && !pPr['a:buNone']) {
+        if (pPr && pPr['a:buNone']) {
+            bullet = undefined;
+        } else if (pPr && pPr['a:buBlip'] && pPr['a:buBlip']['a:blip']) {
+            // 图片项目符号（a:buBlip）：data URL 由 resolveBulletBlips 预先注入
+            const blip = pPr['a:buBlip']['a:blip'];
+            const src = (blip.attrs && (blip.attrs.__data || blip.attrs['r:embed'])) || undefined;
+            if (src) bullet = { type: 'picture', data: String(src).startsWith('data:') ? String(src) : undefined, rid: String(src) };
+            const szPct = pPr['a:buSzPct'] && pPr['a:buSzPct'].attrs && Number(pPr['a:buSzPct'].attrs.val) / 1000;
+            if (bullet && szPct) bullet.sizePct = szPct;
+        } else if (pPr && pPr['a:buAutoNum']) {
             const auto = pPr['a:buAutoNum'];
             bullet = { type: 'number', fmt: (auto.attrs && auto.attrs.type) || 'arabic', start: (auto.attrs && auto.attrs.startAt != null) ? Number(auto.attrs.startAt) : 1 };
-        } else if (pPr && pPr['a:buChar'] && !pPr['a:buNone']) {
+        } else if (pPr && pPr['a:buChar']) {
             const bc = pPr['a:buChar'];
             bullet = { type: 'bullet', char: (bc.attrs && bc.attrs.char) || '•' };
+            // 符号字体（a:buFont，如 Wingdings / Wingdings 3）与字号比例：
+            // 缺了字体名，符号字体字符会退化成普通字母，编辑器画不出图标
+            const bf = pPr['a:buFont'];
+            if (bf && bf.attrs && bf.attrs.typeface) bullet.font = String(bf.attrs.typeface);
+            const szPct = pPr['a:buSzPct'] && pPr['a:buSzPct'].attrs && Number(pPr['a:buSzPct'].attrs.val) / 1000;
+            if (szPct) bullet.sizePct = szPct;
         }
 
         // 行距 / 段间距 / 缩进
@@ -258,7 +281,7 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
             const t = readRunText(runNode);
             if (t) hasText = true;
             paraText += t;
-            const st = readRunStyle(runNode['a:rPr'], themeMap);
+            const st = readRunStyle(runNode['a:rPr'], themeMap, resolveHref);
             // run 无显式字色时回退到形状 p:style/a:fontRef 的默认色
             if (!st.color && fallbackColor) st.color = fallbackColor;
             runs.push({ text: t, ...st });
@@ -282,11 +305,56 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
     return { paragraphs, hasText, valign, text, textDirection, inset, noWrap };
 }
 
+/**
+ * 预解析 txBody 内所有图片项目符号（a:pPr/a:buBlip/a:blip/@r:embed），
+ * 就地写入 __data（data URL）。extractTxBody 是同步函数，拿不到 zip，
+ * 因此在有 resObj/zip 的调用点先把图读出来注入节点。
+ * @returns 是否注入了至少一个图片项目符号
+ */
+async function resolveBulletBlips(
+    txBody: any,
+    resObj: Record<string, { type?: string; target?: string }>,
+    zip: JSZip
+): Promise<boolean> {
+    if (!txBody) return false;
+    let touched = false;
+    for (const pNode of asArray(txBody['a:p'])) {
+        const buBlip = pNode && pNode['a:pPr'] && pNode['a:pPr']['a:buBlip'];
+        const blip = buBlip && buBlip['a:blip'];
+        if (!blip || !blip.attrs || !blip.attrs['r:embed'] || blip.attrs.__data) continue;
+        const target = resObj[String(blip.attrs['r:embed'])] && resObj[String(blip.attrs['r:embed'])].target;
+        const part = resolvePart(target);
+        if (!part) continue;
+        try {
+            const file = zip.file(part);
+            if (!file) continue;
+            const ext = ((part || String(target || '')).split('.').pop() || 'png').toLowerCase();
+            blip.attrs.__data = `data:${IMAGE_MIME[ext] || 'application/octet-stream'};base64,${await file.async('base64')}`;
+            touched = true;
+        } catch { /* 忽略媒体读取失败 */ }
+    }
+    return touched;
+}
+
 /** 提取一个 p:sp 的文本为正文段落 */
-function extractTextBody(spNode: any, themeMap: Record<string, string> = {}): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean } {
+function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean } {
     // p:style/a:fontRef 的颜色是形状文本的默认字色（run 无显式色时生效，与预览端一致）
     const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
-    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor);
+    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor, resolveHref);
+}
+
+/**
+ * 关系 id → 超链接 URL：外部 http(s) 原样返回；
+ * 内部幻灯片跳转（关系 target 指向 slideN.xml）→ '#N'，与生成端 buildHyperlink 约定一致。
+ */
+function resolveHyperlink(resObj: Record<string, { type?: string; target?: string }>): (rid: string) => string | undefined {
+    return (rid: string) => {
+        const rel = resObj[String(rid)];
+        const target = rel && rel.target ? String(rel.target) : '';
+        if (!target) return undefined;
+        const m = /slide(\d+)\.xml$/i.exec(target);
+        return m ? `#${m[1]}` : target;
+    };
 }
 
 /** 解析颜色并去掉前导 # / alpha，保持与历史 readSrgbClr 返回格式一致（RRGGBB） */
@@ -1260,14 +1328,18 @@ async function nodeToElement(
     themeContent?: any
 ): Promise<PptxElement | null> {
     if (key === 'p:graphicFrame') {
-        return await graphicFrameToElement(node, resObj, zip, themeMap);
+        return await graphicFrameToElement(node, resObj, zip, themeMap, themeContent);
     }
     if (key === 'p:pic') {
         return await picToImage(node, resObj, zip);
     }
     // p:sp / p:cxnSp → text 或 shape
     const spPr = node['p:spPr'];
-    const { paragraphs, hasText, textDirection, inset, noWrap } = extractTextBody(node, themeMap);
+    // 图片项目符号需要读 zip，先把 buBlip 的 r:embed 就地解析成 data URL
+    if (node && node['p:txBody'] && node['p:txBody']['a:p']) {
+        try { await resolveBulletBlips(node['p:txBody'], resObj, zip); } catch { /* 忽略 */ }
+    }
+    const { paragraphs, hasText, textDirection, inset, noWrap } = extractTextBody(node, themeMap, resolveHyperlink(resObj));
     const geom = spPr && spPr['a:prstGeom'];
 
     if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
@@ -1471,7 +1543,7 @@ function readTableInsets(tblPr: any): { l?: number; r?: number; t?: number; b?: 
 }
 
 /** a:tbl（表格）→ PptxTableElement */
-function tableToElement(tbl: any, node: any, themeMap: Record<string, string> = {}): PptxTableElement {
+function tableToElement(tbl: any, node: any, themeMap: Record<string, string> = {}, resObj?: Record<string, { type?: string; target?: string }>): PptxTableElement {
     const xf = readXfrm(node, true);
     const el: any = {
         type: 'table',
@@ -1522,7 +1594,7 @@ function tableToElement(tbl: any, node: any, themeMap: Record<string, string> = 
             if (attrs.gridSpan && Number(attrs.gridSpan) > 1) cell.colSpan = Number(attrs.gridSpan);
             if (attrs.rowSpan && Number(attrs.rowSpan) > 1) cell.rowSpan = Number(attrs.rowSpan);
 
-            const { paragraphs, text } = extractTxBody(tc && tc['a:txBody'], themeMap);
+            const { paragraphs, text } = extractTxBody(tc && tc['a:txBody'], themeMap, undefined, resObj ? resolveHyperlink(resObj) : undefined);
             if (paragraphs.length > 1) {
                 // 多段保留段落结构，避免丢段
                 cell.paragraphs = paragraphs;
@@ -1545,7 +1617,15 @@ function tableToElement(tbl: any, node: any, themeMap: Record<string, string> = 
             // 单元格属性：底色、垂直对齐、边框、内边距、对角线
             const tcPr = tc && tc['a:tcPr'];
             if (tcPr) {
-                const fill = readSrgbClr(tcPr);
+                // 底色走 spColor（resolveColorNode）：既解析 schemeClr 主题引用，
+                // 也应用 lumMod/lumOff/tint/shade/alpha 修饰符。
+                // readSrgbClr 只取引用名（scheme:accent4）会把亮度修饰丢掉，颜色偏深；
+                // 且该字符串交给生成端 colorToHex 会被判为非法色而回写成 000000。
+                // 注意 resolveColorNode 要求色节点是容器（其下直接挂 a:srgbClr/a:schemeClr），
+                // 单元格底色在 tcPr/a:solidFill 下，两种层级都试一遍。
+                const fill = spColor(tcPr['a:solidFill'], themeMap)
+                    || spColor(tcPr, themeMap)
+                    || readSrgbClr(tcPr);
                 if (fill) cell.fill = fill;
                 if (tcPr.attrs && tcPr.attrs.anchor) cell.valign = VALIGN_MAP[tcPr.attrs.anchor];
                 const cellInset = readInsetsFromAttrs(tcPr.attrs);
@@ -2014,11 +2094,22 @@ function findDiagramDrawingPath(resObj: Record<string, { type?: string; target?:
 }
 
 /** 从 dsp:txBody 提取文字与基础文字样式 */
-function readDiagramShapeText(txBody: any, themeMap: Record<string, string>) {
+function readDiagramShapeText(txBody: any, themeMap: Record<string, string>, defaultColor?: string) {
     if (!txBody) return undefined;
     const anchor = txBody['a:bodyPr'] && txBody['a:bodyPr'].attrs ? String(txBody['a:bodyPr'].attrs.anchor || '') : '';
     const lines: string[] = [];
     let fontSize: number | undefined, color: string | undefined, bold: boolean | undefined, align: string | undefined;
+    // 形状级默认字号：a:lstStyle/a:lvl1pPr/a:defRPr@sz（run 上常省略 sz）
+    const lstLvl1 = txBody['a:lstStyle'] && txBody['a:lstStyle']['a:lvl1pPr'];
+    const lstDefRPr = lstLvl1 && lstLvl1['a:defRPr'];
+    // 形状级默认对齐：a:lstStyle/a:lvl1pPr@algn（pPr 上常省略 algn）
+    if (!align && lstLvl1 && lstLvl1.attrs && lstLvl1.attrs.algn) align = String(lstLvl1.attrs.algn);
+    if (lstDefRPr && lstDefRPr.attrs && lstDefRPr.attrs.sz != null) {
+        fontSize = Math.round(Number(lstDefRPr.attrs.sz) / 100) || undefined;
+    }
+    if (lstDefRPr && lstDefRPr.attrs && lstDefRPr.attrs.b != null) {
+        bold = String(lstDefRPr.attrs.b) === '1' || String(lstDefRPr.attrs.b) === 'on';
+    }
     for (const p of asArray(txBody['a:p'])) {
         if (!p || typeof p !== 'object') continue;
         if (!align && p['a:pPr'] && p['a:pPr'].attrs && p['a:pPr'].attrs.algn) align = String(p['a:pPr'].attrs.algn);
@@ -2038,8 +2129,10 @@ function readDiagramShapeText(txBody: any, themeMap: Record<string, string>) {
         lines.push(line);
     }
     const text = lines.join('\n');
-    if (!text.trim() && fontSize === undefined && color === undefined) return { text: text || undefined, anchor: anchor || undefined };
-    return { text: text || undefined, fontSize, color, bold, align, anchor: anchor || undefined };
+    // run 无显式色时用形状的 fontRef 默认字色
+    const finalColor = color || defaultColor;
+    if (!text.trim() && fontSize === undefined && finalColor === undefined) return { text: text || undefined, anchor: anchor || undefined };
+    return { text: text || undefined, fontSize, color: finalColor, bold, align, anchor: anchor || undefined };
 }
 
 /**
@@ -2052,7 +2145,8 @@ async function extractDiagramShapes(
     zip: JSZip,
     themeMap: Record<string, string>,
     frameW: number,
-    frameH: number
+    frameH: number,
+    themeContent?: any
 ): Promise<PptxDiagramShape[] | undefined> {
     const drawingPath = findDiagramDrawingPath(resObj);
     if (!drawingPath) return undefined;
@@ -2076,10 +2170,17 @@ async function extractDiagramShapes(
     const mapW = (v: unknown) => chW > 0 ? (Number(v) || 0) / chW * frameW : emuToPx(v);
     const mapH = (v: unknown) => chH > 0 ? (Number(v) || 0) / chH * frameH : emuToPx(v);
 
+    // dsp:spPr 里通常没有显式 a:solidFill/a:ln，填充与描边来自 dsp:style 的
+    // fillRef/lnRef 主题样式引用（SmartArt 专属机制，与 p:style 同构）。
+    // 预览端把 dsp: 前缀重写为 p: 后复用形状渲染路径的 p:style 解析，
+    // 这里显式按主题样式表解析，保持两端一致。
+    const tables = await getThemeStyleTables(zip, themeContent);
+
     const shapes: PptxDiagramShape[] = [];
     const pushShape = (sp: any, isConnector: boolean) => {
         if (!sp || typeof sp !== 'object') return;
         const spPr = sp['dsp:spPr'];
+        const dspStyle = sp['dsp:style'];
         const xf = spPr && spPr['a:xfrm'];
         const off = (xf && xf['a:off'] && xf['a:off'].attrs) || {};
         const ext = (xf && xf['a:ext'] && xf['a:ext'].attrs) || {};
@@ -2090,12 +2191,28 @@ async function extractDiagramShapes(
             x: Math.round(mapX(off.x) * 100) / 100,
             y: Math.round(mapY(off.y) * 100) / 100,
             width: Math.round(width * 100) / 100,
-            height: Math.round(height * 100) / 100
+            height: Math.round(height * 100) / 100,
+            adjust: {}
         };
         if (geom && geom.attrs && geom.attrs.prst) shape.prst = String(geom.attrs.prst);
+        // 预设几何的调整值（a:prstGeom/a:avLst/a:gd，如 arc 的起止角度 adj1/adj2）
+        const avLst = geom && geom['a:avLst'];
+        if (avLst && typeof avLst === 'object') {
+            for (const gd of asArray(avLst['a:gd'])) {
+                if (!gd || !gd.attrs) continue;
+                const nm = gd.attrs.name ? String(gd.attrs.name) : '';
+                const raw = gd.attrs.fmla != null ? String(gd.attrs.fmla) : (gd.attrs.val != null ? String(gd.attrs.val) : '');
+                const v = /(-?\d+(?:\.\d+)?)\s*$/.exec(raw);
+                if (nm && v) (shape.adjust as Record<string, number>)[nm] = Math.round(Number(v[1]) * 100) / 100;
+            }
+        }
         const xattrs = (xf && xf.attrs) || {};
         if (String(xattrs.flipH) === '1') shape.flipH = true;
         if (String(xattrs.flipV) === '1') shape.flipV = true;
+
+        // 样式引用回退：spPr 无显式填充/描边时按 dsp:style 的 fillRef/lnRef 解析
+        const fillRef = dspStyle && dspStyle['a:fillRef'];
+        const lnRef = dspStyle && dspStyle['a:lnRef'];
 
         if (isConnector) {
             shape.connector = true;
@@ -2105,6 +2222,13 @@ async function extractDiagramShapes(
                 if (lc) shape.lineColor = lc;
                 if (ln.attrs && ln.attrs.w != null) shape.lineWidth = emuToPt(ln.attrs.w);
             }
+            if (!shape.lineColor && lnRef) {
+                const ref = resolveThemeStyleRef(lnRef, tables.lines, themeMap);
+                if (ref) {
+                    shape.lineColor = ref.color;
+                    if (shape.lineWidth == null) shape.lineWidth = ref.widthPt || DEFAULT_LN_PT;
+                }
+            }
             shapes.push(shape);
             return;
         }
@@ -2112,6 +2236,15 @@ async function extractDiagramShapes(
         const fill = spPr && resolveColorNode(spPr['a:solidFill'], themeMap);
         if (fill) shape.fill = fill;
         else if (spPr && spPr['a:noFill']) shape.fill = 'none';
+        else if (fillRef) {
+            // fillRef@idx=0（或 1000）表示无填充（连接线/弧形等）
+            const refIdx = Number(fillRef.attrs && fillRef.attrs.idx) || 0;
+            if (refIdx === 0 || refIdx === 1000) shape.fill = 'none';
+            else {
+                const ref = resolveThemeStyleRef(fillRef, tables.fills, themeMap);
+                if (ref) shape.fill = ref.color;
+            }
+        }
         const ln = spPr && spPr['a:ln'];
         if (ln && !ln['a:noFill']) {
             const lc = resolveColorNode(ln['a:solidFill'], themeMap);
@@ -2120,7 +2253,16 @@ async function extractDiagramShapes(
                 shape.lineWidth = ln.attrs && ln.attrs.w != null ? emuToPt(ln.attrs.w) : 1;
             }
         }
-        const txt = readDiagramShapeText(sp['dsp:txBody'], themeMap);
+        if (!shape.lineColor && lnRef) {
+            const ref = resolveThemeStyleRef(lnRef, tables.lines, themeMap);
+            if (ref) {
+                shape.lineColor = ref.color;
+                if (shape.lineWidth == null) shape.lineWidth = ref.widthPt || DEFAULT_LN_PT;
+            }
+        }
+        // dsp:style/a:fontRef 是形状内文字的默认字色（run 无显式色时生效）
+        const fontRefColor = dspStyle ? spColor(dspStyle['a:fontRef'], themeMap) : undefined;
+        const txt = readDiagramShapeText(sp['dsp:txBody'], themeMap, fontRefColor);
         if (txt) {
             if (txt.text) shape.text = txt.text;
             if (txt.fontSize) shape.fontSize = txt.fontSize;
@@ -2142,7 +2284,8 @@ async function diagramToElement(
     node: any,
     resObj: Record<string, { type?: string; target?: string }>,
     zip: JSZip,
-    themeMap: Record<string, string> = {}
+    themeMap: Record<string, string> = {},
+    themeContent?: any
 ): Promise<PptxDiagramElement> {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
     // OOXML 标准写法是 dgm:relIds（含 r:dm/r:cs/r:lo/r:qs），历史代码只认单数 dgm:rel
@@ -2173,7 +2316,7 @@ async function diagramToElement(
     if (part) el.dataPath = part;
     // 缓存绘图形状：与预览端同源的树形布局（节点框 + 连接线）
     try {
-        const shapes = await extractDiagramShapes(resObj, zip, themeMap, el.width, el.height);
+        const shapes = await extractDiagramShapes(resObj, zip, themeMap, el.width, el.height, themeContent);
         if (shapes) el.shapes = shapes;
     } catch { /* 形状提取失败不影响文本兜底 */ }
     return el;
@@ -2184,7 +2327,8 @@ async function graphicFrameToElement(
     node: any,
     resObj: Record<string, { type?: string; target?: string }>,
     zip: JSZip,
-    themeMap: Record<string, string> = {}
+    themeMap: Record<string, string> = {},
+    themeContent?: any
 ): Promise<PptxElement | null> {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
     if (!graphicData) return null;
@@ -2192,10 +2336,10 @@ async function graphicFrameToElement(
 
     // 表格：以 a:tbl 实际存在为准（仅凭 uri 声明无法还原内容）
     const tbl = graphicData['a:tbl'];
-    if (tbl) return tableToElement(tbl, node, themeMap);
+    if (tbl) return tableToElement(tbl, node, themeMap, resObj);
     // 图示 / SmartArt：dgm:rel 或其命名空间 uri
     if (graphicData['dgm:rel'] || uri === URI_DIAGRAM || /diagram/.test(uri)) {
-        return await diagramToElement(node, resObj, zip, themeMap);
+        return await diagramToElement(node, resObj, zip, themeMap, themeContent);
     }
     return await graphicFrameToChart(node, resObj, zip, themeMap);
 }

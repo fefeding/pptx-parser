@@ -4,7 +4,8 @@
 import { store } from './store.js';
 import { h, pickFile, readFileAsDataURL } from './util.js';
 import {
-  createTextElement, createShapeElement, createImageElement, createTableElement, createChartElement, CHART_TYPES, THEMES, createDoc
+  createTextElement, createShapeElement, createImageElement, createTableElement, createChartElement,
+  createAudioElement, createVideoElement, CHART_TYPES, THEMES, createDoc
 } from './model.js';
 import {
   addElement, duplicateSelected, deleteSelected, copySelected, paste, selectAll,
@@ -65,6 +66,8 @@ function buildMenubar(host) {
   host.appendChild(menuBtn('插入', (b) => openMenu(b, [
     { label: '文本框', action: () => addElement(createTextElement({ text: '双击编辑文字', x: 220, y: 220 })) },
     { label: '图片…', action: insertImage },
+    { label: '音频…', action: () => insertMedia('audio') },
+    { label: '视频…', action: () => insertMedia('video') },
     { label: '形状', action: (e) => openShapePickerSub(b) },
     { label: '表格', action: (e) => openTableSub(b) },
     { label: '图表', action: (e) => openChartSub(b) }
@@ -123,6 +126,8 @@ function buildQuickbar(host) {
   add('🖼', insertImage, { title: '图片' });
   add('⊞', openTableSub, { title: '表格' });
   add('📊', openChartSub, { title: '图表' });
+  add('♪', () => insertMedia('audio'), { title: '音频' });
+  add('▶', () => insertMedia('video'), { title: '视频' });
 }
 
 function openShapePickerSub(anchor) {
@@ -143,6 +148,20 @@ async function insertImage() {
   if (!file) return;
   const data = await readFileAsDataURL(file);
   addElement(createImageElement(data, { center: true }), { center: true });
+}
+
+/** 插入音频/视频：选文件 → 建元素（带占位封面） */
+async function insertMedia(kind) {
+  const accept = kind === 'video' ? 'video/*,.mp4,.m4v,.mov,.webm,.avi' : 'audio/*,.mp3,.m4a,.wav,.aac,.ogg,.wma';
+  const file = await pickFile(accept);
+  if (!file) return;
+  const data = await readFileAsDataURL(file);
+  const name = file.name.replace(/\.[^.]+$/, '');
+  const ext = file.name.split('.').pop().toLowerCase();
+  const el = kind === 'video'
+    ? createVideoElement(data, { name, extension: ext, center: true })
+    : createAudioElement(data, { name, extension: ext, center: true });
+  addElement(el, { center: true });
 }
 
 function openPptx() {

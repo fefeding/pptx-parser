@@ -103,8 +103,12 @@ export function backgroundStyle(bg, theme) {
 
 /* ======================= 元素渲染 ======================= */
 const DASH_MAP = { solid: 'solid', dash: 'dashed', dashDot: 'dashed', dotted: 'dotted', lgDash: 'dashed', sysDot: 'dotted' };
-/** 文字外阴影最小柔化半径（pt）：run 级 outerShdw 常省略 blurRad，硬边阴影与预览端差异明显 */
-const TEXT_SHADOW_MIN_BLUR_PT = 2;
+/** stroke-dasharray 用的是虚线长度列表，不能复用 DASH_MAP 的 CSS border-style 关键字；取值与预览端 getBorder 对齐 */
+const SVG_DASH_MAP = {
+  solid: null, dash: '5', dashDot: '5, 5, 1, 5', dot: '1, 5', dbl: null,
+  lgDash: '10, 5', lgDashDot: '10, 5, 1, 5', lgDashDotDot: '10, 5, 1, 5, 1, 5',
+  sysDash: '5, 2', sysDot: '2, 5', sysDashDot: '5, 2, 1, 5', sysDashDotDot: '5, 2, 1, 5, 1, 5'
+};
 
 function boxStyle(el) {
   const r = elementRect(el);
@@ -458,14 +462,39 @@ function renderTextBody(el, ctx) {
       numState = null;
       if (bullet) {
         para.classList.add('bullet-para');
-        const b = document.createElement('span');
-        b.className = 'bullet-mark';
-        b.textContent = ((typeof bullet === 'object' && bullet.char) || '•') + '\u00A0';
-        b.style.fontSize = `${bulletFontSize}px`;
-        b.style.color = bulletColor;
-        b.style.fontFamily = bulletFont;
-        b.contentEditable = 'false';
-        para.appendChild(b);
+        // 图片项目符号（a:buBlp）：用 <img> 渲染，尺寸跟随符号字号
+        if (typeof bullet === 'object' && bullet.type === 'picture' && bullet.data) {
+          const b = document.createElement('span');
+          b.className = 'bullet-mark bullet-img';
+          const img = document.createElement('img');
+          img.src = bullet.data;
+          img.alt = '';
+          img.draggable = false;
+          const sz = bullet.sizePct ? bulletFontSize * (bullet.sizePct / 100) : bulletFontSize;
+          img.style.width = `${sz.toFixed(2)}px`;
+          img.style.height = `${sz.toFixed(2)}px`;
+          img.style.verticalAlign = '-0.15em';
+          b.appendChild(img);
+          b.appendChild(document.createTextNode('\u00A0'));
+          b.contentEditable = 'false';
+          para.appendChild(b);
+        } else {
+          const b = document.createElement('span');
+          b.className = 'bullet-mark';
+          b.textContent = ((typeof bullet === 'object' && bullet.char) || '•') + '\u00A0';
+          b.style.fontSize = `${bulletFontSize}px`;
+          b.style.color = bulletColor;
+          // 符号字体（a:buFont，如 Wingdings / Wingdings 3）：缺了它，
+          // U+F0AD 之类的私用区字符会退化成豆腐块，画不出图标
+          const bf = (typeof bullet === 'object' && bullet.font) || '';
+          b.style.fontFamily = bf ? quoteFont(bf) : bulletFont;
+          // a:buSzPct：符号相对正文的字号比例
+          if (typeof bullet === 'object' && bullet.sizePct) {
+            b.style.fontSize = `${(bulletFontSize * bullet.sizePct / 100).toFixed(2)}px`;
+          }
+          b.contentEditable = 'false';
+          para.appendChild(b);
+        }
       }
     }
     const indent = p.indent != null ? p.indent : el.indent;
@@ -487,11 +516,17 @@ function renderTextBody(el, ctx) {
         return;
       }
       const span = document.createElement('span');
-      span.textContent = run.text == null ? '' : String(run.text);
       const st = span.style;
       st.fontSize = `${ptToPx(run.fontSize ?? el.fontSize ?? 18)}px`;
       st.fontFamily = quoteFont(run.fontFace || el.fontFace || '微软雅黑');
-      st.color = normalizeColor(run.color) || normalizeColor(el.color) || '#202124';
+      // 超链接（a:hlinkClick）：run 无显式色时用主题 hlink 色（OOXML 语义，与预览端一致）；
+      // 有显式色则保持原色（PowerPoint 行为：显式色优先于主题链接色）
+      if (run.href) {
+        st.color = normalizeColor(run.color) || normalizeColor(el.color)
+          || getTheme(ctx.theme).accents[0] || '#1A73E8';
+      } else {
+        st.color = normalizeColor(run.color) || normalizeColor(el.color) || '#202124';
+      }
       if (run.bold ?? el.bold) st.fontWeight = '700';
       if (run.italic ?? el.italic) st.fontStyle = 'italic';
       if (run.underline ?? el.underline) st.textDecoration = 'underline';
@@ -508,13 +543,37 @@ function renderTextBody(el, ctx) {
       if (run.shadow && run.shadow.color) {
         const sc = normalizeColor(run.shadow.color);
         if (sc) {
+          // run.shadow.alpha 是 0..1 不透明度，withAlpha 收的是 0..100 透明度，需换算
           const a = run.shadow.alpha != null ? run.shadow.alpha : 1;
-          // 文字外阴影常省略 blurRad（OOXML 缺省 0），预览端按最小柔化半径渲染，这里对齐给 2pt
+          // blurRad 在 OOXML 中缺省即 0 = 硬边投影，预览端据此生成 3 段式 text-shadow，
+          // 这里不做额外柔化（曾按最小 2pt 渲染会把投影糊成一片蓝光）
           const blur = run.shadow.blur != null ? run.shadow.blur : 0;
-          shadows.push(`${ptToPx(run.shadow.x || 0)}px ${ptToPx(run.shadow.y || 0)}px ${ptToPx(Math.max(blur, TEXT_SHADOW_MIN_BLUR_PT))}px ${withAlpha(sc, a * 100)}`);
+          shadows.push(`${ptToPx(run.shadow.x || 0)}px ${ptToPx(run.shadow.y || 0)}px ${ptToPx(blur)}px ${withAlpha(sc, (1 - a) * 100)}`);
         }
       }
       if (shadows.length) st.textShadow = shadows.join(',');
+      if (run.href) {
+        // 链接 run 渲染为 <a>：浏览器默认下划线 + 可点击；内部跳转 '#N' 在放映态定位页
+        const a = document.createElement('a');
+        a.textContent = run.text == null ? '' : String(run.text);
+        a.href = run.href;
+        if (run.hrefTooltip) a.title = run.hrefTooltip;
+        if (String(run.href).startsWith('#')) {
+          a.dataset.slideJump = String(run.href).slice(1);
+        } else {
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        }
+        a.style.textDecoration = 'underline';
+        // 颜色必须设在 <a> 上：UA 样式表的 a:link{color:blue} 会盖过 span 的继承色
+        a.style.color = st.color;
+        // 编辑态点击只做选中/拖拽，不导航（放映态由 present 层放行）
+        if (ctx.editing) a.addEventListener('click', (e) => e.preventDefault());
+        span.textContent = '';
+        span.appendChild(a);
+      } else {
+        span.textContent = run.text == null ? '' : String(run.text);
+      }
       para.appendChild(span);
     });
     if (!para.childNodes.length) para.appendChild(document.createElement('br'));
@@ -670,7 +729,7 @@ function presetShapeSvg(el) {
   if (lineColor) {
     main.setAttribute('stroke', lineColor);
     main.setAttribute('stroke-width', String(lineW));
-    if (el.line && el.line.dashType) main.setAttribute('stroke-dasharray', DASH_MAP[el.line.dashType] || 'none');
+    if (el.line && el.line.dashType) main.setAttribute('stroke-dasharray', SVG_DASH_MAP[el.line.dashType] || 'none');
   }
   svg.appendChild(main);
   // 附加描边路径（callout 引线、笑脸嘴等）：颜色优先线条色，其次深化的填充色
@@ -696,34 +755,47 @@ function shadeColor(hex, amt) {
   return `#${ch(1)}${ch(3)}${ch(5)}`.toUpperCase();
 }
 
-/** 自定义几何（a:custGeom）SVG：路径坐标已归一化到形状 EMU 空间，viewBox 拉伸铺满元素框 */
+/**
+ * 自定义几何（a:custGeom）路径数据：路径自带 EMU 坐标系，按各 path 的 w/h
+ * 归一化到 (W,H) 元素框（与预览端同空间）。
+ * 必须归一化而不是把 EMU 坐标直接塞进 viewBox——viewBox 缩放会同步缩小
+ * stroke-width（用户单位），1.25pt 的笔宽会被压到 1e-4 倍而"消失"。
+ */
+function custGeomPathD(cg, W, H) {
+  if (!cg || !Array.isArray(cg.paths) || !cg.paths.length) return '';
+  const n2 = (v) => Math.round(v * 100) / 100;
+  const ds = [];
+  cg.paths.forEach((p) => {
+    const kx = W / (p.w || W), ky = H / (p.h || H);
+    const X = (v) => n2((Number(v) || 0) * kx);
+    const Y = (v) => n2((Number(v) || 0) * ky);
+    const cmd = (c) => {
+      switch (c.type) {
+        case 'moveTo': return `M${X(c.x)} ${Y(c.y)}`;
+        case 'lnTo': return `L${X(c.x)} ${Y(c.y)}`;
+        case 'cubicBezTo': return `C${X(c.x1)} ${Y(c.y1)} ${X(c.x2)} ${Y(c.y2)} ${X(c.x)} ${Y(c.y)}`;
+        case 'quadBezTo': return `Q${X(c.x1)} ${Y(c.y1)} ${X(c.x)} ${Y(c.y)}`;
+        case 'close': return 'Z';
+        default: return '';
+      }
+    };
+    const d = (p.commands.map(cmd).filter(Boolean).join(' ') + (p.closed ? ' Z' : '')).trim();
+    if (d) ds.push(d);
+  });
+  return ds.join(' ');
+}
+
+/** 自定义几何（a:custGeom）SVG */
 function custGeomSvg(el) {
   const cg = el.custGeom;
   if (!cg || !Array.isArray(cg.paths) || !cg.paths.length) return null;
   const fill = presetFillColor(el);
   const NS = 'http://www.w3.org/2000/svg';
-  let maxW = 0, maxH = 0;
-  const pathD = cg.paths.map((p) => {
-    const W = p.w || el.width || 100, H = p.h || el.height || 100;
-    if (W > maxW) maxW = W;
-    if (H > maxH) maxH = H;
-    const cmd = (c) => {
-      switch (c.type) {
-        case 'moveTo': return `M${c.x} ${c.y}`;
-        case 'lnTo': return `L${c.x} ${c.y}`;
-        case 'cubicBezTo': return `C${c.x1} ${c.y1} ${c.x2} ${c.y2} ${c.x} ${c.y}`;
-        case 'quadBezTo': return `Q${c.x1} ${c.y1} ${c.x} ${c.y}`;
-        case 'close': return 'Z';
-        default: return '';
-      }
-    };
-    const d = (p.commands.map(cmd).join(' ') + (p.closed ? ' Z' : '')).trim();
-    return d;
-  }).filter(Boolean);
-  const d = pathD.join(' ');
+  const EW = el.width || 100, EH = el.height || 100;
+  const d = custGeomPathD(cg, EW, EH);
   if (!d) return null;
   const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${maxW || el.width || 100} ${maxH || el.height || 100}`);
+  svg.setAttribute('viewBox', `0 0 ${EW} ${EH}`);
   svg.setAttribute('preserveAspectRatio', 'none');
   svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;overflow:visible';
   let tf = '';
@@ -739,7 +811,9 @@ function custGeomSvg(el) {
   if (lineColor) {
     main.setAttribute('stroke', lineColor);
     main.setAttribute('stroke-width', String(lineW));
-    if (el.line && el.line.dashType) main.setAttribute('stroke-dasharray', DASH_MAP[el.line.dashType] || 'none');
+    // stroke-dasharray 收虚线长度列表（不是 CSS border-style 关键字），solid 不输出
+    const dash = el.line && el.line.dashType ? SVG_DASH_MAP[el.line.dashType] : null;
+    if (dash) main.setAttribute('stroke-dasharray', dash);
   }
   svg.appendChild(main);
   return svg;
@@ -894,33 +968,9 @@ export function renderElement(el, ctx = {}) {
       node.appendChild(renderChartEl(el, ctx));
       break;
     }
-    case 'video': {
-      // 与预览端一致：用 poster 作为视觉主体（视频在 headless/编辑态下真实视频多为黑屏，
-      // 海报图才是设计稿想要呈现的内容），叠加一个小的播放图标。
-      const box = h('div', { style: { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' } });
-      const img = document.createElement('img');
-      const posterData = (el.poster && (el.poster.data || el.poster.src)) || el.data || el.src || '';
-      img.src = mediaSrc(posterData, el.poster && el.poster.extension || el.extension, 'image/png');
-      img.draggable = false;
-      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block';
-      box.appendChild(img);
-      const icon = h('div', { style: {
-        position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-        width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
-      }});
-      icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20"><polygon fill="#fff" points="6,4 16,10 6,16"/></svg>';
-      box.appendChild(icon);
-      node.appendChild(box);
-      break;
-    }
+    case 'video':
     case 'audio': {
-      const box = h('div', { style: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F3F4', borderRadius: '8px' } });
-      const a = document.createElement('audio');
-      a.src = mediaSrc(el.data || el.src || '', el.extension);
-      a.controls = true;
-      box.appendChild(a);
-      node.appendChild(box);
+      renderMediaEl(el, node, ctx);
       break;
     }
     case 'diagram': {
@@ -998,8 +1048,12 @@ function renderDiagramEl(el) {
   const wrap = h('div', { style: { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' } });
 
   if (shapes.length) {
-    // 旧数据可能残留未解析的 'scheme:<name>' 引用，渲染前兜底
-    const safeColor = (c, fallback) => (c && !/^scheme:/i.test(c) ? c : fallback);
+    // 旧数据可能残留未解析的 'scheme:<name>' 引用；解析器给出的色值不带 '#'（如 'FFFFFF'），
+    // 需经 normalizeColor 归一化，否则 CSS 视为非法而回退成继承色
+    const safeColor = (c, fallback) => {
+      if (!c || /^scheme:/i.test(c)) return fallback;
+      return normalizeColor(c) || fallback;
+    };
     // 连接线层（SVG，viewBox 随容器缩放）
     const NS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(NS, 'svg');
@@ -1019,35 +1073,74 @@ function renderDiagramEl(el) {
     });
     wrap.appendChild(svg);
 
-    // 节点框
+    // 节点框：能由预设几何生成路径的（arc/pie/star 等）走 SVG，其余回退 CSS 盒
     const radiusOf = (s) => {
       if (s.prst === 'ellipse') return '50%';
       if (!s.prst || s.prst === 'rect') return '2px';
-      return Math.round(Math.min(s.width, s.height) * 0.18) + 'px';
+      if (s.prst === 'roundRect') return Math.round(Math.min(s.width, s.height) * 0.18) + 'px';
+      return '2px';
     };
     shapes.forEach((s) => {
       if (s.connector) return;
+      const geo = s.prst ? presetShapePath(s.prst, s.width, s.height, s.adjust || {}) : null;
+      let frame;
+      if (geo && geo.d) {
+        // SVG 形状：viewBox 与形状框 1:1，stroke-width 可直接用 CSS px
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('viewBox', `0 0 ${s.width} ${s.height}`);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;overflow:visible';
+        let tf = geo.transform || '';
+        if (s.flipH || s.flipV) tf += ` scale(${s.flipH ? -1 : 1},${s.flipV ? -1 : 1})`;
+        const p = document.createElementNS(NS, 'path');
+        p.setAttribute('d', geo.d);
+        if (tf.trim()) p.setAttribute('transform', tf.trim());
+        const fc = s.fill && s.fill !== 'none' ? safeColor(s.fill, 'none') : 'none';
+        p.setAttribute('fill', geo.noFill ? 'none' : fc);
+        if (geo.fillRule) p.setAttribute('fill-rule', geo.fillRule);
+        const lc = safeColor(s.lineColor, null);
+        if (lc) {
+          p.setAttribute('stroke', lc);
+          p.setAttribute('stroke-width', String(Math.max(0.5, s.lineWidth || 0.75)));
+          p.setAttribute('stroke-linecap', 'round');
+        }
+        svg.appendChild(p);
+        frame = svg;
+      } else {
+        frame = h('div', {
+          style: {
+            position: 'absolute', inset: '0',
+            background: s.fill && s.fill !== 'none' ? safeColor(s.fill, 'transparent') : 'transparent',
+            border: safeColor(s.lineColor, null) ? `${Math.max(0.5, s.lineWidth || 0.75)}px solid ${safeColor(s.lineColor, '')}` : 'none',
+            borderRadius: radiusOf(s),
+            display: 'flex',
+            alignItems: s.anchor === 't' ? 'flex-start' : s.anchor === 'b' ? 'flex-end' : 'center',
+            justifyContent: s.align === 'l' ? 'flex-start' : s.align === 'r' ? 'flex-end' : 'center',
+            padding: '2px 8px', boxSizing: 'border-box', overflow: 'hidden'
+          }
+        });
+      }
       const cell = h('div', {
         style: {
           position: 'absolute',
           left: `${(s.x / W) * 100}%`, top: `${(s.y / H) * 100}%`,
-          width: `${(s.width / W) * 100}%`, height: `${(s.height / H) * 100}%`,
-          background: s.fill && s.fill !== 'none' ? safeColor(s.fill, 'transparent') : 'transparent',
-          border: safeColor(s.lineColor, null) ? `${Math.max(0.75, s.lineWidth || 1)}px solid ${safeColor(s.lineColor, '')}` : 'none',
-          borderRadius: radiusOf(s),
-          display: 'flex',
-          alignItems: s.anchor === 't' ? 'flex-start' : s.anchor === 'b' ? 'flex-end' : 'center',
-          justifyContent: s.align === 'l' ? 'flex-start' : s.align === 'r' ? 'flex-end' : 'center',
-          padding: '2px 8px', boxSizing: 'border-box', overflow: 'hidden'
+          width: `${(s.width / W) * 100}%`, height: `${(s.height / H) * 100}%`
         }
       });
-      if (s.text) {
+      cell.appendChild(frame);
+      if (s.text && s.text.trim()) {
         const span = h('span', {
           style: {
+            position: 'absolute', inset: '0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: s.align === 'l' ? 'flex-start' : s.align === 'r' ? 'flex-end' : 'center',
+            justifyContent: s.anchor === 't' ? 'flex-start' : s.anchor === 'b' ? 'flex-end' : 'center',
             fontSize: `${s.fontSize || 12}pt`, color: safeColor(s.color, '#FFFFFF'),
             fontWeight: s.bold ? 600 : 400, lineHeight: 1.2,
-            width: '100%', textAlign: s.align === 'l' ? 'left' : s.align === 'r' ? 'right' : 'center',
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word'
+            textAlign: s.align === 'l' ? 'left' : s.align === 'r' ? 'right' : 'center',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            padding: '2px 8px', boxSizing: 'border-box', pointerEvents: 'none'
           }
         });
         span.textContent = s.text;
@@ -1075,6 +1168,106 @@ function renderDiagramEl(el) {
   });
   wrap.appendChild(box);
   return wrap;
+}
+
+/**
+ * 音视频元素（p:pic + p:nvPr/a:audioFile | a:videoFile）渲染。
+ *
+ * OOXML 里这类形状的 a:blip 指向的是「海报/占位图」（音频是喇叭图标，视频是首帧封面），
+ * PowerPoint 播放前展示的就是它，所以视觉主体始终用 poster：
+ *  - 视频：<video poster> 未播放时显示封面，播放后显示画面；原生控件仅在选中时可交互
+ *  - 音频：<img> 封面 + 隐藏的 <audio>。原先把原生 <audio controls> 直接塞进元素框，
+ *    在 21×21px 的喇叭图标尺寸下会被压成一条竖线，完全不可用
+ *
+ * 播放/暂停徽标按元素尺寸缩放（小到 21px 也能看清），点击时 stopPropagation，
+ * 避免触发画布的拖拽；原生 controls 需要 pointer-events，故由 CSS 依据 .is-sel 放开。
+ */
+function renderMediaEl(el, host, ctx = {}) {
+  const isVideo = el.type === 'video';
+  const poster = el.poster || {};
+  const posterSrc = mediaSrc(poster.data || poster.src || '', poster.extension || 'png', 'image/png');
+  const box = h('div', { class: 'el-media', style: { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' } });
+
+  // 缩略图：只画海报，不建媒体元素（否则每页缩略图都会拉一次媒体 metadata）
+  if (ctx.chartScope === 'thumb') {
+    if (posterSrc) {
+      const img = document.createElement('img');
+      img.src = posterSrc;
+      img.alt = '';
+      img.draggable = false;
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block';
+      box.appendChild(img);
+    }
+    host.appendChild(box);
+    return;
+  }
+
+  const src = mediaSrc(el.data || el.src || '', el.extension, isVideo ? 'video/mp4' : 'audio/mpeg');
+  const media = document.createElement(isVideo ? 'video' : 'audio');
+  if (src) media.src = src;
+  media.preload = 'metadata';
+  media.setAttribute('playsinline', '');
+  if (isVideo) {
+    if (posterSrc) media.poster = posterSrc;
+    media.controls = true;
+    media.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:#000';
+  } else {
+    // 音频：封面图作视觉主体，媒体元素只负责播放（隐藏但仍可 load/play）
+    const img = document.createElement('img');
+    img.src = posterSrc;
+    img.alt = '';
+    img.draggable = false;
+    img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block';
+    box.appendChild(img);
+    media.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;left:-9999px;top:0;pointer-events:none';
+  }
+  box.appendChild(media);
+
+  // 播放/暂停徽标（尺寸跟随元素，小图标不至于被撑破）
+  // 注意：display/对齐放在 CSS（.media-badge），选中态才能用 `.is-sel .media-badge{display:none}` 覆盖
+  const boxW = el.width || 40, boxH = el.height || 40;
+  const badge = Math.max(10, Math.min(44, Math.min(boxW, boxH) * 0.62));
+  const icon = h('div', {
+    class: 'media-badge',
+    title: '播放/暂停',
+    style: {
+      position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+      width: `${badge}px`, height: `${badge}px`, borderRadius: '50%',
+      background: 'rgba(0,0,0,0.55)', cursor: 'pointer'
+    }
+  });
+  const paint = (playing) => {
+    const s = Math.round(badge * 0.5);
+    icon.innerHTML = playing
+      ? `<svg width="${s}" height="${s}" viewBox="0 0 20 20"><rect fill="#fff" x="5" y="4" width="3.6" height="12" rx="1"/><rect fill="#fff" x="11.4" y="4" width="3.6" height="12" rx="1"/></svg>`
+      : `<svg width="${s}" height="${s}" viewBox="0 0 20 20"><polygon fill="#fff" points="6,4 16,10 6,16"/></svg>`;
+  };
+  paint(false);
+  const toggle = (e) => {
+    // 不阻断冒泡：点击徽标既要播放，也要让画布收到 pointerdown 完成选中
+    // （小尺寸音频元素几乎被徽标占满，若吞掉事件就无法选中）
+    if (media.paused || media.ended) { const r = media.play(); if (r && r.catch) r.catch(() => {}); }
+    else media.pause();
+  };
+  icon.addEventListener('pointerdown', toggle);
+  media.addEventListener('play', () => paint(true));
+  media.addEventListener('pause', () => paint(false));
+  media.addEventListener('ended', () => paint(false));
+  if (isVideo) media.addEventListener('playing', () => paint(true));
+  box.appendChild(icon);
+
+  // 无媒体源时给出可编辑的占位提示（双击可打开媒体对话框）
+  if (!src) {
+    box.appendChild(h('div', {
+      style: {
+        position: 'absolute', inset: '0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#64748b', fontSize: '11px', textAlign: 'center', padding: '2px', pointerEvents: 'none'
+      },
+      text: isVideo ? '视频占位' : '音频占位'
+    }));
+    icon.style.display = 'none';
+  }
+  host.appendChild(box);
 }
 
 function renderChartEl(el, ctx) {
@@ -1224,7 +1417,14 @@ function shapeGeometry(el) {
       return { clipPath: `polygon(${x1}% 0%,${x1}% ${y1}%,0% ${y1}%,50% 100%,100% ${y1}%,${x2}% ${y1}%,${x2}% 0%)` };
     }
     case 'pentagonBlock': return { clipPath: 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)' };
-    case 'plus': return { clipPath: 'polygon(35% 0%,65% 0%,65% 35%,100% 35%,100% 65%,65% 65%,65% 100%,35% 100%,35% 65%,0% 65%,0% 35%,35% 35%)' };
+    case 'plus': {
+      // 与 presetShapePath('plus') 同源：adj 缺省 25000 → 竖/横臂占 50%（25%/75%）。
+      // 原先硬编码 35%/65%，使图片填充的十字比形状本体细一圈，与预览端不符。
+      const a1 = Math.min(Math.max(adj.adj != null ? adj.adj : 25000, 0), 50000) / 100000;
+      const a2 = 1 - a1;
+      const p1 = `${(a1 * 100).toFixed(2)}%`, p2 = `${(a2 * 100).toFixed(2)}%`;
+      return { clipPath: `polygon(${p1} 0%,${p1} ${p1},0% ${p1},0% ${p2},${p1} ${p2},${p1} 100%,${p2} 100%,${p2} ${p2},100% ${p2},100% ${p1},${p2} ${p1},${p2} 0%)` };
+    }
     case 'heart': return { clipPath: 'polygon(50% 100%,2% 55%,2% 28%,25% 6%,50% 18%,75% 6%,98% 28%,98% 55%)' };
     case 'lightningBolt': return { clipPath: 'polygon(56% 0%,18% 56%,46% 56%,34% 100%,82% 38%,54% 38%)' };
     case 'pie': {
@@ -1272,6 +1472,20 @@ function effectGeometry(el, W, H) {
   const strokeOnly = fill === 'none' || fill == null;
   const lineColor = el.line && el.line !== 'none' ? normalizeColor(el.line.color) : null;
   const lineW = el.line && el.line !== 'none' ? Math.max(0.5, ptToPx(el.line.width || 0.75)) : 0;
+  // 0) 自定义几何（a:custGeom）：与本体 custGeomSvg 同源，复用其归一化路径
+  if (el.custGeom && Array.isArray(el.custGeom.paths) && el.custGeom.paths.length) {
+    const d = custGeomPathD(el.custGeom, W, H);
+    if (d) {
+      let tf = '';
+      if (el.flipH || el.flipV) tf += ` scale(${el.flipH ? -1 : 1},${el.flipV ? -1 : 1})`;
+      const tfAttr = tf.trim() ? ` transform="${tf.trim()}"` : '';
+      // 阴影只取轮廓：填充一律去掉；开放曲线（涂鸦）保留描边环
+      const strokeAttrs = (strokeOnly && lineColor)
+        ? ` stroke="${lineColor}" stroke-width="${lineW.toFixed(2)}" stroke-linecap="round"`
+        : '';
+      return `<path d="${d}"${tfAttr} fill="none"${strokeAttrs}/>`;
+    }
+  }
   // 1) 预设几何（本体就用 presetShapeSvg 渲染，阴影同源）
   if (el.shapeType && el.shapeType !== 'rect' && fill !== null) {
     const geo = presetShapePath(el.shapeType, W, H, el.adjust || {});

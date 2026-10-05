@@ -4756,7 +4756,15 @@ async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterS
             anchor = "ctr";
         }
     }
-    let bodyPrPadding = getBodyPrPadding(textBodyNode, type, anchor);
+    let shapeRotation = "";
+    if (type !== "table") {
+        const rotAttr = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "attrs", "rot"]);
+        const rotDeg = PPTXXmlUtils.angleToDegrees(rotAttr);
+        if (rotDeg !== 0) {
+            shapeRotation = `transform: rotate(${rotDeg}deg); transform-origin: center;`;
+        }
+    }
+    let bodyPrPadding = getBodyPrPadding(textBodyNode, type, anchor, shapeRotation);
     text += bodyPrPadding;
     let pFontStyle = PPTXXmlUtils.getTextByPathList(spNode, ["p:style", "a:fontRef"]);
     let wrapAttr = PPTXXmlUtils.getTextByPathList(textBodyNode["a:bodyPr"], ["attrs", "wrap"]);
@@ -4859,6 +4867,9 @@ async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterS
         }
         else if (sld_prg_width_val === null) {
             sld_prg_width = "width:inherit;";
+        }
+        if (type === "table") {
+            sld_prg_width = "width:100%;";
         }
         let sld_prg_height = "";
         let prg_dir = PPTXStyleUtils.getPregraphDir(pNode, textBodyNode, idx, type, warpObj);
@@ -5015,7 +5026,7 @@ function getVerticalWritingModeStyle(textBodyNode) {
             return "";
     }
 }
-function getBodyPrPadding(textBodyNode, type, anchor) {
+function getBodyPrPadding(textBodyNode, type, anchor, rotationStyle) {
     let paddingStyle = "";
     let vertStyle = (type !== "table") ? getVerticalWritingModeStyle(textBodyNode) : "";
     let lIns = PPTXXmlUtils.getTextByPathList(textBodyNode, ["a:bodyPr", "attrs", "lIns"]);
@@ -5048,7 +5059,7 @@ function getBodyPrPadding(textBodyNode, type, anchor) {
         if (anchor !== "ctr") {
             heightStyle = "height: 100%;";
         }
-        paddingStyle = `<div style="padding: ${tInsPx}px ${rInsPx}px ${bInsPx}px ${lInsPx}px; box-sizing: border-box; ${heightStyle}${vertStyle}">`;
+        paddingStyle = `<div style="padding: ${tInsPx}px ${rInsPx}px ${bInsPx}px ${lInsPx}px; box-sizing: border-box; ${heightStyle}${rotationStyle || ""}${vertStyle}">`;
     }
     return paddingStyle;
 }
@@ -6106,11 +6117,22 @@ async function genTable(node, warpObj, shapeType) {
         }
         tbl_bgcolor = `background-color: ${tbl_bgcolor};`;
     }
-    let tableHtml = `<table ${tblDir} style='border-collapse: collapse;` +
+    const colsGridArr = getColsGrid === undefined
+        ? []
+        : (getColsGrid.constructor === Array ? getColsGrid : [getColsGrid]);
+    const colgroupHtml = colsGridArr.length
+        ? `<colgroup>` + colsGridArr
+            .map((gc) => {
+            const wEmu = parseInt(PPTXXmlUtils.getTextByPathList(gc, ["attrs", "w"]));
+            const wPx = isNaN(wEmu) ? '' : ` style="width: ${Math.round(wEmu * SLIDE_FACTOR$1 * 100) / 100}px;"`;
+            return `<col${wPx} />`;
+        }).join('') + `</colgroup>`
+        : '';
+    let tableHtml = `<table ${tblDir} style='border-collapse: collapse; table-layout: fixed;` +
         PPTXXmlUtils.getPosition(workingXfrmNode, node, undefined, undefined, shapeType) +
         PPTXXmlUtils.getSize(workingXfrmNode, undefined, undefined) +
         ` z-index: ${order};` +
-        `${tbl_bgcolor}'>`;
+        `${tbl_bgcolor}'>` + colgroupHtml;
     let trNodes = tableNode["a:tr"];
     if (trNodes.constructor !== Array) {
         trNodes = [trNodes];
@@ -14611,9 +14633,25 @@ function buildParagraph(ctx, paragraph, defaults) {
         const start = (b && typeof b === 'object' && b.start != null) ? b.start : 1;
         pPrChildren.push(xmlNode('a:buAutoNum', { type: fmt, startAt: start }));
     }
+    else if (b && typeof b === 'object' && b.type === 'picture' && b.data) {
+        const blip = buildBulletPicture(ctx, b);
+        if (blip) {
+            if (b.sizePct)
+                pPrChildren.push(xmlNode('a:buSzPct', { val: Math.round(b.sizePct * 1000) }));
+            pPrChildren.push(blip);
+        }
+        else {
+            pPrChildren.push(xmlNode('a:buNone'));
+        }
+    }
     else if (b === true || b === 'bullet' || (b && typeof b === 'object' && (b.type === 'bullet' || b.char))) {
         const char = (b && typeof b === 'object' && b.char) ? b.char : '•';
-        pPrChildren.push(xmlNode('a:buFont', { typeface: 'Arial' }));
+        if (b && typeof b === 'object' && b.font) {
+            pPrChildren.push(xmlNode('a:buFont', { typeface: b.font, pitchFamily: '2', charset: '2' }));
+        }
+        if (b && typeof b === 'object' && b.sizePct) {
+            pPrChildren.push(xmlNode('a:buSzPct', { val: Math.round(b.sizePct * 1000) }));
+        }
         pPrChildren.push(xmlNode('a:buChar', { char }));
     }
     else {
@@ -14948,6 +14986,19 @@ async function buildShapeElement(ctx, el) {
         : xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) }, el.adjust && Object.keys(el.adjust).length
             ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
             : xmlNode('a:avLst')), fillNode, lineNode, ...(effectNode ? [effectNode] : []), ...build3DNodes(el.threeD)));
+}
+function buildBulletPicture(ctx, bullet) {
+    const str = String(bullet.data || '');
+    const m = str.match(/^data:([^;,]*);base64,(.+)$/is);
+    const base64 = m ? m[2] : '';
+    if (!base64)
+        return null;
+    const ext = bullet.extension || (m ? mimeToExt(m[1]) : 'png');
+    ctx.mediaIndex++;
+    const mediaName = `image${ctx.mediaIndex}.${ext}`;
+    ctx.media.push({ name: mediaName, base64 });
+    const rid = addRelationship(ctx, REL_TYPES.image, `../media/${mediaName}`);
+    return xmlNode('a:buBlip', null, xmlNode('a:blip', { 'r:embed': rid }));
 }
 async function buildImageElement(ctx, el) {
     const id = ctx.nextElementId++;
@@ -15452,6 +15503,7 @@ async function buildGroupElement(ctx, el) {
     const h = pxToEmu(el.height || 0);
     return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), ...childNodes);
 }
+const TRANSPARENT_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 async function buildMediaElement(ctx, el, kind) {
     const id = ctx.nextElementId++;
     ctx.mediaIndex++;
@@ -15460,13 +15512,19 @@ async function buildMediaElement(ctx, el, kind) {
     const { base64 } = await resolveImageData({ data: el.data, src: el.src, extension: ext });
     ctx.media.push({ name: mediaName, base64 });
     const embedRelId = addRelationship(ctx, kind === 'video' ? REL_TYPES.video : REL_TYPES.audio, `../media/${mediaName}`);
-    let posterRelId = embedRelId;
-    if (el.poster) {
+    let posterRelId = '';
+    if (el.poster && (el.poster.data || el.poster.src)) {
         ctx.mediaIndex++;
         const pExt = el.poster.extension || 'png';
         const pName = `image${ctx.mediaIndex}.${pExt}`;
         const pData = await resolveImageData({ data: el.poster.data, src: el.poster.src, extension: pExt });
         ctx.media.push({ name: pName, base64: pData.base64 });
+        posterRelId = addRelationship(ctx, REL_TYPES.image, `../media/${pName}`);
+    }
+    else {
+        ctx.mediaIndex++;
+        const pName = `image${ctx.mediaIndex}.png`;
+        ctx.media.push({ name: pName, base64: TRANSPARENT_PNG_BASE64 });
         posterRelId = addRelationship(ctx, REL_TYPES.image, `../media/${pName}`);
     }
     const mediaFileNode = kind === 'video'
@@ -17022,7 +17080,7 @@ function readRunText(runNode) {
     const t = runNode && runNode['a:t'];
     return typeof t === 'string' ? t : '';
 }
-function readRunStyle(rPr, themeMap = {}) {
+function readRunStyle(rPr, themeMap = {}, resolveHref) {
     const style = {};
     if (!rPr)
         return style;
@@ -17041,9 +17099,15 @@ function readRunStyle(rPr, themeMap = {}) {
     const latin = rPr['a:latin'];
     if (latin && latin.attrs && latin.attrs.typeface)
         style.fontFace = String(latin.attrs.typeface);
-    const hlink = rPr['a:hlinkClick'];
-    if (hlink && hlink.attrs && hlink.attrs['r:id'])
-        style.href = String(hlink.attrs['r:id']);
+    const hlink = rPr['a:hlinkClick'] || rPr['a:hlinkHover'];
+    if (hlink && hlink.attrs && hlink.attrs['r:id']) {
+        const resolved = resolveHref ? resolveHref(String(hlink.attrs['r:id'])) : undefined;
+        if (resolved) {
+            style.href = resolved;
+            if (hlink.attrs.tooltip)
+                style.hrefTooltip = String(hlink.attrs.tooltip);
+        }
+    }
     const ln = rPr['a:ln'];
     if (ln) {
         if (ln['a:noFill']) {
@@ -17075,7 +17139,7 @@ function readRunStyle(rPr, themeMap = {}) {
     }
     return style;
 }
-function extractTxBody(txBody, themeMap = {}, fallbackColor) {
+function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
     const paragraphs = [];
     let hasText = false;
     let text = '';
@@ -17102,13 +17166,31 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor) {
         const pAttrs = (pPr && pPr.attrs) || {};
         const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : undefined;
         let bullet;
-        if (pPr && pPr['a:buAutoNum'] && !pPr['a:buNone']) {
+        if (pPr && pPr['a:buNone']) {
+            bullet = undefined;
+        }
+        else if (pPr && pPr['a:buBlip'] && pPr['a:buBlip']['a:blip']) {
+            const blip = pPr['a:buBlip']['a:blip'];
+            const src = (blip.attrs && (blip.attrs.__data || blip.attrs['r:embed'])) || undefined;
+            if (src)
+                bullet = { type: 'picture', data: String(src).startsWith('data:') ? String(src) : undefined, rid: String(src) };
+            const szPct = pPr['a:buSzPct'] && pPr['a:buSzPct'].attrs && Number(pPr['a:buSzPct'].attrs.val) / 1000;
+            if (bullet && szPct)
+                bullet.sizePct = szPct;
+        }
+        else if (pPr && pPr['a:buAutoNum']) {
             const auto = pPr['a:buAutoNum'];
             bullet = { type: 'number', fmt: (auto.attrs && auto.attrs.type) || 'arabic', start: (auto.attrs && auto.attrs.startAt != null) ? Number(auto.attrs.startAt) : 1 };
         }
-        else if (pPr && pPr['a:buChar'] && !pPr['a:buNone']) {
+        else if (pPr && pPr['a:buChar']) {
             const bc = pPr['a:buChar'];
             bullet = { type: 'bullet', char: (bc.attrs && bc.attrs.char) || '•' };
+            const bf = pPr['a:buFont'];
+            if (bf && bf.attrs && bf.attrs.typeface)
+                bullet.font = String(bf.attrs.typeface);
+            const szPct = pPr['a:buSzPct'] && pPr['a:buSzPct'].attrs && Number(pPr['a:buSzPct'].attrs.val) / 1000;
+            if (szPct)
+                bullet.sizePct = szPct;
         }
         let lineSpacing;
         const lnSpc = pPr && pPr['a:lnSpc'];
@@ -17140,7 +17222,7 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor) {
             if (t)
                 hasText = true;
             paraText += t;
-            const st = readRunStyle(runNode['a:rPr'], themeMap);
+            const st = readRunStyle(runNode['a:rPr'], themeMap, resolveHref);
             if (!st.color && fallbackColor)
                 st.color = fallbackColor;
             runs.push({ text: t, ...st });
@@ -17172,9 +17254,44 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor) {
     }
     return { paragraphs, hasText, valign, text, textDirection, inset, noWrap };
 }
-function extractTextBody(spNode, themeMap = {}) {
+async function resolveBulletBlips(txBody, resObj, zip) {
+    if (!txBody)
+        return false;
+    let touched = false;
+    for (const pNode of asArray(txBody['a:p'])) {
+        const buBlip = pNode && pNode['a:pPr'] && pNode['a:pPr']['a:buBlip'];
+        const blip = buBlip && buBlip['a:blip'];
+        if (!blip || !blip.attrs || !blip.attrs['r:embed'] || blip.attrs.__data)
+            continue;
+        const target = resObj[String(blip.attrs['r:embed'])] && resObj[String(blip.attrs['r:embed'])].target;
+        const part = resolvePart(target);
+        if (!part)
+            continue;
+        try {
+            const file = zip.file(part);
+            if (!file)
+                continue;
+            const ext = ((part || String(target || '')).split('.').pop() || 'png').toLowerCase();
+            blip.attrs.__data = `data:${IMAGE_MIME[ext] || 'application/octet-stream'};base64,${await file.async('base64')}`;
+            touched = true;
+        }
+        catch { }
+    }
+    return touched;
+}
+function extractTextBody(spNode, themeMap = {}, resolveHref) {
     const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
-    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor);
+    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor, resolveHref);
+}
+function resolveHyperlink(resObj) {
+    return (rid) => {
+        const rel = resObj[String(rid)];
+        const target = rel && rel.target ? String(rel.target) : '';
+        if (!target)
+            return undefined;
+        const m = /slide(\d+)\.xml$/i.exec(target);
+        return m ? `#${m[1]}` : target;
+    };
 }
 function spColor(node, themeMap) {
     const c = resolveColorNode(node, themeMap);
@@ -18068,13 +18185,19 @@ function readCustGeom(custGeom) {
 }
 async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent) {
     if (key === 'p:graphicFrame') {
-        return await graphicFrameToElement(node, resObj, zip, themeMap);
+        return await graphicFrameToElement(node, resObj, zip, themeMap, themeContent);
     }
     if (key === 'p:pic') {
         return await picToImage(node, resObj, zip);
     }
     const spPr = node['p:spPr'];
-    const { paragraphs, hasText, textDirection, inset, noWrap } = extractTextBody(node, themeMap);
+    if (node && node['p:txBody'] && node['p:txBody']['a:p']) {
+        try {
+            await resolveBulletBlips(node['p:txBody'], resObj, zip);
+        }
+        catch { }
+    }
+    const { paragraphs, hasText, textDirection, inset, noWrap } = extractTextBody(node, themeMap, resolveHyperlink(resObj));
     const geom = spPr && spPr['a:prstGeom'];
     if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
         const xf = readXfrm(node, false);
@@ -18306,7 +18429,7 @@ function readTableInsets(tblPr) {
         out.b = b;
     return Object.keys(out).length ? out : undefined;
 }
-function tableToElement(tbl, node, themeMap = {}) {
+function tableToElement(tbl, node, themeMap = {}, resObj) {
     const xf = readXfrm(node, true);
     const el = {
         type: 'table',
@@ -18364,7 +18487,7 @@ function tableToElement(tbl, node, themeMap = {}) {
                 cell.colSpan = Number(attrs.gridSpan);
             if (attrs.rowSpan && Number(attrs.rowSpan) > 1)
                 cell.rowSpan = Number(attrs.rowSpan);
-            const { paragraphs, text } = extractTxBody(tc && tc['a:txBody'], themeMap);
+            const { paragraphs, text } = extractTxBody(tc && tc['a:txBody'], themeMap, undefined, resObj ? resolveHyperlink(resObj) : undefined);
             if (paragraphs.length > 1) {
                 cell.paragraphs = paragraphs;
             }
@@ -18392,7 +18515,9 @@ function tableToElement(tbl, node, themeMap = {}) {
                 cell.align = 'right';
             const tcPr = tc && tc['a:tcPr'];
             if (tcPr) {
-                const fill = readSrgbClr(tcPr);
+                const fill = spColor(tcPr['a:solidFill'], themeMap)
+                    || spColor(tcPr, themeMap)
+                    || readSrgbClr(tcPr);
                 if (fill)
                     cell.fill = fill;
                 if (tcPr.attrs && tcPr.attrs.anchor)
@@ -18863,12 +18988,22 @@ function findDiagramDrawingPath(resObj) {
     }
     return undefined;
 }
-function readDiagramShapeText(txBody, themeMap) {
+function readDiagramShapeText(txBody, themeMap, defaultColor) {
     if (!txBody)
         return undefined;
     const anchor = txBody['a:bodyPr'] && txBody['a:bodyPr'].attrs ? String(txBody['a:bodyPr'].attrs.anchor || '') : '';
     const lines = [];
     let fontSize, color, bold, align;
+    const lstLvl1 = txBody['a:lstStyle'] && txBody['a:lstStyle']['a:lvl1pPr'];
+    const lstDefRPr = lstLvl1 && lstLvl1['a:defRPr'];
+    if (!align && lstLvl1 && lstLvl1.attrs && lstLvl1.attrs.algn)
+        align = String(lstLvl1.attrs.algn);
+    if (lstDefRPr && lstDefRPr.attrs && lstDefRPr.attrs.sz != null) {
+        fontSize = Math.round(Number(lstDefRPr.attrs.sz) / 100) || undefined;
+    }
+    if (lstDefRPr && lstDefRPr.attrs && lstDefRPr.attrs.b != null) {
+        bold = String(lstDefRPr.attrs.b) === '1' || String(lstDefRPr.attrs.b) === 'on';
+    }
     for (const p of asArray(txBody['a:p'])) {
         if (!p || typeof p !== 'object')
             continue;
@@ -18895,11 +19030,12 @@ function readDiagramShapeText(txBody, themeMap) {
         lines.push(line);
     }
     const text = lines.join('\n');
-    if (!text.trim() && fontSize === undefined && color === undefined)
+    const finalColor = color || defaultColor;
+    if (!text.trim() && fontSize === undefined && finalColor === undefined)
         return { text: text || undefined, anchor: anchor || undefined };
-    return { text: text || undefined, fontSize, color, bold, align, anchor: anchor || undefined };
+    return { text: text || undefined, fontSize, color: finalColor, bold, align, anchor: anchor || undefined };
 }
-async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH) {
+async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH, themeContent) {
     const drawingPath = findDiagramDrawingPath(resObj);
     if (!drawingPath)
         return undefined;
@@ -18922,11 +19058,13 @@ async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH) {
     const mapY = (v) => chH > 0 ? ((Number(v) || 0) - chY) / chH * frameH : emuToPx(v);
     const mapW = (v) => chW > 0 ? (Number(v) || 0) / chW * frameW : emuToPx(v);
     const mapH = (v) => chH > 0 ? (Number(v) || 0) / chH * frameH : emuToPx(v);
+    const tables = await getThemeStyleTables(zip, themeContent);
     const shapes = [];
     const pushShape = (sp, isConnector) => {
         if (!sp || typeof sp !== 'object')
             return;
         const spPr = sp['dsp:spPr'];
+        const dspStyle = sp['dsp:style'];
         const xf = spPr && spPr['a:xfrm'];
         const off = (xf && xf['a:off'] && xf['a:off'].attrs) || {};
         const ext = (xf && xf['a:ext'] && xf['a:ext'].attrs) || {};
@@ -18938,15 +19076,30 @@ async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH) {
             x: Math.round(mapX(off.x) * 100) / 100,
             y: Math.round(mapY(off.y) * 100) / 100,
             width: Math.round(width * 100) / 100,
-            height: Math.round(height * 100) / 100
+            height: Math.round(height * 100) / 100,
+            adjust: {}
         };
         if (geom && geom.attrs && geom.attrs.prst)
             shape.prst = String(geom.attrs.prst);
+        const avLst = geom && geom['a:avLst'];
+        if (avLst && typeof avLst === 'object') {
+            for (const gd of asArray(avLst['a:gd'])) {
+                if (!gd || !gd.attrs)
+                    continue;
+                const nm = gd.attrs.name ? String(gd.attrs.name) : '';
+                const raw = gd.attrs.fmla != null ? String(gd.attrs.fmla) : (gd.attrs.val != null ? String(gd.attrs.val) : '');
+                const v = /(-?\d+(?:\.\d+)?)\s*$/.exec(raw);
+                if (nm && v)
+                    shape.adjust[nm] = Math.round(Number(v[1]) * 100) / 100;
+            }
+        }
         const xattrs = (xf && xf.attrs) || {};
         if (String(xattrs.flipH) === '1')
             shape.flipH = true;
         if (String(xattrs.flipV) === '1')
             shape.flipV = true;
+        const fillRef = dspStyle && dspStyle['a:fillRef'];
+        const lnRef = dspStyle && dspStyle['a:lnRef'];
         if (isConnector) {
             shape.connector = true;
             const ln = spPr && spPr['a:ln'];
@@ -18957,6 +19110,14 @@ async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH) {
                 if (ln.attrs && ln.attrs.w != null)
                     shape.lineWidth = emuToPt(ln.attrs.w);
             }
+            if (!shape.lineColor && lnRef) {
+                const ref = resolveThemeStyleRef(lnRef, tables.lines, themeMap);
+                if (ref) {
+                    shape.lineColor = ref.color;
+                    if (shape.lineWidth == null)
+                        shape.lineWidth = ref.widthPt || DEFAULT_LN_PT;
+                }
+            }
             shapes.push(shape);
             return;
         }
@@ -18965,6 +19126,16 @@ async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH) {
             shape.fill = fill;
         else if (spPr && spPr['a:noFill'])
             shape.fill = 'none';
+        else if (fillRef) {
+            const refIdx = Number(fillRef.attrs && fillRef.attrs.idx) || 0;
+            if (refIdx === 0 || refIdx === 1000)
+                shape.fill = 'none';
+            else {
+                const ref = resolveThemeStyleRef(fillRef, tables.fills, themeMap);
+                if (ref)
+                    shape.fill = ref.color;
+            }
+        }
         const ln = spPr && spPr['a:ln'];
         if (ln && !ln['a:noFill']) {
             const lc = resolveColorNode(ln['a:solidFill'], themeMap);
@@ -18973,7 +19144,16 @@ async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH) {
                 shape.lineWidth = ln.attrs && ln.attrs.w != null ? emuToPt(ln.attrs.w) : 1;
             }
         }
-        const txt = readDiagramShapeText(sp['dsp:txBody'], themeMap);
+        if (!shape.lineColor && lnRef) {
+            const ref = resolveThemeStyleRef(lnRef, tables.lines, themeMap);
+            if (ref) {
+                shape.lineColor = ref.color;
+                if (shape.lineWidth == null)
+                    shape.lineWidth = ref.widthPt || DEFAULT_LN_PT;
+            }
+        }
+        const fontRefColor = dspStyle ? spColor(dspStyle['a:fontRef'], themeMap) : undefined;
+        const txt = readDiagramShapeText(sp['dsp:txBody'], themeMap, fontRefColor);
         if (txt) {
             if (txt.text)
                 shape.text = txt.text;
@@ -18996,7 +19176,7 @@ async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH) {
         pushShape(cxn, true);
     return shapes.length ? shapes : undefined;
 }
-async function diagramToElement(node, resObj, zip, themeMap = {}) {
+async function diagramToElement(node, resObj, zip, themeMap = {}, themeContent) {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
     const rel = graphicData && (graphicData['dgm:relIds'] || graphicData['dgm:rel']);
     const rid = rel && rel.attrs && (rel.attrs['r:dm'] || rel.attrs['r:id']);
@@ -19026,23 +19206,23 @@ async function diagramToElement(node, resObj, zip, themeMap = {}) {
     if (part)
         el.dataPath = part;
     try {
-        const shapes = await extractDiagramShapes(resObj, zip, themeMap, el.width, el.height);
+        const shapes = await extractDiagramShapes(resObj, zip, themeMap, el.width, el.height, themeContent);
         if (shapes)
             el.shapes = shapes;
     }
     catch { }
     return el;
 }
-async function graphicFrameToElement(node, resObj, zip, themeMap = {}) {
+async function graphicFrameToElement(node, resObj, zip, themeMap = {}, themeContent) {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
     if (!graphicData)
         return null;
     const uri = graphicData.attrs && graphicData.attrs.uri ? String(graphicData.attrs.uri) : '';
     const tbl = graphicData['a:tbl'];
     if (tbl)
-        return tableToElement(tbl, node, themeMap);
+        return tableToElement(tbl, node, themeMap, resObj);
     if (graphicData['dgm:rel'] || uri === URI_DIAGRAM || /diagram/.test(uri)) {
-        return await diagramToElement(node, resObj, zip, themeMap);
+        return await diagramToElement(node, resObj, zip, themeMap, themeContent);
     }
     return await graphicFrameToChart(node, resObj, zip, themeMap);
 }

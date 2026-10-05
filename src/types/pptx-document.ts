@@ -60,6 +60,8 @@ export interface PptxTextRun {
     underline?: boolean;
     fontFace?: string;
     href?: string;         // 外部链接或内部跳转 '#N'
+    /** 超链接提示（a:hlinkClick@tooltip） */
+    hrefTooltip?: string;
     /**
      * 字段（a:fld@type）：动态文本，如 'slidenum' 页码、'datetime' 日期。
      * 解析端读取 a:fld/a:t 作为 text 并回填 type；生成端写出 <a:fld type id><a:t>text</a:t></a:fld>。
@@ -73,14 +75,33 @@ export interface PptxTextRun {
     shadow?: { color?: string; blur?: number; x?: number; y?: number; alpha?: number };
 }
 
+/** 段落项目符号：字符（可带符号字体）/ 自动编号 / 图片 */
+export interface PptxBullet {
+    type: 'number' | 'bullet' | 'picture';
+    /** type='bullet'：项目符号字符（配合 font 用符号字体，如 Wingdings 的 U+F0AD） */
+    char?: string;
+    /** type='bullet'：符号字体名（a:buFont/@typeface），缺省会退化成普通字形 */
+    font?: string;
+    /** 符号字号百分比（a:buSzPct，100 = 与正文同号） */
+    sizePct?: number;
+    /** type='number'：编号格式（arabic / romanUpper 等） */
+    fmt?: string;
+    /** type='number'：起始序号（a:buAutoNum/@startAt） */
+    start?: number;
+    /** type='picture'：图片 data URL（a:buBlip，已内联 base64） */
+    data?: string;
+    /** type='picture'：图片关系 id（data 缺失时用于回写定位） */
+    rid?: string;
+}
+
 /** 段落（可显式 runs，或用 text 配合元素级默认样式） */
 
 export interface PptxParagraph {
     text?: string;
     runs?: PptxTextRun[];
     align?: TextAlign;
-    /** 列表样式：true=项目符号；'number'=自动编号；{ type:'number', fmt?, start? } 或 { type:'bullet', char? } */
-    bullet?: boolean | 'number' | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    /** 列表样式：true=项目符号；'number'=自动编号；{ type:'number', fmt?, start? } / { type:'bullet', char?, font?, sizePct? } / { type:'picture', data? } */
+    bullet?: boolean | 'number' | PptxBullet;
     /** 行距：数字=百分比(100=单倍) 或 { type:'pt', value } / { type:'percent', value } */
     lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
     /** 段前间距 pt */
@@ -443,7 +464,7 @@ export interface PptxTextElement extends PptxElementBase {
     align?: TextAlign;
     valign?: VAlign;
     /** 段落级默认样式（纯 text 模式透传给每个段落）：列表/行距/段间距/缩进 */
-    bullet?: boolean | 'number' | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    bullet?: boolean | 'number' | PptxBullet;
     lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
     spaceBefore?: number;
     spaceAfter?: number;
@@ -714,6 +735,8 @@ export interface PptxDiagramShape {
     height: number;
     /** OOXML 预设几何：roundRect / ellipse / rect / straightConnector1 ... */
     prst?: string;
+    /** 预设几何调整值（解析自 a:prstGeom/a:avLst，如 arc 的 adj1/adj2 角度） */
+    adjust?: Record<string, number>;
     /** 连接线（无填充文字，仅描边） */
     connector?: boolean;
     /** 填充色（#RRGGBB），'none' 表示无填充 */
@@ -817,6 +840,8 @@ export interface PptxAudioElement extends PptxElementBase {
     data?: string;
     src?: string;
     extension?: string;
+    /** 音频图标/占位图（OOXML 中 a:blip 指向的图，PowerPoint 用它表示音频） */
+    poster?: { data?: string; src?: string; extension?: string };
 }
 
 /**
@@ -931,7 +956,7 @@ export interface PptxPlaceholder {
     align?: TextAlign;
     valign?: VAlign;
     /** 项目符号默认样式（body 占位符常见） */
-    bullet?: boolean | 'number' | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    bullet?: boolean | 'number' | PptxBullet;
 }
 
 /** 幻灯片版式（ppt/slideLayouts/slideLayoutN.xml） */

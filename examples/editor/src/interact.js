@@ -6,7 +6,7 @@ import { renderSlideInto, elementRect, rotatedRect, effectMargin, disposeAllChar
 import { h, clamp, unionBBox, rotatePoint, debounce } from './util.js';
 import { parseBody, focusBody, blurBody } from './richtext.js';
 import { cloneElement, nudge, deleteSelected, paste, copySelected, duplicateSelected, selectAll, groupSelection, ungroupSelection } from './actions.js';
-import { openChartDialog, openTableDialog, openImagePicker } from './dialogs.js';
+import { openChartDialog, openTableDialog, openImagePicker, openMediaDialog } from './dialogs.js';
 import { startPresent } from './present.js';
 import { exportPptx, saveJson } from './io.js';
 
@@ -55,6 +55,18 @@ export function updateSelection() {
   const zoom = store.zoom;
   DOM.overlay.innerHTML = '';
   const els = store.selected();
+  // 选中态打在元素节点上：内嵌原生控件（音视频/图表）据此放开 pointer-events
+  // （见 styles.css 的 .el.is-sel .el-media video/audio），未选中时让画布拖拽优先
+  if (DOM.frame) {
+    const selSet = new Set(store.sel);
+    for (const n of DOM.frame.querySelectorAll('.el.is-sel')) {
+      if (!selSet.has(n.dataset.id)) n.classList.remove('is-sel');
+    }
+    for (const id of store.sel) {
+      const n = DOM.frame.querySelector(`.el[data-id="${id}"]`);
+      if (n) n.classList.add('is-sel');
+    }
+  }
   if (!els.length) { selLayer = null; return; }
 
   const layer = h('div', {
@@ -198,6 +210,8 @@ function onDblClick(e) {
     openChartDialog(el);
   } else if (el.type === 'image') {
     openImagePicker(el);
+  } else if (el.type === 'video' || el.type === 'audio') {
+    openMediaDialog(el);
   }
 }
 

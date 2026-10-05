@@ -221,6 +221,42 @@ export function createImageElement(data, opts = {}) {
   return el;
 }
 
+/**
+ * 音频元素（p:pic + p:nvPr/a:audioFile）。
+ * poster 为占位封面（OOXML 里 a:blip 指向的图），缺省给一个喇叭图标，
+ * 否则回写时 a:blip 会指向媒体关系（见 serializer 的 buildMediaElement）。
+ */
+export function createAudioElement(data, opts = {}) {
+  const el = base({ width: 32, height: 32, ...opts });
+  el.type = 'audio';
+  el.name = opts.name || '音频';
+  el.data = data || '';
+  el.extension = opts.extension || (String(data || '').match(/data:audio\/([a-z0-9.+-]+)/i) || [])[1] || 'mp3';
+  el.poster = opts.poster || { data: defaultMediaPoster('audio'), extension: 'svg' };
+  return el;
+}
+
+/** 视频元素（p:pic + p:nvPr/a:videoFile），默认 16:9 */
+export function createVideoElement(data, opts = {}) {
+  const el = base({ width: 480, height: 270, ...opts });
+  el.type = 'video';
+  el.name = opts.name || '视频';
+  el.data = data || '';
+  el.extension = opts.extension || (String(data || '').match(/data:video\/([a-z0-9.+-]+)/i) || [])[1] || 'mp4';
+  el.poster = opts.poster || { data: defaultMediaPoster('video'), extension: 'svg' };
+  return el;
+}
+
+/** 内置占位封面（SVG data URL），避免把二进制图标塞进文档数据 */
+export function defaultMediaPoster(kind) {
+  const isVideo = kind === 'video';
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+    + `<rect width="64" height="64" rx="8" fill="${isVideo ? '#1F2937' : '#334155'}"/>`
+    + `<text x="32" y="41" font-family="sans-serif" font-size="26" fill="#fff" text-anchor="middle">${isVideo ? '▶' : '♪'}</text>`
+    + '</svg>';
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
 export function createTableElement(rows = 3, cols = 3, opts = {}) {
   const el = base({ width: 720, height: 240, ...opts });
   el.type = 'table';
@@ -576,6 +612,7 @@ function cleanRuns(paragraph, el) {
     if (r.fontFace && r.fontFace !== el.fontFace) run.fontFace = r.fontFace;
     if (r.outline) run.outline = r.outline;
     if (r.shadow) run.shadow = r.shadow;
+    if (r.href) { run.href = r.href; if (r.hrefTooltip) run.hrefTooltip = r.hrefTooltip; }
     if (r.break) run.break = true;
     return run;
   });
@@ -890,6 +927,8 @@ function pptxRunsToRuns(runs, fallback) {
     fontFace: r.fontFace || fallback.fontFace,
     outline: r.outline,
     shadow: r.shadow,
+    href: r.href || undefined,
+    hrefTooltip: r.hrefTooltip || undefined,
     // 软换行（a:br）：空文本 run，渲染为 <br>
     break: !!r.break
   }));
@@ -924,18 +963,43 @@ export function normalizeBulletIn(b) {
   if (b === true || b === 'bullet') return true;
   if (typeof b === 'object') {
     if (b.type === 'number') return { type: 'number', fmt: b.fmt || 'arabicPeriod', start: b.start || 1 };
-    return { type: 'bullet', char: b.char || '•' };
+    // 图片项目符号（a:buBlp）：保留 data 与字号比例，否则图片符号整段丢失
+    if (b.type === 'picture') {
+      const pb = { type: 'picture' };
+      if (b.data) pb.data = b.data;
+      if (b.rid) pb.rid = b.rid;
+      if (b.sizePct) pb.sizePct = b.sizePct;
+      return pb;
+    }
+    // 字符符号：保留符号字体（a:buFont）与字号比例（a:buSzPct），
+    // 否则 Wingdings 之类会退化成普通字形
+    const out = { type: 'bullet', char: b.char || '•' };
+    if (b.font) out.font = b.font;
+    if (b.sizePct) out.sizePct = b.sizePct;
+    return out;
   }
   return true;
 }
 
-/** 编辑器内部 bullet → 标准 JSON bullet（保留 fmt/char） */
+/** 编辑器内部 bullet → 标准 JSON bullet（保留 fmt/char/font/sizePct/图片） */
 export function normalizeBulletOut(b) {
   if (b == null || b === false) return undefined;
   if (b === 'number') return 'number';
   if (b === true || b === 'bullet') return { type: 'bullet' };
   if (typeof b === 'object' && b.type === 'number') return { type: 'number', fmt: b.fmt, start: b.start };
-  if (typeof b === 'object' && b.char) return { type: 'bullet', char: b.char };
+  if (typeof b === 'object' && b.type === 'picture') {
+    const ob = { type: 'picture' };
+    if (b.data) ob.data = b.data;
+    if (b.rid) ob.rid = b.rid;
+    if (b.sizePct) ob.sizePct = b.sizePct;
+    return ob;
+  }
+  if (typeof b === 'object' && b.char) {
+    const ob = { type: 'bullet', char: b.char };
+    if (b.font) ob.font = b.font;
+    if (b.sizePct) ob.sizePct = b.sizePct;
+    return ob;
+  }
   return { type: 'bullet' };
 }
 

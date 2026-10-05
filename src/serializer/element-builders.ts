@@ -181,7 +181,7 @@ export interface ParagraphSpec {
     text?: string;
     runs?: TextRunSpec[];
     align?: string;
-    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet' | 'picture'; fmt?: string; start?: number; font?: string; sizePct?: number; data?: string; extension?: string };
     lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
     spaceBefore?: number;
     spaceAfter?: number;
@@ -295,7 +295,7 @@ export interface SerializerElement {
     align?: string;
     valign?: string;
     /** 段落级默认样式（纯 text 模式透传给每个段落）：列表/行距/段间距/缩进 */
-    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet'; fmt?: string; start?: number };
+    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet' | 'picture'; fmt?: string; start?: number; font?: string; sizePct?: number; data?: string; extension?: string };
     lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
     spaceBefore?: number;
     spaceAfter?: number;
@@ -816,16 +816,33 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
     if (p.spaceBefore != null) pPrChildren.push(xmlNode('a:spcBef', null, xmlNode('a:spcPts', { val: ptToSz(p.spaceBefore) })));
     if (p.spaceAfter != null) pPrChildren.push(xmlNode('a:spcAft', null, xmlNode('a:spcPts', { val: ptToSz(p.spaceAfter) })));
 
-    // 列表符号：自动编号 / 项目符号 / 无
+    // 列表符号：自动编号 / 字符符号（含符号字体）/ 图片符号（buBlip）/ 无
     const b = p.bullet;
     if (b === 'number' || (b && typeof b === 'object' && b.type === 'number')) {
         // fmt 需是合法的 ST_TextAutonumberScheme（'decimal' 这类写法会让 WPS/PowerPoint 回退成中文编号）
         const fmt = normalizeAutoNumType(b && typeof b === 'object' ? b.fmt : undefined);
         const start = (b && typeof b === 'object' && b.start != null) ? b.start : 1;
         pPrChildren.push(xmlNode('a:buAutoNum', { type: fmt, startAt: start }));
+    } else if (b && typeof b === 'object' && (b as any).type === 'picture' && (b as any).data) {
+        // 图片项目符号（a:buBlip）：data URL 落成独立媒体部件 + image 关系
+        const blip = buildBulletPicture(ctx, b as any);
+        if (blip) {
+            if ((b as any).sizePct) pPrChildren.push(xmlNode('a:buSzPct', { val: Math.round((b as any).sizePct * 1000) }));
+            pPrChildren.push(blip);
+        } else {
+            pPrChildren.push(xmlNode('a:buNone'));
+        }
     } else if (b === true || b === 'bullet' || (b && typeof b === 'object' && (b.type === 'bullet' || b.char))) {
         const char = (b && typeof b === 'object' && b.char) ? b.char : '•';
-        pPrChildren.push(xmlNode('a:buFont', { typeface: 'Arial' }));
+        // 符号字体（a:buFont）：Wingdings 等符号字体缺了会退化成普通字形。
+        // 仅在确实指定了符号字体时才输出；缺省按 OOXML 继承段落字体
+        // （早先无条件写死 Arial，既多余又让回读多出 font 字段）
+        if (b && typeof b === 'object' && b.font) {
+            pPrChildren.push(xmlNode('a:buFont', { typeface: b.font, pitchFamily: '2', charset: '2' }));
+        }
+        if (b && typeof b === 'object' && b.sizePct) {
+            pPrChildren.push(xmlNode('a:buSzPct', { val: Math.round(b.sizePct * 1000) }));
+        }
         pPrChildren.push(xmlNode('a:buChar', { char }));
     } else {
         pPrChildren.push(xmlNode('a:buNone'));
@@ -1279,6 +1296,25 @@ async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) 
             ...build3DNodes(el.threeD)
         )
     );
+}
+
+/**
+ * 图片项目符号（a:buBlip）：把 data URL 落成独立媒体部件 + image 关系。
+ * 同步实现（buildParagraph 链全为同步），因此直接解析 dataURL 而不复用
+ * async 的 resolveImageData。
+ * @returns a:buBlip 节点；data 无法解析时返回 null
+ */
+function buildBulletPicture(ctx: SerializerContext, bullet: { data?: string; extension?: string }) {
+    const str = String(bullet.data || '');
+    const m = str.match(/^data:([^;,]*);base64,(.+)$/is);
+    const base64 = m ? m[2] : '';
+    if (!base64) return null;
+    const ext = bullet.extension || (m ? mimeToExt(m[1]) : 'png');
+    ctx.mediaIndex++;
+    const mediaName = `image${ctx.mediaIndex}.${ext}`;
+    ctx.media.push({ name: mediaName, base64 });
+    const rid = addRelationship(ctx, REL_TYPES.image, `../media/${mediaName}`);
+    return xmlNode('a:buBlip', null, xmlNode('a:blip', { 'r:embed': rid }));
 }
 
 /**
@@ -2018,6 +2054,10 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
     );
 }
 
+/** 1×1 透明 PNG（base64）：媒体元素缺省海报时的占位，避免 a:blip 指向非图片关系 */
+const TRANSPARENT_PNG_BASE64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
 /** 构建视频/音频媒体元素（p:pic + 媒体关系） */
 async function buildMediaElement(ctx: SerializerContext, el: SerializerElement, kind: 'video' | 'audio') {
     const id = ctx.nextElementId++;
@@ -2027,13 +2067,20 @@ async function buildMediaElement(ctx: SerializerContext, el: SerializerElement, 
     const { base64 } = await resolveImageData({ type: 'image', data: el.data, src: el.src, extension: ext } as SerializerElement);
     ctx.media.push({ name: mediaName, base64 });
     const embedRelId = addRelationship(ctx, kind === 'video' ? REL_TYPES.video : REL_TYPES.audio, `../media/${mediaName}`);
-    let posterRelId = embedRelId;
-    if (el.poster) {
+    // a:blip 必须指向图片关系。缺省海报时给一张 1×1 透明 PNG，
+    // 不能沿用媒体关系（否则 PowerPoint 拿到 mp4/mp3 当图片解码，形状无法显示）
+    let posterRelId = '';
+    if (el.poster && (el.poster.data || el.poster.src)) {
         ctx.mediaIndex++;
         const pExt = el.poster.extension || 'png';
         const pName = `image${ctx.mediaIndex}.${pExt}`;
         const pData = await resolveImageData({ type: 'image', data: el.poster.data, src: el.poster.src, extension: pExt } as SerializerElement);
         ctx.media.push({ name: pName, base64: pData.base64 });
+        posterRelId = addRelationship(ctx, REL_TYPES.image, `../media/${pName}`);
+    } else {
+        ctx.mediaIndex++;
+        const pName = `image${ctx.mediaIndex}.png`;
+        ctx.media.push({ name: pName, base64: TRANSPARENT_PNG_BASE64 });
         posterRelId = addRelationship(ctx, REL_TYPES.image, `../media/${pName}`);
     }
     const mediaFileNode = kind === 'video'
