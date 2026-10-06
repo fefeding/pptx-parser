@@ -1830,7 +1830,10 @@ function resolveThemeStyleRef(
     themeMap: Record<string, string>
 ): { color: string; gradient?: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string }; widthPt?: number } | undefined {
     if (!refNode || !refNode.attrs || !styleList.length) return undefined;
-    let idx = Number(refNode.attrs.idx) || 1;
+    // idx=0 在 OOXML 中表示 noFill/noLine（不引用任何样式），直接返回 undefined
+    const rawIdx = Number(refNode.attrs.idx);
+    if (rawIdx === 0) return undefined;
+    let idx = rawIdx || 1;
     if (idx < 1) idx = 1;
     const raw = styleList[(idx - 1) % styleList.length];
     if (!raw || typeof raw !== 'object') return undefined;

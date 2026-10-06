@@ -14540,6 +14540,35 @@ function buildTextRun(ctx, text, opts = {}) {
     if (opts.fontFace) {
         rPrChildren.push(xmlNode('a:latin', { typeface: opts.fontFace }));
     }
+    if (opts.outline) {
+        if (opts.outline === 'none') {
+            rPrChildren.push(xmlNode('a:ln', null, xmlNode('a:noFill')));
+        }
+        else {
+            const w = opts.outline.width != null ? ptToEmu(opts.outline.width) : 9525;
+            const lnChildren = [];
+            if (opts.outline.color)
+                lnChildren.push(xmlNode('a:solidFill', colorNode(opts.outline.color)));
+            rPrChildren.push(xmlNode('a:ln', { w }, ...lnChildren));
+        }
+    }
+    if (opts.shadow && typeof opts.shadow === 'object') {
+        const s = opts.shadow;
+        const x = s.x || 0, y = s.y || 0;
+        const dist = Math.round(Math.sqrt(x * x + y * y) * 12700);
+        const dir = Math.round(Math.atan2(y, x) * 60000 / Math.PI * 180);
+        const blurRad = Math.round((s.blur || 0) * 12700);
+        const shdwAttrs = { dist, dir, blurRad };
+        const shdwChildren = [];
+        if (s.color) {
+            const clr = colorNode(s.color);
+            if (s.alpha != null) {
+                clr.children.push(xmlNode('a:alpha', { val: Math.round(s.alpha * 100000) }));
+            }
+            shdwChildren.push(clr);
+        }
+        rPrChildren.push(xmlNode('a:effectLst', null, xmlNode('a:outerShdw', shdwAttrs, ...shdwChildren)));
+    }
     const hlink = buildHyperlink(ctx, opts.href);
     if (hlink)
         rPrChildren.push(hlink);
@@ -18830,7 +18859,10 @@ async function getThemeStyleTables(zip, themeContent) {
 function resolveThemeStyleRef(refNode, styleList, themeMap) {
     if (!refNode || !refNode.attrs || !styleList.length)
         return undefined;
-    let idx = Number(refNode.attrs.idx) || 1;
+    const rawIdx = Number(refNode.attrs.idx);
+    if (rawIdx === 0)
+        return undefined;
+    let idx = rawIdx || 1;
     if (idx < 1)
         idx = 1;
     const raw = styleList[(idx - 1) % styleList.length];

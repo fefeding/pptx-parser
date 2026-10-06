@@ -178,6 +178,10 @@ export interface RunStyle {
      * 设置后该 run 写出 <a:fld type id><a:rPr/><a:t>text</a:t></a:fld> 而非 <a:r>。
      */
     field?: string;
+    /** 文字描边（a:ln）：'none' = 显式无描边；{ color, width } = 实线描边 */
+    outline?: 'none' | { color?: string; width?: number };
+    /** 文字外阴影（a:effectLst/a:outerShdw） */
+    shadow?: { color?: string; blur?: number; x?: number; y?: number; alpha?: number };
 }
 /** 文本运行：{ text, options } 规范格式，或扁平简写格式 */
 export interface TextRunSpec extends RunStyle {
@@ -720,6 +724,36 @@ function buildTextRun(ctx: SerializerContext, text: string | undefined, opts: Ru
     }
     if (opts.fontFace) {
         rPrChildren.push(xmlNode('a:latin', { typeface: opts.fontFace }));
+    }
+    // 文字描边（a:ln）：OOXML 中 a:rPr 下 a:ln 在 solidFill 之后
+    if (opts.outline) {
+        if (opts.outline === 'none') {
+            rPrChildren.push(xmlNode('a:ln', null, xmlNode('a:noFill')));
+        } else {
+            const w = opts.outline.width != null ? ptToEmu(opts.outline.width) : 9525;
+            const lnChildren = [];
+            if (opts.outline.color) lnChildren.push(xmlNode('a:solidFill', colorNode(opts.outline.color)));
+            rPrChildren.push(xmlNode('a:ln', { w }, ...lnChildren));
+        }
+    }
+    // 文字外阴影（a:effectLst/a:outerShdw）
+    if (opts.shadow && typeof opts.shadow === 'object') {
+        const s = opts.shadow;
+        const x = s.x || 0, y = s.y || 0;
+        const dist = Math.round(Math.sqrt(x * x + y * y) * 12700); // pt → EMU
+        const dir = Math.round(Math.atan2(y, x) * 60000 / Math.PI * 180);
+        const blurRad = Math.round((s.blur || 0) * 12700);
+        const shdwAttrs: Record<string, number | string | null> = { dist, dir, blurRad };
+        const shdwChildren: BuilderNode[] = [];
+        if (s.color) {
+            const clr = colorNode(s.color);
+            if (s.alpha != null) {
+                // alpha: 0~1 → 百分比千分之一（100% = 100000）
+                clr.children.push(xmlNode('a:alpha', { val: Math.round(s.alpha * 100000) }));
+            }
+            shdwChildren.push(clr);
+        }
+        rPrChildren.push(xmlNode('a:effectLst', null, xmlNode('a:outerShdw', shdwAttrs, ...shdwChildren)));
     }
     const hlink = buildHyperlink(ctx, opts.href);
     if (hlink) rPrChildren.push(hlink);
