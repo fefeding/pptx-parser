@@ -745,7 +745,12 @@ export function elementToPptx(el) {
       if (f !== undefined) out.fill = f;
       if (el.line) {
         out.line = el.line !== 'none'
-          ? { color: normalizeColor(el.line.color) || '000000', width: el.line.width || 1, dashType: el.line.dashType || 'solid' }
+          ? {
+              // 保留源显式值（含 width=0 表示无可见线）；未指定时不固化默认值，交给主题/版式继承
+              color: el.line.color != null ? (normalizeColor(el.line.color) || undefined) : undefined,
+              width: el.line.width != null ? el.line.width : 1,
+              dashType: el.line.dashType || 'solid'
+            }
           : 'none';
       }
       if (el.shadow || el.glow) {
@@ -779,7 +784,11 @@ export function elementToPptx(el) {
       out.shapeType = el.shapeType || 'rect';
       out.fill = fillToPptx(el.fill);
       out.line = el.line && el.line !== 'none'
-        ? { color: normalizeColor(el.line.color) || '000000', width: el.line.width || 1, dashType: el.line.dashType || 'solid' }
+        ? {
+            color: el.line.color != null ? (normalizeColor(el.line.color) || undefined) : undefined,
+            width: el.line.width != null ? el.line.width : 1,
+            dashType: el.line.dashType || 'solid'
+          }
         : 'none';
       if (el.shadow || el.glow) {
         out.effects = {};
@@ -797,6 +806,7 @@ export function elementToPptx(el) {
       if (el.data) out.data = el.data;
       if (el.src) out.src = el.src;
       if (el.extension) out.extension = el.extension;
+      if (el.crop && typeof el.crop === 'object') out.crop = el.crop;
       const adj = el.imageAdjust || {};
       if (adj.brightness || adj.contrast || adj.transparency) {
         out.imageAdjust = {
@@ -1142,24 +1152,29 @@ function elementFromPptx(pe) {
     case 'text': {
       el.type = 'text';
       el.fontSize = pe.fontSize ?? 18;
-      el.color = colorFromPptx(pe.color) || '#202124';
+      // 源未显式指定颜色/字体时保持 undefined（继承主题），不可固化成编辑器默认值，
+      // 否则原本靠母版/主题继承的文字会被固定成错误颜色（如深色背景上的文字变成深灰）
+      el.color = pe.color != null ? colorFromPptx(pe.color) : undefined;
       el.bold = !!pe.bold; el.italic = !!pe.italic; el.underline = !!pe.underline;
-      el.fontFace = pe.fontFace || '微软雅黑';
+      el.fontFace = pe.fontFace || null;
       el.align = pe.align || 'left';
       el.valign = pe.valign || 'top';
       el.textDirection = pe.textDirection || '';
       el.noWrap = !!pe.noWrap;
       el.rtlCol = !!pe.rtlCol;
-      el.inset = (pe.inset && typeof pe.inset === 'object') ? {
-        l: pe.inset.l ?? 7.2, r: pe.inset.r ?? 7.2, t: pe.inset.t ?? 3.6, b: pe.inset.b ?? 3.6
-      } : null;
+      el.inset = (pe.inset && typeof pe.inset === 'object')
+        ? { l: pe.inset.l, r: pe.inset.r, t: pe.inset.t, b: pe.inset.b }
+        : null;
       // 带文字的形状底（椭圆/饼图/弧线等）：保留几何与外观
       el.shapeType = pe.shapeType || null;
       if (pe.adjust && typeof pe.adjust === 'object') el.adjust = pe.adjust;
       if (pe.custGeom && Array.isArray(pe.custGeom.paths) && pe.custGeom.paths.length) el.custGeom = pe.custGeom;
       el.fill = fillFromPptx(pe.fill);
       el.line = pe.line && pe.line !== 'none'
-        ? { color: colorFromPptx(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid' }
+        ? {
+            color: pe.line.color != null ? (colorFromPptx(pe.line.color) || undefined) : undefined,
+            width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid'
+          }
         : (pe.line === 'none' ? 'none' : null);
       // 带文字形状的阴影/发光（来自 spPr/a:effectLst 或 p:style/a:effectRef 主题样式）
       el.shadow = (pe.effects && pe.effects.shadow && typeof pe.effects.shadow === 'object') ? pe.effects.shadow : null;
@@ -1185,8 +1200,8 @@ function elementFromPptx(pe) {
       // 标准 JSON 的 bullet 是对象 {type:'number'|'bullet',...} 或 'number'/true
       const eb = pe.bullet;
       el.bullet = eb ? ((eb === 'number' || (eb.type === 'number')) ? 'number' : true) : false;
-      // indentLeft 单位是 pt，编辑器内部用 px
-      el.indent = pe.indentLeft ? Math.round(ptToPx(pe.indentLeft)) : 0;
+      // indentLeft 单位是 pt，编辑器内部用 px（保留浮点，避免 EMU→pt→px 往返舍入丢失精度）
+      el.indent = pe.indentLeft ? ptToPx(pe.indentLeft) : 0;
       const fallback = { fontSize: el.fontSize, color: el.color, fontFace: el.fontFace };
       const lineSpacingNum = (ls) => {
         if (ls == null) return el.lineSpacing;
@@ -1209,13 +1224,13 @@ function elementFromPptx(pe) {
             lineSpacingSet: p.lineSpacing != null,
             // 从右到左段落（a:pPr@rtl）：RTL 段落缺省右对齐
             rtl: !!p.rtl,
-            // 段落级缩进（pt→px）与段前/段后间距（pt→px）
-            indent: p.indent != null ? Math.round(ptToPx(p.indent)) : undefined,
+            // 段落级缩进（pt→px）与段前/段后间距（pt→px）：保留浮点，避免 EMU 往返舍入（marL 小值最敏感）
+            indent: p.indent != null ? ptToPx(p.indent) : undefined,
             // marL/marR：列表左/右边界（pt→px），缺失时导出端不写、由版式继承
-            indentLeft: p.indentLeft != null ? Math.round(ptToPx(p.indentLeft)) : undefined,
-            indentRight: p.indentRight != null ? Math.round(ptToPx(p.indentRight)) : undefined,
-            spaceBefore: p.spaceBefore != null ? Math.round(ptToPx(p.spaceBefore)) : undefined,
-            spaceAfter: p.spaceAfter != null ? Math.round(ptToPx(p.spaceAfter)) : undefined
+            indentLeft: p.indentLeft != null ? ptToPx(p.indentLeft) : undefined,
+            indentRight: p.indentRight != null ? ptToPx(p.indentRight) : undefined,
+            spaceBefore: p.spaceBefore != null ? ptToPx(p.spaceBefore) : undefined,
+            spaceAfter: p.spaceAfter != null ? ptToPx(p.spaceAfter) : undefined
           };
         });
       } else if (pe.runs && pe.runs.length) {
@@ -1247,6 +1262,7 @@ function elementFromPptx(pe) {
       el.data = pe.data || '';
       el.src = pe.src || '';
       el.extension = pe.extension || '';
+      if (pe.crop && typeof pe.crop === 'object') el.crop = pe.crop;
       el.imageAdjust = Object.assign({ brightness: 0, contrast: 0, transparency: 0 }, pe.imageAdjust || {});
       return el;
     }
