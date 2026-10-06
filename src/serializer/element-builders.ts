@@ -19,7 +19,8 @@ import { xmlNode, rawXml, pxToEmu, ptToSz, ptToEmu, degToRot, colorToHex, NS, es
 import { REL_TYPES, DEFAULT_TABLE_STYLE_ID } from './templates';
 import type {
     PptxBackground, PptxTransition, PptxImageSrcRect, PptxImageTile,
-    PptxTrendline, Pptx3D, PptxCustomGeometry, PptxAutofit, PptxGeometryPath, PptxGeometryCommand
+    PptxTrendline, Pptx3D, PptxCustomGeometry, PptxAutofit, PptxGeometryPath, PptxGeometryCommand,
+    PptxDiagramShape, PptxGradientFill
 } from '../types/pptx-document';
 
 /**
@@ -49,6 +50,11 @@ const PRESET_GEOMETRIES = new Set<string>([
     'rtTriangle', 'snip1Rect', 'snip2DiagRect', 'snip2SameRect', 'snipRoundRect', 'sun', 'swooshArrow', 'teardrop', 'trapezoid',
     'triangle', 'upArrow', 'upArrowCallout', 'upDownArrow', 'upDownArrowCallout', 'uturnArrow', 'verticalScroll', 'wave',
     'wedgeEllipseCallout', 'wedgeRectCallout', 'wedgeRoundRectCallout', 'x', 'foldedCorner', 'smileyFace',
+    // ECMA-376 ST_ShapeType 其余成员（此前缺失会被 normalizeShapeType 误回退成 rect）
+    'flowChartMagneticDisk', 'noSmoking', 'softRound', 'star4', 'star5', 'star6', 'star7', 'star8', 'star10', 'star12',
+    'star16', 'star24', 'star32', 'squareTabs', 'plaqueTabs', 'stripedRightArrow', 'folderCorner', 'flowChartData',
+    'flowChartDirectAccessStorage', 'flowChartOffpageConnector', 'flowChartSort',
+    'mathDivide', 'mathEqual', 'mathGreaterThan', 'mathLessThan', 'mathMinus', 'mathMultiply', 'mathNotEqual', 'mathPlus',
     // 连接线（p:cxnSp 专用几何；缺省会被 normalizeShapeType 回退成 rect）
     'straightConnector1',
     'bentConnector2', 'bentConnector3', 'bentConnector4', 'bentConnector5',
@@ -105,6 +111,8 @@ export interface DiagramNode {
     /** 子节点（层级） */
     children?: DiagramNode[];
 }
+/** 解析端缓存的图示绘图形状（el.shapes，PptxDiagramShape 的别名） */
+type DiagramShapeCache = PptxDiagramShape;
 /**
  * __raw 回退所需的附属部件（如 SmartArt 的 diagrams/*.xml）
  * media=true 表示二进制资源（以 base64 落盘，走 Default 扩展名声明）
@@ -208,7 +216,15 @@ export interface TableBorders {
 
 /** 形状填充/边框/特效（供 SerializerElement 使用） */
 export interface ShapeFillSolid { type?: 'solid'; color?: string; transparency?: number; }
-export interface ShapeFillGradient { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; }
+export interface ShapeFillGradient {
+    type: 'gradient';
+    direction?: 'horizontal' | 'vertical' | 'diagonal';
+    stops: { color: string; position: number }[];
+    /** 渐变类型：缺省为线性（a:lin），'radial' 写 a:path */
+    gradientType?: 'linear' | 'radial';
+    /** 径向渐变路径（a:path@path）：circle / rect / shape */
+    gradientPath?: string;
+}
 export interface ShapeFillImage {
     type: 'image'; data?: string; src?: string; extension?: string;
     /** 源图裁剪（a:srcRect），各边裁掉的比例，取值 0~1 */
@@ -241,6 +257,8 @@ export interface SerializerTableCell {
     /** 分边边框（最高优先级，覆盖统一边框） */
     borders?: TableBorders;
     align?: string;
+    /** 从右到左段落（a:pPr@rtl="1"）；单段单元格走 text 简写时用于补回 rtl */
+    rtl?: boolean;
     valign?: string;
     fontSize?: number;
     color?: string;
@@ -270,8 +288,8 @@ export interface ChartSeriesSpec {
     low?: number[];
     close?: number[];
     color?: string;
-    /** 逐点填充色（c:dPt）：下标对应 values，undefined 表示无覆盖 */
-    pointColors?: (string | undefined)[];
+    /** 逐点填充色（c:dPt）：下标对应 values，undefined 表示无覆盖；渐变时传 PptxGradientFill */
+    pointColors?: (string | PptxGradientFill | undefined)[];
     /** 绑定到主/次数值轴（次坐标轴）；需图表级 secondaryValueAxis 配合 */
     axis?: 'primary' | 'secondary';
     /** 该系列是否显示数据标签（覆盖图表级 dataLabels） */
@@ -332,6 +350,8 @@ export interface SerializerElement {
     barDir?: string;
     title?: string;
     legend?: boolean;
+    /** 图例位置（c:legend/c:legendPos@val）：b/r/t/l */
+    legendPosition?: string;
     /** 图表数据标签：true=显示值，或细粒度控制各显示项 */
     dataLabels?: boolean | { showValue?: boolean; showPercent?: boolean; showSeries?: boolean; showCategory?: boolean };
     /** 图表分组/堆叠方式：bar 系默认 clustered，line/area 系默认 standard；支持 stacked / percentStacked */
@@ -398,8 +418,12 @@ export interface SerializerElement {
     tableStyleId?: string;
     /** SmartArt 图示类型：'list' | 'hierarchy' | 'process' | 'cycle' | 'pyramid' */
     diagramType?: string;
-    /** SmartArt 图示节点（层级结构，叶子含 text） */
+    /** SmartArt 图示节点（层级结构，叶子含 text，创作端） */
     nodes?: DiagramNode[];
+    /** 图示数据部件文本（解析端，按文档顺序） */
+    texts?: string[];
+    /** 图示缓存绘图形状（解析端，见 PptxDiagramShape） */
+    shapes?: PptxDiagramShape[];
     /** 原始 OOXML 载荷（解析端产出，语义层未覆盖时用于无损回写） */
     __raw?: unknown;
     /** 强制以 __raw 回写（即使 type 已受语义层支持） */
@@ -408,6 +432,8 @@ export interface SerializerElement {
     descr?: string;
     /** 分栏数（a:bodyPr@numCol，默认 1；需 >1 才写出） */
     numCol?: number;
+    /** 是否从右向左排布列（a:bodyPr@rtlCol，影响 RTL 文本折行） */
+    rtlCol?: boolean;
     /** 栏间距 pt（a:bodyPr@spcCol） */
     spcCol?: number;
     /** 文本框自动适配：'none'(a:noAutofit) / 'normal'(a:normAutofit) / 'shape'(a:spAutoFit) */
@@ -755,7 +781,11 @@ const VALID_AUTONUM_TYPES = [
     'circleNumDbPlain', 'circleNumWdWhitePlain', 'circleNumWdBlackPlain',
     'ea1ChsPeriod', 'ea1ChsPlain', 'ea1ChtPeriod', 'ea1ChtPlain', 'ea1JpnChsDbPeriod', 'ea1JpnKorPeriod', 'ea1JpnKorPlain',
     'chineseCounting', 'chineseLegalSimplified', 'chineseCountingThousand', 'ideographDigital',
-    'hebrew1', 'hebrew2'
+    'hebrew1', 'hebrew2', 'hebrew1Minus', 'hebrew2Minus',
+    'arabicAlpha', 'arabicAbjad',
+    'hindiAlpha', 'hindiAlpha1', 'hindiAlpha2', 'hindiNum1', 'hindiNum2',
+    'thaiAlpha', 'thaiNum', 'koreanAlpha', 'koreanNum', 'koreanDigital',
+    'ea1JpnChsDbPeriod', 'ideographEnclosedCircle', 'ideographTraditional', 'ideographZodiac'
 ];
 
 /** 友好写法 → 合法 ST_TextAutonumberScheme 值 */
@@ -923,10 +953,10 @@ function normalizeTextVerticalType(value?: string): string | undefined {
     return TEXT_VERTICAL_TYPES.has(v) ? v : undefined;
 }
 
-function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
+async function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
     const anchorMap: Record<string, string | null> = { top: null, middle: 'ctr', bottom: 'b' };
-    const bodyPrAttrs: Record<string, number | string | null> = { wrap: 'square', rtlCol: 0 };
+    const bodyPrAttrs: Record<string, number | string | null> = { wrap: 'square', rtlCol: el.rtlCol ? 1 : 0 };
     const anchor = anchorMap[el.valign ?? 'top'];
     if (anchor) bodyPrAttrs.anchor = anchor;
     const vert = normalizeTextVerticalType(el.textDirection);
@@ -970,19 +1000,36 @@ function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
         lang: el.lang
     };
 
+    // 带形状底的文本（原 p:sp 带 prstGeom/custGeom + fill/line/effects）：
+    // 一律写成 rect 文本框会丢失形状几何与外观（椭圆/饼图/弧线等全部变白底方框）。
+    // 纯文本框同样可能有填充/边框（fill:'none' 也需显式写 a:noFill，避免继承主题底色）
+    const hasShapeBase = !!(el.shapeType || el.custGeom);
+    const spPrChildren: BuilderNode[] = [buildXfrm(el)];
+    if (el.custGeom) {
+        spPrChildren.push(buildCustomGeometry(el.custGeom));
+    } else if (el.shapeType) {
+        spPrChildren.push(xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) },
+            el.adjust && Object.keys(el.adjust).length
+                ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
+                : xmlNode('a:avLst')));
+    } else {
+        spPrChildren.push(xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')));
+    }
+    const { fillNode, lineNode, effectNode } = await buildShapeAppearance(ctx, el);
+    if (fillNode) spPrChildren.push(fillNode);
+    if (lineNode) spPrChildren.push(lineNode);
+    if (effectNode) spPrChildren.push(effectNode);
+
     return xmlNode('p:sp',
         null,
         xmlNode('p:nvSpPr',
             null,
             xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}`, descr: el.descr || null }),
-            xmlNode('p:cNvSpPr', { txBox: 1 }),
+            // 纯文本框标 txBox=1；带形状底的不是文本框（否则 PowerPoint 按文本框处理外观）
+            xmlNode('p:cNvSpPr', hasShapeBase ? null : { txBox: 1 }),
             xmlNode('p:nvPr')
         ),
-        xmlNode('p:spPr',
-            null,
-            buildXfrm(el),
-            xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))
-        ),
+        xmlNode('p:spPr', null, ...spPrChildren),
         xmlNode('p:txBody',
             null,
             xmlNode('a:bodyPr', bodyPrAttrs, ...bodyPrChildren),
@@ -1050,6 +1097,13 @@ async function buildFillNode(ctx: SerializerContext, fill: SerializerElement['fi
         const stops = (g.stops || []).map((s) =>
             xmlNode('a:gs', { pos: Math.round((s.position || 0) * 100000) }, colorNode(s.color))
         );
+        // 径向渐变（a:path）：无 a:lin，需写 <a:path path="circle"><a:fillToRect .../></a:path>
+        if (g.gradientType === 'radial') {
+            const pathPrst = g.gradientPath || 'circle';
+            return xmlNode('a:gradFill', { rotWithShape: 1 },
+                xmlNode('a:gsLst', null, ...stops),
+                xmlNode('a:path', { path: pathPrst }, xmlNode('a:fillToRect', { l: 100000, t: 100000, r: 100000, b: 100000 })));
+        }
         const ang = (g.direction === 'vertical' ? 90 : g.direction === 'diagonal' ? 45 : 0) * 60000;
         return xmlNode('a:gradFill', null, xmlNode('a:gsLst', null, ...stops), xmlNode('a:lin', { ang, scaled: 1 }));
     }
@@ -1220,13 +1274,15 @@ function build3DNodes(threeD?: Pptx3D): BuilderNode[] {
     return nodes;
 }
 
-async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
-
+/**
+ * 形状外观（spPr 的 fill / line / effectLst），buildShapeElement 与 buildTextElement 共享：
+ * 带文字的形状（type:'text' + shapeType）同样需要填充/边框/特效，否则导出后形状底丢失。
+ */
+async function buildShapeAppearance(ctx: SerializerContext, el: SerializerElement): Promise<{ fillNode: BuilderNode | null; lineNode: BuilderNode | null; effectNode: BuilderNode | null }> {
     const fillNode = await buildFillNode(ctx, el.fill);
 
     // 边框
-    let lineNode;
+    let lineNode: BuilderNode | null = null;
     if (el.line === 'none' || el.line === null) {
         lineNode = xmlNode('a:ln', null, xmlNode('a:noFill'));
     } else if (el.line) {
@@ -1270,6 +1326,12 @@ async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) 
         }
         if (effChildren.length) effectNode = xmlNode('a:effectLst', null, ...effChildren);
     }
+    return { fillNode, lineNode, effectNode };
+}
+
+async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
+    const id = ctx.nextElementId++;
+    const { fillNode, lineNode, effectNode } = await buildShapeAppearance(ctx, el);
 
     return xmlNode('p:sp',
         null,
@@ -1433,9 +1495,27 @@ function buildChartElement(ctx: SerializerContext, el: SerializerElement) {
     );
 }
 
+/**
+ * 渐变填充 → a:gradFill 片段（图表逐点填充 c:dPt 用）。
+ * 径向渐变写 a:path，线性渐变写 a:lin（ang 单位 1/60000 度）。
+ * @returns XML 片段；无有效色标时返回空串
+ */
+function gradientFillXml(g: PptxGradientFill): string {
+    const stops = (g.stops || []).filter((s) => s && s.color);
+    if (!stops.length) return '';
+    const gsLst = `<a:gsLst>${stops
+        .map((s) => `<a:gs pos="${Math.round((s.position || 0) * 100000)}"><a:srgbClr val="${colorToHex(s.color)}"/></a:gs>`)
+        .join('')}</a:gsLst>`;
+    if (g.gradientType === 'radial') {
+        const path = g.gradientPath || 'circle';
+        return `<a:gradFill rotWithShape="1">${gsLst}<a:path path="${escapeXml(path)}"><a:fillToRect l="100000" t="100000" r="100000" b="100000"/></a:path></a:gradFill>`;
+    }
+    const ang = (g.direction === 'vertical' ? 90 : g.direction === 'diagonal' ? 45 : 0) * 60000;
+    return `<a:gradFill>${gsLst}<a:lin ang="${ang}" scaled="1"/></a:gradFill>`;
+}
+
 /** 构造 c:strRef（类别标签缓存） */
-function strRefXml(values: unknown[], col: string) {
-    const n = values.length;
+function strRefXml(values: unknown[], col: string) {    const n = values.length;
     let pts = '';
     for (let i = 0; i < n; i++) {
         pts += `<c:pt idx="${i}"><c:v>${escapeXml(String(values[i]))}</c:v></c:pt>`;
@@ -1536,10 +1616,15 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
             }
             const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
             // 逐点填充（c:dPt）：位于 spPr/marker 之后、trendline/cat 之前（CT_*Ser 顺序）
+            // 条目为渐变时写 a:gradFill（3D 饼/环依赖它复现逐点渐变，压成纯色会退回默认调色板）
             const dPtXml = (s.pointColors || [])
-                .map((c: string | undefined, pi: number) => c
-                    ? `<c:dPt><c:idx val="${pi}"/><c:spPr><a:solidFill><a:srgbClr val="${colorToHex(c)}"/></a:solidFill></c:spPr></c:dPt>`
-                    : '')
+                .map((c: string | PptxGradientFill | undefined, pi: number) => {
+                    if (!c) return '';
+                    const fill = typeof c === 'string'
+                        ? `<a:solidFill><a:srgbClr val="${colorToHex(c)}"/></a:solidFill>`
+                        : gradientFillXml(c as PptxGradientFill);
+                    return fill ? `<c:dPt><c:idx val="${pi}"/><c:spPr>${fill}</c:spPr></c:dPt>` : '';
+                })
                 .join('');
             // marker 位于数据之前，smooth 位于数据之后（CT_LineSer / CT_ScatterSer 的元素顺序）
             const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
@@ -1660,8 +1745,9 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
           `</c:rich></c:tx><c:overlay val="0"/></c:title>`
         : '';
 
-    const legendXml = el.legend !== false && el.legend !== undefined
-        ? `<c:legend><c:legendPos val="${typeof el.legend === 'string' ? el.legend : 'r'}"/><c:overlay val="0"/></c:legend>`
+    const legendPos = el.legendPosition || (typeof el.legend === 'string' ? el.legend : (el.legend ? 'r' : undefined));
+    const legendXml = legendPos
+        ? `<c:legend><c:legendPos val="${legendPos}"/><c:overlay val="0"/></c:legend>`
         : '';
 
     const autoTitleDeleted = `<c:autoTitleDeleted val="${el.title ? 0 : 1}"/>`;
@@ -1818,7 +1904,7 @@ function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell, table
     };
     const paragraphs = Array.isArray(cell.paragraphs) && cell.paragraphs.length
         ? cell.paragraphs
-        : [{ text: cell.text !== undefined ? cell.text : '' }];
+        : [{ text: cell.text !== undefined ? cell.text : '', rtl: cell.rtl }];
 
     const tcPrChildren: BuilderNode[] = [];
     // 边框（OOXML 顺序位在填充之前）；显式 'none' 输出 noFill，避免被表格样式网格补上
@@ -1845,7 +1931,8 @@ function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell, table
     // 单元格内边距：OOXML 中是 a:tcPr 的属性（marL/marR/marT/marB），
     // 之前写成自定义元素 <a:tableCellInsets> 属于非法 OOXML，PowerPoint/WPS 会整体忽略
     const anchorMap: Record<string, string | null> = { top: 't', middle: 'ctr', bottom: 'b' };
-    const tcPrAttrs: Record<string, unknown> = { anchor: anchorMap[cell.valign ?? 'top'] ?? null };
+    // 未指定垂直对齐时不写 anchor：保留表格样式/母版继承（强制 anchor="t" 会把居中变顶对齐）
+    const tcPrAttrs: Record<string, unknown> = { anchor: cell.valign ? (anchorMap[cell.valign] ?? null) : null };
     if (cell.inset) {
         const ins = cell.inset;
         if (ins.l != null) tcPrAttrs.marL = pxToEmu(ins.l);
@@ -2395,22 +2482,81 @@ function buildDiagramDrawing(type: string, seed: number, nodes: DiagramNode[], W
 }
 
 /**
+ * 从解析端缓存的绘图形状（el.shapes，见 json-from-pptx extractDiagramShapes）重建 dsp:drawing。
+ * 没有它，解析→导出后 diagrams/drawingN.xml 会由 nodes（解析端为空）生成空绘图，
+ * SmartArt 的全部图形在解析器与预览端里消失，只剩文字。
+ */
+function buildDiagramDrawingFromShapes(shapes: DiagramShapeCache[], W: number, H: number): string {
+    const hex = (c?: string) => (c ? colorToHex(c) : '');
+    let spid = 2;
+    const sps = shapes.map((s, idx) => {
+        const id = spid++;
+        const modelId = diagramUniqueId(idx + 1);
+        const flips = `${s.flipH ? ' flipH="1"' : ''}${s.flipV ? ' flipV="1"' : ''}`;
+        const xfrm = `<a:xfrm${flips}><a:off x="${pxToEmu(s.x)}" y="${pxToEmu(s.y)}"/><a:ext cx="${pxToEmu(s.width)}" cy="${pxToEmu(s.height)}"/></a:xfrm>`;
+        const adjust = s.adjust && Object.keys(s.adjust).length
+            ? Object.entries(s.adjust).map(([name, val]) => `<a:gd name="${name}" fmla="val ${val}"/>`).join('')
+            : '';
+        const geom = `<a:prstGeom prst="${escapeXml(s.prst || 'rect')}"><a:avLst>${adjust}</a:avLst></a:prstGeom>`;
+        const fillXml = (s.fill === 'none' || !s.fill)
+            ? (s.fill === 'none' ? '<a:noFill/>' : '')
+            : `<a:solidFill><a:srgbClr val="${hex(s.fill)}"/></a:solidFill>`;
+        const lw = Math.max(9525, pxToEmu(s.lineWidth || 0.75));
+        const lineXml = s.lineColor
+            ? `<a:ln w="${lw}"><a:solidFill><a:srgbClr val="${hex(s.lineColor)}"/></a:solidFill></a:ln>`
+            : '';
+        const anchor = s.anchor === 't' ? 't' : s.anchor === 'b' ? 'b' : 'ctr';
+        const algn = s.align === 'l' ? 'l' : s.align === 'r' ? 'r' : 'ctr';
+        const sz = Math.max(900, Math.min(4000, Math.round((s.fontSize || 12) * 100)));
+        const lines = String(s.text || '').split('\n').map((line) =>
+            `<a:p><a:pPr algn="${algn}"/><a:r><a:rPr lang="en-US" sz="${sz}"${s.bold ? ' b="1"' : ''}>` +
+            (s.color ? `<a:solidFill><a:srgbClr val="${hex(s.color)}"/></a:solidFill>` : '') +
+            `</a:rPr><a:t>${escapeXml(line)}</a:t></a:r></a:p>`
+        ).join('');
+        const txBody = s.text
+            ? `<dsp:txBody><a:bodyPr anchor="${anchor}"/><a:lstStyle/>${lines}</dsp:txBody>`
+            : `<dsp:txBody><a:bodyPr anchor="${anchor}"/><a:lstStyle/><a:p><a:endParaRPr lang="en-US"/></a:p></dsp:txBody>`;
+        if (s.connector) {
+            return `<dsp:cxnSp modelId="${escapeXml(modelId)}"><dsp:nvCxnSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvCxnSpPr/><dsp:nvPr/></dsp:nvCxnSpPr>` +
+                `<dsp:spPr bwMode="auto">${xfrm}${geom}<a:noFill/>${lineXml}</dsp:spPr></dsp:cxnSp>`;
+        }
+        return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
+            `<dsp:spPr bwMode="auto">${xfrm}${geom}${fillXml}${lineXml}</dsp:spPr>${txBody}</dsp:sp>`;
+    }).join('');
+
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<dsp:drawing xmlns:dsp="${DSP_NS}" xmlns:a="${A_NS}" xmlns:r="${NS.r}">` +
+        `<dsp:spTree><dsp:nvGrpSpPr><dsp:cNvPr id="1" name="Diagram"/><dsp:cNvGrpSpPr/><dsp:nvPr/></dsp:nvGrpSpPr>` +
+        `<dsp:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${W}" cy="${H}"/><a:chOff x="0" y="0"/><a:chExt cx="${W}" cy="${H}"/></a:xfrm></dsp:grpSpPr>` +
+        sps +
+        `</dsp:spTree></dsp:drawing>`;
+}
+
+/**
  * 构建 SmartArt 图示元素（p:graphicFrame + 原生 diagrams/* 部件）
  * 生成 data/layout/colors/quickStyle 四件套，并登记幻灯片 → dataN.xml 关系；
  * 四部件由上层（jsonToPptx / editPptx.addSlide）写入 ppt/diagrams/ 并补 dataN.xml.rels。
+ *
+ * 解析端数据（texts + shapes）：texts 重建 data 部件文本，shapes 重建缓存绘图；
+ * 创作端数据（nodes）：走 layoutDiagram 布局。
  *
  * 限制：生成的 layoutDef/colorsDef/quickStyleDef 为结构级最小骨架，可被本解析器 round-trip、
  * 可被 PowerPoint 打开，但 PowerPoint 对 SmartArt 布局引擎校验严格，自定义布局可能不渲染为
  * 完整图示图形。如需保真渲染，应提供完整的标准 layoutDef 模板替换 buildDiagramLayout 等。
  * @param {Object} ctx - 构建上下文
- * @param {Object} el - 图示元素 JSON { type:'diagram', diagramType, nodes:[{text,children?}] }
+ * @param {Object} el - 图示元素 JSON { type:'diagram', diagramType, nodes? | texts?+shapes? }
  * @returns {Promise<Object>} p:graphicFrame 节点
  */
 async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement) {
     ctx.diagramIndex++;
     const n = ctx.diagramIndex;
     const dgmType = el.diagramType || 'list';
-    const nodes: DiagramNode[] = el.nodes || [];
+    // 解析端数据（texts + shapes）：用缓存形状重建绘图、用 texts 重建数据部件；
+    // 创作端数据（nodes）：走 layoutDiagram 布局
+    const cachedShapes: DiagramShapeCache[] = Array.isArray(el.shapes) ? el.shapes : [];
+    const nodes: DiagramNode[] = el.nodes && el.nodes.length
+        ? el.nodes
+        : (Array.isArray(el.texts) ? el.texts.map((t: string) => ({ text: String(t) })) : []);
     const dataXml = buildDiagramDataModel(nodes);
     const layoutXml = buildDiagramLayout(dgmType, n);
     const colorsXml = buildDiagramColors(dgmType, n);
@@ -2418,7 +2564,9 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
     // 缓存绘图部件（Microsoft 标准 dsp:drawing）：按布局算好的形状/填充/文字，解析端与 PowerPoint 对齐
     const drawW = pxToEmu(el.width || 400);
     const drawH = pxToEmu(el.height || 300);
-    const drawingXml = buildDiagramDrawing(dgmType, n, nodes, drawW, drawH);
+    const drawingXml = cachedShapes.length
+        ? buildDiagramDrawingFromShapes(cachedShapes, drawW, drawH)
+        : buildDiagramDrawing(dgmType, n, nodes, drawW, drawH);
     // 标准 SmartArt：slide 通过 dgm:relIds 引用 data/layout/colors/quickStyle；另挂 diagramDrawing 关系
     const dataRelId = addRelationship(ctx, REL_TYPES.diagramData, `../diagrams/data${n}.xml`);
     const colorsRelId = addRelationship(ctx, REL_TYPES.diagramColors, `../diagrams/colors${n}.xml`);

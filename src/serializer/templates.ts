@@ -510,7 +510,7 @@ export function buildRelationshipsXml(rels: Array<{ relId: string; type: string;
 export function buildContentTypesXml(
     mediaExts: Iterable<unknown>,
     slideCount: number,
-    opts: { masterCount?: number; layoutCount?: number } = {}
+    opts: { masterCount?: number; layoutCount?: number; themeCount?: number } = {}
 ) {
     const MIME_MAP = {
         png: 'image/png',
@@ -537,7 +537,9 @@ export function buildContentTypesXml(
         `<Override PartName="/ppt/slideMasters/slideMaster${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>`
     ).join('')}${Array.from({ length: Math.max(1, opts.layoutCount ?? 1) }, (_, i) =>
         `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`
-    ).join('')}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
+    ).join('')}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${Array.from({ length: Math.max(0, (opts.themeCount ?? 1) - 1) }, (_, i) =>
+        `<Override PartName="/ppt/theme/theme${i + 2}.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>`
+    ).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
 }
 
 /**

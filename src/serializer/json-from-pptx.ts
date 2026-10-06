@@ -28,7 +28,7 @@ import type {
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
     PptxDiagramElement, PptxDiagramShape, PptxRawElement, PptxAnimation, PptxGroupElement, TextAlign, VAlign, ChartGrouping,
-    PptxFillImage, PptxTheme, PptxThemeColorScheme, PptxCustomGeometry, PptxGeometryPath, PptxGeometryCommand
+    PptxFillImage, PptxTheme, PptxThemeColorScheme, PptxCustomGeometry, PptxGeometryPath, PptxGeometryCommand, PptxGradientFill
 } from '../types/pptx-document';
 
 /** plotArea 下可能出现的全部图表节点（ECMA-376 全集），用于反向提取时判定图表类型 */
@@ -145,7 +145,11 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
     if (attrs.b === '1' || attrs.b === 1) style.bold = true;
     if (attrs.i === '1' || attrs.i === 1) style.italic = true;
     if (attrs.u && attrs.u !== 'none') style.underline = true;
-    const color = spColor(rPr['a:solidFill'], themeMap) || readSrgbClr(rPr);
+    // 某些生成器会在 a:rPr 下直接写 a:srgbClr/a:schemeClr（与 a:solidFill 并存），
+    // 按实际渲染优先级优先取直接子节点颜色，再回退到 a:solidFill
+    const directColorNode = rPr['a:srgbClr'] || rPr['a:schemeClr'];
+    const color = (directColorNode ? spColor(directColorNode, themeMap) : undefined)
+        || spColor(rPr['a:solidFill'], themeMap);
     if (color) style.color = color;
     const latin = rPr['a:latin'];
     if (latin && latin.attrs && latin.attrs.typeface) style.fontFace = String(latin.attrs.typeface);
@@ -196,7 +200,7 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
  * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
  * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
  */
-function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean } {
+function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
     let text = '';
@@ -209,6 +213,8 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
         ? String(bodyPr.attrs.vert) : undefined;
     // 不换行（a:bodyPr@wrap="none"）：与预览端一致，文本不自动折行
     const noWrap = bodyPr && bodyPr.attrs && bodyPr.attrs.wrap === 'none' ? true : undefined;
+    // 从右向左列排布（a:bodyPr@rtlCol），影响 RTL 文本折行
+    const rtlCol = bodyPr && bodyPr.attrs && (bodyPr.attrs.rtlCol === '1' || bodyPr.attrs.rtlCol === 1) ? true : undefined;
     // 内边距（a:bodyPr/@lIns/rIns/tIns/bIns，EMU → px）
     let inset: { l?: number; r?: number; t?: number; b?: number } | undefined;
     if (bodyPr && bodyPr.attrs) {
@@ -223,7 +229,10 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
     for (const pNode of asArray(txBody['a:p'])) {
         const pPr = pNode['a:pPr'];
         const pAttrs = (pPr && pPr.attrs) || {};
-        const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : undefined;
+        const isRtlPara = pAttrs.rtl === '1' || pAttrs.rtl === 1;
+        // RTL 段落（a:pPr@rtl="1"）未显式给 algn 时按右对齐处理：
+        // 预览端依 rtl 渲染为右对齐，生成端需落成 algn="r" 才能保持一致
+        const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : (isRtlPara ? 'right' : undefined);
 
         // 列表样式：自动编号 / 字符项目符号 / 图片项目符号
         let bullet: any;
@@ -298,11 +307,11 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
         if (indentRight != null) para.indentRight = indentRight;
         if (indent != null) para.indent = indent;
         // 从右到左段落（a:pPr@rtl="1"）：RTL 段落缺省右对齐
-        if (pAttrs.rtl === '1' || pAttrs.rtl === 1) para.rtl = true;
+        if (isRtlPara) para.rtl = true;
         if (valign) (para as any).valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap };
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol };
 }
 
 /**
@@ -337,7 +346,7 @@ async function resolveBulletBlips(
 }
 
 /** 提取一个 p:sp 的文本为正文段落 */
-function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean } {
+function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean } {
     // p:style/a:fontRef 的颜色是形状文本的默认字色（run 无显式色时生效，与预览端一致）
     const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
     return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor, resolveHref);
@@ -386,7 +395,11 @@ function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxSh
             const ang = Number(lin.attrs.ang) / 60000; // 度
             direction = ang >= 45 && ang < 135 ? 'vertical' : (ang >= 22.5 && ang < 67.5 ? 'diagonal' : 'horizontal');
         }
-        out.fill = { type: 'gradient', direction, stops };
+        // a:path（径向渐变）：没有 a:lin。此前只按线性处理，导出后径向会退化成水平线性
+        const path = gf['a:path'];
+        out.fill = path
+            ? { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
+            : { type: 'gradient', direction, stops };
     } else if (spPr['a:pattFill']) {
         // 图案填充（a:pattFill）：prst + 前景/背景色，往返必须保留，否则形状会退化为空白
         const pf = Array.isArray(spPr['a:pattFill']) ? spPr['a:pattFill'][0] : spPr['a:pattFill'];
@@ -661,26 +674,40 @@ async function extractBackground(
                 if (img) return img;
             }
             if (bgPr['a:gradFill']) {
-                // 渐变背景：stop 颜色经 resolveColorNode 解析（scheme 引用 + tint/lumMod 等修饰），
-                // path（circle/shape/ray）渐变按线性渐变近似记录
-                const gsLst = bgPr['a:gradFill']['a:gsLst'];
-                const stops: { color: string; position: number }[] = [];
-                for (const gs of asArray(gsLst && gsLst['a:gs'])) {
-                    const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
-                    const c = spColor(gs, themeMap) || readSrgbClr(gs);
-                    if (c) stops.push({ color: c, position: pos });
-                }
-                const lin = bgPr['a:gradFill']['a:lin'];
-                // ang 为 1/60000 度，需换算：90°→vertical、45°→diagonal、其余 horizontal
-                const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
-                const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
-                return { type: 'gradient', direction, stops };
+                const grad = readGradientFill(bgPr['a:gradFill'], themeMap);
+                if (grad) return grad;
             }
         }
         // 主题引用 bgRef：无法解析为具体色，标记继承（不写 background）
         return undefined;
     }
     return undefined;
+}
+
+/**
+ * a:gradFill → 渐变填充描述。
+ * stop 颜色经 resolveColorNode 解析（scheme 引用 + tint/lumMod 等修饰）；
+ * a:path（circle/shape/ray）为径向渐变，a:lin 按角度换算方向。
+ * 无任何可解析 stop 时返回 undefined（调用方退回纯色近似）。
+ */
+function readGradientFill(gradFill: any, themeMap: Record<string, string> = {}): PptxGradientFill | undefined {
+    if (!gradFill) return undefined;
+    const gsLst = gradFill['a:gsLst'];
+    const stops: { color: string; position: number }[] = [];
+    for (const gs of asArray(gsLst && gsLst['a:gs'])) {
+        const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
+        const c = spColor(gs, themeMap) || readSrgbClr(gs);
+        if (c) stops.push({ color: c, position: pos });
+    }
+    if (!stops.length) return undefined;
+    const lin = gradFill['a:lin'];
+    // ang 为 1/60000 度，需换算：90°→vertical、45°→diagonal、其余 horizontal
+    const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
+    const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+    const path = gradFill['a:path'];
+    return path
+        ? { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
+        : { type: 'gradient', direction, stops };
 }
 
 /** 从 c:chartSpace 反向提取图表语义 */
@@ -763,8 +790,9 @@ function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Par
             const serSpPr = ser['c:spPr'];
             const serColor = serSpPr ? spColor(serSpPr['a:solidFill'], themeMap) : undefined;
             if (serColor) s.color = serColor;
-            // 逐点填充色（c:dPt）：饼/环等 varyColors 场景每点可带独立 spPr；
-            // solidFill 直接取色，gradFill 取首个渐变 stop 近似
+            // 逐点填充（c:dPt）：饼/环等 varyColors 场景每点可带独立 spPr；
+            // solidFill 取色，gradFill 保留完整渐变（3D 饼/环多为 accent1 径向渐变，
+            // 压成纯色会让渲染端退回默认调色板导致整图配色错位）
             const dPts = asArray(ser['c:dPt']);
             if (dPts.length) {
                 const nPts = Math.max(s.values ? s.values.length : 0, ...(dPts.map((d: any) => {
@@ -772,19 +800,16 @@ function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Par
                     return idx + 1;
                 })));
                 if (nPts > 0) {
-                    const pc: (string | undefined)[] = new Array(nPts).fill(undefined);
+                    const pc: (string | PptxGradientFill | undefined)[] = new Array(nPts).fill(undefined);
                     for (const d of dPts) {
                         const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
                         if (idx < 0) continue;
                         const dSpPr = d['c:spPr'];
                         if (!dSpPr) continue;
-                        const c = spColor(dSpPr['a:solidFill'], themeMap)
-                            || (() => {
-                                const gsLst = dSpPr['a:gradFill'] && dSpPr['a:gradFill']['a:gsLst'];
-                                const gs0 = asArray(gsLst && gsLst['a:gs'])[0];
-                                return gs0 ? spColor(gs0, themeMap) : undefined;
-                            })();
-                        if (c) pc[idx] = c;
+                        const grad = readGradientFill(dSpPr['a:gradFill'], themeMap);
+                        if (grad) { pc[idx] = grad; continue; }
+                        const solid = spColor(dSpPr['a:solidFill'], themeMap);
+                        if (solid) pc[idx] = solid;
                     }
                     s.pointColors = pc;
                 }
@@ -804,12 +829,17 @@ function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Par
             }
         }
 
-        const legend = !!chart['c:legend'];
+        const legendNode = chart['c:legend'];
+        const legend = !!legendNode;
+        const legendPosition = legendNode && legendNode['c:legendPos'] && legendNode['c:legendPos'].attrs
+            ? String(legendNode['c:legendPos'].attrs.val)
+            : undefined;
         const out: Partial<PptxChartElement> = { chartType, series };
         if (spaceFill !== undefined) out.spaceFill = spaceFill;
         if (categories.length) out.categories = categories;
         if (title) out.title = title.trim();
         out.legend = legend;
+        if (legendPosition) out.legendPosition = legendPosition;
 
         // 读取子节点属性值的快捷方式
         const attrOf = (parent: any, tag: string): string | undefined => {
@@ -927,6 +957,9 @@ const REL_CONTENT_TYPE: Record<string, string> = {
         'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml',
     'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramColors':
         'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml',
+    // Microsoft 缓存绘图（diagramDrawing）—— 常量定义在文件后部，这里内联 URI
+    'http://schemas.microsoft.com/office/2007/relationships/diagramDrawing':
+        'application/vnd.ms-office.drawingml.diagramDrawing+xml',
     'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart':
         'application/vnd.openxmlformats-officedocument.drawingml.chart+xml'
 };
@@ -965,6 +998,14 @@ async function attachRawDeps(
 ) {
     const relIds = new Set<string>();
     collectRelIds(node, relIds);
+    // SmartArt 缓存绘图（diagramDrawing 关系）不经节点上的 r: 属性引用
+    // （dgm:relIds 只带 dm/cs/lo/qs），按关系类型补入，否则导出后丢失 drawingN.xml、
+    // SmartArt 的全部图形在解析器/预览端消失
+    for (const [rid, rel] of Object.entries(resObj || {})) {
+        if (rel && (rel.type === MS_DIAGRAM_DRAWING_REL || /diagrams\/drawing\d+\.xml$/i.test(String(rel.target || '')))) {
+            relIds.add(rid);
+        }
+    }
     if (!relIds.size) return;
 
     const rels: Record<string, { type: string; target: string; external?: boolean }> = {};
@@ -1339,7 +1380,7 @@ async function nodeToElement(
     if (node && node['p:txBody'] && node['p:txBody']['a:p']) {
         try { await resolveBulletBlips(node['p:txBody'], resObj, zip); } catch { /* 忽略 */ }
     }
-    const { paragraphs, hasText, textDirection, inset, noWrap } = extractTextBody(node, themeMap, resolveHyperlink(resObj));
+    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol } = extractTextBody(node, themeMap, resolveHyperlink(resObj));
     const geom = spPr && spPr['a:prstGeom'];
 
     if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
@@ -1361,11 +1402,13 @@ async function nodeToElement(
         if (textDirection) textEl.textDirection = textDirection;
         if (inset) textEl.inset = inset;
         if (noWrap) textEl.noWrap = noWrap;
+        if (rtlCol) textEl.rtlCol = true;
         // 提取形状外观（填充/边框/特效）。纯文本框（txBox=1）也可能带背景填充，
         // 因此统一读取 spPr；只有「非矩形 + 非纯文本框」才保留 shapeType/adjust，
         // 避免把普通矩形文本框渲染成异形。
         const isPureTextBox = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1';
-        const hasNonRectShape = geom && geom.attrs && geom.attrs.prst && String(geom.attrs.prst) !== 'rect' && !isPureTextBox;
+        const hasCustGeom = !!(spPr && spPr['a:custGeom']);
+        const hasNonRectShape = (geom && geom.attrs && geom.attrs.prst && String(geom.attrs.prst) !== 'rect' && !isPureTextBox) || hasCustGeom;
         try {
             const spVis = readSpPr(spPr, themeMap);
             if (spPr && spPr['a:blipFill']) {
@@ -1395,6 +1438,10 @@ async function nodeToElement(
             if (hasNonRectShape) {
                 const visAdjust = readAdjust(geom);
                 if (visAdjust) textEl.adjust = visAdjust;
+            }
+            if (hasCustGeom) {
+                const cg = readCustGeom(spPr['a:custGeom']);
+                if (cg) textEl.custGeom = cg;
             }
             if (spVis.fill !== undefined) textEl.fill = spVis.fill;
             if (spVis.line !== undefined) textEl.line = spVis.line;
@@ -1613,6 +1660,8 @@ function tableToElement(tbl: any, node: any, themeMap: Record<string, string> = 
             }
             if (paragraphs[0] && paragraphs[0].align) cell.align = paragraphs[0].align;
             else if (paragraphs[0] && (paragraphs[0] as any).rtl) cell.align = 'right'; // RTL 段落缺省起点对齐=右
+            // RTL 标记在单元格级冗余：单段单元格走 text 简写时段落级 rtl 会丢失
+            if (paragraphs[0] && (paragraphs[0] as any).rtl) cell.rtl = true;
 
             // 单元格属性：底色、垂直对齐、边框、内边距、对角线
             const tcPr = tc && tc['a:tcPr'];
@@ -1779,7 +1828,7 @@ function resolveThemeStyleRef(
     refNode: any,
     styleList: any[],
     themeMap: Record<string, string>
-): { color: string; gradient?: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[] }; widthPt?: number } | undefined {
+): { color: string; gradient?: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string }; widthPt?: number } | undefined {
     if (!refNode || !refNode.attrs || !styleList.length) return undefined;
     let idx = Number(refNode.attrs.idx) || 1;
     if (idx < 1) idx = 1;
@@ -1796,7 +1845,7 @@ function resolveThemeStyleRef(
     let color = resolveColorNode(fillNode['a:solidFill'], colorMap)
         || ((fillNode['a:schemeClr'] || fillNode['a:srgbClr']) ? resolveColorNode(fillNode, colorMap) : undefined);
     // 渐变样式（fillStyleLst[1] 等）：完整提取所有 stop（按 phClr 逐个解析）与方向
-    let gradient: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[] } | undefined;
+    let gradient: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string } | undefined;
     if (!color) {
         const grad = fillNode['a:gradFill'] || (fillNode['a:gsLst'] ? fillNode : undefined);
         const gsLst = grad && grad['a:gsLst'];
@@ -1814,6 +1863,12 @@ function resolveThemeStyleRef(
             const lin = grad && grad['a:lin'];
             const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
             gradient.direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            // a:path：径向渐变（主题 fillStyleLst 常用），此前会被当成水平线性
+            const path = grad && grad['a:path'];
+            if (path) {
+                gradient.gradientType = 'radial';
+                gradient.gradientPath = (path.attrs && path.attrs.path) || 'circle';
+            }
         }
     }
     if (!color) return undefined;
@@ -2379,7 +2434,7 @@ async function graphicFrameToChart(
 
     // 透传语义层已提取的图表属性（缺失字段保持不写，交由生成端取默认）
     const passKeys: (keyof PptxChartElement)[] = [
-        'categories', 'title', 'legend', 'grouping', 'varyColors', 'barDir',
+        'categories', 'title', 'legend', 'legendPosition', 'grouping', 'varyColors', 'barDir',
         'holeSize', 'smooth', 'marker', 'ofPieType', 'numberFormat',
         'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe', 'spaceFill'
     ];
@@ -2563,7 +2618,161 @@ export async function buildStandardDocument(
     // 主题配色方案（a:theme/a:clrScheme）：供 scheme 主题色引用解析为具体色，
     // 避免退化为默认蓝主题（如本样例自定义主题覆盖了 accent4/accent5）。
     if (theme) doc.theme = theme;
+    // 原始 theme1.xml 整串：用于生成端无损回退，保留 fmtScheme/fontScheme 等细节（SmartArt/样式引用保真）
+    try {
+        const themeFile = zip.file('ppt/theme/theme1.xml');
+        if (themeFile) doc.themeXml = await themeFile.async('string');
+    } catch { /* ignore */ }
+
+    // 原始 tableStyles.xml 整串：表格样式的网格线颜色/底纹/条带由该文件的 GUID 定义决定，
+    // 重新生成的等价定义只有通用黑网格，会让白网格表格变黑
+    try {
+        const tsFile = zip.file('ppt/tableStyles.xml');
+        if (tsFile) doc.tableStylesXml = await tsFile.async('string');
+    } catch { /* ignore */ }
+
+    // 多主题/母版/版式无损回退：解析端回读原始母版、版式、主题整串 XML，
+    // 并维护 幻灯片→版式→母版→主题 的映射，使生成端按原结构写回（保留各页绑定的真实主题）。
+    try {
+        const slideFileNames = (parsedData.slides || []).map((s: any) => String(s.fileName || ''));
+        const pkg = await extractPackageParts(zip, slideFileNames);
+        if (pkg) {
+            doc.themeXmls = pkg.themeXmls;
+            doc.masters = pkg.masters as any;
+            pkg.slideLayoutIndex.forEach((li, si) => { if (slides[si]) slides[si].layout = li; });
+        }
+    } catch { /* ignore */ }
+
     return doc;
+}
+
+/**
+ * 关系部件 → 关系 id 映射（{ Id: { type: 短名, target } }）
+ * type 去掉 relationships 前缀（slideLayout / slideMaster / theme / image ...）
+ */
+async function readRelMap(zip: JSZip, relsPath: string): Promise<Record<string, { type: string; target: string }>> {
+    const out: Record<string, { type: string; target: string }> = {};
+    let xml: any;
+    try { xml = await PPTXXmlUtils.readXmlFile(zip, relsPath); } catch { return out; }
+    const relsRoot = xml && (xml.Relationships || (xml['Relationships:Relationships'] as any));
+    if (!relsRoot) return out;
+    const raw = relsRoot.Relationship || (relsRoot as any)['Relationship:Relationship'];
+    const list: any[] = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    for (const rel of list) {
+        const id = rel && rel.attrs && rel.attrs.Id;
+        if (!id) continue;
+        const fullType = String((rel.attrs && rel.attrs.Type) || '');
+        out[String(id)] = {
+            type: fullType.replace(REL_PREFIX, '').replace(REL_PREFIX_MS, 'ms:'),
+            target: String((rel.attrs && rel.attrs.Target) || '')
+        };
+    }
+    return out;
+}
+
+/** Microsoft Office 2007 关系前缀 */
+const REL_PREFIX_MS = 'http://schemas.microsoft.com/office/2007/relationships/';
+
+/** 母版/版式/主题原始部件与 幻灯片→版式 映射（多主题无损回退用） */
+interface PackageParts {
+    /** 主题部件整串，索引 0 对应 ppt/theme/theme1.xml */
+    themeXmls: string[];
+    /** 母版（__rawXml 原始整串 + 绑定的 themeXml + 其版式原始整串） */
+    masters: { __rawXml: string; themeXml: string; layouts: { __rawXml: string }[] }[];
+    /** 每页（按显示顺序）所用版式在展平版式序列中的下标 */
+    slideLayoutIndex: number[];
+}
+
+/**
+ * 回读母版/版式/主题原始部件整串 XML，并解析 幻灯片→版式→母版→主题 关系链。
+ * PPTX 允许不同母版绑定不同主题部件（多主题文件）；生成端若统一写单一 theme1.xml，
+ * 各页 schemeClr 引用会解析到错误配色（SmartArt dsp:style、图表系列色尤其明显）。
+ */
+async function extractPackageParts(zip: JSZip, slideFileNames: string[]): Promise<PackageParts | null> {
+    /** 收集形如 prefix + N + suffix 的部件编号，按 N 升序 */
+    const partNos = (re: RegExp): number[] => Object.keys(zip.files)
+        .map((p) => { const m = re.exec(p); return m ? Number(m[1]) : NaN; })
+        .filter((n) => Number.isFinite(n))
+        .sort((a, b) => a - b);
+
+    const themeNos = partNos(/^ppt\/theme\/theme(\d+)\.xml$/);
+    if (!themeNos.length) return null;
+    const themeXmls: string[] = [];
+    for (const n of themeNos) {
+        const f = zip.file(`ppt/theme/theme${n}.xml`);
+        themeXmls[n - 1] = f ? await f.async('string') : '';
+    }
+
+    // 版式 → 所属母版号，并回读版式原始整串
+    const layoutNos = partNos(/^ppt\/slideLayouts\/slideLayout(\d+)\.xml$/);
+    const layoutMaster = new Map<number, number>();
+    const layoutRaw = new Map<number, string>();
+    for (const n of layoutNos) {
+        const f = zip.file(`ppt/slideLayouts/slideLayout${n}.xml`);
+        if (f) { try { layoutRaw.set(n, await f.async('string')); } catch { /* 忽略 */ } }
+        const rels = await readRelMap(zip, `ppt/slideLayouts/_rels/slideLayout${n}.xml.rels`);
+        for (const r of Object.values(rels)) {
+            if (r.type !== 'slideMaster') continue;
+            const m = /slideMaster(\d+)\.xml/i.exec(r.target);
+            if (m) layoutMaster.set(n, Number(m[1]));
+        }
+    }
+
+    // 母版 → 绑定主题号 + 其版式（按 rels 声明顺序，保持与原包一致的版式次序）
+    const masterNos = partNos(/^ppt\/slideMasters\/slideMaster(\d+)\.xml$/);
+    if (!masterNos.length) return null;
+    const masters: PackageParts['masters'] = [];
+    const layoutNoToFlat = new Map<number, number>();
+    let flat = 0;
+    for (const n of masterNos) {
+        const f = zip.file(`ppt/slideMasters/slideMaster${n}.xml`);
+        let raw = '';
+        if (f) { try { raw = await f.async('string'); } catch { /* 忽略 */ } }
+        const rels = await readRelMap(zip, `ppt/slideMasters/_rels/slideMaster${n}.xml.rels`);
+        let themeNo = 1;
+        const relLayoutNos: number[] = [];
+        for (const r of Object.values(rels)) {
+            if (r.type === 'theme') {
+                const m = /theme(\d+)\.xml/i.exec(r.target);
+                if (m) themeNo = Number(m[1]);
+            } else if (r.type === 'slideLayout') {
+                const m = /slideLayout(\d+)\.xml/i.exec(r.target);
+                if (m) relLayoutNos.push(Number(m[1]));
+            }
+        }
+        // 母版 rels 偶有缺失，补齐归属该母版的其余版式
+        for (const ln of layoutNos) {
+            if (layoutMaster.get(ln) === n && relLayoutNos.indexOf(ln) < 0) relLayoutNos.push(ln);
+        }
+        const layouts = relLayoutNos.map((ln) => {
+            layoutNoToFlat.set(ln, flat++);
+            return { __rawXml: layoutRaw.get(ln) || '' };
+        });
+        masters.push({ __rawXml: raw, themeXml: themeXmls[themeNo - 1] || '', layouts });
+    }
+
+    // 幻灯片（按显示顺序）→ 版式展平下标
+    const slideLayoutIndex: number[] = [];
+    for (const name of slideFileNames) {
+        let idx = 0;
+        if (name) {
+            // fileName 为不带扩展名的基名（如 slide1），rels 位于 ppt/slides/_rels/slideN.xml.rels
+            const base = name.indexOf('/') >= 0 ? name.slice(name.lastIndexOf('/') + 1) : name;
+            const rels = await readRelMap(zip, `ppt/slides/_rels/${base}.xml.rels`);
+            for (const r of Object.values(rels)) {
+                if (r.type !== 'slideLayout') continue;
+                const m = /slideLayout(\d+)\.xml/i.exec(r.target);
+                if (m) {
+                    const fi = layoutNoToFlat.get(Number(m[1]));
+                    if (fi !== undefined) idx = fi;
+                }
+                break;
+            }
+        }
+        slideLayoutIndex.push(idx);
+    }
+
+    return { themeXmls, masters, slideLayoutIndex };
 }
 
 /**

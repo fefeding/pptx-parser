@@ -14322,7 +14322,7 @@ function buildContentTypesXml(mediaExts, slideCount, opts = {}) {
         .map(ext => `<Default Extension="${escapeXml(ext)}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/>`)
         .join('');
     const slideOverrides = Array.from({ length: slideCount }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${Array.from({ length: Math.max(1, opts.masterCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideMasters/slideMaster${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>`).join('')}${Array.from({ length: Math.max(1, opts.layoutCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`).join('')}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${Array.from({ length: Math.max(1, opts.masterCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideMasters/slideMaster${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>`).join('')}${Array.from({ length: Math.max(1, opts.layoutCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`).join('')}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${Array.from({ length: Math.max(0, (opts.themeCount ?? 1) - 1) }, (_, i) => `<Override PartName="/ppt/theme/theme${i + 2}.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
 }
 function buildCorePropsXml(metadata) {
     const md = metadata || {};
@@ -14408,6 +14408,10 @@ const PRESET_GEOMETRIES = new Set([
     'rtTriangle', 'snip1Rect', 'snip2DiagRect', 'snip2SameRect', 'snipRoundRect', 'sun', 'swooshArrow', 'teardrop', 'trapezoid',
     'triangle', 'upArrow', 'upArrowCallout', 'upDownArrow', 'upDownArrowCallout', 'uturnArrow', 'verticalScroll', 'wave',
     'wedgeEllipseCallout', 'wedgeRectCallout', 'wedgeRoundRectCallout', 'x', 'foldedCorner', 'smileyFace',
+    'flowChartMagneticDisk', 'noSmoking', 'softRound', 'star4', 'star5', 'star6', 'star7', 'star8', 'star10', 'star12',
+    'star16', 'star24', 'star32', 'squareTabs', 'plaqueTabs', 'stripedRightArrow', 'folderCorner', 'flowChartData',
+    'flowChartDirectAccessStorage', 'flowChartOffpageConnector', 'flowChartSort',
+    'mathDivide', 'mathEqual', 'mathGreaterThan', 'mathLessThan', 'mathMinus', 'mathMultiply', 'mathNotEqual', 'mathPlus',
     'straightConnector1',
     'bentConnector2', 'bentConnector3', 'bentConnector4', 'bentConnector5',
     'curvedConnector2', 'curvedConnector3', 'curvedConnector4', 'curvedConnector5'
@@ -14582,7 +14586,11 @@ const VALID_AUTONUM_TYPES = [
     'circleNumDbPlain', 'circleNumWdWhitePlain', 'circleNumWdBlackPlain',
     'ea1ChsPeriod', 'ea1ChsPlain', 'ea1ChtPeriod', 'ea1ChtPlain', 'ea1JpnChsDbPeriod', 'ea1JpnKorPeriod', 'ea1JpnKorPlain',
     'chineseCounting', 'chineseLegalSimplified', 'chineseCountingThousand', 'ideographDigital',
-    'hebrew1', 'hebrew2'
+    'hebrew1', 'hebrew2', 'hebrew1Minus', 'hebrew2Minus',
+    'arabicAlpha', 'arabicAbjad',
+    'hindiAlpha', 'hindiAlpha1', 'hindiAlpha2', 'hindiNum1', 'hindiNum2',
+    'thaiAlpha', 'thaiNum', 'koreanAlpha', 'koreanNum', 'koreanDigital',
+    'ea1JpnChsDbPeriod', 'ideographEnclosedCircle', 'ideographTraditional', 'ideographZodiac'
 ];
 const AUTONUM_TYPE_ALIASES = {
     arabic: 'arabicPeriod', decimal: 'arabicPeriod', numeric: 'arabicPeriod', number: 'arabicPeriod', '1': 'arabicPeriod',
@@ -14714,10 +14722,10 @@ function normalizeTextVerticalType(value) {
     const v = TEXT_VERTICAL_ALIASES[value] ?? value;
     return TEXT_VERTICAL_TYPES.has(v) ? v : undefined;
 }
-function buildTextElement(ctx, el) {
+async function buildTextElement(ctx, el) {
     const id = ctx.nextElementId++;
     const anchorMap = { top: null, middle: 'ctr', bottom: 'b' };
-    const bodyPrAttrs = { wrap: 'square', rtlCol: 0 };
+    const bodyPrAttrs = { wrap: 'square', rtlCol: el.rtlCol ? 1 : 0 };
     const anchor = anchorMap[el.valign ?? 'top'];
     if (anchor)
         bodyPrAttrs.anchor = anchor;
@@ -14767,7 +14775,27 @@ function buildTextElement(ctx, el) {
         href: el.href,
         lang: el.lang
     };
-    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr', { txBox: 1 }), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))), xmlNode('p:txBody', null, xmlNode('a:bodyPr', bodyPrAttrs, ...bodyPrChildren), xmlNode('a:lstStyle'), ...normalizeParagraphs(el).map((p) => buildParagraph(ctx, p, defaults))));
+    const hasShapeBase = !!(el.shapeType || el.custGeom);
+    const spPrChildren = [buildXfrm(el)];
+    if (el.custGeom) {
+        spPrChildren.push(buildCustomGeometry(el.custGeom));
+    }
+    else if (el.shapeType) {
+        spPrChildren.push(xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) }, el.adjust && Object.keys(el.adjust).length
+            ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
+            : xmlNode('a:avLst')));
+    }
+    else {
+        spPrChildren.push(xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')));
+    }
+    const { fillNode, lineNode, effectNode } = await buildShapeAppearance(ctx, el);
+    if (fillNode)
+        spPrChildren.push(fillNode);
+    if (lineNode)
+        spPrChildren.push(lineNode);
+    if (effectNode)
+        spPrChildren.push(effectNode);
+    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr', hasShapeBase ? null : { txBox: 1 }), xmlNode('p:nvPr')), xmlNode('p:spPr', null, ...spPrChildren), xmlNode('p:txBody', null, xmlNode('a:bodyPr', bodyPrAttrs, ...bodyPrChildren), xmlNode('a:lstStyle'), ...normalizeParagraphs(el).map((p) => buildParagraph(ctx, p, defaults))));
 }
 function colorNode(color) {
     if (typeof color === 'string' && color.startsWith('scheme:')) {
@@ -14812,6 +14840,10 @@ async function buildFillNode(ctx, fill) {
     if (fill.type === 'gradient') {
         const g = fill;
         const stops = (g.stops || []).map((s) => xmlNode('a:gs', { pos: Math.round((s.position || 0) * 100000) }, colorNode(s.color)));
+        if (g.gradientType === 'radial') {
+            const pathPrst = g.gradientPath || 'circle';
+            return xmlNode('a:gradFill', { rotWithShape: 1 }, xmlNode('a:gsLst', null, ...stops), xmlNode('a:path', { path: pathPrst }, xmlNode('a:fillToRect', { l: 100000, t: 100000, r: 100000, b: 100000 })));
+        }
         const ang = (g.direction === 'vertical' ? 90 : g.direction === 'diagonal' ? 45 : 0) * 60000;
         return xmlNode('a:gradFill', null, xmlNode('a:gsLst', null, ...stops), xmlNode('a:lin', { ang, scaled: 1 }));
     }
@@ -14942,10 +14974,9 @@ function build3DNodes(threeD) {
     }
     return nodes;
 }
-async function buildShapeElement(ctx, el) {
-    const id = ctx.nextElementId++;
+async function buildShapeAppearance(ctx, el) {
     const fillNode = await buildFillNode(ctx, el.fill);
-    let lineNode;
+    let lineNode = null;
     if (el.line === 'none' || el.line === null) {
         lineNode = xmlNode('a:ln', null, xmlNode('a:noFill'));
     }
@@ -14985,6 +15016,11 @@ async function buildShapeElement(ctx, el) {
         if (effChildren.length)
             effectNode = xmlNode('a:effectLst', null, ...effChildren);
     }
+    return { fillNode, lineNode, effectNode };
+}
+async function buildShapeElement(ctx, el) {
+    const id = ctx.nextElementId++;
+    const { fillNode, lineNode, effectNode } = await buildShapeAppearance(ctx, el);
     return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Shape ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr'), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), el.custGeom
         ? buildCustomGeometry(el.custGeom)
         : xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) }, el.adjust && Object.keys(el.adjust).length
@@ -15055,6 +15091,20 @@ function buildChartElement(ctx, el) {
     const { xml, workbook } = buildChartXml(el);
     ctx.charts.push({ name: chartName, xml, workbook });
     return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), buildXfrm(el, 'p:xfrm'), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: NS.c }, xmlNode('c:chart', { 'xmlns:c': NS.c, 'xmlns:r': NS.r, 'r:id': relId }))));
+}
+function gradientFillXml(g) {
+    const stops = (g.stops || []).filter((s) => s && s.color);
+    if (!stops.length)
+        return '';
+    const gsLst = `<a:gsLst>${stops
+        .map((s) => `<a:gs pos="${Math.round((s.position || 0) * 100000)}"><a:srgbClr val="${colorToHex(s.color)}"/></a:gs>`)
+        .join('')}</a:gsLst>`;
+    if (g.gradientType === 'radial') {
+        const path = g.gradientPath || 'circle';
+        return `<a:gradFill rotWithShape="1">${gsLst}<a:path path="${escapeXml(path)}"><a:fillToRect l="100000" t="100000" r="100000" b="100000"/></a:path></a:gradFill>`;
+    }
+    const ang = (g.direction === 'vertical' ? 90 : g.direction === 'diagonal' ? 45 : 0) * 60000;
+    return `<a:gradFill>${gsLst}<a:lin ang="${ang}" scaled="1"/></a:gradFill>`;
 }
 function strRefXml(values, col) {
     const n = values.length;
@@ -15143,9 +15193,14 @@ function buildChartXml(el) {
             }
             const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
             const dPtXml = (s.pointColors || [])
-                .map((c, pi) => c
-                ? `<c:dPt><c:idx val="${pi}"/><c:spPr><a:solidFill><a:srgbClr val="${colorToHex(c)}"/></a:solidFill></c:spPr></c:dPt>`
-                : '')
+                .map((c, pi) => {
+                if (!c)
+                    return '';
+                const fill = typeof c === 'string'
+                    ? `<a:solidFill><a:srgbClr val="${colorToHex(c)}"/></a:solidFill>`
+                    : gradientFillXml(c);
+                return fill ? `<c:dPt><c:idx val="${pi}"/><c:spPr>${fill}</c:spPr></c:dPt>` : '';
+            })
                 .join('');
             const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
             const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
@@ -15242,8 +15297,9 @@ function buildChartXml(el) {
             `<a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml(el.title)}</a:t></a:r></a:p>` +
             `</c:rich></c:tx><c:overlay val="0"/></c:title>`
         : '';
-    const legendXml = el.legend !== false && el.legend !== undefined
-        ? `<c:legend><c:legendPos val="${typeof el.legend === 'string' ? el.legend : 'r'}"/><c:overlay val="0"/></c:legend>`
+    const legendPos = el.legendPosition || (typeof el.legend === 'string' ? el.legend : (el.legend ? 'r' : undefined));
+    const legendXml = legendPos
+        ? `<c:legend><c:legendPos val="${legendPos}"/><c:overlay val="0"/></c:legend>`
         : '';
     const autoTitleDeleted = `<c:autoTitleDeleted val="${el.title ? 0 : 1}"/>`;
     const workbook = buildChartWorkbookData(type, cats, series);
@@ -15372,7 +15428,7 @@ function buildTableCell(ctx, cell, tableBorder) {
     };
     const paragraphs = Array.isArray(cell.paragraphs) && cell.paragraphs.length
         ? cell.paragraphs
-        : [{ text: cell.text !== undefined ? cell.text : '' }];
+        : [{ text: cell.text !== undefined ? cell.text : '', rtl: cell.rtl }];
     const tcPrChildren = [];
     for (const side of ['L', 'R', 'T', 'B']) {
         const b = resolveBorderSide(side, cell, tableBorder);
@@ -15395,7 +15451,7 @@ function buildTableCell(ctx, cell, tableBorder) {
             tcPrChildren.push(diagLine('a:lnBlToTr'));
     }
     const anchorMap = { top: 't', middle: 'ctr', bottom: 'b' };
-    const tcPrAttrs = { anchor: anchorMap[cell.valign ?? 'top'] ?? null };
+    const tcPrAttrs = { anchor: cell.valign ? (anchorMap[cell.valign] ?? null) : null };
     if (cell.inset) {
         const ins = cell.inset;
         if (ins.l != null)
@@ -15783,18 +15839,65 @@ function buildDiagramDrawing(type, seed, nodes, W, H) {
         sps +
         `</dsp:spTree></dsp:drawing>`;
 }
+function buildDiagramDrawingFromShapes(shapes, W, H) {
+    const hex = (c) => (c ? colorToHex(c) : '');
+    let spid = 2;
+    const sps = shapes.map((s, idx) => {
+        const id = spid++;
+        const modelId = diagramUniqueId(idx + 1);
+        const flips = `${s.flipH ? ' flipH="1"' : ''}${s.flipV ? ' flipV="1"' : ''}`;
+        const xfrm = `<a:xfrm${flips}><a:off x="${pxToEmu(s.x)}" y="${pxToEmu(s.y)}"/><a:ext cx="${pxToEmu(s.width)}" cy="${pxToEmu(s.height)}"/></a:xfrm>`;
+        const adjust = s.adjust && Object.keys(s.adjust).length
+            ? Object.entries(s.adjust).map(([name, val]) => `<a:gd name="${name}" fmla="val ${val}"/>`).join('')
+            : '';
+        const geom = `<a:prstGeom prst="${escapeXml(s.prst || 'rect')}"><a:avLst>${adjust}</a:avLst></a:prstGeom>`;
+        const fillXml = (s.fill === 'none' || !s.fill)
+            ? (s.fill === 'none' ? '<a:noFill/>' : '')
+            : `<a:solidFill><a:srgbClr val="${hex(s.fill)}"/></a:solidFill>`;
+        const lw = Math.max(9525, pxToEmu(s.lineWidth || 0.75));
+        const lineXml = s.lineColor
+            ? `<a:ln w="${lw}"><a:solidFill><a:srgbClr val="${hex(s.lineColor)}"/></a:solidFill></a:ln>`
+            : '';
+        const anchor = s.anchor === 't' ? 't' : s.anchor === 'b' ? 'b' : 'ctr';
+        const algn = s.align === 'l' ? 'l' : s.align === 'r' ? 'r' : 'ctr';
+        const sz = Math.max(900, Math.min(4000, Math.round((s.fontSize || 12) * 100)));
+        const lines = String(s.text || '').split('\n').map((line) => `<a:p><a:pPr algn="${algn}"/><a:r><a:rPr lang="en-US" sz="${sz}"${s.bold ? ' b="1"' : ''}>` +
+            (s.color ? `<a:solidFill><a:srgbClr val="${hex(s.color)}"/></a:solidFill>` : '') +
+            `</a:rPr><a:t>${escapeXml(line)}</a:t></a:r></a:p>`).join('');
+        const txBody = s.text
+            ? `<dsp:txBody><a:bodyPr anchor="${anchor}"/><a:lstStyle/>${lines}</dsp:txBody>`
+            : `<dsp:txBody><a:bodyPr anchor="${anchor}"/><a:lstStyle/><a:p><a:endParaRPr lang="en-US"/></a:p></dsp:txBody>`;
+        if (s.connector) {
+            return `<dsp:cxnSp modelId="${escapeXml(modelId)}"><dsp:nvCxnSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvCxnSpPr/><dsp:nvPr/></dsp:nvCxnSpPr>` +
+                `<dsp:spPr bwMode="auto">${xfrm}${geom}<a:noFill/>${lineXml}</dsp:spPr></dsp:cxnSp>`;
+        }
+        return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
+            `<dsp:spPr bwMode="auto">${xfrm}${geom}${fillXml}${lineXml}</dsp:spPr>${txBody}</dsp:sp>`;
+    }).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
+        `<dsp:drawing xmlns:dsp="${DSP_NS}" xmlns:a="${A_NS}" xmlns:r="${NS.r}">` +
+        `<dsp:spTree><dsp:nvGrpSpPr><dsp:cNvPr id="1" name="Diagram"/><dsp:cNvGrpSpPr/><dsp:nvPr/></dsp:nvGrpSpPr>` +
+        `<dsp:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${W}" cy="${H}"/><a:chOff x="0" y="0"/><a:chExt cx="${W}" cy="${H}"/></a:xfrm></dsp:grpSpPr>` +
+        sps +
+        `</dsp:spTree></dsp:drawing>`;
+}
 async function buildDiagramElement(ctx, el) {
     ctx.diagramIndex++;
     const n = ctx.diagramIndex;
     const dgmType = el.diagramType || 'list';
-    const nodes = el.nodes || [];
+    const cachedShapes = Array.isArray(el.shapes) ? el.shapes : [];
+    const nodes = el.nodes && el.nodes.length
+        ? el.nodes
+        : (Array.isArray(el.texts) ? el.texts.map((t) => ({ text: String(t) })) : []);
     const dataXml = buildDiagramDataModel(nodes);
     const layoutXml = buildDiagramLayout(dgmType, n);
     const colorsXml = buildDiagramColors(dgmType, n);
     const quickStyleXml = buildDiagramQuickStyle(dgmType, n);
     const drawW = pxToEmu(el.width || 400);
     const drawH = pxToEmu(el.height || 300);
-    const drawingXml = buildDiagramDrawing(dgmType, n, nodes, drawW, drawH);
+    const drawingXml = cachedShapes.length
+        ? buildDiagramDrawingFromShapes(cachedShapes, drawW, drawH)
+        : buildDiagramDrawing(dgmType, n, nodes, drawW, drawH);
     const dataRelId = addRelationship(ctx, REL_TYPES.diagramData, `../diagrams/data${n}.xml`);
     const colorsRelId = addRelationship(ctx, REL_TYPES.diagramColors, `../diagrams/colors${n}.xml`);
     const layoutRelId = addRelationship(ctx, REL_TYPES.diagramLayout, `../diagrams/layout${n}.xml`);
@@ -16388,8 +16491,24 @@ async function jsonToPptx(presentation, options = {}) {
         notesMasterRelId
     }));
     zip.file('ppt/_rels/presentation.xml.rels', buildRelationshipsXml(presRels));
-    const themeXml = (options && options.theme) || pres.theme;
-    zip.file('ppt/theme/theme1.xml', buildThemeXml(themeXml));
+    const globalThemeXml = (options && options.theme) || pres.themeXml || pres.theme;
+    const themeParts = [buildThemeXml(globalThemeXml)];
+    const masterThemeNo = [];
+    for (const m of (masters || [])) {
+        const t = typeof m?.themeXml === 'string' ? m.themeXml : undefined;
+        if (!t) {
+            masterThemeNo.push(1);
+            continue;
+        }
+        let idx = themeParts.indexOf(t);
+        if (idx < 0) {
+            themeParts.push(t);
+            idx = themeParts.length - 1;
+        }
+        masterThemeNo.push(idx + 1);
+    }
+    themeParts.forEach((t, i) => zip.file(`ppt/theme/theme${i + 1}.xml`, t));
+    const themeCount = themeParts.length;
     const buildElementsXml = async (els) => {
         if (!els || !els.length)
             return '';
@@ -16415,7 +16534,7 @@ async function jsonToPptx(presentation, options = {}) {
             const mRels = layoutNos.map((no, k) => ({
                 relId: `rId${k + 1}`, type: REL_TYPES.slideLayout, target: `../slideLayouts/slideLayout${no}.xml`
             }));
-            mRels.push({ relId: `rId${layoutNos.length + 1}`, type: REL_TYPES.theme, target: '../theme/theme1.xml' });
+            mRels.push({ relId: `rId${layoutNos.length + 1}`, type: REL_TYPES.theme, target: `../theme/theme${masterThemeNo[mi] || 1}.xml` });
             zip.file(`ppt/slideMasters/_rels/slideMaster${mi + 1}.xml.rels`, buildRelationshipsXml(mRels));
         }
         for (let li = 0; li < flatLayouts.length; li++) {
@@ -16439,7 +16558,9 @@ async function jsonToPptx(presentation, options = {}) {
     }
     zip.file('ppt/presProps.xml', buildPresPropsXml());
     zip.file('ppt/viewProps.xml', buildViewPropsXml());
-    zip.file('ppt/tableStyles.xml', buildTableStylesXml([...tableStyleIds]));
+    zip.file('ppt/tableStyles.xml', typeof pres.tableStylesXml === 'string'
+        ? pres.tableStylesXml
+        : buildTableStylesXml([...tableStyleIds]));
     zip.file('docProps/core.xml', buildCorePropsXml(pres.metadata));
     zip.file('docProps/app.xml', buildAppPropsXml(pres.slides.length));
     let rootRelsXml = buildRootRelsXml();
@@ -16449,7 +16570,8 @@ async function jsonToPptx(presentation, options = {}) {
     zip.file('_rels/.rels', rootRelsXml);
     let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length, {
         masterCount: useMasters ? masters.length : 1,
-        layoutCount: useMasters ? flatLayouts.length : 1
+        layoutCount: useMasters ? flatLayouts.length : 1,
+        themeCount
     });
     if (pres.customProps) {
         contentTypeXml = contentTypeXml.replace('</Types>', `<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>`);
@@ -17097,7 +17219,9 @@ function readRunStyle(rPr, themeMap = {}, resolveHref) {
         style.italic = true;
     if (attrs.u && attrs.u !== 'none')
         style.underline = true;
-    const color = spColor(rPr['a:solidFill'], themeMap) || readSrgbClr(rPr);
+    const directColorNode = rPr['a:srgbClr'] || rPr['a:schemeClr'];
+    const color = (directColorNode ? spColor(directColorNode, themeMap) : undefined)
+        || spColor(rPr['a:solidFill'], themeMap);
     if (color)
         style.color = color;
     const latin = rPr['a:latin'];
@@ -17155,6 +17279,7 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
     const textDirection = bodyPr && bodyPr.attrs && bodyPr.attrs.vert
         ? String(bodyPr.attrs.vert) : undefined;
     const noWrap = bodyPr && bodyPr.attrs && bodyPr.attrs.wrap === 'none' ? true : undefined;
+    const rtlCol = bodyPr && bodyPr.attrs && (bodyPr.attrs.rtlCol === '1' || bodyPr.attrs.rtlCol === 1) ? true : undefined;
     let inset;
     if (bodyPr && bodyPr.attrs) {
         const a = bodyPr.attrs;
@@ -17168,7 +17293,8 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
     for (const pNode of asArray(txBody['a:p'])) {
         const pPr = pNode['a:pPr'];
         const pAttrs = (pPr && pPr.attrs) || {};
-        const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : undefined;
+        const isRtlPara = pAttrs.rtl === '1' || pAttrs.rtl === 1;
+        const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : (isRtlPara ? 'right' : undefined);
         let bullet;
         if (pPr && pPr['a:buNone']) {
             bullet = undefined;
@@ -17250,13 +17376,13 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
             para.indentRight = indentRight;
         if (indent != null)
             para.indent = indent;
-        if (pAttrs.rtl === '1' || pAttrs.rtl === 1)
+        if (isRtlPara)
             para.rtl = true;
         if (valign)
             para.valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap };
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol };
 }
 async function resolveBulletBlips(txBody, resObj, zip) {
     if (!txBody)
@@ -17324,7 +17450,10 @@ function readSpPr(spPr, themeMap = {}) {
             const ang = Number(lin.attrs.ang) / 60000;
             direction = ang >= 45 && ang < 135 ? 'vertical' : (ang >= 22.5 && ang < 67.5 ? 'diagonal' : 'horizontal');
         }
-        out.fill = { type: 'gradient', direction, stops };
+        const path = gf['a:path'];
+        out.fill = path
+            ? { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
+            : { type: 'gradient', direction, stops };
     }
     else if (spPr['a:pattFill']) {
         const pf = Array.isArray(spPr['a:pattFill']) ? spPr['a:pattFill'][0] : spPr['a:pattFill'];
@@ -17607,23 +17736,35 @@ async function extractBackground(slideContent, resObj, zip, fallbacks = [], them
                     return img;
             }
             if (bgPr['a:gradFill']) {
-                const gsLst = bgPr['a:gradFill']['a:gsLst'];
-                const stops = [];
-                for (const gs of asArray(gsLst && gsLst['a:gs'])) {
-                    const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
-                    const c = spColor(gs, themeMap) || readSrgbClr(gs);
-                    if (c)
-                        stops.push({ color: c, position: pos });
-                }
-                const lin = bgPr['a:gradFill']['a:lin'];
-                const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
-                const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
-                return { type: 'gradient', direction, stops };
+                const grad = readGradientFill(bgPr['a:gradFill'], themeMap);
+                if (grad)
+                    return grad;
             }
         }
         return undefined;
     }
     return undefined;
+}
+function readGradientFill(gradFill, themeMap = {}) {
+    if (!gradFill)
+        return undefined;
+    const gsLst = gradFill['a:gsLst'];
+    const stops = [];
+    for (const gs of asArray(gsLst && gsLst['a:gs'])) {
+        const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
+        const c = spColor(gs, themeMap) || readSrgbClr(gs);
+        if (c)
+            stops.push({ color: c, position: pos });
+    }
+    if (!stops.length)
+        return undefined;
+    const lin = gradFill['a:lin'];
+    const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
+    const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+    const path = gradFill['a:path'];
+    return path
+        ? { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
+        : { type: 'gradient', direction, stops };
 }
 function extractChart(chartXml, themeMap = {}) {
     try {
@@ -17721,14 +17862,14 @@ function extractChart(chartXml, themeMap = {}) {
                         const dSpPr = d['c:spPr'];
                         if (!dSpPr)
                             continue;
-                        const c = spColor(dSpPr['a:solidFill'], themeMap)
-                            || (() => {
-                                const gsLst = dSpPr['a:gradFill'] && dSpPr['a:gradFill']['a:gsLst'];
-                                const gs0 = asArray(gsLst && gsLst['a:gs'])[0];
-                                return gs0 ? spColor(gs0, themeMap) : undefined;
-                            })();
-                        if (c)
-                            pc[idx] = c;
+                        const grad = readGradientFill(dSpPr['a:gradFill'], themeMap);
+                        if (grad) {
+                            pc[idx] = grad;
+                            continue;
+                        }
+                        const solid = spColor(dSpPr['a:solidFill'], themeMap);
+                        if (solid)
+                            pc[idx] = solid;
                     }
                     s.pointColors = pc;
                 }
@@ -17746,7 +17887,11 @@ function extractChart(chartXml, themeMap = {}) {
                 }
             }
         }
-        const legend = !!chart['c:legend'];
+        const legendNode = chart['c:legend'];
+        const legend = !!legendNode;
+        const legendPosition = legendNode && legendNode['c:legendPos'] && legendNode['c:legendPos'].attrs
+            ? String(legendNode['c:legendPos'].attrs.val)
+            : undefined;
         const out = { chartType, series };
         if (spaceFill !== undefined)
             out.spaceFill = spaceFill;
@@ -17755,6 +17900,8 @@ function extractChart(chartXml, themeMap = {}) {
         if (title)
             out.title = title.trim();
         out.legend = legend;
+        if (legendPosition)
+            out.legendPosition = legendPosition;
         const attrOf = (parent, tag) => {
             const n = parent && parent[tag];
             return n && n.attrs ? n.attrs.val : undefined;
@@ -17845,6 +17992,7 @@ const REL_CONTENT_TYPE = {
     'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramLayout': 'application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml',
     'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramQuickStyle': 'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml',
     'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramColors': 'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml',
+    'http://schemas.microsoft.com/office/2007/relationships/diagramDrawing': 'application/vnd.ms-office.drawingml.diagramDrawing+xml',
     'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart': 'application/vnd.openxmlformats-officedocument.drawingml.chart+xml'
 };
 function collectRelIds(node, acc) {
@@ -17871,6 +18019,11 @@ function collectRelIds(node, acc) {
 async function attachRawDeps(el, node, resObj, zip) {
     const relIds = new Set();
     collectRelIds(node, relIds);
+    for (const [rid, rel] of Object.entries(resObj || {})) {
+        if (rel && (rel.type === MS_DIAGRAM_DRAWING_REL || /diagrams\/drawing\d+\.xml$/i.test(String(rel.target || '')))) {
+            relIds.add(rid);
+        }
+    }
     if (!relIds.size)
         return;
     const rels = {};
@@ -18201,7 +18354,7 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
         }
         catch { }
     }
-    const { paragraphs, hasText, textDirection, inset, noWrap } = extractTextBody(node, themeMap, resolveHyperlink(resObj));
+    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol } = extractTextBody(node, themeMap, resolveHyperlink(resObj));
     const geom = spPr && spPr['a:prstGeom'];
     if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
         const xf = readXfrm(node, false);
@@ -18228,8 +18381,11 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
             textEl.inset = inset;
         if (noWrap)
             textEl.noWrap = noWrap;
+        if (rtlCol)
+            textEl.rtlCol = true;
         const isPureTextBox = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1';
-        const hasNonRectShape = geom && geom.attrs && geom.attrs.prst && String(geom.attrs.prst) !== 'rect' && !isPureTextBox;
+        const hasCustGeom = !!(spPr && spPr['a:custGeom']);
+        const hasNonRectShape = (geom && geom.attrs && geom.attrs.prst && String(geom.attrs.prst) !== 'rect' && !isPureTextBox) || hasCustGeom;
         try {
             const spVis = readSpPr(spPr, themeMap);
             if (spPr && spPr['a:blipFill']) {
@@ -18264,6 +18420,11 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
                 const visAdjust = readAdjust(geom);
                 if (visAdjust)
                     textEl.adjust = visAdjust;
+            }
+            if (hasCustGeom) {
+                const cg = readCustGeom(spPr['a:custGeom']);
+                if (cg)
+                    textEl.custGeom = cg;
             }
             if (spVis.fill !== undefined)
                 textEl.fill = spVis.fill;
@@ -18517,6 +18678,8 @@ function tableToElement(tbl, node, themeMap = {}, resObj) {
                 cell.align = paragraphs[0].align;
             else if (paragraphs[0] && paragraphs[0].rtl)
                 cell.align = 'right';
+            if (paragraphs[0] && paragraphs[0].rtl)
+                cell.rtl = true;
             const tcPr = tc && tc['a:tcPr'];
             if (tcPr) {
                 const fill = spColor(tcPr['a:solidFill'], themeMap)
@@ -18702,6 +18865,11 @@ function resolveThemeStyleRef(refNode, styleList, themeMap) {
             const lin = grad && grad['a:lin'];
             const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
             gradient.direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            const path = grad && grad['a:path'];
+            if (path) {
+                gradient.gradientType = 'radial';
+                gradient.gradientPath = (path.attrs && path.attrs.path) || 'circle';
+            }
         }
     }
     if (!color)
@@ -19257,7 +19425,7 @@ async function graphicFrameToChart(node, resObj, zip, themeMap = {}) {
     if (!chartSemantic)
         return chartEl;
     const passKeys = [
-        'categories', 'title', 'legend', 'grouping', 'varyColors', 'barDir',
+        'categories', 'title', 'legend', 'legendPosition', 'grouping', 'varyColors', 'barDir',
         'holeSize', 'smooth', 'marker', 'ofPieType', 'numberFormat',
         'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe', 'spaceFill'
     ];
@@ -19422,7 +19590,152 @@ async function buildStandardDocument(parsedData, zip, options = {}) {
     }
     if (theme)
         doc.theme = theme;
+    try {
+        const themeFile = zip.file('ppt/theme/theme1.xml');
+        if (themeFile)
+            doc.themeXml = await themeFile.async('string');
+    }
+    catch { }
+    try {
+        const tsFile = zip.file('ppt/tableStyles.xml');
+        if (tsFile)
+            doc.tableStylesXml = await tsFile.async('string');
+    }
+    catch { }
+    try {
+        const slideFileNames = (parsedData.slides || []).map((s) => String(s.fileName || ''));
+        const pkg = await extractPackageParts(zip, slideFileNames);
+        if (pkg) {
+            doc.themeXmls = pkg.themeXmls;
+            doc.masters = pkg.masters;
+            pkg.slideLayoutIndex.forEach((li, si) => { if (slides[si])
+                slides[si].layout = li; });
+        }
+    }
+    catch { }
     return doc;
+}
+async function readRelMap(zip, relsPath) {
+    const out = {};
+    let xml;
+    try {
+        xml = await PPTXXmlUtils.readXmlFile(zip, relsPath);
+    }
+    catch {
+        return out;
+    }
+    const relsRoot = xml && (xml.Relationships || xml['Relationships:Relationships']);
+    if (!relsRoot)
+        return out;
+    const raw = relsRoot.Relationship || relsRoot['Relationship:Relationship'];
+    const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    for (const rel of list) {
+        const id = rel && rel.attrs && rel.attrs.Id;
+        if (!id)
+            continue;
+        const fullType = String((rel.attrs && rel.attrs.Type) || '');
+        out[String(id)] = {
+            type: fullType.replace(REL_PREFIX, '').replace(REL_PREFIX_MS, 'ms:'),
+            target: String((rel.attrs && rel.attrs.Target) || '')
+        };
+    }
+    return out;
+}
+const REL_PREFIX_MS = 'http://schemas.microsoft.com/office/2007/relationships/';
+async function extractPackageParts(zip, slideFileNames) {
+    const partNos = (re) => Object.keys(zip.files)
+        .map((p) => { const m = re.exec(p); return m ? Number(m[1]) : NaN; })
+        .filter((n) => Number.isFinite(n))
+        .sort((a, b) => a - b);
+    const themeNos = partNos(/^ppt\/theme\/theme(\d+)\.xml$/);
+    if (!themeNos.length)
+        return null;
+    const themeXmls = [];
+    for (const n of themeNos) {
+        const f = zip.file(`ppt/theme/theme${n}.xml`);
+        themeXmls[n - 1] = f ? await f.async('string') : '';
+    }
+    const layoutNos = partNos(/^ppt\/slideLayouts\/slideLayout(\d+)\.xml$/);
+    const layoutMaster = new Map();
+    const layoutRaw = new Map();
+    for (const n of layoutNos) {
+        const f = zip.file(`ppt/slideLayouts/slideLayout${n}.xml`);
+        if (f) {
+            try {
+                layoutRaw.set(n, await f.async('string'));
+            }
+            catch { }
+        }
+        const rels = await readRelMap(zip, `ppt/slideLayouts/_rels/slideLayout${n}.xml.rels`);
+        for (const r of Object.values(rels)) {
+            if (r.type !== 'slideMaster')
+                continue;
+            const m = /slideMaster(\d+)\.xml/i.exec(r.target);
+            if (m)
+                layoutMaster.set(n, Number(m[1]));
+        }
+    }
+    const masterNos = partNos(/^ppt\/slideMasters\/slideMaster(\d+)\.xml$/);
+    if (!masterNos.length)
+        return null;
+    const masters = [];
+    const layoutNoToFlat = new Map();
+    let flat = 0;
+    for (const n of masterNos) {
+        const f = zip.file(`ppt/slideMasters/slideMaster${n}.xml`);
+        let raw = '';
+        if (f) {
+            try {
+                raw = await f.async('string');
+            }
+            catch { }
+        }
+        const rels = await readRelMap(zip, `ppt/slideMasters/_rels/slideMaster${n}.xml.rels`);
+        let themeNo = 1;
+        const relLayoutNos = [];
+        for (const r of Object.values(rels)) {
+            if (r.type === 'theme') {
+                const m = /theme(\d+)\.xml/i.exec(r.target);
+                if (m)
+                    themeNo = Number(m[1]);
+            }
+            else if (r.type === 'slideLayout') {
+                const m = /slideLayout(\d+)\.xml/i.exec(r.target);
+                if (m)
+                    relLayoutNos.push(Number(m[1]));
+            }
+        }
+        for (const ln of layoutNos) {
+            if (layoutMaster.get(ln) === n && relLayoutNos.indexOf(ln) < 0)
+                relLayoutNos.push(ln);
+        }
+        const layouts = relLayoutNos.map((ln) => {
+            layoutNoToFlat.set(ln, flat++);
+            return { __rawXml: layoutRaw.get(ln) || '' };
+        });
+        masters.push({ __rawXml: raw, themeXml: themeXmls[themeNo - 1] || '', layouts });
+    }
+    const slideLayoutIndex = [];
+    for (const name of slideFileNames) {
+        let idx = 0;
+        if (name) {
+            const base = name.indexOf('/') >= 0 ? name.slice(name.lastIndexOf('/') + 1) : name;
+            const rels = await readRelMap(zip, `ppt/slides/_rels/${base}.xml.rels`);
+            for (const r of Object.values(rels)) {
+                if (r.type !== 'slideLayout')
+                    continue;
+                const m = /slideLayout(\d+)\.xml/i.exec(r.target);
+                if (m) {
+                    const fi = layoutNoToFlat.get(Number(m[1]));
+                    if (fi !== undefined)
+                        idx = fi;
+                }
+                break;
+            }
+        }
+        slideLayoutIndex.push(idx);
+    }
+    return { themeXmls, masters, slideLayoutIndex };
 }
 async function extractTheme(zip) {
     try {

@@ -123,7 +123,16 @@ export interface PptxGradientStop { color: string; position: number; }
 /** 纯色填充（可带透明度 0-100） */
 export interface PptxFillSolid { type?: 'solid'; color?: string; transparency?: number; }
 /** 渐变填充 */
-export interface PptxFillGradient { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: PptxGradientStop[]; }
+export interface PptxFillGradient {
+    type: 'gradient';
+    /** 线性渐变方向（a:lin@ang），径向渐变时仍保留以兼容旧数据 */
+    direction?: 'horizontal' | 'vertical' | 'diagonal';
+    stops: PptxGradientStop[];
+    /** 渐变类型：a:lin 为线性（缺省），a:path 为径向/矩形渐变 */
+    gradientType?: 'linear' | 'radial';
+    /** 径向渐变路径（a:path@path）：circle（默认）/ rect / shape */
+    gradientPath?: string;
+}
 /** 形状填充：颜色串 / {color} / {type:'solid',...} / {type:'gradient',...} / {type:'pattern',...} / {type:'image',...} / 'none' / null */
 export type PptxFill = string | PptxFillSolid | PptxFillGradient | PptxFillPattern | PptxFillImage | 'none' | null;
 
@@ -258,7 +267,7 @@ export type PptxAutofit = 'none' | 'normal' | 'shape';
 export type PptxBackground =
     | string                                   // 纯色（#RRGGBB 或颜色名），等价 { type:'solid', color }
     | { type: 'solid'; color: string }
-    | { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[] }
+    | { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string }
     | {
         type: 'image'; data?: string; src?: string; extension?: string;
         /** 源图裁剪（a:srcRect），0~1 */
@@ -353,7 +362,7 @@ export interface PptxChartSeries {
     close?: number[];    // 股票图：收盘
     color?: string;
     /** 逐点填充色（c:dPt）：下标对应 values，undefined 表示该点无覆盖 */
-    pointColors?: (string | undefined)[];
+    pointColors?: (string | PptxGradientFill | undefined)[];
     /**
      * 系列绑定到哪条数值轴（次坐标轴场景）。
      * 'secondary' 时生成端写出 c:ser/c:order + c:ser 挂到第二个 c:valAx（除 bar 系用 c:catAx 组合外），
@@ -455,6 +464,8 @@ export interface PptxTextElement extends PptxElementBase {
     flipV?: boolean;
     /** 底层形状类型（带文字的形状，如椭圆/饼图/弧线；编辑器据此还原形状底） */
     shapeType?: string;
+    /** 自定义几何（带文字的形状使用了 a:custGeom，如艺术字/特殊剪裁；编辑器据此还原路径） */
+    custGeom?: PptxCustomGeometry;
     /** 底层形状填充（与 PptxShapeElement.fill 同构） */
     fill?: PptxFill;
     /** 底层形状边框 */
@@ -492,6 +503,8 @@ export interface PptxTextElement extends PptxElementBase {
     textDirection?: string;
     /** 分栏数（a:bodyPr@numCol，默认 1） */
     numCol?: number;
+    /** 是否从右向左排布列（a:bodyPr@rtlCol，影响 RTL 文本折行） */
+    rtlCol?: boolean;
     /** 栏间距 pt（a:bodyPr@spcCol） */
     spcCol?: number;
     /**
@@ -575,6 +588,8 @@ export interface PptxChartElement extends PptxElementBase {
     height: number;
     title?: string;
     legend?: boolean;
+    /** 图例位置（c:legend/c:legendPos@val）：如 'b'/'r'/'t'/'l' */
+    legendPosition?: string;
     /** 图表区填充（c:chartSpace/c:spPr）：'none' 或 #RRGGBB；缺省透明 */
     spaceFill?: string;
     varyColors?: boolean;
@@ -632,6 +647,19 @@ export interface PptxChartElement extends PptxElementBase {
     gridlines?: { major?: boolean; minor?: boolean };
 }
 
+/** 渐变填充（形状填充、图表逐点填充 c:dPt 共用） */
+export interface PptxGradientFill {
+    type: 'gradient';
+    /** 线性渐变方向（a:lin@ang 换算：90°→vertical、45°→diagonal、其余 horizontal） */
+    direction?: 'horizontal' | 'vertical' | 'diagonal';
+    /** 渐变色标（position 为 0~1） */
+    stops: { color: string; position: number }[];
+    /** 缺省为线性（a:lin）；'radial' 写 a:path */
+    gradientType?: 'linear' | 'radial';
+    /** 径向渐变路径（a:path@path）：circle / rect / shape */
+    gradientPath?: string;
+}
+
 /** 表格单元格 */
 export interface PptxTableCell {
     /** 单元格文本（无 runs 时使用） */
@@ -663,6 +691,12 @@ export interface PptxTableCell {
     };
     /** 文本水平对齐 */
     align?: TextAlign;
+    /**
+     * 从右到左段落（a:pPr@rtl="1"）。
+     * 单段单元格用 text 简写时无法携带段落级 rtl，故在单元格级冗余一份，
+     * 使生成端能写回 rtl="1"（仅 algn="r" 不足以让 RTL 表格复现右对齐渲染）。
+     */
+    rtl?: boolean;
     /** 文本垂直对齐（OOXML anchor） */
     valign?: VAlign;
     /** 单元格级文本样式 */
@@ -988,6 +1022,8 @@ export interface PptxSlideMaster {
     placeholders?: PptxPlaceholder[];
     /** 该母版下的版式列表 */
     layouts?: PptxSlideLayout[];
+    /** 该母版引用的主题整串 XML（解析端回读，无损保真；与 presentation 共享或独立 theme 部件） */
+    themeXml?: string;
 }
 
 /** 幻灯片 */
@@ -1127,6 +1163,20 @@ export interface PptxDocument {
     media?: Record<string, PptxMediaResource>;
     /** 主题覆盖（可选，高级）：字符串=整串 theme XML；对象=语义级主题定义 */
     theme?: PptxTheme | string;
+    /** 原始 theme1.xml 整串文本（解析端回读，用于无损回退以保证 fmtScheme/fontScheme 等细节保真） */
+    themeXml?: string;
+    /**
+     * 原始 ppt/tableStyles.xml 整串文本（解析端回读）。
+     * 表格样式的 GUID 定义决定网格线颜色/底纹/条带，重新生成的等价定义只有通用黑网格，
+     * 会让白网格表格变黑、底纹与条带丢失。
+     */
+    tableStylesXml?: string;
+    /**
+     * 原始主题部件整串列表（解析端回读，顺序即 ppt/theme/themeN.xml 的 N）。
+     * 多母版/多主题文件（如 Sample_12 的不同页绑定不同主题）按 masters[i].themeXml
+     * 各自写回对应主题部件，避免所有页退化为单一主题导致 SmartArt/图表配色错位。
+     */
+    themeXmls?: string[];
     /**
      * 母版定义（可选）。提供时生成端按此写出多个 slideMasterN.xml 及其版式，
      * 并让幻灯片通过 PptxSlide.layout 指定所用版式。省略时退回单一空白版式。

@@ -481,9 +481,23 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     zip.file('ppt/_rels/presentation.xml.rels', buildRelationshipsXml(presRels));
 
     // ===== 静态部件 =====
-    // 主题：支持语义级定义（{colors, fonts}）与整串 XML 覆盖
-    const themeXml = (options && (options as any).theme) || (pres as any).theme;
-    zip.file('ppt/theme/theme1.xml', buildThemeXml(themeXml));
+    // 主题部件规划：theme1.xml 为演示文稿主主题；母版可通过 themeXml 绑定各自主题。
+    // 多主题文件（如 Sample_12：不同页绑定不同母版 → 不同主题）若统一按 theme1 渲染，
+    // SmartArt/图表的 schemeClr 会取到错误配色，故按母版分别写回主题部件。
+    const globalThemeXml = (options && (options as any).theme) || (pres as any).themeXml || (pres as any).theme;
+    const themeParts: string[] = [buildThemeXml(globalThemeXml)];
+    // 母版 → 主题部件号（按内容去重，多母版共享同一主题时只写一份）
+    const masterThemeNo: number[] = [];
+    for (const m of (masters || []) as any[]) {
+        const t = typeof m?.themeXml === 'string' ? m.themeXml : undefined;
+        if (!t) { masterThemeNo.push(1); continue; }
+        // 从 0 开始查：母版主题与演示文稿主主题（theme1）相同时复用同一部件
+        let idx = themeParts.indexOf(t);
+        if (idx < 0) { themeParts.push(t); idx = themeParts.length - 1; }
+        masterThemeNo.push(idx + 1);
+    }
+    themeParts.forEach((t, i) => zip.file(`ppt/theme/theme${i + 1}.xml`, t));
+    const themeCount = themeParts.length;
 
     // 母版 / 版式上的常驻元素需要走 buildElement（异步），此处统一序列化为 XML 片段
     const buildElementsXml = async (els: any[] | undefined): Promise<string> => {
@@ -513,7 +527,7 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
             const mRels = layoutNos.map((no, k) => ({
                 relId: `rId${k + 1}`, type: REL_TYPES.slideLayout, target: `../slideLayouts/slideLayout${no}.xml`
             }));
-            mRels.push({ relId: `rId${layoutNos.length + 1}`, type: REL_TYPES.theme, target: '../theme/theme1.xml' });
+            mRels.push({ relId: `rId${layoutNos.length + 1}`, type: REL_TYPES.theme, target: `../theme/theme${masterThemeNo[mi] || 1}.xml` });
             zip.file(`ppt/slideMasters/_rels/slideMaster${mi + 1}.xml.rels`, buildRelationshipsXml(mRels));
         }
 
@@ -540,7 +554,11 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     }
     zip.file('ppt/presProps.xml', buildPresPropsXml());
     zip.file('ppt/viewProps.xml', buildViewPropsXml());
-    zip.file('ppt/tableStyles.xml', buildTableStylesXml([...tableStyleIds]));
+    // 表格样式：优先原样回写解析端读到的原始 tableStyles.xml（保留网格线颜色/底纹/条带），
+    // 否则按引用到的样式 ID 生成等价定义（仅通用网格，会丢底纹）
+    zip.file('ppt/tableStyles.xml', typeof (pres as any).tableStylesXml === 'string'
+        ? (pres as any).tableStylesXml
+        : buildTableStylesXml([...tableStyleIds]));
 
     // ===== docProps =====
     zip.file('docProps/core.xml', buildCorePropsXml(pres.metadata));
@@ -555,7 +573,8 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     zip.file('_rels/.rels', rootRelsXml);
     let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length, {
         masterCount: useMasters ? masters!.length : 1,
-        layoutCount: useMasters ? flatLayouts.length : 1
+        layoutCount: useMasters ? flatLayouts.length : 1,
+        themeCount
     });
     if ((pres as any).customProps) {
         contentTypeXml = contentTypeXml.replace('</Types>',

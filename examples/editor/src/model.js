@@ -298,7 +298,9 @@ export function syncTableStyle(el) {
         cell.bold = cell.boldCustom ?? !!el.bold;
         cell.color = cell.colorCustom ?? el.color ?? '#202124';
       }
-      cell.fontSize = el.fontSize;
+      // fontSizeSet 为假表示源文件未显式指定字号（靠主题/表格样式继承）；
+      // 只有用户在属性面板改过字号（面板会置 fontSizeSet=true）才回写到每个单元格
+      if (el.fontSizeSet) { cell.fontSize = el.fontSize; cell.fontSizeSet = true; }
       cell.align = cell.align ?? el.align;
       cell.valign = cell.valign ?? el.valign;
       if (!isHead && cell.fillCustom === undefined) cell.fill = el.cellFill ?? null;
@@ -601,6 +603,48 @@ function autoNumPrefix(fmt, n) {
   return `${n}.`;
 }
 
+/**
+ * 表格单元格原始段落 → 生成端可识别的段落结构。
+ * 保留 runs 样式与 bullet（含自动编号 fmt/start），供未被编辑的单元格原样回写。
+ */
+function cleanCellParagraphs(paragraphs) {
+  return (paragraphs || []).map((p) => {
+    const out = { runs: (p.runs || []).map((r) => {
+      const run = { text: r.text == null ? '' : String(r.text) };
+      if (r.fontSize != null) run.fontSize = r.fontSize;
+      if (r.color) run.color = normalizeColor(r.color) || undefined;
+      if (r.bold) run.bold = true;
+      if (r.italic) run.italic = true;
+      if (r.underline) run.underline = true;
+      if (r.fontFace) run.fontFace = r.fontFace;
+      if (r.href) run.href = r.href;
+      if (r.break) run.break = true;
+      return run;
+    }) };
+    if (!out.runs.length) out.runs = [{ text: '' }];
+    if (p.align) out.align = p.align;
+    if (p.rtl) out.rtl = true;
+    // 段落级缩进/边距：表格单元格段落也需保留 marL/marR/indent，否则列表缩进丢失
+    if (p.indentLeft != null) out.indentLeft = p.indentLeft;
+    if (p.indentRight != null) out.indentRight = p.indentRight;
+    if (p.indent != null) out.indent = p.indent;
+    // 自动编号：fmt（hebrew2Minus 等）与 startAt 必须原样保留，否则导出后退化为阿拉伯数字
+    const b = p.bullet;
+    if (b && typeof b === 'object' && b.type === 'number') {
+      out.bullet = { type: 'number', fmt: b.fmt || 'arabicPeriod', start: b.start ?? 1 };
+    } else if (b && typeof b === 'object' && b.type === 'bullet') {
+      out.bullet = { type: 'bullet', char: b.char };
+      if (b.font) out.bullet.font = b.font;
+      if (b.sizePct) out.bullet.sizePct = b.sizePct;
+    } else if (b === 'number') {
+      out.bullet = 'number';
+    } else if (b === true || b === 'bullet') {
+      out.bullet = true;
+    }
+    return out;
+  });
+}
+
 function cleanRuns(paragraph, el) {
   const runs = (paragraph.runs || []).map((r) => {
     const run = { text: r.text == null ? '' : String(r.text) };
@@ -619,18 +663,33 @@ function cleanRuns(paragraph, el) {
   return runs.length ? runs : [{ text: '' }];
 }
 
+/**
+ * 逐点填充项归一化：纯色字符串加 '#'，渐变对象原样透传。
+ * 3D 饼/环的 c:dPt 多为径向渐变，压成纯色会让渲染端退回默认调色板。
+ */
+function normPointColor(c) {
+  if (!c) return undefined;
+  if (typeof c === 'object') return c;
+  return normalizeColor(c) || undefined;
+}
+
 function fillToPptx(fill) {
-  if (!fill || fill === 'none') return 'none';
+  // null/undefined = 源文件未指定填充（继承主题/版式），导出时不能写成 'none'（会变成显式无填充，阻断继承）
+  if (fill === 'none') return 'none';
+  if (!fill) return undefined;
   if (typeof fill === 'string') return fill;
   if (fill.type === 'gradient') {
-    return { type: 'gradient', direction: fill.direction || 'horizontal', stops: (fill.stops || []).map((s) => ({ color: s.color, position: s.position })) };
+    const g = { type: 'gradient', direction: fill.direction || 'horizontal', stops: (fill.stops || []).map((s) => ({ color: s.color, position: s.position })) };
+    // 径向渐变（a:path）：缺了会退化成水平线性
+    if (fill.gradientType === 'radial') { g.gradientType = 'radial'; g.gradientPath = fill.gradientPath || 'circle'; }
+    return g;
   }
   if (fill.type === 'pattern') {
     const out = { type: 'pattern', prst: fill.prst || 'pct10', fg: normalizeColor(fill.fg) || '1A73E8', bg: normalizeColor(fill.bg) || 'FFFFFF' };
     return out;
   }
   if (fill.type === 'image') {
-    const out = { type: 'image', extension: 'png' };
+    const out = { type: 'image', extension: fill.extension || 'png' };
     if (fill.data) out.data = fill.data;
     if (fill.src) out.src = fill.src;
     if (fill.tile) out.tile = fill.tile;
@@ -643,9 +702,12 @@ function fillToPptx(fill) {
 }
 
 export function elementToPptx(el) {
+  // 保留 2 位小数：整数 px 取整会让每页所有元素位移最多 0.5px（≈0.2mm），
+  // 与原始 PPTX 的 EMU 坐标产生可见偏差（导出后排版整体微移）
+  const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
   const out = {
-    x: Math.round(el.x), y: Math.round(el.y),
-    width: Math.round(el.width), height: Math.round(el.height)
+    x: r2(el.x), y: r2(el.y),
+    width: r2(el.width), height: r2(el.height)
   };
   if (el.rotation) out.rotation = Math.round(el.rotation * 100) / 100;
   if (el.name) out.name = el.name;
@@ -653,23 +715,31 @@ export function elementToPptx(el) {
   switch (el.type) {
     case 'text': {
       out.type = 'text';
-      if (el.valign) out.valign = el.valign;
-      if (el.align) out.align = el.align;
-      if (el.fontSize) out.fontSize = el.fontSize;
+      // 只回写「源文件显式指定过」或「用户在属性面板改过」的样式，
+      // 其余保持继承（propsSet 缺失时按旧行为全量回写，兼容新建元素与旧 JSON）
+      const ps = el.propsSet;
+      const ok = (k) => !ps || ps[k];
+      if (ok('valign') && el.valign) out.valign = el.valign;
+      if (ok('align') && el.align) out.align = el.align;
+      if (ok('fontSize') && el.fontSize) out.fontSize = el.fontSize;
       if (el.color) out.color = normalizeColor(el.color) || undefined;
       if (el.bold) out.bold = true;
       if (el.italic) out.italic = true;
       if (el.underline) out.underline = true;
-      if (el.fontFace) out.fontFace = el.fontFace;
-      if (el.lineSpacing) out.lineSpacing = el.lineSpacing;
+      if (ok('fontFace') && el.fontFace) out.fontFace = el.fontFace;
+      if (ok('lineSpacing') && el.lineSpacing) out.lineSpacing = el.lineSpacing;
       if (el.bullet) out.bullet = el.bullet === 'number' ? 'number' : true;
       if (el.indent) out.indentLeft = el.indent;
       if (el.textDirection) out.textDirection = el.textDirection;
       if (el.inset) out.inset = el.inset;
+      if (el.rtlCol) out.rtlCol = true;
       // 写回几何与外观：带文字的形状底，或带填充/边框的纯文本框
       if (el.shapeType) {
         out.shapeType = el.shapeType;
         if (el.adjust && typeof el.adjust === 'object') out.adjust = el.adjust;
+      }
+      if (el.custGeom && Array.isArray(el.custGeom.paths) && el.custGeom.paths.length) {
+        out.custGeom = el.custGeom;
       }
       const f = fillToPptx(el.fill);
       if (f !== undefined) out.fill = f;
@@ -684,14 +754,19 @@ export function elementToPptx(el) {
         if (el.glow) out.effects.glow = el.glow;
       }
       if (el.noWrap) out.noWrap = true;
+      if (el.rtlCol) out.rtlCol = true;
       out.paragraphs = (el.paragraphs || []).map((p) => {
         const para = { runs: cleanRuns(p, el) };
-        if (p.align) para.align = p.align;
+        // 同理于元素级：只回写源段落显式写过、或用户改过的样式（继承值不固化）
+        if ((p.alignSet !== undefined ? p.alignSet : !!p.align) && p.align) para.align = p.align;
         if (p.rtl) para.rtl = true;
         const pb = normalizeBulletOut(p.bullet);
         if (pb) para.bullet = pb;
-        if (p.lineSpacing) para.lineSpacing = p.lineSpacing;
+        // 行距同上：源段落未写且用户未改时保持继承，避免把面板默认 1.15 固化进 XML
+        if ((p.lineSpacingSet !== undefined ? p.lineSpacingSet : !!p.lineSpacing) && p.lineSpacing) para.lineSpacing = p.lineSpacing;
         if (p.indent != null) para.indent = pxToPt(p.indent);
+        if (p.indentLeft != null) para.indentLeft = pxToPt(p.indentLeft);
+        if (p.indentRight != null) para.indentRight = pxToPt(p.indentRight);
         if (p.spaceBefore != null) para.spaceBefore = pxToPt(p.spaceBefore);
         if (p.spaceAfter != null) para.spaceAfter = pxToPt(p.spaceAfter);
         return para;
@@ -721,6 +796,7 @@ export function elementToPptx(el) {
       out.type = 'image';
       if (el.data) out.data = el.data;
       if (el.src) out.src = el.src;
+      if (el.extension) out.extension = el.extension;
       const adj = el.imageAdjust || {};
       if (adj.brightness || adj.contrast || adj.transparency) {
         out.imageAdjust = {
@@ -733,31 +809,43 @@ export function elementToPptx(el) {
     }
     case 'table': {
       out.type = 'table';
-      out.colWidths = (el.colWidths || []).map((w) => Math.round(w));
+      // 与坐标同理：列宽取整会让各列累计偏差，表格总宽与 gridCol 不再吻合
+      out.colWidths = (el.colWidths || []).map((w) => Math.round((Number(w) || 0) * 100) / 100);
       if (el.border) out.border = { color: normalizeColor(el.border.color) || 'CBD5E1', width: el.border.width ?? 1 };
       if (el.inset) out.inset = { l: el.inset.l, r: el.inset.r, t: el.inset.t, b: el.inset.b };
       if (el.tableStyleId) out.tableStyleId = el.tableStyleId;
       out.rows = el.rows.map((row) => ({
-        height: Math.round(row.height || 40),
+        // 与坐标/列宽同理：取整 px 会引入 EMU 舍入误差（37.76px→38px→361950EMU vs 原始 359759EMU）
+        height: Math.round((Number(row.height) || 40) * 100) / 100,
         cells: row.cells.map((c) => {
-          const cell = { text: c.text || '' };
+          const cell = {};
+          // 未编辑的单元格：回写原始段落结构（保留 RTL 对齐与自动编号格式 hebrew2Minus 等），
+          // 否则展平后的纯文本会丢掉编号语义，导出后编号退化成 arabicPeriod
+          if (c.paragraphs && c.paragraphs.length && c.text === c.paragraphsText) {
+            cell.paragraphs = cleanCellParagraphs(c.paragraphs);
+          } else {
+            cell.text = c.text || '';
+          }
           if (c.fill) cell.fill = normalizeColor(c.fill) || undefined;
           if (c.colSpan && c.colSpan > 1) cell.colSpan = c.colSpan;
           if (c.rowSpan && c.rowSpan > 1) cell.rowSpan = c.rowSpan;
-          if (c.align) cell.align = c.align;
-          if (c.valign) cell.valign = c.valign;
-          if (c.fontSize) cell.fontSize = c.fontSize;
+          // 仅当源文件显式写过、或用户在属性面板改过时才回写，避免把面板默认值当成显式值导出
+          if (c.rtl) cell.rtl = true;
+          if (c.alignSet) cell.align = c.align;
+          if (c.valignSet) cell.valign = c.valign;
+          if (c.fontSizeSet) cell.fontSize = c.fontSize;
           if (c.color) cell.color = normalizeColor(c.color) || undefined;
           if (c.bold) cell.bold = true;
           if (c.inset) cell.inset = { l: c.inset.l, r: c.inset.r, t: c.inset.t, b: c.inset.b };
           if (c.borders) {
+            // 遍历全部边（含 insideH/insideV 内部网格线）：只处理四边会让内部网格线丢色，
+            // 生成端回退成默认黑色，白底表格会变成黑网格
             const sides = {};
-            for (const k of ['left', 'right', 'top', 'bottom']) {
-              const b = c.borders[k];
+            for (const [k, b] of Object.entries(c.borders)) {
               if (b === 'none') sides[k] = 'none';
+              else if (typeof b === 'string') sides[k] = b; // diagonal 是方向串（tlBr/blTr/both）
               else if (b && typeof b === 'object') sides[k] = { color: normalizeColor(b.color) || '#000000', width: b.width ?? 1 };
             }
-            if (c.borders.diagonal) sides.diagonal = c.borders.diagonal;
             if (Object.keys(sides).length) cell.borders = sides;
           }
           return cell;
@@ -776,6 +864,7 @@ export function elementToPptx(el) {
       }
       if (el.title) out.title = el.title;
       out.legend = !!el.legend;
+      if (el.legendPosition) out.legendPosition = el.legendPosition;
       out.dataLabels = !!el.dataLabels;
       out.categories = el.categories || [];
       const isBubble = el.chartType3D === 'bubbleChart';
@@ -799,9 +888,9 @@ export function elementToPptx(el) {
           ser.values = (s.values || []).map((v) => Number(v) || 0);
         }
         if (s.color) ser.color = normalizeColor(s.color) || undefined;
-        // 逐点填充色（c:dPt 回写）
+        // 逐点填充（c:dPt 回写）：纯色走 normalizeColor，渐变对象原样透传
         if (s.pointColors && s.pointColors.some((c) => c)) {
-          ser.pointColors = (s.pointColors || []).map((c) => (c ? normalizeColor(c) || undefined : undefined));
+          ser.pointColors = (s.pointColors || []).map(normPointColor);
         }
         return ser;
       });
@@ -835,6 +924,9 @@ export function elementToPptx(el) {
       out.nodes = (el.texts || []).map((t) => ({ text: t }));
       // 缓存绘图形状（树形布局），保留以便导出 JSON 后仍能还原树形展示
       if (Array.isArray(el.shapes) && el.shapes.length) out.shapes = clone(el.shapes);
+      // 透传原始 SmartArt 部件，序列化器据此重建 data1/colors1/quickStyle1/layout1/drawing1
+      if (el.__raw) out.__raw = el.__raw;
+      if (el.dataPath) out.dataPath = el.dataPath;
       return out;
     }
     default: {
@@ -884,8 +976,9 @@ export function slideToPptx(slide) {
   return out;
 }
 
-/** 主题对象 → 完整 theme1.xml（jsonToPptx 的 theme 只接受整串 XML） */
+/** 主题对象 → 完整 theme1.xml（jsonToPptx 的 theme 只接受整串 XML）；字符串则原样透传（解析端回读的原始 theme1.xml） */
 export function buildThemeXml(theme) {
+  if (typeof theme === 'string') return theme;
   const t = theme || getTheme('blue');
   const accents = t.accents || [];
   const a = (i, fb) => (accents[i] || fb).replace('#', '');
@@ -900,18 +993,31 @@ export function buildThemeXml(theme) {
 
 export function docToPptx(doc) {
   const theme = getTheme(doc.theme);
-  return {
+  const out = {
     version: '1.0',
     slideSize: { width: doc.slideSize.width, height: doc.slideSize.height },
-    metadata: {
+    // 保留原始元数据（title/author/subject/keywords 等），仅追加修改者标记
+    metadata: doc.metadata || {
       title: doc.title || '演示文稿',
       author: 'Slides 在线编辑器',
       lastModifiedBy: 'Slides 在线编辑器',
       modified: new Date().toISOString()
     },
-    theme: buildThemeXml(theme),
+    theme: doc.themeXml || buildThemeXml(theme),
     slides: doc.slides.map(slideToPptx)
   };
+  // 自定义属性透传
+  if (doc.customProps) out.customProps = doc.customProps;
+  // 缩略图透传
+  if (doc.thumbnail) out.thumbnail = doc.thumbnail;
+  // 多主题/母版/版式无损回退：与 themeXml 同理，导入时保留的原结构直接写回
+  if (doc.tableStylesXml) out.tableStylesXml = doc.tableStylesXml;
+  if (doc.themeXmls && doc.themeXmls.length) out.themeXmls = doc.themeXmls;
+  if (doc.masters && doc.masters.length) {
+    out.masters = doc.masters;
+    out.slides.forEach((sl, i) => { if (doc.slides[i] && doc.slides[i].layout != null) sl.layout = doc.slides[i].layout; });
+  }
+  return out;
 }
 
 /* ======================= PptxDocument → 内部模型 ======================= */
@@ -1008,17 +1114,19 @@ function fillFromPptx(fill) {
   if (fill === 'none') return 'none';
   if (typeof fill === 'string') return { type: 'solid', color: colorFromPptx(fill) || '#FFFFFF', transparency: 0 };
   if (fill.type === 'gradient') {
-    return {
+    const g = {
       type: 'gradient',
       direction: fill.direction || 'horizontal',
       stops: (fill.stops || []).map((s) => ({ color: colorFromPptx(s.color) || '#FFFFFF', position: s.position ?? 0 }))
     };
+    if (fill.gradientType === 'radial') { g.gradientType = 'radial'; g.gradientPath = fill.gradientPath || 'circle'; }
+    return g;
   }
   if (fill.type === 'pattern') {
     return { type: 'pattern', prst: fill.prst || 'pct10', fg: colorFromPptx(fill.fg) || '#1A73E8', bg: colorFromPptx(fill.bg) || '#FFFFFF' };
   }
   if (fill.type === 'image') {
-    return { type: 'image', data: fill.data || '', src: fill.src || '', tile: fill.tile || null, srcRect: fill.srcRect || null };
+    return { type: 'image', extension: fill.extension || 'png', data: fill.data || '', src: fill.src || '', tile: fill.tile || null, srcRect: fill.srcRect || null };
   }
   return { type: 'solid', color: colorFromPptx(fill.color) || '#FFFFFF', transparency: fill.transparency || 0 };
 }
@@ -1041,12 +1149,14 @@ function elementFromPptx(pe) {
       el.valign = pe.valign || 'top';
       el.textDirection = pe.textDirection || '';
       el.noWrap = !!pe.noWrap;
+      el.rtlCol = !!pe.rtlCol;
       el.inset = (pe.inset && typeof pe.inset === 'object') ? {
         l: pe.inset.l ?? 7.2, r: pe.inset.r ?? 7.2, t: pe.inset.t ?? 3.6, b: pe.inset.b ?? 3.6
       } : null;
       // 带文字的形状底（椭圆/饼图/弧线等）：保留几何与外观
       el.shapeType = pe.shapeType || null;
       if (pe.adjust && typeof pe.adjust === 'object') el.adjust = pe.adjust;
+      if (pe.custGeom && Array.isArray(pe.custGeom.paths) && pe.custGeom.paths.length) el.custGeom = pe.custGeom;
       el.fill = fillFromPptx(pe.fill);
       el.line = pe.line && pe.line !== 'none'
         ? { color: colorFromPptx(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid' }
@@ -1056,7 +1166,22 @@ function elementFromPptx(pe) {
       if (el.shadow && el.shadow.color) el.shadow.color = colorFromPptx(el.shadow.color) || '#000000';
       el.glow = (pe.effects && pe.effects.glow && typeof pe.effects.glow === 'object') ? pe.effects.glow : null;
       if (el.glow && el.glow.color) el.glow.color = colorFromPptx(el.glow.color) || '#FFFF00';
-      el.lineSpacing = typeof pe.lineSpacing === 'number' ? pe.lineSpacing : 1.15;
+      // 标准 JSON 的行距是对象 { type:'percent', value }（也可能直接是数字）
+      el.lineSpacing = typeof pe.lineSpacing === 'number'
+        ? pe.lineSpacing
+        : (pe.lineSpacing && typeof pe.lineSpacing === 'object' && typeof pe.lineSpacing.value === 'number')
+          ? pe.lineSpacing.value
+          : 1.15;
+      // 「源是否显式指定」标记：属性面板必须显示非空的默认值，
+      // 但导出时若把 18pt/微软雅黑/1.15 这些面板默认值当成显式值写回，
+      // 会让原本靠母版/占位符继承字号与字体的文字被固化成默认值（整页排版随之改变）。
+      el.propsSet = {
+        fontSize: pe.fontSize != null,
+        fontFace: !!pe.fontFace,
+        align: !!pe.align,
+        valign: !!pe.valign,
+        lineSpacing: pe.lineSpacing != null && pe.lineSpacing !== ''
+      };
       // 标准 JSON 的 bullet 是对象 {type:'number'|'bullet',...} 或 'number'/true
       const eb = pe.bullet;
       el.bullet = eb ? ((eb === 'number' || (eb.type === 'number')) ? 'number' : true) : false;
@@ -1079,10 +1204,16 @@ function elementFromPptx(pe) {
             // 保留编号格式（fmt：chineseCounting 等）与项目符号字符（char），渲染/导出都需要
             bullet: normalizeBulletIn(pb),
             lineSpacing: lineSpacingNum(p.lineSpacing),
+            // 源段落是否显式写过：面板需要非空默认值，但导出时不能把继承来的值固化
+            alignSet: !!p.align,
+            lineSpacingSet: p.lineSpacing != null,
             // 从右到左段落（a:pPr@rtl）：RTL 段落缺省右对齐
             rtl: !!p.rtl,
             // 段落级缩进（pt→px）与段前/段后间距（pt→px）
             indent: p.indent != null ? Math.round(ptToPx(p.indent)) : undefined,
+            // marL/marR：列表左/右边界（pt→px），缺失时导出端不写、由版式继承
+            indentLeft: p.indentLeft != null ? Math.round(ptToPx(p.indentLeft)) : undefined,
+            indentRight: p.indentRight != null ? Math.round(ptToPx(p.indentRight)) : undefined,
             spaceBefore: p.spaceBefore != null ? Math.round(ptToPx(p.spaceBefore)) : undefined,
             spaceAfter: p.spaceAfter != null ? Math.round(ptToPx(p.spaceAfter)) : undefined
           };
@@ -1115,6 +1246,7 @@ function elementFromPptx(pe) {
       el.type = 'image';
       el.data = pe.data || '';
       el.src = pe.src || '';
+      el.extension = pe.extension || '';
       el.imageAdjust = Object.assign({ brightness: 0, contrast: 0, transparency: 0 }, pe.imageAdjust || {});
       return el;
     }
@@ -1130,18 +1262,22 @@ function elementFromPptx(pe) {
           const hasFill = c.fill && c.fill !== 'none';
           const hasColor = c.color && c.color !== 'none';
           const cellInset = c.inset ? { l: c.inset.l, r: c.inset.r, t: c.inset.t, b: c.inset.b } : undefined;
+          // 段落形态（runs）拼为纯文本；带自动编号的段落前置编号文本（hebrew2Minus 等）
+          const flatText = c.text || (Array.isArray(c.paragraphs)
+            ? c.paragraphs.map((p, pi) => {
+                const t = (p.runs || []).map((r) => (r.text == null ? '' : String(r.text))).join('');
+                const b = p.bullet;
+                if (b && typeof b === 'object' && b.type === 'number') {
+                  return autoNumPrefix(b.fmt || 'arabicPeriod', (b.start || 1) + pi) + ' ' + t;
+                }
+                return t;
+              }).join('\n')
+            : '');
           const cell = {
-            // 段落形态（runs）拼为纯文本；带自动编号的段落前置编号文本（hebrew2Minus 等）
-            text: c.text || (Array.isArray(c.paragraphs)
-              ? c.paragraphs.map((p, pi) => {
-                  const t = (p.runs || []).map((r) => (r.text == null ? '' : String(r.text))).join('');
-                  const b = p.bullet;
-                  if (b && typeof b === 'object' && b.type === 'number') {
-                    return autoNumPrefix(b.fmt || 'arabicPeriod', (b.start || 1) + pi) + ' ' + t;
-                  }
-                  return t;
-                }).join('\n')
-              : ''),
+            text: flatText,
+            // 原始段落结构（含 RTL 对齐、自动编号格式）：文本未被改动时原样回写
+            paragraphs: Array.isArray(c.paragraphs) && c.paragraphs.length ? c.paragraphs : undefined,
+            paragraphsText: flatText,
             fill: hasFill ? colorFromPptx(c.fill) : null,
             fillCustom: hasFill || undefined,
             align: c.align || 'left',
@@ -1150,12 +1286,21 @@ function elementFromPptx(pe) {
             color: colorFromPptx(c.color) || '#202124',
             colorCustom: hasColor || undefined,
             bold: !!c.bold,
+            // 「源是否显式写过」标记：属性面板需要非空的默认值才能显示，
+            // 但导出时必须能区分「源文件本来就有」与「面板补的默认值」，
+            // 否则会把 14pt/middle/left 强加到原本靠主题继承的单元格上，字号与位置随之改变。
+            rtl: !!c.rtl,
+            alignSet: c.align != null,
+            valignSet: c.valign != null,
+            fontSizeSet: c.fontSize != null,
             colSpan: c.colSpan, rowSpan: c.rowSpan,
             inset: cellInset,
+            // 同上：保留全部边（含 insideH/insideV 与 diagonal 方向串）
             borders: c.borders
               ? Object.fromEntries(Object.entries(c.borders).map(([k, b]) => [k,
                   b === 'none' ? 'none'
-                    : (b && typeof b === 'object') ? { color: colorFromPptx(b.color) || '#000000', width: Number(b.width) || 1 } : undefined])
+                    : typeof b === 'string' ? b
+                      : (b && typeof b === 'object') ? { color: colorFromPptx(b.color) || '#000000', width: Number(b.width) || 1 } : undefined])
                 .filter(([, v]) => v !== undefined))
               : undefined
           };
@@ -1182,6 +1327,8 @@ function elementFromPptx(pe) {
       el.headerFill = '#1A73E8';
       el.cellFill = '#FFFFFF';
       el.fontSize = el.rows[0]?.cells[0]?.fontSize || 14;
+      // 源表格是否显式指定过字号：决定导出时是否回写（未指定则保留继承）
+      el.fontSizeSet = (pe.rows || []).some((r) => (r.cells || []).some((c) => c.fontSize != null));
       el.color = '#202124';
       return el;
     }
@@ -1197,6 +1344,7 @@ function elementFromPptx(pe) {
       if (CHART_3D_MAP[pe.chartType]) el.chartType3D = pe.chartType;
       el.title = pe.title || '';
       el.legend = pe.legend !== false;
+      el.legendPosition = pe.legendPosition || '';
       el.dataLabels = !!pe.dataLabels;
       el.grouping = pe.grouping || 'clustered';
       el.holeSize = pe.holeSize ?? 50;
@@ -1212,7 +1360,7 @@ function elementFromPptx(pe) {
       el.series = (pe.series || []).map((s) => {
         const ser = { name: s.name || '系列', color: normalizeColor(s.color) || '' };
         if (s.pointColors && s.pointColors.some((c) => c)) {
-          ser.pointColors = (s.pointColors || []).map((c) => (c ? normalizeColor(c) || undefined : undefined));
+          ser.pointColors = (s.pointColors || []).map(normPointColor);
         }
         if (isBubble) {
           ser.values = (s.x || []).map((x, i) => ({
@@ -1272,6 +1420,9 @@ function elementFromPptx(pe) {
       el.texts = (pe.texts || []).map(String);
       el.shapes = Array.isArray(pe.shapes) ? pe.shapes : [];
       el.dataPath = pe.dataPath || '';
+      // 保留原始 SmartArt 部件（data1/colors1/quickStyle1/layout1/drawing1 的整串 XML），
+      // 否则序列化器只能从 shapes/texts 生成最小化 diagram 文件，丢失原始配色与布局
+      if (pe.__raw) el.__raw = pe.__raw;
       return el;
     }
     default: {
@@ -1291,6 +1442,10 @@ export function docFromPptx(pptxDoc) {
     Math.abs(SLIDE_SIZES[k].width - doc.slideSize.width) < 4 && Math.abs(SLIDE_SIZES[k].height - doc.slideSize.height) < 4);
   doc.sizeKey = key || 'custom';
   doc.title = (pptxDoc.metadata && pptxDoc.metadata.title) || '导入的演示文稿';
+  // 保留原始元数据与自定义属性，导出时原样写回
+  if (pptxDoc.metadata) doc.metadata = pptxDoc.metadata;
+  if (pptxDoc.customProps) doc.customProps = pptxDoc.customProps;
+  if (pptxDoc.thumbnail) doc.thumbnail = pptxDoc.thumbnail;
   // 导入的 PPTX 若携带主题配色（a:theme/a:clrScheme），提前设置为当前主题，确保下方 elementFromPptx
   // 解析 'scheme:<name>' 引用时使用该主题，而非默认蓝主题
   const th = pptxDoc.theme;
@@ -1306,6 +1461,14 @@ export function docFromPptx(pptxDoc) {
     };
     setActiveTheme(doc.theme);
   }
+  // 保留解析端回读的原始 theme1.xml（无损回退，确保导出时 fmtScheme/fontScheme 等细节与源文件一致）
+  if (pptxDoc.themeXml) doc.themeXml = pptxDoc.themeXml;
+  // 保留原始 tableStyles.xml（表格网格线颜色/底纹/条带的样式定义，重新生成会退化为黑网格）
+  if (pptxDoc.tableStylesXml) doc.tableStylesXml = pptxDoc.tableStylesXml;
+  // 保留原始主题部件列表与母版/版式（多主题文件：不同页绑定不同母版→不同主题，
+  // 丢弃后所有页会退化为单一 theme1.xml，SmartArt/图表的 schemeClr 配色随之错位）
+  if (pptxDoc.themeXmls && pptxDoc.themeXmls.length) doc.themeXmls = pptxDoc.themeXmls;
+  if (pptxDoc.masters && pptxDoc.masters.length) doc.masters = pptxDoc.masters;
   doc.slides = (pptxDoc.slides || []).map((s) => {
     const slide = createSlide((s.elements || []).map(elementFromPptx), {
       background: s.background || null,
@@ -1315,6 +1478,8 @@ export function docFromPptx(pptxDoc) {
     if (s.transition && s.transition.type) {
       slide.transition = { type: s.transition.type, duration: s.transition.duration || 800 };
     }
+    // 版式下标（展平版式序列）：配合 doc.masters 写回原母版/版式/主题绑定
+    if (typeof s.layout === 'number') slide.layout = s.layout;
     // 批注：pos 由 EMU 转 px（与元素坐标一致），导出时再转回
     if (Array.isArray(s.comments) && s.comments.length) {
       slide.comments = s.comments.map((c) => ({
@@ -1349,15 +1514,18 @@ export function applyTextStyle(el, patch) {
   for (const [k, v] of Object.entries(patch)) {
     if (v === undefined) continue;
     el[k] = v;
+    // 用户显式改过 → 标记为该属性已指定，导出时才写回（否则会被当成面板默认值丢弃）
+    if (el.propsSet && k in el.propsSet) el.propsSet[k] = true;
   }
   const keys = ['fontSize', 'color', 'bold', 'italic', 'underline', 'fontFace'];
   for (const p of el.paragraphs || []) {
     for (const r of p.runs || []) {
       for (const k of keys) if (patch[k] !== undefined) r[k] = patch[k];
     }
-    if (patch.align !== undefined) p.align = patch.align;
+    // 用户改过段落级样式 → 标记为已指定，导出时才写回（否则视为继承值丢弃）
+    if (patch.align !== undefined) { p.align = patch.align; p.alignSet = true; }
     if (patch.bullet !== undefined) p.bullet = patch.bullet === false ? undefined : patch.bullet;
-    if (patch.lineSpacing !== undefined) p.lineSpacing = patch.lineSpacing;
+    if (patch.lineSpacing !== undefined) { p.lineSpacing = patch.lineSpacing; p.lineSpacingSet = true; }
   }
   return el;
 }

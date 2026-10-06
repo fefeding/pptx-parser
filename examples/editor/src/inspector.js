@@ -409,7 +409,8 @@ function tableFields(single, els) {
   bw.value = String(single.border?.width || 1);
   const headerFill = field('表头底色', swatchBtn(single.headerFill, (c) => { updateElement(id, { headerFill: c }); syncTableStyleOn(store.findElement(id)); }, false));
   const cellFill = field('单元格底色', swatchBtn(single.cellFill, (c) => { updateElement(id, { cellFill: c }); syncTableStyleOn(store.findElement(id)); }, false));
-  const fs = h('select', { onchange: (e) => { updateElement(id, { fontSize: parseFloat(e.target.value) }); syncTableStyleOn(store.findElement(id)); } });
+  // fontSizeSet=true：标记用户显式改过字号，导出时才回写到单元格（否则保持源文件继承）
+  const fs = h('select', { onchange: (e) => { updateElement(id, { fontSize: parseFloat(e.target.value), fontSizeSet: true }); syncTableStyleOn(store.findElement(id)); } });
   FONT_SIZES.forEach((s) => fs.appendChild(h('option', { value: String(s), text: String(s) })));
   fs.value = String(single.fontSize || 14);
   // 表格级内边距

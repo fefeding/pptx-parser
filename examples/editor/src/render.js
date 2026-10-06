@@ -85,10 +85,11 @@ export function backgroundStyle(bg, theme) {
   if (typeof bg === 'string') return { background: normalizeColor(bg) || '#FFFFFF' };
   if (bg.type === 'gradient') {
     const stops = (bg.stops || []).slice().sort((a, b) => a.position - b.position);
-    const deg = bg.direction === 'vertical' ? 180 : bg.direction === 'diagonal' ? 135 : 90;
     const list = stops.length >= 2
       ? stops.map((s) => `${normalizeColor(s.color) || '#FFFFFF'} ${clamp(s.position, 0, 1) * 100}%`).join(',')
       : '#FFFFFF,#FFFFFF';
+    if (bg.gradientType === 'radial') return { background: `radial-gradient(circle at 50% 50%, ${list})` };
+    const deg = bg.direction === 'vertical' ? 180 : bg.direction === 'diagonal' ? 135 : 90;
     return { background: `linear-gradient(${deg}deg, ${list})` };
   }
   if (bg.type === 'image') {
@@ -129,8 +130,14 @@ function shapeVisual(el) {
       style.background = normalizeColor(fill) || 'transparent';
     } else if (fill.type === 'gradient') {
       const stops = (fill.stops || []).slice().sort((a, b) => a.position - b.position);
-      const deg = fill.direction === 'vertical' ? 180 : fill.direction === 'diagonal' ? 135 : 90;
-      style.background = `linear-gradient(${deg}deg, ${stops.map((s) => `${withAlpha(s.color, 0)} ${clamp(s.position, 0, 1) * 100}%`).join(',')})`;
+      const list = stops.map((s) => `${withAlpha(s.color, 0)} ${clamp(s.position, 0, 1) * 100}%`).join(',');
+      // 径向渐变（a:path）：CSS 用 radial-gradient 近似（OOXML 的 path="rect"/"shape" 统一按椭圆近似）
+      if (fill.gradientType === 'radial') {
+        style.background = `radial-gradient(circle at 50% 50%, ${list})`;
+      } else {
+        const deg = fill.direction === 'vertical' ? 180 : fill.direction === 'diagonal' ? 135 : 90;
+        style.background = `linear-gradient(${deg}deg, ${list})`;
+      }
     } else if (fill.type === 'image') {
       // 形状图片填充：铺满 / 平铺（tile）/ 平铺 + 源图裁剪（srcRect）
       const url = fill.data || fill.src || '';
