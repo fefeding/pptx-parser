@@ -1659,9 +1659,9 @@ export async function extractSlideToStandard(
             collectPlaceholderXfrms(slideData.slideLayoutContent, phIndex);
             const phCtx = buildPlaceholderCtx(slideData);
 
-            const processNode = async (key: string, node: any): Promise<PptxElement | null> => {
+            const processNode = async (key: string, node: any, nodeResObj: Record<string, { type?: string; target?: string }> = resObj): Promise<PptxElement | null> => {
                 try {
-                    const el = await nodeToElement(key, node, resObj, zip, themeMap, slideData.themeContent, phCtx);
+                    const el = await nodeToElement(key, node, nodeResObj, zip, themeMap, slideData.themeContent, phCtx);
                     if (!el) return null;
                     // 占位符且自身无 xfrm：按 ph 的 type+idx 从版式/母版继承真实位置
                     if (!hasOwnXfrm(node) && el.type !== 'raw') {
@@ -1676,7 +1676,7 @@ export async function extractSlideToStandard(
                     // 依赖携带：语义层未覆盖的类型必须附带，否则 __raw 无法独立回写；
                     // 语义类型仅在 rawDeps:'all' 时附带（供 rawFallback 使用）
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
-                        await attachRawDeps(el, node, resObj, zip);
+                        await attachRawDeps(el, node, nodeResObj, zip);
                     }
                     return el;
                 } catch {
@@ -1685,7 +1685,7 @@ export async function extractSlideToStandard(
                         type: 'raw', x: 0, y: 0, width: 0, height: 0,
                         __raw: { tag: key, node }, rawFallback: true
                     };
-                    if (allDeps) await attachRawDeps(rawEl, node, resObj, zip);
+                    if (allDeps) await attachRawDeps(rawEl, node, nodeResObj, zip);
                     return rawEl;
                 }
             };
@@ -1768,11 +1768,13 @@ export async function extractSlideToStandard(
             // 解析端原先完全丢弃，导致「背景装饰缺失」（如 WPS 模板的斜切块/菱形/底纹矩形）。
             // 按 OOXML 语义：layout 的形状总是显示；master 的形状仅在 layout 未设 showMasterSp="0" 时显示。
             // 标记 inherited 后置于列表最前（底层），生成端会跳过它们。
-            const decoSources: any[] = [slideData.slideLayoutContent];
-            if (showsMasterShapes(slideData.slideLayoutContent)) decoSources.push(slideData.slideMasterContent);
+            const decoSources: { content: any; res: Record<string, { type?: string; target?: string }> }[] = [
+                { content: slideData.slideLayoutContent, res: slideData.layoutResObj || {} }
+            ];
+            if (showsMasterShapes(slideData.slideLayoutContent)) decoSources.push({ content: slideData.slideMasterContent, res: slideData.masterResObj || {} });
             const deco: PptxElement[] = [];
             for (const src of decoSources) {
-                const decoTree = getSpTreeOf(src);
+                const decoTree = getSpTreeOf(src.content);
                 if (!decoTree) continue;
                 const nodes: { key: string; node: any }[] = [];
                 collectDecoNodes(decoTree, nodes);
@@ -1780,7 +1782,8 @@ export async function extractSlideToStandard(
                 for (const { key, node } of nodes) {
                     // processNode 内部已挂载 __raw 及其依赖，只调用一次：
                     // 重复调用会重复读取媒体部件（内存与耗时翻倍），且首个元素会被丢弃。
-                    const el = await processNode(key, node);
+                    // 版式/母版装饰形状必须使用其所在部件的 rels，否则 rId 会解析到 slide 的错误图片。
+                    const el = await processNode(key, node, src.res);
                     if (!el) continue;
                     (el as any).inherited = true;
                     deco.push(el);

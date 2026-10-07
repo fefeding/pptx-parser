@@ -330,7 +330,8 @@ function applyShapeImageFill(inner, el) {
 
   // 无平铺无裁剪：CSS 背景拉伸铺满即可
   const sr = fill.srcRect || {};
-  const hasCrop = sr.l || sr.t || sr.r || sr.b;
+  const EPS = 1e-4;
+  const hasCrop = Math.abs(sr.l || 0) > EPS || Math.abs(sr.t || 0) > EPS || Math.abs(sr.r || 0) > EPS || Math.abs(sr.b || 0) > EPS;
   const tile = fill.tile || {};
   const hasTile = tile.sx != null || tile.sy != null;
   if (!hasCrop && !hasTile) {
@@ -820,7 +821,8 @@ function presetShapeSvg(el) {
   svg.setAttribute('preserveAspectRatio', 'none');
   svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;overflow:visible';
   let tf = geo.transform || '';
-  if (el.flipH || el.flipV) tf += ` scale(${el.flipH ? -1 : 1},${el.flipV ? -1 : 1})`;
+  const flipTf = svgFlipTransform(el.flipH, el.flipV, W, H);
+  if (flipTf) tf += (tf ? ' ' : '') + flipTf;
   const main = document.createElementNS(NS, 'path');
   main.setAttribute('d', geo.d);
   if (tf.trim()) main.setAttribute('transform', tf.trim());
@@ -858,6 +860,18 @@ function shadeColor(hex, amt) {
   if (!c) return null;
   const ch = (i) => clamp(Math.round(parseInt(c.slice(i, i + 2), 16) * (1 + amt)), 0, 255).toString(16).padStart(2, '0');
   return `#${ch(1)}${ch(3)}${ch(5)}`.toUpperCase();
+}
+
+/** SVG path 水平/垂直翻转：scale(-1,…) 默认绕原点，会把路径翻转到 viewBox 外，
+ *  需先 translate(W,0)/translate(0,H) 使其保持在元素框内（与 PowerPoint 先 flip 后 rot 一致）。
+ */
+function svgFlipTransform(flipH, flipV, W, H) {
+  if (!flipH && !flipV) return '';
+  const sx = flipH ? -1 : 1;
+  const sy = flipV ? -1 : 1;
+  const tx = flipH ? W : 0;
+  const ty = flipV ? H : 0;
+  return `translate(${tx},${ty}) scale(${sx},${sy})`;
 }
 
 /**
@@ -903,8 +917,7 @@ function custGeomSvg(el) {
   svg.setAttribute('viewBox', `0 0 ${EW} ${EH}`);
   svg.setAttribute('preserveAspectRatio', 'none');
   svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;overflow:visible';
-  let tf = '';
-  if (el.flipH || el.flipV) tf += ` scale(${el.flipH ? -1 : 1},${el.flipV ? -1 : 1})`;
+  const tf = svgFlipTransform(el.flipH, el.flipV, EW, EH);
   const main = document.createElementNS(NS, 'path');
   main.setAttribute('d', d);
   if (tf.trim()) main.setAttribute('transform', tf.trim());
@@ -1713,8 +1726,7 @@ function effectGeometry(el, W, H) {
   if (el.custGeom && Array.isArray(el.custGeom.paths) && el.custGeom.paths.length) {
     const d = custGeomPathD(el.custGeom, W, H);
     if (d) {
-      let tf = '';
-      if (el.flipH || el.flipV) tf += ` scale(${el.flipH ? -1 : 1},${el.flipV ? -1 : 1})`;
+      const tf = svgFlipTransform(el.flipH, el.flipV, W, H);
       const tfAttr = tf.trim() ? ` transform="${tf.trim()}"` : '';
       // 阴影只取轮廓：填充一律去掉；开放曲线（涂鸦）保留描边环
       const strokeAttrs = (strokeOnly && lineColor)
@@ -1728,7 +1740,8 @@ function effectGeometry(el, W, H) {
     const geo = presetShapePath(el.shapeType, W, H, el.adjust || {});
     if (geo && geo.d) {
       let tf = geo.transform || '';
-      if (el.flipH || el.flipV) tf += ` scale(${el.flipH ? -1 : 1},${el.flipV ? -1 : 1})`;
+      const flipTf = svgFlipTransform(el.flipH, el.flipV, W, H);
+      if (flipTf) tf += (tf ? ' ' : '') + flipTf;
       const tfAttr = tf.trim() ? ` transform="${tf.trim()}"` : '';
       const useStroke = strokeOnly && lineColor;
       const parts = [`<path d="${geo.d}"${tfAttr} fill="${useStroke || geo.noFill || !fill ? 'none' : fill}"${geo.fillRule ? ` fill-rule="${geo.fillRule}"` : ''}${useStroke ? ` stroke="${lineColor}" stroke-width="${lineW.toFixed(2)}" stroke-linecap="round"` : ''}/>`];

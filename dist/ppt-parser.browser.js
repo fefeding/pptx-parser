@@ -19902,9 +19902,9 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             const phIndex = collectPlaceholderXfrms(slideData.slideMasterContent);
             collectPlaceholderXfrms(slideData.slideLayoutContent, phIndex);
             const phCtx = buildPlaceholderCtx(slideData);
-            const processNode = async (key, node) => {
+            const processNode = async (key, node, nodeResObj = resObj) => {
                 try {
-                    const el = await nodeToElement(key, node, resObj, zip, themeMap, slideData.themeContent, phCtx);
+                    const el = await nodeToElement(key, node, nodeResObj, zip, themeMap, slideData.themeContent, phCtx);
                     if (!el)
                         return null;
                     if (!hasOwnXfrm(node) && el.type !== 'raw') {
@@ -19918,7 +19918,7 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                     }
                     el.__raw = { tag: key, node };
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
-                        await attachRawDeps(el, node, resObj, zip);
+                        await attachRawDeps(el, node, nodeResObj, zip);
                     }
                     return el;
                 }
@@ -19928,7 +19928,7 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                         __raw: { tag: key, node }, rawFallback: true
                     };
                     if (allDeps)
-                        await attachRawDeps(rawEl, node, resObj, zip);
+                        await attachRawDeps(rawEl, node, nodeResObj, zip);
                     return rawEl;
                 }
             };
@@ -19996,19 +19996,21 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                 return g;
             };
             slide.elements = await processTree(spTree);
-            const decoSources = [slideData.slideLayoutContent];
+            const decoSources = [
+                { content: slideData.slideLayoutContent, res: slideData.layoutResObj || {} }
+            ];
             if (showsMasterShapes(slideData.slideLayoutContent))
-                decoSources.push(slideData.slideMasterContent);
+                decoSources.push({ content: slideData.slideMasterContent, res: slideData.masterResObj || {} });
             const deco = [];
             for (const src of decoSources) {
-                const decoTree = getSpTreeOf(src);
+                const decoTree = getSpTreeOf(src.content);
                 if (!decoTree)
                     continue;
                 const nodes = [];
                 collectDecoNodes(decoTree, nodes);
                 nodes.sort((a, b) => (a.node?.attrs?.order ?? 0) - (b.node?.attrs?.order ?? 0));
                 for (const { key, node } of nodes) {
-                    const el = await processNode(key, node);
+                    const el = await processNode(key, node, src.res);
                     if (!el)
                         continue;
                     el.inherited = true;
