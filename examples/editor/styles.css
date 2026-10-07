@@ -205,6 +205,9 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   width: 100%; height: 100%; display: flex; flex-direction: column;
   justify-content: flex-start; outline: none; word-break: break-word;
   position: relative; z-index: 1;
+  /* a:bodyPr/@lIns/@tIns 等是文本框内部边距，应算在元素尺寸内；
+     否则小高度文本框（如 23.6px）去掉 padding 后内容区过小，文字会偏下。 */
+  box-sizing: border-box;
 }
 .el-text .tb-body > div { min-height: 1em; }
 /* 列表段落：负向首行缩进实现悬挂缩进 */
