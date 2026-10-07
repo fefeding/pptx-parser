@@ -396,6 +396,8 @@ export interface SerializerElement {
     flipH?: boolean;
     /** 垂直翻转 */
     flipV?: boolean;
+    /** 纯文本框标记（p:cNvSpPr@txBox="1"）。预览端对纯文本框在无 a:lnSpc 时兜底 line-height 1.3 */
+    txBox?: boolean;
     /**
      * 几何调整值，key 必须是该预设形状在 OOXML 中的 gd 名（不是自拟别名），
      * 否则 PowerPoint/WPS 会忽略并回退到默认值。
@@ -749,7 +751,7 @@ function buildTextRun(ctx: SerializerContext, text: string | undefined, opts: Ru
             const clr = colorNode(s.color);
             if (s.alpha != null) {
                 // alpha: 0~1 → 百分比千分之一（100% = 100000）
-                clr.children.push(xmlNode('a:alpha', { val: Math.round(s.alpha * 100000) }));
+                clr.children = [...(clr.children ?? []), xmlNode('a:alpha', { val: Math.round(s.alpha * 100000) })];
             }
             shdwChildren.push(clr);
         }
@@ -1038,6 +1040,9 @@ async function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
     // 一律写成 rect 文本框会丢失形状几何与外观（椭圆/饼图/弧线等全部变白底方框）。
     // 纯文本框同样可能有填充/边框（fill:'none' 也需显式写 a:noFill，避免继承主题底色）
     const hasShapeBase = !!(el.shapeType || el.custGeom);
+    // txBox 显式标记优先：源 PPTX 可能是「txBox=1 且带 custGeom」的纯文本框，
+    // 只按 hasShapeBase 判断会漏写该标记，导致回读后行距兜底行为改变
+    const isTxBox = el.txBox != null ? !!el.txBox : !hasShapeBase;
     const spPrChildren: BuilderNode[] = [buildXfrm(el)];
     if (el.custGeom) {
         spPrChildren.push(buildCustomGeometry(el.custGeom));
@@ -1060,7 +1065,7 @@ async function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
             null,
             xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}`, descr: el.descr || null }),
             // 纯文本框标 txBox=1；带形状底的不是文本框（否则 PowerPoint 按文本框处理外观）
-            xmlNode('p:cNvSpPr', hasShapeBase ? null : { txBox: 1 }),
+            xmlNode('p:cNvSpPr', isTxBox ? { txBox: 1 } : null),
             xmlNode('p:nvPr')
         ),
         xmlNode('p:spPr', null, ...spPrChildren),
@@ -1325,6 +1330,9 @@ async function buildShapeAppearance(ctx: SerializerContext, el: SerializerElemen
         if (el.line.transparency != null) (srgb.children as BuilderNode[]).push(xmlNode('a:alpha', { val: Math.round((100 - el.line.transparency) * 1000) }));
         const lnChildren: BuilderNode[] = [xmlNode('a:solidFill', srgb)];
         if (el.line.dashType && el.line.dashType !== 'solid') lnChildren.push(xmlNode('a:prstDash', { val: el.line.dashType }));
+        const lnAny = el.line as any;
+        if (lnAny.startArrow) lnChildren.push(xmlNode('a:headEnd', { type: lnAny.startArrow }));
+        if (lnAny.endArrow) lnChildren.push(xmlNode('a:tailEnd', { type: lnAny.endArrow }));
         lineNode = xmlNode('a:ln', { w: ptToEmu(w) }, ...lnChildren);
     }
 
@@ -2650,11 +2658,13 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
  */
 function buildConnectorElement(ctx: SerializerContext, el: SerializerElement) {
     const id = ctx.nextElementId++;
-    const line = (el.line && el.line !== 'none') ? el.line as { color?: string; width?: number; dashType?: string } : null;
+    const line = (el.line && el.line !== 'none') ? el.line as { color?: string; width?: number; dashType?: string; startArrow?: string; endArrow?: string } : null;
 
     const lnChildren: BuilderNode[] = [];
     if (line && line.color) lnChildren.push(xmlNode('a:solidFill', colorNode(line.color)));
     if (line && line.dashType) lnChildren.push(xmlNode('a:prstDash', { val: line.dashType }));
+    if (line && line.startArrow) lnChildren.push(xmlNode('a:headEnd', { type: line.startArrow }));
+    if (line && line.endArrow) lnChildren.push(xmlNode('a:tailEnd', { type: line.endArrow }));
 
     const lnNode = el.line === 'none'
         ? xmlNode('a:ln', null, xmlNode('a:noFill'))

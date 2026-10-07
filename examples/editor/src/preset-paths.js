@@ -84,6 +84,8 @@ const rectD = (w, h) => `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z`;
  */
 export function presetShapePath(prst, w, h, adj = {}, opts = {}) {
   switch (prst) {
+    // 矩形：与预览端 <rect> 等价，供 presetShapeSvg 渲染虚线边框（CSS border-style 无法表达固定 dash 图案）
+    case 'rect': return { d: rectD(w, h) };
     // 星形成（star4/5/6/8/10/12/16/24/32）：外/内顶点交替，内半径 = 外半径 * adj/50000
     case 'star4': case 'star5': case 'star6': case 'star8': case 'star10':
     case 'star12': case 'star16': case 'star24': case 'star32': {
@@ -339,12 +341,16 @@ export function presetShapePath(prst, w, h, adj = {}, opts = {}) {
         `M${x2},${h - u5} L${x2},${h - u3}M${x5},${h - u3} L${x5},${h - u5}M${x3},${h - u1} L${x3},${h - u7}M${x4},${h - u7} L${x4},${h - u1}`;
       return { d: d2 };
     }
+    case 'can':
+    case 'cylinder':
     case 'flowChartMagneticDisk':
     case 'flowChartMagneticDrum': {
       const ss = Math.min(w, h);
       const maxAdj = 50000 * h / ss;
-      const a = clampV(50000, 0, maxAdj);
-      const y1 = ss * a / 200000;
+      let adjVal = (prst === 'can' || prst === 'cylinder') ? num(adj, 'adj', 25000) : 50000;
+      if (adjVal < 0) adjVal = 0;
+      if (adjVal > maxAdj) adjVal = maxAdj;
+      const y1 = ss * adjVal / 200000;
       const y3 = h - y1;
       const wd2 = w / 2;
       const rot = prst === 'flowChartMagneticDrum' ? `rotate(90 ${w / 2},${h / 2})` : '';

@@ -14,9 +14,12 @@
 export const SLIDE_FACTOR = 96 / 914400;
 
 /**
- * 字体大小转换因子：将PT单位转换为PX单位
+ * 字体大小转换因子：将PT单位转换为PX单位。
+ * 与编辑器渲染（util.js 的 ptToPx = pt * 96 / 72）保持一致，
+ * 同时符合 PowerPoint 在 96 DPI 下的换算（1pt = 1/72 inch → 96/72 px），
+ * 使预览端文本字号与编辑器逐像素对齐。
  */
-export const FONT_SIZE_FACTOR = 4 / 3.2;
+export const FONT_SIZE_FACTOR = 96 / 72;
 
 // =============================================================================
 // EMU 相关常量
@@ -61,11 +64,11 @@ export const DPI = 96;
 /**
  * 外阴影（a:outerShdw/@blurRad）→ 高斯模糊标准差 σ 的换算系数（σ = blurRad_px × 该系数）。
  *
- * OOXML 只给出「模糊半径」这个标量，未规定核函数；实测把 blurRad 直接当作 σ
- * （或当作 CSS drop-shadow 的 blur 半径，Chromium 下近似 σ≈半径）会让阴影糊成一圈光晕，
- * 与 PowerPoint/WPS 不符。按 WPS 逐像素剖面拟合得到 σ ≈ blurRad / 3.5。
+ * OOXML 只给出「模糊半径」这个标量，未规定核函数。
+ * 编辑器端统一按 σ = blurRad_px × 0.5 计算；为让预览端与编辑器逐页像素一致，
+ * 这里使用相同的 0.5，而不是此前针对 WPS 拟合的 0.29。
  */
-export const SHADOW_SIGMA_RATIO = 0.29;
+export const SHADOW_SIGMA_RATIO = 0.5;
 
 /**
  * 发光（a:glow/@rad）渲染参数，单位与 rad 相同（px）：

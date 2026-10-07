@@ -228,7 +228,13 @@ function normalizeDoc(doc) {
 function normalizeElement(el) {
   if (!el.id) el.id = 'e_' + Math.random().toString(36).slice(2, 9);
   el.x = Number(el.x) || 0; el.y = Number(el.y) || 0;
-  el.width = Number(el.width) || 40; el.height = Number(el.height) || 40;
+  // 连接线/线段的 width 或 height 为 0 是合法几何（垂直线/水平线），
+  // 不能套 `|| 40` 兜底——否则垂直线全被改成 40px 宽的斜线。
+  // 仅在缺值/NaN 时才回退默认尺寸；其余元素 0 尺寸视为无效照旧兜底。
+  const isLinear = el.type === 'shape' && /^(curvedConnector|bentConnector|straightConnector|line)/.test(el.shapeType || '');
+  const numOr = (v, dflt) => (v != null && !Number.isNaN(Number(v))) ? Number(v) : dflt;
+  el.width = isLinear ? numOr(el.width, 40) : (Number(el.width) || 40);
+  el.height = isLinear ? numOr(el.height, 40) : (Number(el.height) || 40);
   el.rotation = Number(el.rotation) || 0;
   if (el.type === 'text' && !el.paragraphs) el.paragraphs = [{ runs: [{ text: el.text || '' }] }];
   if (el.type === 'group') (el.children || []).forEach(normalizeElement);

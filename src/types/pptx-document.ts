@@ -450,6 +450,12 @@ interface PptxElementBase {
     descr?: string;
     /** 是否为装饰性元素（无障碍，p:cNvPr@title 之外的隐藏标记） */
     decorative?: boolean;
+    /**
+     * 来自版式/母版的非占位符形状（版式装饰设计）。
+     * PowerPoint 会把这些形状画在 slide 底层，解析端为还原视觉一并导入；
+     * 它们不属于 slide 自身的 spTree，**生成端必须跳过**，否则会写进 slide XML 造成重复。
+     */
+    inherited?: boolean;
 }
 
 /** 文本元素 */
@@ -464,6 +470,9 @@ export interface PptxTextElement extends PptxElementBase {
     flipV?: boolean;
     /** 底层形状类型（带文字的形状，如椭圆/饼图/弧线；编辑器据此还原形状底） */
     shapeType?: string;
+    /** 纯文本框标记（p:cNvSpPr@txBox="1"）。预览端对纯文本框在无 a:lnSpc 时兜底 line-height 1.3，
+     *  带形状底的文字形状不适用，故需与 shapeType 分开记录。 */
+    txBox?: boolean;
     /** 自定义几何（带文字的形状使用了 a:custGeom，如艺术字/特殊剪裁；编辑器据此还原路径） */
     custGeom?: PptxCustomGeometry;
     /** 底层形状填充（与 PptxShapeElement.fill 同构） */
@@ -779,6 +788,9 @@ export interface PptxDiagramShape {
     lineColor?: string;
     /** 描边宽度（pt） */
     lineWidth?: number;
+    /** 连接线箭头（a:headEnd/a:tailEnd 的 type，如 'triangle'、'stealth'；仅 connector 形状有） */
+    startArrow?: string;
+    endArrow?: string;
     /** 节点文字（多段以 \n 连接） */
     text?: string;
     /** 字号（pt） */

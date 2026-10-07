@@ -83,6 +83,20 @@ export function rotatedRect(el) {
 export function backgroundStyle(bg, theme) {
   if (!bg || bg === 'none') return { background: '#FFFFFF' };
   if (typeof bg === 'string') return { background: normalizeColor(bg) || '#FFFFFF' };
+  if (bg.type === 'image') {
+    // 逐属性设置而非 `background` 简写：背景图常是数百 KB 的 data URL，
+    // 简写里 position/size 的 `/` 分隔语法一旦被解析失败会整条声明失效（连底色一起丢），
+    // 表现为「整页背景消失」；分开设置各条互不牵连。
+    const url = bg.data || bg.src || '';
+    return {
+      backgroundColor: normalizeColor(theme?.bg) || '#FFFFFF',
+      // OOXML 背景图 blipFill（a:stretch）：整图拉伸铺满画布（非 cover 裁剪）
+      backgroundImage: url ? `url("${url}")` : 'none',
+      backgroundPosition: 'center',
+      backgroundSize: '100% 100%',
+      backgroundRepeat: 'no-repeat'
+    };
+  }
   if (bg.type === 'gradient') {
     const stops = (bg.stops || []).slice().sort((a, b) => a.position - b.position);
     const list = stops.length >= 2
@@ -91,13 +105,6 @@ export function backgroundStyle(bg, theme) {
     if (bg.gradientType === 'radial') return { background: `radial-gradient(circle at 50% 50%, ${list})` };
     const deg = bg.direction === 'vertical' ? 180 : bg.direction === 'diagonal' ? 135 : 90;
     return { background: `linear-gradient(${deg}deg, ${list})` };
-  }
-  if (bg.type === 'image') {
-    const url = bg.data || bg.src || '';
-    // OOXML 背景图 blipFill（a:stretch）：整图拉伸铺满画布（非 cover 裁剪）
-    return {
-      background: `${normalizeColor(theme?.bg) || '#FFFFFF'} url("${url}") center / 100% 100% no-repeat`
-    };
   }
   return { background: normalizeColor(bg.color) || '#FFFFFF' };
 }
@@ -181,7 +188,10 @@ function shapeVisual(el) {
       dx: Number(dx.toFixed(2)),
       dy: Number(dy.toFixed(2)),
       blur: Number(blur.toFixed(2)),
-      color: `rgba(${r},${g},${b},${alpha.toFixed(2)})`
+      color: `rgba(${r},${g},${b},${alpha.toFixed(2)})`,
+      // 把透明度透传给 shapeEffectSvg：外层滤镜的 flood-opacity 以 transparency 为准，
+      // 否则一律按 1.0 渲染（与预览端 pptxToHtml 依 PPTX alpha 渲染不一致）。
+      transparency: s.transparency != null ? s.transparency : undefined
     };
   }
   // 发光：a:glow，颜色来自效果自身
@@ -423,6 +433,10 @@ function isNumberBullet(b) {
 
 function renderTextBody(el, ctx) {
   const body = h('div', { class: 'tb-body' });
+  // 自动适配（a:normAutofit@fontScale）：PowerPoint 按此比例整体缩放字号以贴合文本框，
+  // 不应用会导致大字号标题溢出折行（如 72pt 标题），与预览端不一致。
+  const afs = (el.fontScale && el.fontScale > 0) ? el.fontScale : 1;
+  const effFont = (r) => ((((r && r.fontSize != null) ? r.fontSize : (el.fontSize != null ? el.fontSize : 18))) * afs);
   const vmap = { top: 'flex-start', middle: 'center', bottom: 'flex-end' };
   body.style.justifyContent = vmap[el.valign] || 'flex-start';
   body.style.whiteSpace = el.noWrap ? 'nowrap' : 'pre-wrap';
@@ -446,10 +460,24 @@ function renderTextBody(el, ctx) {
     } else {
       para.style.textAlign = p.align || el.align || 'left';
     }
-    if (p.lineSpacing) para.style.lineHeight = String(p.lineSpacing);
-    const bullet = p.bullet ?? el.bullet;
+    // 行距：区分「显式值」与「继承值」。编辑器为方便面板编辑会给每个段落填默认
+    // lineSpacing(=1.15)，但那是面板默认值而非源文件值；直接用会让继承排版的行距偏离预览端
+    //（预览端对未显式 a:lnSpc 的段落不设 line-height，走 CSS normal）。
+    const pLsSet = p.lineSpacingSet !== undefined ? p.lineSpacingSet : true;
+    const eLsSet = el.propsSet && el.propsSet.lineSpacing !== undefined ? el.propsSet.lineSpacing : !!el.lineSpacing;
+    const ls = pLsSet && p.lineSpacing != null ? p.lineSpacing : (eLsSet ? el.lineSpacing : null);
+    if (ls != null) {
+      // 编辑器内部用两种约定混存：>=10 表示 OOXML 百分值（100=100%），<5 表示倍数（1.5）
+      const ratio = typeof ls === 'number' && ls >= 10 ? ls / 100 : ls;
+      para.style.lineHeight = String(ratio);
+    }
+    const bulletRaw = p.bullet ?? el.bullet;
+    // 空段落（无文本、无软换行）不画项目符号/编号：PowerPoint 放映时空段落只占一行空白，
+    // 预览端同样不显示；画出来会出现「孤立的 ● / ➢」挂在文本框末尾（如 slide9 的空尾段）
+    const paraHasContent = (p.runs || []).some((r) => r.text || r.break);
+    const bullet = paraHasContent ? bulletRaw : null;
     const firstRun = (p.runs || [])[0] || {};
-    const bulletFontSize = ptToPx(firstRun.fontSize ?? el.fontSize ?? 18);
+    const bulletFontSize = ptToPx(effFont(firstRun));
     const bulletColor = normalizeColor(firstRun.color) || normalizeColor(el.color) || '#202124';
     const bulletFont = quoteFont(firstRun.fontFace || el.fontFace || '微软雅黑');
     if (isNumberBullet(bullet)) {
@@ -458,7 +486,10 @@ function renderTextBody(el, ctx) {
       para.classList.add('num-para');
       const b = document.createElement('span');
       b.className = 'bullet-mark';
-      b.textContent = formatAutoNum(fmt, numState.n) + '\u00A0';
+      // 间距用 CSS margin 而非 \u00A0：nbsp 放在符号字体（Wingdings 等）的 span 里，
+      // 符号字体缺失走 fallback 时 nbsp 会渲染成「·」点，紧跟在项目符号后（预览端用普通空格无此问题）
+      b.textContent = formatAutoNum(fmt, numState.n);
+      b.style.marginRight = '0.3em';
       b.style.fontSize = `${bulletFontSize}px`;
       b.style.color = bulletColor;
       b.style.fontFamily = bulletFont;
@@ -482,13 +513,15 @@ function renderTextBody(el, ctx) {
           img.style.height = `${sz.toFixed(2)}px`;
           img.style.verticalAlign = '-0.15em';
           b.appendChild(img);
-          b.appendChild(document.createTextNode('\u00A0'));
+          b.style.marginRight = '0.3em';
           b.contentEditable = 'false';
           para.appendChild(b);
         } else {
           const b = document.createElement('span');
           b.className = 'bullet-mark';
-          b.textContent = ((typeof bullet === 'object' && bullet.char) || '•') + '\u00A0';
+          // 间距用 CSS margin 而非 \u00A0（理由同上：符号字体 fallback 时 nbsp 渲染成点）
+          b.textContent = (typeof bullet === 'object' && bullet.char) || '•';
+          b.style.marginRight = '0.3em';
           b.style.fontSize = `${bulletFontSize}px`;
           b.style.color = bulletColor;
           // 符号字体（a:buFont，如 Wingdings / Wingdings 3）：缺了它，
@@ -524,7 +557,7 @@ function renderTextBody(el, ctx) {
       }
       const span = document.createElement('span');
       const st = span.style;
-      st.fontSize = `${ptToPx(run.fontSize ?? el.fontSize ?? 18)}px`;
+      st.fontSize = `${ptToPx(effFont(run))}px`;
       st.fontFamily = quoteFont(run.fontFace || el.fontFace || '微软雅黑');
       // 超链接（a:hlinkClick）：run 无显式色时用主题 hlink 色（OOXML 语义，与预览端一致）；
       // 有显式色则保持原色（PowerPoint 行为：显式色优先于主题链接色）
@@ -706,19 +739,27 @@ function presetFillColor(el) {
   const f = el.fill;
   if (f == null || f === 'none') return 'none';
   if (typeof f === 'string') return normalizeColor(f);
-  if (f.type === 'solid' && f.color) return normalizeColor(f.color);
+  // transparency 是 0..100 透明度，需转 rgba（与 shapeVisual 的 CSS 路径保持一致）
+  if (f.type === 'solid' && f.color) return withAlpha(f.color, f.transparency || 0);
   if (f.type === 'gradient' && Array.isArray(f.stops) && f.stops.length) return normalizeColor(f.stops[0].color);
   return null; // image / pattern → 回退 CSS 渲染管线
 }
 
 /** 预设几何 SVG（与预览端同源公式），不支持或需 CSS 填充时返回 null */
 function presetShapeSvg(el) {
-  if (!el.shapeType || el.shapeType === 'rect') return null;
+  if (!el.shapeType) return null;
   const fill = presetFillColor(el);
   if (fill === null) return null;
+  // rect 默认走 CSS（渐变/圆角渲染精度更高）；仅纯色/无填充时改用 SVG，
+  // 使虚线边框的 dasharray 与预览端一致（CSS border-style: dashed 的 dash 长度≈3×线宽，
+  // 无法表达预览端 lgDash='10, 5' 这类固定图案）
+  if (el.shapeType === 'rect') {
+    const f = el.fill;
+    if (!(f == null || f === 'none' || f.type === 'solid')) return null;
+  }
   const geo = presetShapePath(el.shapeType, el.width || 100, el.height || 100, el.adjust || {});
   if (!geo) return null;
-  const lineColor = el.line && el.line !== 'none' ? normalizeColor(el.line.color) : null;
+  const lineColor = el.line && el.line !== 'none' ? withAlpha(el.line.color, el.line.transparency || 0) : null;
   const lineW = el.line && el.line !== 'none' ? Math.max(0.5, ptToPx(el.line.width || 0.75)) : 0;
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
@@ -813,7 +854,7 @@ function custGeomSvg(el) {
   // 任一 path 闭合才填充（开放曲线如涂鸦仅描边）
   const anyClosed = cg.paths.some((p) => p.closed);
   main.setAttribute('fill', anyClosed && fill ? (fill || 'none') : 'none');
-  const lineColor = el.line && el.line !== 'none' ? normalizeColor(el.line.color) : null;
+  const lineColor = el.line && el.line !== 'none' ? withAlpha(el.line.color, el.line.transparency || 0) : null;
   const lineW = el.line && el.line !== 'none' ? Math.max(0.5, ptToPx(el.line.width || 0.75)) : 0;
   if (lineColor) {
     main.setAttribute('stroke', lineColor);
@@ -865,9 +906,82 @@ export function renderElement(el, ctx = {}) {
     }
     case 'shape': {
       if (/^(curvedConnector|bentConnector|straightConnector)/.test(el.shapeType || '')) {
-        // 连接符：按 OOXML 预设几何的典型路径绘制，避免退化成直线
+        // 连接符：与预览端 shape.ts 完全对齐
+        // - stroke-width 用 pt 值直接当 px（预览端 getBorder 返回 pt 作 px）
+        // - 不设 stroke-linecap（预览端默认 butt）
+        // - w/h 为 0 时设最小 SVG 尺寸保证可见（预览端同款处理）
+        // - 箭头用 SVG <marker>（与预览端一致，消除手动 polygon 的反锯齿差异）
         const lc = normalizeColor((el.line && el.line.color) || '#5B9BD5') || '#5B9BD5';
-        const lw = Math.max(1, ptToPx((el.line && el.line.width) || 1));
+        const lw = (el.line && el.line.width) || 1;
+        const W = el.width || 0, H = el.height || 0;
+        const NS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(NS, 'svg');
+        const minSize = Math.max(lw * 2, 4);
+        const svgW = Math.max(W, minSize), svgH = Math.max(H, minSize);
+        svg.style.cssText = `position:absolute;inset:0;width:${svgW}px;height:${svgH}px;overflow:visible`;
+        const fx = el.flipH ? -1 : 1, fy = el.flipV ? -1 : 1;
+        if (el.flipH || el.flipV) svg.style.transform = `scaleX(${fx}) scaleY(${fy})`;
+        const st = el.shapeType || '';
+        const sid = el.id || Math.random().toString(36).slice(2);
+        // 箭头 marker（与预览端 shape.ts markerTriangle 完全一致）
+        const sArrow = el.line && el.line.startArrow;
+        const eArrow = el.line && el.line.endArrow;
+        if (sArrow || eArrow) {
+          const defs = document.createElementNS(NS, 'defs');
+          const mk = (id, type) => {
+            const m = document.createElementNS(NS, 'marker');
+            m.setAttribute('id', id);
+            m.setAttribute('viewBox', '0 0 10 10');
+            m.setAttribute('refX', '10');
+            m.setAttribute('refY', '5');
+            m.setAttribute('markerWidth', '5');
+            m.setAttribute('markerHeight', '5');
+            m.setAttribute('stroke', lc);
+            m.setAttribute('fill', lc);
+            m.setAttribute('orient', 'auto-start-reverse');
+            m.setAttribute('markerUnits', 'strokeWidth');
+            const p = document.createElementNS(NS, 'path');
+            p.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+            m.appendChild(p);
+            return m;
+          };
+          if (sArrow) defs.appendChild(mk(`mkS_${sid}`, sArrow));
+          if (eArrow) defs.appendChild(mk(`mkE_${sid}`, eArrow));
+          svg.appendChild(defs);
+        }
+        // 线条：straightConnector1 用 <line>（与预览端一致），其他用 <path>
+        let lineEl;
+        if (st === 'straightConnector1') {
+          lineEl = document.createElementNS(NS, 'line');
+          lineEl.setAttribute('x1', '0');
+          lineEl.setAttribute('y1', '0');
+          lineEl.setAttribute('x2', String(W));
+          lineEl.setAttribute('y2', String(H));
+        } else {
+          lineEl = document.createElementNS(NS, 'path');
+          let d;
+          if (st.startsWith('bentConnector')) {
+            d = `M 0,0 L ${W * 0.5},0 L ${W * 0.5},${H} L ${W},${H}`;
+          } else {
+            const r = Math.min(Math.max(((el.adjust && el.adjust.adj1) != null ? el.adjust.adj1 : 50000) / 100000, 0), 1);
+            d = `M 0,0 Q ${W * r},0 ${W / 2},${H / 2} Q ${W * (1 - r)},${H} ${W},${H}`;
+          }
+          lineEl.setAttribute('d', d);
+          lineEl.setAttribute('fill', 'none');
+        }
+        lineEl.setAttribute('stroke', lc);
+        lineEl.setAttribute('stroke-width', String(lw));
+        const dash = el.line && el.line.dashType ? SVG_DASH_MAP[el.line.dashType] : null;
+        if (dash) lineEl.setAttribute('stroke-dasharray', dash);
+        if (sArrow) lineEl.setAttribute('marker-start', `url(#mkS_${sid})`);
+        if (eArrow) lineEl.setAttribute('marker-end', `url(#mkE_${sid})`);
+        svg.appendChild(lineEl);
+        node.appendChild(svg);
+        break;
+      }
+      if (el.shapeType === 'line') {
+        const lc = normalizeColor((el.line && el.line.color) || '#000000') || '#000';
+        const lw = Math.max(1, ptToPx((el.line && el.line.width) || 2));
         const W = el.width || 100, H = el.height || 100;
         const NS = 'http://www.w3.org/2000/svg';
         const svg = document.createElementNS(NS, 'svg');
@@ -876,34 +990,15 @@ export function renderElement(el, ctx = {}) {
         svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;overflow:visible';
         const fx = el.flipH ? -1 : 1, fy = el.flipV ? -1 : 1;
         if (el.flipH || el.flipV) svg.style.transform = `scaleX(${fx}) scaleY(${fy})`;
-        const path = document.createElementNS(NS, 'path');
-        let d;
-        const st = el.shapeType || '';
-        if (st === 'straightConnector1') {
-          d = `M 0,0 L ${W},${H}`;
-        } else if (st.startsWith('bentConnector')) {
-          d = `M 0,0 L ${W * 0.5},0 L ${W * 0.5},${H} L ${W},${H}`;
-        } else {
-          // curvedConnector2/3/4/5：与预览端同款二次贝塞尔 S 曲线（控制点由 adj1 决定）
-          const r = Math.min(Math.max(((el.adjust && el.adjust.adj1) != null ? el.adjust.adj1 : 50000) / 100000, 0), 1);
-          d = `M 0,0 Q ${W * r},0 ${W / 2},${H / 2} Q ${W * (1 - r)},${H} ${W},${H}`;
-        }
-        path.setAttribute('d', d);
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', lc);
-        path.setAttribute('stroke-width', String(lw));
-        path.setAttribute('stroke-linecap', 'round');
-        svg.appendChild(path);
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', '0'); line.setAttribute('y1', '0');
+        line.setAttribute('x2', String(W)); line.setAttribute('y2', String(H));
+        line.setAttribute('stroke', lc);
+        line.setAttribute('stroke-width', String(lw));
+        const lnDash = el.line && el.line.dashType ? SVG_DASH_MAP[el.line.dashType] : null;
+        if (lnDash) line.setAttribute('stroke-dasharray', lnDash);
+        svg.appendChild(line);
         node.appendChild(svg);
-        break;
-      }
-      if (el.shapeType === 'line') {
-        const ln = h('div', { style: { position: 'absolute', left: '0', top: '50%', width: '100%' } });
-        const w = Math.max(1, ptToPx((el.line && el.line.width) || 2));
-        ln.style.height = `${w}px`;
-        ln.style.background = normalizeColor((el.line && el.line.color) || '#000000') || '#000';
-        ln.style.transform = 'translateY(-50%)';
-        node.appendChild(ln);
       } else {
         const { style, effects } = shapeVisual(el);
         const geo = shapeGeometry(el);
@@ -964,6 +1059,19 @@ export function renderElement(el, ctx = {}) {
       if (adj.contrast) filters.push(`contrast(${1 + adj.contrast / 100})`);
       if (filters.length) img.style.filter = filters.join(' ');
       if (adj.transparency) img.style.opacity = String(clamp(1 - adj.transparency / 100, 0, 1));
+      // 裁剪：a:srcRect 各边为 0~1 比例，容器裁掉四周后图片放大填满（与预览端一致）
+      const crop = el.crop;
+      if (crop && (crop.l || crop.t || crop.r || crop.b)) {
+        const cropW = Math.max(0.01, 1 - (crop.l || 0) - (crop.r || 0));
+        const cropH = Math.max(0.01, 1 - (crop.t || 0) - (crop.b || 0));
+        img.style.position = 'absolute';
+        img.style.left = `${(-(crop.l || 0) / cropW * 100).toFixed(4)}%`;
+        img.style.top = `${(-(crop.t || 0) / cropH * 100).toFixed(4)}%`;
+        img.style.width = `${(100 / cropW).toFixed(4)}%`;
+        img.style.height = `${(100 / cropH).toFixed(4)}%`;
+        img.style.maxWidth = 'none';
+        node.style.overflow = 'hidden';
+      }
       node.appendChild(img);
       break;
     }
@@ -1069,14 +1177,35 @@ function renderDiagramEl(el) {
     svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
     shapes.forEach((s) => {
       if (!s.connector) return;
+      const x1 = s.flipH ? s.x + s.width : s.x;
+      const y1 = s.flipV ? s.y + s.height : s.y;
+      const x2 = s.flipH ? s.x : s.x + s.width;
+      const y2 = s.flipV ? s.y : s.y + s.height;
       const line = document.createElementNS(NS, 'line');
-      line.setAttribute('x1', String(s.flipH ? s.x + s.width : s.x));
-      line.setAttribute('y1', String(s.flipV ? s.y + s.height : s.y));
-      line.setAttribute('x2', String(s.flipH ? s.x : s.x + s.width));
-      line.setAttribute('y2', String(s.flipV ? s.y : s.y + s.height));
-      line.setAttribute('stroke', safeColor(s.lineColor, '#B0B4BA'));
-      line.setAttribute('stroke-width', String(Math.max(0.75, s.lineWidth || 1)));
+      line.setAttribute('x1', String(x1));
+      line.setAttribute('y1', String(y1));
+      line.setAttribute('x2', String(x2));
+      line.setAttribute('y2', String(y2));
+      const stroke = safeColor(s.lineColor, '#B0B4BA');
+      const lw = Math.max(0.75, s.lineWidth || 1);
+      line.setAttribute('stroke', stroke);
+      line.setAttribute('stroke-width', String(lw));
       svg.appendChild(line);
+      const arrowLen = Math.max(7, lw * 3.2);
+      const arrowW = Math.max(4, lw * 2.2);
+      const addArrow = (px, py, dx, dy) => {
+        const len = Math.hypot(dx, dy) || 1;
+        const ux = dx / len, uy = dy / len;
+        const bx = px - ux * arrowLen, by = py - uy * arrowLen;
+        const px2 = -uy, py2 = ux; // 垂直方向
+        const poly = document.createElementNS(NS, 'polygon');
+        poly.setAttribute('points', `${px},${py} ${bx + px2 * arrowW / 2},${by + py2 * arrowW / 2} ${bx - px2 * arrowW / 2},${by - py2 * arrowW / 2}`);
+        poly.setAttribute('fill', stroke);
+        svg.appendChild(poly);
+      };
+      // OOXML：headEnd 在起点，tailEnd 在终点
+      if (s.startArrow) addArrow(x1, y1, x1 - x2, y1 - y2);
+      if (s.endArrow) addArrow(x2, y2, x2 - x1, y2 - y1);
     });
     wrap.appendChild(svg);
 
@@ -1477,7 +1606,7 @@ function shapeGeometry(el) {
 function effectGeometry(el, W, H) {
   const fill = presetFillColor(el);
   const strokeOnly = fill === 'none' || fill == null;
-  const lineColor = el.line && el.line !== 'none' ? normalizeColor(el.line.color) : null;
+  const lineColor = el.line && el.line !== 'none' ? withAlpha(el.line.color, el.line.transparency || 0) : null;
   const lineW = el.line && el.line !== 'none' ? Math.max(0.5, ptToPx(el.line.width || 0.75)) : 0;
   // 0) 自定义几何（a:custGeom）：与本体 custGeomSvg 同源，复用其归一化路径
   if (el.custGeom && Array.isArray(el.custGeom.paths) && el.custGeom.paths.length) {

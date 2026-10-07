@@ -200,13 +200,26 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
  * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
  * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
  */
-function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean } {
+function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined, inheritedLvl?: (lvl: number) => any, inheritedBodyPrRaw?: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
     let text = '';
     if (!txBody) return { paragraphs, hasText, text };
 
-    const bodyPr = txBody['a:bodyPr'];
+    // bodyPr 继承链：本形状 a:bodyPr 优先，缺失的属性（lIns/tIns/anchor 等）与自动适配子元素
+    //（a:normAutofit@fontScale / a:noAutofit）回退到版式/母版占位符 bodyPr。
+    // 关键：占位符文本常在 slide 上写空 bodyPr（仅带一个 a:normAutofit 子元素），
+    // 不能因「无属性」就整体丢弃本 bodyPr，否则会漏掉 fontScale（标题自动缩放）。
+    const bodyPrRaw = txBody['a:bodyPr'];
+    const inhBp = inheritedBodyPrRaw;
+    const ownAttrs = (bodyPrRaw && bodyPrRaw.attrs) || {};
+    const inhAttrs = (inhBp && inhBp.attrs) || {};
+    const mergedAttrs = { ...inhAttrs, ...ownAttrs };
+    const normNode = bodyPrRaw && bodyPrRaw['a:normAutofit'] ? bodyPrRaw['a:normAutofit'] : (inhBp && inhBp['a:normAutofit']);
+    const noAutofitNode = bodyPrRaw && bodyPrRaw['a:noAutofit'] ? bodyPrRaw['a:noAutofit'] : (inhBp && inhBp['a:noAutofit']);
+    const bodyPr: any = { attrs: mergedAttrs };
+    if (normNode) bodyPr['a:normAutofit'] = normNode;
+    if (noAutofitNode) bodyPr['a:noAutofit'] = noAutofitNode;
     const valign = bodyPr && bodyPr.attrs && bodyPr.attrs.anchor
         ? VALIGN_MAP[bodyPr.attrs.anchor] : undefined;
     const textDirection = bodyPr && bodyPr.attrs && bodyPr.attrs.vert
@@ -215,24 +228,69 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
     const noWrap = bodyPr && bodyPr.attrs && bodyPr.attrs.wrap === 'none' ? true : undefined;
     // 从右向左列排布（a:bodyPr@rtlCol），影响 RTL 文本折行
     const rtlCol = bodyPr && bodyPr.attrs && (bodyPr.attrs.rtlCol === '1' || bodyPr.attrs.rtlCol === 1) ? true : undefined;
-    // 内边距（a:bodyPr/@lIns/rIns/tIns/bIns，EMU → px）
+    // 内边距（a:bodyPr/@lIns/rIns/tIns/bIns，EMU → px）。
+    // OOXML 缺省值：lIns/rIns=91440（9.6px）、tIns/bIns=45720（4.8px）。
+    // 预览端对未写出的属性按缺省值渲染；这里也必须始终输出 inset，
+    // 否则编辑器 padding=0、可用文本宽度偏大 19px，换行位置与预览端不一致
+    //（典型如 slide13「三位一体服务」编辑器 5 字/行 vs 预览端 4 字/行，居中观感随之错位）。
     let inset: { l?: number; r?: number; t?: number; b?: number } | undefined;
-    if (bodyPr && bodyPr.attrs) {
-        const a = bodyPr.attrs;
-        const l = a.lIns != null ? emuToPx(a.lIns) : undefined;
-        const r = a.rIns != null ? emuToPx(a.rIns) : undefined;
-        const t = a.tIns != null ? emuToPx(a.tIns) : undefined;
-        const b = a.bIns != null ? emuToPx(a.bIns) : undefined;
-        if (l != null || r != null || t != null || b != null) inset = { l, r, t, b };
+    if (bodyPr) {
+        const a = (bodyPr.attrs = bodyPr.attrs || {}) as Record<string, any>;
+        const defLR = emuToPx(91440);
+        const defTB = emuToPx(45720);
+        inset = {
+            l: a.lIns != null ? emuToPx(a.lIns) : defLR,
+            r: a.rIns != null ? emuToPx(a.rIns) : defLR,
+            t: a.tIns != null ? emuToPx(a.tIns) : defTB,
+            b: a.bIns != null ? emuToPx(a.bIns) : defTB
+        };
+    }
+    // 自动适配（a:normAutofit / a:noAutofit）：PowerPoint 按 fontScale 整体缩放字体以适配文本框，
+    // 预览端同样缩放；不处理会导致大字号标题（如本例 72pt）在编辑器里溢出折行。
+    let fontScale: number | undefined;
+    let lnSpcReduction: number | undefined;
+    if (bodyPr) {
+        const noAutofit = !!(bodyPr['a:noAutofit']);
+        const norm = bodyPr['a:normAutofit'] && bodyPr['a:normAutofit'].attrs;
+        if (!noAutofit && norm) {
+            if (norm.fontScale != null) fontScale = Number(norm.fontScale) / 100000;
+            if (norm.lnScale != null) lnSpcReduction = Number(norm.lnScale) / 100000;
+        }
+    }
+
+    // 段落级默认 run 样式：a:lstStyle/a:lvlNpPr/a:defRPr（OOXML 中 lvl1 对应 level=0）
+    const lstStyle = txBody['a:lstStyle'];
+    const lvlDefaultRPr: Record<number, any> = {};
+    if (lstStyle) {
+        for (let lvl = 1; lvl <= 9; lvl++) {
+            const node = lstStyle[`a:lvl${lvl}pPr`];
+            if (node && node['a:defRPr']) lvlDefaultRPr[lvl - 1] = node['a:defRPr'];
+        }
+    }
+    // 占位符继承层（版式/母版占位符 lstStyle → 母版 p:txStyles → 默认文本样式）的 defRPr。
+    // 链上更靠后，因此单独存一份，仅在上面两层都没给出字号时才生效。
+    const lvlInheritedRPr: Record<number, any> = {};
+    if (inheritedLvl) {
+        for (let lvl = 1; lvl <= 9; lvl++) {
+            const node = inheritedLvl(lvl - 1);
+            if (node && node['a:defRPr']) lvlInheritedRPr[lvl - 1] = node['a:defRPr'];
+        }
     }
 
     for (const pNode of asArray(txBody['a:p'])) {
         const pPr = pNode['a:pPr'];
         const pAttrs = (pPr && pPr.attrs) || {};
+        const paraLvl = Number(pAttrs.lvl || 0);
         const isRtlPara = pAttrs.rtl === '1' || pAttrs.rtl === 1;
-        // RTL 段落（a:pPr@rtl="1"）未显式给 algn 时按右对齐处理：
-        // 预览端依 rtl 渲染为右对齐，生成端需落成 algn="r" 才能保持一致
-        const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : (isRtlPara ? 'right' : undefined);
+        // 段落对齐继承链：a:pPr → txBody/a:lstStyle → 版式/母版占位符 lstStyle。
+        const align = (() => {
+            if (pAttrs.algn) return ALIGN_MAP[pAttrs.algn];
+            const lstPara = lstStyle && lstStyle[`a:lvl${paraLvl + 1}pPr`];
+            if (lstPara && lstPara.attrs && lstPara.attrs.algn) return ALIGN_MAP[lstPara.attrs.algn];
+            const inheritedPara = inheritedLvl ? inheritedLvl(paraLvl) : undefined;
+            if (inheritedPara && inheritedPara.attrs && inheritedPara.attrs.algn) return ALIGN_MAP[inheritedPara.attrs.algn];
+            return isRtlPara ? 'right' : undefined;
+        })();
 
         // 列表样式：自动编号 / 字符项目符号 / 图片项目符号
         let bullet: any;
@@ -260,16 +318,42 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
         }
 
         // 行距 / 段间距 / 缩进
+        // OOXML 段落样式继承链：a:pPr → txBody/a:lstStyle → 版式 → 母版。
+        // 预览端 getVerticalMargins 按这条链逐级回退，而解析端原先只看 a:pPr，
+        // 会丢掉写在 lstStyle 里的行距/段间距（纯文本框的「段前 20%」即属此类，
+        // 导致编辑器行距明显比预览端紧）。
+        const lstLvl = (() => {
+            if (!lstStyle) return undefined;
+            const lv = pAttrs.lvl != null ? Number(pAttrs.lvl) : 0; // a:pPr@lvl 缺省 0
+            return lstStyle[`a:lvl${lv + 1}pPr`] || undefined;
+        })();
+        const spacingHolder = (tag: string) => {
+            if (pPr && pPr[tag]) return pPr[tag];
+            if (lstLvl && lstLvl[tag]) return lstLvl[tag];
+            const inheritedNode = inheritedLvl ? inheritedLvl(paraLvl) : undefined;
+            if (inheritedNode && inheritedNode[tag]) return inheritedNode[tag];
+            return undefined;
+        };
+        const lnHolder = spacingHolder('a:lnSpc');
         let lineSpacing: any;
-        const lnSpc = pPr && pPr['a:lnSpc'];
-        if (lnSpc) {
-            if (lnSpc['a:spcPct']) lineSpacing = { type: 'percent', value: Number(lnSpc['a:spcPct'].attrs.val) / 1000 };
-            else if (lnSpc['a:spcPts']) lineSpacing = { type: 'pt', value: Number(lnSpc['a:spcPts'].attrs.val) / 100 };
+        if (lnHolder) {
+            if (lnHolder['a:spcPct']) lineSpacing = { type: 'percent', value: Number(lnHolder['a:spcPct'].attrs.val) / 1000 };
+            else if (lnHolder['a:spcPts']) lineSpacing = { type: 'pt', value: Number(lnHolder['a:spcPts'].attrs.val) / 100 };
         }
-        const spcBef = pPr && pPr['a:spcBef'] && pPr['a:spcBef']['a:spcPts'];
-        const spcAft = pPr && pPr['a:spcAft'] && pPr['a:spcAft']['a:spcPts'];
-        const spaceBefore = spcBef ? Number(spcBef.attrs.val) / 100 : undefined;
-        const spaceAfter = spcAft ? Number(spcAft.attrs.val) / 100 : undefined;
+        // 段间距有两种形态：a:spcPts（绝对磅值）/ a:spcPct（相对行高的倍数）
+        const readSpacing = (tag: string) => {
+            const holder = spacingHolder(tag);
+            if (!holder) return undefined;
+            if (holder['a:spcPts']) return { pt: Number(holder['a:spcPts'].attrs.val) / 100 };
+            if (holder['a:spcPct']) return { ratio: Number(holder['a:spcPct'].attrs.val) / 1000 };
+            return undefined;
+        };
+        const spcBefRaw = readSpacing('a:spcBef');
+        const spcAftRaw = readSpacing('a:spcAft');
+        // 与预览端一致：单段落且为首段、段前间距又非显式设置时忽略它（lstStyle 默认值不作用于首段）
+        const totalParas = asArray(txBody['a:p']).length;
+        const spcBefExplicit = !!(pPr && pPr['a:spcBef']);
+        const spcBefScale = (!spcBefExplicit && totalParas === 1 && spcBefRaw) ? 0 : 1;
         const indentLeft = pAttrs.marL != null ? emuToPt(pAttrs.marL) : undefined;
         const indentRight = pAttrs.marR != null ? emuToPt(pAttrs.marR) : undefined;
         const indent = pAttrs.indent != null ? emuToPt(pAttrs.indent) : undefined;
@@ -291,11 +375,44 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
             if (t) hasText = true;
             paraText += t;
             const st = readRunStyle(runNode['a:rPr'], themeMap, resolveHref);
+            // 合并段落级默认 run 样式（a:lstStyle/a:lvlNpPr/a:defRPr）与占位符继承链（版式/母版 lstStyle）的 defRPr：
+            // run 常省略 sz/color/bold 等，实际渲染样式来自「本形状 lstStyle → 版式/母版占位符 lstStyle」。
+            // 解析端原本只填本形状 lstStyle，导致占位符（如封面页标题/副标题）丢母版定义的颜色与字号，
+            // 编辑器渲染成默认黑字/18pt。继承链补全后（本层优先、继承层兜底）与预览端一致。
+            const ownDefRPr = (pPr && pPr['a:defRPr']) || lvlDefaultRPr[paraLvl];
+            const inheritedDefRPr = lvlInheritedRPr[paraLvl];
+            let defRPr: any;
+            if (ownDefRPr && inheritedDefRPr) {
+                defRPr = { ...inheritedDefRPr, ...ownDefRPr };
+                if (inheritedDefRPr.attrs || ownDefRPr.attrs) {
+                    defRPr.attrs = { ...(inheritedDefRPr.attrs || {}), ...(ownDefRPr.attrs || {}) };
+                }
+            } else {
+                defRPr = ownDefRPr || inheritedDefRPr;
+            }
+            if (defRPr) {
+                const d = readRunStyle(defRPr, themeMap, resolveHref);
+                for (const k of Object.keys(d)) {
+                    if ((st as any)[k] === undefined) (st as any)[k] = (d as any)[k];
+                }
+            }
             // run 无显式字色时回退到形状 p:style/a:fontRef 的默认色
             if (!st.color && fallbackColor) st.color = fallbackColor;
             runs.push({ text: t, ...st });
         }
         if (paraText) text += (text ? '\n' : '') + paraText;
+
+        // 段间距换算为 pt：spcPct 是「倍数行高」，需按首 run 字号折算；
+        // 并与预览端一致地把超限值压到 50% 行高（PPT 内部对 spcPct 有上限）
+        const firstFontPt = (runs[0] && runs[0].fontSize != null) ? Number(runs[0].fontSize) : 13.5;
+        const spacingToPt = (s: any, scale = 1) => {
+            if (!s) return undefined;
+            if (s.pt != null) return scale === 0 ? undefined : s.pt;
+            const v = Math.min(s.ratio, 0.5) * firstFontPt * scale;
+            return v > 0 ? v : undefined;
+        };
+        const spaceBefore = spacingToPt(spcBefRaw, spcBefScale);
+        const spaceAfter = spacingToPt(spcAftRaw);
 
         const para: PptxParagraph = { runs };
         if (align) para.align = align;
@@ -311,7 +428,7 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
         if (valign) (para as any).valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol };
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction };
 }
 
 /**
@@ -346,10 +463,13 @@ async function resolveBulletBlips(
 }
 
 /** 提取一个 p:sp 的文本为正文段落 */
-function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean } {
+function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined, phCtx?: PlaceholderCtx, ph?: PlaceholderAttrs): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number } {
     // p:style/a:fontRef 的颜色是形状文本的默认字色（run 无显式色时生效，与预览端一致）
     const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
-    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor, resolveHref);
+    // 占位符文本需从「版式/母版同名占位符」继承样式（颜色/字号/对齐/内边距等）
+    const inheritedLvl = phCtx && ph ? (lvl: number) => inheritedLvlNode(phCtx, ph, lvl) : undefined;
+    const inheritedBodyPrRaw = phCtx && ph ? inheritedBodyPr(phCtx, ph) : undefined;
+    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor, resolveHref, inheritedLvl, inheritedBodyPrRaw);
 }
 
 /**
@@ -443,6 +563,10 @@ function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxSh
             if (color) lineObj.color = color;
             if (transparency != null) lineObj.transparency = transparency;
             if (dash) lineObj.dashType = String(dash);
+            const headEnd = ln['a:headEnd'];
+            const tailEnd = ln['a:tailEnd'];
+            if (headEnd && headEnd.attrs && headEnd.attrs.type && headEnd.attrs.type !== 'none') lineObj.startArrow = String(headEnd.attrs.type);
+            if (tailEnd && tailEnd.attrs && tailEnd.attrs.type && tailEnd.attrs.type !== 'none') lineObj.endArrow = String(tailEnd.attrs.type);
             out.line = lineObj;
         }
     }
@@ -499,10 +623,164 @@ function readXfrm(node: any, isGraphicFrame: boolean) {
         height: emuToPx(ext.cy),
         rotation: rotToDeg(attrs.rot)
     };
-    // 水平/垂直翻转（a:xfrm/@flipH/@flipV，值 1/0 或 undefined）
-    if (attrs.flipH === 1 || attrs.flipH === '1' || attrs.flipH === true) out.flipH = true;
-    if (attrs.flipV === 1 || attrs.flipV === '1' || attrs.flipV === true) out.flipV = true;
+    // 水平/垂直翻转（a:xfrm/@flipH/@flipV，值 1/0/"true"/"false" 或 undefined）
+    if (attrs.flipH === 1 || attrs.flipH === '1' || attrs.flipH === true || attrs.flipH === 'true') out.flipH = true;
+    if (attrs.flipV === 1 || attrs.flipV === '1' || attrs.flipV === true || attrs.flipV === 'true') out.flipV = true;
     return out;
+}
+
+/**
+ * 占位符继承上下文。
+ *
+ * OOXML 中幻灯片上的占位符（p:nvSpPr/p:nvPr/p:ph）可以只写文本、不写几何与文本样式，
+ * 此时其坐标、字号、行距/段间距、项目符号都要从「版式同名占位符 → 母版同名占位符 →
+ * 母版 p:txStyles → 默认文本样式」逐级回退。预览端（utils/style.ts getFontSize、
+ * shape.ts genShape）就是按这条链渲染的；语义提取端原先完全不查这条链，
+ * 占位符会被硬填成 (0,0,300×60)、字号留空（编辑器再兜底成 18pt），
+ * 这是编辑端与预览端对同一文件差异最大的单点原因。
+ */
+interface PlaceholderCtx {
+    /** 版式占位符索引 */
+    layout: PlaceholderTable;
+    /** 母版占位符索引 */
+    master: PlaceholderTable;
+    /** 母版 p:txStyles（含 p:titleStyle / p:bodyStyle / p:otherStyle） */
+    masterTextStyles?: any;
+    /** 解析端回传的默认文本样式（getSlideSizeAndSetDefaultTextStyle） */
+    defaultTextStyle?: any;
+}
+
+/** 占位符索引表：idx / type 双键（与预览端 utils/node.ts indexNodes 同构） */
+interface PlaceholderTable {
+    idxTable: Record<string, any>;
+    typeTable: Record<string, any>;
+}
+
+/** 占位符声明（p:ph）的类型与序号 */
+interface PlaceholderAttrs { type?: string; idx?: string }
+
+/** 读取形状的占位符声明；非占位符返回 undefined */
+function readPlaceholderAttrs(node: any): PlaceholderAttrs | undefined {
+    const ph = node && node['p:nvSpPr'] && node['p:nvSpPr']['p:nvPr'] && node['p:nvSpPr']['p:nvPr']['p:ph'];
+    if (!ph || typeof ph !== 'object') return undefined;
+    const a = ph.attrs || {};
+    return { type: a.type != null ? String(a.type) : undefined, idx: a.idx != null ? String(a.idx) : undefined };
+}
+
+/** 索引版式/母版中的所有占位符形状（并建立 idx / type 双键索引） */
+function indexPlaceholders(content: any): PlaceholderTable {
+    const table: PlaceholderTable = { idxTable: {}, typeTable: {} };
+    if (!content || typeof content !== 'object') return table;
+    // 根节点可能是 p:sldLayout / p:sldMaster / p:sld
+    const rootKey = ['p:sldLayout', 'p:sldMaster', 'p:sld'].find((k) => content[k]);
+    const tree = rootKey && content[rootKey]['p:cSld'] && content[rootKey]['p:cSld']['p:spTree'];
+    if (!tree || typeof tree !== 'object') return table;
+    for (const key of Object.keys(tree)) {
+        if (key === 'p:nvGrpSpPr' || key === 'p:grpSpPr' || key === 'attrs') continue;
+        for (const node of asArray(tree[key])) {
+            const ph = readPlaceholderAttrs(node);
+            if (!ph) continue;
+            // 与预览端一致：两个键都建，查找时按 idx 优先、type 兜底
+            if (ph.idx != null) table.idxTable[ph.idx] = node;
+            if (ph.type != null) table.typeTable[ph.type] = node;
+        }
+    }
+    return table;
+}
+
+/** 在占位符表中查找：idx 优先、type 兜底（预览端 layout 用 idx、master 用 type，这里两者都认） */
+function findPlaceholder(table: PlaceholderTable, ph: PlaceholderAttrs | undefined): any | undefined {
+    if (!ph) return undefined;
+    if (ph.idx != null && table.idxTable[ph.idx]) return table.idxTable[ph.idx];
+    if (ph.type != null && table.typeTable[ph.type]) return table.typeTable[ph.type];
+    return undefined;
+}
+
+/** 占位符类型 → 母版 p:txStyles 下的样式节点名（与预览端 utils/style.ts 的分支一致） */
+function masterTextStyleKey(type: string | undefined): 'p:titleStyle' | 'p:bodyStyle' | 'p:otherStyle' {
+    if (type === 'title' || type === 'subTitle' || type === 'ctrTitle') return 'p:titleStyle';
+    if (type === 'body' || type === 'obj' || type === 'dt' || type === 'sldNum' || type === 'textBox') return 'p:bodyStyle';
+    return 'p:otherStyle';
+}
+
+/**
+ * 按占位符继承链取某一层级的段落样式节点（a:lvlNpPr）。
+ * 链：版式占位符 lstStyle → 母版占位符 lstStyle → 母版 p:txStyles → 默认文本样式。
+ * @param lvl 0 基段落层级（a:pPr@lvl 缺省 0 → a:lvl1pPr）
+ */
+function inheritedLvlNode(ctx: PlaceholderCtx, ph: PlaceholderAttrs | undefined, lvl: number): any | undefined {
+    if (!ph) return undefined;
+    const tag = `a:lvl${Math.max(0, Math.min(8, lvl)) + 1}pPr`;
+    for (const table of [ctx.layout, ctx.master]) {
+        const target = findPlaceholder(table, ph);
+        const lst = target && target['p:txBody'] && target['p:txBody']['a:lstStyle'];
+        if (lst && lst[tag]) return lst[tag];
+    }
+    if (ctx.masterTextStyles) {
+        const st = ctx.masterTextStyles[masterTextStyleKey(ph.type)];
+        if (st && st[tag]) return st[tag];
+    }
+    if (ctx.defaultTextStyle && ctx.defaultTextStyle[tag]) return ctx.defaultTextStyle[tag];
+    return undefined;
+}
+
+/**
+ * 按占位符继承链取 bodyPr（a:bodyPr）。
+ * 链：版式占位符 bodyPr → 母版占位符 bodyPr。
+ * @returns a:bodyPr 节点或 undefined
+ */
+function inheritedBodyPr(ctx: PlaceholderCtx, ph: PlaceholderAttrs | undefined): any | undefined {
+    if (!ph) return undefined;
+    for (const table of [ctx.layout, ctx.master]) {
+        const target = findPlaceholder(table, ph);
+        const bodyPr = target && target['p:txBody'] && target['p:txBody']['a:bodyPr'];
+        if (bodyPr) return bodyPr;
+    }
+    return undefined;
+}
+
+/** 构造本页占位符继承上下文 */
+function buildPlaceholderCtx(slideData: any): PlaceholderCtx {
+    return {
+        layout: indexPlaceholders(slideData && slideData.slideLayoutContent),
+        master: indexPlaceholders(slideData && slideData.slideMasterContent),
+        masterTextStyles: slideData && slideData.slideMasterTextStyles,
+        defaultTextStyle: slideData && slideData.defaultTextStyle
+    };
+}
+
+/**
+ * 读取形状位置，占位符缺失几何时按「版式 → 母版」继承。
+ *
+ * 与预览端 shape.ts genShape 的 ext 回退对齐，并补上它遗漏的 off 回退：
+ * 真实文件（如企业微信应用介绍.pptx）的占位符常常整个 a:xfrm 都不写，
+ * 此时 x/y 也必须继承，否则占位符会跑到左上角 (0,0)。
+ */
+function readXfrmInherited(node: any, ctx: PlaceholderCtx | undefined): any | null {
+    const own = readXfrm(node, false);
+    const ph = readPlaceholderAttrs(node);
+    const source = ctx && ph
+        ? (findPlaceholder(ctx.layout, ph) || findPlaceholder(ctx.master, ph))
+        : undefined;
+    const inherited = source ? readXfrm(source, false) : null;
+    if (!own) return inherited;
+    if (!inherited) return own;
+    // 自身有 a:off 但缺 a:ext：尺寸按继承链补（预览端只补 ext，此处保持一致）
+    if (!own.width && !own.height) {
+        return { ...own, width: inherited.width, height: inherited.height };
+    }
+    return own;
+}
+
+/**
+ * 判断 p:sp 是否为纯文本框（p:cNvSpPr/@txBox）。
+ * 该属性在真实文件里两种写法都存在（"1" 与 "true"），都要认，
+ * 否则纯文本框会被漏标，行距兜底（预览端对 txBox 用 line-height 1.3）失效。
+ */
+function isTxBoxSp(node: any): boolean {
+    const a = node && node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs;
+    const v = a && a.txBox;
+    return v === 1 || v === '1' || v === true || v === 'true';
 }
 
 /** 读取形状预设几何的调整值（a:prstGeom/a:avLst/a:gd → { adj1: 50000 }，单位为 OOXML 原生千分比，与生成端一致） */
@@ -655,11 +933,14 @@ async function extractBackground(
     resObj: Record<string, { type?: string; target?: string }>,
     zip: JSZip,
     fallbacks: Array<{ content: any; res?: Record<string, { type?: string; target?: string }> }> = [],
-    themeMap: Record<string, string> = {}
+    themeMap: Record<string, string> = {},
+    themeContent?: any
 ): Promise<PptxBackground | undefined> {
     const parts: Array<{ content: any; res?: Record<string, { type?: string; target?: string }> }> = [
         { content: slideContent, res: resObj }, ...fallbacks
     ];
+    // 主题背景填充样式表（a:bgFillStyleLst）：解析 p:bg 的 p:bgRef 引用
+    const bgFills = (await getThemeStyleTables(zip, themeContent)).bgFills;
     for (const part of parts) {
         const sld = part.content && (part.content['p:sld'] || part.content['p:sldLayout'] || part.content['p:sldMaster']);
         const bg = sld && sld['p:cSld'] && sld['p:cSld']['p:bg'];
@@ -677,9 +958,18 @@ async function extractBackground(
                 const grad = readGradientFill(bgPr['a:gradFill'], themeMap);
                 if (grad) return grad;
             }
+            // 已显式定义背景但无法解析为具体色：不回退上级，保持“无背景”
+            return undefined;
         }
-        // 主题引用 bgRef：无法解析为具体色，标记继承（不写 background）
-        return undefined;
+        // 主题引用 bgRef（idx>1000 指向 a:bgFillStyleLst）：解析为具体配色，与预览端同语义
+        const bgRef = bg['p:bgRef'];
+        if (bgRef) {
+            const r = resolveThemeBgRef(bgRef, bgFills, themeMap);
+            if (r !== undefined) return r;
+            // 无法解析（如 idx=1000 表示无背景）：已显式指定，不再回退上级
+            return undefined;
+        }
+        // 含 <p:bg> 但既无 bgPr 也无 bgRef：视为未定义，回退上级继续查找
     }
     return undefined;
 }
@@ -1044,6 +1334,79 @@ async function attachRawDeps(
     if (parts.length) el.__raw.parts = parts;
 }
 
+/** 占位符位置：x/y/width/height（px） */
+type PhBox = { x: number; y: number; width: number; height: number };
+
+/** 读取 sp/pic/graphicFrame 节点自身是否带 a:xfrm（不带则位置需从版式/母版占位符继承） */
+function hasOwnXfrm(node: any): boolean {
+    if (!node) return false;
+    if (node['p:spPr'] && node['p:spPr']['a:xfrm']) return true;
+    if (node['p:xfrm']) return true;
+    if (node['p:grpSpPr'] && node['p:grpSpPr']['a:xfrm']) return true;
+    return false;
+}
+
+/** 取节点的占位符标记（p:nvSpPr/p:nvPr/p:ph 等） */
+function readPhRef(node: any): { type: string; idx: string } | undefined {
+    const nvKeys = ['p:nvSpPr', 'p:nvPicPr', 'p:nvGraphicFramePr', 'p:nvCxnSpPr'];
+    for (const k of nvKeys) {
+        const ph = node && node[k] && node[k]['p:nvPr'] && node[k]['p:nvPr']['p:ph'];
+        if (ph) {
+            const a = ph.attrs || {};
+            return { type: a.type != null ? String(a.type) : 'body', idx: a.idx != null ? String(a.idx) : '' };
+        }
+    }
+    return undefined;
+}
+
+/**
+ * 从版式/母版的 spTree 收集占位符位置索引。
+ * key 形如 `type:idx`（精确）与 `*:idx`（忽略 type），先写入者优先（版式先于母版）。
+ */
+function collectPlaceholderXfrms(content: any, into?: Map<string, PhBox>): Map<string, PhBox> {
+    const map = into || new Map<string, PhBox>();
+    if (!content) return map;
+    const root = content['p:sldLayout'] || content['p:sldMaster'] || content['p:sld'];
+    const spTree = root && root['p:cSld'] && root['p:cSld']['p:spTree'];
+    if (!spTree) return map;
+    const walk = (tree: any, depth: number) => {
+        if (!tree || depth > 4) return;
+        for (const tag of ['p:sp', 'p:pic', 'p:graphicFrame', 'p:cxnSp']) {
+            for (const sp of asArray(tree[tag])) {
+                const ph = readPhRef(sp);
+                const xfrm = sp['p:spPr'] && sp['p:spPr']['a:xfrm'];
+                if (ph && xfrm && xfrm['a:off'] && xfrm['a:ext']
+                    && xfrm['a:off'].attrs && xfrm['a:ext'].attrs) {
+                    const box: PhBox = {
+                        x: emuToPx(xfrm['a:off'].attrs.x),
+                        y: emuToPx(xfrm['a:off'].attrs.y),
+                        width: emuToPx(xfrm['a:ext'].attrs.cx),
+                        height: emuToPx(xfrm['a:ext'].attrs.cy)
+                    };
+                    if (ph.idx !== '') {
+                        if (!map.has(ph.type + ':' + ph.idx)) map.set(ph.type + ':' + ph.idx, box);
+                        if (!map.has('*:' + ph.idx)) map.set('*:' + ph.idx, box);
+                    } else if (!map.has(ph.type + ':')) {
+                        map.set(ph.type + ':', box);
+                    }
+                }
+                for (const g of asArray(sp['p:grpSp'])) walk(g, depth + 1);
+            }
+        }
+        for (const g of asArray(tree['p:grpSp'])) walk(g, depth + 1);
+    };
+    walk(spTree, 0);
+    return map;
+}
+
+/** 按占位符标记在索引中查位置（type+idx 优先，其次仅 idx） */
+function lookupPlaceholderXfrm(ph: { type: string; idx: string } | undefined, map: Map<string, PhBox> | undefined): PhBox | undefined {
+    if (!ph || !map || !map.size) return undefined;
+    return (ph.idx !== '' ? (map.get(ph.type + ':' + ph.idx) || map.get('*:' + ph.idx)) : undefined)
+        || map.get(ph.type + ':')
+        || undefined;
+}
+
 /**
  * 递归收集 spTree 下的图形节点。
  * @param keepGroups - true 时把 p:grpSp 也作为条目保留（供语义层产出 group 元素）；
@@ -1107,7 +1470,7 @@ export async function extractSlideToStandard(
         const bg = await extractBackground(slideContent, resObj, zip, [
             { content: slideData.slideLayoutContent, res: slideData.layoutResObj },
             { content: slideData.slideMasterContent, res: slideData.masterResObj }
-        ], themeMap);
+        ], themeMap, slideData.themeContent);
         if (bg !== undefined) slide.background = bg;
         const transition = extractTransition(slideContent);
         if (transition) slide.transition = transition;
@@ -1125,10 +1488,25 @@ export async function extractSlideToStandard(
         }
 
         if (spTree) {
+            // 占位符位置索引：slide 上的占位符 sp 常常不带 a:xfrm（位置由版式/母版同名占位符决定），
+            // 缺失时 readXfrm 返回 null → 元素落到默认 0,0/300x60，视觉上「挤在左上角」。
+            // 版式优先、母版兜底（先写入者保留）。
+            const phIndex = collectPlaceholderXfrms(slideData.slideMasterContent);
+            collectPlaceholderXfrms(slideData.slideLayoutContent, phIndex);
+            const phCtx = buildPlaceholderCtx(slideData);
+
             const processNode = async (key: string, node: any): Promise<PptxElement | null> => {
                 try {
-                    const el = await nodeToElement(key, node, resObj, zip, themeMap, slideData.themeContent);
+                    const el = await nodeToElement(key, node, resObj, zip, themeMap, slideData.themeContent, phCtx);
                     if (!el) return null;
+                    // 占位符且自身无 xfrm：按 ph 的 type+idx 从版式/母版继承真实位置
+                    if (!hasOwnXfrm(node) && el.type !== 'raw') {
+                        const box = lookupPlaceholderXfrm(readPhRef(node), phIndex);
+                        if (box) {
+                            el.x = box.x; el.y = box.y;
+                            el.width = box.width; el.height = box.height;
+                        }
+                    }
                     // 统一挂载 __raw 载荷（含标签名，供生成端无损回写）
                     (el as any).__raw = { tag: key, node };
                     // 依赖携带：语义层未覆盖的类型必须附带，否则 __raw 无法独立回写；
@@ -1152,6 +1530,16 @@ export async function extractSlideToStandard(
             const processTree = async (tree: any): Promise<PptxElement[]> => {
                 const acc: { key: string; node: any }[] = [];
                 collectShapeNodes(tree, acc, true);
+                // tXml 按文档顺序给每个节点分配全局递增的 attrs.order；
+                // 但 collectShapeNodes 按标签名分组遍历，会丢失不同标签形状之间的原始相对顺序。
+                // 这里按 attrs.order 重排，恢复 <p:spTree> 中 shapes/pics/frames 的原始 XML 顺序，
+                // 从而保证 z-order（先出现者在底层，后出现者在顶层）与 PowerPoint / 预览端一致。
+                acc.sort((a, b) => {
+                    const ao = a.node?.attrs?.order ?? 0;
+                    const bo = b.node?.attrs?.order ?? 0;
+                    return (typeof ao === 'number' ? ao : parseInt(ao, 10) || 0)
+                         - (typeof bo === 'number' ? bo : parseInt(bo, 10) || 0);
+                });
                 const out: PptxElement[] = [];
                 for (const { key, node } of acc) {
                     if (key === 'p:grpSp') {
@@ -1203,6 +1591,31 @@ export async function extractSlideToStandard(
             };
 
             slide.elements = await processTree(spTree);
+
+            // 版式/母版的非占位符形状（版式装饰设计）：PowerPoint 会把它们画在 slide 底层，
+            // 解析端原先完全丢弃，导致「背景装饰缺失」（如 WPS 模板的斜切块/菱形/底纹矩形）。
+            // 按 OOXML 语义：layout 的形状总是显示；master 的形状仅在 layout 未设 showMasterSp="0" 时显示。
+            // 标记 inherited 后置于列表最前（底层），生成端会跳过它们。
+            const decoSources: any[] = [slideData.slideLayoutContent];
+            if (showsMasterShapes(slideData.slideLayoutContent)) decoSources.push(slideData.slideMasterContent);
+            const deco: PptxElement[] = [];
+            for (const src of decoSources) {
+                const decoTree = getSpTreeOf(src);
+                if (!decoTree) continue;
+                const nodes: { key: string; node: any }[] = [];
+                collectDecoNodes(decoTree, nodes);
+                nodes.sort((a, b) => ((a.node?.attrs?.order ?? 0) as number) - ((b.node?.attrs?.order ?? 0) as number));
+                for (const { key, node } of nodes) {
+                    const el = await processNode(key, node);
+                    if (el) (el as any).inherited = true;
+                }
+                // processNode 内部已挂载 __raw；这里只需要元素本身
+                for (const { key, node } of nodes) {
+                    const el = await processNode(key, node);
+                    if (el) deco.push(el);
+                }
+            }
+            if (deco.length) slide.elements = deco.concat(slide.elements);
 
             // 对表格元素应用 tableStyles.xml 中定义的样式（主题色、填充、文字色、边框）
             if (slideData.tableStyles) {
@@ -1366,7 +1779,8 @@ async function nodeToElement(
     resObj: Record<string, { type?: string; target?: string }>,
     zip: JSZip,
     themeMap: Record<string, string> = {},
-    themeContent?: any
+    themeContent?: any,
+    phCtx?: PlaceholderCtx
 ): Promise<PptxElement | null> {
     if (key === 'p:graphicFrame') {
         return await graphicFrameToElement(node, resObj, zip, themeMap, themeContent);
@@ -1380,10 +1794,12 @@ async function nodeToElement(
     if (node && node['p:txBody'] && node['p:txBody']['a:p']) {
         try { await resolveBulletBlips(node['p:txBody'], resObj, zip); } catch { /* 忽略 */ }
     }
-    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol } = extractTextBody(node, themeMap, resolveHyperlink(resObj));
+    // 读取占位符声明，便于下方文本样式从版式/母版同名占位符继承
+    const ph = readPlaceholderAttrs(node);
+    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
     const geom = spPr && spPr['a:prstGeom'];
 
-    if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
+    if (hasText || isTxBoxSp(node)) {
         // 文本元素
         const xf = readXfrm(node, false);
         const name = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvPr'] && node['p:nvSpPr']['p:cNvPr'].attrs && node['p:nvSpPr']['p:cNvPr'].attrs.name;
@@ -1403,10 +1819,13 @@ async function nodeToElement(
         if (inset) textEl.inset = inset;
         if (noWrap) textEl.noWrap = noWrap;
         if (rtlCol) textEl.rtlCol = true;
+        if (fontScale != null) textEl.fontScale = fontScale;
+        if (lnSpcReduction != null) textEl.lnSpcReduction = lnSpcReduction;
         // 提取形状外观（填充/边框/特效）。纯文本框（txBox=1）也可能带背景填充，
         // 因此统一读取 spPr；只有「非矩形 + 非纯文本框」才保留 shapeType/adjust，
         // 避免把普通矩形文本框渲染成异形。
-        const isPureTextBox = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1';
+        const isPureTextBox = isTxBoxSp(node);
+        if (isPureTextBox) textEl.txBox = true;
         const hasCustGeom = !!(spPr && spPr['a:custGeom']);
         const hasNonRectShape = (geom && geom.attrs && geom.attrs.prst && String(geom.attrs.prst) !== 'rect' && !isPureTextBox) || hasCustGeom;
         try {
@@ -1453,6 +1872,18 @@ async function nodeToElement(
         if (paragraphs[0]) {
             if (paragraphs[0].align) textEl.align = paragraphs[0].align;
             if ((paragraphs[0] as any).valign) textEl.valign = (paragraphs[0] as any).valign;
+        }
+        // 非占位符文本（txBox/普通形状，无 p:nvPr/p:ph）的 OOXML 缺省字号是 18pt：
+        // run 省略 sz 时按 18pt 落到标准文档，否则编辑器会用面板默认 24pt 顶替，
+        // 该 run 与其项目符号都会异常放大（预览端 getFontSize 最终也回退 18pt）。
+        // 占位符文本的缺省字号来自母版/版式 bodyStyle，继承链未实现前保持原样不误填。
+        const isPlaceholder = !!(node['p:nvSpPr'] && node['p:nvSpPr']['p:nvPr'] && node['p:nvSpPr']['p:nvPr']['p:ph']);
+        if (!isPlaceholder) {
+            for (const para of paragraphs) {
+                for (const r of para.runs) {
+                    if ((r as any).fontSize === undefined && !(r as any).break) r.fontSize = 18;
+                }
+            }
         }
         // 将首个 run 的统一样式镜像到元素级（jsonToPptx 以元素级为默认，提升 round-trip 保真）
         const firstRun = paragraphs[0] && paragraphs[0].runs && paragraphs[0].runs[0];
@@ -1784,8 +2215,8 @@ function themeColorsFromContent(themeContent: any): Record<string, string> {
     return map;
 }
 
-/** 主题样式表（fmtScheme 的 fillStyleLst / lnStyleLst / effectStyleLst），供 p:style 的 fillRef/lnRef/effectRef 解析 */
-interface ThemeStyleTables { fills: any[]; lines: any[]; effects: any[]; }
+/** 主题样式表（fmtScheme 的 fillStyleLst / lnStyleLst / effectStyleLst / bgFillStyleLst），供 p:style 的 fillRef/lnRef/effectRef 与 p:bg 的 bgRef 解析 */
+interface ThemeStyleTables { fills: any[]; lines: any[]; effects: any[]; bgFills: any[]; }
 const themeStylesCache = new WeakMap<object, ThemeStyleTables>();
 
 /** 读取并缓存主题样式表（同一 zip / 主题只解析一次） */
@@ -1793,7 +2224,7 @@ async function getThemeStyleTables(zip: JSZip, themeContent?: any): Promise<Them
     const cacheKey = themeContent || zip;
     const cached = themeStylesCache.get(cacheKey);
     if (cached) return cached;
-    const tables: ThemeStyleTables = { fills: [], lines: [], effects: [] };
+    const tables: ThemeStyleTables = { fills: [], lines: [], effects: [], bgFills: [] };
     try {
         const xml = themeContent || await PPTXXmlUtils.readXmlFile(zip, 'ppt/theme/theme1.xml');
         const fmt = xml && xml['a:theme']
@@ -1814,10 +2245,62 @@ async function getThemeStyleTables(zip: JSZip, themeContent?: any): Promise<Them
             tables.fills = listOf(fmt['a:fillStyleLst']);
             tables.lines = listOf(fmt['a:lnStyleLst']);
             tables.effects = listOf(fmt['a:effectStyleLst']);
+            tables.bgFills = listOf(fmt['a:bgFillStyleLst']);
         }
     } catch { /* 主题缺失时跳过样式引用解析 */ }
     themeStylesCache.set(zip, tables);
     return tables;
+}
+
+/**
+ * 解析 p:bg 的 p:bgRef（主题背景填充样式引用，Office 默认主题母版即以此定义背景）。
+ * idx>1000 指向 a:bgFillStyleLst（1 基）；bgRef 内的 schemeClr/srgbClr 作为 phClr 覆盖样式表内的占位色。
+ * 返回与 extractBackground 一致的背景描述：纯色串 / 渐变对象；无法解析时返回 undefined。
+ */
+function resolveThemeBgRef(
+    refNode: any,
+    bgFills: any[],
+    themeMap: Record<string, string>
+): string | { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string } | undefined {
+    if (!refNode || !refNode.attrs || !bgFills.length) return undefined;
+    const rawIdx = Number(refNode.attrs.idx);
+    // idx=0 / 1000 表示无背景
+    if (rawIdx === 0 || rawIdx === 1000) return undefined;
+    const idx = rawIdx > 1000 ? rawIdx - 1001 : rawIdx - 1;
+    if (idx < 0) return undefined;
+    const entry = bgFills[idx % bgFills.length];
+    if (!entry || typeof entry !== 'object') return undefined;
+    const phClr = resolveColorNode(refNode, themeMap);
+    const colorMap = phClr ? { ...themeMap, phclr: phClr } : themeMap;
+    const fillNode = entry['a:solidFill'] || entry['a:gradFill'] || entry['a:blipFill'] || entry;
+    // 纯色
+    let color = resolveColorNode(fillNode['a:solidFill'], colorMap)
+        || ((fillNode['a:schemeClr'] || fillNode['a:srgbClr']) ? resolveColorNode(fillNode, colorMap) : undefined);
+    if (color) return color;
+    // 渐变（a:gsLst 按 phClr 逐个解析 stop）
+    const grad = fillNode['a:gradFill'] || (fillNode['a:gsLst'] ? fillNode : undefined);
+    if (grad) {
+        const gsLst = grad['a:gsLst'];
+        const gsNodes = asArray(gsLst && gsLst['a:gs']);
+        const stops = gsNodes
+            .map((gs: any) => {
+                const c = resolveColorNode(gs, colorMap);
+                const pos = gs && gs.attrs && gs.attrs.pos != null ? Number(gs.attrs.pos) / 100000 : 0;
+                return c ? { color: c, position: pos } : undefined;
+            })
+            .filter((s: any): s is { color: string; position: number } => !!s);
+        if (stops.length) {
+            const lin = grad['a:lin'];
+            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
+            const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            const path = grad['a:path'];
+            if (path) {
+                return { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' };
+            }
+            return { type: 'gradient', direction, stops };
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -2265,8 +2748,8 @@ async function extractDiagramShapes(
             }
         }
         const xattrs = (xf && xf.attrs) || {};
-        if (String(xattrs.flipH) === '1') shape.flipH = true;
-        if (String(xattrs.flipV) === '1') shape.flipV = true;
+        if (String(xattrs.flipH) === '1' || String(xattrs.flipH) === 'true') shape.flipH = true;
+        if (String(xattrs.flipV) === '1' || String(xattrs.flipV) === 'true') shape.flipV = true;
 
         // 样式引用回退：spPr 无显式填充/描边时按 dsp:style 的 fillRef/lnRef 解析
         const fillRef = dspStyle && dspStyle['a:fillRef'];
@@ -2279,6 +2762,9 @@ async function extractDiagramShapes(
                 const lc = resolveColorNode(ln['a:solidFill'], themeMap);
                 if (lc) shape.lineColor = lc;
                 if (ln.attrs && ln.attrs.w != null) shape.lineWidth = emuToPt(ln.attrs.w);
+                const he = ln['a:headEnd'], te = ln['a:tailEnd'];
+                if (he && he.attrs && he.attrs.type && he.attrs.type !== 'none') shape.startArrow = String(he.attrs.type);
+                if (te && te.attrs && te.attrs.type && te.attrs.type !== 'none') shape.endArrow = String(te.attrs.type);
             }
             if (!shape.lineColor && lnRef) {
                 const ref = resolveThemeStyleRef(lnRef, tables.lines, themeMap);

@@ -4610,7 +4610,13 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     animationAttrs = ` data-animation='${JSON.stringify(animationData)}'`;
                 }
 
-                result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${transform3dStyle} z-index: ${order};'${dataAttrs1}${animationAttrs}>`;
+                // 简单形状（rect/roundRect 等）在 SVG 分支里没有生成 <path> 等图形元素，
+                // 仅靠 SVG 无法显示填充/描边；此时把填充补到文本容器 div 上，
+                // 与编辑器（div + background）保持一致。已用 SVG 路径绘制填充的形状不受影响。
+                const svgHasShape = /<(path|rect|circle|ellipse|polygon|polyline|line)\b/.test(result);
+                const divFill = svgHasShape ? "" : (await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source));
+
+                result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${divFill}${transform3dStyle} z-index: ${order};'${dataAttrs1}${animationAttrs}>`;
 
                 // TextBody
                 if (node!["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {

@@ -142,15 +142,22 @@ function getTextWidth(html: string) {
                 //     styleText += "font-style: normal;";
                 // }
                 let cssName = "";
-
-                if (styleText in warpObj.styleTable) {
-                    cssName = warpObj.styleTable[styleText]["name"];
-                } else {
-                    cssName = `_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
-                    warpObj.styleTable[styleText] = {
-                        "name": cssName,
-                        "text": styleText
-                    };
+                // 段前/段后距只应作用在段落容器（外层 .slide-prgrph）上。
+                // 原实现把这份含 margin 的样式同时挂到外层 class 与内层文本 div 的 inline style，
+                // 导致段间距被叠加两次、行距视觉虚高。这里按语义拆开：
+                // margin-* → 仅外层容器；line-height 等其余 → 仅内层文本块（见下方 prgrph_text div）。
+                const marginPart = (styleText.match(/(?:margin-top|margin-bottom):[^;]*;?/g) || []).join('');
+                const restPart = styleText.replace(/(?:margin-top|margin-bottom):[^;]*;?/g, '');
+                if (marginPart !== "") {
+                    if (marginPart in warpObj.styleTable) {
+                        cssName = warpObj.styleTable[marginPart]["name"];
+                    } else {
+                        cssName = `_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
+                        warpObj.styleTable[marginPart] = {
+                            "name": cssName,
+                            "text": marginPart
+                        };
+                    }
                 }
 
                 let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
@@ -382,7 +389,7 @@ function getTextWidth(html: string) {
                     // 先添加项目符号，再添加文本（在 RTL 容器中，第一个子元素显示在最右边）
                     text += buText_ary[0];
                 }
-                text += `<div style='${styleText}${directionStyle}${whiteSpaceStyle}${margin}${textAlignStyle}'>`;
+                text += `<div style='${restPart}${directionStyle}${whiteSpaceStyle}${margin}${textAlignStyle}'>`;
                 text += prgrph_text;
                 text += "</div>";
                 text += "</div>";

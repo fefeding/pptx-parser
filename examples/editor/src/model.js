@@ -733,6 +733,8 @@ export function elementToPptx(el) {
       if (el.textDirection) out.textDirection = el.textDirection;
       if (el.inset) out.inset = el.inset;
       if (el.rtlCol) out.rtlCol = true;
+      // 纯文本框标记是解析端的结构信息（非用户样式），原样透传以保住行距兜底行为
+      if (el.txBox) out.txBox = true;
       // 写回几何与外观：带文字的形状底，或带填充/边框的纯文本框
       if (el.shapeType) {
         out.shapeType = el.shapeType;
@@ -787,7 +789,9 @@ export function elementToPptx(el) {
         ? {
             color: el.line.color != null ? (normalizeColor(el.line.color) || undefined) : undefined,
             width: el.line.width != null ? el.line.width : 1,
-            dashType: el.line.dashType || 'solid'
+            dashType: el.line.dashType || 'solid',
+            startArrow: el.line.startArrow || undefined,
+            endArrow: el.line.endArrow || undefined
           }
         : 'none';
       if (el.shadow || el.glow) {
@@ -1144,7 +1148,7 @@ function fillFromPptx(fill) {
 function elementFromPptx(pe) {
   const el = base({
     x: Number(pe.x) || 0, y: Number(pe.y) || 0,
-    width: Number(pe.width) || 100, height: Number(pe.height) || 100,
+    width: pe.width != null ? Number(pe.width) : 100, height: pe.height != null ? Number(pe.height) : 100,
     rotation: Number(pe.rotation) || 0,
     name: pe.name
   });
@@ -1162,6 +1166,10 @@ function elementFromPptx(pe) {
       el.textDirection = pe.textDirection || '';
       el.noWrap = !!pe.noWrap;
       el.rtlCol = !!pe.rtlCol;
+      if (pe.fontScale != null) el.fontScale = pe.fontScale;
+      if (pe.lnSpcReduction != null) el.lnSpcReduction = pe.lnSpcReduction;
+      // 纯文本框标记：预览端对 txBox=1 且无 a:lnSpc 的文本框兜底 line-height 1.3，行距需一致
+      el.txBox = !!pe.txBox;
       el.inset = (pe.inset && typeof pe.inset === 'object')
         ? { l: pe.inset.l, r: pe.inset.r, t: pe.inset.t, b: pe.inset.b }
         : null;
@@ -1181,12 +1189,16 @@ function elementFromPptx(pe) {
       if (el.shadow && el.shadow.color) el.shadow.color = colorFromPptx(el.shadow.color) || '#000000';
       el.glow = (pe.effects && pe.effects.glow && typeof pe.effects.glow === 'object') ? pe.effects.glow : null;
       if (el.glow && el.glow.color) el.glow.color = colorFromPptx(el.glow.color) || '#FFFF00';
-      // 标准 JSON 的行距是对象 { type:'percent', value }（也可能直接是数字）
-      el.lineSpacing = typeof pe.lineSpacing === 'number'
-        ? pe.lineSpacing
-        : (pe.lineSpacing && typeof pe.lineSpacing === 'object' && typeof pe.lineSpacing.value === 'number')
-          ? pe.lineSpacing.value
-          : 1.15;
+      // 标准 JSON 的行距是对象 { type:'percent', value }（也可能直接是数字）。
+      // 编辑器内部用“行数/百分比数值”混合表示：percent 直接取 value（100=100%），pt 按相对字号换算成倍数。
+      const lineSpacingNum = (ls) => {
+        if (ls == null) return 1.15;
+        if (typeof ls === 'number') return ls;
+        if (ls.type === 'percent') return ls.value;
+        if (ls.type === 'pt') return Math.max(0.8, Math.round((ls.value / (el.fontSize || 18)) * 100) / 100);
+        return 1.15;
+      };
+      el.lineSpacing = lineSpacingNum(pe.lineSpacing);
       // 「源是否显式指定」标记：属性面板必须显示非空的默认值，
       // 但导出时若把 18pt/微软雅黑/1.15 这些面板默认值当成显式值写回，
       // 会让原本靠母版/占位符继承字号与字体的文字被固化成默认值（整页排版随之改变）。
@@ -1203,13 +1215,6 @@ function elementFromPptx(pe) {
       // indentLeft 单位是 pt，编辑器内部用 px（保留浮点，避免 EMU→pt→px 往返舍入丢失精度）
       el.indent = pe.indentLeft ? ptToPx(pe.indentLeft) : 0;
       const fallback = { fontSize: el.fontSize, color: el.color, fontFace: el.fontFace };
-      const lineSpacingNum = (ls) => {
-        if (ls == null) return el.lineSpacing;
-        if (typeof ls === 'number') return ls;
-        if (ls.type === 'percent') return ls.value;
-        if (ls.type === 'pt') return Math.max(0.8, Math.round((ls.value / (el.fontSize || 18)) * 100) / 100);
-        return el.lineSpacing;
-      };
       if (pe.paragraphs && pe.paragraphs.length) {
         el.paragraphs = pe.paragraphs.map((p) => {
           const pb = p.bullet;
@@ -1245,7 +1250,7 @@ function elementFromPptx(pe) {
       el.shapeType = pe.shapeType || 'rect';
       el.fill = fillFromPptx(pe.fill);
       el.line = pe.line && pe.line !== 'none'
-        ? { color: colorFromPptx(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid' }
+        ? { color: colorFromPptx(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid', startArrow: pe.line.startArrow || null, endArrow: pe.line.endArrow || null }
         : 'none';
       el.shadow = (pe.effects && pe.effects.shadow && typeof pe.effects.shadow === 'object') ? pe.effects.shadow : null;
       if (el.shadow && el.shadow.color) el.shadow.color = colorFromPptx(el.shadow.color) || '#000000';

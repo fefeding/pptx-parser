@@ -11,8 +11,8 @@ var JSZip = require('jszip');
 var TinyColor = require('tinycolor2');
 
 const SLIDE_FACTOR$1 = 96 / 914400;
-const FONT_SIZE_FACTOR = 4 / 3.2;
-const SHADOW_SIGMA_RATIO = 0.29;
+const FONT_SIZE_FACTOR = 96 / 72;
+const SHADOW_SIGMA_RATIO = 0.5;
 const GLOW_DILATE_RATIO = 0.38;
 const GLOW_SIGMA_RATIO = 0.17;
 const GRADIENT_SUBDIV = 16;
@@ -3982,7 +3982,9 @@ function getVerticalMargins(pNode, textBodyNode, type, idx, warpObj, totalParagr
     }
     let fontSize;
     if (PPTXXmlUtils.getTextByPathList(pNode, ["a:r"]) !== undefined) {
-        let fontSizeStr = getFontSize(pNode["a:r"], textBodyNode, undefined, lvl, type, warpObj);
+        const rNodes = pNode["a:r"];
+        const firstRun = Array.isArray(rNodes) ? rNodes[0] : rNodes;
+        let fontSizeStr = getFontSize(firstRun, textBodyNode, undefined, lvl, type, warpObj);
         if (fontSizeStr != "inherit") {
             const fontSizeMatch = fontSizeStr.match(/(\d+(?:\.\d+)?)px/);
             if (fontSizeMatch) {
@@ -4812,15 +4814,19 @@ async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterS
             styleText = marginsVer;
         }
         let cssName = "";
-        if (styleText in warpObj.styleTable) {
-            cssName = warpObj.styleTable[styleText]["name"];
-        }
-        else {
-            cssName = `_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
-            warpObj.styleTable[styleText] = {
-                "name": cssName,
-                "text": styleText
-            };
+        const marginPart = (styleText.match(/(?:margin-top|margin-bottom):[^;]*;?/g) || []).join('');
+        const restPart = styleText.replace(/(?:margin-top|margin-bottom):[^;]*;?/g, '');
+        if (marginPart !== "") {
+            if (marginPart in warpObj.styleTable) {
+                cssName = warpObj.styleTable[marginPart]["name"];
+            }
+            else {
+                cssName = `_css_${(Object.keys(warpObj.styleTable).length + 1)}`;
+                warpObj.styleTable[marginPart] = {
+                    "name": cssName,
+                    "text": marginPart
+                };
+            }
         }
         let prg_width_node = PPTXXmlUtils.getTextByPathList(spNode, ["p:spPr", "a:xfrm", "a:ext", "attrs", "cx"]);
         if (prg_width_node === undefined || prg_width_node === null) {
@@ -4997,7 +5003,7 @@ async function genTextBody(textBodyNode, spNode, slideLayoutSpNode, slideMasterS
         if (isRTL && isBullate && buText_ary[0] !== undefined) {
             text += buText_ary[0];
         }
-        text += `<div style='${styleText}${directionStyle}${whiteSpaceStyle}${margin}${textAlignStyle}'>`;
+        text += `<div style='${restPart}${directionStyle}${whiteSpaceStyle}${margin}${textAlignStyle}'>`;
         text += prgrph_text;
         text += "</div>";
         text += "</div>";
@@ -12589,7 +12595,9 @@ const PPTXShapeUtils = (function () {
             if (animationData) {
                 animationAttrs = ` data-animation='${JSON.stringify(animationData)}'`;
             }
-            result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${transform3dStyle} z-index: ${order};'${dataAttrs1}${animationAttrs}>`;
+            const svgHasShape = /<(path|rect|circle|ellipse|polygon|polyline|line)\b/.test(result);
+            const divFill = svgHasShape ? "" : (await PPTXStyleUtils.getShapeFill(node, pNode, false, warpObj, source));
+            result += `<div class='block ${PPTXStyleUtils.getVerticalAlign(node, slideLayoutSpNode, slideMasterSpNode, type)} ${PPTXStyleUtils.getContentDir(node, type, warpObj)}' _id='${id}' _idx='${idx}' _type='${type}' _name='${name}' style='${PPTXXmlUtils.getPosition(workingXfrmNode, pNode, slideLayoutXfrmNode, slideMasterXfrmNode, sType)}${PPTXXmlUtils.getSize(workingXfrmNode, slideLayoutXfrmNode, slideMasterXfrmNode)}${divFill}${transform3dStyle} z-index: ${order};'${dataAttrs1}${animationAttrs}>`;
             if (node["p:txBody"] !== undefined && (isUserDrawnBg === undefined || isUserDrawnBg === true)) {
                 if (type != "diagram" && type != "textBox") {
                     type = "shape";
@@ -14567,7 +14575,7 @@ function buildTextRun(ctx, text, opts = {}) {
         if (s.color) {
             const clr = colorNode(s.color);
             if (s.alpha != null) {
-                clr.children.push(xmlNode('a:alpha', { val: Math.round(s.alpha * 100000) }));
+                clr.children = [...(clr.children ?? []), xmlNode('a:alpha', { val: Math.round(s.alpha * 100000) })];
             }
             shdwChildren.push(clr);
         }
@@ -14805,6 +14813,7 @@ async function buildTextElement(ctx, el) {
         lang: el.lang
     };
     const hasShapeBase = !!(el.shapeType || el.custGeom);
+    const isTxBox = el.txBox != null ? !!el.txBox : !hasShapeBase;
     const spPrChildren = [buildXfrm(el)];
     if (el.custGeom) {
         spPrChildren.push(buildCustomGeometry(el.custGeom));
@@ -14824,7 +14833,7 @@ async function buildTextElement(ctx, el) {
         spPrChildren.push(lineNode);
     if (effectNode)
         spPrChildren.push(effectNode);
-    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr', hasShapeBase ? null : { txBox: 1 }), xmlNode('p:nvPr')), xmlNode('p:spPr', null, ...spPrChildren), xmlNode('p:txBody', null, xmlNode('a:bodyPr', bodyPrAttrs, ...bodyPrChildren), xmlNode('a:lstStyle'), ...normalizeParagraphs(el).map((p) => buildParagraph(ctx, p, defaults))));
+    return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `TextBox ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr', isTxBox ? { txBox: 1 } : null), xmlNode('p:nvPr')), xmlNode('p:spPr', null, ...spPrChildren), xmlNode('p:txBody', null, xmlNode('a:bodyPr', bodyPrAttrs, ...bodyPrChildren), xmlNode('a:lstStyle'), ...normalizeParagraphs(el).map((p) => buildParagraph(ctx, p, defaults))));
 }
 function colorNode(color) {
     if (typeof color === 'string' && color.startsWith('scheme:')) {
@@ -15017,6 +15026,11 @@ async function buildShapeAppearance(ctx, el) {
         const lnChildren = [xmlNode('a:solidFill', srgb)];
         if (el.line.dashType && el.line.dashType !== 'solid')
             lnChildren.push(xmlNode('a:prstDash', { val: el.line.dashType }));
+        const lnAny = el.line;
+        if (lnAny.startArrow)
+            lnChildren.push(xmlNode('a:headEnd', { type: lnAny.startArrow }));
+        if (lnAny.endArrow)
+            lnChildren.push(xmlNode('a:tailEnd', { type: lnAny.endArrow }));
         lineNode = xmlNode('a:ln', { w: ptToEmu(w) }, ...lnChildren);
     }
     let effectNode = null;
@@ -15951,6 +15965,10 @@ function buildConnectorElement(ctx, el) {
         lnChildren.push(xmlNode('a:solidFill', colorNode(line.color)));
     if (line && line.dashType)
         lnChildren.push(xmlNode('a:prstDash', { val: line.dashType }));
+    if (line && line.startArrow)
+        lnChildren.push(xmlNode('a:headEnd', { type: line.startArrow }));
+    if (line && line.endArrow)
+        lnChildren.push(xmlNode('a:tailEnd', { type: line.endArrow }));
     const lnNode = el.line === 'none'
         ? xmlNode('a:ln', null, xmlNode('a:noFill'))
         : xmlNode('a:ln', {
@@ -17296,13 +17314,24 @@ function readRunStyle(rPr, themeMap = {}, resolveHref) {
     }
     return style;
 }
-function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
+function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref, inheritedLvl, inheritedBodyPrRaw) {
     const paragraphs = [];
     let hasText = false;
     let text = '';
     if (!txBody)
         return { paragraphs, hasText, text };
-    const bodyPr = txBody['a:bodyPr'];
+    const bodyPrRaw = txBody['a:bodyPr'];
+    const inhBp = inheritedBodyPrRaw;
+    const ownAttrs = (bodyPrRaw && bodyPrRaw.attrs) || {};
+    const inhAttrs = (inhBp && inhBp.attrs) || {};
+    const mergedAttrs = { ...inhAttrs, ...ownAttrs };
+    const normNode = bodyPrRaw && bodyPrRaw['a:normAutofit'] ? bodyPrRaw['a:normAutofit'] : (inhBp && inhBp['a:normAutofit']);
+    const noAutofitNode = bodyPrRaw && bodyPrRaw['a:noAutofit'] ? bodyPrRaw['a:noAutofit'] : (inhBp && inhBp['a:noAutofit']);
+    const bodyPr = { attrs: mergedAttrs };
+    if (normNode)
+        bodyPr['a:normAutofit'] = normNode;
+    if (noAutofitNode)
+        bodyPr['a:noAutofit'] = noAutofitNode;
     const valign = bodyPr && bodyPr.attrs && bodyPr.attrs.anchor
         ? VALIGN_MAP[bodyPr.attrs.anchor] : undefined;
     const textDirection = bodyPr && bodyPr.attrs && bodyPr.attrs.vert
@@ -17310,20 +17339,62 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
     const noWrap = bodyPr && bodyPr.attrs && bodyPr.attrs.wrap === 'none' ? true : undefined;
     const rtlCol = bodyPr && bodyPr.attrs && (bodyPr.attrs.rtlCol === '1' || bodyPr.attrs.rtlCol === 1) ? true : undefined;
     let inset;
-    if (bodyPr && bodyPr.attrs) {
-        const a = bodyPr.attrs;
-        const l = a.lIns != null ? emuToPx(a.lIns) : undefined;
-        const r = a.rIns != null ? emuToPx(a.rIns) : undefined;
-        const t = a.tIns != null ? emuToPx(a.tIns) : undefined;
-        const b = a.bIns != null ? emuToPx(a.bIns) : undefined;
-        if (l != null || r != null || t != null || b != null)
-            inset = { l, r, t, b };
+    if (bodyPr) {
+        const a = (bodyPr.attrs = bodyPr.attrs || {});
+        const defLR = emuToPx(91440);
+        const defTB = emuToPx(45720);
+        inset = {
+            l: a.lIns != null ? emuToPx(a.lIns) : defLR,
+            r: a.rIns != null ? emuToPx(a.rIns) : defLR,
+            t: a.tIns != null ? emuToPx(a.tIns) : defTB,
+            b: a.bIns != null ? emuToPx(a.bIns) : defTB
+        };
+    }
+    let fontScale;
+    let lnSpcReduction;
+    if (bodyPr) {
+        const noAutofit = !!(bodyPr['a:noAutofit']);
+        const norm = bodyPr['a:normAutofit'] && bodyPr['a:normAutofit'].attrs;
+        if (!noAutofit && norm) {
+            if (norm.fontScale != null)
+                fontScale = Number(norm.fontScale) / 100000;
+            if (norm.lnScale != null)
+                lnSpcReduction = Number(norm.lnScale) / 100000;
+        }
+    }
+    const lstStyle = txBody['a:lstStyle'];
+    const lvlDefaultRPr = {};
+    if (lstStyle) {
+        for (let lvl = 1; lvl <= 9; lvl++) {
+            const node = lstStyle[`a:lvl${lvl}pPr`];
+            if (node && node['a:defRPr'])
+                lvlDefaultRPr[lvl - 1] = node['a:defRPr'];
+        }
+    }
+    const lvlInheritedRPr = {};
+    if (inheritedLvl) {
+        for (let lvl = 1; lvl <= 9; lvl++) {
+            const node = inheritedLvl(lvl - 1);
+            if (node && node['a:defRPr'])
+                lvlInheritedRPr[lvl - 1] = node['a:defRPr'];
+        }
     }
     for (const pNode of asArray(txBody['a:p'])) {
         const pPr = pNode['a:pPr'];
         const pAttrs = (pPr && pPr.attrs) || {};
+        const paraLvl = Number(pAttrs.lvl || 0);
         const isRtlPara = pAttrs.rtl === '1' || pAttrs.rtl === 1;
-        const align = pAttrs.algn ? ALIGN_MAP[pAttrs.algn] : (isRtlPara ? 'right' : undefined);
+        const align = (() => {
+            if (pAttrs.algn)
+                return ALIGN_MAP[pAttrs.algn];
+            const lstPara = lstStyle && lstStyle[`a:lvl${paraLvl + 1}pPr`];
+            if (lstPara && lstPara.attrs && lstPara.attrs.algn)
+                return ALIGN_MAP[lstPara.attrs.algn];
+            const inheritedPara = inheritedLvl ? inheritedLvl(paraLvl) : undefined;
+            if (inheritedPara && inheritedPara.attrs && inheritedPara.attrs.algn)
+                return ALIGN_MAP[inheritedPara.attrs.algn];
+            return isRtlPara ? 'right' : undefined;
+        })();
         let bullet;
         if (pPr && pPr['a:buNone']) {
             bullet = undefined;
@@ -17351,18 +17422,45 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
             if (szPct)
                 bullet.sizePct = szPct;
         }
+        const lstLvl = (() => {
+            if (!lstStyle)
+                return undefined;
+            const lv = pAttrs.lvl != null ? Number(pAttrs.lvl) : 0;
+            return lstStyle[`a:lvl${lv + 1}pPr`] || undefined;
+        })();
+        const spacingHolder = (tag) => {
+            if (pPr && pPr[tag])
+                return pPr[tag];
+            if (lstLvl && lstLvl[tag])
+                return lstLvl[tag];
+            const inheritedNode = inheritedLvl ? inheritedLvl(paraLvl) : undefined;
+            if (inheritedNode && inheritedNode[tag])
+                return inheritedNode[tag];
+            return undefined;
+        };
+        const lnHolder = spacingHolder('a:lnSpc');
         let lineSpacing;
-        const lnSpc = pPr && pPr['a:lnSpc'];
-        if (lnSpc) {
-            if (lnSpc['a:spcPct'])
-                lineSpacing = { type: 'percent', value: Number(lnSpc['a:spcPct'].attrs.val) / 1000 };
-            else if (lnSpc['a:spcPts'])
-                lineSpacing = { type: 'pt', value: Number(lnSpc['a:spcPts'].attrs.val) / 100 };
+        if (lnHolder) {
+            if (lnHolder['a:spcPct'])
+                lineSpacing = { type: 'percent', value: Number(lnHolder['a:spcPct'].attrs.val) / 1000 };
+            else if (lnHolder['a:spcPts'])
+                lineSpacing = { type: 'pt', value: Number(lnHolder['a:spcPts'].attrs.val) / 100 };
         }
-        const spcBef = pPr && pPr['a:spcBef'] && pPr['a:spcBef']['a:spcPts'];
-        const spcAft = pPr && pPr['a:spcAft'] && pPr['a:spcAft']['a:spcPts'];
-        const spaceBefore = spcBef ? Number(spcBef.attrs.val) / 100 : undefined;
-        const spaceAfter = spcAft ? Number(spcAft.attrs.val) / 100 : undefined;
+        const readSpacing = (tag) => {
+            const holder = spacingHolder(tag);
+            if (!holder)
+                return undefined;
+            if (holder['a:spcPts'])
+                return { pt: Number(holder['a:spcPts'].attrs.val) / 100 };
+            if (holder['a:spcPct'])
+                return { ratio: Number(holder['a:spcPct'].attrs.val) / 1000 };
+            return undefined;
+        };
+        const spcBefRaw = readSpacing('a:spcBef');
+        const spcAftRaw = readSpacing('a:spcAft');
+        const totalParas = asArray(txBody['a:p']).length;
+        const spcBefExplicit = !!(pPr && pPr['a:spcBef']);
+        const spcBefScale = (!spcBefExplicit && totalParas === 1 && spcBefRaw) ? 0 : 1;
         const indentLeft = pAttrs.marL != null ? emuToPt(pAttrs.marL) : undefined;
         const indentRight = pAttrs.marR != null ? emuToPt(pAttrs.marR) : undefined;
         const indent = pAttrs.indent != null ? emuToPt(pAttrs.indent) : undefined;
@@ -17382,12 +17480,42 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
                 hasText = true;
             paraText += t;
             const st = readRunStyle(runNode['a:rPr'], themeMap, resolveHref);
+            const ownDefRPr = (pPr && pPr['a:defRPr']) || lvlDefaultRPr[paraLvl];
+            const inheritedDefRPr = lvlInheritedRPr[paraLvl];
+            let defRPr;
+            if (ownDefRPr && inheritedDefRPr) {
+                defRPr = { ...inheritedDefRPr, ...ownDefRPr };
+                if (inheritedDefRPr.attrs || ownDefRPr.attrs) {
+                    defRPr.attrs = { ...(inheritedDefRPr.attrs || {}), ...(ownDefRPr.attrs || {}) };
+                }
+            }
+            else {
+                defRPr = ownDefRPr || inheritedDefRPr;
+            }
+            if (defRPr) {
+                const d = readRunStyle(defRPr, themeMap, resolveHref);
+                for (const k of Object.keys(d)) {
+                    if (st[k] === undefined)
+                        st[k] = d[k];
+                }
+            }
             if (!st.color && fallbackColor)
                 st.color = fallbackColor;
             runs.push({ text: t, ...st });
         }
         if (paraText)
             text += (text ? '\n' : '') + paraText;
+        const firstFontPt = (runs[0] && runs[0].fontSize != null) ? Number(runs[0].fontSize) : 13.5;
+        const spacingToPt = (s, scale = 1) => {
+            if (!s)
+                return undefined;
+            if (s.pt != null)
+                return scale === 0 ? undefined : s.pt;
+            const v = Math.min(s.ratio, 0.5) * firstFontPt * scale;
+            return v > 0 ? v : undefined;
+        };
+        const spaceBefore = spacingToPt(spcBefRaw, spcBefScale);
+        const spaceAfter = spacingToPt(spcAftRaw);
         const para = { runs };
         if (align)
             para.align = align;
@@ -17411,7 +17539,7 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref) {
             para.valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol };
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction };
 }
 async function resolveBulletBlips(txBody, resObj, zip) {
     if (!txBody)
@@ -17438,9 +17566,11 @@ async function resolveBulletBlips(txBody, resObj, zip) {
     }
     return touched;
 }
-function extractTextBody(spNode, themeMap = {}, resolveHref) {
+function extractTextBody(spNode, themeMap = {}, resolveHref, phCtx, ph) {
     const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
-    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor, resolveHref);
+    const inheritedLvl = phCtx && ph ? (lvl) => inheritedLvlNode(phCtx, ph, lvl) : undefined;
+    const inheritedBodyPrRaw = phCtx && ph ? inheritedBodyPr(phCtx, ph) : undefined;
+    return extractTxBody(spNode && spNode['p:txBody'], themeMap, fontRefColor, resolveHref, inheritedLvl, inheritedBodyPrRaw);
 }
 function resolveHyperlink(resObj) {
     return (rid) => {
@@ -17531,6 +17661,12 @@ function readSpPr(spPr, themeMap = {}) {
                 lineObj.transparency = transparency;
             if (dash)
                 lineObj.dashType = String(dash);
+            const headEnd = ln['a:headEnd'];
+            const tailEnd = ln['a:tailEnd'];
+            if (headEnd && headEnd.attrs && headEnd.attrs.type && headEnd.attrs.type !== 'none')
+                lineObj.startArrow = String(headEnd.attrs.type);
+            if (tailEnd && tailEnd.attrs && tailEnd.attrs.type && tailEnd.attrs.type !== 'none')
+                lineObj.endArrow = String(tailEnd.attrs.type);
             out.line = lineObj;
         }
     }
@@ -17590,11 +17726,100 @@ function readXfrm(node, isGraphicFrame) {
         height: emuToPx(ext.cy),
         rotation: rotToDeg(attrs.rot)
     };
-    if (attrs.flipH === 1 || attrs.flipH === '1' || attrs.flipH === true)
+    if (attrs.flipH === 1 || attrs.flipH === '1' || attrs.flipH === true || attrs.flipH === 'true')
         out.flipH = true;
-    if (attrs.flipV === 1 || attrs.flipV === '1' || attrs.flipV === true)
+    if (attrs.flipV === 1 || attrs.flipV === '1' || attrs.flipV === true || attrs.flipV === 'true')
         out.flipV = true;
     return out;
+}
+function readPlaceholderAttrs(node) {
+    const ph = node && node['p:nvSpPr'] && node['p:nvSpPr']['p:nvPr'] && node['p:nvSpPr']['p:nvPr']['p:ph'];
+    if (!ph || typeof ph !== 'object')
+        return undefined;
+    const a = ph.attrs || {};
+    return { type: a.type != null ? String(a.type) : undefined, idx: a.idx != null ? String(a.idx) : undefined };
+}
+function indexPlaceholders(content) {
+    const table = { idxTable: {}, typeTable: {} };
+    if (!content || typeof content !== 'object')
+        return table;
+    const rootKey = ['p:sldLayout', 'p:sldMaster', 'p:sld'].find((k) => content[k]);
+    const tree = rootKey && content[rootKey]['p:cSld'] && content[rootKey]['p:cSld']['p:spTree'];
+    if (!tree || typeof tree !== 'object')
+        return table;
+    for (const key of Object.keys(tree)) {
+        if (key === 'p:nvGrpSpPr' || key === 'p:grpSpPr' || key === 'attrs')
+            continue;
+        for (const node of asArray(tree[key])) {
+            const ph = readPlaceholderAttrs(node);
+            if (!ph)
+                continue;
+            if (ph.idx != null)
+                table.idxTable[ph.idx] = node;
+            if (ph.type != null)
+                table.typeTable[ph.type] = node;
+        }
+    }
+    return table;
+}
+function findPlaceholder(table, ph) {
+    if (!ph)
+        return undefined;
+    if (ph.idx != null && table.idxTable[ph.idx])
+        return table.idxTable[ph.idx];
+    if (ph.type != null && table.typeTable[ph.type])
+        return table.typeTable[ph.type];
+    return undefined;
+}
+function masterTextStyleKey(type) {
+    if (type === 'title' || type === 'subTitle' || type === 'ctrTitle')
+        return 'p:titleStyle';
+    if (type === 'body' || type === 'obj' || type === 'dt' || type === 'sldNum' || type === 'textBox')
+        return 'p:bodyStyle';
+    return 'p:otherStyle';
+}
+function inheritedLvlNode(ctx, ph, lvl) {
+    if (!ph)
+        return undefined;
+    const tag = `a:lvl${Math.max(0, Math.min(8, lvl)) + 1}pPr`;
+    for (const table of [ctx.layout, ctx.master]) {
+        const target = findPlaceholder(table, ph);
+        const lst = target && target['p:txBody'] && target['p:txBody']['a:lstStyle'];
+        if (lst && lst[tag])
+            return lst[tag];
+    }
+    if (ctx.masterTextStyles) {
+        const st = ctx.masterTextStyles[masterTextStyleKey(ph.type)];
+        if (st && st[tag])
+            return st[tag];
+    }
+    if (ctx.defaultTextStyle && ctx.defaultTextStyle[tag])
+        return ctx.defaultTextStyle[tag];
+    return undefined;
+}
+function inheritedBodyPr(ctx, ph) {
+    if (!ph)
+        return undefined;
+    for (const table of [ctx.layout, ctx.master]) {
+        const target = findPlaceholder(table, ph);
+        const bodyPr = target && target['p:txBody'] && target['p:txBody']['a:bodyPr'];
+        if (bodyPr)
+            return bodyPr;
+    }
+    return undefined;
+}
+function buildPlaceholderCtx(slideData) {
+    return {
+        layout: indexPlaceholders(slideData && slideData.slideLayoutContent),
+        master: indexPlaceholders(slideData && slideData.slideMasterContent),
+        masterTextStyles: slideData && slideData.slideMasterTextStyles,
+        defaultTextStyle: slideData && slideData.defaultTextStyle
+    };
+}
+function isTxBoxSp(node) {
+    const a = node && node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs;
+    const v = a && a.txBox;
+    return v === 1 || v === '1' || v === true || v === 'true';
 }
 function readAdjust(prstGeom) {
     const avLst = prstGeom && prstGeom['a:avLst'];
@@ -17745,10 +17970,11 @@ function extractTiming(slideContent) {
         result.animations = animations;
     return result;
 }
-async function extractBackground(slideContent, resObj, zip, fallbacks = [], themeMap = {}) {
+async function extractBackground(slideContent, resObj, zip, fallbacks = [], themeMap = {}, themeContent) {
     const parts = [
         { content: slideContent, res: resObj }, ...fallbacks
     ];
+    const bgFills = (await getThemeStyleTables(zip, themeContent)).bgFills;
     for (const part of parts) {
         const sld = part.content && (part.content['p:sld'] || part.content['p:sldLayout'] || part.content['p:sldMaster']);
         const bg = sld && sld['p:cSld'] && sld['p:cSld']['p:bg'];
@@ -17769,8 +17995,15 @@ async function extractBackground(slideContent, resObj, zip, fallbacks = [], them
                 if (grad)
                     return grad;
             }
+            return undefined;
         }
-        return undefined;
+        const bgRef = bg['p:bgRef'];
+        if (bgRef) {
+            const r = resolveThemeBgRef(bgRef, bgFills, themeMap);
+            if (r !== undefined)
+                return r;
+            return undefined;
+        }
     }
     return undefined;
 }
@@ -18092,6 +18325,78 @@ async function attachRawDeps(el, node, resObj, zip) {
     if (parts.length)
         el.__raw.parts = parts;
 }
+function hasOwnXfrm(node) {
+    if (!node)
+        return false;
+    if (node['p:spPr'] && node['p:spPr']['a:xfrm'])
+        return true;
+    if (node['p:xfrm'])
+        return true;
+    if (node['p:grpSpPr'] && node['p:grpSpPr']['a:xfrm'])
+        return true;
+    return false;
+}
+function readPhRef(node) {
+    const nvKeys = ['p:nvSpPr', 'p:nvPicPr', 'p:nvGraphicFramePr', 'p:nvCxnSpPr'];
+    for (const k of nvKeys) {
+        const ph = node && node[k] && node[k]['p:nvPr'] && node[k]['p:nvPr']['p:ph'];
+        if (ph) {
+            const a = ph.attrs || {};
+            return { type: a.type != null ? String(a.type) : 'body', idx: a.idx != null ? String(a.idx) : '' };
+        }
+    }
+    return undefined;
+}
+function collectPlaceholderXfrms(content, into) {
+    const map = into || new Map();
+    if (!content)
+        return map;
+    const root = content['p:sldLayout'] || content['p:sldMaster'] || content['p:sld'];
+    const spTree = root && root['p:cSld'] && root['p:cSld']['p:spTree'];
+    if (!spTree)
+        return map;
+    const walk = (tree, depth) => {
+        if (!tree || depth > 4)
+            return;
+        for (const tag of ['p:sp', 'p:pic', 'p:graphicFrame', 'p:cxnSp']) {
+            for (const sp of asArray(tree[tag])) {
+                const ph = readPhRef(sp);
+                const xfrm = sp['p:spPr'] && sp['p:spPr']['a:xfrm'];
+                if (ph && xfrm && xfrm['a:off'] && xfrm['a:ext']
+                    && xfrm['a:off'].attrs && xfrm['a:ext'].attrs) {
+                    const box = {
+                        x: emuToPx(xfrm['a:off'].attrs.x),
+                        y: emuToPx(xfrm['a:off'].attrs.y),
+                        width: emuToPx(xfrm['a:ext'].attrs.cx),
+                        height: emuToPx(xfrm['a:ext'].attrs.cy)
+                    };
+                    if (ph.idx !== '') {
+                        if (!map.has(ph.type + ':' + ph.idx))
+                            map.set(ph.type + ':' + ph.idx, box);
+                        if (!map.has('*:' + ph.idx))
+                            map.set('*:' + ph.idx, box);
+                    }
+                    else if (!map.has(ph.type + ':')) {
+                        map.set(ph.type + ':', box);
+                    }
+                }
+                for (const g of asArray(sp['p:grpSp']))
+                    walk(g, depth + 1);
+            }
+        }
+        for (const g of asArray(tree['p:grpSp']))
+            walk(g, depth + 1);
+    };
+    walk(spTree, 0);
+    return map;
+}
+function lookupPlaceholderXfrm(ph, map) {
+    if (!ph || !map || !map.size)
+        return undefined;
+    return (ph.idx !== '' ? (map.get(ph.type + ':' + ph.idx) || map.get('*:' + ph.idx)) : undefined)
+        || map.get(ph.type + ':')
+        || undefined;
+}
 function collectShapeNodes(spTree, acc, keepGroups = false) {
     if (!spTree || typeof spTree !== 'object')
         return;
@@ -18135,7 +18440,7 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
         const bg = await extractBackground(slideContent, resObj, zip, [
             { content: slideData.slideLayoutContent, res: slideData.layoutResObj },
             { content: slideData.slideMasterContent, res: slideData.masterResObj }
-        ], themeMap);
+        ], themeMap, slideData.themeContent);
         if (bg !== undefined)
             slide.background = bg;
         const transition = extractTransition(slideContent);
@@ -18154,11 +18459,23 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             }));
         }
         if (spTree) {
+            const phIndex = collectPlaceholderXfrms(slideData.slideMasterContent);
+            collectPlaceholderXfrms(slideData.slideLayoutContent, phIndex);
+            const phCtx = buildPlaceholderCtx(slideData);
             const processNode = async (key, node) => {
                 try {
-                    const el = await nodeToElement(key, node, resObj, zip, themeMap, slideData.themeContent);
+                    const el = await nodeToElement(key, node, resObj, zip, themeMap, slideData.themeContent, phCtx);
                     if (!el)
                         return null;
+                    if (!hasOwnXfrm(node) && el.type !== 'raw') {
+                        const box = lookupPlaceholderXfrm(readPhRef(node), phIndex);
+                        if (box) {
+                            el.x = box.x;
+                            el.y = box.y;
+                            el.width = box.width;
+                            el.height = box.height;
+                        }
+                    }
                     el.__raw = { tag: key, node };
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
                         await attachRawDeps(el, node, resObj, zip);
@@ -18178,6 +18495,12 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             const processTree = async (tree) => {
                 const acc = [];
                 collectShapeNodes(tree, acc, true);
+                acc.sort((a, b) => {
+                    const ao = a.node?.attrs?.order ?? 0;
+                    const bo = b.node?.attrs?.order ?? 0;
+                    return (typeof ao === 'number' ? ao : parseInt(ao, 10) || 0)
+                        - (typeof bo === 'number' ? bo : parseInt(bo, 10) || 0);
+                });
                 const out = [];
                 for (const { key, node } of acc) {
                     if (key === 'p:grpSp') {
@@ -18225,6 +18548,30 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                 return g;
             };
             slide.elements = await processTree(spTree);
+            const decoSources = [slideData.slideLayoutContent];
+            if (showsMasterShapes(slideData.slideLayoutContent))
+                decoSources.push(slideData.slideMasterContent);
+            const deco = [];
+            for (const src of decoSources) {
+                const decoTree = getSpTreeOf(src);
+                if (!decoTree)
+                    continue;
+                const nodes = [];
+                collectDecoNodes(decoTree, nodes);
+                nodes.sort((a, b) => (a.node?.attrs?.order ?? 0) - (b.node?.attrs?.order ?? 0));
+                for (const { key, node } of nodes) {
+                    const el = await processNode(key, node);
+                    if (el)
+                        el.inherited = true;
+                }
+                for (const { key, node } of nodes) {
+                    const el = await processNode(key, node);
+                    if (el)
+                        deco.push(el);
+                }
+            }
+            if (deco.length)
+                slide.elements = deco.concat(slide.elements);
             if (slideData.tableStyles) {
                 slideData.tableStyles._themeContent = slideData.themeContent;
                 for (const el of slide.elements) {
@@ -18369,7 +18716,7 @@ function readCustGeom(custGeom) {
     }
     return paths.length ? { paths } : undefined;
 }
-async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent) {
+async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent, phCtx) {
     if (key === 'p:graphicFrame') {
         return await graphicFrameToElement(node, resObj, zip, themeMap, themeContent);
     }
@@ -18383,9 +18730,10 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
         }
         catch { }
     }
-    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol } = extractTextBody(node, themeMap, resolveHyperlink(resObj));
+    const ph = readPlaceholderAttrs(node);
+    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
     const geom = spPr && spPr['a:prstGeom'];
-    if (hasText || (node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1')) {
+    if (hasText || isTxBoxSp(node)) {
         const xf = readXfrm(node, false);
         const name = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvPr'] && node['p:nvSpPr']['p:cNvPr'].attrs && node['p:nvSpPr']['p:cNvPr'].attrs.name;
         const textEl = {
@@ -18412,7 +18760,13 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
             textEl.noWrap = noWrap;
         if (rtlCol)
             textEl.rtlCol = true;
-        const isPureTextBox = node['p:nvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'] && node['p:nvSpPr']['p:cNvSpPr'].attrs && node['p:nvSpPr']['p:cNvSpPr'].attrs.txBox === '1';
+        if (fontScale != null)
+            textEl.fontScale = fontScale;
+        if (lnSpcReduction != null)
+            textEl.lnSpcReduction = lnSpcReduction;
+        const isPureTextBox = isTxBoxSp(node);
+        if (isPureTextBox)
+            textEl.txBox = true;
         const hasCustGeom = !!(spPr && spPr['a:custGeom']);
         const hasNonRectShape = (geom && geom.attrs && geom.attrs.prst && String(geom.attrs.prst) !== 'rect' && !isPureTextBox) || hasCustGeom;
         try {
@@ -18470,6 +18824,15 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
                 textEl.align = paragraphs[0].align;
             if (paragraphs[0].valign)
                 textEl.valign = paragraphs[0].valign;
+        }
+        const isPlaceholder = !!(node['p:nvSpPr'] && node['p:nvSpPr']['p:nvPr'] && node['p:nvSpPr']['p:nvPr']['p:ph']);
+        if (!isPlaceholder) {
+            for (const para of paragraphs) {
+                for (const r of para.runs) {
+                    if (r.fontSize === undefined && !r.break)
+                        r.fontSize = 18;
+                }
+            }
         }
         const firstRun = paragraphs[0] && paragraphs[0].runs && paragraphs[0].runs[0];
         if (firstRun) {
@@ -18830,7 +19193,7 @@ async function getThemeStyleTables(zip, themeContent) {
     const cached = themeStylesCache.get(cacheKey);
     if (cached)
         return cached;
-    const tables = { fills: [], lines: [], effects: [] };
+    const tables = { fills: [], lines: [], effects: [], bgFills: [] };
     try {
         const xml = themeContent || await PPTXXmlUtils.readXmlFile(zip, 'ppt/theme/theme1.xml');
         const fmt = xml && xml['a:theme']
@@ -18854,11 +19217,55 @@ async function getThemeStyleTables(zip, themeContent) {
             tables.fills = listOf(fmt['a:fillStyleLst']);
             tables.lines = listOf(fmt['a:lnStyleLst']);
             tables.effects = listOf(fmt['a:effectStyleLst']);
+            tables.bgFills = listOf(fmt['a:bgFillStyleLst']);
         }
     }
     catch { }
     themeStylesCache.set(zip, tables);
     return tables;
+}
+function resolveThemeBgRef(refNode, bgFills, themeMap) {
+    if (!refNode || !refNode.attrs || !bgFills.length)
+        return undefined;
+    const rawIdx = Number(refNode.attrs.idx);
+    if (rawIdx === 0 || rawIdx === 1000)
+        return undefined;
+    const idx = rawIdx > 1000 ? rawIdx - 1001 : rawIdx - 1;
+    if (idx < 0)
+        return undefined;
+    const entry = bgFills[idx % bgFills.length];
+    if (!entry || typeof entry !== 'object')
+        return undefined;
+    const phClr = resolveColorNode(refNode, themeMap);
+    const colorMap = phClr ? { ...themeMap, phclr: phClr } : themeMap;
+    const fillNode = entry['a:solidFill'] || entry['a:gradFill'] || entry['a:blipFill'] || entry;
+    let color = resolveColorNode(fillNode['a:solidFill'], colorMap)
+        || ((fillNode['a:schemeClr'] || fillNode['a:srgbClr']) ? resolveColorNode(fillNode, colorMap) : undefined);
+    if (color)
+        return color;
+    const grad = fillNode['a:gradFill'] || (fillNode['a:gsLst'] ? fillNode : undefined);
+    if (grad) {
+        const gsLst = grad['a:gsLst'];
+        const gsNodes = asArray(gsLst && gsLst['a:gs']);
+        const stops = gsNodes
+            .map((gs) => {
+            const c = resolveColorNode(gs, colorMap);
+            const pos = gs && gs.attrs && gs.attrs.pos != null ? Number(gs.attrs.pos) / 100000 : 0;
+            return c ? { color: c, position: pos } : undefined;
+        })
+            .filter((s) => !!s);
+        if (stops.length) {
+            const lin = grad['a:lin'];
+            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
+            const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            const path = grad['a:path'];
+            if (path) {
+                return { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' };
+            }
+            return { type: 'gradient', direction, stops };
+        }
+    }
+    return undefined;
 }
 function resolveThemeStyleRef(refNode, styleList, themeMap) {
     if (!refNode || !refNode.attrs || !styleList.length)
@@ -19298,9 +19705,9 @@ async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH, theme
             }
         }
         const xattrs = (xf && xf.attrs) || {};
-        if (String(xattrs.flipH) === '1')
+        if (String(xattrs.flipH) === '1' || String(xattrs.flipH) === 'true')
             shape.flipH = true;
-        if (String(xattrs.flipV) === '1')
+        if (String(xattrs.flipV) === '1' || String(xattrs.flipV) === 'true')
             shape.flipV = true;
         const fillRef = dspStyle && dspStyle['a:fillRef'];
         const lnRef = dspStyle && dspStyle['a:lnRef'];
@@ -19313,6 +19720,11 @@ async function extractDiagramShapes(resObj, zip, themeMap, frameW, frameH, theme
                     shape.lineColor = lc;
                 if (ln.attrs && ln.attrs.w != null)
                     shape.lineWidth = emuToPt(ln.attrs.w);
+                const he = ln['a:headEnd'], te = ln['a:tailEnd'];
+                if (he && he.attrs && he.attrs.type && he.attrs.type !== 'none')
+                    shape.startArrow = String(he.attrs.type);
+                if (te && te.attrs && te.attrs.type && te.attrs.type !== 'none')
+                    shape.endArrow = String(te.attrs.type);
             }
             if (!shape.lineColor && lnRef) {
                 const ref = resolveThemeStyleRef(lnRef, tables.lines, themeMap);
@@ -19799,7 +20211,7 @@ async function extractTheme(zip) {
     }
 }
 
-var baseLayoutCss = ".slide {\n\twidth: 100%;\n\t/*max-width: 920px;*/\n\theight: 690px;\n\tposition: relative;\n\tborder: 1px solid #333;\n\t/* background-color: #EFEFEF; */\n\ttext-align: center;\n\tborder-radius: 10px;\n\t/* box-shadow: 1px 1px 3px #AAA; */\n\toverflow: hidden;\n\t/*transform: scale(0.85);*/\n}\n\n.slide div.block {\n\tposition: absolute;\n\ttop: 0px;\n\tleft: 0px;\n\twidth: 100%;\n}\n\n.slide div.content {\n\tdisplay: flex;\n\tflex-direction: column;\n\t/*\n\tjustify-content: center;\n\talign-items: flex-end;\n\t*/\n}\n\n.slide div.v-up {\n\tjustify-content: flex-start;\n}\n.slide div.v-mid {\n\tjustify-content: center;\n}\n.slide div.v-down {\n\tjustify-content: flex-end;\n}\n\n.slide div.h-left {\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.h-mid {\n\talign-items: center;\n\tjustify-content: center;\n\ttext-align: center;\n}\n.slide div.h-right {\n\talign-items: flex-end;\n\ttext-align: right;\n}\n\n.slide div.up-left {\n\tjustify-content: flex-start;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.up-center {\n\tjustify-content: flex-start;\n\talign-items: center;\n}\n.slide div.up-right {\n\tjustify-content: flex-start;\n\talign-items: flex-end;\n}\n.slide div.center-left {\n\tjustify-content: center;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.center-center {\n\tjustify-content: center;\n\talign-items: center;\n}\n.slide div.center-right {\n\tjustify-content: center;\n\talign-items: flex-end;\n}\n.slide div.down-left {\n\tjustify-content: flex-end;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.down-center {\n\tjustify-content: flex-end;\n\talign-items: center;\n}\n.slide div.down-right {\n\tjustify-content: flex-end;\n\talign-items: flex-end;\n}\n\n\n.slide li.slide {\n\tmargin: 10px 0px;\n\tfont-size: 18px;\n}\n\n.slide table {\n\tposition: absolute;\n}\n\n.slide svg.drawing {\n\tposition: absolute;\n\toverflow: visible;\n}\n\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\n.slide div[style*=\"background-color: inherit\"] {\n\tbackground-color: transparent !important;\n}\n\n/* 针对包含无效边框样式的问题元素 */\n.slide div[style*=\"pxsolidhidden\"] {\n\tborder: none !important;\n}\n\n/* 处理文本换行符 */\n.slide .line-break-br {\n\tdisplay: inline;\n}\n.slide .line-break-br::before {\n\tcontent: \"\\A\";\n\twhite-space: pre;\n}\n\n/*\n#pptx-thumb {\n\tmin-width: 240px;\n\theight: 180px;\n}\n*/";
+var baseLayoutCss = ".slide {\n\twidth: 100%;\n\t/*max-width: 920px;*/\n\theight: 690px;\n\tposition: relative;\n\t/* background-color: #EFEFEF; */\n\ttext-align: center;\n\tborder-radius: 10px;\n\t/* box-shadow: 1px 1px 3px #AAA; */\n\toverflow: hidden;\n\t/*transform: scale(0.85);*/\n}\n\n.slide div.block {\n\tposition: absolute;\n\ttop: 0px;\n\tleft: 0px;\n\twidth: 100%;\n}\n\n.slide div.content {\n\tdisplay: flex;\n\tflex-direction: column;\n\t/*\n\tjustify-content: center;\n\talign-items: flex-end;\n\t*/\n}\n\n.slide div.v-up {\n\tjustify-content: flex-start;\n}\n.slide div.v-mid {\n\tjustify-content: center;\n}\n.slide div.v-down {\n\tjustify-content: flex-end;\n}\n\n.slide div.h-left {\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.h-mid {\n\talign-items: center;\n\tjustify-content: center;\n\ttext-align: center;\n}\n.slide div.h-right {\n\talign-items: flex-end;\n\ttext-align: right;\n}\n\n.slide div.up-left {\n\tjustify-content: flex-start;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.up-center {\n\tjustify-content: flex-start;\n\talign-items: center;\n}\n.slide div.up-right {\n\tjustify-content: flex-start;\n\talign-items: flex-end;\n}\n.slide div.center-left {\n\tjustify-content: center;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.center-center {\n\tjustify-content: center;\n\talign-items: center;\n}\n.slide div.center-right {\n\tjustify-content: center;\n\talign-items: flex-end;\n}\n.slide div.down-left {\n\tjustify-content: flex-end;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.down-center {\n\tjustify-content: flex-end;\n\talign-items: center;\n}\n.slide div.down-right {\n\tjustify-content: flex-end;\n\talign-items: flex-end;\n}\n\n\n.slide li.slide {\n\tmargin: 10px 0px;\n\tfont-size: 18px;\n}\n\n.slide table {\n\tposition: absolute;\n}\n\n.slide svg.drawing {\n\tposition: absolute;\n\toverflow: visible;\n}\n\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\n.slide div[style*=\"background-color: inherit\"] {\n\tbackground-color: transparent !important;\n}\n\n/* 针对包含无效边框样式的问题元素 */\n.slide div[style*=\"pxsolidhidden\"] {\n\tborder: none !important;\n}\n\n/* 处理文本换行符 */\n.slide .line-break-br {\n\tdisplay: inline;\n}\n.slide .line-break-br::before {\n\tcontent: \"\\A\";\n\twhite-space: pre;\n}\n\n/*\n#pptx-thumb {\n\tmin-width: 240px;\n\theight: 180px;\n}\n*/";
 
 function parseComments(xml, authors) {
     if (!xml || !xml['p:cmLst'])

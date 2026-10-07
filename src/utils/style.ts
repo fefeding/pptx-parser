@@ -3447,7 +3447,12 @@ function getFillType(node: XmlNode | undefined) {
             }
             let fontSize;
             if  (PPTXXmlUtils.getTextByPathList(pNode, ["a:r"]) !== undefined) {
-                let fontSizeStr = getFontSize(pNode["a:r"], textBodyNode,undefined, lvl, type, warpObj);
+                // pNode["a:r"] 多 run 时是数组，getFontSize 只认单个 run 节点的 a:rPr；
+                // 传数组会取不到 run 的 sz，退回 lstStyle 的 defRPr@sz（往往偏小），
+                // 使 spcPct 型段前/段后距按错别字号折算。这里统一取首个 run。
+                const rNodes = pNode["a:r"];
+                const firstRun = Array.isArray(rNodes) ? rNodes[0] : rNodes;
+                let fontSizeStr = getFontSize(firstRun, textBodyNode, undefined, lvl, type, warpObj);
                 if (fontSizeStr != "inherit") {
                     // 提取数字部分（假设格式为 "35px"）
                     const fontSizeMatch = fontSizeStr.match(/(\d+(?:\.\d+)?)px/);
