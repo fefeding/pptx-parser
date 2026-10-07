@@ -338,10 +338,12 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                 if (clrFillType == "GRADIENT_FILL") {
                     grndFillFlg = true;
                     const color_arry = fillColor.color;
+                    const alpha_arry = fillColor.alpha;
                     // getGradientFill 返回的 rot 是给 CSS linear-gradient() 用的（rot = a:lin/@ang + 90）；
                     // SVGangle 需要 a:lin/@ang 的原始角度（顺时针、0° 指向右）
                     const angl = fillColor.rot - 90;
-                    const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId);
+                    const pos_arry = fillColor.pos;
+                    const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry);
                     //fill="url(#linGrd)"
                     //console.log("genShape: svgGrdnt: ", svgGrdnt)
                     result += svgGrdnt;

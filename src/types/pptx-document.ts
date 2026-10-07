@@ -150,7 +150,12 @@ export interface PptxParagraph {
 }
 
 /** 渐变填充色标 */
-export interface PptxGradientStop { color: string; position: number; }
+export interface PptxGradientStop {
+    color: string;
+    position: number;
+    /** 透明度 0-100（0=不透明，100=完全透明），来自 a:alpha 修饰 */
+    transparency?: number;
+}
 /** 纯色填充（可带透明度 0-100） */
 export interface PptxFillSolid { type?: 'solid'; color?: string; transparency?: number; }
 /** 渐变填充 */
@@ -158,6 +163,8 @@ export interface PptxFillGradient {
     type: 'gradient';
     /** 线性渐变方向（a:lin@ang），径向渐变时仍保留以兼容旧数据 */
     direction?: 'horizontal' | 'vertical' | 'diagonal';
+    /** OOXML 线性渐变角度（a:lin@ang / 60000，0°=向右，顺时针），优先于 direction */
+    angle?: number;
     stops: PptxGradientStop[];
     /** 渐变类型：a:lin 为线性（缺省），a:path 为径向/矩形渐变 */
     gradientType?: 'linear' | 'radial';
@@ -308,7 +315,7 @@ export type PptxAutofit = 'none' | 'normal' | 'shape';
 export type PptxBackground =
     | string                                   // 纯色（#RRGGBB 或颜色名），等价 { type:'solid', color }
     | { type: 'solid'; color: string }
-    | { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string }
+    | { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; angle?: number; stops: { color: string; position: number; transparency?: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string }
     | {
         type: 'image'; data?: string; src?: string; extension?: string;
         /** 源图裁剪（a:srcRect），0~1 */
@@ -722,8 +729,10 @@ export interface PptxGradientFill {
     type: 'gradient';
     /** 线性渐变方向（a:lin@ang 换算：90°→vertical、45°→diagonal、其余 horizontal） */
     direction?: 'horizontal' | 'vertical' | 'diagonal';
+    /** OOXML 线性渐变角度（a:lin@ang / 60000），优先于 direction */
+    angle?: number;
     /** 渐变色标（position 为 0~1） */
-    stops: { color: string; position: number }[];
+    stops: { color: string; position: number; transparency?: number }[];
     /** 缺省为线性（a:lin）；'radial' 写 a:path */
     gradientType?: 'linear' | 'radial';
     /** 径向渐变路径（a:path@path）：circle / rect / shape */

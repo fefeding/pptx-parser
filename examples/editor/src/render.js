@@ -100,10 +100,17 @@ export function backgroundStyle(bg, theme) {
   if (bg.type === 'gradient') {
     const stops = (bg.stops || []).slice().sort((a, b) => a.position - b.position);
     const list = stops.length >= 2
-      ? stops.map((s) => `${normalizeColor(s.color) || '#FFFFFF'} ${clamp(s.position, 0, 1) * 100}%`).join(',')
+      ? stops.map((s) => `${withAlpha(s.color, s.transparency || 0)} ${clamp(s.position, 0, 1) * 100}%`).join(',')
       : '#FFFFFF,#FFFFFF';
     if (bg.gradientType === 'radial') return { background: `radial-gradient(circle at 50% 50%, ${list})` };
-    const deg = bg.direction === 'vertical' ? 180 : bg.direction === 'diagonal' ? 135 : 90;
+    // OOXML a:lin@ang：0°=向右，顺时针；CSS linear-gradient：0°=向上，顺时针。
+    // 换算：CSS deg = (OOXML deg + 90) % 360；fallback 到旧 direction 枚举。
+    let deg;
+    if (typeof bg.angle === 'number') {
+      deg = Math.round(((bg.angle + 90) % 360) * 10) / 10;
+    } else {
+      deg = bg.direction === 'vertical' ? 180 : bg.direction === 'diagonal' ? 135 : 90;
+    }
     return { background: `linear-gradient(${deg}deg, ${list})` };
   }
   return { background: normalizeColor(bg.color) || '#FFFFFF' };
@@ -137,12 +144,18 @@ function shapeVisual(el) {
       style.background = normalizeColor(fill) || 'transparent';
     } else if (fill.type === 'gradient') {
       const stops = (fill.stops || []).slice().sort((a, b) => a.position - b.position);
-      const list = stops.map((s) => `${withAlpha(s.color, 0)} ${clamp(s.position, 0, 1) * 100}%`).join(',');
+      const list = stops.map((s) => `${withAlpha(s.color, s.transparency || 0)} ${clamp(s.position, 0, 1) * 100}%`).join(',');
       // 径向渐变（a:path）：CSS 用 radial-gradient 近似（OOXML 的 path="rect"/"shape" 统一按椭圆近似）
       if (fill.gradientType === 'radial') {
         style.background = `radial-gradient(circle at 50% 50%, ${list})`;
       } else {
-        const deg = fill.direction === 'vertical' ? 180 : fill.direction === 'diagonal' ? 135 : 90;
+        // OOXML a:lin@ang → CSS deg：0°向右 → 90°向上，顺时针递增
+        let deg;
+        if (typeof fill.angle === 'number') {
+          deg = Math.round(((fill.angle + 90) % 360) * 10) / 10;
+        } else {
+          deg = fill.direction === 'vertical' ? 180 : fill.direction === 'diagonal' ? 135 : 90;
+        }
         style.background = `linear-gradient(${deg}deg, ${list})`;
       }
     } else if (fill.type === 'image') {
@@ -780,7 +793,7 @@ function presetFillColor(el) {
   if (typeof f === 'string') return normalizeColor(f);
   // transparency 是 0..100 透明度，需转 rgba（与 shapeVisual 的 CSS 路径保持一致）
   if (f.type === 'solid' && f.color) return withAlpha(f.color, f.transparency || 0);
-  if (f.type === 'gradient' && Array.isArray(f.stops) && f.stops.length) return normalizeColor(f.stops[0].color);
+  if (f.type === 'gradient' && Array.isArray(f.stops) && f.stops.length) return withAlpha(f.stops[0].color, f.stops[0].transparency || 0);
   return null; // image / pattern → 回退 CSS 渲染管线
 }
 

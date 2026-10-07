@@ -548,19 +548,27 @@ function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxSh
         const gsLst = gf['a:gsLst'];
         const stops = (gsLst ? asArray(gsLst['a:gs']) : []).map((gs: any) => {
             const pos = gs && gs.attrs ? Number(gs.attrs.pos) / 100000 : 0;
-            return { color: spColor(gs, themeMap) || '000000', position: pos };
+            const color = spColor(gs, themeMap) || '000000';
+            const alphaNode = gs && (gs['a:srgbClr'] || gs['a:schemeClr']) && (gs['a:srgbClr'] || gs['a:schemeClr'])['a:alpha'];
+            const alpha = alphaNode && alphaNode.attrs ? Number(alphaNode.attrs.val) : undefined;
+            const transparency = alpha != null ? Math.max(0, Math.min(100, 100 - alpha / 1000)) : undefined;
+            return { color, position: pos, ...(transparency != null ? { transparency } : {}) };
         });
         const lin = gf['a:lin'];
         let direction: 'horizontal' | 'vertical' | 'diagonal' = 'horizontal';
-        if (lin && lin.attrs) {
-            const ang = Number(lin.attrs.ang) / 60000; // 度
-            direction = ang >= 45 && ang < 135 ? 'vertical' : (ang >= 22.5 && ang < 67.5 ? 'diagonal' : 'horizontal');
+        let angle: number | undefined;
+        if (lin && lin.attrs && lin.attrs.ang !== undefined) {
+            const rawAng = Number(lin.attrs.ang);
+            angle = (rawAng / 60000) % 360;
+            if (angle < 0) angle += 360;
+            const norm = angle % 180;
+            direction = norm >= 45 && norm < 135 ? 'vertical' : (norm >= 22.5 && norm < 67.5 ? 'diagonal' : 'horizontal');
         }
         // a:path（径向渐变）：没有 a:lin。此前只按线性处理，导出后径向会退化成水平线性
         const path = gf['a:path'];
         out.fill = path
-            ? { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
-            : { type: 'gradient', direction, stops };
+            ? { type: 'gradient', direction, angle, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
+            : { type: 'gradient', direction, angle, stops };
     } else if (spPr['a:pattFill']) {
         // 图案填充（a:pattFill）：prst + 前景/背景色，往返必须保留，否则形状会退化为空白
         const pf = Array.isArray(spPr['a:pattFill']) ? spPr['a:pattFill'][0] : spPr['a:pattFill'];
@@ -1055,21 +1063,33 @@ async function extractBackground(
 function readGradientFill(gradFill: any, themeMap: Record<string, string> = {}): PptxGradientFill | undefined {
     if (!gradFill) return undefined;
     const gsLst = gradFill['a:gsLst'];
-    const stops: { color: string; position: number }[] = [];
+    const stops: { color: string; position: number; transparency?: number }[] = [];
     for (const gs of asArray(gsLst && gsLst['a:gs'])) {
         const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
         const c = spColor(gs, themeMap) || readSrgbClr(gs);
-        if (c) stops.push({ color: c, position: pos });
+        if (!c) continue;
+        const colorNode = gs['a:srgbClr'] || gs['a:schemeClr'];
+        const alphaNode = colorNode && colorNode['a:alpha'];
+        const alpha = alphaNode && alphaNode.attrs ? Number(alphaNode.attrs.val) : undefined;
+        const transparency = alpha != null ? Math.max(0, Math.min(100, 100 - alpha / 1000)) : undefined;
+        stops.push({ color: c, position: pos, ...(transparency != null ? { transparency } : {}) });
     }
     if (!stops.length) return undefined;
     const lin = gradFill['a:lin'];
-    // ang 为 1/60000 度，需换算：90°→vertical、45°→diagonal、其余 horizontal
-    const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
-    const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+    // ang 为 1/60000 度，按实际角度归一化后推断方向
+    let direction: 'horizontal' | 'vertical' | 'diagonal' = 'horizontal';
+    let angle: number | undefined;
+    if (lin && lin.attrs && lin.attrs.ang !== undefined) {
+        const rawAng = Number(lin.attrs.ang);
+        angle = (rawAng / 60000) % 360;
+        if (angle < 0) angle += 360;
+        const norm = angle % 180;
+        direction = norm >= 45 && norm < 135 ? 'vertical' : (norm >= 22.5 && norm < 67.5 ? 'diagonal' : 'horizontal');
+    }
     const path = gradFill['a:path'];
     return path
-        ? { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
-        : { type: 'gradient', direction, stops };
+        ? { type: 'gradient', direction, angle, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
+        : { type: 'gradient', direction, angle, stops };
 }
 
 /** 从 c:chartSpace 反向提取图表语义 */
@@ -2478,7 +2498,7 @@ function resolveThemeBgRef(
     refNode: any,
     bgFills: any[],
     themeMap: Record<string, string>
-): string | { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string } | undefined {
+): string | { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; angle?: number; stops: { color: string; position: number; transparency?: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string } | undefined {
     if (!refNode || !refNode.attrs || !bgFills.length) return undefined;
     const rawIdx = Number(refNode.attrs.idx);
     // idx=0 / 1000 表示无背景
@@ -2503,18 +2523,30 @@ function resolveThemeBgRef(
             .map((gs: any) => {
                 const c = resolveColorNode(gs, colorMap);
                 const pos = gs && gs.attrs && gs.attrs.pos != null ? Number(gs.attrs.pos) / 100000 : 0;
-                return c ? { color: c, position: pos } : undefined;
+                if (!c) return undefined;
+                const colorNode = gs['a:srgbClr'] || gs['a:schemeClr'];
+                const alphaNode = colorNode && colorNode['a:alpha'];
+                const alpha = alphaNode && alphaNode.attrs ? Number(alphaNode.attrs.val) : undefined;
+                const transparency = alpha != null ? Math.max(0, Math.min(100, 100 - alpha / 1000)) : undefined;
+                return { color: c, position: pos, ...(transparency != null ? { transparency } : {}) };
             })
-            .filter((s: any): s is { color: string; position: number } => !!s);
+            .filter((s: any): s is { color: string; position: number; transparency?: number } => !!s);
         if (stops.length) {
             const lin = grad['a:lin'];
-            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
-            const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            let direction: 'horizontal' | 'vertical' | 'diagonal' = 'horizontal';
+            let angle: number | undefined;
+            if (lin && lin.attrs && lin.attrs.ang !== undefined) {
+                const rawAng = Number(lin.attrs.ang);
+                angle = (rawAng / 60000) % 360;
+                if (angle < 0) angle += 360;
+                const norm = angle % 180;
+                direction = norm >= 45 && norm < 135 ? 'vertical' : (norm >= 22.5 && norm < 67.5 ? 'diagonal' : 'horizontal');
+            }
             const path = grad['a:path'];
             if (path) {
-                return { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' };
+                return { type: 'gradient', direction, angle, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' };
             }
-            return { type: 'gradient', direction, stops };
+            return { type: 'gradient', direction, angle, stops };
         }
     }
     return undefined;
@@ -2528,7 +2560,7 @@ function resolveThemeStyleRef(
     refNode: any,
     styleList: any[],
     themeMap: Record<string, string>
-): { color: string; gradient?: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string }; widthPt?: number } | undefined {
+): { color: string; gradient?: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; angle?: number; stops: { color: string; position: number; transparency?: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string }; widthPt?: number } | undefined {
     if (!refNode || !refNode.attrs || !styleList.length) return undefined;
     // idx=0 在 OOXML 中表示 noFill/noLine（不引用任何样式），直接返回 undefined
     const rawIdx = Number(refNode.attrs.idx);
@@ -2547,8 +2579,8 @@ function resolveThemeStyleRef(
     const fillNode = entry['a:solidFill'] || entry['a:gradFill'] || entry;
     let color = resolveColorNode(fillNode['a:solidFill'], colorMap)
         || ((fillNode['a:schemeClr'] || fillNode['a:srgbClr']) ? resolveColorNode(fillNode, colorMap) : undefined);
-    // 渐变样式（fillStyleLst[1] 等）：完整提取所有 stop（按 phClr 逐个解析）与方向
-    let gradient: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; stops: { color: string; position: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string } | undefined;
+    // 渐变样式（fillStyleLst[1] 等）：完整提取所有 stop（按 phClr 逐个解析）与方向/透明度
+    let gradient: { type: 'gradient'; direction?: 'horizontal' | 'vertical' | 'diagonal'; angle?: number; stops: { color: string; position: number; transparency?: number }[]; gradientType?: 'linear' | 'radial'; gradientPath?: string } | undefined;
     if (!color) {
         const grad = fillNode['a:gradFill'] || (fillNode['a:gsLst'] ? fillNode : undefined);
         const gsLst = grad && grad['a:gsLst'];
@@ -2557,15 +2589,26 @@ function resolveThemeStyleRef(
             .map((gs: any) => {
                 const c = resolveColorNode(gs, colorMap);
                 const pos = gs && gs.attrs && gs.attrs.pos != null ? Number(gs.attrs.pos) / 100000 : 0;
-                return c ? { color: c, position: pos } : undefined;
+                if (!c) return undefined;
+                const colorNode = gs['a:srgbClr'] || gs['a:schemeClr'];
+                const alphaNode = colorNode && colorNode['a:alpha'];
+                const alpha = alphaNode && alphaNode.attrs ? Number(alphaNode.attrs.val) : undefined;
+                const transparency = alpha != null ? Math.max(0, Math.min(100, 100 - alpha / 1000)) : undefined;
+                return { color: c, position: pos, ...(transparency != null ? { transparency } : {}) };
             })
-            .filter((s: any): s is { color: string; position: number } => !!s);
+            .filter((s: any): s is { color: string; position: number; transparency?: number } => !!s);
         if (stops.length) {
             color = stops[0].color;
             gradient = { type: 'gradient', stops };
             const lin = grad && grad['a:lin'];
-            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
-            gradient.direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            if (lin && lin.attrs && lin.attrs.ang !== undefined) {
+                const rawAng = Number(lin.attrs.ang);
+                let angle = (rawAng / 60000) % 360;
+                if (angle < 0) angle += 360;
+                gradient.angle = angle;
+                const norm = angle % 180;
+                gradient.direction = norm >= 45 && norm < 135 ? 'vertical' : (norm >= 22.5 && norm < 67.5 ? 'diagonal' : 'horizontal');
+            }
             // a:path：径向渐变（主题 fillStyleLst 常用），此前会被当成水平线性
             const path = grad && grad['a:path'];
             if (path) {

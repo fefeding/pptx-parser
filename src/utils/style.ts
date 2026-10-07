@@ -122,17 +122,21 @@ function getFillType(node: XmlNode | undefined) {
             if (fillColor !== undefined) {
                 if (fillType === "GRADIENT_FILL") {
                     if (isSvgMode) {
-    
+
                         return fillColor;
                     } else {
-                        let { color: colorAry, rot } = fillColor;
+                        let { color: colorAry, rot, alpha: alphaAry, pos: posAry } = fillColor;
 
                         let bgcolor = `background: linear-gradient(${rot}deg,`;
                         for (const i of colorAry.keys()){
+                            const a = alphaAry && alphaAry[i] != null ? alphaAry[i] : 1;
+                            const tc = tinycolor(`#${colorAry[i]}`);
+                            const colorStr = a < 1 ? tc.setAlpha(a).toRgbString() : `#${colorAry[i]}`;
+                            const posStr = posAry && posAry[i] ? ` ${posAry[i]}` : '';
                             if (i == colorAry.length - 1) {
-                                bgcolor += `#${colorAry[i]});`;
+                                bgcolor += `${colorStr}${posStr});`;
                             } else {
-                                bgcolor += `#${colorAry[i]}, `;
+                                bgcolor += `${colorStr}${posStr}, `;
                             }
 
                         }
@@ -1308,19 +1312,26 @@ function getFillType(node: XmlNode | undefined) {
                     gsLst = gsLst ? [gsLst] : [];
                 }
                 //var startColorNode, endColorNode;
-                let color_ary = [];
-                const pos_ary = [];
+                let color_ary: string[] = [];
+                let alpha_ary: number[] = [];
+                const pos_ary: string[] = [];
                 //let tint_ary = [];
+                const clrMap = slideMasterContent && slideMasterContent["p:sldMaster"] && slideMasterContent["p:sldMaster"]["p:clrMap"] ? slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"] : undefined;
                 for (const i of gsLst.keys()){
-                    let lo_tint;
-                    let lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
+                    let lo_color = getSolidFill(gsLst[i], clrMap, phClr, warpObj);
+                    let a = 1;
+                    if (typeof lo_color === 'string' && lo_color.length === 8) {
+                        a = parseInt(lo_color.slice(6), 16) / 255;
+                        lo_color = lo_color.slice(0, 6);
+                    }
                     const pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"])
                     if (pos !== undefined) {
                         pos_ary[i] = `${pos / 1000}%`;
                     } else {
                         pos_ary[i] = "";
                     }
-                    color_ary[i] = `#${lo_color}`;
+                    color_ary[i] = lo_color;
+                    alpha_ary[i] = a;
                     //tint_ary[i] = (lo_tint !== undefined) ? parseInt(lo_tint) / 100000 : 1;
                 }
                 //get rot
@@ -1332,22 +1343,14 @@ function getFillType(node: XmlNode | undefined) {
                 }
                 bgcolor = `background: linear-gradient(${rot}deg,`;
                 for (const i of gsLst.keys()){
+                    const a = alpha_ary[i] != null ? alpha_ary[i] : 1;
+                    const tc = tinycolor(`#${color_ary[i]}`);
+                    const colorStr = a < 1 ? tc.setAlpha(a).toRgbString() : `#${color_ary[i]}`;
+                    const posStr = pos_ary[i] ? ` ${pos_ary[i]}` : '';
                     if (i == gsLst.length - 1) {
-                        //if (phClr === undefined) {
-                        //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ");";
-                        bgcolor += `${color_ary[i]} ${pos_ary[i]});`;
-                        //} else {
-                        //bgcolor += "rgba(" + hexToRgbNew(phClr) + "," + tint_ary[i] + ")" + ");";
-                        // bgcolor += "" + phClr + ";";;
-                        //}
+                        bgcolor += `${colorStr}${posStr});`;
                     } else {
-                        //if (phClr === undefined) {
-                        //bgcolor += "rgba(" + hexToRgbNew(color_ary[i]) + "," + tint_ary[i] + ")" + ", ";
-                        bgcolor += `${color_ary[i]} ${pos_ary[i]}, `;;
-                        //} else {
-                        //bgcolor += "rgba(" + hexToRgbNew(phClr) + "," + tint_ary[i] + ")" + ", ";
-                        // bgcolor += phClr + ", ";
-                        //}
+                        bgcolor += `${colorStr}${posStr}, `;
                     }
                 }
             } else {
@@ -1470,12 +1473,21 @@ function getFillType(node: XmlNode | undefined) {
                 gsLst = gsLst ? [gsLst] : [];
             }
             //get start color
-            let color_ary = [];
-            let tint_ary = [];
+            let color_ary: string[] = [];
+            let alpha_ary: number[] = [];
+            let pos_ary: string[] = [];
             for (const i of gsLst.keys()){
-                let lo_tint;
                 let lo_color = getSolidFill(gsLst[i], undefined, undefined, warpObj);
+                // getSolidFill 对含 a:alpha 的颜色返回 8 位 hex（后两位为 alpha），需拆出
+                let a = 1;
+                if (typeof lo_color === 'string' && lo_color.length === 8) {
+                    a = parseInt(lo_color.slice(6), 16) / 255;
+                    lo_color = lo_color.slice(0, 6);
+                }
                 color_ary[i] = lo_color;
+                alpha_ary[i] = a;
+                const pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"]);
+                pos_ary[i] = pos !== undefined ? `${Number(pos) / 1000}%` : "";
             }
             //get rot
             let lin = node!["a:lin"];
@@ -1485,6 +1497,8 @@ function getFillType(node: XmlNode | undefined) {
             }
             return {
                 "color": color_ary,
+                "alpha": alpha_ary,
+                "pos": pos_ary,
                 "rot": rot
             }
         }
@@ -2915,9 +2929,7 @@ function getFillType(node: XmlNode | undefined) {
             return out;
         }
 
-        function getSvgGradient(w: any, h: any, angl: any, color_arry: any, shpId: any) {
-            const stopsArray = getMiddleStops(color_arry - 2);
-
+        function getSvgGradient(w: any, h: any, angl: any, color_arry: any, shpId: any, alpha_arry?: any, pos_arry?: any) {
             let svgAngle = '',
                 svgHeight = h,
                 svgWidth = w,
@@ -2928,21 +2940,30 @@ function getFillType(node: XmlNode | undefined) {
                 x2 = xy_ary[2],
                 y2 = xy_ary[3];
 
-            let sal = stopsArray.length,
-                sr = sal < 20 ? 100 : 1000;
+            const sal = color_arry.length;
+            let sr = sal < 20 ? 100 : 1000;
             svgAngle = ` gradientUnits="userSpaceOnUse" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%"`;
             svgAngle = `<linearGradient id="linGrd_${shpId}"${svgAngle}>\n`;
             svg += svgAngle;
 
-            // 收集原始色标
+            // 收集原始色标：优先使用 OOXML a:gs/@pos（pos_arry），否则按 0/100 均分
             const rawStops: { offset: number; rgb: number[]; alpha: number }[] = [];
             for (let i = 0; i < sal; i++) {
                 const tinClr = tinycolor(`#${color_arry[i]}`);
                 const rgb = tinClr.toRgb();
+                const a = alpha_arry && alpha_arry[i] != null ? alpha_arry[i] : tinClr.getAlpha();
+                let offset: number;
+                if (pos_arry && pos_arry[i] != null) {
+                    offset = Number(String(pos_arry[i]).replace('%', '')) / 100;
+                } else if (sal === 1) {
+                    offset = 0;
+                } else {
+                    offset = i / (sal - 1);
+                }
                 rawStops.push({
-                    offset: parseFloat(stopsArray[i]) / 100,
+                    offset,
                     rgb: [rgb.r, rgb.g, rgb.b],
-                    alpha: tinClr.getAlpha()
+                    alpha: a
                 });
             }
             // PowerPoint/WPS 的渐变是在「线性光」空间插值的：实测中点色比 sRGB 插值更亮、更偏向后一色，
@@ -2951,7 +2972,8 @@ function getFillType(node: XmlNode | undefined) {
 
             for (const st of stops) {
                 const hex = st.rgb.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
-                const offset = Math.round(st.offset * 100 * sr) / sr;
+                // SVG offset 支持 0~1 小数或带 % 的百分比，避免裸百分比数值被当成 1.0 倍数而越界
+                const offset = Math.round(st.offset * sr) / sr;
                 svg += `<stop offset="${offset}" style="stop-color:#${hex}; stop-opacity:${Math.round(st.alpha * 1000) / 1000};"`;
                 svg += '/>\n'
             }

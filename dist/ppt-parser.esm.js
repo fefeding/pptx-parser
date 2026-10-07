@@ -1788,14 +1788,18 @@ async function getShapeFill(node, pNode, isSvgMode, warpObj, source) {
                 return fillColor;
             }
             else {
-                let { color: colorAry, rot } = fillColor;
+                let { color: colorAry, rot, alpha: alphaAry, pos: posAry } = fillColor;
                 let bgcolor = `background: linear-gradient(${rot}deg,`;
                 for (const i of colorAry.keys()) {
+                    const a = alphaAry && alphaAry[i] != null ? alphaAry[i] : 1;
+                    const tc = tinycolor$2(`#${colorAry[i]}`);
+                    const colorStr = a < 1 ? tc.setAlpha(a).toRgbString() : `#${colorAry[i]}`;
+                    const posStr = posAry && posAry[i] ? ` ${posAry[i]}` : '';
                     if (i == colorAry.length - 1) {
-                        bgcolor += `#${colorAry[i]});`;
+                        bgcolor += `${colorStr}${posStr});`;
                     }
                     else {
-                        bgcolor += `#${colorAry[i]}, `;
+                        bgcolor += `${colorStr}${posStr}, `;
                     }
                 }
                 return bgcolor;
@@ -2696,9 +2700,16 @@ function getBgGradientFill(bgPr, phClr, slideMasterContent, warpObj) {
             gsLst = gsLst ? [gsLst] : [];
         }
         let color_ary = [];
+        let alpha_ary = [];
         const pos_ary = [];
+        const clrMap = slideMasterContent && slideMasterContent["p:sldMaster"] && slideMasterContent["p:sldMaster"]["p:clrMap"] ? slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"] : undefined;
         for (const i of gsLst.keys()) {
-            let lo_color = getSolidFill(gsLst[i], slideMasterContent["p:sldMaster"]["p:clrMap"]["attrs"], phClr, warpObj);
+            let lo_color = getSolidFill(gsLst[i], clrMap, phClr, warpObj);
+            let a = 1;
+            if (typeof lo_color === 'string' && lo_color.length === 8) {
+                a = parseInt(lo_color.slice(6), 16) / 255;
+                lo_color = lo_color.slice(0, 6);
+            }
             const pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"]);
             if (pos !== undefined) {
                 pos_ary[i] = `${pos / 1000}%`;
@@ -2706,7 +2717,8 @@ function getBgGradientFill(bgPr, phClr, slideMasterContent, warpObj) {
             else {
                 pos_ary[i] = "";
             }
-            color_ary[i] = `#${lo_color}`;
+            color_ary[i] = lo_color;
+            alpha_ary[i] = a;
         }
         let lin = grdFill["a:lin"];
         let rot = 90;
@@ -2716,11 +2728,15 @@ function getBgGradientFill(bgPr, phClr, slideMasterContent, warpObj) {
         }
         bgcolor = `background: linear-gradient(${rot}deg,`;
         for (const i of gsLst.keys()) {
+            const a = alpha_ary[i] != null ? alpha_ary[i] : 1;
+            const tc = tinycolor$2(`#${color_ary[i]}`);
+            const colorStr = a < 1 ? tc.setAlpha(a).toRgbString() : `#${color_ary[i]}`;
+            const posStr = pos_ary[i] ? ` ${pos_ary[i]}` : '';
             if (i == gsLst.length - 1) {
-                bgcolor += `${color_ary[i]} ${pos_ary[i]});`;
+                bgcolor += `${colorStr}${posStr});`;
             }
             else {
-                bgcolor += `${color_ary[i]} ${pos_ary[i]}, `;
+                bgcolor += `${colorStr}${posStr}, `;
             }
         }
     }
@@ -2778,9 +2794,19 @@ function getGradientFill(node, warpObj) {
         gsLst = gsLst ? [gsLst] : [];
     }
     let color_ary = [];
+    let alpha_ary = [];
+    let pos_ary = [];
     for (const i of gsLst.keys()) {
         let lo_color = getSolidFill(gsLst[i], undefined, undefined, warpObj);
+        let a = 1;
+        if (typeof lo_color === 'string' && lo_color.length === 8) {
+            a = parseInt(lo_color.slice(6), 16) / 255;
+            lo_color = lo_color.slice(0, 6);
+        }
         color_ary[i] = lo_color;
+        alpha_ary[i] = a;
+        const pos = PPTXXmlUtils.getTextByPathList(gsLst[i], ["attrs", "pos"]);
+        pos_ary[i] = pos !== undefined ? `${Number(pos) / 1000}%` : "";
     }
     let lin = node["a:lin"];
     let rot = 0;
@@ -2789,6 +2815,8 @@ function getGradientFill(node, warpObj) {
     }
     return {
         "color": color_ary,
+        "alpha": alpha_ary,
+        "pos": pos_ary,
         "rot": rot
     };
 }
@@ -3617,10 +3645,10 @@ function subdivideGradientStops(rawStops) {
     }
     return out;
 }
-function getSvgGradient(w, h, angl, color_arry, shpId) {
-    const stopsArray = getMiddleStops(color_arry - 2);
+function getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry) {
     let svgAngle = '', svgHeight = h, svgWidth = w, svg = '', xy_ary = SVGangle(angl, svgHeight, svgWidth), x1 = xy_ary[0], y1 = xy_ary[1], x2 = xy_ary[2], y2 = xy_ary[3];
-    let sal = stopsArray.length, sr = sal < 20 ? 100 : 1000;
+    const sal = color_arry.length;
+    let sr = sal < 20 ? 100 : 1000;
     svgAngle = ` gradientUnits="userSpaceOnUse" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%"`;
     svgAngle = `<linearGradient id="linGrd_${shpId}"${svgAngle}>\n`;
     svg += svgAngle;
@@ -3628,16 +3656,27 @@ function getSvgGradient(w, h, angl, color_arry, shpId) {
     for (let i = 0; i < sal; i++) {
         const tinClr = tinycolor$2(`#${color_arry[i]}`);
         const rgb = tinClr.toRgb();
+        const a = alpha_arry && alpha_arry[i] != null ? alpha_arry[i] : tinClr.getAlpha();
+        let offset;
+        if (pos_arry && pos_arry[i] != null) {
+            offset = Number(String(pos_arry[i]).replace('%', '')) / 100;
+        }
+        else if (sal === 1) {
+            offset = 0;
+        }
+        else {
+            offset = i / (sal - 1);
+        }
         rawStops.push({
-            offset: parseFloat(stopsArray[i]) / 100,
+            offset,
             rgb: [rgb.r, rgb.g, rgb.b],
-            alpha: tinClr.getAlpha()
+            alpha: a
         });
     }
     const stops = subdivideGradientStops(rawStops);
     for (const st of stops) {
         const hex = st.rgb.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
-        const offset = Math.round(st.offset * 100 * sr) / sr;
+        const offset = Math.round(st.offset * sr) / sr;
         svg += `<stop offset="${offset}" style="stop-color:#${hex}; stop-opacity:${Math.round(st.alpha * 1000) / 1000};"`;
         svg += '/>\n';
     }
@@ -8810,8 +8849,10 @@ const PPTXShapeUtils = (function () {
             if (clrFillType == "GRADIENT_FILL") {
                 grndFillFlg = true;
                 const color_arry = fillColor.color;
+                const alpha_arry = fillColor.alpha;
                 const angl = fillColor.rot - 90;
-                const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId);
+                const pos_arry = fillColor.pos;
+                const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry);
                 result += svgGrdnt;
             }
             else if (clrFillType == "PIC_FILL") {
@@ -17695,18 +17736,27 @@ function readSpPr(spPr, themeMap = {}) {
         const gsLst = gf['a:gsLst'];
         const stops = (gsLst ? asArray(gsLst['a:gs']) : []).map((gs) => {
             const pos = gs && gs.attrs ? Number(gs.attrs.pos) / 100000 : 0;
-            return { color: spColor(gs, themeMap) || '000000', position: pos };
+            const color = spColor(gs, themeMap) || '000000';
+            const alphaNode = gs && (gs['a:srgbClr'] || gs['a:schemeClr']) && (gs['a:srgbClr'] || gs['a:schemeClr'])['a:alpha'];
+            const alpha = alphaNode && alphaNode.attrs ? Number(alphaNode.attrs.val) : undefined;
+            const transparency = alpha != null ? Math.max(0, Math.min(100, 100 - alpha / 1000)) : undefined;
+            return { color, position: pos, ...(transparency != null ? { transparency } : {}) };
         });
         const lin = gf['a:lin'];
         let direction = 'horizontal';
-        if (lin && lin.attrs) {
-            const ang = Number(lin.attrs.ang) / 60000;
-            direction = ang >= 45 && ang < 135 ? 'vertical' : (ang >= 22.5 && ang < 67.5 ? 'diagonal' : 'horizontal');
+        let angle;
+        if (lin && lin.attrs && lin.attrs.ang !== undefined) {
+            const rawAng = Number(lin.attrs.ang);
+            angle = (rawAng / 60000) % 360;
+            if (angle < 0)
+                angle += 360;
+            const norm = angle % 180;
+            direction = norm >= 45 && norm < 135 ? 'vertical' : (norm >= 22.5 && norm < 67.5 ? 'diagonal' : 'horizontal');
         }
         const path = gf['a:path'];
         out.fill = path
-            ? { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
-            : { type: 'gradient', direction, stops };
+            ? { type: 'gradient', direction, angle, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
+            : { type: 'gradient', direction, angle, stops };
     }
     else if (spPr['a:pattFill']) {
         const pf = Array.isArray(spPr['a:pattFill']) ? spPr['a:pattFill'][0] : spPr['a:pattFill'];
@@ -18140,18 +18190,31 @@ function readGradientFill(gradFill, themeMap = {}) {
     for (const gs of asArray(gsLst && gsLst['a:gs'])) {
         const pos = gs && gs.attrs && gs.attrs.pos ? Number(gs.attrs.pos) / 100000 : 0;
         const c = spColor(gs, themeMap) || readSrgbClr(gs);
-        if (c)
-            stops.push({ color: c, position: pos });
+        if (!c)
+            continue;
+        const colorNode = gs['a:srgbClr'] || gs['a:schemeClr'];
+        const alphaNode = colorNode && colorNode['a:alpha'];
+        const alpha = alphaNode && alphaNode.attrs ? Number(alphaNode.attrs.val) : undefined;
+        const transparency = alpha != null ? Math.max(0, Math.min(100, 100 - alpha / 1000)) : undefined;
+        stops.push({ color: c, position: pos, ...(transparency != null ? { transparency } : {}) });
     }
     if (!stops.length)
         return undefined;
     const lin = gradFill['a:lin'];
-    const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
-    const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+    let direction = 'horizontal';
+    let angle;
+    if (lin && lin.attrs && lin.attrs.ang !== undefined) {
+        const rawAng = Number(lin.attrs.ang);
+        angle = (rawAng / 60000) % 360;
+        if (angle < 0)
+            angle += 360;
+        const norm = angle % 180;
+        direction = norm >= 45 && norm < 135 ? 'vertical' : (norm >= 22.5 && norm < 67.5 ? 'diagonal' : 'horizontal');
+    }
     const path = gradFill['a:path'];
     return path
-        ? { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
-        : { type: 'gradient', direction, stops };
+        ? { type: 'gradient', direction, angle, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
+        : { type: 'gradient', direction, angle, stops };
 }
 function extractChart(chartXml, themeMap = {}) {
     try {
@@ -19478,18 +19541,32 @@ function resolveThemeBgRef(refNode, bgFills, themeMap) {
             .map((gs) => {
             const c = resolveColorNode(gs, colorMap);
             const pos = gs && gs.attrs && gs.attrs.pos != null ? Number(gs.attrs.pos) / 100000 : 0;
-            return c ? { color: c, position: pos } : undefined;
+            if (!c)
+                return undefined;
+            const colorNode = gs['a:srgbClr'] || gs['a:schemeClr'];
+            const alphaNode = colorNode && colorNode['a:alpha'];
+            const alpha = alphaNode && alphaNode.attrs ? Number(alphaNode.attrs.val) : undefined;
+            const transparency = alpha != null ? Math.max(0, Math.min(100, 100 - alpha / 1000)) : undefined;
+            return { color: c, position: pos, ...(transparency != null ? { transparency } : {}) };
         })
             .filter((s) => !!s);
         if (stops.length) {
             const lin = grad['a:lin'];
-            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
-            const direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            let direction = 'horizontal';
+            let angle;
+            if (lin && lin.attrs && lin.attrs.ang !== undefined) {
+                const rawAng = Number(lin.attrs.ang);
+                angle = (rawAng / 60000) % 360;
+                if (angle < 0)
+                    angle += 360;
+                const norm = angle % 180;
+                direction = norm >= 45 && norm < 135 ? 'vertical' : (norm >= 22.5 && norm < 67.5 ? 'diagonal' : 'horizontal');
+            }
             const path = grad['a:path'];
             if (path) {
-                return { type: 'gradient', direction, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' };
+                return { type: 'gradient', direction, angle, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' };
             }
-            return { type: 'gradient', direction, stops };
+            return { type: 'gradient', direction, angle, stops };
         }
     }
     return undefined;
@@ -19522,15 +19599,28 @@ function resolveThemeStyleRef(refNode, styleList, themeMap) {
             .map((gs) => {
             const c = resolveColorNode(gs, colorMap);
             const pos = gs && gs.attrs && gs.attrs.pos != null ? Number(gs.attrs.pos) / 100000 : 0;
-            return c ? { color: c, position: pos } : undefined;
+            if (!c)
+                return undefined;
+            const colorNode = gs['a:srgbClr'] || gs['a:schemeClr'];
+            const alphaNode = colorNode && colorNode['a:alpha'];
+            const alpha = alphaNode && alphaNode.attrs ? Number(alphaNode.attrs.val) : undefined;
+            const transparency = alpha != null ? Math.max(0, Math.min(100, 100 - alpha / 1000)) : undefined;
+            return { color: c, position: pos, ...(transparency != null ? { transparency } : {}) };
         })
             .filter((s) => !!s);
         if (stops.length) {
             color = stops[0].color;
             gradient = { type: 'gradient', stops };
             const lin = grad && grad['a:lin'];
-            const ang = lin && lin.attrs && lin.attrs.ang !== undefined ? Number(lin.attrs.ang) / 60000 : 0;
-            gradient.direction = ang === 90 ? 'vertical' : ang === 45 ? 'diagonal' : 'horizontal';
+            if (lin && lin.attrs && lin.attrs.ang !== undefined) {
+                const rawAng = Number(lin.attrs.ang);
+                let angle = (rawAng / 60000) % 360;
+                if (angle < 0)
+                    angle += 360;
+                gradient.angle = angle;
+                const norm = angle % 180;
+                gradient.direction = norm >= 45 && norm < 135 ? 'vertical' : (norm >= 22.5 && norm < 67.5 ? 'diagonal' : 'horizontal');
+            }
             const path = grad && grad['a:path'];
             if (path) {
                 gradient.gradientType = 'radial';

@@ -679,7 +679,16 @@ function fillToPptx(fill) {
   if (!fill) return undefined;
   if (typeof fill === 'string') return fill;
   if (fill.type === 'gradient') {
-    const g = { type: 'gradient', direction: fill.direction || 'horizontal', stops: (fill.stops || []).map((s) => ({ color: s.color, position: s.position })) };
+    const g = {
+      type: 'gradient',
+      direction: fill.direction || 'horizontal',
+      stops: (fill.stops || []).map((s) => {
+        const out = { color: s.color, position: s.position };
+        if (s.transparency != null) out.transparency = s.transparency;
+        return out;
+      })
+    };
+    if (typeof fill.angle === 'number') g.angle = fill.angle;
     // 径向渐变（a:path）：缺了会退化成水平线性
     if (fill.gradientType === 'radial') { g.gradientType = 'radial'; g.gradientPath = fill.gradientPath || 'circle'; }
     return g;
@@ -1151,8 +1160,13 @@ function fillFromPptx(fill) {
     const g = {
       type: 'gradient',
       direction: fill.direction || 'horizontal',
-      stops: (fill.stops || []).map((s) => ({ color: colorFromPptx(s.color) || '#FFFFFF', position: s.position ?? 0 }))
+      stops: (fill.stops || []).map((s) => {
+        const out = { color: colorFromPptx(s.color) || '#FFFFFF', position: s.position ?? 0 };
+        if (s.transparency != null) out.transparency = s.transparency;
+        return out;
+      })
     };
+    if (typeof fill.angle === 'number') g.angle = fill.angle;
     if (fill.gradientType === 'radial') { g.gradientType = 'radial'; g.gradientPath = fill.gradientPath || 'circle'; }
     return g;
   }
