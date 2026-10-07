@@ -1728,11 +1728,13 @@ function effectGeometry(el, W, H) {
     if (d) {
       const tf = svgFlipTransform(el.flipH, el.flipV, W, H);
       const tfAttr = tf.trim() ? ` transform="${tf.trim()}"` : '';
-      // 阴影只取轮廓：填充一律去掉；开放曲线（涂鸦）保留描边环
+      // 阴影/发光需要 SourceAlpha：有填充时必须保留填充（颜色值本身会被 filter 替换），
+      // 仅描边或开放曲线才 fill="none"，并用描边提供 alpha。
       const strokeAttrs = (strokeOnly && lineColor)
         ? ` stroke="${lineColor}" stroke-width="${lineW.toFixed(2)}" stroke-linecap="round"`
         : '';
-      return `<path d="${d}"${tfAttr} fill="none"${strokeAttrs}/>`;
+      const shadowFill = strokeOnly ? 'none' : (fill || '#000000');
+      return `<path d="${d}"${tfAttr} fill="${shadowFill}"${strokeAttrs}/>`;
     }
   }
   // 1) 预设几何（本体就用 presetShapeSvg 渲染，阴影同源）
@@ -1753,17 +1755,18 @@ function effectGeometry(el, W, H) {
   }
   // 2) CSS 几何回退
   const geo = shapeGeometry(el);
+  const cssFill = strokeOnly ? 'none' : (fill || '#000000');
   if (geo.clipPath) {
     const m = geo.clipPath.match(/polygon\(([^)]+)\)/);
     if (m) {
       const pts = m[1].trim().split(/\s*,\s*/).map((p) => p.trim().split(/\s+/).map((v) => parseFloat(v)));
-      return `<polygon points="${pts.map(([x, y]) => `${(x / 100 * W).toFixed(2)},${(y / 100 * H).toFixed(2)}`).join(' ')}"/>`;
+      return `<polygon points="${pts.map(([x, y]) => `${(x / 100 * W).toFixed(2)},${(y / 100 * H).toFixed(2)}`).join(' ')}" fill="${cssFill}"/>`;
     }
-    return `<rect x="0" y="0" width="${W}" height="${H}"/>`;
+    return `<rect x="0" y="0" width="${W}" height="${H}" fill="${cssFill}"/>`;
   }
   if (geo.borderRadius) {
     const br = geo.borderRadius;
-    const strokeAttrs = strokeOnly && lineColor ? ` fill="none" stroke="${lineColor}" stroke-width="${lineW.toFixed(2)}"` : '';
+    const strokeAttrs = strokeOnly && lineColor ? ` fill="none" stroke="${lineColor}" stroke-width="${lineW.toFixed(2)}"` : ` fill="${cssFill}"`;
     if (br === '50%') {
       return `<ellipse cx="${(W / 2).toFixed(2)}" cy="${(H / 2).toFixed(2)}" rx="${(W / 2).toFixed(2)}" ry="${(H / 2).toFixed(2)}"${strokeAttrs}/>`;
     }
@@ -1772,7 +1775,7 @@ function effectGeometry(el, W, H) {
     const ry = br.endsWith('%') ? (num / 100 * H) : num;
     return `<rect x="0" y="0" width="${W}" height="${H}" rx="${rx.toFixed(2)}" ry="${ry.toFixed(2)}"${strokeAttrs}/>`;
   }
-  return `<rect x="0" y="0" width="${W}" height="${H}"/>`;
+  return `<rect x="0" y="0" width="${W}" height="${H}" fill="${cssFill}"/>`;
 }
 
 let _fxUid = 0;
