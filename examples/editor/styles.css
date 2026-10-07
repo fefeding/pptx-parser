@@ -209,7 +209,12 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
      否则小高度文本框（如 23.6px）去掉 padding 后内容区过小，文字会偏下。 */
   box-sizing: border-box;
 }
-.el-text .tb-body > div { min-height: 1em; }
+.el-text .tb-body > div {
+  min-height: 1em;
+  /* 防止 flex 容器把段落压缩到小于内容高度（如小高度文本框 23.6px），
+     导致实际文字溢出并偏离垂直中心。 */
+  flex-shrink: 0;
+}
 /* 列表段落：负向首行缩进实现悬挂缩进 */
 .el-text .tb-body > div.bullet-para { padding-left: 1.3em; text-indent: -1.3em; }
 .el-text .tb-body > div.num-para { padding-left: 1.8em; text-indent: -1.8em; }
