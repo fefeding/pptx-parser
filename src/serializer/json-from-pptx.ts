@@ -145,6 +145,19 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
     if (attrs.b === '1' || attrs.b === 1) style.bold = true;
     if (attrs.i === '1' || attrs.i === 1) style.italic = true;
     if (attrs.u && attrs.u !== 'none') style.underline = true;
+    // 删除线（a:rPr@strike="1" 或 a:strike 子节点存在）
+    if (attrs.strike === '1' || attrs.strike === 1 || rPr['a:strike']) style.strike = true;
+    // 小型大写（a:rPr@cap="small"）
+    if (attrs.cap === 'small') style.smallCaps = true;
+    // 高亮（a:rPr/a:highlight）：srgbClr 或 schemeClr → #RRGGBB
+    const hl = rPr['a:highlight'];
+    if (hl) {
+        const hc = spColor(hl, themeMap);
+        if (hc) style.highlight = hc;
+    }
+    // 着重号（a:rPr/a:em@type）
+    const em = rPr['a:em'];
+    if (em && em.attrs && em.attrs.type) style.emphasisMark = String(em.attrs.type);
     // 某些生成器会在 a:rPr 下直接写 a:srgbClr/a:schemeClr（与 a:solidFill 并存），
     // 按实际渲染优先级优先取直接子节点颜色，再回退到 a:solidFill
     const directColorNode = rPr['a:srgbClr'] || rPr['a:schemeClr'];
@@ -153,6 +166,11 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
     if (color) style.color = color;
     const latin = rPr['a:latin'];
     if (latin && latin.attrs && latin.attrs.typeface) style.fontFace = String(latin.attrs.typeface);
+    // 东亚字体（a:ea）：中文/日文/韩文字符实际使用的字形。
+    // 中文 PPT 常见 `a:latin="+mn-lt"(Arial)` + `a:ea="微软雅黑"` 的组合，
+    // 只取 latin 会让中文回退到系统默认字形（宋体/黑体），与预览端不一致。
+    const ea = rPr['a:ea'];
+    if (ea && ea.attrs && ea.attrs.typeface) style.fontFaceEa = String(ea.attrs.typeface);
     const hlink = rPr['a:hlinkClick'] || rPr['a:hlinkHover'];
     if (hlink && hlink.attrs && hlink.attrs['r:id']) {
         // r:id 是关系 id，需解析成实际 URL（外部 http(s) 或内部 '#N' 跳转）。
@@ -193,6 +211,22 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
             alpha
         };
     }
+    // 上下标（a:rPr@baseline，1/1000 百分比；>0 上标、<0 下标）。0 视为正常不记录。
+    if (attrs.baseline != null && Number(attrs.baseline) !== 0) {
+        style.baseline = Number(attrs.baseline) / 1000;
+    }
+    // 字符间距（字距）：a:rPr/a:spc（spcPts 绝对磅值 / spcPct 相对字号比例），统一折算为屏幕像素 px
+    const spc = rPr['a:spc'];
+    if (spc) {
+        const fsPt = style.fontSize || 13.5;
+        if (spc['a:spcPts'] && spc['a:spcPts'].attrs) {
+            const pts = Number(spc['a:spcPts'].attrs.val) / 100;
+            style.spacing = Math.round(pts * 96 / 72 * 100) / 100;
+        } else if (spc['a:spcPct'] && spc['a:spcPct'].attrs) {
+            const ratio = Number(spc['a:spcPct'].attrs.val) / 100000;
+            style.spacing = Math.round(ratio * fsPt * 96 / 72 * 100) / 100;
+        }
+    }
     return style;
 }
 
@@ -200,7 +234,7 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
  * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
  * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
  */
-function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined, inheritedLvl?: (lvl: number) => any, inheritedBodyPrRaw?: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean } {
+function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined, inheritedLvl?: (lvl: number) => any, inheritedBodyPrRaw?: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
     let text = '';
@@ -315,6 +349,13 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
             if (bf && bf.attrs && bf.attrs.typeface) bullet.font = String(bf.attrs.typeface);
             const szPct = pPr['a:buSzPct'] && pPr['a:buSzPct'].attrs && Number(pPr['a:buSzPct'].attrs.val) / 1000;
             if (szPct) bullet.sizePct = szPct;
+        }
+
+        // 项目符号颜色（a:buClr）：字符/编号/图片项目符号都可带；缺省继承文本色
+        const buClrNode = pPr && pPr['a:buClr'];
+        if (bullet && buClrNode) {
+            const bc = spColor(buClrNode, themeMap);
+            if (bc) bullet.color = bc;
         }
 
         // 行距 / 段间距 / 缩进
@@ -493,7 +534,7 @@ function spColor(node: any, themeMap: Record<string, string>): string | undefine
 }
 
 /** 从 p:spPr 读取几何/填充/边框/特效（themeMap 用于把 schemeClr 解析为实际 RRGGBB） */
-function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'line' | 'effects'> {
+function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'line' | 'effects' | 'effectsRaw'> {
     const out: any = { shapeType: 'rect' };
     if (!spPr) return out;
     const prst = spPr['a:prstGeom'];
@@ -563,6 +604,9 @@ function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxSh
             if (color) lineObj.color = color;
             if (transparency != null) lineObj.transparency = transparency;
             if (dash) lineObj.dashType = String(dash);
+            // 线帽（a:ln@cap：rnd/flat/sq）：开放路径（连接线/弧线）端点样式
+            const cap = ln.attrs && ln.attrs.cap;
+            if (cap) lineObj.cap = String(cap);
             const headEnd = ln['a:headEnd'];
             const tailEnd = ln['a:tailEnd'];
             if (headEnd && headEnd.attrs && headEnd.attrs.type && headEnd.attrs.type !== 'none') lineObj.startArrow = String(headEnd.attrs.type);
@@ -602,8 +646,36 @@ function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxSh
             if (srgb && srgb.attrs && srgb.attrs.val) g.color = String(srgb.attrs.val);
             effects.glow = g;
         }
-        if (effects.shadow || effects.glow) out.effects = effects;
+        // 反射（a:effectLst/a:reflection）：与阴影/发光同处一个 a:effectLst，合并进 effects 语义字段
+        const refl = effLst['a:reflection'];
+        if (refl && refl.attrs) {
+            const r: any = {};
+            if (refl.attrs.blurRad != null) r.blur = emuToPt(refl.attrs.blurRad);
+            if (refl.attrs.dist != null) r.distance = emuToPt(refl.attrs.dist);
+            if (refl.attrs.dir != null) r.angle = Math.round(Number(refl.attrs.dir) / 60000);
+            if (refl.attrs.stA != null) r.alpha = Math.round(Number(refl.attrs.stA) / 1000);
+            if (refl.attrs.sx != null) r.scale = Math.round(Number(refl.attrs.sx) / 1000);
+            effects.reflection = r;
+        }
+        // 柔化边缘（a:effectLst/a:softEdge@rad）
+        const soft = effLst['a:softEdge'];
+        if (soft && soft.attrs && soft.attrs.rad != null) effects.softEdge = { radius: emuToPt(soft.attrs.rad) };
+        // 模糊（a:effectLst/a:blur@rad）
+        const blurN = effLst['a:blur'];
+        if (blurN && blurN.attrs && blurN.attrs.rad != null) effects.blur = { radius: emuToPt(blurN.attrs.rad) };
+        if (Object.keys(effects).length) out.effects = effects;
     }
+
+    // 语义层未建模的 spPr 特效原始节点：3D 属性（a:scene3d/a:sp3d）/ 双色调 a:duotone /
+    // 填充覆盖 a:fillOverlay。保留以便生成端用 rawNodeToBuilder 原样回写，保证 round-trip 不丢信息。
+    // 注意：a:effectLst 内的 reflection/softEdge/blur 已语义化为 effects 字段并合并进同一 effectLst，
+    // 故不在此 raw 列表中（避免写出第二个 a:effectLst 破坏 CT_ShapeProperties 顺序约束）。
+    const rawFx: Array<{ tag: string; node: any }> = [];
+    for (const t of ['a:scene3d', 'a:sp3d', 'a:duotone', 'a:fillOverlay']) {
+        if (spPr[t]) rawFx.push({ tag: t, node: spPr[t] });
+    }
+    if (rawFx.length) out.effectsRaw = rawFx;
+
     return out;
 }
 
@@ -1318,9 +1390,14 @@ async function attachRawDeps(
         const file = zip.file(partPath);
         if (!file) continue;
 
-        const isMedia = /(image|video|audio|media)$/.test(type);
+        const ext = (partPath.split('.').pop() || 'xml').toLowerCase();
+        // 二进制扩展名（OLE 嵌入 .bin、图元文件 .emf/.wmf 等）必须按 base64 落盘，
+        // 否则按字符串读取会损坏字节，导致导出后 OLE/媒体无法打开
+        const isBinaryExt = /\.(bin|emf|wmf|tif|tiff|bmp|ico|cur|pcx|svg)$/i.test(partPath);
+        const isMedia = /(image|video|audio|media)$/.test(type) || isBinaryExt;
         const contentType = REL_CONTENT_TYPE[type]
-            || `application/vnd.openxmlformats-officedocument.${(partPath.split('.').pop() || 'xml')}`;
+            || (isBinaryExt ? 'application/octet-stream'
+                            : `application/vnd.openxmlformats-officedocument.${ext}`);
         try {
             if (isMedia) {
                 parts.push({ path: partPath, base64: await file.async('base64'), contentType, media: true });
@@ -1408,6 +1485,66 @@ function lookupPlaceholderXfrm(ph: { type: string; idx: string } | undefined, ma
 }
 
 /**
+ * 取 slideLayout / slideMaster / slide 的 p:cSld/p:spTree。
+ * 三种根标签都试一遍，便于调用方无需自己判断部件类型。
+ */
+function getSpTreeOf(content: any): any {
+    if (!content || typeof content !== 'object') return undefined;
+    for (const rootTag of ['p:sldLayout', 'p:sldMaster', 'p:sld']) {
+        const root = content[rootTag];
+        const tree = root && root['p:cSld'] && root['p:cSld']['p:spTree'];
+        if (tree) return tree;
+    }
+    return undefined;
+}
+
+/**
+ * 母版形状是否应显示：p:sldLayout/@showMasterSp="0" 表示隐藏母版形状。
+ * 属性缺失等价于 "1"（显示），与预览端 node.ts getBackground 的判断一致。
+ */
+function showsMasterShapes(layoutContent: any): boolean {
+    const layout = layoutContent && layoutContent['p:sldLayout'];
+    const attr = layout && layout.attrs && layout.attrs.showMasterSp;
+    return !(attr === '0' || attr === 0 || attr === 'false');
+}
+
+/**
+ * 收集版式/母版 spTree 中的「非占位符装饰形状」。
+ *
+ * OOXML 语义：占位符（p:nvPr/p:ph）只是版式上的空壳，其内容由 slide 自己的同名占位符
+ * 提供，不应重复绘制；而**不带 p:ph 的形状是版式装饰设计**（背景底纹、斜切块、装饰条、
+ * Logo 等），PowerPoint 会把它们画在每页底层，预览端 node.ts getBackground 正是如此。
+ * 解析端此前整块丢弃，导致编辑器画布出现大片空白，与预览端严重不符。
+ *
+ * 收集范围与预览端保持一致：
+ * - layout spTree 全部非占位符节点（预览端对 ph@type="pic" 额外跳过，此处同样跳过）；
+ * - master spTree 由调用方按 showMasterSp 决定是否传入；
+ * - p:grpSp 递归展开（预览端按 processGroupSpNode 逐个绘制，装饰组不作为 group 语义元素）。
+ *
+ * @param tree p:cSld/p:spTree
+ * @param acc  收集结果，形如 { key, node }[]，key 为 OOXML 标签名
+ */
+function collectDecoNodes(tree: any, acc: { key: string; node: any }[]) {
+    if (!tree || typeof tree !== 'object') return;
+    for (const key of Object.keys(tree)) {
+        const val = tree[key];
+        if (val === undefined || val === null || typeof val !== 'object') continue;
+        for (const node of asArray(val)) {
+            if (key === 'p:grpSp') {
+                // 组合的子形状是 grpSp 的直接子节点，不存在 p:spTree 包装
+                collectDecoNodes(node, acc);
+                continue;
+            }
+            if (key !== 'p:sp' && key !== 'p:pic' && key !== 'p:graphicFrame' && key !== 'p:cxnSp') continue;
+            const ph = readPhRef(node);
+            // 占位符（图片占位符同样排除）：版式上的空壳，内容由 slide 同名占位符提供
+            if (ph) continue;
+            acc.push({ key, node });
+        }
+    }
+}
+
+/**
  * 递归收集 spTree 下的图形节点。
  * @param keepGroups - true 时把 p:grpSp 也作为条目保留（供语义层产出 group 元素）；
  *                    false 时展开 group（兼容旧调用方 / HTML 渲染链路）。
@@ -1427,6 +1564,13 @@ function collectShapeNodes(spTree: any, acc: any[], keepGroups = false) {
                     // collectShapeNodes 只挑形状键、忽略 nvGrpSpPr/grpSpPr/attrs，可直接传入 grpSp 节点
                     collectShapeNodes(node, acc, keepGroups);
                 }
+            } else if (key === 'mc:AlternateContent') {
+                // 交替内容（新版 PowerPoint 对 SmartArt/媒体/图表的「新版格式 + 旧版 Fallback」）：
+                // 取 mc:Fallback 内的真实形状递归收集，与预览端 node.ts 取 Fallback 渲染一致。
+                // 编辑端不建模 mc 包裹，展开后按普通形状处理即可（导出时回写子形状，
+                // mc 交替语义随之退化，但内容得以保留，与预览端 HTML 渲染行为一致）。
+                const fb = node['mc:Fallback'];
+                if (fb) collectShapeNodes(fb, acc, keepGroups);
             } else if (['p:sp', 'p:pic', 'p:graphicFrame', 'p:cxnSp'].includes(key)) {
                 acc.push({ key, node });
             }
@@ -1562,6 +1706,7 @@ export async function extractSlideToStandard(
                 const children = legacyInner ? await processTree(legacyInner) : await processTree(node);
 
                 const gxf = node['p:grpSpPr'] && node['p:grpSpPr']['a:xfrm'];
+                const gxfAttrs = gxf && gxf.attrs;
                 const gOff = gxf && gxf['a:off'] && gxf['a:off'].attrs;
                 const gExt = gxf && gxf['a:ext'] && gxf['a:ext'].attrs;
                 const chOff = gxf && gxf['a:chOff'] && gxf['a:chOff'].attrs;
@@ -1587,6 +1732,13 @@ export async function extractSlideToStandard(
                     children,
                     childrenCoordinates: 'relative'
                 };
+                // 组合级旋转/翻转：OOXML grpSpPr/a:xfrm/@rot（1/60000 度）与 @flipH/@flipV。
+                // 作用于整个组容器（旋转中心为组边界框中心，与 PowerPoint 一致），子元素坐标保持相对偏移。
+                if (gxfAttrs && gxfAttrs.rot != null && Number(gxfAttrs.rot) !== 0) {
+                    g.rotation = Number(gxfAttrs.rot) / 60000;
+                }
+                if (gxfAttrs && (gxfAttrs.flipH === '1' || gxfAttrs.flipH === 'true' || gxfAttrs.flipH === true)) g.flipH = true;
+                if (gxfAttrs && (gxfAttrs.flipV === '1' || gxfAttrs.flipV === 'true' || gxfAttrs.flipV === true)) g.flipV = true;
                 return g;
             };
 
@@ -1606,13 +1758,12 @@ export async function extractSlideToStandard(
                 collectDecoNodes(decoTree, nodes);
                 nodes.sort((a, b) => ((a.node?.attrs?.order ?? 0) as number) - ((b.node?.attrs?.order ?? 0) as number));
                 for (const { key, node } of nodes) {
+                    // processNode 内部已挂载 __raw 及其依赖，只调用一次：
+                    // 重复调用会重复读取媒体部件（内存与耗时翻倍），且首个元素会被丢弃。
                     const el = await processNode(key, node);
-                    if (el) (el as any).inherited = true;
-                }
-                // processNode 内部已挂载 __raw；这里只需要元素本身
-                for (const { key, node } of nodes) {
-                    const el = await processNode(key, node);
-                    if (el) deco.push(el);
+                    if (!el) continue;
+                    (el as any).inherited = true;
+                    deco.push(el);
                 }
             }
             if (deco.length) slide.elements = deco.concat(slide.elements);
@@ -1632,6 +1783,14 @@ export async function extractSlideToStandard(
             // 中不同页可绑定不同主题，若留给渲染端按全局主题解析会取错颜色。
             if (Object.keys(themeMap).length) {
                 for (const el of slide.elements) resolveSchemeRefs(el, themeMap);
+            }
+
+            // 主题字体引用（`+mj-ea` / `+mn-lt` 等）按该页真实主题的 fontScheme 展开为
+            // 实际字体名。未展开时渲染端会当作不存在的字体名而回退系统默认字形，
+            // 中文退成宋体/黑体，是两端字形差异的主要来源。
+            const themeFontMap = themeFontsFromContent(slideData.themeContent);
+            if (Object.keys(themeFontMap).length) {
+                for (const el of slide.elements) resolveFontRefs(el, themeFontMap);
             }
 
             // 自动播放 / 元素动画（p:timing）
@@ -1880,7 +2039,7 @@ async function nodeToElement(
         const isPlaceholder = !!(node['p:nvSpPr'] && node['p:nvSpPr']['p:nvPr'] && node['p:nvSpPr']['p:nvPr']['p:ph']);
         if (!isPlaceholder) {
             for (const para of paragraphs) {
-                for (const r of para.runs) {
+                for (const r of para.runs || []) {
                     if ((r as any).fontSize === undefined && !(r as any).break) r.fontSize = 18;
                 }
             }
@@ -2180,11 +2339,69 @@ function resolveSchemeRefs(value: any, themeMap: Record<string, string>): void {
     }
     if (!value || typeof value !== 'object') return;
     for (const [k, v] of Object.entries(value)) {
+        // __raw 是解析端原样保留的 XML 树，必须保持字节级保真（主题色引用在导出时由 OOXML 自身
+        // 重新按主题解析），递归进入会把它就地硬编码，破坏 round-trip 严格一致。
+        if (k === '__raw') continue;
         if (typeof v === 'string' && v.startsWith('scheme:')) {
             const hex = themeMap[v.slice(7).toLowerCase()];
             if (hex) (value as any)[k] = hex;
         } else if (v && typeof v === 'object') {
             resolveSchemeRefs(v, themeMap);
+        }
+    }
+}
+
+/**
+ * 从 theme1.xml 原始内容建立主题字体映射。
+ *
+ * OOXML 用 `+mj-lt` / `+mj-ea` / `+mj-cs` / `+mn-lt` / `+mn-ea` / `+mn-cs` 引用
+ * fontScheme 中的 major/minor 字体。这些引用若原样写进标准 JSON，渲染端无法解析，
+ * 浏览器会当作不存在的字体名而回退系统默认字形（中文退成宋体/黑体），
+ * 与预览端（能解析主题字体）严重不符。因此解析端在此展开为实际字体名。
+ *
+ * @returns 形如 `{ 'mj-lt': 'Arial', 'mn-ea': '微软雅黑' }`；无主题时返回空对象
+ */
+function themeFontsFromContent(themeContent: any): Record<string, string> {
+    const map: Record<string, string> = {};
+    if (!themeContent) return map;
+    const fontScheme = themeContent['a:theme']
+        && themeContent['a:theme']['a:themeElements']
+        && themeContent['a:theme']['a:themeElements']['a:fontScheme'];
+    if (!fontScheme) return map;
+    const families: Record<string, string> = { mj: 'a:majorFont', mn: 'a:minorFont' };
+    const faces: Record<string, string> = { lt: 'a:latin', ea: 'a:ea', cs: 'a:cs' };
+    for (const [fk, familyTag] of Object.entries(families)) {
+        const family = fontScheme[familyTag];
+        if (!family) continue;
+        for (const [sk, faceTag] of Object.entries(faces)) {
+            const node = family[faceTag];
+            const face = node && node.attrs && node.attrs.typeface;
+            // 空字符串表示"不指定"，保留会让渲染端拿到空字体名反而更糟，跳过
+            if (face) map[`${fk}-${sk}`] = String(face);
+        }
+    }
+    return map;
+}
+
+/**
+ * 递归把元素树中的主题字体引用（`+mj-ea` 等）解析为实际字体名。
+ * 非引用值（含已解析的具体字体名）原样保留。
+ */
+function resolveFontRefs(value: any, fontMap: Record<string, string>): void {
+    if (Array.isArray(value)) {
+        for (const v of value) resolveFontRefs(v, fontMap);
+        return;
+    }
+    if (!value || typeof value !== 'object') return;
+    for (const [k, v] of Object.entries(value)) {
+        // __raw 是解析端原样保留的 XML 树（其中 a:latin@typeface 等可能是 '+mn-ea' 主题字体引用）。
+        // 递归进入会把主题引用就地硬编码成具体字体名，破坏 round-trip 严格一致，故跳过。
+        if (k === '__raw') continue;
+        if (typeof v === 'string' && v.length > 1 && v.charCodeAt(0) === 43 /* '+' */) {
+            const face = fontMap[v.slice(1).toLowerCase()];
+            if (face) (value as any)[k] = face;
+        } else if (v && typeof v === 'object') {
+            resolveFontRefs(v, fontMap);
         }
     }
 }
@@ -2866,6 +3083,41 @@ async function diagramToElement(
     return el;
 }
 
+/**
+ * p:graphicFrame → 无法识别为 table/diagram/chart 时，产出 raw 占位元素。
+ *
+ * 携带原始 graphicFrame 节点（processNode 已挂载 __raw），生成端 buildRawElement 会原样回写，
+ * 保证 round-trip 不丢信息。编辑端将其渲染为占位框（renderElement 的 default 分支），
+ * 避免此前一律走 graphicFrameToChart、无 c:chart 时返回 null 导致元素整块消失。
+ *
+ * 典型触发：OLE 嵌入对象（p:oleObj）、内嵌文档/媒体、第三方 graphicData 等。
+ */
+async function rawGraphicFrame(
+    node: any,
+    resObj: Record<string, { type?: string; target?: string }>,
+    zip?: JSZip
+): Promise<PptxRawElement> {
+    const xf = readXfrm(node, true);
+    const name = readGraphicFrameName(node);
+    const el: PptxRawElement = {
+        type: 'raw',
+        x: xf ? xf.x : 0,
+        y: xf ? xf.y : 0,
+        width: xf ? xf.width : 300,
+        height: xf ? xf.height : 200
+    };
+    if (name) el.name = String(name);
+    // 保留原始 graphicFrame 节点，并补全其关系与部件依赖（含 OLE 嵌入的 .bin 二进制），
+    // 使导出时能随 __raw 原样回写、引用得以恢复（OLE 嵌入部件不再丢失）。
+    (el as any).__raw = { tag: 'p:graphicFrame', node, rels: {}, parts: [] };
+    if (zip) {
+        try {
+            await attachRawDeps(el, node, resObj, zip);
+        } catch { /* 依赖缺失则仅保留原始节点，导出退化为仅结构回写 */ }
+    }
+    return el;
+}
+
 /** p:graphicFrame → 按 graphicData 类型分派到 table / diagram / chart */
 async function graphicFrameToElement(
     node: any,
@@ -2885,6 +3137,10 @@ async function graphicFrameToElement(
     if (graphicData['dgm:rel'] || uri === URI_DIAGRAM || /diagram/.test(uri)) {
         return await diagramToElement(node, resObj, zip, themeMap, themeContent);
     }
+    // 图表：仅当确实存在 c:chart 才按图表解析；否则（OLE 对象、内嵌文档/媒体、
+    // 其他第三方 graphicData 等）降级为 raw 占位——携带原始 XML 交由生成端原样回写，
+    // 既不整块消失、也不被误判为图表（此前一律走 graphicFrameToChart，无 c:chart 时返回 null）。
+    if (!graphicData['c:chart']) return rawGraphicFrame(node, resObj, zip);
     return await graphicFrameToChart(node, resObj, zip, themeMap);
 }
 
@@ -3052,6 +3308,21 @@ async function picToImage(
     }
     if (xf && xf.rotation) imgEl.rotation = xf.rotation;
     if (name) imgEl.name = String(name);
+
+    // 图片 spPr 内的 3D 属性与双色调/填充覆盖（语义层不建模），原样保留以便回写保真。
+    // 注意：a:duotone 出现在 spPr 是极少见的非标准写法，此处仍按原始位置保留。
+    const picSpPr = node['p:spPr'];
+    const rawFx: Array<{ tag: string; node: any }> = [];
+    for (const t of ['a:scene3d', 'a:sp3d', 'a:duotone', 'a:fillOverlay']) {
+        if (picSpPr && picSpPr[t]) rawFx.push({ tag: t, node: picSpPr[t] });
+    }
+    if (rawFx.length) imgEl.effectsRaw = rawFx;
+    // 图片双色调（a:blipFill/a:duotone）：在 OOXML 里只合法于 a:blip 内。
+    // 必须单独保留到 blipFx，生成端回写进 p:blipFill/a:blip；写进 p:spPr 是结构非法。
+    const blipFill = node['p:blipFill'];
+    if (blipFill && blipFill['a:duotone']) {
+        imgEl.blipFx = [{ tag: 'a:duotone', node: blipFill['a:duotone'] }];
+    }
 
     // 裁剪：a:srcRect 是 p:blipFill 的子节点（与 a:blip 同级），千分比 → 0~1 比例
     const srcRect = firstChild(node['p:blipFill'], 'a:srcRect');

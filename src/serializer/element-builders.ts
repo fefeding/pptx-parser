@@ -171,6 +171,8 @@ export interface RunStyle {
     italic?: boolean;
     underline?: boolean;
     fontFace?: string;
+    /** 东亚字体（a:ea typeface），中文实际字形；缺省时不写 a:ea */
+    fontFaceEa?: string;
     href?: string;
     lang?: string;
     /**
@@ -182,6 +184,18 @@ export interface RunStyle {
     outline?: 'none' | { color?: string; width?: number };
     /** 文字外阴影（a:effectLst/a:outerShdw） */
     shadow?: { color?: string; blur?: number; x?: number; y?: number; alpha?: number };
+    /** 基线偏移（上下标）：a:rPr@baseline，1/1000 百分比；>0 上标、<0 下标 */
+    baseline?: number;
+    /** 字符间距（字距）：a:rPr/a:spc，单位 px（正=加宽、负=紧缩） */
+    spacing?: number;
+    /** 删除线（a:rPr@strike） */
+    strike?: boolean;
+    /** 文本高亮（a:rPr/a:highlight）：#RRGGBB */
+    highlight?: string;
+    /** 着重号（a:rPr/a:em@type） */
+    emphasisMark?: string;
+    /** 小型大写（a:rPr@cap="small"） */
+    smallCaps?: boolean;
 }
 /** 文本运行：{ text, options } 规范格式，或扁平简写格式 */
 export interface TextRunSpec extends RunStyle {
@@ -193,7 +207,7 @@ export interface ParagraphSpec {
     text?: string;
     runs?: TextRunSpec[];
     align?: string;
-    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet' | 'picture'; fmt?: string; start?: number; font?: string; sizePct?: number; data?: string; extension?: string };
+    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet' | 'picture'; fmt?: string; start?: number; font?: string; sizePct?: number; color?: string; data?: string; extension?: string };
     lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
     spaceBefore?: number;
     spaceAfter?: number;
@@ -237,7 +251,7 @@ export interface ShapeFillImage {
     tile?: PptxImageTile;
 }
 export interface ShapeFillPattern { type: 'pattern'; prst: string; fg?: string; bg?: string; }
-export interface ShapeLineSpec { color?: string; width?: number; transparency?: number; dashType?: string; }
+export interface ShapeLineSpec { color?: string; width?: number; transparency?: number; dashType?: string; cap?: 'rnd' | 'flat' | 'sq'; }
 export interface ShapeShadowSpec { type?: 'outer' | 'inner'; color?: string; blur?: number; distance?: number; angle?: number; transparency?: number; }
 export interface ShapeGlowSpec { color?: string; blur?: number; }
 export interface ShapeEffectsSpec { shadow?: ShapeShadowSpec | boolean; glow?: ShapeGlowSpec | boolean; }
@@ -317,7 +331,7 @@ export interface SerializerElement {
     align?: string;
     valign?: string;
     /** 段落级默认样式（纯 text 模式透传给每个段落）：列表/行距/段间距/缩进 */
-    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet' | 'picture'; fmt?: string; start?: number; font?: string; sizePct?: number; data?: string; extension?: string };
+    bullet?: boolean | string | { char?: string; type?: 'number' | 'bullet' | 'picture'; fmt?: string; start?: number; font?: string; sizePct?: number; color?: string; data?: string; extension?: string };
     lineSpacing?: number | { type: 'pt' | 'percent'; value: number };
     spaceBefore?: number;
     spaceAfter?: number;
@@ -405,6 +419,8 @@ export interface SerializerElement {
      * 例：{ adj: 25000 }、{ adj1: 50000, adj2: 40000 }（rightArrow 的箭身厚度与箭头长度）
      */
     adjust?: Record<string, number>;
+    /** 东亚字体（a:ea typeface），中文实际字形；见 PptxTextRun.fontFaceEa */
+    fontFaceEa?: string;
     /** 文本框内边距（px）：{ l, r, t, b } */
     inset?: { l?: number; r?: number; t?: number; b?: number };
     /**
@@ -434,6 +450,12 @@ export interface SerializerElement {
     __raw?: unknown;
     /** 强制以 __raw 回写（即使 type 已受语义层支持） */
     rawFallback?: boolean;
+    /**
+     * 来自版式/母版的非占位符装饰形状（解析端为还原视觉一并导入，标记后置于元素列表最前）。
+     * 它们不属于 slide 自身的 p:spTree，**生成端必须跳过**，否则会写进 slide XML，
+     * 导致导出后与版式装饰重复渲染（同一图形出现两次），并破坏 round-trip 保真。
+     */
+    inherited?: boolean;
     /** 替代文本（无障碍，p:cNvPr@descr） */
     descr?: string;
     /** 分栏数（a:bodyPr@numCol，默认 1；需 >1 才写出） */
@@ -727,6 +749,11 @@ function buildTextRun(ctx: SerializerContext, text: string | undefined, opts: Ru
     if (opts.fontFace) {
         rPrChildren.push(xmlNode('a:latin', { typeface: opts.fontFace }));
     }
+    // 东亚字体（a:ea）：中文实际使用的字形。必须与 a:latin 分开写出，
+    // 否则中文会回退到系统默认字体（宋体/黑体），与源文件不一致。
+    if (opts.fontFaceEa) {
+        rPrChildren.push(xmlNode('a:ea', { typeface: opts.fontFaceEa }));
+    }
     // 文字描边（a:ln）：OOXML 中 a:rPr 下 a:ln 在 solidFill 之后
     if (opts.outline) {
         if (opts.outline === 'none') {
@@ -757,20 +784,39 @@ function buildTextRun(ctx: SerializerContext, text: string | undefined, opts: Ru
         }
         rPrChildren.push(xmlNode('a:effectLst', null, xmlNode('a:outerShdw', shdwAttrs, ...shdwChildren)));
     }
+    // 文本高亮（a:rPr/a:highlight）：背景色块
+    if (opts.highlight) {
+        rPrChildren.push(xmlNode('a:highlight', colorNode(opts.highlight)));
+    }
+    // 着重号（a:rPr/a:em@type）
+    if (opts.emphasisMark) {
+        rPrChildren.push(xmlNode('a:em', { type: opts.emphasisMark }));
+    }
     const hlink = buildHyperlink(ctx, opts.href);
     if (hlink) rPrChildren.push(hlink);
 
-    const rPr = xmlNode('a:rPr',
-        {
-            lang: opts.lang || 'zh-CN',
-            sz: opts.fontSize !== undefined ? ptToSz(opts.fontSize) : null,
-            b: opts.bold ? 1 : null,
-            i: opts.italic ? 1 : null,
-            u: opts.underline ? 'sng' : null,
-            dirty: 0
-        },
-        ...rPrChildren
-    );
+    const rPrAttrs: Record<string, number | string | null> = {
+        lang: opts.lang || 'zh-CN',
+        sz: opts.fontSize !== undefined ? ptToSz(opts.fontSize) : null,
+        b: opts.bold ? 1 : null,
+        i: opts.italic ? 1 : null,
+        u: opts.underline ? 'sng' : null,
+        // 删除线（a:rPr@strike）
+        strike: opts.strike ? 1 : null,
+        // 小型大写（a:rPr@cap="small"）
+        cap: opts.smallCaps ? 'small' : null,
+        dirty: 0
+    };
+    // 上下标（a:rPr@baseline，1/1000 百分比）
+    if (opts.baseline != null && opts.baseline !== 0) {
+        rPrAttrs.baseline = Math.round(opts.baseline * 1000);
+    }
+    // 字符间距（字距）：a:rPr/a:spc/a:spcPts（百分之一磅）
+    if (opts.spacing != null && opts.spacing !== 0) {
+        const pts = opts.spacing * 72 / 96;
+        rPrChildren.push(xmlNode('a:spc', null, xmlNode('a:spcPts', { val: Math.round(pts * 100) })));
+    }
+    const rPr = xmlNode('a:rPr', rPrAttrs, ...rPrChildren);
 
     // 字段（页码/日期等）：写 a:fld 而非 a:r，保留动态语义（否则会被固化为静态文本）
     if (opts.field) {
@@ -909,6 +955,10 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
         if (b && typeof b === 'object' && b.sizePct) {
             pPrChildren.push(xmlNode('a:buSzPct', { val: Math.round(b.sizePct * 1000) }));
         }
+        // 项目符号颜色（a:buClr）：显式指定时优先于段落/正文文字色
+        if (b && typeof b === 'object' && b.color) {
+            pPrChildren.push(xmlNode('a:buClr', null, colorNode(b.color)));
+        }
         pPrChildren.push(xmlNode('a:buChar', { char }));
     } else {
         pPrChildren.push(xmlNode('a:buNone'));
@@ -1032,6 +1082,7 @@ async function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
         italic: el.italic,
         underline: el.underline,
         fontFace: el.fontFace,
+        fontFaceEa: el.fontFaceEa,
         href: el.href,
         lang: el.lang
     };
@@ -1314,6 +1365,16 @@ function build3DNodes(threeD?: Pptx3D): BuilderNode[] {
 }
 
 /**
+ * 将语义层未建模的 spPr 特效原始节点（a:scene3d/a:sp3d/a:duotone/a:fillOverlay 等）转为构建器节点。
+ * 这些节点由解析端 readSpPr 原样保留到 el.effectsRaw，生成端在此原样回写以保证 round-trip 保真。
+ */
+function rawShapeFxNodes(el: SerializerElement): BuilderNode[] {
+    const arr = (el as any).effectsRaw as Array<{ tag: string; node: any }> | undefined;
+    if (!arr || !arr.length) return [];
+    return arr.map((r) => rawNodeToBuilder(r.tag, r.node, {}));
+}
+
+/**
  * 形状外观（spPr 的 fill / line / effectLst），buildShapeElement 与 buildTextElement 共享：
  * 带文字的形状（type:'text' + shapeType）同样需要填充/边框/特效，否则导出后形状底丢失。
  */
@@ -1333,7 +1394,9 @@ async function buildShapeAppearance(ctx: SerializerContext, el: SerializerElemen
         const lnAny = el.line as any;
         if (lnAny.startArrow) lnChildren.push(xmlNode('a:headEnd', { type: lnAny.startArrow }));
         if (lnAny.endArrow) lnChildren.push(xmlNode('a:tailEnd', { type: lnAny.endArrow }));
-        lineNode = xmlNode('a:ln', { w: ptToEmu(w) }, ...lnChildren);
+        const lnAttrs: Record<string, number | string | null> = { w: ptToEmu(w) };
+        if (el.line && (el.line as any).cap) lnAttrs.cap = (el.line as any).cap;
+        lineNode = xmlNode('a:ln', lnAttrs, ...lnChildren);
     }
 
     // 特效（a:effectLst：阴影 / 发光）
@@ -1366,6 +1429,26 @@ async function buildShapeAppearance(ctx: SerializerContext, el: SerializerElemen
             effChildren.push(xmlNode('a:glow', { rad: ptToEmu(5) },
                 xmlNode('a:srgbClr', { val: colorToHex('#FFFF00') })));
         }
+        // 反射（a:effectLst/a:reflection）：与阴影/发光同处一个 effectLst，避免双 effectLst 违反顺序约束
+        const refl = (el.effects as any).reflection;
+        if (refl) {
+            effChildren.push(xmlNode('a:reflection', {
+                blurRad: ptToEmu(refl.blur ?? 0),
+                dist: ptToEmu(refl.distance ?? 0),
+                dir: Math.round((refl.angle ?? 90) * 60000),
+                stA: Math.round((refl.alpha != null ? refl.alpha : 50) * 1000),
+                endA: 0,
+                sx: Math.round((refl.scale ?? 100) * 1000),
+                sy: Math.round((refl.scale ?? 100) * 1000),
+                rotWithShape: 0
+            }));
+        }
+        // 柔化边缘（a:effectLst/a:softEdge@rad）
+        const soft = (el.effects as any).softEdge;
+        if (soft) effChildren.push(xmlNode('a:softEdge', { rad: ptToEmu(soft.radius) }));
+        // 模糊（a:effectLst/a:blur@rad）
+        const blurN = (el.effects as any).blur;
+        if (blurN) effChildren.push(xmlNode('a:blur', { rad: ptToEmu(blurN.radius) }));
         if (effChildren.length) effectNode = xmlNode('a:effectLst', null, ...effChildren);
     }
     return { fillNode, lineNode, effectNode };
@@ -1397,7 +1480,10 @@ async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) 
             lineNode,
             ...(effectNode ? [effectNode] : []),
             // scene3d / sp3d 必须排在 effectLst 之后
-            ...build3DNodes(el.threeD)
+            ...build3DNodes(el.threeD),
+            // 语义层未建模的 spPr 特效原始节点（3D/双色调/填充覆盖）：原样追加在末尾，
+            // 保证 round-trip 不丢信息（复用 buildRawElement 的 rawNodeToBuilder）
+            ...rawShapeFxNodes(el)
         )
     );
 }
@@ -1458,6 +1544,11 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
         // 透明度 → 不透明度：CT_AlphaModulateFixedEffect 的属性是 amt（非 val）
         if (adj.transparency != null) blipChildren.push(xmlNode('a:alphaModFix', { amt: Math.round((100 - adj.transparency) * 1000) }));
     }
+    // 图片双色调（blipFill/a:duotone）：OOXML 里只合法于 a:blip 内（CT_Blip 的 EG_BlipFillEffect），
+    // 必须作为 a:blip 的子节点回写，绝不能放进 p:spPr（否则结构非法、PowerPoint/WPS 会忽略整段 blip）。
+    for (const r of (el as any).blipFx as Array<{ tag: string; node: any }> | undefined || []) {
+        blipChildren.push(rawNodeToBuilder(r.tag, r.node, {}));
+    }
     // 裁剪：a:srcRect 是 p:blipFill 的子节点（与 a:blip 同级），不能放进 a:blip 内，
     // 否则 schema 校验失败导致整个 blip 的调整/裁剪被忽略。单位同为千分比。
     if (el.crop) {
@@ -1487,7 +1578,8 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
         xmlNode('p:spPr',
             null,
             buildXfrm(el),
-            xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))
+            xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')),
+            ...rawShapeFxNodes(el)
         )
     );
 }
@@ -1972,9 +2064,13 @@ function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell, table
 
     // 单元格内边距：OOXML 中是 a:tcPr 的属性（marL/marR/marT/marB），
     // 之前写成自定义元素 <a:tableCellInsets> 属于非法 OOXML，PowerPoint/WPS 会整体忽略
-    const anchorMap: Record<string, string | null> = { top: 't', middle: 'ctr', bottom: 'b' };
-    // 未指定垂直对齐时不写 anchor：保留表格样式/母版继承（强制 anchor="t" 会把居中变顶对齐）
-    const tcPrAttrs: Record<string, unknown> = { anchor: cell.valign ? (anchorMap[cell.valign] ?? null) : null };
+    const anchorMap: Record<string, string> = { top: 't', middle: 'ctr', bottom: 'b' };
+    // OOXML 规范：a:tcPr@anchor 省略时默认按 ECMA-376 取 t（顶端），与渲染端 getTableCellParams
+    // 的默认（vertical-align:top）一致。因此始终写出 anchor（缺省 't'）既符合规范，
+    // 又不覆盖居中——垂直居中在 OOXML 只能由单元格自身 anchor="ctr" 表达（无表格样式继承机制），
+    // 而居中单元格会被解析端读回 valign 并保留为 anchor="ctr"。
+    const anchor = cell.valign ? (anchorMap[cell.valign] ?? 't') : 't';
+    const tcPrAttrs: Record<string, unknown> = { anchor };
     if (cell.inset) {
         const ins = cell.inset;
         if (ins.l != null) tcPrAttrs.marL = pxToEmu(ins.l);
@@ -2171,7 +2267,12 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
         xmlNode('p:grpSpPr',
             null,
             xmlNode('a:xfrm',
-                null,
+                {
+                    // OOXML 旋转单位为 1/60000 度（60000 = 1°）
+                    rot: el.rotation ? Math.round(el.rotation * 60000) : undefined,
+                    flipH: el.flipH ? 1 : undefined,
+                    flipV: el.flipV ? 1 : undefined
+                },
                 xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }),
                 xmlNode('a:ext', { cx: w, cy: h }),
                 xmlNode('a:chOff', { x: 0, y: 0 }),
@@ -2836,6 +2937,9 @@ function buildMathElement(ctx: SerializerContext, el: SerializerElement) {
 
 export async function buildElement(ctx: SerializerContext, el: SerializerElement) {
     if (!el || typeof el !== 'object') return null;
+    // 版式/母版装饰形状：解析端为还原视觉导入，实际归属 layout/master 的 spTree。
+    // 跳过即可保持导出与源文件一致（母版/版式本身已由 doc.masters/themeXmls 无损回写）。
+    if (el.inherited) return null;
     // 显式回退：已支持的语义类型也可用 __raw 原样回写（语义层可能丢失主题色/动画等细节）
     if (el.rawFallback && el.__raw) return buildRawElement(ctx, el);
     // 形状元素：type 为具体几何名（如 'rect'/'ellipse'）时统一转入 buildShapeElement；

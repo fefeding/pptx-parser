@@ -711,6 +711,9 @@ export function elementToPptx(el) {
   };
   if (el.rotation) out.rotation = Math.round(el.rotation * 100) / 100;
   if (el.name) out.name = el.name;
+  // 版式/母版装饰形状必须原样带回 inherited：jsonToPptx 靠该标记跳过它们，
+  // 否则会被写进 slide 的 spTree，与版式装饰重复渲染（导出后同一图形出现两次）。
+  if (el.inherited) out.inherited = true;
 
   switch (el.type) {
     case 'text': {
@@ -727,6 +730,8 @@ export function elementToPptx(el) {
       if (el.italic) out.italic = true;
       if (el.underline) out.underline = true;
       if (ok('fontFace') && el.fontFace) out.fontFace = el.fontFace;
+      // 东亚字体（a:ea）：与 fontFace 同样受 propsSet 约束，避免固化继承来的中文字体
+      if (el.fontFaceEa) out.fontFaceEa = el.fontFaceEa;
       if (ok('lineSpacing') && el.lineSpacing) out.lineSpacing = el.lineSpacing;
       if (el.bullet) out.bullet = el.bullet === 'number' ? 'number' : true;
       if (el.indent) out.indentLeft = el.indent;
@@ -801,6 +806,8 @@ export function elementToPptx(el) {
       }
       if (el.flipH) out.flipH = true;
       if (el.flipV) out.flipV = true;
+      // 语义层未建模的 spPr 特效原始节点（3D/双色调/填充覆盖）：导出时原样回写，保真
+      if (el.effectsRaw) out.effectsRaw = el.effectsRaw;
       if (el.adjust && typeof el.adjust === 'object' && Object.keys(el.adjust).length) out.adjust = el.adjust;
       if (el.custGeom && Array.isArray(el.custGeom.paths) && el.custGeom.paths.length) out.custGeom = el.custGeom;
       return out;
@@ -811,6 +818,10 @@ export function elementToPptx(el) {
       if (el.src) out.src = el.src;
       if (el.extension) out.extension = el.extension;
       if (el.crop && typeof el.crop === 'object') out.crop = el.crop;
+      // 语义层未建模的 spPr 特效原始节点（3D/双色调/填充覆盖）：导出时原样回写，保真
+      if (el.effectsRaw && Array.isArray(el.effectsRaw)) out.effectsRaw = el.effectsRaw;
+      // 图片 blipFill 级双色调（仅 a:duotone）：与 spPr 级 effectsRaw 分开，导出时回写进 a:blip
+      if (el.blipFx && Array.isArray(el.blipFx)) out.blipFx = el.blipFx;
       const adj = el.imageAdjust || {};
       if (adj.brightness || adj.contrast || adj.transparency) {
         out.imageAdjust = {
@@ -1045,10 +1056,19 @@ function pptxRunsToRuns(runs, fallback) {
     italic: !!r.italic,
     underline: !!r.underline,
     fontFace: r.fontFace || fallback.fontFace,
+    fontFaceEa: r.fontFaceEa || fallback.fontFaceEa,
     outline: r.outline,
     shadow: r.shadow,
     href: r.href || undefined,
     hrefTooltip: r.hrefTooltip || undefined,
+    // 上下标（a:rPr@baseline）与字符间距（a:rPr/a:spc）：透传给编辑器 run，渲染端据以 super/sub 与 letter-spacing
+    baseline: r.baseline != null ? r.baseline : undefined,
+    spacing: r.spacing != null ? r.spacing : undefined,
+    // 删除线 / 高亮 / 着重号 / 小型大写：透传给编辑器 run，渲染端据以 line-through / background / text-emphasis / small-caps
+    strike: r.strike || undefined,
+    highlight: r.highlight || undefined,
+    emphasisMark: r.emphasisMark || undefined,
+    smallCaps: r.smallCaps || undefined,
     // 软换行（a:br）：空文本 run，渲染为 <br>
     break: !!r.break
   }));
@@ -1152,6 +1172,13 @@ function elementFromPptx(pe) {
     rotation: Number(pe.rotation) || 0,
     name: pe.name
   });
+  // 版式/母版装饰形状（非占位符，解析端为还原视觉导入并置于底层）：
+  // 必须保留 inherited 标记 —— 导出时 jsonToPptx 靠它跳过，否则这些形状会被写进 slide 的
+  // spTree，与版式装饰重复渲染。默认锁定，避免误拖/误删破坏与版式的一致性。
+  if (pe.inherited) {
+    el.inherited = true;
+    el.locked = true;
+  }
   switch (pe.type) {
     case 'text': {
       el.type = 'text';
@@ -1161,6 +1188,9 @@ function elementFromPptx(pe) {
       el.color = pe.color != null ? colorFromPptx(pe.color) : undefined;
       el.bold = !!pe.bold; el.italic = !!pe.italic; el.underline = !!pe.underline;
       el.fontFace = pe.fontFace || null;
+      // 东亚字体（a:ea）：中文实际字形。保持与 fontFace 相同的「源未指定即留空」策略，
+      // 避免把继承来的中文字体固化成编辑器默认值。
+      el.fontFaceEa = pe.fontFaceEa || null;
       el.align = pe.align || 'left';
       el.valign = pe.valign || 'top';
       el.textDirection = pe.textDirection || '';
@@ -1214,7 +1244,7 @@ function elementFromPptx(pe) {
       el.bullet = eb ? ((eb === 'number' || (eb.type === 'number')) ? 'number' : true) : false;
       // indentLeft 单位是 pt，编辑器内部用 px（保留浮点，避免 EMU→pt→px 往返舍入丢失精度）
       el.indent = pe.indentLeft ? ptToPx(pe.indentLeft) : 0;
-      const fallback = { fontSize: el.fontSize, color: el.color, fontFace: el.fontFace };
+      const fallback = { fontSize: el.fontSize, color: el.color, fontFace: el.fontFace, fontFaceEa: el.fontFaceEa };
       if (pe.paragraphs && pe.paragraphs.length) {
         el.paragraphs = pe.paragraphs.map((p) => {
           const pb = p.bullet;
@@ -1258,6 +1288,8 @@ function elementFromPptx(pe) {
       if (el.glow && el.glow.color) el.glow.color = colorFromPptx(el.glow.color) || '#FFFF00';
       if (pe.flipH) el.flipH = true;
       if (pe.flipV) el.flipV = true;
+      // 语义层未建模的 spPr 特效原始节点（3D/双色调/填充覆盖）：导入时原样保留，导出时回写
+      if (pe.effectsRaw && Array.isArray(pe.effectsRaw)) el.effectsRaw = pe.effectsRaw;
       if (pe.adjust && typeof pe.adjust === 'object') el.adjust = pe.adjust;
       if (pe.custGeom && Array.isArray(pe.custGeom.paths) && pe.custGeom.paths.length) el.custGeom = pe.custGeom;
       return el;
@@ -1267,6 +1299,10 @@ function elementFromPptx(pe) {
       el.data = pe.data || '';
       el.src = pe.src || '';
       el.extension = pe.extension || '';
+      // 语义层未建模的 spPr 特效原始节点（3D/双色调/填充覆盖）：导入时原样保留，导出时回写
+      if (pe.effectsRaw && Array.isArray(pe.effectsRaw)) el.effectsRaw = pe.effectsRaw;
+      // 图片 blipFill 级双色调（仅 a:duotone）：与 spPr 级 effectsRaw 分开回写进 a:blip
+      if (pe.blipFx && Array.isArray(pe.blipFx)) el.blipFx = pe.blipFx;
       if (pe.crop && typeof pe.crop === 'object') el.crop = pe.crop;
       el.imageAdjust = Object.assign({ brightness: 0, contrast: 0, transparency: 0 }, pe.imageAdjust || {});
       return el;
@@ -1425,6 +1461,9 @@ function elementFromPptx(pe) {
       });
       // 记录子元素坐标约定：relative=相对组合原点；local 已折算为页面绝对坐标
       el.childrenCoordinates = pe.childrenCoordinates === 'relative' ? 'relative' : 'page';
+      // 组合级旋转/翻转：base() 已处理 rotation，此处补 flipH/flipV（base 未设置）
+      if (pe.flipH) el.flipH = true;
+      if (pe.flipV) el.flipV = true;
       return el;
     }
     case 'video':

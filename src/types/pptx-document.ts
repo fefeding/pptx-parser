@@ -59,6 +59,14 @@ export interface PptxTextRun {
     italic?: boolean;
     underline?: boolean;
     fontFace?: string;
+    /**
+     * 东亚字体（a:ea typeface）：中文/日文/韩文字符实际使用的字形。
+     * OOXML 把西文与东亚字体分列（a:latin / a:ea），中文 PPT 常写
+     * `a:latin="+mn-lt"`（Arial）+ `a:ea="微软雅黑"`；只保留 fontFace 会让中文
+     * 回退到系统默认字形（宋体/黑体），与预览端不一致。渲染端应把它追加到
+     * font-family 之后，让浏览器按字符集自动回退。
+     */
+    fontFaceEa?: string;
     href?: string;         // 外部链接或内部跳转 '#N'
     /** 超链接提示（a:hlinkClick@tooltip） */
     hrefTooltip?: string;
@@ -73,6 +81,27 @@ export interface PptxTextRun {
     outline?: { color?: string; width?: number } | 'none';
     /** 文字外阴影（a:rPr/a:effectLst/a:outerShdw）：{ color, blur(px), x(px), y(px), alpha } */
     shadow?: { color?: string; blur?: number; x?: number; y?: number; alpha?: number };
+    /**
+     * 基线偏移（上下标）：a:rPr@baseline，1/1000 百分比；>0 上标，<0 下标。0/undefined=正常。
+     * 解析端直接复用 OOXML 单位的千分之一比例（如 30000/1000=30% 上标），渲染端据正/负判 super/sub。
+     */
+    baseline?: number;
+    /**
+     * 字符间距（字距）：a:rPr/a:spc，单位 px（正=加宽、负=紧缩）。
+     * 解析自 a:spcPts（绝对磅值）或 a:spcPct（相对字号比例），统一折算为屏幕像素与渲染端约定一致。
+     */
+    spacing?: number;
+    /** 删除线（a:rPr@strike="1" 或 a:strike 子节点）：CSS text-decoration: line-through */
+    strike?: boolean;
+    /** 文本高亮（a:rPr/a:highlight）：#RRGGBB 背景色块（非半透明），编辑端渲染为 background-color */
+    highlight?: string;
+    /**
+     * 着重号（a:rPr/a:em@type）：'dot' | 'circle' | 'comma' | 'underDot' 等。
+     * 编辑端用 CSS text-emphasis 模拟（位置取 under 以贴近东亚着重号下标习惯）。
+     */
+    emphasisMark?: string;
+    /** 小型大写（a:rPr@cap="small"）：CSS font-variant: small-caps */
+    smallCaps?: boolean;
 }
 
 /** 段落项目符号：字符（可带符号字体）/ 自动编号 / 图片 */
@@ -84,6 +113,8 @@ export interface PptxBullet {
     font?: string;
     /** 符号字号百分比（a:buSzPct，100 = 与正文同号） */
     sizePct?: number;
+    /** 项目符号颜色（a:buClr）：#RRGGBB，缺省继承文本色 */
+    color?: string;
     /** type='number'：编号格式（arabic / romanUpper 等） */
     fmt?: string;
     /** type='number'：起始序号（a:buAutoNum/@startAt） */
@@ -177,6 +208,16 @@ export interface PptxGlow { color?: string; blur?: number; } // blur 单位 pt
 export interface PptxShapeEffects {
     shadow?: PptxShadow | boolean;  // true = 默认外阴影
     glow?: PptxGlow | boolean;      // true = 默认发光
+    /**
+     * 反射（a:effectLst/a:reflection）：水平镜像倒影。
+     * 单位：blur/distance 为 pt，angle 为度，alpha 为起始透明度 0-100（越大越淡），scale 为缩放百分比。
+     * 编辑端用 -webkit-box-reflect 镜像近似渲染。
+     */
+    reflection?: { blur?: number; distance?: number; angle?: number; alpha?: number; scale?: number };
+    /** 柔化边缘（a:effectLst/a:softEdge@rad），单位 pt */
+    softEdge?: { radius: number };
+    /** 模糊（a:effectLst/a:blur@rad），单位 pt */
+    blur?: { radius: number };
 }
 
 /**
@@ -502,6 +543,8 @@ export interface PptxTextElement extends PptxElementBase {
     italic?: boolean;
     underline?: boolean;
     fontFace?: string;
+    /** 东亚字体（a:ea typeface），中文实际字形；见 PptxTextRun.fontFaceEa */
+    fontFaceEa?: string;
     href?: string;
     /** 文本框内边距（px）：{ l, r, t, b } */
     inset?: { l?: number; r?: number; t?: number; b?: number };
@@ -564,6 +607,13 @@ export interface PptxShapeElement extends PptxElementBase {
     custGeom?: PptxCustomGeometry;
     /** 三维属性（a:sp3d + a:scene3d） */
     threeD?: Pptx3D;
+    /**
+     * 语义层未建模的 spPr 特效原始节点（3D 属性 / 双色调 a:duotone / 填充覆盖 a:fillOverlay /
+     * 反射 a:reflection / 柔化 a:softEdge / 模糊 a:blur 等），保留以便生成端原样回写，
+     * 保证 round-trip 不丢信息。PowerPoint 要求 scene3d/sp3d 位于 a:effectLst 之后，
+     * 生成端将其追加在 spPr 末尾以符合顺序约束。
+     */
+    effectsRaw?: Array<{ tag: string; node: any }>;
 }
 
 /** 图片元素 */
@@ -585,6 +635,17 @@ export interface PptxImageElement extends PptxElementBase {
     crop?: { l?: number; r?: number; t?: number; b?: number };
     /** 图片调整：{ brightness(-100..100), contrast(-100..100), transparency(0..100) } */
     imageAdjust?: { brightness?: number; contrast?: number; transparency?: number };
+    /**
+     * 语义层未建模的 spPr 特效原始节点（3D 属性 / 双色调 / 填充覆盖 等），
+     * 保留以便生成端原样回写，保证 round-trip 不丢信息。
+     */
+    effectsRaw?: Array<{ tag: string; node: any }>;
+    /**
+     * 图片 blipFill 级特效原始节点（仅 a:duotone）。
+     * 双色调在 OOXML 里只合法于 a:blip 内，绝不能写进 p:spPr（否则结构非法）。
+     * 生成端会把它回写到 p:blipFill/a:blip，与 effectsRaw（spPr 级）分开放置。
+     */
+    blipFx?: Array<{ tag: string; node: any }>;
 }
 
 /** 图表元素 */
@@ -860,6 +921,15 @@ export interface PptxGroupElement extends PptxElementBase {
     childrenCoordinates?: 'local' | 'page' | 'relative';
     /** 子元素（默认相对组左上角的局部坐标；childrenCoordinates:'page' 时为页绝对坐标） */
     children: PptxElement[];
+    /**
+     * 组合级旋转（度，顺时针）。对应 grpSpPr/a:xfrm/@rot。
+     * 作用于整个组容器（与 PowerPoint 一致：旋转中心为组边界框中心，子元素随组旋转）。
+     */
+    rotation?: number;
+    /** 组合级水平翻转（grpSpPr/a:xfrm/@flipH，1/0/"true"/"false"） */
+    flipH?: boolean;
+    /** 组合级垂直翻转（grpSpPr/a:xfrm/@flipV，1/0/"true"/"false"） */
+    flipV?: boolean;
 }
 
 /** 视频元素（mp4 等，p:pic + 媒体关系） */

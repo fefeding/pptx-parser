@@ -14552,6 +14552,9 @@ function buildTextRun(ctx, text, opts = {}) {
     if (opts.fontFace) {
         rPrChildren.push(xmlNode('a:latin', { typeface: opts.fontFace }));
     }
+    if (opts.fontFaceEa) {
+        rPrChildren.push(xmlNode('a:ea', { typeface: opts.fontFaceEa }));
+    }
     if (opts.outline) {
         if (opts.outline === 'none') {
             rPrChildren.push(xmlNode('a:ln', null, xmlNode('a:noFill')));
@@ -14581,17 +14584,33 @@ function buildTextRun(ctx, text, opts = {}) {
         }
         rPrChildren.push(xmlNode('a:effectLst', null, xmlNode('a:outerShdw', shdwAttrs, ...shdwChildren)));
     }
+    if (opts.highlight) {
+        rPrChildren.push(xmlNode('a:highlight', colorNode(opts.highlight)));
+    }
+    if (opts.emphasisMark) {
+        rPrChildren.push(xmlNode('a:em', { type: opts.emphasisMark }));
+    }
     const hlink = buildHyperlink(ctx, opts.href);
     if (hlink)
         rPrChildren.push(hlink);
-    const rPr = xmlNode('a:rPr', {
+    const rPrAttrs = {
         lang: opts.lang || 'zh-CN',
         sz: opts.fontSize !== undefined ? ptToSz(opts.fontSize) : null,
         b: opts.bold ? 1 : null,
         i: opts.italic ? 1 : null,
         u: opts.underline ? 'sng' : null,
+        strike: opts.strike ? 1 : null,
+        cap: opts.smallCaps ? 'small' : null,
         dirty: 0
-    }, ...rPrChildren);
+    };
+    if (opts.baseline != null && opts.baseline !== 0) {
+        rPrAttrs.baseline = Math.round(opts.baseline * 1000);
+    }
+    if (opts.spacing != null && opts.spacing !== 0) {
+        const pts = opts.spacing * 72 / 96;
+        rPrChildren.push(xmlNode('a:spc', null, xmlNode('a:spcPts', { val: Math.round(pts * 100) })));
+    }
+    const rPr = xmlNode('a:rPr', rPrAttrs, ...rPrChildren);
     if (opts.field) {
         return xmlNode('a:fld', { id: `{${generateGuid()}}`, type: opts.field }, rPr, xmlNode('a:t', null, String(text ?? '')));
     }
@@ -14701,6 +14720,9 @@ function buildParagraph(ctx, paragraph, defaults) {
         if (b && typeof b === 'object' && b.sizePct) {
             pPrChildren.push(xmlNode('a:buSzPct', { val: Math.round(b.sizePct * 1000) }));
         }
+        if (b && typeof b === 'object' && b.color) {
+            pPrChildren.push(xmlNode('a:buClr', null, colorNode(b.color)));
+        }
         pPrChildren.push(xmlNode('a:buChar', { char }));
     }
     else {
@@ -14809,6 +14831,7 @@ async function buildTextElement(ctx, el) {
         italic: el.italic,
         underline: el.underline,
         fontFace: el.fontFace,
+        fontFaceEa: el.fontFaceEa,
         href: el.href,
         lang: el.lang
     };
@@ -15012,6 +15035,12 @@ function build3DNodes(threeD) {
     }
     return nodes;
 }
+function rawShapeFxNodes(el) {
+    const arr = el.effectsRaw;
+    if (!arr || !arr.length)
+        return [];
+    return arr.map((r) => rawNodeToBuilder(r.tag, r.node, {}));
+}
 async function buildShapeAppearance(ctx, el) {
     const fillNode = await buildFillNode(ctx, el.fill);
     let lineNode = null;
@@ -15031,7 +15060,10 @@ async function buildShapeAppearance(ctx, el) {
             lnChildren.push(xmlNode('a:headEnd', { type: lnAny.startArrow }));
         if (lnAny.endArrow)
             lnChildren.push(xmlNode('a:tailEnd', { type: lnAny.endArrow }));
-        lineNode = xmlNode('a:ln', { w: ptToEmu(w) }, ...lnChildren);
+        const lnAttrs = { w: ptToEmu(w) };
+        if (el.line && el.line.cap)
+            lnAttrs.cap = el.line.cap;
+        lineNode = xmlNode('a:ln', lnAttrs, ...lnChildren);
     }
     let effectNode = null;
     if (el.effects) {
@@ -15056,6 +15088,25 @@ async function buildShapeAppearance(ctx, el) {
         else if (gw === true) {
             effChildren.push(xmlNode('a:glow', { rad: ptToEmu(5) }, xmlNode('a:srgbClr', { val: colorToHex('#FFFF00') })));
         }
+        const refl = el.effects.reflection;
+        if (refl) {
+            effChildren.push(xmlNode('a:reflection', {
+                blurRad: ptToEmu(refl.blur ?? 0),
+                dist: ptToEmu(refl.distance ?? 0),
+                dir: Math.round((refl.angle ?? 90) * 60000),
+                stA: Math.round((refl.alpha != null ? refl.alpha : 50) * 1000),
+                endA: 0,
+                sx: Math.round((refl.scale ?? 100) * 1000),
+                sy: Math.round((refl.scale ?? 100) * 1000),
+                rotWithShape: 0
+            }));
+        }
+        const soft = el.effects.softEdge;
+        if (soft)
+            effChildren.push(xmlNode('a:softEdge', { rad: ptToEmu(soft.radius) }));
+        const blurN = el.effects.blur;
+        if (blurN)
+            effChildren.push(xmlNode('a:blur', { rad: ptToEmu(blurN.radius) }));
         if (effChildren.length)
             effectNode = xmlNode('a:effectLst', null, ...effChildren);
     }
@@ -15068,7 +15119,7 @@ async function buildShapeElement(ctx, el) {
         ? buildCustomGeometry(el.custGeom)
         : xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType) }, el.adjust && Object.keys(el.adjust).length
             ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
-            : xmlNode('a:avLst')), fillNode, lineNode, ...(effectNode ? [effectNode] : []), ...build3DNodes(el.threeD)));
+            : xmlNode('a:avLst')), fillNode, lineNode, ...(effectNode ? [effectNode] : []), ...build3DNodes(el.threeD), ...rawShapeFxNodes(el)));
 }
 function buildBulletPicture(ctx, bullet) {
     const str = String(bullet.data || '');
@@ -15109,6 +15160,9 @@ async function buildImageElement(ctx, el) {
         if (adj.transparency != null)
             blipChildren.push(xmlNode('a:alphaModFix', { amt: Math.round((100 - adj.transparency) * 1000) }));
     }
+    for (const r of el.blipFx || []) {
+        blipChildren.push(rawNodeToBuilder(r.tag, r.node, {}));
+    }
     if (el.crop) {
         const c = el.crop;
         const srect = {};
@@ -15123,7 +15177,7 @@ async function buildImageElement(ctx, el) {
         if (srect.l || srect.r || srect.t || srect.b)
             srcRectNode = xmlNode('a:srcRect', srect);
     }
-    return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Image ${id - 1}` }, cNvPrChildren), xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noChangeAspect: 1 })), xmlNode('p:nvPr')), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': embedRelId }, ...blipChildren), ...(srcRectNode ? [srcRectNode] : []), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))));
+    return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Image ${id - 1}` }, cNvPrChildren), xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noChangeAspect: 1 })), xmlNode('p:nvPr')), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': embedRelId }, ...blipChildren), ...(srcRectNode ? [srcRectNode] : []), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')), ...rawShapeFxNodes(el)));
 }
 function buildChartElement(ctx, el) {
     const id = ctx.nextElementId++;
@@ -15494,7 +15548,8 @@ function buildTableCell(ctx, cell, tableBorder) {
             tcPrChildren.push(diagLine('a:lnBlToTr'));
     }
     const anchorMap = { top: 't', middle: 'ctr', bottom: 'b' };
-    const tcPrAttrs = { anchor: cell.valign ? (anchorMap[cell.valign] ?? null) : null };
+    const anchor = cell.valign ? (anchorMap[cell.valign] ?? 't') : 't';
+    const tcPrAttrs = { anchor };
     if (cell.inset) {
         const ins = cell.inset;
         if (ins.l != null)
@@ -15604,7 +15659,11 @@ async function buildGroupElement(ctx, el) {
     }
     const w = pxToEmu(el.width || 0);
     const h = pxToEmu(el.height || 0);
-    return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), ...childNodes);
+    return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', {
+        rot: el.rotation ? Math.round(el.rotation * 60000) : undefined,
+        flipH: el.flipH ? 1 : undefined,
+        flipV: el.flipV ? 1 : undefined
+    }, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), ...childNodes);
 }
 const TRANSPARENT_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 async function buildMediaElement(ctx, el, kind) {
@@ -16030,6 +16089,8 @@ function buildMathElement(ctx, el) {
 }
 async function buildElement(ctx, el) {
     if (!el || typeof el !== 'object')
+        return null;
+    if (el.inherited)
         return null;
     if (el.rawFallback && el.__raw)
         return buildRawElement(ctx, el);
@@ -17266,6 +17327,19 @@ function readRunStyle(rPr, themeMap = {}, resolveHref) {
         style.italic = true;
     if (attrs.u && attrs.u !== 'none')
         style.underline = true;
+    if (attrs.strike === '1' || attrs.strike === 1 || rPr['a:strike'])
+        style.strike = true;
+    if (attrs.cap === 'small')
+        style.smallCaps = true;
+    const hl = rPr['a:highlight'];
+    if (hl) {
+        const hc = spColor(hl, themeMap);
+        if (hc)
+            style.highlight = hc;
+    }
+    const em = rPr['a:em'];
+    if (em && em.attrs && em.attrs.type)
+        style.emphasisMark = String(em.attrs.type);
     const directColorNode = rPr['a:srgbClr'] || rPr['a:schemeClr'];
     const color = (directColorNode ? spColor(directColorNode, themeMap) : undefined)
         || spColor(rPr['a:solidFill'], themeMap);
@@ -17274,6 +17348,9 @@ function readRunStyle(rPr, themeMap = {}, resolveHref) {
     const latin = rPr['a:latin'];
     if (latin && latin.attrs && latin.attrs.typeface)
         style.fontFace = String(latin.attrs.typeface);
+    const ea = rPr['a:ea'];
+    if (ea && ea.attrs && ea.attrs.typeface)
+        style.fontFaceEa = String(ea.attrs.typeface);
     const hlink = rPr['a:hlinkClick'] || rPr['a:hlinkHover'];
     if (hlink && hlink.attrs && hlink.attrs['r:id']) {
         const resolved = resolveHref ? resolveHref(String(hlink.attrs['r:id'])) : undefined;
@@ -17311,6 +17388,21 @@ function readRunStyle(rPr, themeMap = {}, resolveHref) {
             y: Math.round(Math.sin(rad) * emuToPt(dist) * 100) / 100,
             alpha
         };
+    }
+    if (attrs.baseline != null && Number(attrs.baseline) !== 0) {
+        style.baseline = Number(attrs.baseline) / 1000;
+    }
+    const spc = rPr['a:spc'];
+    if (spc) {
+        const fsPt = style.fontSize || 13.5;
+        if (spc['a:spcPts'] && spc['a:spcPts'].attrs) {
+            const pts = Number(spc['a:spcPts'].attrs.val) / 100;
+            style.spacing = Math.round(pts * 96 / 72 * 100) / 100;
+        }
+        else if (spc['a:spcPct'] && spc['a:spcPct'].attrs) {
+            const ratio = Number(spc['a:spcPct'].attrs.val) / 100000;
+            style.spacing = Math.round(ratio * fsPt * 96 / 72 * 100) / 100;
+        }
     }
     return style;
 }
@@ -17421,6 +17513,12 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref, inheri
             const szPct = pPr['a:buSzPct'] && pPr['a:buSzPct'].attrs && Number(pPr['a:buSzPct'].attrs.val) / 1000;
             if (szPct)
                 bullet.sizePct = szPct;
+        }
+        const buClrNode = pPr && pPr['a:buClr'];
+        if (bullet && buClrNode) {
+            const bc = spColor(buClrNode, themeMap);
+            if (bc)
+                bullet.color = bc;
         }
         const lstLvl = (() => {
             if (!lstStyle)
@@ -17661,6 +17759,9 @@ function readSpPr(spPr, themeMap = {}) {
                 lineObj.transparency = transparency;
             if (dash)
                 lineObj.dashType = String(dash);
+            const cap = ln.attrs && ln.attrs.cap;
+            if (cap)
+                lineObj.cap = String(cap);
             const headEnd = ln['a:headEnd'];
             const tailEnd = ln['a:tailEnd'];
             if (headEnd && headEnd.attrs && headEnd.attrs.type && headEnd.attrs.type !== 'none')
@@ -17705,9 +17806,37 @@ function readSpPr(spPr, themeMap = {}) {
                 g.color = String(srgb.attrs.val);
             effects.glow = g;
         }
-        if (effects.shadow || effects.glow)
+        const refl = effLst['a:reflection'];
+        if (refl && refl.attrs) {
+            const r = {};
+            if (refl.attrs.blurRad != null)
+                r.blur = emuToPt(refl.attrs.blurRad);
+            if (refl.attrs.dist != null)
+                r.distance = emuToPt(refl.attrs.dist);
+            if (refl.attrs.dir != null)
+                r.angle = Math.round(Number(refl.attrs.dir) / 60000);
+            if (refl.attrs.stA != null)
+                r.alpha = Math.round(Number(refl.attrs.stA) / 1000);
+            if (refl.attrs.sx != null)
+                r.scale = Math.round(Number(refl.attrs.sx) / 1000);
+            effects.reflection = r;
+        }
+        const soft = effLst['a:softEdge'];
+        if (soft && soft.attrs && soft.attrs.rad != null)
+            effects.softEdge = { radius: emuToPt(soft.attrs.rad) };
+        const blurN = effLst['a:blur'];
+        if (blurN && blurN.attrs && blurN.attrs.rad != null)
+            effects.blur = { radius: emuToPt(blurN.attrs.rad) };
+        if (Object.keys(effects).length)
             out.effects = effects;
     }
+    const rawFx = [];
+    for (const t of ['a:scene3d', 'a:sp3d', 'a:duotone', 'a:fillOverlay']) {
+        if (spPr[t])
+            rawFx.push({ tag: t, node: spPr[t] });
+    }
+    if (rawFx.length)
+        out.effectsRaw = rawFx;
     return out;
 }
 function readXfrm(node, isGraphicFrame) {
@@ -18307,9 +18436,12 @@ async function attachRawDeps(el, node, resObj, zip) {
         const file = zip.file(partPath);
         if (!file)
             continue;
-        const isMedia = /(image|video|audio|media)$/.test(type);
+        const ext = (partPath.split('.').pop() || 'xml').toLowerCase();
+        const isBinaryExt = /\.(bin|emf|wmf|tif|tiff|bmp|ico|cur|pcx|svg)$/i.test(partPath);
+        const isMedia = /(image|video|audio|media)$/.test(type) || isBinaryExt;
         const contentType = REL_CONTENT_TYPE[type]
-            || `application/vnd.openxmlformats-officedocument.${(partPath.split('.').pop() || 'xml')}`;
+            || (isBinaryExt ? 'application/octet-stream'
+                : `application/vnd.openxmlformats-officedocument.${ext}`);
         try {
             if (isMedia) {
                 parts.push({ path: partPath, base64: await file.async('base64'), contentType, media: true });
@@ -18397,6 +18529,43 @@ function lookupPlaceholderXfrm(ph, map) {
         || map.get(ph.type + ':')
         || undefined;
 }
+function getSpTreeOf(content) {
+    if (!content || typeof content !== 'object')
+        return undefined;
+    for (const rootTag of ['p:sldLayout', 'p:sldMaster', 'p:sld']) {
+        const root = content[rootTag];
+        const tree = root && root['p:cSld'] && root['p:cSld']['p:spTree'];
+        if (tree)
+            return tree;
+    }
+    return undefined;
+}
+function showsMasterShapes(layoutContent) {
+    const layout = layoutContent && layoutContent['p:sldLayout'];
+    const attr = layout && layout.attrs && layout.attrs.showMasterSp;
+    return !(attr === '0' || attr === 0 || attr === 'false');
+}
+function collectDecoNodes(tree, acc) {
+    if (!tree || typeof tree !== 'object')
+        return;
+    for (const key of Object.keys(tree)) {
+        const val = tree[key];
+        if (val === undefined || val === null || typeof val !== 'object')
+            continue;
+        for (const node of asArray(val)) {
+            if (key === 'p:grpSp') {
+                collectDecoNodes(node, acc);
+                continue;
+            }
+            if (key !== 'p:sp' && key !== 'p:pic' && key !== 'p:graphicFrame' && key !== 'p:cxnSp')
+                continue;
+            const ph = readPhRef(node);
+            if (ph)
+                continue;
+            acc.push({ key, node });
+        }
+    }
+}
 function collectShapeNodes(spTree, acc, keepGroups = false) {
     if (!spTree || typeof spTree !== 'object')
         return;
@@ -18413,6 +18582,11 @@ function collectShapeNodes(spTree, acc, keepGroups = false) {
                 else {
                     collectShapeNodes(node, acc, keepGroups);
                 }
+            }
+            else if (key === 'mc:AlternateContent') {
+                const fb = node['mc:Fallback'];
+                if (fb)
+                    collectShapeNodes(fb, acc, keepGroups);
             }
             else if (['p:sp', 'p:pic', 'p:graphicFrame', 'p:cxnSp'].includes(key)) {
                 acc.push({ key, node });
@@ -18520,6 +18694,7 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                 const legacyInner = node['p:spTree'];
                 const children = legacyInner ? await processTree(legacyInner) : await processTree(node);
                 const gxf = node['p:grpSpPr'] && node['p:grpSpPr']['a:xfrm'];
+                const gxfAttrs = gxf && gxf.attrs;
                 const gOff = gxf && gxf['a:off'] && gxf['a:off'].attrs;
                 const gExt = gxf && gxf['a:ext'] && gxf['a:ext'].attrs;
                 const chOff = gxf && gxf['a:chOff'] && gxf['a:chOff'].attrs;
@@ -18545,6 +18720,13 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                     children,
                     childrenCoordinates: 'relative'
                 };
+                if (gxfAttrs && gxfAttrs.rot != null && Number(gxfAttrs.rot) !== 0) {
+                    g.rotation = Number(gxfAttrs.rot) / 60000;
+                }
+                if (gxfAttrs && (gxfAttrs.flipH === '1' || gxfAttrs.flipH === 'true' || gxfAttrs.flipH === true))
+                    g.flipH = true;
+                if (gxfAttrs && (gxfAttrs.flipV === '1' || gxfAttrs.flipV === 'true' || gxfAttrs.flipV === true))
+                    g.flipV = true;
                 return g;
             };
             slide.elements = await processTree(spTree);
@@ -18561,13 +18743,10 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                 nodes.sort((a, b) => (a.node?.attrs?.order ?? 0) - (b.node?.attrs?.order ?? 0));
                 for (const { key, node } of nodes) {
                     const el = await processNode(key, node);
-                    if (el)
-                        el.inherited = true;
-                }
-                for (const { key, node } of nodes) {
-                    const el = await processNode(key, node);
-                    if (el)
-                        deco.push(el);
+                    if (!el)
+                        continue;
+                    el.inherited = true;
+                    deco.push(el);
                 }
             }
             if (deco.length)
@@ -18583,6 +18762,11 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
             if (Object.keys(themeMap).length) {
                 for (const el of slide.elements)
                     resolveSchemeRefs(el, themeMap);
+            }
+            const themeFontMap = themeFontsFromContent(slideData.themeContent);
+            if (Object.keys(themeFontMap).length) {
+                for (const el of slide.elements)
+                    resolveFontRefs(el, themeFontMap);
             }
             const timing = extractTiming(slideContent);
             if (timing.advanceTime != null)
@@ -18828,7 +19012,7 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
         const isPlaceholder = !!(node['p:nvSpPr'] && node['p:nvSpPr']['p:nvPr'] && node['p:nvSpPr']['p:nvPr']['p:ph']);
         if (!isPlaceholder) {
             for (const para of paragraphs) {
-                for (const r of para.runs) {
+                for (const r of para.runs || []) {
                     if (r.fontSize === undefined && !r.break)
                         r.fontSize = 18;
                 }
@@ -19149,6 +19333,8 @@ function resolveSchemeRefs(value, themeMap) {
     if (!value || typeof value !== 'object')
         return;
     for (const [k, v] of Object.entries(value)) {
+        if (k === '__raw')
+            continue;
         if (typeof v === 'string' && v.startsWith('scheme:')) {
             const hex = themeMap[v.slice(7).toLowerCase()];
             if (hex)
@@ -19156,6 +19342,51 @@ function resolveSchemeRefs(value, themeMap) {
         }
         else if (v && typeof v === 'object') {
             resolveSchemeRefs(v, themeMap);
+        }
+    }
+}
+function themeFontsFromContent(themeContent) {
+    const map = {};
+    if (!themeContent)
+        return map;
+    const fontScheme = themeContent['a:theme']
+        && themeContent['a:theme']['a:themeElements']
+        && themeContent['a:theme']['a:themeElements']['a:fontScheme'];
+    if (!fontScheme)
+        return map;
+    const families = { mj: 'a:majorFont', mn: 'a:minorFont' };
+    const faces = { lt: 'a:latin', ea: 'a:ea', cs: 'a:cs' };
+    for (const [fk, familyTag] of Object.entries(families)) {
+        const family = fontScheme[familyTag];
+        if (!family)
+            continue;
+        for (const [sk, faceTag] of Object.entries(faces)) {
+            const node = family[faceTag];
+            const face = node && node.attrs && node.attrs.typeface;
+            if (face)
+                map[`${fk}-${sk}`] = String(face);
+        }
+    }
+    return map;
+}
+function resolveFontRefs(value, fontMap) {
+    if (Array.isArray(value)) {
+        for (const v of value)
+            resolveFontRefs(v, fontMap);
+        return;
+    }
+    if (!value || typeof value !== 'object')
+        return;
+    for (const [k, v] of Object.entries(value)) {
+        if (k === '__raw')
+            continue;
+        if (typeof v === 'string' && v.length > 1 && v.charCodeAt(0) === 43) {
+            const face = fontMap[v.slice(1).toLowerCase()];
+            if (face)
+                value[k] = face;
+        }
+        else if (v && typeof v === 'object') {
+            resolveFontRefs(v, fontMap);
         }
     }
 }
@@ -19829,6 +20060,27 @@ async function diagramToElement(node, resObj, zip, themeMap = {}, themeContent) 
     catch { }
     return el;
 }
+async function rawGraphicFrame(node, resObj, zip) {
+    const xf = readXfrm(node, true);
+    const name = readGraphicFrameName(node);
+    const el = {
+        type: 'raw',
+        x: xf ? xf.x : 0,
+        y: xf ? xf.y : 0,
+        width: xf ? xf.width : 300,
+        height: xf ? xf.height : 200
+    };
+    if (name)
+        el.name = String(name);
+    el.__raw = { tag: 'p:graphicFrame', node, rels: {}, parts: [] };
+    if (zip) {
+        try {
+            await attachRawDeps(el, node, resObj, zip);
+        }
+        catch { }
+    }
+    return el;
+}
 async function graphicFrameToElement(node, resObj, zip, themeMap = {}, themeContent) {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
     if (!graphicData)
@@ -19840,6 +20092,8 @@ async function graphicFrameToElement(node, resObj, zip, themeMap = {}, themeCont
     if (graphicData['dgm:rel'] || uri === URI_DIAGRAM || /diagram/.test(uri)) {
         return await diagramToElement(node, resObj, zip, themeMap, themeContent);
     }
+    if (!graphicData['c:chart'])
+        return rawGraphicFrame(node, resObj, zip);
     return await graphicFrameToChart(node, resObj, zip, themeMap);
 }
 async function graphicFrameToChart(node, resObj, zip, themeMap = {}) {
@@ -19992,6 +20246,18 @@ async function picToImage(node, resObj, zip) {
         imgEl.rotation = xf.rotation;
     if (name)
         imgEl.name = String(name);
+    const picSpPr = node['p:spPr'];
+    const rawFx = [];
+    for (const t of ['a:scene3d', 'a:sp3d', 'a:duotone', 'a:fillOverlay']) {
+        if (picSpPr && picSpPr[t])
+            rawFx.push({ tag: t, node: picSpPr[t] });
+    }
+    if (rawFx.length)
+        imgEl.effectsRaw = rawFx;
+    const blipFill = node['p:blipFill'];
+    if (blipFill && blipFill['a:duotone']) {
+        imgEl.blipFx = [{ tag: 'a:duotone', node: blipFill['a:duotone'] }];
+    }
     const srcRect = firstChild(node['p:blipFill'], 'a:srcRect');
     if (srcRect) {
         const crop = {};

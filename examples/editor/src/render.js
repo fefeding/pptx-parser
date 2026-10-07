@@ -478,8 +478,10 @@ function renderTextBody(el, ctx) {
     const bullet = paraHasContent ? bulletRaw : null;
     const firstRun = (p.runs || [])[0] || {};
     const bulletFontSize = ptToPx(effFont(firstRun));
-    const bulletColor = normalizeColor(firstRun.color) || normalizeColor(el.color) || '#202124';
-    const bulletFont = quoteFont(firstRun.fontFace || el.fontFace || '微软雅黑');
+    const bulletColor = normalizeColor((bullet && bullet.color) || firstRun.color) || normalizeColor(el.color) || '#202124';
+    const bulletFont = fontFamilyOf(
+      firstRun.fontFace, firstRun.fontFaceEa, el.fontFace, el.fontFaceEa, '微软雅黑'
+    ) || quoteFont('微软雅黑');
     if (isNumberBullet(bullet)) {
       if (!numState) numState = { n: (typeof bullet === 'object' && bullet.start) || 1 };
       const fmt = (typeof bullet === 'object' && bullet.fmt) || 'arabicPeriod';
@@ -558,7 +560,15 @@ function renderTextBody(el, ctx) {
       const span = document.createElement('span');
       const st = span.style;
       st.fontSize = `${ptToPx(effFont(run))}px`;
-      st.fontFamily = quoteFont(run.fontFace || el.fontFace || '微软雅黑');
+      // 上下标（a:rPr@baseline）：>0 上标、<0 下标，浏览器 super/sub 自动缩小并抬高基线
+      if (run.baseline != null && run.baseline !== 0) {
+        st.verticalAlign = run.baseline > 0 ? 'super' : 'sub';
+      }
+      // 字符间距（字距，a:rPr/a:spc，单位 px）
+      if (run.spacing) st.letterSpacing = `${run.spacing}px`;
+      st.fontFamily = fontFamilyOf(
+        run.fontFace, run.fontFaceEa, el.fontFace, el.fontFaceEa, '微软雅黑'
+      ) || quoteFont('微软雅黑');
       // 超链接（a:hlinkClick）：run 无显式色时用主题 hlink 色（OOXML 语义，与预览端一致）；
       // 有显式色则保持原色（PowerPoint 行为：显式色优先于主题链接色）
       if (run.href) {
@@ -570,6 +580,19 @@ function renderTextBody(el, ctx) {
       if (run.bold ?? el.bold) st.fontWeight = '700';
       if (run.italic ?? el.italic) st.fontStyle = 'italic';
       if (run.underline ?? el.underline) st.textDecoration = 'underline';
+      // 删除线（a:rPr@strike / a:strike）：与下划线可叠加
+      if (run.strike ?? el.strike) st.textDecoration = (st.textDecoration ? st.textDecoration + ' ' : '') + 'line-through';
+      // 文本高亮（a:rPr/a:highlight）：CSS 背景色块（非半透明）
+      if (run.highlight || el.highlight) st.backgroundColor = normalizeColor(run.highlight || el.highlight);
+      // 小型大写（a:rPr@cap="small"）
+      if (run.smallCaps ?? el.smallCaps) st.fontVariant = 'small-caps';
+      // 着重号（a:rPr/a:em）：CSS text-emphasis 模拟（位置取下，贴近东亚下标着重习惯）
+      if (run.emphasisMark ?? el.emphasisMark) {
+        const emType = run.emphasisMark || el.emphasisMark;
+        const cssEm = emType === 'circle' ? 'circle' : emType === 'comma' ? 'comma' : 'dot';
+        st.textEmphasisStyle = cssEm;
+        st.textEmphasisPosition = 'under';
+      }
       // 文字描边 + 外阴影：与预览端一致——描边用四方向 text-shadow 模拟，叠加外阴影
       const shadows = [];
       if (run.outline && run.outline !== 'none' && run.outline.color) {
@@ -628,6 +651,22 @@ function renderTextBody(el, ctx) {
 
 function quoteFont(f) {
   return /^[A-Za-z0-9 _-]+$/.test(f) ? f : `"${f}"`;
+}
+
+/**
+ * 拼 font-family：西文字体（OOXML 的 a:latin）在前、东亚字体（a:ea）在后，
+ * 浏览器按字符集自动回退 —— 中文 PPT 常见 `a:latin="Arial"` + `a:ea="微软雅黑"`，
+ * 只写 latin 会让中文回退到系统默认字形（宋体/黑体），与预览端不一致。
+ * 去重并忽略空值；全部为空时返回 null（交由调用方决定兜底）。
+ */
+function fontFamilyOf(...faces) {
+  const out = [];
+  for (const f of faces) {
+    if (!f) continue;
+    const q = quoteFont(f);
+    if (!out.includes(q)) out.push(q);
+  }
+  return out.length ? out.join(', ') : null;
 }
 
 function renderTableBody(el) {
@@ -778,6 +817,11 @@ function presetShapeSvg(el) {
     main.setAttribute('stroke', lineColor);
     main.setAttribute('stroke-width', String(lineW));
     if (el.line && el.line.dashType) main.setAttribute('stroke-dasharray', SVG_DASH_MAP[el.line.dashType] || 'none');
+    // 线帽（a:ln@cap：rnd→round / flat→butt / sq→square）：开放路径（连接线/弧线）端点样式
+    if (el.line && el.line.cap) {
+      const capMap = { rnd: 'round', flat: 'butt', sq: 'square' };
+      main.setAttribute('stroke-linecap', capMap[el.line.cap] || 'butt');
+    }
   }
   svg.appendChild(main);
   // 附加描边路径（callout 引线、笑脸嘴等）：颜色优先线条色，其次深化的填充色
@@ -1103,14 +1147,39 @@ export function renderElement(el, ctx = {}) {
         cn.style.top = `${(child.y || 0) - gy}px`;
         node.appendChild(cn);
       }
+      // 组合级旋转/翻转：作用于整个组容器，子元素坐标保持相对偏移（与 PowerPoint 一致：
+      // 旋转中心为组边界框中心；OOXML 先 flip 后 rot，故 CSS transform 写 rotate(rot) scale(flip)）。
+      let tf = '';
+      if (el.rotation) tf += ` rotate(${el.rotation}deg)`;
+      if (el.flipH) tf += ' scaleX(-1)';
+      if (el.flipV) tf += ' scaleY(-1)';
+      if (tf) node.style.transform = tf.trim();
       break;
     }
     default: {
       node.innerHTML = `<div class="el-raw" style="width:100%;height:100%">${el.label || el.type || '未支持元素'}</div>`;
     }
   }
+  // 形状特效：反射/柔化边缘/模糊（a:effectLst/a:reflection/a:softEdge/a:blur）——近似渲染
+  applyShapeEffects(node, el);
   if (ctx.editing) node.dataset.editing = '1';
   return node;
+}
+
+// 形状特效近似渲染：反射（镜像）/ 柔化边缘 / 模糊（CSS filter）。
+// 仅作用于编辑器/放映预览，不影响导出（导出由生成端按 OOXML effectLst 精确还原）。
+function applyShapeEffects(node, el) {
+  const fx = el.effects;
+  if (!fx) return;
+  const filters = [];
+  if (fx.softEdge && fx.softEdge.radius) filters.push(`blur(${(fx.softEdge.radius * 0.6).toFixed(1)}px)`);
+  if (fx.blur && fx.blur.radius) filters.push(`blur(${fx.blur.radius.toFixed(1)}px)`);
+  if (filters.length) node.style.filter = filters.join(' ');
+  if (fx.reflection) {
+    // 水平镜像倒影：below 表示从元素底部向下镜像，渐变实现透明度淡出
+    const dist = fx.reflection.distance ? fx.reflection.distance : 0;
+    node.style.webkitBoxReflect = `below ${dist}px linear-gradient(transparent 55%, rgba(0,0,0,0.45))`;
+  }
 }
 
 /* ======================= 图表（复用预览端 chart-renderer 的 option 构建，含 3D） ======================= */
@@ -1477,9 +1546,28 @@ function shapeGeometry(el) {
     case 'ellipse': case 'moon': case 'sun': case 'donut': case 'arc': case 'smileyFace':
       return { borderRadius: '50%' };
     case 'roundRect': {
-      // adj = 圆角半径占短边比例（OOXML 原生千分比，默认 16667）
+      // adj = 圆角半径占短边比例（OOXML 原生千分比，默认 16667）。
+      // 不设上限：预览端按同一公式换算并允许半径达到短边（此时视觉上即胶囊/椭圆），
+      // 此前额外 min(rad, 60) 会在大尺寸形状上把圆角压平，与预览端不符。
       const rad = ((adj.adj != null ? adj.adj : 16667) / 100000) * Math.min(el.width, el.height);
-      return { borderRadius: `${Math.min(rad, 60)}px` };
+      return { borderRadius: `${rad}px` };
+    }
+    // 圆角变体：与预览端 src/shape/shape.ts 的 round + cornr1/cornr2 分支同源。
+    // OOXML 用 adj1/adj2 指定被圆角的两角，缺省 adj1=33333（半径占短边 1/3）、adj2=0。
+    case 'round1Rect':
+    case 'round2SameRect':
+    case 'round2DiagRect': {
+      const a1 = (adj.adj1 != null ? adj.adj1 : 33333) / 100000;
+      const a2 = (adj.adj2 != null ? adj.adj2 : 0) / 100000;
+      const r1 = a1 * Math.min(el.width, el.height);
+      const r2 = a2 * Math.min(el.width, el.height);
+      const B = '0px';
+      const R = (n) => `${n}px`;
+      // adj1/adj2 落在哪个角由 OOXML 的 gt/avLst 语义固定：round1Rect 只第一角，
+      // round2SameRect 为上方两角，round2DiagRect 为对角两角。
+      if (el.shapeType === 'round1Rect') return { borderRadius: `${R(r1)} ${B} ${B} ${B}` };
+      if (el.shapeType === 'round2SameRect') return { borderRadius: `${R(r1)} ${R(r1)} ${B} ${B}` };
+      return { borderRadius: `${R(r1)} ${R(r2)} ${R(r1)} ${R(r2)}` };
     }
     case 'gear6': return { borderRadius: '18%' };
     case 'can': return { borderRadius: '10% / 18%' };
