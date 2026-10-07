@@ -59,6 +59,7 @@ import {
     isComplexShape
 } from './shape-categories';
 import { renderActionButton, isActionButton } from './action-buttons';
+import { presetShapePath } from './preset-shape';
 import type { XmlNode, WarpObject, ParseSettings } from '../core/types';
 
 /** PPTXShapeUtils 模块对外接口 */
@@ -71,6 +72,8 @@ interface ShapeUtilsModule {
     shapeSnipRoundRect: typeof shapeSnipRoundRect;
     shapeSnipRoundRectAlt: typeof shapeSnipRoundRectAlt;
     polarToCartesian: typeof polarToCartesian;
+    /** 预设几何 → SVG 路径（编辑器渲染与库内复用，见 preset-shape.ts） */
+    presetShapePath: typeof presetShapePath;
     /** 核心形状生成函数（定义在 IIFE 内部，此处显式声明签名） */
     genShape: (node: XmlNode | undefined, pNode: XmlNode | undefined, slideLayoutSpNode: XmlNode | undefined, slideMasterSpNode: XmlNode | undefined, id: string | number | undefined, name: string | undefined, idx: number | undefined, type: string, order: string | number | undefined, warpObj: WarpObject, isUserDrawnBg: boolean | undefined, sType: string, source: string, settings: ParseSettings) => Promise<string>;
 }
@@ -4702,6 +4705,7 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
         shapeSnipRoundRect: shapeSnipRoundRect,
         shapeSnipRoundRectAlt: shapeSnipRoundRectAlt,
         polarToCartesian: polarToCartesian,
+        presetShapePath: presetShapePath,
         // 核心形状生成函数
         genShape,
     };

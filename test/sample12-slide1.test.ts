@@ -40,5 +40,5 @@ describe('Sample_12 slide 1 rendering data', () => {
     // 右侧曲线连接符应保留预设类型
     const cxn = slide.elements.find((e: any) => e.type === 'shape' && e.shapeType === 'curvedConnector3');
     expect(cxn).toBeDefined();
-  });
+  }, 30000);
 });

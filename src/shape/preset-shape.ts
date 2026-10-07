@@ -1,19 +1,20 @@
 /**
- * OOXML 预设几何 → SVG 路径（与预览端 pptxToHtml / src/shape 同源公式移植）。
- * 覆盖编辑器此前用 CSS 近似失真的自定义形状：pie/arc/chord、noSmoking、smileyFace、
- * plus、plaque、quadArrow、uturnArrow、wedgeRectCallout、callout 系列、
- * ellipseRibbon、flowChartMagneticDisk/Drum、flowChartMultidocument、teardrop。
+ * 预设几何 → SVG 路径。
+ *
+ * 从编辑器 examples/editor/src/preset-paths.js 下沉而来（同源公式移植），统一到库层，
+ * 供编辑器渲染与任何需要「OOXML preset geometry → SVG path」的消费者复用。
+ * 内部几何函数为自包含实现，避免与 shape.ts 内部签名耦合。
  */
 
 /** 角度(度) → 圆上点（w/h 为直径、含 -90° 相位，与预览端 polarToCartesian 一致） */
-function polarPt(cx, cy, w, h, angleDeg) {
+function polarPt(cx: number, cy: number, w: number, h: number, angleDeg: number) {
   const a = (angleDeg - 90) * Math.PI / 180;
   return { x: cx + (w / 2) * Math.cos(a), y: cy + (h / 2) * Math.sin(a) };
 }
-const fmt = (n) => parseFloat(Number(n).toFixed(2));
+const fmt = (n: number) => parseFloat(Number(n).toFixed(2));
 
 /** 与预览端 shapeArc 相同：起点取 endAngle、终点取 startAngle（cw=false 逆时针标记） */
-function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
+function shapeArc(cx: number, cy: number, w: number, h: number, startAngle: number, endAngle: number, clockwise: boolean = false) {
   const start = polarPt(cx, cy, w, h, endAngle);
   const end = polarPt(cx, cy, w, h, startAngle);
   const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
@@ -25,7 +26,7 @@ function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise) {
  * moveTo=false 时首点用 L 续接当前子路径（对应 src/shape/shape.ts 里的 .replace("M","L")），
  * 否则会多开子路径导致闭合图形出现内接多边形伪影。
  */
-function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, moveTo = true) {
+function shapeArcAlt(cX: number, cY: number, rX: number, rY: number, stAng: number, endAng: number, moveTo = true) {
   let d = '';
   let angle = stAng;
   const head = moveTo ? 'M' : 'L';
@@ -50,7 +51,7 @@ function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, moveTo = true) {
 }
 
 /** 与预览端 shapePie 相同：饼形/弧形（H 为高，radius = H/2；返回 [d, transform]） */
-function shapePie(H, w, adj1, adj2, isClose) {
+function shapePie(H: number, w: number, adj1: number, adj2: number, isClose: boolean) {
   const pieVal = parseInt(String(adj2));
   const piAngle = parseInt(String(adj1));
   const radius = parseInt(String(H)) / 2;
@@ -69,20 +70,30 @@ function shapePie(H, w, adj1, adj2, isClose) {
   return [d, `rotate(${piAngle + 90}, ${radius}, ${radius})`];
 }
 
-const num = (adj, key, def) => {
-  const v = adj && adj[key] != null ? Number(adj[key]) : def;
+type Adj = Record<string, number | string> | undefined;
+const num = (adj: Adj, key: string, def: number) => {
+  const v = adj && adj[key] != null ? Number((adj as Record<string, number>)[key]) : def;
   return Number.isFinite(v) ? v : def;
 };
-const clampV = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+const clampV = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
 /** 矩形闭合路径 */
-const rectD = (w, h) => `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z`;
+const rectD = (w: number, h: number) => `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z`;
+
+export interface PresetShapeResult {
+  d: string;
+  transform?: string;
+  fillRule?: 'evenodd' | 'nonzero';
+  strokes?: { d: string; width?: number }[];
+  strokeOnly?: boolean;
+  noFill?: boolean;
+}
 
 /**
  * 主入口：返回 { d, transform, fillRule, strokes:[{d,width}], strokeOnly }
  * 不支持的 preset 返回 null（由调用方回退 CSS 近似）。
  */
-export function presetShapePath(prst, w, h, adj = {}, opts = {}) {
+export function presetShapePath(prst: string, w: number, h: number, adj: Adj = {}, opts: Record<string, unknown> = {}): PresetShapeResult | null {
   switch (prst) {
     // 矩形：与预览端 <rect> 等价，供 presetShapeSvg 渲染虚线边框（CSS border-style 无法表达固定 dash 图案）
     case 'rect': return { d: rectD(w, h) };
@@ -93,7 +104,7 @@ export function presetShapePath(prst, w, h, adj = {}, opts = {}) {
       const defAdj = prst === 'star5' ? 19098 : 12500;
       const ratio = num(adj, 'adj', defAdj) / 50000;
       const rx = w / 2, ry = h / 2;
-      const pts = [];
+      const pts: string[] = [];
       for (let i = 0; i < N * 2; i++) {
         const ang = -90 + i * (180 / N);
         const r = (i % 2 === 0) ? 1 : ratio;
@@ -109,8 +120,8 @@ export function presetShapePath(prst, w, h, adj = {}, opts = {}) {
       let adj1 = prst === 'pieWedge' ? 180 : prst === 'arc' ? 270 : 0;
       let adj2 = prst === 'pie' ? 270 : prst === 'pieWedge' ? 270 : 0;
       let H = prst === 'pieWedge' ? 2 * h : h;
-      if (adj.adj1 != null) adj1 = num(adj, 'adj1', adj1) / 60000;
-      if (adj.adj2 != null) adj2 = num(adj, 'adj2', adj2) / 60000;
+      if (adj && (adj as Record<string, number>).adj1 != null) adj1 = num(adj, 'adj1', adj1) / 60000;
+      if (adj && (adj as Record<string, number>).adj2 != null) adj2 = num(adj, 'adj2', adj2) / 60000;
       const [d, rot] = shapePie(H, w, adj1, adj2, isClose);
       // 预览端 arc 恒为空心描边（fill=none）
       return { d, transform: rot, noFill: !isClose || undefined };

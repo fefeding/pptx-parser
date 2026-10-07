@@ -1223,5 +1223,11 @@ function extractSlideTiming(slideContent: XmlNode) {
 
 export default pptxToHtml;
 export { pptxToJson, pptxToHtml, pptxToFiles, jsonToPptx, editPptx, PPTXComposer, pptxToStandard };
+export { PPTXShapeUtils } from './shape/shape';
+export { presetShapePath } from './shape/preset-shape';
+export * from './utils/color';
+export * from './utils/geometry';
+export * from './utils/units';
+export * from './utils/format';
 export * from './types/pptx-document';
 export * from './compatibility-types';

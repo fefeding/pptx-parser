@@ -2,7 +2,7 @@
  * 幻灯片渲染：内部模型 → DOM（画布 / 缩略图 / 演示共用）
  */
 import { h, ptToPx, normalizeColor, withAlpha, hexToRgb, clamp } from './util.js';
-import { presetShapePath } from './preset-paths.js';
+import { presetShapePath } from '../../../dist/ppt-parser.browser.js';
 import { renderChartSVG } from './charts.js';
 import { getTheme } from './model.js';
 // 预览端（examples/index.html）使用的同一套 ECharts 图表渲染器：option 构建逻辑（含 3D）与预览完全一致
