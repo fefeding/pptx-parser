@@ -445,14 +445,23 @@ function isNumberBullet(b) {
   return b === 'number' || (b && typeof b === 'object' && b.type === 'number');
 }
 
+/** 圆形/扇形类几何：PowerPoint 与预览端会把文本强制水平和垂直居中。 */
+function isCircularShape(el) {
+  return ['ellipse', 'ovalCallout', 'wedgeEllipseCallout', 'pie', 'pieWedge', 'chord', 'sector', 'arc', 'blockArc'].includes(el.shapeType || '');
+}
+
 function renderTextBody(el, ctx) {
   const body = h('div', { class: 'tb-body' });
   // 自动适配（a:normAutofit@fontScale）：PowerPoint 按此比例整体缩放字号以贴合文本框，
   // 不应用会导致大字号标题溢出折行（如 72pt 标题），与预览端不一致。
   const afs = (el.fontScale && el.fontScale > 0) ? el.fontScale : 1;
   const effFont = (r) => ((((r && r.fontSize != null) ? r.fontSize : (el.fontSize != null ? el.fontSize : 18))) * afs);
+  const circular = isCircularShape(el);
   const vmap = { top: 'flex-start', middle: 'center', bottom: 'flex-end' };
-  body.style.justifyContent = vmap[el.valign] || 'flex-start';
+  // 圆形/椭圆类形状：OOXML 常写 anchor="t"，但视觉上应居中，与预览端 getVerticalAlign 一致。
+  let effectiveVAlign = el.valign;
+  if (circular && effectiveVAlign === 'top') effectiveVAlign = 'middle';
+  body.style.justifyContent = vmap[effectiveVAlign] || 'flex-start';
   body.style.whiteSpace = el.noWrap ? 'nowrap' : 'pre-wrap';
   body.style.counterReset = 'pnum 0';
   // 竖排文字（a:bodyPr/@vert）：eaVert/vert 等 → CSS writing-mode
@@ -468,7 +477,10 @@ function renderTextBody(el, ctx) {
   let numState = null;  (el.paragraphs || []).forEach((p) => {
     const para = h('div', {});
     // 从右到左段落（a:pPr@rtl）：dir=rtl 且缺省右对齐（OOXML 语义）
-    if (p.rtl) {
+    // 圆形/椭圆类形状：预览端强制水平居中，编辑器同步处理。
+    if (circular) {
+      para.style.textAlign = 'center';
+    } else if (p.rtl) {
       para.dir = 'rtl';
       para.style.textAlign = p.align || el.align || 'right';
     } else {
