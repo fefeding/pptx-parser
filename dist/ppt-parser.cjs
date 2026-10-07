@@ -6736,7 +6736,7 @@ function polarToCartesian(cx, cy, w, h, angleInDegrees) {
         y: fmt(cy + (h / 2) * Math.sin(angleInRadians))
     };
 }
-function shapeArc$1(cx, cy, w, h, startAngle, endAngle, clockwise) {
+function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise = false) {
     const start = polarToCartesian(cx, cy, w, h, endAngle);
     const end = polarToCartesian(cx, cy, w, h, startAngle);
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
@@ -6854,7 +6854,7 @@ function shapeSnipRoundRectAlt(w, h, adj1, adj2, shapeType, adjType) {
     }
     return d;
 }
-function shapePie$1(H, w, adj1, adj2, isClose) {
+function shapePie(H, w, adj1, adj2, isClose) {
     const pieVal = parseInt(String(adj2));
     const piAngle = parseInt(String(adj1));
     let size = parseInt(String(H)), radius = (size / 2), value = pieVal - piAngle;
@@ -7771,7 +7771,7 @@ function renderMathSymbol(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bo
         const cY1 = y1 - Math.sin(c3d4 * Math.PI / 180) * rad;
         const cX2 = hc - Math.cos(Math.PI / 2) * rad;
         const cY2 = y5 - Math.sin(Math.PI / 2) * rad;
-        dVal = `M${hc},${y1}${shapeArc$1(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L")} z M${hc},${y5}${shapeArc$1(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L")} z M${x1},${y3} L${x3},${y3} L${x3},${y4} L${x1},${y4} z`;
+        dVal = `M${hc},${y1}${shapeArc(cX1, cY1, rad, rad, c3d4, c3d4 + 360, false).replace("M", "L")} z M${hc},${y5}${shapeArc(cX2, cY2, rad, rad, cd4, cd4 + 360, false).replace("M", "L")} z M${x1},${y3} L${x3},${y3} L${x3},${y4} L${x1},${y4} z`;
     }
     else if (shapType == "mathEqual") {
         if (shapAdjst_ary === undefined) {
@@ -7914,7 +7914,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y2 = vc - x1;
         y3 = vc + x1;
         y4 = h - x1;
-        dVal = `M${x2},${h}${shapeArc$1(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L")} L${x1},${y3}${shapeArc$1(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L")}${shapeArc$1(0, y2, x1, x1, cd4, 0, false).replace("M", "L")} L${x1},${x1}${shapeArc$1(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L")} M${x3},${0}${shapeArc$1(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L")} L${x4},${y2}${shapeArc$1(w, y2, x1, x1, cd2, cd4, false).replace("M", "L")}${shapeArc$1(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L")} L${x4},${y4}${shapeArc$1(x3, y4, x1, x1, 0, cd4, false).replace("M", "L")}`;
+        dVal = `M${x2},${h}${shapeArc(x2, y4, x1, x1, cd4, cd2, false).replace("M", "L")} L${x1},${y3}${shapeArc(0, y3, x1, x1, 0, (-cd4), false).replace("M", "L")}${shapeArc(0, y2, x1, x1, cd4, 0, false).replace("M", "L")} L${x1},${x1}${shapeArc(x2, x1, x1, x1, cd2, c3d4, false).replace("M", "L")} M${x3},${0}${shapeArc(x3, x1, x1, x1, c3d4, cd, false).replace("M", "L")} L${x4},${y2}${shapeArc(w, y2, x1, x1, cd2, cd4, false).replace("M", "L")}${shapeArc(w, y3, x1, x1, c3d4, cd2, false).replace("M", "L")} L${x4},${y4}${shapeArc(x3, y4, x1, x1, 0, cd4, false).replace("M", "L")}`;
     }
     else if (shapType === "leftBrace") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -7959,7 +7959,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y3 = h * a2 / cnstVal2;
         y2 = y3 - y1;
         y4 = y3 + y1;
-        dVal = `M${w},${h}${shapeArc$1(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L")} L${w / 2},${y4}${shapeArc$1(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L")}${shapeArc$1(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L")} L${w / 2},${y1}${shapeArc$1(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L")}`;
+        dVal = `M${w},${h}${shapeArc(w, h - y1, w / 2, y1, cd4, cd2, false).replace("M", "L")} L${w / 2},${y4}${shapeArc(0, y4, w / 2, y1, 0, (-cd4), false).replace("M", "L")}${shapeArc(0, y2, w / 2, y1, cd4, 0, false).replace("M", "L")} L${w / 2},${y1}${shapeArc(w, y1, w / 2, y1, cd2, c3d4, false).replace("M", "L")}`;
     }
     else if (shapType === "rightBrace") {
         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
@@ -8004,7 +8004,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y3 = h * a2 / cnstVal2;
         y2 = y3 - y1;
         y4 = h - y1;
-        dVal = `M${0},${0}${shapeArc$1(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L")} L${w / 2},${y2}${shapeArc$1(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L")}${shapeArc$1(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L")} L${w / 2},${y4}${shapeArc$1(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L")}`;
+        dVal = `M${0},${0}${shapeArc(0, y1, w / 2, y1, c3d4, cd, false).replace("M", "L")} L${w / 2},${y2}${shapeArc(w, y2, w / 2, y1, cd2, cd4, false).replace("M", "L")}${shapeArc(w, y3 + y1, w / 2, y1, c3d4, cd2, false).replace("M", "L")} L${w / 2},${y4}${shapeArc(0, y4, w / 2, y1, 0, cd4, false).replace("M", "L")}`;
     }
     else if (shapType === "bracketPair") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -8024,10 +8024,10 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         x1 = Math.min(w, h) * a / cnstVal2;
         x2 = r - x1;
         y2 = b - x1;
-        dVal = shapeArc$1(x1, x1, x1, x1, c3d4, cd2, false) +
-            shapeArc$1(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
-            shapeArc$1(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
-            shapeArc$1(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
+        dVal = shapeArc(x1, x1, x1, x1, c3d4, cd2, false) +
+            shapeArc(x1, y2, x1, x1, cd2, cd4, false).replace("M", "L") +
+            shapeArc(x2, x1, x1, x1, c3d4, (c3d4 + cd4), false) +
+            shapeArc(x2, y2, x1, x1, 0, cd4, false).replace("M", "L");
     }
     else if (shapType === "leftBracket") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -8049,7 +8049,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         if (y1 > w)
             y1 = w;
         y2 = b - y1;
-        dVal = `M${r},${b}${shapeArc$1(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L")} L${0},${y1}${shapeArc$1(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L")} L${r},${0}`;
+        dVal = `M${r},${b}${shapeArc(y1, y2, y1, y1, cd4, cd2, false).replace("M", "L")} L${0},${y1}${shapeArc(y1, y1, y1, y1, cd2, c3d4, false).replace("M", "L")} L${r},${0}`;
     }
     else if (shapType === "rightBracket") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -8070,7 +8070,7 @@ function renderBracket(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, borde
         y1 = Math.min(w, h) * a / cnstVal2;
         y2 = h - y1;
         y3 = w - y1;
-        dVal = `M${0},${h}${shapeArc$1(y3, y2, y1, y1, cd4, 0, false).replace("M", "L")} L${w},${h / 2}${shapeArc$1(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L")} L${0},${0}`;
+        dVal = `M${0},${h}${shapeArc(y3, y2, y1, y1, cd4, 0, false).replace("M", "L")} L${w},${h / 2}${shapeArc(y3, y1, y1, y1, cd, c3d4, false).replace("M", "L")} L${0},${0}`;
     }
     result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
     return result;
@@ -8110,7 +8110,7 @@ function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bor
         const cY1 = y1 - hR * Math.sin(Math.PI);
         const cX2 = x3 - wR * Math.cos(Math.PI);
         dVal =
-            `${shapeArc$1(cX1, cY1, wR, hR, 180, 540, false)}${shapeArc$1(cX2, cY1, wR, hR, 180, 540, false)} M${x1},${y2} Q${wd2},${y5} ${x4},${y2} Q${wd2},${y5} ${x1},${y2} M${0},${hd2}${shapeArc$1(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L")} z`;
+            `${shapeArc(cX1, cY1, wR, hR, 180, 540, false)}${shapeArc(cX2, cY1, wR, hR, 180, 540, false)} M${x1},${y2} Q${wd2},${y5} ${x4},${y2} Q${wd2},${y5} ${x1},${y2} M${0},${hd2}${shapeArc(wd2, hd2, wd2, hd2, 180, 540, false).replace("M", "L")} z`;
     }
     else if (shapType === "verticalScroll" || shapType === "horizontalScroll") {
         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
@@ -8137,7 +8137,7 @@ function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bor
             x5 = x6 - ch2;
             y3 = b - ch;
             y4 = b - ch2;
-            dVal = `M${ch},${y3} L${ch},${ch2}${shapeArc$1(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L")} L${x7},${t}${shapeArc$1(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L")} L${x6},${ch} L${x6},${y4}${shapeArc$1(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L")} L${ch2},${b}${shapeArc$1(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L")} z M${x3},${t}${shapeArc$1(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L")}${shapeArc$1(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L")} L${x4},${ch2} M${x6},${ch} L${x3},${ch} M${ch},${y4}${shapeArc$1(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L")}${shapeArc$1(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L")} z M${ch},${y4} L${ch},${y3}`;
+            dVal = `M${ch},${y3} L${ch},${ch2}${shapeArc(x3, ch2, ch2, ch2, 180, 270, false).replace("M", "L")} L${x7},${t}${shapeArc(x7, ch2, ch2, ch2, 270, 450, false).replace("M", "L")} L${x6},${ch} L${x6},${y4}${shapeArc(x5, y4, ch2, ch2, 0, 90, false).replace("M", "L")} L${ch2},${b}${shapeArc(ch2, y4, ch2, ch2, 90, 270, false).replace("M", "L")} z M${x3},${t}${shapeArc(x3, ch2, ch2, ch2, 270, 450, false).replace("M", "L")}${shapeArc(x3, x3 / 2, ch4, ch4, 90, 270, false).replace("M", "L")} L${x4},${ch2} M${x6},${ch} L${x3},${ch} M${ch},${y4}${shapeArc(ch2, y4, ch2, ch2, 0, 270, false).replace("M", "L")}${shapeArc(ch2, (y4 + y3) / 2, ch4, ch4, 270, 450, false).replace("M", "L")} z M${ch},${y4} L${ch},${y3}`;
         }
         else if (shapType === "horizontalScroll") {
             let y3, y4, y6, y7, y5, x3, x4;
@@ -8148,7 +8148,7 @@ function renderMiscShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bor
             y5 = y6 - ch2;
             x3 = r - ch;
             x4 = r - ch2;
-            dVal = `M${l},${y3}${shapeArc$1(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L")} L${x3},${ch} L${x3},${ch2}${shapeArc$1(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L")} L${r},${y5}${shapeArc$1(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L")} L${ch},${y6} L${ch},${y7}${shapeArc$1(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L")} zM${x4},${ch}${shapeArc$1(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L")}${shapeArc$1((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L")} z M${x4},${ch} L${x3},${ch} M${ch2},${y4} L${ch2},${y3}${shapeArc$1(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L")}${shapeArc$1(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L")} M${ch},${y3} L${ch},${y6}`;
+            dVal = `M${l},${y3}${shapeArc(ch2, y3, ch2, ch2, 180, 270, false).replace("M", "L")} L${x3},${ch} L${x3},${ch2}${shapeArc(x4, ch2, ch2, ch2, 180, 360, false).replace("M", "L")} L${r},${y5}${shapeArc(x4, y5, ch2, ch2, 0, 90, false).replace("M", "L")} L${ch},${y6} L${ch},${y7}${shapeArc(ch2, y7, ch2, ch2, 0, 180, false).replace("M", "L")} zM${x4},${ch}${shapeArc(x4, ch2, ch2, ch2, 90, -180, false).replace("M", "L")}${shapeArc((x3 + x4) / 2, ch2, ch4, ch4, 180, 0, false).replace("M", "L")} z M${x4},${ch} L${x3},${ch} M${ch2},${y4} L${ch2},${y3}${shapeArc(y3 / 2, y3, ch4, ch4, 180, 360, false).replace("M", "L")}${shapeArc(ch2, y3, ch2, ch2, 0, 180, false).replace("M", "L")} M${ch},${y3} L${ch},${y6}`;
         }
     }
     result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
@@ -8193,7 +8193,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
                 adj2 = parseInt(shapAdjst2.substr(4)) / 60000;
             }
         }
-        const pieVals = shapePie$1(H, w, adj1, adj2, isClose);
+        const pieVals = shapePie(H, w, adj1, adj2, isClose);
         result += `<path d='${pieVals[0]}' transform='${pieVals[1]}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
     else if (shapType === "chord") {
@@ -8215,7 +8215,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
         }
         const hR = h / 2;
         const wR = w / 2;
-        dVal = shapeArc$1(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
+        dVal = shapeArc(wR, hR, wR, hR, sAdj1_val, sAdj2_val, true);
         result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
     else if (shapType === "blockArc") {
@@ -8308,7 +8308,7 @@ function renderPieShape(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, bord
             x2 = hc - dx2;
             y2 = vc - dy2;
         }
-        dVal = `M${x1},${y1}${shapeArc$1(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L")} L${x2},${y2}${shapeArc$1(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L")} z`;
+        dVal = `M${x1},${y1}${shapeArc(wd2, hd2, wd2, hd2, stAng, endAng, false).replace("M", "L")} L${x2},${y2}${shapeArc(wd2, hd2, iwd2, ihd2, istAng, iendAng, false).replace("M", "L")} z`;
         result += `<path d='${dVal}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${(oShadowSvgUrlStr || "")} />`;
     }
     return result;
@@ -8691,61 +8691,10 @@ function renderActionButton(shapeType, w, h, imgFillFlg, grndFillFlg, fillColor,
     return renderer(w, h, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArcAlt);
 }
 
-function polarPt(cx, cy, w, h, angleDeg) {
-    const a = (angleDeg - 90) * Math.PI / 180;
-    return { x: cx + (w / 2) * Math.cos(a), y: cy + (h / 2) * Math.sin(a) };
-}
 const fmt = (n) => parseFloat(Number(n).toFixed(2));
-function shapeArc(cx, cy, w, h, startAngle, endAngle, clockwise = false) {
-    const start = polarPt(cx, cy, w, h, endAngle);
-    const end = polarPt(cx, cy, w, h, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
-    return ['M', fmt(start.x), fmt(start.y), 'A', fmt(w), fmt(h), 0, largeArcFlag, clockwise ? '0' : '1', fmt(end.x), fmt(end.y)].join(' ');
-}
 function shapeArcAlt(cX, cY, rX, rY, stAng, endAng, moveTo = true) {
-    let d = '';
-    let angle = stAng;
-    const head = moveTo ? 'M' : 'L';
-    if (endAng >= stAng) {
-        while (angle <= endAng) {
-            const rad = angle * Math.PI / 180;
-            const x = cX + Math.cos(rad) * rX, y = cY + Math.sin(rad) * rY;
-            if (angle === stAng)
-                d = ` ${head}${fmt(x)} ${fmt(y)}`;
-            d += ` L${fmt(x)} ${fmt(y)}`;
-            angle++;
-        }
-    }
-    else {
-        while (angle > endAng) {
-            const rad = angle * Math.PI / 180;
-            const x = cX + Math.cos(rad) * rX, y = cY + Math.sin(rad) * rY;
-            if (angle === stAng)
-                d = ` ${head}${fmt(x)} ${fmt(y)}`;
-            d += ` L ${fmt(x)} ${fmt(y)}`;
-            angle--;
-        }
-    }
-    return d;
-}
-function shapePie(H, w, adj1, adj2, isClose) {
-    const pieVal = parseInt(String(adj2));
-    const piAngle = parseInt(String(adj1));
-    const radius = parseInt(String(H)) / 2;
-    let value = pieVal - piAngle;
-    if (value < 0)
-        value = 360 + value;
-    value = Math.min(Math.max(value, 0), 360);
-    const x = Math.cos((2 * Math.PI) / (360 / value));
-    const y = Math.sin((2 * Math.PI) / (360 / value));
-    const longArc = value <= 180 ? 0 : 1;
-    if (isClose) {
-        const d = `M${radius},${radius} L${radius},${0} A${radius},${radius} 0 ${longArc},1 ${(radius + y * radius)},${(radius - x * radius)} z`;
-        return [d, `rotate(${piAngle - 270}, ${radius}, ${radius})`];
-    }
-    const radius1 = radius, radius2 = w / 2;
-    const d = `M${radius1},${0} A${radius2},${radius1} 0 ${longArc},1 ${(radius2 + y * radius2)},${(radius1 - x * radius1)}`;
-    return [d, `rotate(${piAngle + 90}, ${radius}, ${radius})`];
+    const d = shapeArcAlt$1(cX, cY, rX, rY, stAng, endAng, false);
+    return moveTo ? d : d.replace('M', 'L');
 }
 const num = (adj, key, def) => {
     const v = adj && adj[key] != null ? Number(adj[key]) : def;
@@ -13028,7 +12977,7 @@ const PPTXShapeUtils = (function () {
         else if (custShapType !== undefined) {
             const renderW = (sType === 'group-abs') ? w : drawW;
             const renderH = (sType === 'group-abs') ? h : drawH;
-            result += renderCustomShape(custShapType, renderW, renderH, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArc$1);
+            result += renderCustomShape(custShapType, renderW, renderH, imgFillFlg, grndFillFlg, fillColor, border, shpId, shapeArc);
             result += "</svg>";
             const dataAttrs2 = genShapeDataAttributes(node, workingXfrmNode, id, name, idx, type, rotate, sType);
             const animationData2 = extractAnimationData(node, warpObj);
@@ -13067,9 +13016,9 @@ const PPTXShapeUtils = (function () {
         return result;
     }
     return {
-        shapeArc: shapeArc$1,
+        shapeArc: shapeArc,
         shapeArcAlt: shapeArcAlt$1,
-        shapePie: shapePie$1,
+        shapePie: shapePie,
         shapeGear: shapeGear,
         shapeSnipRoundRect: shapeSnipRoundRect,
         shapeSnipRoundRectAlt: shapeSnipRoundRectAlt,

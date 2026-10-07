@@ -1,73 +1,24 @@
 /**
  * 预设几何 → SVG 路径。
  *
- * 从编辑器 examples/editor/src/preset-paths.js 下沉而来（同源公式移植），统一到库层，
+ * 从编辑器 examples/editor/src/preset-paths.js 下沉而来，统一到库层，
  * 供编辑器渲染与任何需要「OOXML preset geometry → SVG path」的消费者复用。
- * 内部几何函数为自包含实现，避免与 shape.ts 内部签名耦合。
+ * 底层几何（shapeArc/shapeArcAlt/shapePie）复用 path-generators 的单一实现，
+ * 仅以 moveTo 语义薄包装 shapeArcAlt 以匹配编辑器调用约定。
  */
 
-/** 角度(度) → 圆上点（w/h 为直径、含 -90° 相位，与预览端 polarToCartesian 一致） */
-function polarPt(cx: number, cy: number, w: number, h: number, angleDeg: number) {
-  const a = (angleDeg - 90) * Math.PI / 180;
-  return { x: cx + (w / 2) * Math.cos(a), y: cy + (h / 2) * Math.sin(a) };
-}
+import { shapeArc, shapeArcAlt as _shapeArcAlt, shapePie } from './path-generators';
+
 const fmt = (n: number) => parseFloat(Number(n).toFixed(2));
 
-/** 与预览端 shapeArc 相同：起点取 endAngle、终点取 startAngle（cw=false 逆时针标记） */
-function shapeArc(cx: number, cy: number, w: number, h: number, startAngle: number, endAngle: number, clockwise: boolean = false) {
-  const start = polarPt(cx, cy, w, h, endAngle);
-  const end = polarPt(cx, cy, w, h, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
-  return ['M', fmt(start.x), fmt(start.y), 'A', fmt(w), fmt(h), 0, largeArcFlag, clockwise ? '0' : '1', fmt(end.x), fmt(end.y)].join(' ');
-}
-
 /**
- * 与预览端 shapeArcAlt 相同：逐度折线逼近的弧（rX/rY 为半径）。
- * moveTo=false 时首点用 L 续接当前子路径（对应 src/shape/shape.ts 里的 .replace("M","L")），
- * 否则会多开子路径导致闭合图形出现内接多边形伪影。
+ * 复用 path-generators 的几何实现（单一权威）。库版 shapeArcAlt 第 7 参为 isClose
+ * （控制末尾是否 Z 闭合），此处以 moveTo 语义薄包装：moveTo=true 首点 M（独立子路径），
+ * moveTo=false 首点 L（续接当前子路径）——与编辑器原调用约定一致，等价于库版后 .replace("M","L")。
  */
 function shapeArcAlt(cX: number, cY: number, rX: number, rY: number, stAng: number, endAng: number, moveTo = true) {
-  let d = '';
-  let angle = stAng;
-  const head = moveTo ? 'M' : 'L';
-  if (endAng >= stAng) {
-    while (angle <= endAng) {
-      const rad = angle * Math.PI / 180;
-      const x = cX + Math.cos(rad) * rX, y = cY + Math.sin(rad) * rY;
-      if (angle === stAng) d = ` ${head}${fmt(x)} ${fmt(y)}`;
-      d += ` L${fmt(x)} ${fmt(y)}`;
-      angle++;
-    }
-  } else {
-    while (angle > endAng) {
-      const rad = angle * Math.PI / 180;
-      const x = cX + Math.cos(rad) * rX, y = cY + Math.sin(rad) * rY;
-      if (angle === stAng) d = ` ${head}${fmt(x)} ${fmt(y)}`;
-      d += ` L ${fmt(x)} ${fmt(y)}`;
-      angle--;
-    }
-  }
-  return d;
-}
-
-/** 与预览端 shapePie 相同：饼形/弧形（H 为高，radius = H/2；返回 [d, transform]） */
-function shapePie(H: number, w: number, adj1: number, adj2: number, isClose: boolean) {
-  const pieVal = parseInt(String(adj2));
-  const piAngle = parseInt(String(adj1));
-  const radius = parseInt(String(H)) / 2;
-  let value = pieVal - piAngle;
-  if (value < 0) value = 360 + value;
-  value = Math.min(Math.max(value, 0), 360);
-  const x = Math.cos((2 * Math.PI) / (360 / value));
-  const y = Math.sin((2 * Math.PI) / (360 / value));
-  const longArc = value <= 180 ? 0 : 1;
-  if (isClose) {
-    const d = `M${radius},${radius} L${radius},${0} A${radius},${radius} 0 ${longArc},1 ${(radius + y * radius)},${(radius - x * radius)} z`;
-    return [d, `rotate(${piAngle - 270}, ${radius}, ${radius})`];
-  }
-  const radius1 = radius, radius2 = w / 2;
-  const d = `M${radius1},${0} A${radius2},${radius1} 0 ${longArc},1 ${(radius2 + y * radius2)},${(radius1 - x * radius1)}`;
-  return [d, `rotate(${piAngle + 90}, ${radius}, ${radius})`];
+  const d = _shapeArcAlt(cX, cY, rX, rY, stAng, endAng, false);
+  return moveTo ? d : d.replace('M', 'L');
 }
 
 type Adj = Record<string, number | string> | undefined;

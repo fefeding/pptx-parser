@@ -42,7 +42,7 @@ export function polarToCartesian(cx: number, cy: number, w: number, h: number, a
  * @param {boolean} clockwise - 是否顺时针
  * @returns {string} SVG路径字符串
  */
-export function shapeArc(cx: number, cy: number, w: number, h: number, startAngle: number, endAngle: number, clockwise: boolean): string {
+export function shapeArc(cx: number, cy: number, w: number, h: number, startAngle: number, endAngle: number, clockwise: boolean = false): string {
     const start = polarToCartesian(cx, cy, w, h, endAngle);
     const end = polarToCartesian(cx, cy, w, h, startAngle);
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
