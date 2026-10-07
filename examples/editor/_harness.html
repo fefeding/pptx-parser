@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>editor render harness</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="../chart-lib/echarts.min.js"></script>
+  <script src="../chart-lib/echarts-gl.min.js"></script>
+  <style>
+    body { background: #f2f4f7; padding: 20px; }
+    #root { display: flex; flex-direction: column; gap: 40px; align-items: flex-start; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import { pptxToStandard } from '../../dist/ppt-parser.browser.js';
+    import { docFromPptx } from './src/model.js';
+    import { renderSlideInto } from './src/render.js';
+
+    async function load() {
+      const file = new URLSearchParams(location.search).get('file');
+      if (!file) return;
+      const resp = await fetch(file);
+      const buf = await resp.arrayBuffer();
+      const standard = await pptxToStandard(buf);
+      const doc = docFromPptx(standard);
+      const root = document.getElementById('root');
+      root.innerHTML = '';
+      for (const slide of doc.slides) {
+        const frame = document.createElement('div');
+        frame.className = 'slide-frame';
+        renderSlideInto(frame, slide, doc, { grid: false });
+        root.appendChild(frame);
+      }
+    }
+    load().catch((e) => { console.error(e); document.body.textContent = String(e); });
+  </script>
+</body>
+</html>

@@ -32,3 +32,8 @@ examples/**/*.bmp
 examples/**/*.mp4
 examples/**/*.mp3
 examples/**/*.xlsx
+# 调试截图（像素差分/编辑器对比等临时产物）
+test/**/*.png
+test/shot7/
+test/evp/
+test/rt/
