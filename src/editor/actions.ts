@@ -93,36 +93,63 @@ export function createActions(store: any) {
     }
 
     /* ======================= 层级 ======================= */
+    /**
+     * 在文档中定位某个 id 所在的列表（顶层 slide.elements 或某个 group 的 children），
+     * 并返回该数组引用。组合内的子元素被选中时，层级操作应在其所属 group 内部进行，
+     * 否则顶层 elements 找不到该 id 会导致 zOrder 静默失效。
+     */
+    function locateList(doc: any, id: string): any[] | null {
+        const slide = doc.slides[store.slideIndex];
+        if (slide.elements.some((e: any) => e.id === id)) return slide.elements;
+        for (const g of slide.elements) {
+            if (g.type === 'group' && g.children && g.children.some((c: any) => c.id === id)) return g.children;
+        }
+        return null;
+    }
+
     function zOrder(op: string) {
         const ids = store.sel.slice();
         if (!ids.length) return;
         store.update((doc: any) => {
-            const list = doc.slides[store.slideIndex].elements;
-            const picked = list.filter((e: any) => ids.includes(e.id));
-            const rest = list.filter((e: any) => !ids.includes(e.id));
-            if (op === 'front') doc.slides[store.slideIndex].elements = rest.concat(picked);
-            else if (op === 'back') doc.slides[store.slideIndex].elements = picked.concat(rest);
-            else {
-                const arr = list.slice();
-                const idxs = ids.map((id: string) => arr.findIndex((e: any) => e.id === id)).sort((a: number, b: number) => a - b);
-                if (op === 'forward') {
-                    for (let i = idxs.length - 1; i >= 0; i--) {
-                        const idx = idxs[i];
-                        if (idx < arr.length - 1 && !ids.includes(arr[idx + 1].id)) {
-                            [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+            // 同一列表内的选中项一起重排；不同容器（顶层 vs 各 group）分别处理
+            const lists = new Map<any[], Set<string>>();
+            for (const id of ids) {
+                const list = locateList(doc, id);
+                if (!list) continue;
+                if (!lists.has(list)) lists.set(list, new Set());
+                (lists.get(list) as Set<string>).add(id);
+            }
+            for (const [list, selSet] of lists) {
+                const selIds = Array.from(selSet);
+                if (op === 'front') {
+                    const picked = list.filter((e: any) => selSet.has(e.id));
+                    const rest = list.filter((e: any) => !selSet.has(e.id));
+                    list.length = 0;
+                    list.push(...rest, ...picked);
+                } else if (op === 'back') {
+                    const picked = list.filter((e: any) => selSet.has(e.id));
+                    const rest = list.filter((e: any) => !selSet.has(e.id));
+                    list.length = 0;
+                    list.push(...picked, ...rest);
+                } else if (op === 'forward') {
+                    // 每个选中项上移一位；从右往左处理，相邻选中项作为整体移动
+                    for (let i = list.length - 2; i >= 0; i--) {
+                        if (selSet.has(list[i].id) && !selSet.has(list[i + 1].id)) {
+                            [list[i], list[i + 1]] = [list[i + 1], list[i]];
                         }
                     }
                 } else {
-                    for (let i = 0; i < idxs.length; i++) {
-                        const idx = idxs[i];
-                        if (idx > 0 && !ids.includes(arr[idx - 1].id)) {
-                            [arr[idx], arr[idx - 1]] = [arr[idx - 1], arr[idx]];
+                    // backward：每个选中项下移一位；从左往右处理
+                    for (let i = 1; i < list.length; i++) {
+                        if (selSet.has(list[i].id) && !selSet.has(list[i - 1].id)) {
+                            [list[i], list[i - 1]] = [list[i - 1], list[i]];
                         }
                     }
                 }
-                doc.slides[store.slideIndex].elements = arr;
             }
         });
+        // 重排后重新绘制选择框（元素 DOM 已重建，旧的 .is-sel / sel-box 会失效）
+        store.emit('sel');
     }
 
     function moveTo(el: any, x: any, y: any) {

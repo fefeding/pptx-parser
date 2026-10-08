@@ -14635,7 +14635,7 @@ function buildPresentationXml(slideSize, slides, opts = {}) {
     const notesMasterXml = opts.notesMasterRelId
         ? `<p:notesMasterIdLst><p:notesMasterId r:id="${escapeXml(opts.notesMasterRelId)}"/></p:notesMasterIdLst>`
         : '';
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst>${masterEntries}</p:sldMasterIdLst>${notesMasterXml}<p:sldIdLst>${slideEntries}</p:sldIdLst>${sectionXml}<p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="914400"/><p:defaultTextStyle/></p:presentation>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst>${masterEntries}</p:sldMasterIdLst>${notesMasterXml}<p:sldIdLst>${slideEntries}</p:sldIdLst>${sectionXml}<p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="9144000"/><p:defaultTextStyle/></p:presentation>`;
 }
 const FONT_OBFUSCATION_KEY = [
     0x05, 0x00, 0xEC, 0x03, 0x4B, 0x00, 0x00, 0x00,
@@ -17070,7 +17070,7 @@ async function jsonToPptx(presentation, options = {}) {
         contentTypeXml = contentTypeXml.replace('</Types>', `<Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/></Types>`);
     }
     if (hasFontTable) {
-        contentTypeXml = contentTypeXml.replace('</Types>', `<Default Extension="fntdata" ContentType="application/x-fontdata"/>` +
+        contentTypeXml = contentTypeXml.replace('</Types>', `<Default Extension="fntdata" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/>` +
             `<Override PartName="/ppt/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.fontTable+xml"/></Types>`);
     }
     const thumbnail = pres.thumbnail;
@@ -23132,40 +23132,61 @@ function createActions(store) {
             }
         }, { coalesce: 'nudge' });
     }
+    function locateList(doc, id) {
+        const slide = doc.slides[store.slideIndex];
+        if (slide.elements.some((e) => e.id === id))
+            return slide.elements;
+        for (const g of slide.elements) {
+            if (g.type === 'group' && g.children && g.children.some((c) => c.id === id))
+                return g.children;
+        }
+        return null;
+    }
     function zOrder(op) {
         const ids = store.sel.slice();
         if (!ids.length)
             return;
         store.update((doc) => {
-            const list = doc.slides[store.slideIndex].elements;
-            const picked = list.filter((e) => ids.includes(e.id));
-            const rest = list.filter((e) => !ids.includes(e.id));
-            if (op === 'front')
-                doc.slides[store.slideIndex].elements = rest.concat(picked);
-            else if (op === 'back')
-                doc.slides[store.slideIndex].elements = picked.concat(rest);
-            else {
-                const arr = list.slice();
-                const idxs = ids.map((id) => arr.findIndex((e) => e.id === id)).sort((a, b) => a - b);
-                if (op === 'forward') {
-                    for (let i = idxs.length - 1; i >= 0; i--) {
-                        const idx = idxs[i];
-                        if (idx < arr.length - 1 && !ids.includes(arr[idx + 1].id)) {
-                            [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+            const lists = new Map();
+            for (const id of ids) {
+                const list = locateList(doc, id);
+                if (!list)
+                    continue;
+                if (!lists.has(list))
+                    lists.set(list, new Set());
+                lists.get(list).add(id);
+            }
+            for (const [list, selSet] of lists) {
+                Array.from(selSet);
+                if (op === 'front') {
+                    const picked = list.filter((e) => selSet.has(e.id));
+                    const rest = list.filter((e) => !selSet.has(e.id));
+                    list.length = 0;
+                    list.push(...rest, ...picked);
+                }
+                else if (op === 'back') {
+                    const picked = list.filter((e) => selSet.has(e.id));
+                    const rest = list.filter((e) => !selSet.has(e.id));
+                    list.length = 0;
+                    list.push(...picked, ...rest);
+                }
+                else if (op === 'forward') {
+                    for (let i = list.length - 2; i >= 0; i--) {
+                        if (selSet.has(list[i].id) && !selSet.has(list[i + 1].id)) {
+                            [list[i], list[i + 1]] = [list[i + 1], list[i]];
                         }
                     }
                 }
                 else {
-                    for (let i = 0; i < idxs.length; i++) {
-                        const idx = idxs[i];
-                        if (idx > 0 && !ids.includes(arr[idx - 1].id)) {
-                            [arr[idx], arr[idx - 1]] = [arr[idx - 1], arr[idx]];
+                    for (let i = 1; i < list.length; i++) {
+                        if (selSet.has(list[i].id) && !selSet.has(list[i - 1].id)) {
+                            [list[i], list[i - 1]] = [list[i - 1], list[i]];
                         }
                     }
                 }
-                doc.slides[store.slideIndex].elements = arr;
             }
         });
+        store.emit('sel');
     }
     function moveTo(el, x, y) {
         const dx = x == null ? 0 : x - el.x;
@@ -23918,6 +23939,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
     catch {
     }
     const filesInfo = await PPTXXmlUtils.getContentTypes(zip);
+    filesInfo.slides = await orderSlidesBySldIdLst(zip, filesInfo.slides);
     const slideSize = await PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
     const slides = [];
     const numOfSlides = filesInfo.slides.length;
@@ -23989,6 +24011,62 @@ function resolveRelTargetFromRels(relsPath, target) {
             stack.push(seg);
     }
     return stack.join('/');
+}
+async function orderSlidesBySldIdLst(zip, slideFiles) {
+    try {
+        const presFile = zip.file('ppt/presentation.xml');
+        if (!presFile)
+            return slideFiles;
+        const presText = await presFile.async('string');
+        const lstMatch = presText.match(/<p:sldIdLst>([\s\S]*?)<\/p:sldIdLst>/);
+        if (!lstMatch)
+            return slideFiles;
+        const relIds = [];
+        const sldIdRe = /<p:sldId\s+([^>]*?)\/>/g;
+        let m;
+        while ((m = sldIdRe.exec(lstMatch[1])) !== null) {
+            const idMatch = m[1].match(/r:id="([^"]*)"/);
+            if (idMatch)
+                relIds.push(idMatch[1]);
+        }
+        if (!relIds.length)
+            return slideFiles;
+        const relMap = {};
+        const relsFile = zip.file('ppt/_rels/presentation.xml.rels');
+        if (relsFile) {
+            const relsText = await relsFile.async('string');
+            const relRe = /<Relationship\s+([^>]*?)\/?>/g;
+            while ((m = relRe.exec(relsText)) !== null) {
+                const id = (m[1].match(/Id="([^"]*)"/) || [])[1];
+                const tgt = (m[1].match(/Target="([^"]*)"/) || [])[1];
+                if (id && tgt)
+                    relMap[id] = tgt.replace(/^(\.\.\/)+/, '').replace(/^ppt\//, '');
+            }
+        }
+        const norm = (f) => f.replace(/^ppt\//, '').replace(/^\/+/, '');
+        const byTarget = new Map();
+        for (const f of slideFiles)
+            byTarget.set(norm(f), f);
+        const ordered = [];
+        const seen = new Set();
+        for (const rid of relIds) {
+            const tgt = relMap[rid];
+            if (!tgt)
+                continue;
+            const f = byTarget.get(norm('ppt/' + tgt));
+            if (f && !seen.has(f)) {
+                ordered.push(f);
+                seen.add(f);
+            }
+        }
+        for (const f of slideFiles)
+            if (!seen.has(f))
+                ordered.push(f);
+        return ordered.length ? ordered : slideFiles;
+    }
+    catch {
+        return slideFiles;
+    }
 }
 async function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
     const resName = `${slideFileName.replace("slides/slide", "slides/_rels/slide")}.rels`;
