@@ -176,6 +176,84 @@ const out = await editor.save({ outputType: 'uint8array' });
 
 ---
 
+## 编辑器内核（Headless Editor Core）
+
+与 UI 无关的可复用编辑器能力，全部从包入口导出（实现位于 `src/editor`，随 `dist`/`src` 一起发布）。任意前端框架或自有 UI 都能直接复用同一套文档模型与 PPTX 双向转换逻辑，而不必依赖 `examples/editor` 的具体渲染。
+
+```ts
+import {
+  createStore, createActions, docFromPptx, docToPptx, renderChartSVG,
+  elementRect, rotatedRect, effectMargin, absoluteElementRect,
+  normalizeDoc, normalizeElement,
+  EditorStore
+} from '@fefeding/pptx-parser';
+```
+
+### 文档状态 `createStore`
+
+```ts
+const store = createStore({ storage? });        // storage 可选，实现 getItem/setItem 即可持久化（如 localStorage）
+store.setDoc(doc);                              // doc 为 docFromPptx 得到的编辑器文档
+const doc = store.getDoc();                     // 取回当前文档快照
+store.update(patch);                            // 浅合并式更新
+```
+
+类型 `EditorStore`：`{ doc, setDoc, getDoc, update, storage? }`。
+
+### 编辑操作 `createActions`
+
+```ts
+const actions = createActions(store);           // 工厂函数，不依赖单例，便于多实例/测试
+actions.addSlide({ elements: [/* … */] });
+actions.duplicateSlide(1);
+actions.deleteSlide(2);
+actions.moveSlide(1, 3);
+actions.updateElement(id, { fill: { color: '#4f46e5' } });
+actions.alignElements('hcenter');
+actions.distribute('horizontal');
+actions.groupSelection(); actions.ungroupSelection();
+actions.toggleLock(id); actions.toggleHidden(id);
+actions.applyLayout(0); actions.setBackground('#fff');
+actions.setSlideSize(1280, 720);
+actions.applyTheme(themeObj); actions.setNotes('…');
+actions.addAnimation({ target, type: 'flyIn', presetClass: 'entr', duration: 0.5 });
+actions.removeAnimation(idx); actions.moveAnimation(from, to);
+// 文本 / 表格 / 几何 / 查找
+actions.applyTextStyleSel({ bold: true });
+actions.setElementGeo(id, geo); actions.resizeTable(id, rows, cols);
+actions.findInDoc('关键字');
+```
+
+### 文档 ↔ PptxDocument 转换
+
+```ts
+// 解析端产物（PptxDocument）转编辑器文档；fileName 用于标题兜底
+const doc = docFromPptx(pptxStandardDoc, { fileName: 'my-deck.pptx' });
+
+// 编辑器文档转回标准 PptxDocument，再交 jsonToPptx 落盘
+const pptxDoc = docToPptx(doc);
+const out = await jsonToPptx(pptxDoc, { outputType: 'uint8array' });
+```
+
+`docFromPptx` 的标题优先级：**PPTX 自带 `core.xml` 的 `dc:title`** > **传入的 `fileName`（自动去扩展名）** > 固定字符串 `'导入的演示文稿'`。当原文件无标题元信息时，会以文件名兜底，并在导出时一并写回 `core.xml`，保证来回一致。
+
+### 图表与几何（纯函数）
+
+```ts
+const svg = renderChartSVG(chartElement);       // 返回 SVG 字符串，宿主自行决定挂载方式
+const rect = elementRect(element);              // 元素实际矩形（group = 子元素并集）
+const box  = rotatedRect(element);              // 含旋转的外接矩形
+const m    = effectMargin(element);             // 阴影/发光外边距
+const abs  = absoluteElementRect(element, parent); // 相对某父级的绝对矩形
+```
+
+### 文档规范化
+
+- `normalizeDoc(doc)`：补齐缺省字段（`slideSize`、`elements`、`zIndex` 序号等），导入/合并后调用可确保文档完整。
+- `normalizeElement(el)`：单元素级规范化（补 `id`、默认 `name`、类型字段等）。
+
+---
+
 ## 环境注意事项
 
 - **Node**：`fs.readFile` 得到 Buffer 可直接传入；若要显式 ArrayBuffer，务必切片：

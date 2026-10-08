@@ -136,7 +136,7 @@ PptxDocument
   view3D?: { rotX?, rotY?, depthPercent?, rAngAx? },
   axisTitles?: { category?, value?, secondaryValue? },
   secondaryValueAxis?: boolean,        // 启用次数值轴
-  dataLabels?: boolean,                // 显示数据标签（系列级可覆盖）
+  dataLabels?: boolean | { showValue?: boolean; showPercent?: boolean; showSeries?: boolean; showCategory?: boolean },  // 显示数据标签（系列级可覆盖）
   gridlines?: { major?, minor? } }
 ```
 
@@ -146,7 +146,7 @@ PptxDocument
   { name?, values?: number[], x?, y?, open?, high?, low?, close?,  // 散点用 x/y，股票用 open/high/low/close
     color?, pointColors?: (string|undefined)[],  // 逐点填充色（c:dPt）
     axis?: 'primary'|'secondary',                // 绑定到哪条数值轴
-    dataLabels?: boolean,                        // 系列级数据标签覆盖
+    dataLabels?: boolean | { showValue?: boolean; showPercent?: boolean; showSeries?: boolean; showCategory?: boolean },  // 系列级数据标签覆盖
     trendlines?: PptxTrendline[] }               // 趋势线
   ```
   `PptxTrendline`：`{ type?: 'linear'|'exp'|'log'|'poly'|'movingAvg'|'power', name?, order?, period?, forward?, backward?, showEquation?, showRSquared?, intercept? }`

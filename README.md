@@ -194,8 +194,10 @@ Beyond the command-style `editPptx` wrapper, the library ships a **UI-agnostic e
 ```javascript
 import {
   createStore, createActions, docFromPptx, docToPptx, renderChartSVG,
-  elementRect, rotatedRect, effectMargin
-} from '@fefeding/ppt-parser';
+  elementRect, rotatedRect, effectMargin, absoluteElementRect,
+  normalizeDoc, normalizeElement,
+  EditorStore
+} from '@fefeding/pptx-parser';
 
 // 1) Create a UI-free document state (optional persistence via a getItem/setItem storage adapter)
 const store = createStore({ storage: localStorage });
@@ -221,9 +223,11 @@ Core API:
 
 - `createStore(options?)` → `EditorStore`: holds `doc`, exposes `setDoc / getDoc / update`, with optional persistence (pass a `storage` implementing `getItem/setItem`).
 - `createActions(store)` → `EditorActions`: returns `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`.
-- `docFromPptx(semanticDoc)` / `docToPptx(doc)`: bidirectional conversion between the editor document and the standard `PptxDocument`.
+- `docFromPptx(semanticDoc, { fileName? })` / `docToPptx(doc)`: bidirectional conversion between the editor document and the standard `PptxDocument`. `docFromPptx` resolves the document title with priority `core.xml dc:title` > `fileName` (extension stripped) > `'导入的演示文稿'`; when the source file has no title metadata, the file name is used as a fallback and written back into `core.xml` on export so the title stays consistent round-trip.
 - `renderChartSVG(chartEl)`: renders a chart element to an SVG string (host decides how to mount it).
-- `elementRect / rotatedRect / effectMargin`: element geometry helpers (group union rect, rotated bounding box, shadow/glow margin).
+- `elementRect / rotatedRect / effectMargin / absoluteElementRect`: element geometry helpers (group union rect, rotated bounding box, shadow/glow margin, absolute rect relative to a parent).
+- `normalizeDoc(doc)` / `normalizeElement(el)`: fill in default fields after import/merge (`slideSize`, `elements`, `zIndex`, element `id`/`name`, …) to keep the document complete.
+- `EditorStore` (type): `{ doc, setDoc, getDoc, update, storage? }` returned by `createStore`.
 
 ## Supported Elements
 

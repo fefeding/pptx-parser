@@ -25,6 +25,10 @@
 | 8 | 解析端 HTML 渲染：把图案/图片填充塞进同一个 `styleTable`（以图案文本为 key），CSS 用固定 `fill="url(#pattPtrn)"` 这类 id | 每个形状生成独立 SVG `<pattern>`，id 形如 `pattPtrn_<shpId>` / `imgPtrn_<shpId>`，形状用 `fill="url(#…)"` 引用 | 固定 id 时多个形状互相覆盖（后者覆盖前者）；且 CSS background 不会按路径裁剪。**注意：生成端**形状图案填充是标准 `a:pattFill`（prst/fgClr/bgClr），与解析端的 SVG 方案无关 |
 | 9 | 多个 duotone 图片共用固定 `filter id="svg_image_duotone"` | id 按形状加后缀 | 后者覆盖前者，所有形状都用最后一组的双色调 |
 | 10 | 用同步 `new Image()` 探测图片尺寸 | 直接解析图片二进制头（PNG/JPEG/GIF/BMP/WEBP） | 图片未加载时 `image.width` 恒为 0 → `a:tile` 平铺尺寸算成 0 → 静默退回铺满 |
+| 11 | 导出文本形状时 `<a:ln>` 写了 `w`/线型，但既不给 `a:solidFill` 也不给 `a:noFill` | 线无颜色时写 `<a:noFill/>`；有颜色才写 `<a:solidFill>` | 本来无边框的文本框，导出再打开却凭空出现黑框 |
+| 12 | 列表末尾空段落（无 runs 文本、无软换行）未显式关闭项目符号 | 空段落的 `<a:pPr>` 写 `<a:buNone>`，或在解析端直接滤除 | 导出后列表末尾多出一个孤立的空项目符号 |
+| 13 | 段落缩进把 `marL` 与首行悬挂 `indent` 当成两个独立属性分别传给生成端 | 按 OOXML 语义组合：`left = marL + indent`，`indent` 仅表示首行相对左边界的悬挂偏移 | 二级列表缩进错位，与编辑器里显示的不一致 |
+| 14 | 导入时一律写死标题 `'导入的演示文稿'` | `docFromPptx(pptxDoc, { fileName })`：标题优先级 `dc:title` > 文件名(去扩展名) > 兜底字符串 | 打开 `core.xml` 无 `dc:title` 的文件时，标题栏始终显示占位符 |
 
 ## 易错点清单（写生成端时逐条对照）
 

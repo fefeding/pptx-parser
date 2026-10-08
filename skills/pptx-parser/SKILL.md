@@ -114,6 +114,12 @@ const data = await jsonToPptx({
 
 逐个字段的权威定义见 [`references/json-schema.md`](references/json-schema.md)；可直接抄的片段见 [`references/cookbook.md`](references/cookbook.md)。
 
+## 编辑器内核（可选复用）
+
+除 `editPptx` 页级编辑外，包入口还导出了与 UI 无关的编辑器内核：`createStore` / `createActions` / `docFromPptx` / `docToPptx` / `renderChartSVG` / `elementRect` / `rotatedRect` / `effectMargin` / `absoluteElementRect` / `normalizeDoc` / `normalizeElement`（类型 `EditorStore`）。适合在自有 UI 中复用文档模型与 PPTX 双向转换逻辑，而不必依赖 `examples/editor`。完整签名见 [`references/api.md`](references/api.md) 的「编辑器内核」一节。
+
+导入时建议把打开的文件名传给 `docFromPptx(pptxDoc, { fileName })`：这样没有标题元信息的 PPTX 也能以文件名作标题，且导出时会写回 `core.xml`，来回一致。
+
 ## 目录与可复用资源
 
 | 路径 | 用途 |
