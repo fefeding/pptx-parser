@@ -110,15 +110,13 @@ function shapeVisual(el) {
     } else if (fill.type === 'image') {
       // 形状图片填充：铺满 / 平铺（tile）/ 平铺 + 源图裁剪（srcRect）
       const url = fill.data || fill.src || '';
-      const sr = fill.srcRect || {};
-      const cw = Math.max(0.05, 1 - (sr.l || 0) - (sr.r || 0));
-      const ch = Math.max(0.05, 1 - (sr.t || 0) - (sr.b || 0));
       if (!url) {
         style.background = 'transparent';
-      } else if (fill.tile) {
-        const sx = (fill.tile.sx ?? 1) / cw, sy = (fill.tile.sy ?? 1) / ch;
-        style.background = `url("${url}") repeat`;
-        style.backgroundSize = `${(sx * 100).toFixed(2)}% ${(sy * 100).toFixed(2)}%`;
+      } else if (hasTileOrCrop(fill)) {
+        // 平铺 / 裁剪需要按原图像素换算每格尺寸（a:tile 的 sx/sy 是「每格占原图比例」，
+        // 与裁剪窗口无关），交给 applyShapeImageFill 用 canvas 按原图精确绘制。
+        // 此处不预设 background：否则会先画出格子密度错误的图案再被覆盖（可见闪烁）。
+        style.background = 'transparent';
       } else {
         // OOXML a:stretch/fillRect：整图拉伸铺满形状（非 cover 裁剪）
         style.background = `url("${url}") center / 100% 100% no-repeat`;
@@ -270,6 +268,18 @@ function buildPatternTile(prst, fg, bg) {
   return { size: 8, body: stroke('M0 8L8 0', 1) };
 }
 
+/** 图片填充是否需要 canvas 处理（平铺或源图裁剪）；拉伸铺满可纯 CSS 完成。 */
+function hasTileOrCrop(fill) {
+  if (!fill || fill.type !== 'image') return false;
+  const EPS = 1e-4;
+  const sr = fill.srcRect || {};
+  if (Math.abs(sr.l || 0) > EPS || Math.abs(sr.t || 0) > EPS || Math.abs(sr.r || 0) > EPS || Math.abs(sr.b || 0) > EPS) {
+    return true;
+  }
+  const tile = fill.tile || {};
+  return tile.sx != null || tile.sy != null;
+}
+
 /** 形状图片填充（平铺 / 裁剪）异步应用。先以拉伸图占位，图片加载后按 srcRect 裁切并平铺。 */
 function applyShapeImageFill(inner, el) {
   const fill = el.fill;
@@ -278,12 +288,8 @@ function applyShapeImageFill(inner, el) {
   if (!url) return;
 
   // 无平铺无裁剪：CSS 背景拉伸铺满即可
-  const sr = fill.srcRect || {};
-  const EPS = 1e-4;
-  const hasCrop = Math.abs(sr.l || 0) > EPS || Math.abs(sr.t || 0) > EPS || Math.abs(sr.r || 0) > EPS || Math.abs(sr.b || 0) > EPS;
   const tile = fill.tile || {};
-  const hasTile = tile.sx != null || tile.sy != null;
-  if (!hasCrop && !hasTile) {
+  if (!hasTileOrCrop(fill)) {
     // OOXML a:stretch/fillRect：整图拉伸铺满形状（非 cover 裁剪）
     inner.style.background = `url("${url}") center / 100% 100% no-repeat`;
     return;
@@ -293,6 +299,7 @@ function applyShapeImageFill(inner, el) {
   img.crossOrigin = 'anonymous';
   img.onload = () => {
     const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
+    const sr = fill.srcRect || {};
     const l = Math.max(0, Math.min(1, sr.l || 0));
     const t = Math.max(0, Math.min(1, sr.t || 0));
     const r = Math.max(0, Math.min(1 - l, sr.r || 0));
@@ -300,24 +307,29 @@ function applyShapeImageFill(inner, el) {
     const cropX = l * iw, cropY = t * ih;
     const cropW = Math.max(1, (1 - l - r) * iw), cropH = Math.max(1, (1 - t - b) * ih);
 
-    // 每格像素尺寸：sx/sy 是相对于裁剪后图片尺寸的比例（与 PowerPoint 语义一致）
+    // 每格像素尺寸：OOXML a:tile 的 sx/sy 是「每格占原图尺寸的比例」，与 srcRect 裁剪无关
+    // （解析端 json-from-pptx 同样按「每格占原图比例」写入 model.tile）。
+    // 预览端 SVG <pattern> 用 sx * 原图宽 作 tile 宽，这里保持同一换算，
+    // 否则裁剪过的形状在编辑器里每格会明显小于预览端（表现为格子过密）。
     const sx = Math.max(0.01, tile.sx ?? 1);
     const sy = Math.max(0.01, tile.sy ?? 1);
-    const tileW = cropW * sx;
-    const tileH = cropH * sy;
+    const tileW = Math.max(1, Math.round(iw * sx));
+    const tileH = Math.max(1, Math.round(ih * sy));
 
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(tileW));
-    canvas.height = Math.max(1, Math.round(tileH));
+    canvas.width = tileW;
+    canvas.height = tileH;
     const ctx2d = canvas.getContext('2d');
     if (!ctx2d) return;
+    // 源为裁剪窗口（图片像素坐标），目标为整格：与预览端 pattern 的 viewBox + width 同构
     ctx2d.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, tileW, tileH);
     const dataUrl = canvas.toDataURL('image/png');
 
     inner.style.backgroundImage = `url("${dataUrl}")`;
     inner.style.backgroundRepeat = 'repeat';
-    inner.style.backgroundPosition = '0 0';
-    inner.style.backgroundSize = `${tileW.toFixed(1)}px ${tileH.toFixed(1)}px`;
+    // a:tile 的 tx/ty 是相对原图尺寸的偏移比例
+    inner.style.backgroundPosition = `${((tile.tx ?? 0) * iw).toFixed(1)}px ${((tile.ty ?? 0) * ih).toFixed(1)}px`;
+    inner.style.backgroundSize = `${tileW}px ${tileH}px`;
     inner.style.backgroundColor = 'transparent';
   };
   // 加载失败则保持占位：拉伸铺满原图
