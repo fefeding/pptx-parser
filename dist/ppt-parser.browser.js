@@ -15838,7 +15838,7 @@ function buildPresentationXml(slideSize, slides, opts = {}) {
     const notesMasterXml = opts.notesMasterRelId
         ? `<p:notesMasterIdLst><p:notesMasterId r:id="${escapeXml(opts.notesMasterRelId)}"/></p:notesMasterIdLst>`
         : '';
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst>${masterEntries}</p:sldMasterIdLst>${notesMasterXml}<p:sldIdLst>${slideEntries}</p:sldIdLst>${sectionXml}<p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="914400"/><p:defaultTextStyle/></p:presentation>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst>${masterEntries}</p:sldMasterIdLst>${notesMasterXml}<p:sldIdLst>${slideEntries}</p:sldIdLst>${sectionXml}<p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="9144000"/><p:defaultTextStyle/></p:presentation>`;
 }
 const FONT_OBFUSCATION_KEY = [
     0x05, 0x00, 0xEC, 0x03, 0x4B, 0x00, 0x00, 0x00,
@@ -18273,7 +18273,7 @@ async function jsonToPptx(presentation, options = {}) {
         contentTypeXml = contentTypeXml.replace('</Types>', `<Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/></Types>`);
     }
     if (hasFontTable) {
-        contentTypeXml = contentTypeXml.replace('</Types>', `<Default Extension="fntdata" ContentType="application/x-fontdata"/>` +
+        contentTypeXml = contentTypeXml.replace('</Types>', `<Default Extension="fntdata" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/>` +
             `<Override PartName="/ppt/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.fontTable+xml"/></Types>`);
     }
     const thumbnail = pres.thumbnail;
@@ -23984,6 +23984,7 @@ class EditorStore {
         this.slideIndex = 0;
         this.sel = [];
         this.editingId = null;
+        this.groupEdit = null;
         this.clipboard = [];
         this.zoom = 1;
         this.showGrid = false;
@@ -24036,14 +24037,10 @@ class EditorStore {
     get slideCount() { return this.doc.slides.length; }
     elements() { return this.slide ? this.slide.elements : []; }
     findElement(id) {
-        for (const el of this.elements())
-            if (el.id === id)
-                return el;
-        return null;
+        return this.deepFind(id) || null;
     }
     selected() {
-        const els = this.elements();
-        return this.sel.map((id) => els.find((e) => e.id === id)).filter(Boolean);
+        return this.sel.map((id) => this.deepFind(id)).filter(Boolean);
     }
     deepFind(id, list = this.elements()) {
         for (const el of list) {
@@ -24071,12 +24068,26 @@ class EditorStore {
     toggleSel(id) {
         this.setSel(this.sel.includes(id) ? this.sel.filter((v) => v !== id) : this.sel.concat(id));
     }
+    setGroupEdit(id) {
+        if (this.groupEdit === id)
+            return;
+        this.groupEdit = id;
+        if (id) {
+            if (!this.sel.includes(id))
+                this.setSel([id]);
+        }
+        else {
+            this.setSel([]);
+        }
+        this.emit('groupEdit', id);
+    }
     setSlide(i, opts = {}) {
         const idx = Math.max(0, Math.min(this.doc.slides.length - 1, i));
         if (idx === this.slideIndex && !opts.force)
             return;
         this.slideIndex = idx;
         this.editingId = null;
+        this.groupEdit = null;
         this.setSel([]);
         this.emit('slide');
         this.emit('sel');
@@ -24123,6 +24134,7 @@ class EditorStore {
             this.slideIndex = this.doc.slides.length - 1;
         this.sel = this.sel.filter((id) => !!this.findElement(id));
         this.editingId = null;
+        this.groupEdit = null;
         this.persist();
         this.emit('doc', { undo: true });
         this.emit('sel');
@@ -24138,6 +24150,7 @@ class EditorStore {
         if (this.slideIndex >= this.doc.slides.length)
             this.slideIndex = this.doc.slides.length - 1;
         this.sel = this.sel.filter((id) => !!this.findElement(id));
+        this.groupEdit = null;
         this.persist();
         this.emit('doc', { redo: true });
         this.emit('sel');
@@ -24156,6 +24169,7 @@ class EditorStore {
             this.slideIndex = 0;
         this.sel = [];
         this.editingId = null;
+        this.groupEdit = null;
         this.persist();
         this.emit('doc', { full: true });
         this.emit('slide');
@@ -24208,6 +24222,29 @@ function rotatedRect(el) {
     const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
     const nw = w * cos + hh * sin, nh = w * sin + hh * cos;
     return { x0: cx - nw / 2, y0: cy - nh / 2, x1: cx + nw / 2, y1: cy + nh / 2 };
+}
+function absoluteElementRect(el, elements) {
+    const ancestors = [];
+    const walk = (list) => {
+        for (const e of list) {
+            if (e === el)
+                return true;
+            if (e.children && walk(e.children)) {
+                ancestors.push(e);
+                return true;
+            }
+        }
+        return false;
+    };
+    walk(elements);
+    let x = el.x || 0, y = el.y || 0;
+    for (const g of ancestors) {
+        if (g.childrenCoordinates === 'relative') {
+            x += g.x || 0;
+            y += g.y || 0;
+        }
+    }
+    return { x, y, width: el.width, height: el.height };
 }
 function effectMargin(el) {
     let left = 0, top = 0, right = 0, bottom = 0;
@@ -24280,6 +24317,8 @@ function createActions(store) {
             }
             slide.elements = slide.elements.filter((e) => !(e.type === 'group' && e.children && e.children.length === 0));
         });
+        if (store.groupEdit && !store.findElement(store.groupEdit))
+            store.setGroupEdit(null);
         store.setSel([]);
     }
     function duplicateSelected() {
@@ -24336,15 +24375,18 @@ function createActions(store) {
         store.setSel(copies.map((c) => c.id));
     }
     function selectAll() {
+        if (store.groupEdit)
+            store.setGroupEdit(null);
         store.setSel(store.elements().filter((e) => !e.locked).map((e) => e.id));
     }
     function nudge(dx, dy) {
-        const els = store.selected();
-        if (!els.length)
+        const ids = store.sel.slice();
+        if (!ids.length)
             return;
         store.update((doc) => {
-            for (const el of doc.slides[store.slideIndex].elements) {
-                if (!store.sel.includes(el.id) || el.locked)
+            for (const id of ids) {
+                const el = findInDoc(doc, id);
+                if (!el || el.locked)
                     continue;
                 el.x += dx;
                 el.y += dy;
@@ -24425,7 +24467,7 @@ function createActions(store) {
     }
     function alignElements(op) {
         const els = store.selected();
-        if (!els.length)
+        if (!els.length || store.groupEdit)
             return;
         const box = els.length > 1
             ? unionBBox(els.map((e) => elementRect(e)))
@@ -24461,7 +24503,7 @@ function createActions(store) {
     }
     function distribute(op) {
         const els = store.selected();
-        if (els.length < 3)
+        if (els.length < 3 || store.groupEdit)
             return;
         store.update((doc) => {
             const work = doc.slides[store.slideIndex].elements.filter((e) => store.sel.includes(e.id) && !e.locked);
@@ -24493,6 +24535,8 @@ function createActions(store) {
         });
     }
     function groupSelection() {
+        if (store.groupEdit)
+            return;
         const els = store.selected();
         if (els.length < 2)
             return;
@@ -24532,6 +24576,10 @@ function createActions(store) {
             }
             slide.elements = out;
         });
+        if (store.groupEdit) {
+            store.groupEdit = null;
+            store.emit('groupEdit', null);
+        }
         store.setSel(newIds);
     }
     function toggleLock(force) {
@@ -24633,11 +24681,13 @@ function createActions(store) {
         store.update((doc) => { doc.slides[store.slideIndex].notes = text; }, { coalesce: 'notes' });
     }
     function applyTextStyleSel(patch, opts = {}) {
+        const ids = store.sel.slice();
+        if (!ids.length)
+            return;
         store.update((doc) => {
-            for (const el of doc.slides[store.slideIndex].elements) {
-                if (!store.sel.includes(el.id))
-                    continue;
-                if (el.type !== 'text')
+            for (const id of ids) {
+                const el = findInDoc(doc, id);
+                if (!el || el.type !== 'text')
                     continue;
                 applyTextStyle(el, patch);
                 if (el.children)
@@ -24651,16 +24701,20 @@ function createActions(store) {
         store.update((doc) => { doc.slides[store.slideIndex].background = { type: 'image', data }; }, { coalesce: 'bg' });
     }
     function findInDoc(doc, id) {
-        for (const el of doc.slides[store.slideIndex].elements) {
-            if (el.id === id)
-                return el;
-            if (el.children) {
-                const f = el.children.find((c) => c.id === id);
-                if (f)
-                    return f;
+        const list = doc.slides[store.slideIndex].elements;
+        const walk = (arr) => {
+            for (const el of arr) {
+                if (el.id === id)
+                    return el;
+                if (el.children) {
+                    const f = walk(el.children);
+                    if (f)
+                        return f;
+                }
             }
-        }
-        return null;
+            return null;
+        };
+        return walk(list);
     }
     function setElementGeo(id, geo) {
         store.update((doc) => {
@@ -25163,6 +25217,7 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
     catch {
     }
     const filesInfo = await PPTXXmlUtils.getContentTypes(zip);
+    filesInfo.slides = await orderSlidesBySldIdLst(zip, filesInfo.slides);
     const slideSize = await PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
     const slides = [];
     const numOfSlides = filesInfo.slides.length;
@@ -25234,6 +25289,62 @@ function resolveRelTargetFromRels(relsPath, target) {
             stack.push(seg);
     }
     return stack.join('/');
+}
+async function orderSlidesBySldIdLst(zip, slideFiles) {
+    try {
+        const presFile = zip.file('ppt/presentation.xml');
+        if (!presFile)
+            return slideFiles;
+        const presText = await presFile.async('string');
+        const lstMatch = presText.match(/<p:sldIdLst>([\s\S]*?)<\/p:sldIdLst>/);
+        if (!lstMatch)
+            return slideFiles;
+        const relIds = [];
+        const sldIdRe = /<p:sldId\s+([^>]*?)\/>/g;
+        let m;
+        while ((m = sldIdRe.exec(lstMatch[1])) !== null) {
+            const idMatch = m[1].match(/r:id="([^"]*)"/);
+            if (idMatch)
+                relIds.push(idMatch[1]);
+        }
+        if (!relIds.length)
+            return slideFiles;
+        const relMap = {};
+        const relsFile = zip.file('ppt/_rels/presentation.xml.rels');
+        if (relsFile) {
+            const relsText = await relsFile.async('string');
+            const relRe = /<Relationship\s+([^>]*?)\/?>/g;
+            while ((m = relRe.exec(relsText)) !== null) {
+                const id = (m[1].match(/Id="([^"]*)"/) || [])[1];
+                const tgt = (m[1].match(/Target="([^"]*)"/) || [])[1];
+                if (id && tgt)
+                    relMap[id] = tgt.replace(/^(\.\.\/)+/, '').replace(/^ppt\//, '');
+            }
+        }
+        const norm = (f) => f.replace(/^ppt\//, '').replace(/^\/+/, '');
+        const byTarget = new Map();
+        for (const f of slideFiles)
+            byTarget.set(norm(f), f);
+        const ordered = [];
+        const seen = new Set();
+        for (const rid of relIds) {
+            const tgt = relMap[rid];
+            if (!tgt)
+                continue;
+            const f = byTarget.get(norm('ppt/' + tgt));
+            if (f && !seen.has(f)) {
+                ordered.push(f);
+                seen.add(f);
+            }
+        }
+        for (const f of slideFiles)
+            if (!seen.has(f))
+                ordered.push(f);
+        return ordered.length ? ordered : slideFiles;
+    }
+    catch {
+        return slideFiles;
+    }
 }
 async function processSingleSlideStructured(zip, slideFileName, index, slideSize, msgQueue, settings, chartId, styleTable, defaultTextStyle) {
     const resName = `${slideFileName.replace("slides/slide", "slides/_rels/slide")}.rels`;
@@ -25892,5 +26003,5 @@ function extractSlideTiming(slideContent) {
     return { advanceTime, animations };
 }
 
-export { ANIM_CLASSES, ANIM_DIRECTIONS, ANIM_TRIGGERS, ANIM_TYPES, CHART_TYPES, EditorStore, FONT_LIST, FONT_SIZES, LAYOUTS, PPTXComposer, PPTXShapeUtils, SHAPES, SLIDE_SIZES, THEMES, TRANSITIONS, TRANSITION_SPEEDS, applyTextStyle, bboxOf, buildSlideFromLayout, buildThemeXml, clamp, clone, createActions, createAudioElement, createChartElement, createDoc, createGroupElement, createImageElement, createParagraph, createShapeElement, createSlide, createStarterDoc, createStore, createTableElement, createTextElement, createVideoElement, pptxToHtml as default, defaultMediaPoster, docFromPptx, docToPptx, editPptx, effectMargin, elementRect, elementToPptx, escapeHtml, extOfDataUrl, getTheme, hexToRgb, inToPx, jsonToPptx, layoutElements, luminance, mixHex, normalizeBulletIn, normalizeBulletOut, normalizeColor, normalizeDoc, normalizeElement, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, renderChartSVG, rgbToHex, rotatePoint, rotatedRect, round, setActiveTheme, shade, shapeStyle, slideToPptx, stripDataUrl, syncTableStyle, uid, unionBBox, withAlpha };
+export { ANIM_CLASSES, ANIM_DIRECTIONS, ANIM_TRIGGERS, ANIM_TYPES, CHART_TYPES, EditorStore, FONT_LIST, FONT_SIZES, LAYOUTS, PPTXComposer, PPTXShapeUtils, SHAPES, SLIDE_SIZES, THEMES, TRANSITIONS, TRANSITION_SPEEDS, absoluteElementRect, applyTextStyle, bboxOf, buildSlideFromLayout, buildThemeXml, clamp, clone, createActions, createAudioElement, createChartElement, createDoc, createGroupElement, createImageElement, createParagraph, createShapeElement, createSlide, createStarterDoc, createStore, createTableElement, createTextElement, createVideoElement, pptxToHtml as default, defaultMediaPoster, docFromPptx, docToPptx, editPptx, effectMargin, elementRect, elementToPptx, escapeHtml, extOfDataUrl, getTheme, hexToRgb, inToPx, jsonToPptx, layoutElements, luminance, mixHex, normalizeBulletIn, normalizeBulletOut, normalizeColor, normalizeDoc, normalizeElement, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, renderChartSVG, rgbToHex, rotatePoint, rotatedRect, round, setActiveTheme, shade, shapeStyle, slideToPptx, stripDataUrl, syncTableStyle, uid, unionBBox, withAlpha };
 //# sourceMappingURL=ppt-parser.browser.js.map

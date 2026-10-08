@@ -247,6 +247,17 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   padding: 6px;
 }
 .el-group { }
+/* 组合编辑态：聚焦当前组合，淡化其它顶层元素 */
+.frame.group-editing .el.dimmed { opacity: 0.2; }
+.frame.group-editing .el-group.group-edit-active {
+  outline: 2px dashed var(--blue); outline-offset: -2px;
+}
+.group-edit-hint {
+  position: absolute; top: 10px; left: 10px; z-index: 50;
+  background: var(--blue); color: #fff; font-size: 12px;
+  padding: 4px 10px; border-radius: 4px; pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
+}
 .el[data-editing="1"] .tb-body { outline: 2px solid var(--blue); }
 
 /* 选中框 */

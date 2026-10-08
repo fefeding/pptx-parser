@@ -2,9 +2,9 @@
  * 幻灯片渲染：内部模型 → DOM（画布 / 缩略图 / 演示共用）
  */
 import { h, ptToPx, normalizeColor, withAlpha, hexToRgb, clamp } from './util.js';
-import { presetShapePath, elementRect, rotatedRect, effectMargin } from '../../../dist/ppt-parser.browser.js';
+import { presetShapePath, elementRect, rotatedRect, effectMargin, absoluteElementRect } from '../../../dist/ppt-parser.browser.js';
 // 元素级几何已下沉到库（src/editor/geometry.ts），此处 re-export 以兼容既有 import
-export { elementRect, rotatedRect, effectMargin };
+export { elementRect, rotatedRect, effectMargin, absoluteElementRect };
 import { renderChartSVG } from './charts.js';
 import { getTheme } from './model.js';
 // 预览端（examples/index.html）使用的同一套 ECharts 图表渲染器：option 构建逻辑（含 3D）与预览完全一致

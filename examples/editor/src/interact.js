@@ -2,10 +2,10 @@
  * 画布交互：渲染、选择、拖拽/缩放/旋转、框选、双击编辑、键盘快捷键
  */
 import { store } from './store.js';
-import { renderSlideInto, elementRect, rotatedRect, effectMargin, disposeAllCharts } from './render.js';
+import { renderSlideInto, elementRect, rotatedRect, effectMargin, disposeAllCharts, absoluteElementRect } from './render.js';
 import { h, clamp, unionBBox, rotatePoint, debounce } from './util.js';
 import { parseBody, focusBody, blurBody } from './richtext.js';
-import { cloneElement, nudge, deleteSelected, paste, copySelected, duplicateSelected, selectAll, groupSelection, ungroupSelection } from './actions.js';
+import { cloneElement, nudge, deleteSelected, paste, copySelected, duplicateSelected, selectAll, groupSelection, ungroupSelection, findInDoc } from './actions.js';
 import { openChartDialog, openTableDialog, openImagePicker, openMediaDialog } from './dialogs.js';
 import { startPresent } from './present.js';
 import { exportPptx, saveJson } from './io.js';
@@ -21,6 +21,7 @@ export function initCanvas(dom) {
   DOM.stage.addEventListener('contextmenu', onContextMenu);
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('resize', () => { if (store.fitted) fitToScreen(); });
+  store.on('groupEdit', () => updateSelection());
 }
 
 /* ======================= 渲染 ======================= */
@@ -67,6 +68,7 @@ export function updateSelection() {
       if (n) n.classList.add('is-sel');
     }
   }
+  applyGroupEditVisual();
   if (!els.length) { selLayer = null; return; }
 
   const layer = h('div', {
@@ -121,7 +123,7 @@ export function updateSelection() {
 
   if (els.length === 1) {
     const el = els[0];
-    const rect = elementRect(el);
+    const rect = rectOf(el);
     const m = effectMargin(el);
     rect.x -= m.left; rect.y -= m.top;
     rect.width += m.left + m.right;
@@ -130,7 +132,7 @@ export function updateSelection() {
   } else {
     const expandedRects = [];
     for (const el of els) {
-      const rect = elementRect(el);
+      const rect = rectOf(el);
       const m = effectMargin(el);
       rect.x -= m.left; rect.y -= m.top;
       rect.width += m.left + m.right;
@@ -142,6 +144,32 @@ export function updateSelection() {
     drawBox(box, 0, { group: true, handles: true, id: 'multi' });
   }
   DOM.overlay.appendChild(layer);
+}
+
+/* ======================= 组合编辑态视觉 ======================= */
+function applyGroupEditVisual() {
+  if (!DOM.frame) return;
+  const gid = store.groupEdit;
+  DOM.frame.classList.toggle('group-editing', !!gid);
+  const nodes = DOM.frame.querySelectorAll('.el');
+  for (const n of nodes) n.classList.remove('group-edit-active', 'dimmed');
+  let hint = DOM.scroll ? DOM.scroll.querySelector('.group-edit-hint') : null;
+  if (!gid) { if (hint) hint.remove(); return; }
+  const g = DOM.frame.querySelector(`.el-group[data-id="${gid}"]`);
+  if (g) {
+    g.classList.add('group-edit-active');
+    // 不淡化当前组合的祖先组合（嵌套组合时其顶层祖先会被一并淡化，需豁免）
+    let anc = g.parentElement;
+    const keep = new Set();
+    while (anc && anc !== DOM.frame) { keep.add(anc); anc = anc.parentElement; }
+    for (const n of DOM.frame.querySelectorAll('.el')) {
+      if (n.parentElement === DOM.frame && n.dataset.id !== gid && !keep.has(n)) n.classList.add('dimmed');
+    }
+  }
+  if (DOM.scroll && !hint) {
+    hint = h('div', { class: 'group-edit-hint', text: '组合编辑中 · 双击空白处或按 Esc 退出' });
+    DOM.scroll.appendChild(hint);
+  }
 }
 
 function handleStyle(dir, hs, rect) {
@@ -166,6 +194,12 @@ function toSlide(e) {
   return { x: (e.clientX - rect.left) / z, y: (e.clientY - rect.top) / z };
 }
 
+/** 元素外接矩形（自动换算到幻灯片绝对坐标，含祖先组合偏移；顶层元素等价于 elementRect） */
+function rectOf(el) {
+  const top = store.elements();
+  return top.some((t) => t.id === el.id) ? elementRect(el) : absoluteElementRect(el, top);
+}
+
 /* ======================= 指针交互 ======================= */
 function onPointerDown(e) {
   if (e.button !== 0) return;
@@ -184,10 +218,20 @@ function onPointerDown(e) {
   }
   const elNode = e.target.closest && e.target.closest('.el');
   if (elNode && elNode.dataset.id) {
-    let id = elNode.dataset.id;
-    // 组合内子元素：点击应选中整个组合（组件），而非无法单独操作的子元素
     const gNode = elNode.closest('.el-group');
-    if (gNode && gNode.dataset.id) id = gNode.dataset.id;
+    const gid = gNode && gNode.dataset.id;
+    let id = elNode.dataset.id;
+    if (gid) {
+      if (store.groupEdit === gid) {
+        // 组合编辑态：选中实际点击的子元素（可单独移动/删除/复制）
+        id = elNode.dataset.id;
+      } else {
+        // 普通态：点击组合内任何位置都选中整个组合
+        id = gid;
+      }
+    }
+    // 点击了其它顶层元素或不同组合：退出当前组合编辑态
+    if (store.groupEdit && store.groupEdit !== gid) store.setGroupEdit(null);
     if (e.shiftKey) store.toggleSel(id);
     else if (!store.sel.includes(id)) store.setSel([id]);
     const el = store.findElement(id);
@@ -195,16 +239,33 @@ function onPointerDown(e) {
     startMove(e);
     return;
   }
-  // 空白处：框选
+  // 空白处：退出组合编辑态并框选
+  if (store.groupEdit) store.setGroupEdit(null);
   if (!e.shiftKey) store.clearSel();
   startMarquee(e);
 }
 
 function onDblClick(e) {
   const elNode = e.target.closest && e.target.closest('.el');
-  if (!elNode) return;
+  if (!elNode) {
+    // 空白处双击：退出组合编辑态
+    if (store.groupEdit) store.setGroupEdit(null);
+    return;
+  }
   const el = store.findElement(elNode.dataset.id);
   if (!el || el.locked) return;
+  const gNode = elNode.closest('.el-group');
+  const gid = gNode && gNode.dataset.id;
+  if (gid) {
+    // 双击组合（或其内部子元素）：进入组合编辑态，之后可单独选中/编辑子元素
+    store.setGroupEdit(gid);
+    // 双击文本子元素：进入组合编辑并直接编辑文本
+    if (el.type === 'text') { enterEditing(el, { x: e.clientX, y: e.clientY }); return; }
+    // 其余子元素：选中该子元素
+    if (!store.sel.includes(el.id)) store.setSel([el.id]);
+    return;
+  }
+  // 顶层元素（不在任何组合内）：原有行为
   if (el.type === 'text') {
     enterEditing(el, { x: e.clientX, y: e.clientY });
   } else if (el.type === 'table') {
@@ -236,7 +297,7 @@ function startMove(e) {
   if (!els.length) return;
   store.snapshot();
   const orig = els.map((el) => ({ id: el.id, x: el.x, y: el.y, kids: (el.children || []).map((c) => ({ id: c.id, x: c.x, y: c.y })) }));
-  const box = unionBBox(els.map(elementRect));
+  const box = unionBBox(els.map(rectOf));
   const others = store.elements().filter((el) => !ids.includes(el.id)).map(elementRect);
   drag = { type: 'move', start: p, orig, box, others, moved: false };
   bindDrag();
@@ -249,7 +310,7 @@ function startTransform(e, dir, id) {
   if (!els.length) return;
   store.snapshot();
   const single = els.length === 1 ? els[0] : null;
-  const rect = single ? elementRect(single) : unionBBox(els.map(elementRect));
+  const rect = single ? rectOf(single) : unionBBox(els.map(rectOf));
   const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
   const startAngle = Math.atan2(p.y - center.y, p.x - center.x) * 180 / Math.PI;
   drag = {
@@ -258,7 +319,7 @@ function startTransform(e, dir, id) {
     base: single
       ? { id: single.id, x: single.x, y: single.y, w: single.width, h: single.height, rot: single.rotation || 0 }
       : null,
-    items: els.map((el) => ({ id: el.id, ...elementRect(el) })),
+    items: els.map((el) => ({ id: el.id, ...rectOf(el) })),
     box: rect,
     rotation0: single ? (single.rotation || 0) : 0
   };
@@ -297,9 +358,8 @@ function onDragMove(e) {
     }
     drag.moved = true;
     store.update((doc) => {
-      const list = doc.slides[store.slideIndex].elements;
       for (const o of drag.orig) {
-        const el = list.find((x) => x.id === o.id);
+        const el = findInDoc(doc, o.id);
         if (!el) continue;
         el.x = Math.round(o.x + dx);
         el.y = Math.round(o.y + dy);
@@ -323,7 +383,7 @@ function onDragMove(e) {
     if (shift) next = Math.round(next / 15) * 15;
     next = ((next + 180) % 360) - 180;
     store.update((doc) => {
-      const el = doc.slides[store.slideIndex].elements.find((x) => x.id === drag.base.id);
+      const el = findInDoc(doc, drag.base.id);
       if (el) el.rotation = Math.round(next * 10) / 10;
     }, { history: false });
     return;
@@ -395,7 +455,7 @@ function applyResize(p, shift) {
     const pdy = lox * Math.sin(rad2) + loy * Math.cos(rad2);
     const cx = b.x + b.w / 2 + pdx, cy = b.y + b.h / 2 + pdy;
     store.update((doc) => {
-      const el = doc.slides[store.slideIndex].elements.find((x) => x.id === b.id);
+      const el = findInDoc(doc, b.id);
       if (!el) return;
       if (el.type === 'group') {
         const fx = nw / b.w, fy = nh / b.h;
@@ -426,9 +486,9 @@ function applyResize(p, shift) {
   const ox = sx === -1 ? box.x + box.width - nw : box.x;
   const oy = sy === -1 ? box.y + box.height - nh : box.y;
   store.update((doc) => {
-    for (const el of doc.slides[store.slideIndex].elements) {
-      const item = drag.items.find((i) => i.id === el.id);
-      if (!item || el.locked) continue;
+    for (const item of drag.items) {
+      const el = findInDoc(doc, item.id);
+      if (!el || el.locked) continue;
       if (el.type === 'group') {
         for (const c of el.children || []) {
           c.x = ox + (c.x - box.x) * fx;
@@ -578,7 +638,12 @@ function onKeyDown(e) {
 
   if (key === 'F5') { e.preventDefault(); startPresent(0); return; }
   if (key === 'Delete' || key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
-  if (key === 'Escape') { store.clearSel(); return; }
+  if (key === 'Escape') {
+    if (store.editingId) { exitEditing(); return; }
+    if (store.groupEdit) { store.setGroupEdit(null); return; }
+    store.clearSel();
+    return;
+  }
   if (key === 'Enter') {
     const els = store.selected();
     if (els.length === 1 && els[0].type === 'text') { e.preventDefault(); enterEditing(els[0]); }
@@ -595,6 +660,7 @@ function onKeyDown(e) {
   }
   if (key === 'Tab') {
     e.preventDefault();
+    if (store.groupEdit) store.setGroupEdit(null);
     const els = store.elements();
     if (!els.length) return;
     const idx = els.findIndex((el) => el.id === store.sel[0]);

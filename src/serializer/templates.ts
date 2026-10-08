@@ -421,7 +421,8 @@ export function buildPresentationXml(
         ? `<p:notesMasterIdLst><p:notesMasterId r:id="${escapeXml(opts.notesMasterRelId)}"/></p:notesMasterIdLst>`
         : '';
 
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst>${masterEntries}</p:sldMasterIdLst>${notesMasterXml}<p:sldIdLst>${slideEntries}</p:sldIdLst>${sectionXml}<p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="914400"/><p:defaultTextStyle/></p:presentation>`;
+    // 备注页尺寸：OOXML 默认 7.5" x 10" = 6858000 x 9144000 EMU（原 cy 误写为 914400，差 10 倍）
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst>${masterEntries}</p:sldMasterIdLst>${notesMasterXml}<p:sldIdLst>${slideEntries}</p:sldIdLst>${sectionXml}<p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="9144000"/><p:defaultTextStyle/></p:presentation>`;
 }
 
 /**

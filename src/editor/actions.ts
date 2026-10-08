@@ -47,6 +47,7 @@ export function createActions(store: any) {
             // 组合若因此被掏空，则一并移除
             slide.elements = slide.elements.filter((e: any) => !(e.type === 'group' && e.children && e.children.length === 0));
         });
+        if (store.groupEdit && !store.findElement(store.groupEdit)) store.setGroupEdit(null);
         store.setSel([]);
     }
 
@@ -101,15 +102,17 @@ export function createActions(store: any) {
     }
 
     function selectAll() {
+        if (store.groupEdit) store.setGroupEdit(null);
         store.setSel(store.elements().filter((e: any) => !e.locked).map((e: any) => e.id));
     }
 
     function nudge(dx: number, dy: number) {
-        const els = store.selected();
-        if (!els.length) return;
+        const ids = store.sel.slice();
+        if (!ids.length) return;
         store.update((doc: any) => {
-            for (const el of doc.slides[store.slideIndex].elements) {
-                if (!store.sel.includes(el.id) || el.locked) continue;
+            for (const id of ids) {
+                const el = findInDoc(doc, id);
+                if (!el || el.locked) continue;
                 el.x += dx; el.y += dy;
                 if (el.children) for (const c of el.children) { c.x += dx; c.y += dy; }
             }
@@ -186,7 +189,7 @@ export function createActions(store: any) {
     /* ======================= 对齐 / 分布 ======================= */
     function alignElements(op: string) {
         const els = store.selected();
-        if (!els.length) return;
+        if (!els.length || store.groupEdit) return;
         const box: any = els.length > 1
             ? unionBBox(els.map((e: any) => elementRect(e)))
             : { x: 0, y: 0, width: store.doc.slideSize.width, height: store.doc.slideSize.height };
@@ -209,7 +212,7 @@ export function createActions(store: any) {
 
     function distribute(op: string) {
         const els = store.selected();
-        if (els.length < 3) return;
+        if (els.length < 3 || store.groupEdit) return;
         store.update((doc: any) => {
             const work = doc.slides[store.slideIndex].elements.filter((e: any) => store.sel.includes(e.id) && !e.locked);
             const rects = work.map((e: any) => ({ el: e, r: elementRect(e) }));
@@ -241,6 +244,7 @@ export function createActions(store: any) {
 
     /* ======================= 组合 ======================= */
     function groupSelection() {
+        if (store.groupEdit) return;
         const els = store.selected();
         if (els.length < 2) return;
         const group = createGroupElement(els.map((el: any) => clone(el)));
@@ -274,6 +278,7 @@ export function createActions(store: any) {
             }
             slide.elements = out;
         });
+        if (store.groupEdit) { store.groupEdit = null; store.emit('groupEdit', null); }
         store.setSel(newIds);
     }
 
@@ -383,10 +388,12 @@ export function createActions(store: any) {
 
     /** 对选中文本元素应用样式（同步元素默认 + 所有 run），并同步到组内子元素 */
     function applyTextStyleSel(patch: any, opts: any = {}) {
+        const ids = store.sel.slice();
+        if (!ids.length) return;
         store.update((doc: any) => {
-            for (const el of doc.slides[store.slideIndex].elements) {
-                if (!store.sel.includes(el.id)) continue;
-                if (el.type !== 'text') continue;
+            for (const id of ids) {
+                const el = findInDoc(doc, id);
+                if (!el || el.type !== 'text') continue;
                 applyTextStyle(el, patch);
                 if (el.children) for (const c of el.children) if (c.type === 'text') applyTextStyle(c, patch);
             }
@@ -398,14 +405,18 @@ export function createActions(store: any) {
     }
 
     function findInDoc(doc: any, id: string): any {
-        for (const el of doc.slides[store.slideIndex].elements) {
-            if (el.id === id) return el;
-            if (el.children) {
-                const f = el.children.find((c: any) => c.id === id);
-                if (f) return f;
+        const list = doc.slides[store.slideIndex].elements;
+        const walk = (arr: any[]): any => {
+            for (const el of arr) {
+                if (el.id === id) return el;
+                if (el.children) {
+                    const f = walk(el.children);
+                    if (f) return f;
+                }
             }
-        }
-        return null;
+            return null;
+        };
+        return walk(list);
     }
 
     /** 设置元素几何（支持组合：子元素同步移动/缩放） */

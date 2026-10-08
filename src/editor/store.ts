@@ -70,8 +70,9 @@ export function normalizeElement(el: any) {
 export class EditorStore {
     doc: any = null;
     slideIndex = 0;
-    sel: string[] = [];            // 选中的元素 id（当前页顶层）
+    sel: string[] = [];            // 选中的元素 id（当前页顶层，组合编辑态下可为子元素 id）
     editingId: string | null = null; // 正在内联编辑的文本元素
+    groupEdit: string | null = null; // 组合编辑态：正在编辑的组合 id（null 表示普通态）
     clipboard: any[] = [];
     zoom = 1;
     showGrid = false;
@@ -121,12 +122,10 @@ export class EditorStore {
     /** 当前页顶层元素 */
     elements() { return this.slide ? this.slide.elements : []; }
     findElement(id: string) {
-        for (const el of this.elements()) if (el.id === id) return el;
-        return null;
+        return this.deepFind(id) || null;
     }
     selected() {
-        const els = this.elements();
-        return this.sel.map((id) => els.find((e: any) => e.id === id)).filter(Boolean);
+        return this.sel.map((id) => this.deepFind(id)).filter(Boolean) as any[];
     }
     /** 递归查找（含组内子元素） */
     deepFind(id: string, list: any = this.elements()): any {
@@ -154,11 +153,24 @@ export class EditorStore {
         this.setSel(this.sel.includes(id) ? this.sel.filter((v) => v !== id) : this.sel.concat(id));
     }
 
+    /** 进入/退出组合编辑态。进入时默认选中整个组合，点击内部子元素时再切到子元素（见交互层） */
+    setGroupEdit(id: string | null) {
+        if (this.groupEdit === id) return;
+        this.groupEdit = id;
+        if (id) {
+            if (!this.sel.includes(id)) this.setSel([id]);
+        } else {
+            this.setSel([]);
+        }
+        this.emit('groupEdit', id);
+    }
+
     setSlide(i: number, opts: any = {}) {
         const idx = Math.max(0, Math.min(this.doc.slides.length - 1, i));
         if (idx === this.slideIndex && !opts.force) return;
         this.slideIndex = idx;
         this.editingId = null;
+        this.groupEdit = null;
         this.setSel([]);
         this.emit('slide');
         this.emit('sel');
@@ -209,6 +221,7 @@ export class EditorStore {
         if (this.slideIndex >= this.doc.slides.length) this.slideIndex = this.doc.slides.length - 1;
         this.sel = this.sel.filter((id) => !!this.findElement(id));
         this.editingId = null;
+        this.groupEdit = null;
         this.persist();
         this.emit('doc', { undo: true });
         this.emit('sel');
@@ -222,6 +235,7 @@ export class EditorStore {
         this.doc = normalizeDoc(JSON.parse(next));
         if (this.slideIndex >= this.doc.slides.length) this.slideIndex = this.doc.slides.length - 1;
         this.sel = this.sel.filter((id) => !!this.findElement(id));
+        this.groupEdit = null;
         this.persist();
         this.emit('doc', { redo: true });
         this.emit('sel');
@@ -240,6 +254,7 @@ export class EditorStore {
         if (this.slideIndex < 0) this.slideIndex = 0;
         this.sel = [];
         this.editingId = null;
+        this.groupEdit = null;
         this.persist();
         this.emit('doc', { full: true });
         this.emit('slide');

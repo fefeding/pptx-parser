@@ -604,7 +604,7 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     // 嵌入字体：fntdata 扩展名声明 + fontTable 覆盖
     if (hasFontTable) {
         contentTypeXml = contentTypeXml.replace('</Types>',
-            `<Default Extension="fntdata" ContentType="application/x-fontdata"/>` +
+            `<Default Extension="fntdata" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/>` +
             `<Override PartName="/ppt/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.fontTable+xml"/></Types>`);
     }
     // 缩略图（docProps/thumbnail.*）

@@ -263,6 +263,8 @@ async function parsePPTXInternal(zip: JSZip, msgQueue: ChartQueueItem[], setting
     }
 
     const filesInfo = await PPTXXmlUtils.getContentTypes(zip);
+    // 幻灯片逻辑顺序以 presentation.xml 的 p:sldIdLst 为准（OOXML 规范），而非文件名序号
+    filesInfo.slides = await orderSlidesBySldIdLst(zip, filesInfo.slides);
     const slideSize = await PPTXXmlUtils.getSlideSizeAndSetDefaultTextStyle(zip, settings);
 
     const slides = [];
@@ -313,7 +315,7 @@ async function parsePPTXInternal(zip: JSZip, msgQueue: ChartQueueItem[], setting
         });
     }
 
-    // Sort slides by slideNum to ensure correct order
+    // 顺序已由 sldIdLst 决定；此处按文件名序号兜底，保证稳定
     slides.sort((a, b) => a.slideNum - b.slideNum);
 
     const dateAfter = new Date();
@@ -365,6 +367,60 @@ function resolveRelTargetFromRels(relsPath: string, target: string): string {
         else stack.push(seg);
     }
     return stack.join('/');
+}
+
+/**
+ * 按 presentation.xml 的 p:sldIdLst 决定幻灯片逻辑顺序。
+ *
+ * OOXML 规范：演示文稿的显示顺序由 p:sldIdLst 中的 r:id 序列决定，而非
+ * slideN.xml 的文件名序号。本库旧逻辑按文件名派生序号排序，遇到「重命名过 /
+ * 非 Office 生成」的文件会错序，且与 editPptx 路径（已用 sldIdLst）行为不一致。
+ * 此处读取 sldIdLst + presentation.xml.rels 重排；缺失或解析失败时回退原顺序。
+ */
+async function orderSlidesBySldIdLst(zip: JSZip, slideFiles: string[]): Promise<string[]> {
+    try {
+        const presFile = zip.file('ppt/presentation.xml');
+        if (!presFile) return slideFiles;
+        const presText = await presFile.async('string');
+        const lstMatch = presText.match(/<p:sldIdLst>([\s\S]*?)<\/p:sldIdLst>/);
+        if (!lstMatch) return slideFiles;
+        const relIds: string[] = [];
+        const sldIdRe = /<p:sldId\s+([^>]*?)\/>/g;
+        let m: RegExpExecArray | null;
+        while ((m = sldIdRe.exec(lstMatch[1])) !== null) {
+            const idMatch = m[1].match(/r:id="([^"]*)"/);
+            if (idMatch) relIds.push(idMatch[1]);
+        }
+        if (!relIds.length) return slideFiles;
+        // rId → target（ppt/presentation.xml.rels 的 Target 相对 ppt/，形如 slides/slideN.xml）
+        const relMap: Record<string, string> = {};
+        const relsFile = zip.file('ppt/_rels/presentation.xml.rels');
+        if (relsFile) {
+            const relsText = await relsFile.async('string');
+            const relRe = /<Relationship\s+([^>]*?)\/?>/g;
+            while ((m = relRe.exec(relsText)) !== null) {
+                const id = (m[1].match(/Id="([^"]*)"/) || [])[1];
+                const tgt = (m[1].match(/Target="([^"]*)"/) || [])[1];
+                if (id && tgt) relMap[id] = tgt.replace(/^(\.\.\/)+/, '').replace(/^ppt\//, '');
+            }
+        }
+        const norm = (f: string) => f.replace(/^ppt\//, '').replace(/^\/+/, '');
+        const byTarget = new Map<string, string>();
+        for (const f of slideFiles) byTarget.set(norm(f), f);
+        const ordered: string[] = [];
+        const seen = new Set<string>();
+        for (const rid of relIds) {
+            const tgt = relMap[rid];
+            if (!tgt) continue;
+            const f = byTarget.get(norm('ppt/' + tgt));
+            if (f && !seen.has(f)) { ordered.push(f); seen.add(f); }
+        }
+        // 追加 sldIdLst 之外的异常文件，保持原顺序兜底
+        for (const f of slideFiles) if (!seen.has(f)) ordered.push(f);
+        return ordered.length ? ordered : slideFiles;
+    } catch {
+        return slideFiles;
+    }
 }
 
 async function processSingleSlideStructured(zip: JSZip, slideFileName: string, index: number, slideSize: SlideSize, msgQueue: ChartQueueItem[], settings: ParseSettings, chartId: { value: number }, styleTable: StyleTable, defaultTextStyle: XmlNode | null) {
@@ -1238,4 +1294,4 @@ export * from './editor/model';
 export { createStore, EditorStore, normalizeDoc, normalizeElement } from './editor/store';
 export { createActions } from './editor/actions';
 export { renderChartSVG } from './editor/charts';
-export { elementRect, rotatedRect, effectMargin } from './editor/geometry';
+export { elementRect, rotatedRect, effectMargin, absoluteElementRect } from './editor/geometry';

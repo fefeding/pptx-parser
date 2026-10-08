@@ -40,6 +40,29 @@ export function rotatedRect(el: any) {
     return { x0: cx - nw / 2, y0: cy - nh / 2, x1: cx + nw / 2, y1: cy + nh / 2 };
 }
 
+/**
+ * 元素在幻灯片中的绝对外接矩形（计入所有祖先组合的偏移）。
+ * 组合子元素坐标为「相对组合」(childrenCoordinates==='relative') 或「页面绝对」(默认)，
+ * 二者渲染时的换算逻辑不同，故这里沿祖先链累加偏移，得到页面坐标，
+ * 供选择框、移动包围盒、吸附统一使用（避免相对坐标直接绘到幻灯片坐标系而错位）。
+ */
+export function absoluteElementRect(el: any, elements: any[]): any {
+    const ancestors: any[] = [];
+    const walk = (list: any[]): boolean => {
+        for (const e of list) {
+            if (e === el) return true;
+            if (e.children && walk(e.children)) { ancestors.push(e); return true; }
+        }
+        return false;
+    };
+    walk(elements);
+    let x = el.x || 0, y = el.y || 0;
+    for (const g of ancestors) {
+        if (g.childrenCoordinates === 'relative') { x += g.x || 0; y += g.y || 0; }
+    }
+    return { x, y, width: el.width, height: el.height };
+}
+
 /** 阴影/发光等效果导致的选择框外扩边距（左右/上下，单位 px） */
 export function effectMargin(el: any) {
     let left = 0, top = 0, right = 0, bottom = 0;
