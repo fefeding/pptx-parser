@@ -2,7 +2,7 @@
  * 画布交互：渲染、选择、拖拽/缩放/旋转、框选、双击编辑、键盘快捷键
  */
 import { store } from './store.js';
-import { renderSlideInto, elementRect, rotatedRect, effectMargin, disposeAllCharts, absoluteElementRect } from './render.js';
+import { renderSlideInto, elementRect, rotatedRect, effectMargin, disposeAllCharts, disposeDetachedCharts, absoluteElementRect } from './render.js';
 import { h, clamp, unionBBox, rotatePoint, debounce } from './util.js';
 import { parseBody, focusBody, blurBody } from './richtext.js';
 import { cloneElement, nudge, deleteSelected, paste, copySelected, duplicateSelected, selectAll, groupSelection, ungroupSelection, findInDoc } from './actions.js';
@@ -30,12 +30,14 @@ export function renderCanvas() {
   if (!doc) return;
   const slide = store.slide;
   const W = doc.slideSize.width, H = doc.slideSize.height;
-  disposeAllCharts();
+  // 不再每次重绘都销毁全部图表：复用 ECharts 实例（见 renderChartEl），
+  // 仅清理已脱离文档的实例（图表被删 / 切页）
   renderSlideInto(DOM.frame, slide, doc, {
     grid: store.showGrid,
     scale: store.zoom,
     editingId: store.editingId
   });
+  disposeDetachedCharts();
   DOM.stage.style.width = `${W * store.zoom}px`;
   DOM.stage.style.height = `${H * store.zoom}px`;
   DOM.frame.style.width = `${W}px`;

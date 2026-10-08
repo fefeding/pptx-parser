@@ -16267,7 +16267,10 @@ function buildParagraph(ctx, paragraph, defaults) {
         pPrChildren.push(xmlNode('a:spcBef', null, xmlNode('a:spcPts', { val: ptToSz(p.spaceBefore) })));
     if (p.spaceAfter != null)
         pPrChildren.push(xmlNode('a:spcAft', null, xmlNode('a:spcPts', { val: ptToSz(p.spaceAfter) })));
-    const b = p.bullet;
+    const hasContent = Array.isArray(p.runs)
+        ? p.runs.some((r) => r.text || r.break)
+        : !!(p.text !== undefined && String(p.text) !== '');
+    const b = hasContent ? p.bullet : undefined;
     if (b === 'number' || (b && typeof b === 'object' && b.type === 'number')) {
         const fmt = normalizeAutoNumType(b && typeof b === 'object' ? b.fmt : undefined);
         const start = (b && typeof b === 'object' && b.start != null) ? b.start : 1;
@@ -16620,21 +16623,27 @@ async function buildShapeAppearance(ctx, el) {
         lineNode = xmlNode('a:ln', null, xmlNode('a:noFill'));
     }
     else if (el.line) {
+        const lnAny = el.line;
         const w = el.line.width !== undefined ? el.line.width : 1;
-        const srgb = colorNode(el.line.color || '#000000');
-        if (el.line.transparency != null)
-            srgb.children.push(xmlNode('a:alpha', { val: Math.round((100 - el.line.transparency) * 1000) }));
-        const lnChildren = [xmlNode('a:solidFill', srgb)];
+        const lnAttrs = { w: ptToEmu(w) };
+        if (lnAny.cap)
+            lnAttrs.cap = lnAny.cap;
+        const lnChildren = [];
+        if (el.line.color != null) {
+            const srgb = colorNode(el.line.color);
+            if (el.line.transparency != null)
+                srgb.children.push(xmlNode('a:alpha', { val: Math.round((100 - el.line.transparency) * 1000) }));
+            lnChildren.push(xmlNode('a:solidFill', srgb));
+        }
+        else {
+            lnChildren.push(xmlNode('a:noFill'));
+        }
         if (el.line.dashType && el.line.dashType !== 'solid')
             lnChildren.push(xmlNode('a:prstDash', { val: el.line.dashType }));
-        const lnAny = el.line;
         if (lnAny.startArrow)
             lnChildren.push(xmlNode('a:headEnd', { type: lnAny.startArrow }));
         if (lnAny.endArrow)
             lnChildren.push(xmlNode('a:tailEnd', { type: lnAny.endArrow }));
-        const lnAttrs = { w: ptToEmu(w) };
-        if (el.line && el.line.cap)
-            lnAttrs.cap = el.line.cap;
         lineNode = xmlNode('a:ln', lnAttrs, ...lnChildren);
     }
     let effectNode = null;
@@ -18893,13 +18902,13 @@ function readRunStyle(rPr, themeMap = {}, resolveHref) {
     const attrs = rPr.attrs || {};
     if (attrs.sz)
         style.fontSize = Math.round(Number(attrs.sz) / 100 * 100) / 100;
-    if (attrs.b === '1' || attrs.b === 1)
+    if (attrs.b === '1' || attrs.b === 1 || attrs.b === 'true' || attrs.b === true)
         style.bold = true;
-    if (attrs.i === '1' || attrs.i === 1)
+    if (attrs.i === '1' || attrs.i === 1 || attrs.i === 'true' || attrs.i === true)
         style.italic = true;
     if (attrs.u && attrs.u !== 'none')
         style.underline = true;
-    if (attrs.strike === '1' || attrs.strike === 1 || rPr['a:strike'])
+    if (attrs.strike === '1' || attrs.strike === 1 || attrs.strike === 'true' || attrs.strike === true || rPr['a:strike'])
         style.strike = true;
     if (attrs.cap === 'small')
         style.smallCaps = true;
@@ -22829,6 +22838,8 @@ function cleanCellParagraphs(paragraphs) {
                     run.underline = true;
                 if (r.fontFace)
                     run.fontFace = r.fontFace;
+                if (r.fontFaceEa)
+                    run.fontFaceEa = r.fontFaceEa;
                 if (r.href)
                     run.href = r.href;
                 if (r.break)
@@ -22882,6 +22893,8 @@ function cleanRuns(paragraph, el) {
             run.underline = true;
         if (r.fontFace && r.fontFace !== el.fontFace)
             run.fontFace = r.fontFace;
+        if (r.fontFaceEa && r.fontFaceEa !== el.fontFaceEa)
+            run.fontFaceEa = r.fontFaceEa;
         if (r.outline)
             run.outline = r.outline;
         if (r.shadow)
@@ -23812,19 +23825,24 @@ function elementFromPptx(pe) {
         }
     }
 }
-function docFromPptx(pptxDoc) {
+function docFromPptx(pptxDoc, opts = {}) {
     const doc = createDoc('blue');
     const size = pptxDoc.slideSize || {};
     doc.slideSize = { width: Number(size.width) || 1280, height: Number(size.height) || 720 };
     const key = Object.keys(SLIDE_SIZES).find((k) => Math.abs(SLIDE_SIZES[k].width - doc.slideSize.width) < 4 && Math.abs(SLIDE_SIZES[k].height - doc.slideSize.height) < 4);
     doc.sizeKey = key || 'custom';
-    doc.title = (pptxDoc.metadata && pptxDoc.metadata.title) || '导入的演示文稿';
+    const fallbackTitle = opts.fileName
+        ? String(opts.fileName).replace(/\.(pptx|ppt|potx?|ppsx?|thmx)$/i, '')
+        : '导入的演示文稿';
+    doc.title = (pptxDoc.metadata && pptxDoc.metadata.title) || fallbackTitle;
     if (pptxDoc.metadata)
         doc.metadata = pptxDoc.metadata;
     if (pptxDoc.customProps)
         doc.customProps = pptxDoc.customProps;
     if (pptxDoc.thumbnail)
         doc.thumbnail = pptxDoc.thumbnail;
+    if (doc.metadata && !doc.metadata.title)
+        doc.metadata.title = doc.title;
     const th = pptxDoc.theme;
     if (th && th.colors) {
         const c = th.colors;

@@ -143,11 +143,12 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
     if (!rPr) return style;
     const attrs = rPr.attrs || {};
     if (attrs.sz) style.fontSize = Math.round(Number(attrs.sz) / 100 * 100) / 100; // 百分之一 pt → pt
-    if (attrs.b === '1' || attrs.b === 1) style.bold = true;
-    if (attrs.i === '1' || attrs.i === 1) style.italic = true;
+    // OOXML 布尔属性两种写法并存：b="1" 与 b="true"（PowerPoint 实际写 "true"），需都识别
+    if (attrs.b === '1' || attrs.b === 1 || attrs.b === 'true' || attrs.b === true) style.bold = true;
+    if (attrs.i === '1' || attrs.i === 1 || attrs.i === 'true' || attrs.i === true) style.italic = true;
     if (attrs.u && attrs.u !== 'none') style.underline = true;
-    // 删除线（a:rPr@strike="1" 或 a:strike 子节点存在）
-    if (attrs.strike === '1' || attrs.strike === 1 || rPr['a:strike']) style.strike = true;
+    // 删除线（a:rPr@strike="1"/"true" 或 a:strike 子节点存在）
+    if (attrs.strike === '1' || attrs.strike === 1 || attrs.strike === 'true' || attrs.strike === true || rPr['a:strike']) style.strike = true;
     // 小型大写（a:rPr@cap="small"）
     if (attrs.cap === 'small') style.smallCaps = true;
     // 高亮（a:rPr/a:highlight）：srgbClr 或 schemeClr → #RRGGBB

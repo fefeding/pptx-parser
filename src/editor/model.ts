@@ -630,6 +630,7 @@ function cleanCellParagraphs(paragraphs: any) {
             if (r.italic) run.italic = true;
             if (r.underline) run.underline = true;
             if (r.fontFace) run.fontFace = r.fontFace;
+            if (r.fontFaceEa) run.fontFaceEa = r.fontFaceEa;
             if (r.href) run.href = r.href;
             if (r.break) run.break = true;
             return run;
@@ -667,6 +668,8 @@ function cleanRuns(paragraph: any, el: any) {
         if (r.italic && !el.italic) run.italic = true;
         if (r.underline && !el.underline) run.underline = true;
         if (r.fontFace && r.fontFace !== el.fontFace) run.fontFace = r.fontFace;
+        // 东亚字体（a:ea）：中文实际字形，必须逐 run 透传，否则导出后中文回退默认字体
+        if (r.fontFaceEa && r.fontFaceEa !== el.fontFaceEa) run.fontFaceEa = r.fontFaceEa;
         if (r.outline) run.outline = r.outline;
         if (r.shadow) run.shadow = r.shadow;
         if (r.href) { run.href = r.href; if (r.hrefTooltip) run.hrefTooltip = r.hrefTooltip; }
@@ -1521,18 +1524,25 @@ function elementFromPptx(pe: any): any {
     }
 }
 
-export function docFromPptx(pptxDoc: any): any {
+export function docFromPptx(pptxDoc: any, opts: { fileName?: string } = {}): any {
     const doc = createDoc('blue');
     const size = pptxDoc.slideSize || {};
     doc.slideSize = { width: Number(size.width) || 1280, height: Number(size.height) || 720 };
     const key = Object.keys(SLIDE_SIZES).find((k) =>
         Math.abs(SLIDE_SIZES[k].width - doc.slideSize.width) < 4 && Math.abs(SLIDE_SIZES[k].height - doc.slideSize.height) < 4);
     doc.sizeKey = key || 'custom';
-    doc.title = (pptxDoc.metadata && pptxDoc.metadata.title) || '导入的演示文稿';
+    // 文档标题：优先用 PPTX 自带 dc:title；缺省时回退到打开的文件名（去扩展名），
+    // 避免始终显示固定占位「导入的演示文稿」
+    const fallbackTitle = opts.fileName
+        ? String(opts.fileName).replace(/\.(pptx|ppt|potx?|ppsx?|thmx)$/i, '')
+        : '导入的演示文稿';
+    doc.title = (pptxDoc.metadata && pptxDoc.metadata.title) || fallbackTitle;
     // 保留原始元数据与自定义属性，导出时原样写回
     if (pptxDoc.metadata) doc.metadata = pptxDoc.metadata;
     if (pptxDoc.customProps) doc.customProps = pptxDoc.customProps;
     if (pptxDoc.thumbnail) doc.thumbnail = pptxDoc.thumbnail;
+    // 原文件无 title 元信息时，以文件名兜底并写回 core.xml，保证导出标题一致
+    if (doc.metadata && !doc.metadata.title) doc.metadata.title = doc.title;
     // 导入的 PPTX 若携带主题配色（a:theme/a:clrScheme），提前设置为当前主题，确保下方 elementFromPptx
     // 解析 'scheme:<name>' 引用时使用该主题，而非默认蓝主题
     const th = pptxDoc.theme;

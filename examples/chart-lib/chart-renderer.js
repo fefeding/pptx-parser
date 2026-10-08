@@ -626,6 +626,18 @@ export class ChartRenderer {
                 }
             }
 
+            // 数据标签：仅当 info.dataLabels 为真时显示
+            if (chartInfo.dataLabels) {
+                seriesConfig.label = {
+                    show: true,
+                    position: 'top',
+                    formatter: (p) => {
+                        const v = Array.isArray(p.value) ? p.value[1] : (p.value && typeof p.value === 'object' ? p.value.y : p.value);
+                        return v == null ? '' : String(v);
+                    }
+                };
+            }
+
             return seriesConfig;
         });
     }
@@ -703,7 +715,7 @@ export class ChartRenderer {
             radius: isDoughnut ? [`${holePercent * 0.76}%`, '68%'] : '50%',
             data: data,
             label: {
-                show: true,
+                show: !!chartInfo.dataLabels,
                 formatter: '{b}: {d}%'
             },
             emphasis: {
@@ -740,7 +752,7 @@ export class ChartRenderer {
                     }
                 })),
                 label: {
-                    show: true,
+                    show: !!chartInfo.dataLabels,
                     formatter: '{b}: {d}%'
                 },
                 z: 2,

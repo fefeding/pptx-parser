@@ -41,7 +41,7 @@ export async function importPptxFile(file) {
   const buf = await file.arrayBuffer();
   try {
     const standard = await pptxToStandard(buf);
-    const doc = docFromPptx(standard);
+    const doc = docFromPptx(standard, { fileName: file.name });
     store.setDoc(doc, { noHistory: true });
     store.fitted = true;
     toast('导入成功', 'ok');

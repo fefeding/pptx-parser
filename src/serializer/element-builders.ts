@@ -929,7 +929,13 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
     if (p.spaceAfter != null) pPrChildren.push(xmlNode('a:spcAft', null, xmlNode('a:spcPts', { val: ptToSz(p.spaceAfter) })));
 
     // 列表符号：自动编号 / 字符符号（含符号字体）/ 图片符号（buBlip）/ 无
-    const b = p.bullet;
+    // 空段落（无文本、无软换行）不写项目符号：与编辑器渲染规则一致。
+    // 否则 PowerPoint 会把 buChar 画成文本框末尾孤立的「➢ / ●」，
+    // 而放映时空段落只占一行空白（参见 render.js paraHasContent）
+    const hasContent = Array.isArray(p.runs)
+        ? p.runs.some((r: TextRunSpec & { break?: boolean }) => r.text || (r as any).break)
+        : !!(p.text !== undefined && String(p.text) !== '');
+    const b = hasContent ? p.bullet : undefined;
     if (b === 'number' || (b && typeof b === 'object' && b.type === 'number')) {
         // fmt 需是合法的 ST_TextAutonumberScheme（'decimal' 这类写法会让 WPS/PowerPoint 回退成中文编号）
         const fmt = normalizeAutoNumType(b && typeof b === 'object' ? b.fmt : undefined);
@@ -1386,16 +1392,24 @@ async function buildShapeAppearance(ctx: SerializerContext, el: SerializerElemen
     if (el.line === 'none' || el.line === null) {
         lineNode = xmlNode('a:ln', null, xmlNode('a:noFill'));
     } else if (el.line) {
-        const w = el.line.width !== undefined ? el.line.width : 1;
-        const srgb = colorNode(el.line.color || '#000000');
-        if (el.line.transparency != null) (srgb.children as BuilderNode[]).push(xmlNode('a:alpha', { val: Math.round((100 - el.line.transparency) * 1000) }));
-        const lnChildren: BuilderNode[] = [xmlNode('a:solidFill', srgb)];
-        if (el.line.dashType && el.line.dashType !== 'solid') lnChildren.push(xmlNode('a:prstDash', { val: el.line.dashType }));
         const lnAny = el.line as any;
+        const w = el.line.width !== undefined ? el.line.width : 1;
+        const lnAttrs: Record<string, number | string | null> = { w: ptToEmu(w) };
+        if (lnAny.cap) lnAttrs.cap = lnAny.cap;
+        const lnChildren: BuilderNode[] = [];
+        // 源 <a:ln> 只带宽度/线型、没带填充子节点时，填充靠继承且不显示边框
+        // （编辑器同样要求 line.color 才画边框）。此处必须显式写 a:noFill，
+        // 否则兜底成黑色实线会让导出后凭空多出一个黑框
+        if (el.line.color != null) {
+            const srgb = colorNode(el.line.color);
+            if (el.line.transparency != null) (srgb.children as BuilderNode[]).push(xmlNode('a:alpha', { val: Math.round((100 - el.line.transparency) * 1000) }));
+            lnChildren.push(xmlNode('a:solidFill', srgb));
+        } else {
+            lnChildren.push(xmlNode('a:noFill'));
+        }
+        if (el.line.dashType && el.line.dashType !== 'solid') lnChildren.push(xmlNode('a:prstDash', { val: el.line.dashType }));
         if (lnAny.startArrow) lnChildren.push(xmlNode('a:headEnd', { type: lnAny.startArrow }));
         if (lnAny.endArrow) lnChildren.push(xmlNode('a:tailEnd', { type: lnAny.endArrow }));
-        const lnAttrs: Record<string, number | string | null> = { w: ptToEmu(w) };
-        if (el.line && (el.line as any).cap) lnAttrs.cap = (el.line as any).cap;
         lineNode = xmlNode('a:ln', lnAttrs, ...lnChildren);
     }
 

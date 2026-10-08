@@ -514,15 +514,23 @@ function renderTextBody(el, ctx) {
         }
       }
     }
-    const indent = p.indent != null ? p.indent : el.indent;
-    if (indent) {
-      if (indent < 0) {
-        // 悬挂缩进（OOXML indent 为负 + marL 组合）：编号/首行不得越出文本框，
-        // 与预览端一致地把列表起点收到框内，悬挂量转为正的 padding
-        para.style.paddingLeft = `${-indent}px`;
-      } else {
-        para.style.marginLeft = `${indent}px`;
-      }
+    // 段落缩进按 OOXML 悬挂缩进语义实现：
+    //   marL（p.indentLeft）= 正文左边界（折行也停在这里）
+    //   indent（p.indent）  = 首行相对 marL 的偏移，项目符号通常为负
+    // 合起来即：项目符号起点 = marL + indent，折行起点 = marL。
+    // 修复前只读 indent 并用行内 padding-left 覆盖了样式表 .bullet-para/.num-para 的
+    // em 级 text-indent，导致首行符号被再按字号左拉一次（各层级字号不同→错位不同），
+    // 且完全忽略 marL，导致二级列表的符号反而比一级更靠左。
+    // 有源数据时用行内 padding-left + text-indent 精确表达并覆盖 em 兜底；
+    // 无源数据（编辑器新建的列表）保持样式表的 1.3em/1.8em 悬挂缩进。
+    const marLSrc = p.indentLeft != null ? p.indentLeft : (el.indent ? el.indent : null);
+    const indentSrc = p.indent != null ? p.indent : null;
+    if (marLSrc != null || indentSrc != null) {
+      const marL = Math.max(0, marLSrc || 0);
+      // 首行（项目符号/编号）不得越出文本框，与预览端的 clamp 一致
+      const firstLine = (marL + (indentSrc || 0) < 0) ? -marL : (indentSrc || 0);
+      para.style.paddingLeft = `${marL}px`;
+      para.style.textIndent = `${firstLine}px`;
     }
     if (p.spaceBefore) para.style.marginTop = `${p.spaceBefore}px`;
     if (p.spaceAfter) para.style.marginBottom = `${p.spaceAfter}px`;
@@ -1205,7 +1213,7 @@ function buildChartInfo(el, ctx) {
     marker: el.marker,
     view3D: el.view3D || undefined
   };
-  return { chartId: 'chart_' + el.id, type, data, style, title: el.title || '', theme };
+  return { chartId: 'chart_' + el.id, type, data, style, title: el.title || '', theme, dataLabels: !!el.dataLabels };
 }
 
 /**
@@ -1463,9 +1471,10 @@ function renderMediaEl(el, host, ctx = {}) {
 }
 
 function renderChartEl(el, ctx) {
-  const wrap = h('div', { class: 'el-chart', style: { width: '100%', height: '100%' } });
-  wrap.id = 'chart_' + (ctx.chartScope || 'canvas') + '_' + el.id;
+  const id = 'chart_' + (ctx.chartScope || 'canvas') + '_' + el.id;
   const theme = getTheme(ctx.theme);
+  const wrap = h('div', { class: 'el-chart', style: { width: '100%', height: '100%' } });
+  wrap.id = id;
   // 图表区填充（c:chartSpace/c:spPr）：'none' 透明，缺省透明，色值铺满
   if (el.spaceFill === 'none') {
     wrap.style.background = 'transparent';
@@ -1480,7 +1489,14 @@ function renderChartEl(el, ctx) {
       const option = chartRenderer.prepareEChartsOption(info);
       if (option) {
         if (!el.legend && option.legend) delete option.legend;
-        enqueueEchart(wrap, option);
+        const cached = _echartsMap.get(id);
+        // 复用已有实例：仅更新 option 与尺寸，避免整页重绘时反复销毁重建 ECharts（造成闪烁/卡顿）
+        if (cached && cached.dom && cached.type === info.type) {
+          cached.dom.style.background = wrap.style.background;
+          enqueueChartUpdate(cached, option);
+          return cached.dom;
+        }
+        enqueueEchart(wrap, option, info.type);
         return wrap;
       }
     } catch (err) {
@@ -1495,7 +1511,16 @@ function renderChartEl(el, ctx) {
   return wrap;
 }
 
-function enqueueEchart(wrap, option) {
+// 复用实例：仅 setOption + resize，不销毁重建
+function enqueueChartUpdate(cached, option) {
+  requestAnimationFrame(() => {
+    try { cached.chart.setOption(option); } catch (e) { /* 极端情况下忽略 */ }
+    const w = cached.dom.clientWidth, h = cached.dom.clientHeight;
+    if (w > 0 && h > 0) cached.chart.resize();
+  });
+}
+
+function enqueueEchart(wrap, option, type) {
   // 节点此时尚未挂载到文档，延迟到下一帧（已挂载且有尺寸）再 init
   requestAnimationFrame(() => {
     const w = wrap.clientWidth, h = wrap.clientHeight;
@@ -1507,17 +1532,31 @@ function enqueueEchart(wrap, option) {
     );
     inst.setOption(option);
     const prev = _echartsMap.get(wrap.id);
-    if (prev) { window.removeEventListener('resize', prev.onResize); prev.chart.dispose(); }
+    if (prev && prev !== inst) {
+      window.removeEventListener('resize', prev.onResize);
+      try { prev.chart.dispose(); } catch { /* ignore */ }
+    }
     const onResize = () => inst.resize();
     window.addEventListener('resize', onResize);
-    _echartsMap.set(wrap.id, { chart: inst, onResize });
+    _echartsMap.set(wrap.id, { chart: inst, onResize, dom: wrap, type });
     if (!hasSize) {
       requestAnimationFrame(() => { if (wrap.clientWidth > 0 && wrap.clientHeight > 0) inst.resize(); });
     }
   });
 }
 
-/** 释放所有 ECharts 实例（切换幻灯片 / 卸载画布前调用，避免内存泄漏） */
+/** 仅释放已脱离文档的 ECharts 实例（图表被删除 / 切换幻灯片等场景） */
+export function disposeDetachedCharts() {
+  for (const [id, entry] of _echartsMap) {
+    if (!entry.dom || !entry.dom.isConnected) {
+      window.removeEventListener('resize', entry.onResize);
+      try { entry.chart.dispose(); } catch { /* ignore */ }
+      _echartsMap.delete(id);
+    }
+  }
+}
+
+/** 释放所有 ECharts 实例（卸载画布 / 关闭文档前调用，避免内存泄漏） */
 export function disposeAllCharts() {
   for (const { chart, onResize } of _echartsMap.values()) {
     window.removeEventListener('resize', onResize);
