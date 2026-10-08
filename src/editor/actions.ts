@@ -36,23 +36,47 @@ export function createActions(store: any) {
         if (!ids.length) return;
         store.update((doc: any) => {
             const slide = doc.slides[store.slideIndex];
+            // 顶层选中项
             slide.elements = slide.elements.filter((e: any) => !ids.includes(e.id));
+            // 组合内子元素选中项：从各自父组合中移除
+            for (const g of slide.elements) {
+                if (g.type === 'group' && g.children) {
+                    g.children = g.children.filter((c: any) => !ids.includes(c.id));
+                }
+            }
+            // 组合若因此被掏空，则一并移除
+            slide.elements = slide.elements.filter((e: any) => !(e.type === 'group' && e.children && e.children.length === 0));
         });
         store.setSel([]);
     }
 
     function duplicateSelected() {
-        const els = store.selected();
-        if (!els.length) return;
-        const copies = els.map((el: any) => {
-            const c = cloneElement(el);
-            c.x += 16; c.y += 16;
-            return c;
-        });
+        const ids = store.sel.slice();
+        if (!ids.length) return;
+        const newIds: string[] = [];
         store.update((doc: any) => {
-            doc.slides[store.slideIndex].elements.push(...copies);
+            const slide = doc.slides[store.slideIndex];
+            // 顶层选中项（含整个组合）
+            const top = slide.elements.filter((e: any) => ids.includes(e.id));
+            for (const el of top) {
+                const c = cloneElement(el);
+                c.x += 16; c.y += 16;
+                slide.elements.push(c);
+                newIds.push(c.id);
+            }
+            // 组合内子元素选中项：在各自父组合内复制
+            for (const g of slide.elements) {
+                if (g.type !== 'group' || !g.children) continue;
+                const kids = g.children.filter((c: any) => ids.includes(c.id));
+                for (const c of kids) {
+                    const cc = cloneElement(c);
+                    cc.x += 16; cc.y += 16;
+                    g.children.push(cc);
+                    newIds.push(cc.id);
+                }
+            }
         });
-        store.setSel(copies.map((c: any) => c.id));
+        store.setSel(newIds);
     }
 
     function copySelected(cut = false) {

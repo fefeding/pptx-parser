@@ -126,7 +126,7 @@ export function updateSelection() {
     rect.x -= m.left; rect.y -= m.top;
     rect.width += m.left + m.right;
     rect.height += m.top + m.bottom;
-    drawBox(rect, el.rotation, { handles: !el.locked, rotatable: !el.locked, id: el.id, locked: el.locked });
+    drawBox(rect, el.rotation, { handles: !el.locked, rotatable: !el.locked, id: el.id, locked: el.locked, group: el.type === 'group' });
   } else {
     const expandedRects = [];
     for (const el of els) {
@@ -184,7 +184,10 @@ function onPointerDown(e) {
   }
   const elNode = e.target.closest && e.target.closest('.el');
   if (elNode && elNode.dataset.id) {
-    const id = elNode.dataset.id;
+    let id = elNode.dataset.id;
+    // 组合内子元素：点击应选中整个组合（组件），而非无法单独操作的子元素
+    const gNode = elNode.closest('.el-group');
+    if (gNode && gNode.dataset.id) id = gNode.dataset.id;
     if (e.shiftKey) store.toggleSel(id);
     else if (!store.sel.includes(id)) store.setSel([id]);
     const el = store.findElement(id);
@@ -217,8 +220,11 @@ function onDblClick(e) {
 
 function onContextMenu(e) {
   const elNode = e.target.closest && e.target.closest('.el');
-  if (elNode && elNode.dataset.id && !store.sel.includes(elNode.dataset.id)) {
-    store.setSel([elNode.dataset.id]);
+  if (elNode && elNode.dataset.id) {
+    let id = elNode.dataset.id;
+    const gNode = elNode.closest('.el-group');
+    if (gNode && gNode.dataset.id) id = gNode.dataset.id;
+    if (!store.sel.includes(id)) store.setSel([id]);
   }
 }
 
