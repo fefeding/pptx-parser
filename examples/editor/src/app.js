@@ -37,6 +37,11 @@ function boot() {
   store.on('zoom', () => { renderCanvas(); updateZoom(); });
   // 选中变化：仅重绘选择框（无需重建画布，避免丢失文本编辑光标）
   store.on('sel', () => updateSelection());
+  // 文档变更后的持久化提示：内核不再直接操作 DOM，改由 UI 层订阅该事件
+  store.on('persist', () => {
+    const st = $('saveState');
+    if (st) st.textContent = '已修改（未缓存）';
+  });
 
   bindTopbar();
   bindZoomBar();

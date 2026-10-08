@@ -8357,7 +8357,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
         case "star4": {
             const adj = getAdjValue(node, "adj", 19098);
             const cnstVal1 = 50000 * SLIDE_FACTOR;
-            const a = clamp$1(adj, 0, cnstVal1);
+            const a = clamp$2(adj, 0, cnstVal1);
             const iwd2 = wd2 * a / cnstVal1;
             const ihd2 = hd2 * a / cnstVal1;
             const sdx = iwd2 * Math.cos(0.7853981634);
@@ -8376,7 +8376,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const vf = getAdjValue(node, "vf", 110557);
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const swd2 = wd2 * hf / cnstVal1;
             const shd2 = hd2 * vf / cnstVal1;
             const svc = vc * vf / cnstVal1;
@@ -8413,7 +8413,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
             const hd4 = h / 4;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const swd2 = wd2 * hf / cnstVal1;
             const dx1 = swd2 * Math.cos(0.5235987756);
             const x1 = hc - dx1;
@@ -8439,7 +8439,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const vf = getAdjValue(node, "vf", 105210);
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const swd2 = wd2 * hf / cnstVal1;
             const shd2 = hd2 * vf / cnstVal1;
             const svc = vc * vf / cnstVal1;
@@ -8483,7 +8483,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
         case "star8": {
             const adj = getAdjValue(node, "adj", 37500);
             const maxAdj = 50000 * SLIDE_FACTOR;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const dx1 = wd2 * Math.cos(0.7853981634);
             const x1 = hc - dx1;
             const x2 = hc + dx1;
@@ -8513,7 +8513,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const hf = getAdjValue(node, "hf", 105146);
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const swd2 = wd2 * hf / cnstVal1;
             const dx1 = swd2 * 95106 / 100000;
             const dx2 = swd2 * 58779 / 100000;
@@ -8552,7 +8552,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const maxAdj = 50000 * SLIDE_FACTOR;
             const hd4 = h / 4;
             const wd4 = w / 4;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const dx1 = wd2 * Math.cos(0.5235987756);
             const dy1 = hd2 * Math.sin(1.0471975512);
             const x1 = hc - dx1;
@@ -8588,7 +8588,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
         case "star16": {
             const adj = getAdjValue(node, "adj", 37500);
             const maxAdj = 50000 * SLIDE_FACTOR;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const dx1 = wd2 * 92388 / 100000;
             const dx2 = wd2 * 70711 / 100000;
             const dx3 = wd2 * 38268 / 100000;
@@ -8642,7 +8642,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const maxAdj = 50000 * SLIDE_FACTOR;
             const hd4 = h / 4;
             const wd4 = w / 4;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const dx1 = wd2 * Math.cos(0.2617993878);
             const dx2 = wd2 * Math.cos(0.5235987756);
             const dx3 = wd2 * Math.cos(0.7853981634);
@@ -8718,7 +8718,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
         case "star32": {
             const adj = getAdjValue(node, "adj", 37500);
             const maxAdj = 50000 * SLIDE_FACTOR;
-            const a = clamp$1(adj, 0, maxAdj);
+            const a = clamp$2(adj, 0, maxAdj);
             const dx1 = wd2 * 98079 / 100000;
             const dx2 = wd2 * 92388 / 100000;
             const dx3 = wd2 * 83147 / 100000;
@@ -8833,7 +8833,7 @@ function getAdjValue(node, name, defaultValue) {
     }
     return defaultValue * SLIDE_FACTOR;
 }
-function clamp$1(value, min, max) {
+function clamp$2(value, min, max) {
     return value < min ? min : value > max ? max : value;
 }
 
@@ -15634,7 +15634,7 @@ function buildFontScheme(f) {
         grp('majorFont', f.major, 'Calibri Light') + grp('minorFont', f.minor, 'Calibri') +
         `</a:fontScheme>`;
 }
-function buildThemeXml(theme) {
+function buildThemeXml$1(theme) {
     if (typeof theme === 'string')
         return theme;
     let xml = DEFAULT_THEME_XML;
@@ -18172,7 +18172,7 @@ async function jsonToPptx(presentation, options = {}) {
     }));
     zip.file('ppt/_rels/presentation.xml.rels', buildRelationshipsXml(presRels));
     const globalThemeXml = (options && options.theme) || pres.themeXml || pres.theme;
-    const themeParts = [buildThemeXml(globalThemeXml)];
+    const themeParts = [buildThemeXml$1(globalThemeXml)];
     const masterThemeNo = [];
     for (const m of (masters || [])) {
         const t = typeof m?.themeXml === 'string' ? m.themeXml : undefined;
@@ -19778,89 +19778,154 @@ function extractChart(chartXml, themeMap = {}) {
                     spaceFill = gradCol;
             }
         }
-        let chartNode = null;
-        let chartType = 'barChart';
+        const plotEntries = [];
         for (const ct of CHART_PLOT_TYPES) {
-            const node = asArray(plotArea[ct])[0];
-            if (node) {
-                chartNode = node;
-                chartType = ct.replace('c:', '');
-                break;
+            for (const node of asArray(plotArea[ct])) {
+                if (node)
+                    plotEntries.push({ type: ct.replace('c:', ''), node });
             }
         }
-        if (!chartNode)
+        if (!plotEntries.length)
             return undefined;
-        const isScatter = chartType === 'scatterChart';
-        const isBubble = chartType === 'bubbleChart';
-        const isStock = chartType === 'stockChart';
-        const firstSer = asArray(chartNode['c:ser'])[0];
-        const catNode = firstSer && firstSer['c:cat'];
-        let categories = [];
-        if (catNode) {
-            const strCache = catNode['c:strRef'] && catNode['c:strRef']['c:strCache'];
-            const pts = strCache ? asArray(strCache['c:pt']) : [];
-            categories = pts.map((p) => (p && p['c:v'] !== undefined ? String(p['c:v']) : '')).filter(Boolean);
-        }
-        const series = [];
-        for (const ser of asArray(chartNode['c:ser'])) {
-            const nameNode = ser['c:tx'] && ser['c:tx']['c:strRef'] && ser['c:tx']['c:strRef']['c:strCache'];
-            const namePts = nameNode ? asArray(nameNode['c:pt']) : [];
-            const name = namePts.length && namePts[0]['c:v'] ? String(namePts[0]['c:v']) : undefined;
-            const s = {};
-            if (name)
-                s.name = name;
-            if (isScatter || isBubble) {
-                let xv = numCacheValues(ser['c:xVal']);
-                if (!xv.length)
-                    xv = numCacheValues(ser['c:cat']);
-                s.x = xv;
-                s.y = numCacheValues(ser['c:yVal']);
-                if (isBubble) {
-                    s.values = numCacheValues(ser['c:bubbleSize']);
-                }
+        const extractOnePlot = (plotNode, plotType) => {
+            const isScatter = plotType === 'scatterChart';
+            const isBubble = plotType === 'bubbleChart';
+            const isStock = plotType === 'stockChart';
+            const firstSer = asArray(plotNode['c:ser'])[0];
+            const catNode = firstSer && firstSer['c:cat'];
+            let categories = [];
+            if (catNode) {
+                const strCache = catNode['c:strRef'] && catNode['c:strRef']['c:strCache'];
+                const pts = strCache ? asArray(strCache['c:pt']) : [];
+                categories = pts.map((p) => (p && p['c:v'] !== undefined ? String(p['c:v']) : '')).filter(Boolean);
             }
-            else if (isStock) {
-                s.open = numCacheValues(ser['c:openVal']);
-                s.high = numCacheValues(ser['c:highVal']);
-                s.low = numCacheValues(ser['c:lowVal']);
-                s.close = numCacheValues(ser['c:closeVal']);
-            }
-            else {
-                s.values = numCacheValues(ser['c:val']);
-            }
-            const serSpPr = ser['c:spPr'];
-            const serColor = serSpPr ? spColor(serSpPr['a:solidFill'], themeMap) : undefined;
-            if (serColor)
-                s.color = serColor;
-            const dPts = asArray(ser['c:dPt']);
-            if (dPts.length) {
-                const nPts = Math.max(s.values ? s.values.length : 0, ...(dPts.map((d) => {
-                    const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
-                    return idx + 1;
-                })));
-                if (nPts > 0) {
-                    const pc = new Array(nPts).fill(undefined);
-                    for (const d of dPts) {
-                        const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
-                        if (idx < 0)
-                            continue;
-                        const dSpPr = d['c:spPr'];
-                        if (!dSpPr)
-                            continue;
-                        const grad = readGradientFill(dSpPr['a:gradFill'], themeMap);
-                        if (grad) {
-                            pc[idx] = grad;
-                            continue;
-                        }
-                        const solid = spColor(dSpPr['a:solidFill'], themeMap);
-                        if (solid)
-                            pc[idx] = solid;
+            const series = [];
+            for (const ser of asArray(plotNode['c:ser'])) {
+                const nameNode = ser['c:tx'] && ser['c:tx']['c:strRef'] && ser['c:tx']['c:strRef']['c:strCache'];
+                const namePts = nameNode ? asArray(nameNode['c:pt']) : [];
+                const name = namePts.length && namePts[0]['c:v'] ? String(namePts[0]['c:v']) : undefined;
+                const s = {};
+                if (name)
+                    s.name = name;
+                if (isScatter || isBubble) {
+                    let xv = numCacheValues(ser['c:xVal']);
+                    if (!xv.length)
+                        xv = numCacheValues(ser['c:cat']);
+                    s.x = xv;
+                    s.y = numCacheValues(ser['c:yVal']);
+                    if (isBubble) {
+                        s.values = numCacheValues(ser['c:bubbleSize']);
                     }
-                    s.pointColors = pc;
                 }
+                else if (isStock) {
+                    s.open = numCacheValues(ser['c:openVal']);
+                    s.high = numCacheValues(ser['c:highVal']);
+                    s.low = numCacheValues(ser['c:lowVal']);
+                    s.close = numCacheValues(ser['c:closeVal']);
+                }
+                else {
+                    s.values = numCacheValues(ser['c:val']);
+                }
+                const serSpPr = ser['c:spPr'];
+                const serColor = serSpPr ? spColor(serSpPr['a:solidFill'], themeMap) : undefined;
+                if (serColor)
+                    s.color = serColor;
+                const dPts = asArray(ser['c:dPt']);
+                if (dPts.length) {
+                    const nPts = Math.max(s.values ? s.values.length : 0, ...(dPts.map((d) => {
+                        const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
+                        return idx + 1;
+                    })));
+                    if (nPts > 0) {
+                        const pc = new Array(nPts).fill(undefined);
+                        for (const d of dPts) {
+                            const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
+                            if (idx < 0)
+                                continue;
+                            const dSpPr = d['c:spPr'];
+                            if (!dSpPr)
+                                continue;
+                            const grad = readGradientFill(dSpPr['a:gradFill'], themeMap);
+                            if (grad) {
+                                pc[idx] = grad;
+                                continue;
+                            }
+                            const solid = spColor(dSpPr['a:solidFill'], themeMap);
+                            if (solid)
+                                pc[idx] = solid;
+                        }
+                        s.pointColors = pc;
+                    }
+                }
+                series.push(s);
             }
-            series.push(s);
-        }
+            const attrOf = (parent, tag) => {
+                const n = parent && parent[tag];
+                return n && n.attrs ? n.attrs.val : undefined;
+            };
+            const plot = { chartType: plotType, series };
+            if (categories.length)
+                plot.categories = categories;
+            const grouping = attrOf(plotNode, 'c:grouping');
+            if (grouping)
+                plot.grouping = grouping;
+            const barDir = attrOf(plotNode, 'c:barDir');
+            if (barDir === 'bar' || barDir === 'col')
+                plot.barDir = barDir;
+            const varyColors = attrOf(plotNode, 'c:varyColors');
+            if (varyColors !== undefined)
+                plot.varyColors = varyColors === '1';
+            const holeSize = attrOf(plotNode, 'c:holeSize');
+            if (holeSize !== undefined && holeSize !== '')
+                plot.holeSize = Number(holeSize);
+            const ofPieType = attrOf(plotNode, 'c:ofPieType');
+            if (ofPieType === 'pie' || ofPieType === 'bar')
+                plot.ofPieType = ofPieType;
+            const smoothVal = attrOf(firstSer, 'c:smooth');
+            if (smoothVal !== undefined)
+                plot.smooth = smoothVal !== '0';
+            const markerNode = firstSer && firstSer['c:marker'];
+            if (markerNode) {
+                const symbol = attrOf(markerNode, 'c:symbol');
+                plot.marker = symbol !== 'none';
+            }
+            if (isBubble) {
+                const b3d = attrOf(plotNode, 'c:bubble3D');
+                const negB = attrOf(plotNode, 'c:showNegBubbles');
+                const scale = attrOf(plotNode, 'c:bubbleScale');
+                if (b3d !== undefined)
+                    plot.bubble3D = b3d === '1';
+                if (negB !== undefined)
+                    plot.showNegBubbles = negB === '1';
+                if (scale !== undefined)
+                    plot.bubbleScale = Number(scale);
+            }
+            const wireframe = attrOf(plotNode, 'c:wireframe');
+            if (wireframe !== undefined)
+                plot.wireframe = wireframe === '1';
+            const v3dNode = plotNode['c:view3D'];
+            if (v3dNode && v3dNode.attrs) {
+                const va = v3dNode.attrs;
+                const v3d = {};
+                if (va.rotX !== undefined)
+                    v3d.rotX = parseFloat(va.rotX);
+                if (va.rotY !== undefined)
+                    v3d.rotY = parseFloat(va.rotY);
+                if (va.depthPercent !== undefined)
+                    v3d.depthPercent = parseFloat(va.depthPercent);
+                if (va.rAngAx !== undefined)
+                    v3d.rAngAx = va.rAngAx === '1';
+                if (Object.keys(v3d).length)
+                    plot.view3D = v3d;
+            }
+            const dLbls = plotNode['c:dLbls'];
+            const numFmt = dLbls && dLbls['c:numFmt'] && dLbls['c:numFmt'].attrs && dLbls['c:numFmt'].attrs.formatCode;
+            if (numFmt)
+                plot.numberFormat = String(numFmt);
+            return plot;
+        };
+        const plots = plotEntries.map((e) => extractOnePlot(e.node, e.type));
+        const main = plots[0];
         let title;
         const titleRich = chart['c:title'] && chart['c:title']['c:tx'] && chart['c:title']['c:tx']['c:rich'];
         if (titleRich) {
@@ -19877,78 +19942,45 @@ function extractChart(chartXml, themeMap = {}) {
         const legendPosition = legendNode && legendNode['c:legendPos'] && legendNode['c:legendPos'].attrs
             ? String(legendNode['c:legendPos'].attrs.val)
             : undefined;
-        const out = { chartType, series };
+        const out = { chartType: main.chartType, series: main.series, plots };
         if (spaceFill !== undefined)
             out.spaceFill = spaceFill;
-        if (categories.length)
-            out.categories = categories;
+        if (main.categories && main.categories.length)
+            out.categories = main.categories;
         if (title)
             out.title = title.trim();
         out.legend = legend;
         if (legendPosition)
             out.legendPosition = legendPosition;
-        const attrOf = (parent, tag) => {
-            const n = parent && parent[tag];
-            return n && n.attrs ? n.attrs.val : undefined;
-        };
-        const grouping = attrOf(chartNode, 'c:grouping');
-        if (grouping)
-            out.grouping = grouping;
-        const barDir = attrOf(chartNode, 'c:barDir');
-        if (barDir === 'bar' || barDir === 'col')
-            out.barDir = barDir;
-        const varyColors = attrOf(chartNode, 'c:varyColors');
-        if (varyColors !== undefined)
-            out.varyColors = varyColors === '1';
-        const holeSize = attrOf(chartNode, 'c:holeSize');
-        if (holeSize !== undefined && holeSize !== '')
-            out.holeSize = Number(holeSize);
-        const ofPieType = attrOf(chartNode, 'c:ofPieType');
-        if (ofPieType === 'pie' || ofPieType === 'bar')
-            out.ofPieType = ofPieType;
-        const smoothVal = attrOf(firstSer, 'c:smooth');
-        if (smoothVal !== undefined)
-            out.smooth = smoothVal !== '0';
-        const markerNode = firstSer && firstSer['c:marker'];
-        if (markerNode) {
-            const symbol = attrOf(markerNode, 'c:symbol');
-            out.marker = symbol !== 'none';
-        }
+        if (main.grouping)
+            out.grouping = main.grouping;
+        if (main.barDir)
+            out.barDir = main.barDir;
+        if (main.varyColors !== undefined)
+            out.varyColors = main.varyColors;
+        if (main.holeSize !== undefined)
+            out.holeSize = main.holeSize;
+        if (main.ofPieType)
+            out.ofPieType = main.ofPieType;
+        if (main.smooth !== undefined)
+            out.smooth = main.smooth;
+        if (main.marker !== undefined)
+            out.marker = main.marker;
+        if (main.bubble3D !== undefined)
+            out.bubble3D = main.bubble3D;
+        if (main.showNegBubbles !== undefined)
+            out.showNegBubbles = main.showNegBubbles;
+        if (main.bubbleScale !== undefined)
+            out.bubbleScale = main.bubbleScale;
+        if (main.wireframe !== undefined)
+            out.wireframe = main.wireframe;
+        if (main.view3D)
+            out.view3D = main.view3D;
         const valAx = asArray(plotArea['c:valAx'])[0];
         const numFmt = (valAx && valAx['c:numFmt'] && valAx['c:numFmt'].attrs && valAx['c:numFmt'].attrs.formatCode)
-            || (chartNode['c:dLbls'] && chartNode['c:dLbls']['c:numFmt']
-                && chartNode['c:dLbls']['c:numFmt'].attrs && chartNode['c:dLbls']['c:numFmt'].attrs.formatCode);
+            || main.numberFormat;
         if (numFmt)
             out.numberFormat = String(numFmt);
-        if (isBubble) {
-            const b3d = attrOf(chartNode, 'c:bubble3D');
-            const negB = attrOf(chartNode, 'c:showNegBubbles');
-            const scale = attrOf(chartNode, 'c:bubbleScale');
-            if (b3d !== undefined)
-                out.bubble3D = b3d === '1';
-            if (negB !== undefined)
-                out.showNegBubbles = negB === '1';
-            if (scale !== undefined)
-                out.bubbleScale = Number(scale);
-        }
-        const wireframe = attrOf(chartNode, 'c:wireframe');
-        if (wireframe !== undefined)
-            out.wireframe = wireframe === '1';
-        const v3dNode = chartNode['c:view3D'];
-        if (v3dNode && v3dNode.attrs) {
-            const va = v3dNode.attrs;
-            const v3d = {};
-            if (va.rotX !== undefined)
-                v3d.rotX = parseFloat(va.rotX);
-            if (va.rotY !== undefined)
-                v3d.rotY = parseFloat(va.rotY);
-            if (va.depthPercent !== undefined)
-                v3d.depthPercent = parseFloat(va.depthPercent);
-            if (va.rAngAx !== undefined)
-                v3d.rAngAx = va.rAngAx === '1';
-            if (Object.keys(v3d).length)
-                out.view3D = v3d;
-        }
         return out;
     }
     catch {
@@ -21748,7 +21780,8 @@ async function graphicFrameToChart(node, resObj, zip, themeMap = {}) {
     const passKeys = [
         'categories', 'title', 'legend', 'legendPosition', 'grouping', 'varyColors', 'barDir',
         'holeSize', 'smooth', 'marker', 'ofPieType', 'numberFormat',
-        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe', 'spaceFill'
+        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe', 'spaceFill',
+        'plots'
     ];
     const src = chartSemantic;
     const dst = chartEl;
@@ -22133,7 +22166,7 @@ function normalizeColor(input) {
     return null;
 }
 function rgbToHex(r, g, b) {
-    const f = (v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0');
+    const f = (v) => clamp$1(Math.round(v), 0, 255).toString(16).padStart(2, '0');
     return `#${f(r)}${f(g)}${f(b)}`.toUpperCase();
 }
 function hexToRgb(hex) {
@@ -22157,13 +22190,13 @@ function withAlpha(hex, alphaPct) {
     if (!alphaPct)
         return c;
     const { r, g, b } = hexToRgb(c);
-    return `rgba(${r},${g},${b},${clamp(1 - alphaPct / 100, 0, 1)})`;
+    return `rgba(${r},${g},${b},${clamp$1(1 - alphaPct / 100, 0, 1)})`;
 }
 function mixHex(a, b, t = 0.5) {
     const A = hexToRgb(a), B = hexToRgb(b);
     return rgbToHex(A.r + (B.r - A.r) * t, A.g + (B.g - A.g) * t, A.b + (B.b - A.b) * t);
 }
-function clamp(v, lo, hi) {
+function clamp$1(v, lo, hi) {
     return Math.min(Math.max(v, lo), hi);
 }
 
@@ -22215,6 +22248,2766 @@ function extOfDataUrl(dataUrl, fallback = 'png') {
         return fallback;
     const e = m[1].toLowerCase();
     return e === 'jpeg' ? 'jpg' : e === 'svg+xml' ? 'svg' : e;
+}
+
+const uid = (p = 'e') => `${p}_${Math.random().toString(36).slice(2, 9)}${(Date.now() % 46656).toString(36)}`;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const round = (v, d = 2) => {
+    const m = 10 ** d;
+    return Math.round(v * m) / m;
+};
+function clone(o) {
+    return o == null ? o : JSON.parse(JSON.stringify(o));
+}
+
+const SLIDE_SIZES = {
+    '16:9': { width: 1280, height: 720 },
+    '16:10': { width: 1280, height: 800 },
+    '4:3': { width: 1024, height: 768 }
+};
+const FONT_LIST = [
+    '微软雅黑', '黑体', '宋体', '楷体', '仿宋',
+    'Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Verdana',
+    'Tahoma', 'Calibri', 'Impact', 'Courier New'
+];
+const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96];
+const THEMES = [
+    {
+        id: 'blue', name: '简约蓝',
+        bg: '#FFFFFF', panel: '#F8FAFC', text: '#202124', title: '#0B3D91',
+        accent: '#1A73E8', accents: ['#1A73E8', '#4285F4', '#34A853', '#FBBC04', '#EA4335', '#8430CE'],
+        fonts: { major: '微软雅黑', minor: '微软雅黑' }
+    },
+    {
+        id: 'indigo', name: '靛紫星辰',
+        bg: '#FFFFFF', panel: '#F1F0FF', text: '#1F1B2E', title: '#2B1E66',
+        accent: '#5B4BDB', accents: ['#5B4BDB', '#8B7BF0', '#22D3EE', '#F472B6', '#FBBF24', '#34D399'],
+        fonts: { major: '微软雅黑', minor: '微软雅黑' }
+    },
+    {
+        id: 'green', name: '清新绿',
+        bg: '#FFFFFF', panel: '#ECFDF5', text: '#0F2E24', title: '#065F46',
+        accent: '#0F9D58', accents: ['#0F9D58', '#34D399', '#10B981', '#84CC16', '#F59E0B', '#0EA5E9'],
+        fonts: { major: '微软雅黑', minor: '微软雅黑' }
+    },
+    {
+        id: 'dark', name: '深夜蓝',
+        bg: '#101828', panel: '#1D2939', text: '#E4E7EC', title: '#FFFFFF',
+        accent: '#4F8DF7', accents: ['#4F8DF7', '#22D3EE', '#A78BFA', '#F472B6', '#FBBF24', '#34D399'],
+        fonts: { major: '微软雅黑', minor: '微软雅黑' }
+    },
+    {
+        id: 'warm', name: '暖阳橙',
+        bg: '#FFFCF5', panel: '#FEF3E2', text: '#3B2A1A', title: '#8A4B08',
+        accent: '#E8710A', accents: ['#E8710A', '#F59E0B', '#EF4444', '#8B5CF6', '#0EA5E9', '#10B981'],
+        fonts: { major: '微软雅黑', minor: '微软雅黑' }
+    },
+    {
+        id: 'rose', name: '玫瑰粉',
+        bg: '#FFF7FA', panel: '#FCE8F0', text: '#3B1B2A', title: '#9D174D',
+        accent: '#DB2777', accents: ['#DB2777', '#F472B6', '#A855F7', '#6366F1', '#F59E0B', '#14B8A6'],
+        fonts: { major: '微软雅黑', minor: '微软雅黑' }
+    }
+];
+const getTheme = (id) => {
+    if (id && typeof id === 'object')
+        return id;
+    return THEMES.find((t) => t.id === id) || THEMES[0];
+};
+let _activeTheme = 'blue';
+function setActiveTheme(t) { _activeTheme = t; }
+const SHAPES = [
+    { type: 'rect', name: '矩形', d: 'M2 2h20v20H2z' },
+    { type: 'roundRect', name: '圆角矩形', d: 'M6 2h12a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z' },
+    { type: 'ellipse', name: '椭圆', d: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z' },
+    { type: 'triangle', name: '三角形', d: 'M12 2l10 20H2z' },
+    { type: 'rtTriangle', name: '直角三角形', d: 'M2 22V2h20z' },
+    { type: 'diamond', name: '菱形', d: 'M12 2l10 10-10 10L2 12z' },
+    { type: 'parallelogram', name: '平行四边形', d: 'M8 2h16l-8 20H0z' },
+    { type: 'trapezoid', name: '梯形', d: 'M6 2h12l4 20H2z' },
+    { type: 'pentagon', name: '五边形', d: 'M12 2l10 8-4 12H6L2 10z' },
+    { type: 'hexagon', name: '六边形', d: 'M6 2h12l6 10-6 10H6L0 12z' },
+    { type: 'octagon', name: '八边形', d: 'M8 2h8l6 6v8l-6 6H8l-6-6V8z' },
+    { type: 'chevron', name: 'V 形', d: 'M2 2h9l4 10-4 10H2V12z' },
+    { type: 'rightArrow', name: '右箭头', d: 'M2 6h14v-4l8 10-8 10v-4H2z' },
+    { type: 'leftArrow', name: '左箭头', d: 'M22 6H8V2L0 12l8 10v-4h14z' },
+    { type: 'upArrow', name: '上箭头', d: 'M12 2l10 9h-5v11H7v-11H2z' },
+    { type: 'downArrow', name: '下箭头', d: 'M12 22L2 13h5V2h10v11h5z' },
+    { type: 'pentagonBlock', name: '五角星块', d: 'M12 2l3 7h7l-6 5 2 8-6-4-6 4 2-8-6-5h7z' },
+    { type: 'plus', name: '十字', d: 'M9 2h6v7h7v6h-7v7H9v-7H2V9h7z' },
+    { type: 'heart', name: '心形', d: 'M12 22S2 15 2 8a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 7-10 14-10 14z' },
+    { type: 'lightningBolt', name: '闪电', d: 'M14 2L4 14h6l-2 8 12-14h-7z' },
+    { type: 'cloud', name: '云朵', d: 'M6 20a5 5 0 0 1 0-10 6 6 0 0 1 11-2 4.5 4.5 0 0 1 1 12z' },
+    { type: 'moon', name: '月亮', d: 'M14 2a10 10 0 1 0 8 16A10 10 0 0 1 14 2z' },
+    { type: 'sun', name: '太阳', d: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-7l2 4h-4zm0 24l2-4h-4zM2 12l4-2v4zm20 0l-4 2v-4z' },
+    { type: 'gear6', name: '齿轮', d: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0-8l1.5 3h-3zm0 24l1.5-3h-3zM2 12l3-1.5v3zm20 0l-3 1.5v-3z' },
+    { type: 'donut', name: '圆环', d: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 6a4 4 0 1 1 0 8 4 4 0 0 1 0-8z' },
+    { type: 'pie', name: '扇形', d: 'M12 12V2a10 10 0 1 1-10 10z' },
+    { type: 'arc', name: '弧形', d: 'M2 12a10 10 0 0 1 10-10v6a4 4 0 0 0-4 4z' },
+    { type: 'cube', name: '立方体', d: 'M12 2l10 5v10l-10 5-10-5V7z' },
+    { type: 'can', name: '圆柱', d: 'M6 4h12v16a5 5 0 0 1-12 0z' },
+    { type: 'funnel', name: '漏斗', d: 'M2 2h20l-7 9v11h-6v-11z' },
+    { type: 'frame', name: '边框', d: 'M2 2h20v20H2zm5 5v10h10V7z' },
+    { type: 'foldedCorner', name: '折角', d: 'M2 2h14l6 6v14H2zm14 0v6h6' },
+    { type: 'smileyFace', name: '笑脸', d: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-4 8h.01M16 10h.01M8 15a5 5 0 0 0 8 0' },
+    { type: 'line', name: '直线', d: 'M2 12h20' }
+];
+function shapeStyle(shapeType, w, h) {
+    const r = Math.min(w, h) * 0.16;
+    switch (shapeType) {
+        case 'ellipse': return { borderRadius: '50%' };
+        case 'roundRect': return { borderRadius: `${Math.min(r, 40)}px` };
+        case 'triangle': return { clipPath: 'polygon(50% 0%,100% 100%,0% 100%)' };
+        case 'rtTriangle': return { clipPath: 'polygon(0% 0%,100% 100%,0% 100%)' };
+        case 'diamond': return { clipPath: 'polygon(50% 0%,100% 50%,50% 100%,0% 50%)' };
+        case 'parallelogram': return { clipPath: 'polygon(20% 0%,100% 0%,80% 100%,0% 100%)' };
+        case 'trapezoid': return { clipPath: 'polygon(20% 0%,80% 0%,100% 100%,0% 100%)' };
+        case 'pentagon': return { clipPath: 'polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)' };
+        case 'hexagon': return { clipPath: 'polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)' };
+        case 'octagon': return { clipPath: 'polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%)' };
+        case 'chevron': return { clipPath: 'polygon(0% 0%,60% 0%,100% 50%,60% 100%,0% 100%,40% 50%)' };
+        case 'rightArrow': return { clipPath: 'polygon(0% 20%,60% 20%,60% 0%,100% 50%,60% 100%,60% 80%,0% 80%)' };
+        case 'leftArrow': return { clipPath: 'polygon(100% 20%,40% 20%,40% 0%,0% 50%,40% 100%,40% 80%,100% 80%)' };
+        case 'upArrow': return { clipPath: 'polygon(50% 0%,100% 100%,70% 100%,70% 60%,30% 60%,30% 100%,0% 100%)' };
+        case 'downArrow': return { clipPath: 'polygon(50% 100%,0% 0%,30% 0%,30% 40%,70% 40%,70% 0%,100% 0%)' };
+        case 'pentagonBlock': return { clipPath: 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)' };
+        case 'plus': return { clipPath: 'polygon(35% 0%,65% 0%,65% 35%,100% 35%,100% 65%,65% 65%,65% 100%,35% 100%,35% 65%,0% 65%,0% 35%,35% 35%)' };
+        case 'heart': return { clipPath: 'polygon(50% 100%,0% 55%,0% 25%,25% 0%,50% 15%,75% 0%,100% 25%,100% 55%)' };
+        case 'lightningBolt': return { clipPath: 'polygon(55% 0%,20% 55%,45% 55%,35% 100%,80% 40%,52% 40%)' };
+        case 'cloud': return { borderRadius: '40% 40% 35% 35% / 45% 45% 55% 55%' };
+        case 'moon': return { borderRadius: '50%' };
+        case 'sun': return { borderRadius: '50%' };
+        case 'gear6': return { borderRadius: '20%' };
+        case 'donut': return { borderRadius: '50%' };
+        case 'pie': return { clipPath: 'polygon(50% 50%,50% 0%,100% 15%,100% 50%)' };
+        case 'arc': return { borderRadius: '50%' };
+        case 'cube': return { clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)' };
+        case 'can': return { borderRadius: '12% / 20%' };
+        case 'funnel': return { clipPath: 'polygon(0% 0%,100% 0%,65% 55%,65% 100%,35% 100%,35% 55%)' };
+        case 'frame': return { border: 'none', outline: '8px solid currentColor' };
+        case 'foldedCorner': return { clipPath: 'polygon(0% 0%,70% 0%,100% 30%,100% 100%,0% 100%)' };
+        case 'smileyFace': return { borderRadius: '50%' };
+        default: return {};
+    }
+}
+const CHART_TYPES = [
+    { value: 'barChart', name: '柱状图' },
+    { value: 'barChart|bar', name: '条形图' },
+    { value: 'barChart|stacked', name: '堆积柱状图' },
+    { value: 'lineChart', name: '折线图' },
+    { value: 'areaChart', name: '面积图' },
+    { value: 'pieChart', name: '饼图' },
+    { value: 'doughnutChart', name: '环形图' },
+    { value: 'scatterChart', name: '散点图' },
+    { value: 'radarChart', name: '雷达图' }
+];
+function base(opts = {}) {
+    return {
+        id: uid(),
+        x: opts.x ?? 120, y: opts.y ?? 120,
+        width: opts.width ?? 400, height: opts.height ?? 120,
+        rotation: opts.rotation ?? 0,
+        locked: false, hidden: false,
+        name: opts.name || ''
+    };
+}
+function createParagraph(text = '', style = {}) {
+    return {
+        runs: [{ text, ...style }],
+        align: style.align,
+        bullet: style.bullet,
+        lineSpacing: style.lineSpacing
+    };
+}
+function createTextElement(opts = {}) {
+    const el = base({ width: 460, height: 90, ...opts });
+    el.type = 'text';
+    el.name = opts.name || '文本框';
+    const text = opts.text ?? '点击编辑文本';
+    el.paragraphs = String(text).split('\n').map((t) => createParagraph(t));
+    el.fontSize = opts.fontSize ?? 24;
+    el.color = normalizeColor(opts.color) || '#202124';
+    el.bold = !!opts.bold;
+    el.italic = !!opts.italic;
+    el.underline = !!opts.underline;
+    el.fontFace = opts.fontFace || '微软雅黑';
+    el.align = opts.align || 'left';
+    el.valign = opts.valign || 'top';
+    el.lineSpacing = opts.lineSpacing ?? 1.15;
+    el.bullet = opts.bullet || false;
+    el.indent = opts.indent ?? 0;
+    return el;
+}
+function createShapeElement(shapeType = 'rect', opts = {}) {
+    const el = base({ width: 260, height: 180, ...opts });
+    el.type = 'shape';
+    el.shapeType = shapeType;
+    el.name = opts.name || (SHAPES.find((s) => s.type === shapeType) || {}).name || '形状';
+    el.fill = opts.fill ?? { type: 'solid', color: opts.color || '#4285F4', transparency: 0 };
+    el.line = opts.line ?? 'none';
+    el.shadow = opts.shadow ?? null;
+    return el;
+}
+function createImageElement(data, opts = {}) {
+    const el = base({ width: 420, height: 300, ...opts });
+    el.type = 'image';
+    el.name = opts.name || '图片';
+    el.data = data;
+    el.imageAdjust = { brightness: 0, contrast: 0, transparency: 0 };
+    return el;
+}
+function createAudioElement(data, opts = {}) {
+    const el = base({ width: 32, height: 32, ...opts });
+    el.type = 'audio';
+    el.name = opts.name || '音频';
+    el.data = data || '';
+    el.extension = opts.extension || (String(data || '').match(/data:audio\/([a-z0-9.+-]+)/i) || [])[1] || 'mp3';
+    el.poster = opts.poster || { data: defaultMediaPoster('audio'), extension: 'svg' };
+    return el;
+}
+function createVideoElement(data, opts = {}) {
+    const el = base({ width: 480, height: 270, ...opts });
+    el.type = 'video';
+    el.name = opts.name || '视频';
+    el.data = data || '';
+    el.extension = opts.extension || (String(data || '').match(/data:video\/([a-z0-9.+-]+)/i) || [])[1] || 'mp4';
+    el.poster = opts.poster || { data: defaultMediaPoster('video'), extension: 'svg' };
+    return el;
+}
+function toBase64Utf8(s) {
+    const g = globalThis;
+    if (typeof g.btoa === 'function')
+        return g.btoa(unescape(encodeURIComponent(s)));
+    if (g.Buffer)
+        return g.Buffer.from(s, 'utf-8').toString('base64');
+    throw new Error('base64 encoder unavailable');
+}
+function defaultMediaPoster(kind) {
+    const isVideo = kind === 'video';
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+        + `<rect width="64" height="64" rx="8" fill="${isVideo ? '#1F2937' : '#334155'}"/>`
+        + `<text x="32" y="41" font-family="sans-serif" font-size="26" fill="#fff" text-anchor="middle">${isVideo ? '▶' : '♪'}</text>`
+        + '</svg>';
+    return 'data:image/svg+xml;base64,' + toBase64Utf8(svg);
+}
+function createTableElement(rows = 3, cols = 3, opts = {}) {
+    const el = base({ width: 720, height: 240, ...opts });
+    el.type = 'table';
+    el.name = opts.name || '表格';
+    el.headerRow = true;
+    el.border = { color: '#CBD5E1', width: 1 };
+    el.headerFill = '#1A73E8';
+    el.cellFill = '#FFFFFF';
+    el.fontSize = 14;
+    el.color = '#202124';
+    el.bold = false;
+    el.align = 'left';
+    el.valign = 'middle';
+    el.colWidths = new Array(cols).fill(Math.round(el.width / cols));
+    el.rows = [];
+    for (let r = 0; r < rows; r++) {
+        const cells = [];
+        for (let c = 0; c < cols; c++) {
+            cells.push({ text: r === 0 ? `列 ${c + 1}` : '', fill: null, align: null, valign: null });
+        }
+        el.rows.push({ height: Math.round(el.height / rows), cells });
+    }
+    if (rows > 1)
+        el.rows[1].cells[0].text = '内容';
+    syncTableStyle(el);
+    return el;
+}
+function syncTableStyle(el) {
+    if (!el || el.type !== 'table')
+        return;
+    el.rows.forEach((row, ri) => {
+        row.cells.forEach((cell) => {
+            const isHead = el.headerRow && ri === 0;
+            cell.fill = isHead ? (el.headerFill || null) : (cell.fillCustom ?? el.cellFill ?? null);
+            if (isHead) {
+                cell.bold = true;
+                cell.color = cell.colorCustom ?? (el.headerTextColor ?? '#FFFFFF');
+            }
+            else {
+                cell.bold = cell.boldCustom ?? !!el.bold;
+                cell.color = cell.colorCustom ?? el.color ?? '#202124';
+            }
+            if (el.fontSizeSet) {
+                cell.fontSize = el.fontSize;
+                cell.fontSizeSet = true;
+            }
+            cell.align = cell.align ?? el.align;
+            cell.valign = cell.valign ?? el.valign;
+            if (!isHead && cell.fillCustom === undefined)
+                cell.fill = el.cellFill ?? null;
+        });
+    });
+    return el;
+}
+function createChartElement(chartType = 'barChart', opts = {}) {
+    const el = base({ width: 640, height: 380, ...opts });
+    el.type = 'chart';
+    el.name = opts.name || '图表';
+    el.chartType = chartType;
+    el.title = opts.title ?? '';
+    el.legend = opts.legend ?? true;
+    el.dataLabels = opts.dataLabels ?? false;
+    el.grouping = opts.grouping ?? 'clustered';
+    el.holeSize = opts.holeSize ?? 50;
+    el.smooth = opts.smooth ?? false;
+    el.marker = opts.marker ?? true;
+    el.categories = opts.categories ?? ['一月', '二月', '三月', '四月', '五月'];
+    el.series = opts.series ?? [
+        { name: '系列 1', values: [32, 45, 38, 56, 48] },
+        { name: '系列 2', values: [22, 30, 42, 35, 51] }
+    ];
+    return el;
+}
+function createGroupElement(children, opts = {}) {
+    const el = base(opts);
+    el.type = 'group';
+    el.name = opts.name || '组合';
+    el.children = children;
+    return el;
+}
+function createSlide(elements = [], opts = {}) {
+    return {
+        id: uid('s'),
+        name: opts.name || '',
+        background: opts.background ?? null,
+        notes: opts.notes ?? '',
+        hidden: !!opts.hidden,
+        transition: opts.transition ?? null,
+        animations: opts.animations ?? [],
+        elements
+    };
+}
+const TRANSITIONS = [
+    { value: 'none', name: '无' },
+    { value: 'fade', name: '淡入淡出' },
+    { value: 'wipe', name: '擦除' },
+    { value: 'push', name: '推出' },
+    { value: 'cover', name: '覆盖' },
+    { value: 'blinds', name: '百叶窗' },
+    { value: 'split', name: '分割' },
+    { value: 'reveal', name: '显示' },
+    { value: 'randomBar', name: '随机条' },
+    { value: 'zoom', name: '缩放' },
+    { value: 'fly', name: '飞入' },
+];
+const TRANSITION_SPEEDS = [
+    { value: 500, name: '快' },
+    { value: 800, name: '中' },
+    { value: 1500, name: '慢' },
+];
+const ANIM_CLASSES = [
+    { value: 'entr', name: '进入' },
+    { value: 'exit', name: '退出' },
+    { value: 'emph', name: '强调' },
+];
+const ANIM_TYPES = {
+    entr: [
+        { value: 'flyIn', name: '飞入' },
+        { value: 'fadeIn', name: '淡入' },
+        { value: 'wipeIn', name: '擦除' },
+        { value: 'zoomIn', name: '缩放' },
+        { value: 'riseUp', name: '升起' },
+        { value: 'bounceIn', name: '弹跳' },
+    ],
+    exit: [
+        { value: 'flyOut', name: '飞出' },
+        { value: 'fadeOut', name: '淡出' },
+        { value: 'wipeOut', name: '擦除退出' },
+        { value: 'zoomOut', name: '缩小退出' },
+    ],
+    emph: [
+        { value: 'pulse', name: '脉冲' },
+        { value: 'shake', name: '抖动' },
+        { value: 'flash', name: '闪烁' },
+        { value: 'grow', name: '放大' },
+    ],
+};
+const ANIM_DIRECTIONS = [
+    { value: 'l', name: '← 左' },
+    { value: 'r', name: '→ 右' },
+    { value: 't', name: '↑ 上' },
+    { value: 'b', name: '↓ 下' },
+];
+const ANIM_TRIGGERS = [
+    { value: 'onClick', name: '单击时' },
+    { value: 'withPrev', name: '与上一动画同时' },
+    { value: 'afterPrev', name: '上一动画之后' },
+];
+function createDoc(themeId = 'blue', sizeKey = '16:9') {
+    return {
+        title: '未命名演示文稿',
+        theme: themeId,
+        slideSize: { ...SLIDE_SIZES[sizeKey] },
+        slides: []
+    };
+}
+const LAYOUTS = [
+    { id: 'title', name: '标题页', build: buildTitleLayout },
+    { id: 'titleBody', name: '标题 + 正文', build: buildTitleBodyLayout },
+    { id: 'titleOnly', name: '仅标题', build: buildTitleOnlyLayout },
+    { id: 'section', name: '章节标题', build: buildSectionLayout },
+    { id: 'twoCol', name: '两栏内容', build: buildTwoColLayout },
+    { id: 'comparison', name: '对比', build: buildComparisonLayout },
+    { id: 'quote', name: '引言', build: buildQuoteLayout },
+    { id: 'imageText', name: '图文混排', build: buildImageTextLayout },
+    { id: 'blank', name: '空白', build: () => [] }
+];
+function L(theme, size) {
+    const W = size.width, H = size.height;
+    const pad = Math.round(W * 0.06);
+    return { W, H, pad, theme };
+}
+function buildTitleLayout(theme, size) {
+    const { W, H, pad } = L(theme, size);
+    const bar = createShapeElement('rect', {
+        x: pad, y: Math.round(H * 0.52), width: Math.round(W * 0.18), height: 8,
+        fill: { type: 'solid', color: theme.accent, transparency: 0 }
+    });
+    return [
+        createTextElement({
+            x: pad, y: Math.round(H * 0.3), width: W - pad * 2, height: Math.round(H * 0.2),
+            text: '演示文稿标题', fontSize: Math.round(H * 0.075), bold: true, color: theme.title,
+            valign: 'bottom', name: '标题'
+        }),
+        bar,
+        createTextElement({
+            x: pad, y: Math.round(H * 0.58), width: W - pad * 2, height: Math.round(H * 0.12),
+            text: '副标题 · 演讲者与日期', fontSize: Math.round(H * 0.032), color: theme.text,
+            name: '副标题'
+        })
+    ];
+}
+function buildTitleBodyLayout(theme, size) {
+    const { W, H, pad } = L(theme, size);
+    return [
+        createTextElement({
+            x: pad, y: Math.round(H * 0.08), width: W - pad * 2, height: Math.round(H * 0.14),
+            text: '页面标题', fontSize: Math.round(H * 0.055), bold: true, color: theme.title, name: '标题'
+        }),
+        createTextElement({
+            x: pad, y: Math.round(H * 0.28), width: W - pad * 2, height: Math.round(H * 0.6),
+            text: '· 要点一\n· 要点二\n· 要点三', fontSize: Math.round(H * 0.035),
+            color: theme.text, bullet: true, lineSpacing: 1.5, name: '正文'
+        })
+    ];
+}
+function buildTitleOnlyLayout(theme, size) {
+    const { W, H, pad } = L(theme, size);
+    return [
+        createTextElement({
+            x: pad, y: Math.round(H * 0.4), width: W - pad * 2, height: Math.round(H * 0.18),
+            text: '页面标题', fontSize: Math.round(H * 0.06), bold: true, color: theme.title, name: '标题'
+        })
+    ];
+}
+function buildSectionLayout(theme, size) {
+    const { W, H } = L(theme, size);
+    return [
+        createShapeElement('rect', {
+            x: 0, y: 0, width: W, height: H,
+            fill: { type: 'solid', color: theme.accent, transparency: 0 }
+        }),
+        createTextElement({
+            x: Math.round(W * 0.08), y: Math.round(H * 0.38), width: Math.round(W * 0.84), height: Math.round(H * 0.2),
+            text: '章节标题', fontSize: Math.round(H * 0.085), bold: true, color: '#FFFFFF', valign: 'middle', name: '章节标题'
+        })
+    ];
+}
+function buildTwoColLayout(theme, size) {
+    const { W, H, pad } = L(theme, size);
+    const colW = Math.round((W - pad * 3) / 2);
+    const top = Math.round(H * 0.28);
+    const colH = Math.round(H * 0.58);
+    const mk = (x, title, body) => ([
+        createTextElement({ x, y: top, width: colW, height: Math.round(H * 0.09), text: title, fontSize: Math.round(H * 0.038), bold: true, color: theme.accent }),
+        createTextElement({ x, y: top + Math.round(H * 0.11), width: colW, height: colH - Math.round(H * 0.11), text: body, fontSize: Math.round(H * 0.03), color: theme.text, lineSpacing: 1.5 })
+    ]);
+    return [
+        createTextElement({
+            x: pad, y: Math.round(H * 0.08), width: W - pad * 2, height: Math.round(H * 0.14),
+            text: '页面标题', fontSize: Math.round(H * 0.055), bold: true, color: theme.title, name: '标题'
+        }),
+        ...mk(pad, '小标题一', '在此输入内容…'),
+        ...mk(pad * 2 + colW, '小标题二', '在此输入内容…')
+    ];
+}
+function buildComparisonLayout(theme, size) {
+    const { W, H, pad } = L(theme, size);
+    const colW = Math.round((W - pad * 3) / 2);
+    const top = Math.round(H * 0.28);
+    return [
+        createTextElement({
+            x: pad, y: Math.round(H * 0.08), width: W - pad * 2, height: Math.round(H * 0.14),
+            text: '对比分析', fontSize: Math.round(H * 0.055), bold: true, color: theme.title, name: '标题'
+        }),
+        createShapeElement('roundRect', { x: pad, y: top, width: colW, height: Math.round(H * 0.58), fill: { type: 'solid', color: theme.accents[0], transparency: 0 } }),
+        createTextElement({ x: pad, y: top + 20, width: colW, height: 60, text: '方案 A', fontSize: Math.round(H * 0.04), bold: true, color: '#FFFFFF', align: 'center' }),
+        createTextElement({ x: pad + 20, y: top + 100, width: colW - 40, height: Math.round(H * 0.4), text: '优势与说明…', fontSize: Math.round(H * 0.03), color: '#FFFFFF' }),
+        createShapeElement('roundRect', { x: pad * 2 + colW, y: top, width: colW, height: Math.round(H * 0.58), fill: { type: 'solid', color: theme.accents[3], transparency: 0 } }),
+        createTextElement({ x: pad * 2 + colW, y: top + 20, width: colW, height: 60, text: '方案 B', fontSize: Math.round(H * 0.04), bold: true, color: '#FFFFFF', align: 'center' }),
+        createTextElement({ x: pad * 2 + colW + 20, y: top + 100, width: colW - 40, height: Math.round(H * 0.4), text: '优势与说明…', fontSize: Math.round(H * 0.03), color: '#FFFFFF' })
+    ];
+}
+function buildQuoteLayout(theme, size) {
+    const { W, H, pad } = L(theme, size);
+    return [
+        createTextElement({
+            x: pad, y: Math.round(H * 0.2), width: W - pad * 2, height: Math.round(H * 0.3),
+            text: '"一句值得记住的话"', fontSize: Math.round(H * 0.06), color: theme.title, align: 'center', valign: 'middle', italic: true, name: '引言'
+        }),
+        createTextElement({
+            x: pad, y: Math.round(H * 0.55), width: W - pad * 2, height: Math.round(H * 0.1),
+            text: '—— 作者', fontSize: Math.round(H * 0.03), color: theme.text, align: 'center'
+        })
+    ];
+}
+function buildImageTextLayout(theme, size) {
+    const { W, H, pad } = L(theme, size);
+    const imgW = Math.round((W - pad * 3) * 0.45);
+    return [
+        createTextElement({
+            x: pad, y: Math.round(H * 0.08), width: W - pad * 2, height: Math.round(H * 0.13),
+            text: '页面标题', fontSize: Math.round(H * 0.055), bold: true, color: theme.title, name: '标题'
+        }),
+        createShapeElement('roundRect', {
+            x: pad, y: Math.round(H * 0.28), width: imgW, height: Math.round(H * 0.58),
+            fill: { type: 'solid', color: theme.panel, transparency: 0 },
+            line: { color: theme.accent, width: 1, dashType: 'solid' }
+        }),
+        createTextElement({
+            x: pad, y: Math.round(H * 0.28), width: imgW, height: Math.round(H * 0.58),
+            text: '图片占位', fontSize: Math.round(H * 0.03), color: theme.text, align: 'center', valign: 'middle'
+        }),
+        createTextElement({
+            x: pad * 2 + imgW, y: Math.round(H * 0.28), width: W - pad * 3 - imgW, height: Math.round(H * 0.58),
+            text: '· 说明一\n· 说明二\n· 说明三', fontSize: Math.round(H * 0.035), color: theme.text, bullet: true, lineSpacing: 1.5
+        })
+    ];
+}
+function layoutElements(layoutId, theme, slideSize) {
+    const layout = LAYOUTS.find((l) => l.id === layoutId) || LAYOUTS[1];
+    return layout.build(theme, slideSize);
+}
+function buildSlideFromLayout(layoutId, themeId, slideSize, extra = {}) {
+    const theme = getTheme(themeId);
+    const slide = createSlide(layoutElements(layoutId, theme, slideSize), {
+        background: { type: 'solid', color: theme.bg }
+    });
+    Object.assign(slide, extra);
+    return slide;
+}
+const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
+function autoNumPrefix(fmt, n) {
+    if (fmt === 'hebrew1Minus' || fmt === 'hebrew2Minus') {
+        let out = '', rest = Math.max(0, n - 1);
+        do {
+            out = HEBREW_LETTERS[rest % HEBREW_LETTERS.length] + out;
+            rest = Math.floor(rest / HEBREW_LETTERS.length) - 1;
+        } while (rest >= 0);
+        return (out || HEBREW_LETTERS[0]) + '-';
+    }
+    return `${n}.`;
+}
+function cleanCellParagraphs(paragraphs) {
+    return (paragraphs || []).map((p) => {
+        const out = { runs: (p.runs || []).map((r) => {
+                const run = { text: r.text == null ? '' : String(r.text) };
+                if (r.fontSize != null)
+                    run.fontSize = r.fontSize;
+                if (r.color)
+                    run.color = normalizeColor(r.color) || undefined;
+                if (r.bold)
+                    run.bold = true;
+                if (r.italic)
+                    run.italic = true;
+                if (r.underline)
+                    run.underline = true;
+                if (r.fontFace)
+                    run.fontFace = r.fontFace;
+                if (r.href)
+                    run.href = r.href;
+                if (r.break)
+                    run.break = true;
+                return run;
+            }) };
+        if (!out.runs.length)
+            out.runs = [{ text: '' }];
+        if (p.align)
+            out.align = p.align;
+        if (p.rtl)
+            out.rtl = true;
+        if (p.indentLeft != null)
+            out.indentLeft = p.indentLeft;
+        if (p.indentRight != null)
+            out.indentRight = p.indentRight;
+        if (p.indent != null)
+            out.indent = p.indent;
+        const b = p.bullet;
+        if (b && typeof b === 'object' && b.type === 'number') {
+            out.bullet = { type: 'number', fmt: b.fmt || 'arabicPeriod', start: b.start ?? 1 };
+        }
+        else if (b && typeof b === 'object' && b.type === 'bullet') {
+            out.bullet = { type: 'bullet', char: b.char };
+            if (b.font)
+                out.bullet.font = b.font;
+            if (b.sizePct)
+                out.bullet.sizePct = b.sizePct;
+        }
+        else if (b === 'number') {
+            out.bullet = 'number';
+        }
+        else if (b === true || b === 'bullet') {
+            out.bullet = true;
+        }
+        return out;
+    });
+}
+function cleanRuns(paragraph, el) {
+    const runs = (paragraph.runs || []).map((r) => {
+        const run = { text: r.text == null ? '' : String(r.text) };
+        if (r.fontSize != null && r.fontSize !== el.fontSize)
+            run.fontSize = r.fontSize;
+        if (r.color && normalizeColor(r.color) && normalizeColor(r.color) !== normalizeColor(el.color))
+            run.color = normalizeColor(r.color);
+        if (r.bold && !el.bold)
+            run.bold = true;
+        if (r.italic && !el.italic)
+            run.italic = true;
+        if (r.underline && !el.underline)
+            run.underline = true;
+        if (r.fontFace && r.fontFace !== el.fontFace)
+            run.fontFace = r.fontFace;
+        if (r.outline)
+            run.outline = r.outline;
+        if (r.shadow)
+            run.shadow = r.shadow;
+        if (r.href) {
+            run.href = r.href;
+            if (r.hrefTooltip)
+                run.hrefTooltip = r.hrefTooltip;
+        }
+        if (r.break)
+            run.break = true;
+        return run;
+    });
+    return runs.length ? runs : [{ text: '' }];
+}
+function normPointColor(c) {
+    if (!c)
+        return undefined;
+    if (typeof c === 'object')
+        return c;
+    return normalizeColor(c) || undefined;
+}
+function fillToPptx(fill) {
+    if (fill === 'none')
+        return 'none';
+    if (!fill)
+        return undefined;
+    if (typeof fill === 'string')
+        return fill;
+    if (fill.type === 'gradient') {
+        const g = {
+            type: 'gradient',
+            direction: fill.direction || 'horizontal',
+            stops: (fill.stops || []).map((s) => {
+                const out = { color: s.color, position: s.position };
+                if (s.transparency != null)
+                    out.transparency = s.transparency;
+                return out;
+            })
+        };
+        if (typeof fill.angle === 'number')
+            g.angle = fill.angle;
+        if (fill.gradientType === 'radial') {
+            g.gradientType = 'radial';
+            g.gradientPath = fill.gradientPath || 'circle';
+        }
+        return g;
+    }
+    if (fill.type === 'pattern') {
+        const out = { type: 'pattern', prst: fill.prst || 'pct10', fg: normalizeColor(fill.fg) || '1A73E8', bg: normalizeColor(fill.bg) || 'FFFFFF' };
+        return out;
+    }
+    if (fill.type === 'image') {
+        const out = { type: 'image', extension: fill.extension || 'png' };
+        if (fill.data)
+            out.data = fill.data;
+        if (fill.src)
+            out.src = fill.src;
+        if (fill.tile)
+            out.tile = fill.tile;
+        if (fill.srcRect)
+            out.srcRect = fill.srcRect;
+        return out;
+    }
+    const out = { type: 'solid', color: normalizeColor(fill.color) || 'FFFFFF' };
+    if (fill.transparency)
+        out.transparency = fill.transparency;
+    return out;
+}
+function elementToPptx(el) {
+    const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+    const out = {
+        x: r2(el.x), y: r2(el.y),
+        width: r2(el.width), height: r2(el.height)
+    };
+    if (el.rotation)
+        out.rotation = Math.round(el.rotation * 100) / 100;
+    if (el.name)
+        out.name = el.name;
+    if (el.inherited)
+        out.inherited = true;
+    switch (el.type) {
+        case 'text': {
+            out.type = 'text';
+            const ps = el.propsSet;
+            const ok = (k) => !ps || ps[k];
+            if (ok('valign') && el.valign)
+                out.valign = el.valign;
+            if (ok('align') && el.align)
+                out.align = el.align;
+            if (ok('fontSize') && el.fontSize)
+                out.fontSize = el.fontSize;
+            if (el.color)
+                out.color = normalizeColor(el.color) || undefined;
+            if (el.bold)
+                out.bold = true;
+            if (el.italic)
+                out.italic = true;
+            if (el.underline)
+                out.underline = true;
+            if (ok('fontFace') && el.fontFace)
+                out.fontFace = el.fontFace;
+            if (el.fontFaceEa)
+                out.fontFaceEa = el.fontFaceEa;
+            if (ok('lineSpacing') && el.lineSpacing)
+                out.lineSpacing = el.lineSpacing;
+            if (el.bullet)
+                out.bullet = el.bullet === 'number' ? 'number' : true;
+            if (el.indent)
+                out.indentLeft = el.indent;
+            if (el.textDirection)
+                out.textDirection = el.textDirection;
+            if (el.inset)
+                out.inset = el.inset;
+            if (el.rtlCol)
+                out.rtlCol = true;
+            if (el.txBox)
+                out.txBox = true;
+            if (el.shapeType) {
+                out.shapeType = el.shapeType;
+                if (el.adjust && typeof el.adjust === 'object')
+                    out.adjust = el.adjust;
+            }
+            if (el.custGeom && Array.isArray(el.custGeom.paths) && el.custGeom.paths.length) {
+                out.custGeom = el.custGeom;
+            }
+            const f = fillToPptx(el.fill);
+            if (f !== undefined)
+                out.fill = f;
+            if (el.line) {
+                out.line = el.line !== 'none'
+                    ? {
+                        color: el.line.color != null ? (normalizeColor(el.line.color) || undefined) : undefined,
+                        width: el.line.width != null ? el.line.width : 1,
+                        dashType: el.line.dashType || 'solid'
+                    }
+                    : 'none';
+            }
+            if (el.shadow || el.glow) {
+                out.effects = {};
+                if (el.shadow)
+                    out.effects.shadow = el.shadow;
+                if (el.glow)
+                    out.effects.glow = el.glow;
+            }
+            if (el.noWrap)
+                out.noWrap = true;
+            if (el.rtlCol)
+                out.rtlCol = true;
+            out.paragraphs = (el.paragraphs || []).map((p) => {
+                const para = { runs: cleanRuns(p, el) };
+                if ((p.alignSet !== undefined ? p.alignSet : !!p.align) && p.align)
+                    para.align = p.align;
+                if (p.rtl)
+                    para.rtl = true;
+                const pb = normalizeBulletOut(p.bullet);
+                if (pb)
+                    para.bullet = pb;
+                if ((p.lineSpacingSet !== undefined ? p.lineSpacingSet : !!p.lineSpacing) && p.lineSpacing)
+                    para.lineSpacing = p.lineSpacing;
+                if (p.indent != null)
+                    para.indent = pxToPt(p.indent);
+                if (p.indentLeft != null)
+                    para.indentLeft = pxToPt(p.indentLeft);
+                if (p.indentRight != null)
+                    para.indentRight = pxToPt(p.indentRight);
+                if (p.spaceBefore != null)
+                    para.spaceBefore = pxToPt(p.spaceBefore);
+                if (p.spaceAfter != null)
+                    para.spaceAfter = pxToPt(p.spaceAfter);
+                return para;
+            });
+            if (!out.paragraphs.length)
+                out.paragraphs = [{ runs: [{ text: '' }] }];
+            return out;
+        }
+        case 'shape': {
+            out.type = 'shape';
+            out.shapeType = el.shapeType || 'rect';
+            out.fill = fillToPptx(el.fill);
+            out.line = el.line && el.line !== 'none'
+                ? {
+                    color: el.line.color != null ? (normalizeColor(el.line.color) || undefined) : undefined,
+                    width: el.line.width != null ? el.line.width : 1,
+                    dashType: el.line.dashType || 'solid',
+                    startArrow: el.line.startArrow || undefined,
+                    endArrow: el.line.endArrow || undefined
+                }
+                : 'none';
+            if (el.shadow || el.glow) {
+                out.effects = {};
+                if (el.shadow)
+                    out.effects.shadow = el.shadow;
+                if (el.glow)
+                    out.effects.glow = el.glow;
+            }
+            if (el.flipH)
+                out.flipH = true;
+            if (el.flipV)
+                out.flipV = true;
+            if (el.effectsRaw)
+                out.effectsRaw = el.effectsRaw;
+            if (el.adjust && typeof el.adjust === 'object' && Object.keys(el.adjust).length)
+                out.adjust = el.adjust;
+            if (el.custGeom && Array.isArray(el.custGeom.paths) && el.custGeom.paths.length)
+                out.custGeom = el.custGeom;
+            return out;
+        }
+        case 'image': {
+            out.type = 'image';
+            if (el.data)
+                out.data = el.data;
+            if (el.src)
+                out.src = el.src;
+            if (el.extension)
+                out.extension = el.extension;
+            if (el.crop && typeof el.crop === 'object')
+                out.crop = el.crop;
+            if (el.effectsRaw && Array.isArray(el.effectsRaw))
+                out.effectsRaw = el.effectsRaw;
+            if (el.blipFx && Array.isArray(el.blipFx))
+                out.blipFx = el.blipFx;
+            const adj = el.imageAdjust || {};
+            if (adj.brightness || adj.contrast || adj.transparency) {
+                out.imageAdjust = {
+                    brightness: adj.brightness || 0,
+                    contrast: adj.contrast || 0,
+                    transparency: adj.transparency || 0
+                };
+            }
+            return out;
+        }
+        case 'table': {
+            out.type = 'table';
+            out.colWidths = (el.colWidths || []).map((w) => Math.round((Number(w) || 0) * 100) / 100);
+            if (el.border)
+                out.border = { color: normalizeColor(el.border.color) || 'CBD5E1', width: el.border.width ?? 1 };
+            if (el.inset)
+                out.inset = { l: el.inset.l, r: el.inset.r, t: el.inset.t, b: el.inset.b };
+            if (el.tableStyleId)
+                out.tableStyleId = el.tableStyleId;
+            out.rows = el.rows.map((row) => ({
+                height: Math.round((Number(row.height) || 40) * 100) / 100,
+                cells: row.cells.map((c) => {
+                    const cell = {};
+                    if (c.paragraphs && c.paragraphs.length && c.text === c.paragraphsText) {
+                        cell.paragraphs = cleanCellParagraphs(c.paragraphs);
+                    }
+                    else {
+                        cell.text = c.text || '';
+                    }
+                    if (c.fill)
+                        cell.fill = normalizeColor(c.fill) || undefined;
+                    if (c.colSpan && c.colSpan > 1)
+                        cell.colSpan = c.colSpan;
+                    if (c.rowSpan && c.rowSpan > 1)
+                        cell.rowSpan = c.rowSpan;
+                    if (c.rtl)
+                        cell.rtl = true;
+                    if (c.alignSet)
+                        cell.align = c.align;
+                    if (c.valignSet)
+                        cell.valign = c.valign;
+                    if (c.fontSizeSet)
+                        cell.fontSize = c.fontSize;
+                    if (c.color)
+                        cell.color = normalizeColor(c.color) || undefined;
+                    if (c.bold)
+                        cell.bold = true;
+                    if (c.inset)
+                        cell.inset = { l: c.inset.l, r: c.inset.r, t: c.inset.t, b: c.inset.b };
+                    if (c.borders) {
+                        const sides = {};
+                        for (const [k, b] of Object.entries(c.borders)) {
+                            if (b === 'none')
+                                sides[k] = 'none';
+                            else if (typeof b === 'string')
+                                sides[k] = b;
+                            else if (b && typeof b === 'object')
+                                sides[k] = { color: normalizeColor(b.color) || '#000000', width: b.width ?? 1 };
+                        }
+                        if (Object.keys(sides).length)
+                            cell.borders = sides;
+                    }
+                    return cell;
+                })
+            }));
+            return out;
+        }
+        case 'chart': {
+            out.type = 'chart';
+            const [baseType, variant] = String(el.chartType).split('|');
+            out.chartType = el.chartType3D || baseType;
+            if (baseType === 'barChart') {
+                out.barDir = variant === 'bar' ? 'bar' : 'col';
+                if (variant === 'stacked')
+                    out.grouping = 'stacked';
+            }
+            if (el.title)
+                out.title = el.title;
+            out.legend = !!el.legend;
+            if (el.legendPosition)
+                out.legendPosition = el.legendPosition;
+            out.dataLabels = !!el.dataLabels;
+            out.categories = el.categories || [];
+            const isBubble = el.chartType3D === 'bubbleChart';
+            const isScatter = !isBubble && el.chartType === 'scatterChart';
+            const isStock = el.chartType3D === 'stockChart';
+            out.series = (el.series || []).map((s) => {
+                const ser = { name: s.name || '系列' };
+                if (isBubble) {
+                    ser.x = (s.values || []).map((v) => v && v.x);
+                    ser.y = (s.values || []).map((v) => v && v.y);
+                    ser.values = (s.values || []).map((v) => v && v.size);
+                }
+                else if (isScatter) {
+                    ser.x = (s.values || []).map((v) => v && v.x);
+                    ser.y = (s.values || []).map((v) => v && v.y);
+                }
+                else if (isStock) {
+                    ser.open = (s.values || []).map((v) => v && v[0]);
+                    ser.close = (s.values || []).map((v) => v && v[1]);
+                    ser.low = (s.values || []).map((v) => v && v[2]);
+                    ser.high = (s.values || []).map((v) => v && v[3]);
+                }
+                else {
+                    ser.values = (s.values || []).map((v) => Number(v) || 0);
+                }
+                if (s.color)
+                    ser.color = normalizeColor(s.color) || undefined;
+                if (s.pointColors && s.pointColors.some((c) => c)) {
+                    ser.pointColors = (s.pointColors || []).map(normPointColor);
+                }
+                return ser;
+            });
+            if (el.spaceFill)
+                out.spaceFill = el.spaceFill;
+            if (/pie|doughnut/i.test(baseType))
+                out.varyColors = true;
+            if (el.grouping && el.grouping !== 'clustered')
+                out.grouping = el.grouping;
+            if (baseType === 'doughnutChart')
+                out.holeSize = el.holeSize ?? 50;
+            if (el.smooth)
+                out.smooth = true;
+            if (el.marker)
+                out.marker = true;
+            return out;
+        }
+        case 'group': {
+            out.type = 'group';
+            out.childrenCoordinates = el.childrenCoordinates === 'relative' ? 'relative' : 'page';
+            out.children = (el.children || []).filter((c) => !c.hidden).map(elementToPptx);
+            return out;
+        }
+        case 'video':
+        case 'audio': {
+            out.type = el.type;
+            if (el.data)
+                out.data = el.data;
+            if (el.src)
+                out.src = el.src;
+            if (el.extension)
+                out.extension = el.extension;
+            if (el.poster)
+                out.poster = el.poster;
+            return out;
+        }
+        case 'diagram': {
+            out.type = 'diagram';
+            out.diagramType = el.diagramType || 'list';
+            out.nodes = (el.texts || []).map((t) => ({ text: t }));
+            if (Array.isArray(el.shapes) && el.shapes.length)
+                out.shapes = clone(el.shapes);
+            if (el.__raw)
+                out.__raw = el.__raw;
+            if (el.dataPath)
+                out.dataPath = el.dataPath;
+            return out;
+        }
+        default: {
+            out.type = 'raw';
+            if (el.__raw) {
+                out.__raw = el.__raw;
+                out.rawFallback = true;
+            }
+            return out;
+        }
+    }
+}
+function slideToPptx(slide) {
+    const visibleEls = (slide.elements || []).filter((e) => !e.hidden);
+    const idToIndex = new Map();
+    visibleEls.forEach((e, i) => idToIndex.set(e.id, i));
+    const out = { elements: visibleEls.map(elementToPptx) };
+    if (slide.background)
+        out.background = slide.background;
+    if (slide.notes)
+        out.notes = slide.notes;
+    if (slide.hidden)
+        out.hidden = true;
+    if (Array.isArray(slide.comments) && slide.comments.length) {
+        out.comments = slide.comments.map((c) => ({
+            author: c.author || 'Author',
+            text: c.text || '',
+            dt: c.dt || undefined,
+            pos: c.pos ? { x: Math.round((Number(c.pos.x) || 0) * 9525), y: Math.round((Number(c.pos.y) || 0) * 9525) } : undefined
+        }));
+    }
+    if (slide.transition && slide.transition.type && slide.transition.type !== 'none') {
+        out.transition = {
+            type: slide.transition.type,
+            duration: slide.transition.duration || 800,
+            advanceOnClick: slide.transition.advanceOnClick !== false
+        };
+    }
+    if (slide.animations && slide.animations.length) {
+        out.animations = slide.animations.map((a) => {
+            const target = idToIndex.has(a.target) ? idToIndex.get(a.target) : (typeof a.target === 'number' ? a.target : 0);
+            const o = { target, type: a.type, duration: a.duration || 0.5 };
+            if (a.presetClass)
+                o.presetClass = a.presetClass;
+            if (a.direction)
+                o.direction = a.direction;
+            if (a.trigger)
+                o.trigger = a.trigger;
+            if (a.delay != null)
+                o.delay = a.delay;
+            if (a.repeat != null)
+                o.repeat = a.repeat;
+            return o;
+        });
+    }
+    return out;
+}
+function buildThemeXml(theme) {
+    if (typeof theme === 'string')
+        return theme;
+    const t = theme || getTheme('blue');
+    const accents = t.accents || [];
+    const a = (i, fb) => (accents[i] || fb).replace('#', '');
+    const bg = (t.bg || '#FFFFFF').replace('#', '');
+    const tx = (t.text || '#202124').replace('#', '');
+    const panel = (t.panel || '#F1F3F4').replace('#', '');
+    const major = t.fonts?.major || '微软雅黑';
+    const minor = t.fonts?.minor || '微软雅黑';
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="EditorTheme"><a:themeElements><a:clrScheme name="Editor"><a:dk1><a:srgbClr val="${tx}"/></a:dk1><a:lt1><a:srgbClr val="${bg}"/></a:lt1><a:dk2><a:srgbClr val="${tx}"/></a:dk2><a:lt2><a:srgbClr val="${panel}"/></a:lt2><a:accent1><a:srgbClr val="${a(0, '1A73E8')}"/></a:accent1><a:accent2><a:srgbClr val="${a(1, '4285F4')}"/></a:accent2><a:accent3><a:srgbClr val="${a(2, '34A853')}"/></a:accent3><a:accent4><a:srgbClr val="${a(3, 'FBBC04')}"/></a:accent4><a:accent5><a:srgbClr val="${a(4, 'EA4335')}"/></a:accent5><a:accent6><a:srgbClr val="${a(5, '8430CE')}"/></a:accent6><a:hlink><a:srgbClr val="${a(0, '1A73E8')}"/></a:hlink><a:folHlink><a:srgbClr val="${a(5, '8430CE')}"/></a:folHlink></a:clrScheme><a:fontScheme name="Editor"><a:majorFont><a:latin typeface="${major}"/><a:ea typeface="${major}"/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="${minor}"/><a:ea typeface="${minor}"/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Editor"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln><a:ln w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln><a:ln w="19050" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+}
+function docToPptx(doc) {
+    const theme = getTheme(doc.theme);
+    const out = {
+        version: '1.0',
+        slideSize: { width: doc.slideSize.width, height: doc.slideSize.height },
+        metadata: doc.metadata || {
+            title: doc.title || '演示文稿',
+            author: 'Slides 在线编辑器',
+            lastModifiedBy: 'Slides 在线编辑器',
+            modified: new Date().toISOString()
+        },
+        theme: doc.themeXml || buildThemeXml(theme),
+        slides: doc.slides.map(slideToPptx)
+    };
+    if (doc.customProps)
+        out.customProps = doc.customProps;
+    if (doc.thumbnail)
+        out.thumbnail = doc.thumbnail;
+    if (doc.tableStylesXml)
+        out.tableStylesXml = doc.tableStylesXml;
+    if (doc.themeXmls && doc.themeXmls.length)
+        out.themeXmls = doc.themeXmls;
+    if (doc.masters && doc.masters.length) {
+        out.masters = doc.masters;
+        out.slides.forEach((sl, i) => { if (doc.slides[i] && doc.slides[i].layout != null)
+            sl.layout = doc.slides[i].layout; });
+    }
+    return out;
+}
+function pptxRunsToRuns(runs, fallback) {
+    if (!runs || !runs.length)
+        return [{ text: '' }];
+    return runs.map((r) => ({
+        text: String(r.text == null ? '' : r.text),
+        fontSize: r.fontSize ?? fallback.fontSize,
+        color: colorFromPptx(r.color) || fallback.color,
+        bold: !!r.bold,
+        italic: !!r.italic,
+        underline: !!r.underline,
+        fontFace: r.fontFace || fallback.fontFace,
+        fontFaceEa: r.fontFaceEa || fallback.fontFaceEa,
+        outline: r.outline,
+        shadow: r.shadow,
+        href: r.href || undefined,
+        hrefTooltip: r.hrefTooltip || undefined,
+        baseline: r.baseline != null ? r.baseline : undefined,
+        spacing: r.spacing != null ? r.spacing : undefined,
+        strike: r.strike || undefined,
+        highlight: r.highlight || undefined,
+        emphasisMark: r.emphasisMark || undefined,
+        smallCaps: r.smallCaps || undefined,
+        break: !!r.break
+    }));
+}
+function resolveSchemeColor(c) {
+    if (typeof c !== 'string' || !c.startsWith('scheme:'))
+        return c;
+    const t = getTheme(_activeTheme);
+    const map = {
+        accent1: t.accents[0], accent2: t.accents[1], accent3: t.accents[2],
+        accent4: t.accents[3], accent5: t.accents[4], accent6: t.accents[5],
+        dk1: t.text, lt1: t.bg, dk2: t.title, lt2: t.panel,
+        tx1: t.text, bg1: t.bg, tx2: t.title, bg2: t.panel,
+        hlink: t.accents[0], folHlink: t.accents[5]
+    };
+    return map[c.slice(7)] || '#202124';
+}
+function colorFromPptx(c) {
+    return normalizeColor(resolveSchemeColor(c));
+}
+function normalizeBulletIn(b) {
+    if (b == null || b === false)
+        return undefined;
+    if (b === 'number' || (typeof b === 'object' && b.type === 'number' && !b.fmt))
+        return 'number';
+    if (b === true || b === 'bullet')
+        return true;
+    if (typeof b === 'object') {
+        if (b.type === 'number')
+            return { type: 'number', fmt: b.fmt || 'arabicPeriod', start: b.start || 1 };
+        if (b.type === 'picture') {
+            const pb = { type: 'picture' };
+            if (b.data)
+                pb.data = b.data;
+            if (b.rid)
+                pb.rid = b.rid;
+            if (b.sizePct)
+                pb.sizePct = b.sizePct;
+            return pb;
+        }
+        const out = { type: 'bullet', char: b.char || '•' };
+        if (b.font)
+            out.font = b.font;
+        if (b.sizePct)
+            out.sizePct = b.sizePct;
+        return out;
+    }
+    return true;
+}
+function normalizeBulletOut(b) {
+    if (b == null || b === false)
+        return undefined;
+    if (b === 'number')
+        return 'number';
+    if (b === true || b === 'bullet')
+        return { type: 'bullet' };
+    if (typeof b === 'object' && b.type === 'number')
+        return { type: 'number', fmt: b.fmt, start: b.start };
+    if (typeof b === 'object' && b.type === 'picture') {
+        const ob = { type: 'picture' };
+        if (b.data)
+            ob.data = b.data;
+        if (b.rid)
+            ob.rid = b.rid;
+        if (b.sizePct)
+            ob.sizePct = b.sizePct;
+        return ob;
+    }
+    if (typeof b === 'object' && b.char) {
+        const ob = { type: 'bullet', char: b.char };
+        if (b.font)
+            ob.font = b.font;
+        if (b.sizePct)
+            ob.sizePct = b.sizePct;
+        return ob;
+    }
+    return { type: 'bullet' };
+}
+function fillFromPptx(fill) {
+    if (!fill)
+        return null;
+    if (fill === 'none')
+        return 'none';
+    if (typeof fill === 'string')
+        return { type: 'solid', color: colorFromPptx(fill) || '#FFFFFF', transparency: 0 };
+    if (fill.type === 'gradient') {
+        const g = {
+            type: 'gradient',
+            direction: fill.direction || 'horizontal',
+            stops: (fill.stops || []).map((s) => {
+                const out = { color: colorFromPptx(s.color) || '#FFFFFF', position: s.position ?? 0 };
+                if (s.transparency != null)
+                    out.transparency = s.transparency;
+                return out;
+            })
+        };
+        if (typeof fill.angle === 'number')
+            g.angle = fill.angle;
+        if (fill.gradientType === 'radial') {
+            g.gradientType = 'radial';
+            g.gradientPath = fill.gradientPath || 'circle';
+        }
+        return g;
+    }
+    if (fill.type === 'pattern') {
+        return { type: 'pattern', prst: fill.prst || 'pct10', fg: colorFromPptx(fill.fg) || '#1A73E8', bg: colorFromPptx(fill.bg) || '#FFFFFF' };
+    }
+    if (fill.type === 'image') {
+        return { type: 'image', extension: fill.extension || 'png', data: fill.data || '', src: fill.src || '', tile: fill.tile || null, srcRect: fill.srcRect || null };
+    }
+    return { type: 'solid', color: colorFromPptx(fill.color) || '#FFFFFF', transparency: fill.transparency || 0 };
+}
+function elementFromPptx(pe) {
+    const el = base({
+        x: Number(pe.x) || 0, y: Number(pe.y) || 0,
+        width: pe.width != null ? Number(pe.width) : 100, height: pe.height != null ? Number(pe.height) : 100,
+        rotation: Number(pe.rotation) || 0,
+        name: pe.name
+    });
+    if (pe.inherited) {
+        el.inherited = true;
+        el.locked = true;
+    }
+    switch (pe.type) {
+        case 'text': {
+            el.type = 'text';
+            el.fontSize = pe.fontSize ?? 18;
+            el.color = pe.color != null ? colorFromPptx(pe.color) : undefined;
+            el.bold = !!pe.bold;
+            el.italic = !!pe.italic;
+            el.underline = !!pe.underline;
+            el.fontFace = pe.fontFace || null;
+            el.fontFaceEa = pe.fontFaceEa || null;
+            el.align = pe.align || 'left';
+            el.valign = pe.valign || 'top';
+            el.textDirection = pe.textDirection || '';
+            el.noWrap = !!pe.noWrap;
+            el.rtlCol = !!pe.rtlCol;
+            if (pe.fontScale != null)
+                el.fontScale = pe.fontScale;
+            if (pe.lnSpcReduction != null)
+                el.lnSpcReduction = pe.lnSpcReduction;
+            el.txBox = !!pe.txBox;
+            el.inset = (pe.inset && typeof pe.inset === 'object')
+                ? { l: pe.inset.l, r: pe.inset.r, t: pe.inset.t, b: pe.inset.b }
+                : null;
+            el.shapeType = pe.shapeType || null;
+            if (pe.adjust && typeof pe.adjust === 'object')
+                el.adjust = pe.adjust;
+            if (pe.custGeom && Array.isArray(pe.custGeom.paths) && pe.custGeom.paths.length)
+                el.custGeom = pe.custGeom;
+            el.fill = fillFromPptx(pe.fill);
+            el.line = pe.line && pe.line !== 'none'
+                ? {
+                    color: pe.line.color != null ? (colorFromPptx(pe.line.color) || undefined) : undefined,
+                    width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid'
+                }
+                : (pe.line === 'none' ? 'none' : null);
+            el.shadow = (pe.effects && pe.effects.shadow && typeof pe.effects.shadow === 'object') ? pe.effects.shadow : null;
+            if (el.shadow && el.shadow.color)
+                el.shadow.color = colorFromPptx(el.shadow.color) || '#000000';
+            el.glow = (pe.effects && pe.effects.glow && typeof pe.effects.glow === 'object') ? pe.effects.glow : null;
+            if (el.glow && el.glow.color)
+                el.glow.color = colorFromPptx(el.glow.color) || '#FFFF00';
+            const lineSpacingNum = (ls) => {
+                if (ls == null)
+                    return 1.15;
+                if (typeof ls === 'number')
+                    return ls;
+                if (ls.type === 'percent')
+                    return ls.value;
+                if (ls.type === 'pt')
+                    return Math.max(0.8, Math.round((ls.value / (el.fontSize || 18)) * 100) / 100);
+                return 1.15;
+            };
+            el.lineSpacing = lineSpacingNum(pe.lineSpacing);
+            el.propsSet = {
+                fontSize: pe.fontSize != null,
+                fontFace: !!pe.fontFace,
+                align: !!pe.align,
+                valign: !!pe.valign,
+                lineSpacing: pe.lineSpacing != null && pe.lineSpacing !== ''
+            };
+            const eb = pe.bullet;
+            el.bullet = eb ? ((eb === 'number' || (eb.type === 'number')) ? 'number' : true) : false;
+            el.indent = pe.indentLeft ? ptToPx(pe.indentLeft) : 0;
+            const fallback = { fontSize: el.fontSize, color: el.color, fontFace: el.fontFace, fontFaceEa: el.fontFaceEa };
+            if (pe.paragraphs && pe.paragraphs.length) {
+                el.paragraphs = pe.paragraphs.map((p) => {
+                    const pb = p.bullet;
+                    return {
+                        runs: p.runs ? pptxRunsToRuns(p.runs, fallback) : [{ text: String(p.text || '') }],
+                        align: p.align || el.align,
+                        bullet: normalizeBulletIn(pb),
+                        lineSpacing: lineSpacingNum(p.lineSpacing),
+                        alignSet: !!p.align,
+                        lineSpacingSet: p.lineSpacing != null,
+                        rtl: !!p.rtl,
+                        indent: p.indent != null ? ptToPx(p.indent) : undefined,
+                        indentLeft: p.indentLeft != null ? ptToPx(p.indentLeft) : undefined,
+                        indentRight: p.indentRight != null ? ptToPx(p.indentRight) : undefined,
+                        spaceBefore: p.spaceBefore != null ? ptToPx(p.spaceBefore) : undefined,
+                        spaceAfter: p.spaceAfter != null ? ptToPx(p.spaceAfter) : undefined
+                    };
+                });
+            }
+            else if (pe.runs && pe.runs.length) {
+                el.paragraphs = [{ runs: pptxRunsToRuns(pe.runs, fallback), align: el.align }];
+            }
+            else {
+                el.paragraphs = String(pe.text || '').split('\n').map((t) => ({ runs: [{ text: t }], align: el.align }));
+            }
+            return el;
+        }
+        case 'shape': {
+            el.type = 'shape';
+            el.shapeType = pe.shapeType || 'rect';
+            el.fill = fillFromPptx(pe.fill);
+            el.line = pe.line && pe.line !== 'none'
+                ? { color: colorFromPptx(pe.line.color) || '#000000', width: pe.line.width ?? 1, dashType: pe.line.dashType || 'solid', startArrow: pe.line.startArrow || null, endArrow: pe.line.endArrow || null }
+                : 'none';
+            el.shadow = (pe.effects && pe.effects.shadow && typeof pe.effects.shadow === 'object') ? pe.effects.shadow : null;
+            if (el.shadow && el.shadow.color)
+                el.shadow.color = colorFromPptx(el.shadow.color) || '#000000';
+            el.glow = (pe.effects && pe.effects.glow && typeof pe.effects.glow === 'object') ? pe.effects.glow : null;
+            if (el.glow && el.glow.color)
+                el.glow.color = colorFromPptx(el.glow.color) || '#FFFF00';
+            if (pe.flipH)
+                el.flipH = true;
+            if (pe.flipV)
+                el.flipV = true;
+            if (pe.effectsRaw && Array.isArray(pe.effectsRaw))
+                el.effectsRaw = pe.effectsRaw;
+            if (pe.adjust && typeof pe.adjust === 'object')
+                el.adjust = pe.adjust;
+            if (pe.custGeom && Array.isArray(pe.custGeom.paths) && pe.custGeom.paths.length)
+                el.custGeom = pe.custGeom;
+            return el;
+        }
+        case 'image': {
+            el.type = 'image';
+            el.data = pe.data || '';
+            el.src = pe.src || '';
+            el.extension = pe.extension || '';
+            if (pe.effectsRaw && Array.isArray(pe.effectsRaw))
+                el.effectsRaw = pe.effectsRaw;
+            if (pe.blipFx && Array.isArray(pe.blipFx))
+                el.blipFx = pe.blipFx;
+            if (pe.crop && typeof pe.crop === 'object')
+                el.crop = pe.crop;
+            el.imageAdjust = Object.assign({ brightness: 0, contrast: 0, transparency: 0 }, pe.imageAdjust || {});
+            return el;
+        }
+        case 'table': {
+            el.type = 'table';
+            el.colWidths = (pe.colWidths && pe.colWidths.length) ? pe.colWidths.map(Number) : null;
+            el.border = pe.border ? { color: normalizeColor(pe.border.color) || '#CBD5E1', width: pe.border.width ?? 1 } : { color: '#CBD5E1', width: 1 };
+            if (pe.inset)
+                el.inset = { l: pe.inset.l, r: pe.inset.r, t: pe.inset.t, b: pe.inset.b };
+            if (pe.tableStyleId)
+                el.tableStyleId = pe.tableStyleId;
+            el.rows = (pe.rows || []).map((r) => ({
+                height: Number(r.height) || 40,
+                cells: (r.cells || []).map((c) => {
+                    const hasFill = c.fill && c.fill !== 'none';
+                    const hasColor = c.color && c.color !== 'none';
+                    const cellInset = c.inset ? { l: c.inset.l, r: c.inset.r, t: c.inset.t, b: c.inset.b } : undefined;
+                    const flatText = c.text || (Array.isArray(c.paragraphs)
+                        ? c.paragraphs.map((p, pi) => {
+                            const t = (p.runs || []).map((r) => (r.text == null ? '' : String(r.text))).join('');
+                            const b = p.bullet;
+                            if (b && typeof b === 'object' && b.type === 'number') {
+                                return autoNumPrefix(b.fmt || 'arabicPeriod', (b.start || 1) + pi) + ' ' + t;
+                            }
+                            return t;
+                        }).join('\n')
+                        : '');
+                    const cell = {
+                        text: flatText,
+                        paragraphs: Array.isArray(c.paragraphs) && c.paragraphs.length ? c.paragraphs : undefined,
+                        paragraphsText: flatText,
+                        fill: hasFill ? colorFromPptx(c.fill) : null,
+                        fillCustom: hasFill || undefined,
+                        align: c.align || 'left',
+                        valign: c.valign || 'middle',
+                        fontSize: c.fontSize || 14,
+                        color: colorFromPptx(c.color) || '#202124',
+                        colorCustom: hasColor || undefined,
+                        bold: !!c.bold,
+                        rtl: !!c.rtl,
+                        alignSet: c.align != null,
+                        valignSet: c.valign != null,
+                        fontSizeSet: c.fontSize != null,
+                        colSpan: c.colSpan, rowSpan: c.rowSpan,
+                        inset: cellInset,
+                        borders: c.borders
+                            ? Object.fromEntries(Object.entries(c.borders).map(([k, b]) => [k,
+                                b === 'none' ? 'none'
+                                    : typeof b === 'string' ? b
+                                        : (b && typeof b === 'object') ? { color: colorFromPptx(b.color) || '#000000', width: Number(b.width) || 1 } : undefined])
+                                .filter(([, v]) => v !== undefined))
+                            : undefined
+                    };
+                    return cell;
+                })
+            }));
+            const firstRow = el.rows[0];
+            const secondRow = el.rows[1];
+            if (firstRow && firstRow.cells[0] && firstRow.cells[0].fillCustom) {
+                el.headerFill = firstRow.cells[0].fill;
+            }
+            if (secondRow && secondRow.cells[0] && secondRow.cells[0].fillCustom) {
+                el.cellFill = secondRow.cells[0].fill;
+            }
+            const anyDiag = el.rows.find((r) => r.cells.find((c) => c.borders && c.borders.diagonal));
+            if (anyDiag)
+                el.hasDiagonal = true;
+            if (!el.colWidths) {
+                const cols = el.rows[0] ? el.rows[0].cells.length : 1;
+                el.colWidths = new Array(cols).fill(Math.round(el.width / cols));
+            }
+            el.headerRow = false;
+            el.headerFill = '#1A73E8';
+            el.cellFill = '#FFFFFF';
+            el.fontSize = el.rows[0]?.cells[0]?.fontSize || 14;
+            el.fontSizeSet = (pe.rows || []).some((r) => (r.cells || []).some((c) => c.fontSize != null));
+            el.color = '#202124';
+            return el;
+        }
+        case 'chart': {
+            el.type = 'chart';
+            const CHART_3D_MAP = {
+                bar3DChart: 'barChart', line3DChart: 'lineChart', area3DChart: 'areaChart',
+                pie3DChart: 'pieChart', surface3DChart: 'areaChart', ofPieChart: 'pieChart',
+                bubbleChart: 'scatterChart', stockChart: 'lineChart'
+            };
+            el.chartType = CHART_3D_MAP[pe.chartType] || pe.chartType || 'barChart';
+            if (CHART_3D_MAP[pe.chartType])
+                el.chartType3D = pe.chartType;
+            el.title = pe.title || '';
+            el.legend = pe.legend !== false;
+            el.legendPosition = pe.legendPosition || '';
+            el.dataLabels = !!pe.dataLabels;
+            el.grouping = pe.grouping || 'clustered';
+            el.holeSize = pe.holeSize ?? 50;
+            el.smooth = !!pe.smooth;
+            el.marker = !!pe.marker;
+            el.view3D = pe.view3D || null;
+            el.spaceFill = pe.spaceFill === 'none' ? 'none' : (normalizeColor(pe.spaceFill) || '');
+            el.categories = pe.categories || [];
+            const isBubble = el.chartType3D === 'bubbleChart';
+            const isScatter = !isBubble && el.chartType === 'scatterChart';
+            const isStock = el.chartType3D === 'stockChart';
+            el.series = (pe.series || []).map((s) => {
+                const ser = { name: s.name || '系列', color: normalizeColor(s.color) || '' };
+                if (s.pointColors && s.pointColors.some((c) => c)) {
+                    ser.pointColors = (s.pointColors || []).map(normPointColor);
+                }
+                if (isBubble) {
+                    ser.values = (s.x || []).map((x, i) => ({
+                        x: Number(x) || 0,
+                        y: Number((s.y || [])[i]) || 0,
+                        size: Number((s.values || [])[i]) || 0
+                    }));
+                }
+                else if (isScatter) {
+                    ser.values = (s.x || []).map((x, i) => ({
+                        x: Number(x) || 0,
+                        y: Number((s.y || [])[i]) || 0
+                    }));
+                }
+                else if (isStock) {
+                    const len = Math.max((s.open || []).length, (s.close || []).length, (s.low || []).length, (s.high || []).length);
+                    ser.values = Array.from({ length: len }, (_, i) => [
+                        Number((s.open || [])[i]) || 0,
+                        Number((s.close || [])[i]) || 0,
+                        Number((s.low || [])[i]) || 0,
+                        Number((s.high || [])[i]) || 0
+                    ]);
+                }
+                else {
+                    ser.values = (s.values || s.y || []).map((v) => Number(v) || 0);
+                }
+                return ser;
+            });
+            return el;
+        }
+        case 'group': {
+            el.type = 'group';
+            const offsetX = Number(pe.x) || 0, offsetY = Number(pe.y) || 0;
+            el.children = (pe.children || []).map((c) => {
+                if (pe.childrenCoordinates === 'local') {
+                    c = clone(c);
+                    c.x = (Number(c.x) || 0) + offsetX;
+                    c.y = (Number(c.y) || 0) + offsetY;
+                }
+                return elementFromPptx(c);
+            });
+            el.childrenCoordinates = pe.childrenCoordinates === 'relative' ? 'relative' : 'page';
+            if (pe.flipH)
+                el.flipH = true;
+            if (pe.flipV)
+                el.flipV = true;
+            return el;
+        }
+        case 'video':
+        case 'audio': {
+            el.type = pe.type;
+            el.data = pe.data || '';
+            el.src = pe.src || '';
+            el.extension = pe.extension || '';
+            el.poster = pe.poster || null;
+            return el;
+        }
+        case 'diagram': {
+            el.type = 'diagram';
+            el.texts = (pe.texts || []).map(String);
+            el.shapes = Array.isArray(pe.shapes) ? pe.shapes : [];
+            el.dataPath = pe.dataPath || '';
+            if (pe.__raw)
+                el.__raw = pe.__raw;
+            return el;
+        }
+        default: {
+            el.type = 'raw';
+            el.label = pe.type || '未知元素';
+            el.__raw = pe.__raw;
+            return el;
+        }
+    }
+}
+function docFromPptx(pptxDoc) {
+    const doc = createDoc('blue');
+    const size = pptxDoc.slideSize || {};
+    doc.slideSize = { width: Number(size.width) || 1280, height: Number(size.height) || 720 };
+    const key = Object.keys(SLIDE_SIZES).find((k) => Math.abs(SLIDE_SIZES[k].width - doc.slideSize.width) < 4 && Math.abs(SLIDE_SIZES[k].height - doc.slideSize.height) < 4);
+    doc.sizeKey = key || 'custom';
+    doc.title = (pptxDoc.metadata && pptxDoc.metadata.title) || '导入的演示文稿';
+    if (pptxDoc.metadata)
+        doc.metadata = pptxDoc.metadata;
+    if (pptxDoc.customProps)
+        doc.customProps = pptxDoc.customProps;
+    if (pptxDoc.thumbnail)
+        doc.thumbnail = pptxDoc.thumbnail;
+    const th = pptxDoc.theme;
+    if (th && th.colors) {
+        const c = th.colors;
+        doc.theme = {
+            id: 'imported', name: th.name || '导入主题',
+            bg: c.lt1 || '#FFFFFF', panel: c.lt2 || c.lt1 || '#FFFFFF',
+            text: c.dk1 || '#202124', title: c.dk2 || c.dk1 || '#202124',
+            accent: c.accent1 || '#1A73E8',
+            accents: [c.accent1, c.accent2, c.accent3, c.accent4, c.accent5, c.accent6]
+                .map((x) => x || '#1A73E8')
+        };
+        setActiveTheme(doc.theme);
+    }
+    if (pptxDoc.themeXml)
+        doc.themeXml = pptxDoc.themeXml;
+    if (pptxDoc.tableStylesXml)
+        doc.tableStylesXml = pptxDoc.tableStylesXml;
+    if (pptxDoc.themeXmls && pptxDoc.themeXmls.length)
+        doc.themeXmls = pptxDoc.themeXmls;
+    if (pptxDoc.masters && pptxDoc.masters.length)
+        doc.masters = pptxDoc.masters;
+    doc.slides = (pptxDoc.slides || []).map((s) => {
+        const slide = createSlide((s.elements || []).map(elementFromPptx), {
+            background: s.background || null,
+            notes: s.notes || '',
+            hidden: !!s.hidden
+        });
+        if (s.transition && s.transition.type) {
+            slide.transition = { type: s.transition.type, duration: s.transition.duration || 800 };
+        }
+        if (typeof s.layout === 'number')
+            slide.layout = s.layout;
+        if (Array.isArray(s.comments) && s.comments.length) {
+            slide.comments = s.comments.map((c) => ({
+                author: c.author || 'Author',
+                text: c.text || '',
+                dt: c.dt || '',
+                pos: c.pos ? { x: (Number(c.pos.x) || 0) / 9525, y: (Number(c.pos.y) || 0) / 9525 } : null
+            }));
+        }
+        if (s.animations && s.animations.length) {
+            slide.animations = s.animations.map((a) => {
+                const idx = typeof a.target === 'number' ? a.target : 0;
+                const el = slide.elements[idx];
+                return {
+                    target: el ? el.id : (slide.elements[0] ? slide.elements[0].id : ''),
+                    type: a.type, duration: a.duration || 0.5,
+                    presetClass: a.presetClass, direction: a.direction,
+                    trigger: a.trigger, delay: a.delay, repeat: a.repeat
+                };
+            });
+        }
+        return slide;
+    });
+    if (!doc.slides.length)
+        doc.slides.push(buildSlideFromLayout('titleBody', doc.theme, doc.slideSize));
+    return doc;
+}
+function applyTextStyle(el, patch) {
+    if (el.type !== 'text')
+        return el;
+    for (const [k, v] of Object.entries(patch)) {
+        if (v === undefined)
+            continue;
+        el[k] = v;
+        if (el.propsSet && k in el.propsSet)
+            el.propsSet[k] = true;
+    }
+    const keys = ['fontSize', 'color', 'bold', 'italic', 'underline', 'fontFace'];
+    for (const p of el.paragraphs || []) {
+        for (const r of p.runs || []) {
+            for (const k of keys)
+                if (patch[k] !== undefined)
+                    r[k] = patch[k];
+        }
+        if (patch.align !== undefined) {
+            p.align = patch.align;
+            p.alignSet = true;
+        }
+        if (patch.bullet !== undefined)
+            p.bullet = patch.bullet === false ? undefined : patch.bullet;
+        if (patch.lineSpacing !== undefined) {
+            p.lineSpacing = patch.lineSpacing;
+            p.lineSpacingSet = true;
+        }
+    }
+    return el;
+}
+function createStarterDoc() {
+    const doc = createDoc('blue', '16:9');
+    getTheme('blue');
+    doc.slides = [
+        buildSlideFromLayout('title', 'blue', doc.slideSize),
+        buildSlideFromLayout('titleBody', 'blue', doc.slideSize),
+        buildSlideFromLayout('twoCol', 'blue', doc.slideSize)
+    ];
+    doc.slides[0].elements[0].paragraphs[0].runs[0].text = '欢迎使用 Slides 编辑器';
+    doc.slides[0].elements[2].paragraphs[0].runs[0].text = '在线编辑 · 一键导出 PPTX';
+    doc.title = '未命名演示文稿';
+    return doc;
+}
+
+const LS_KEY = 'pptx-editor:doc:v1';
+const LS_UI = 'pptx-editor:ui:v1';
+const MAX_HISTORY = 120;
+class MemoryStorage {
+    constructor() {
+        this.m = new Map();
+    }
+    getItem(k) { return this.m.has(k) ? this.m.get(k) : null; }
+    setItem(k, v) { this.m.set(k, v); }
+    removeItem(k) { this.m.delete(k); }
+}
+function debounce(fn, wait = 300) {
+    let t = 0;
+    return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), wait);
+    };
+}
+function normalizeDoc(doc) {
+    if (!doc || !Array.isArray(doc.slides))
+        throw new Error('文档数据无效');
+    doc.title = doc.title || '未命名演示文稿';
+    doc.theme = doc.theme || 'blue';
+    doc.slideSize = doc.slideSize && doc.slideSize.width ? doc.slideSize : { width: 1280, height: 720 };
+    for (const s of doc.slides) {
+        s.id = s.id || ('s_' + Math.random().toString(36).slice(2, 8));
+        s.elements = Array.isArray(s.elements) ? s.elements : [];
+        s.notes = s.notes || '';
+        s.animations = Array.isArray(s.animations) ? s.animations : [];
+        if (!s.transition)
+            s.transition = null;
+        for (const el of s.elements)
+            normalizeElement(el);
+    }
+    return doc;
+}
+function normalizeElement(el) {
+    if (!el.id)
+        el.id = 'e_' + Math.random().toString(36).slice(2, 9);
+    el.x = Number(el.x) || 0;
+    el.y = Number(el.y) || 0;
+    const isLinear = el.type === 'shape' && /^(curvedConnector|bentConnector|straightConnector|line)/.test(el.shapeType || '');
+    const numOr = (v, dflt) => (v != null && !Number.isNaN(Number(v))) ? Number(v) : dflt;
+    el.width = isLinear ? numOr(el.width, 40) : (Number(el.width) || 40);
+    el.height = isLinear ? numOr(el.height, 40) : (Number(el.height) || 40);
+    el.rotation = Number(el.rotation) || 0;
+    if (el.type === 'text' && !el.paragraphs)
+        el.paragraphs = [{ runs: [{ text: el.text || '' }] }];
+    if (el.type === 'group')
+        (el.children || []).forEach(normalizeElement);
+}
+class EditorStore {
+    constructor(opts = {}) {
+        this.doc = null;
+        this.slideIndex = 0;
+        this.sel = [];
+        this.editingId = null;
+        this.clipboard = [];
+        this.zoom = 1;
+        this.showGrid = false;
+        this.snap = true;
+        this.showNotes = false;
+        this.fitted = false;
+        this.undoStack = [];
+        this.redoStack = [];
+        this._lastCoalesce = { key: null, time: 0 };
+        this._listeners = new Map();
+        this._loading = true;
+        this.persist = debounce(() => {
+            if (this._loading)
+                return;
+            this.emit('persist');
+        }, 800);
+        this.storage = opts.storage || new MemoryStorage();
+    }
+    on(evt, fn) {
+        if (!this._listeners.has(evt))
+            this._listeners.set(evt, new Set());
+        this._listeners.get(evt).add(fn);
+        return () => this._listeners.get(evt).delete(fn);
+    }
+    emit(evt, payload) {
+        const set = this._listeners.get(evt);
+        if (set)
+            for (const fn of Array.from(set))
+                fn(payload);
+    }
+    init() {
+        try {
+            this.storage.removeItem(LS_KEY);
+        }
+        catch { }
+        this.doc = createStarterDoc();
+        try {
+            const ui = JSON.parse(this.storage.getItem(LS_UI) || '{}');
+            if (ui.showGrid != null)
+                this.showGrid = !!ui.showGrid;
+            if (ui.snap != null)
+                this.snap = !!ui.snap;
+            if (ui.showNotes != null)
+                this.showNotes = !!ui.showNotes;
+        }
+        catch { }
+        this._loading = false;
+    }
+    get slide() { return this.doc.slides[this.slideIndex] || this.doc.slides[0]; }
+    get slideCount() { return this.doc.slides.length; }
+    elements() { return this.slide ? this.slide.elements : []; }
+    findElement(id) {
+        for (const el of this.elements())
+            if (el.id === id)
+                return el;
+        return null;
+    }
+    selected() {
+        const els = this.elements();
+        return this.sel.map((id) => els.find((e) => e.id === id)).filter(Boolean);
+    }
+    deepFind(id, list = this.elements()) {
+        for (const el of list) {
+            if (el.id === id)
+                return el;
+            if (el.children) {
+                const f = this.deepFind(id, el.children);
+                if (f)
+                    return f;
+            }
+        }
+        return null;
+    }
+    setSel(ids, opts = {}) {
+        const next = Array.isArray(ids) ? ids : [ids];
+        const same = next.length === this.sel.length && next.every((v, i) => v === this.sel[i]);
+        if (same && !opts.force)
+            return;
+        this.sel = next;
+        if (this.editingId && !next.includes(this.editingId))
+            this.editingId = null;
+        this.emit('sel');
+    }
+    clearSel() { this.setSel([]); }
+    toggleSel(id) {
+        this.setSel(this.sel.includes(id) ? this.sel.filter((v) => v !== id) : this.sel.concat(id));
+    }
+    setSlide(i, opts = {}) {
+        const idx = Math.max(0, Math.min(this.doc.slides.length - 1, i));
+        if (idx === this.slideIndex && !opts.force)
+            return;
+        this.slideIndex = idx;
+        this.editingId = null;
+        this.setSel([]);
+        this.emit('slide');
+        this.emit('sel');
+    }
+    update(mutator, opts = {}) {
+        const before = this.doc;
+        const draft = clone(before);
+        const ret = mutator(draft, before);
+        if (ret === false)
+            return;
+        this.doc = draft;
+        const useHistory = opts.history !== false;
+        if (useHistory) {
+            const now = Date.now();
+            const c = opts.coalesce;
+            const canCoalesce = c && this._lastCoalesce.key === c && now - this._lastCoalesce.time < 700;
+            if (!canCoalesce) {
+                this.undoStack.push(JSON.stringify(before));
+                if (this.undoStack.length > MAX_HISTORY)
+                    this.undoStack.shift();
+            }
+            this._lastCoalesce = { key: c || null, time: now };
+            this.redoStack.length = 0;
+        }
+        this.persist();
+        this.emit('doc', opts);
+        return draft;
+    }
+    snapshot() {
+        this.undoStack.push(JSON.stringify(this.doc));
+        if (this.undoStack.length > MAX_HISTORY)
+            this.undoStack.shift();
+        this.redoStack.length = 0;
+        this._lastCoalesce = { key: null, time: 0 };
+    }
+    undo() {
+        if (!this.undoStack.length)
+            return false;
+        const cur = JSON.stringify(this.doc);
+        const prev = this.undoStack.pop();
+        this.redoStack.push(cur);
+        this.doc = normalizeDoc(JSON.parse(prev));
+        if (this.slideIndex >= this.doc.slides.length)
+            this.slideIndex = this.doc.slides.length - 1;
+        this.sel = this.sel.filter((id) => !!this.findElement(id));
+        this.editingId = null;
+        this.persist();
+        this.emit('doc', { undo: true });
+        this.emit('sel');
+        return true;
+    }
+    redo() {
+        if (!this.redoStack.length)
+            return false;
+        const cur = JSON.stringify(this.doc);
+        const next = this.redoStack.pop();
+        this.undoStack.push(cur);
+        this.doc = normalizeDoc(JSON.parse(next));
+        if (this.slideIndex >= this.doc.slides.length)
+            this.slideIndex = this.doc.slides.length - 1;
+        this.sel = this.sel.filter((id) => !!this.findElement(id));
+        this.persist();
+        this.emit('doc', { redo: true });
+        this.emit('sel');
+        return true;
+    }
+    canUndo() { return this.undoStack.length > 0; }
+    canRedo() { return this.redoStack.length > 0; }
+    setDoc(doc, opts = {}) {
+        if (!opts.noHistory && this.doc) {
+            this.undoStack.push(JSON.stringify(this.doc));
+            this.redoStack.length = 0;
+        }
+        this.doc = normalizeDoc(doc);
+        this.slideIndex = Math.min(this.slideIndex, this.doc.slides.length - 1);
+        if (this.slideIndex < 0)
+            this.slideIndex = 0;
+        this.sel = [];
+        this.editingId = null;
+        this.persist();
+        this.emit('doc', { full: true });
+        this.emit('slide');
+        this.emit('sel');
+    }
+    setZoom(z) {
+        this.zoom = Math.max(0.15, Math.min(4, z));
+        this.emit('zoom');
+    }
+    setView(patch) {
+        Object.assign(this, patch);
+        this.saveUI();
+        this.emit('view');
+    }
+    saveUI() {
+        try {
+            this.storage.setItem(LS_UI, JSON.stringify({ showGrid: this.showGrid, snap: this.snap, showNotes: this.showNotes }));
+        }
+        catch { }
+    }
+}
+function createStore(opts = {}) {
+    return new EditorStore(opts);
+}
+
+function elementRect(el) {
+    if (el.type === 'group') {
+        const kids = el.children || [];
+        if (!kids.length || el.childrenCoordinates === 'relative') {
+            return { x: el.x, y: el.y, width: el.width || 0, height: el.height || 0 };
+        }
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const c of kids) {
+            const r = rotatedRect(c);
+            x0 = Math.min(x0, r.x0);
+            y0 = Math.min(y0, r.y0);
+            x1 = Math.max(x1, r.x1);
+            y1 = Math.max(y1, r.y1);
+        }
+        return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+    }
+    return { x: el.x, y: el.y, width: el.width, height: el.height };
+}
+function rotatedRect(el) {
+    const w = el.width || 0, hh = el.height || 0;
+    if (!el.rotation)
+        return { x0: el.x, y0: el.y, x1: el.x + w, y1: el.y + hh };
+    const cx = el.x + w / 2, cy = el.y + hh / 2;
+    const rad = (el.rotation * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+    const nw = w * cos + hh * sin, nh = w * sin + hh * cos;
+    return { x0: cx - nw / 2, y0: cy - nh / 2, x1: cx + nw / 2, y1: cy + nh / 2 };
+}
+function effectMargin(el) {
+    let left = 0, top = 0, right = 0, bottom = 0;
+    if (el.shadow) {
+        const s = el.shadow;
+        const rad = ((s.angle ?? 45) * Math.PI) / 180;
+        const dist = ptToPx(s.distance ?? 4);
+        const dx = dist * Math.cos(rad);
+        const dy = dist * Math.sin(rad);
+        const blur = ptToPx(s.blur ?? 8);
+        const EPS = 1e-6;
+        if (dx > EPS)
+            right += dx + blur;
+        else if (dx < -EPS)
+            left += -dx + blur;
+        else {
+            right += blur;
+            left += blur;
+        }
+        if (dy > EPS)
+            bottom += dy + blur;
+        else if (dy < -EPS)
+            top += -dy + blur;
+        else {
+            bottom += blur;
+            top += blur;
+        }
+    }
+    if (el.glow && el.glow.blur) {
+        const blur = ptToPx(el.glow.blur);
+        left = Math.max(left, blur);
+        right = Math.max(right, blur);
+        top = Math.max(top, blur);
+        bottom = Math.max(bottom, blur);
+    }
+    return { left, top, right, bottom };
+}
+
+function createActions(store) {
+    function cloneElement(el) {
+        const c = clone(el);
+        c.id = uid();
+        if (c.children)
+            c.children = c.children.map(cloneElement);
+        return c;
+    }
+    function addElement(el, opts = {}) {
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            if (opts.center) {
+                el.x = Math.round((doc.slideSize.width - el.width) / 2);
+                el.y = Math.round((doc.slideSize.height - el.height) / 2);
+            }
+            slide.elements.push(el);
+        });
+        store.setSel([el.id]);
+        return el;
+    }
+    function deleteSelected() {
+        const ids = store.sel.slice();
+        if (!ids.length)
+            return;
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            slide.elements = slide.elements.filter((e) => !ids.includes(e.id));
+        });
+        store.setSel([]);
+    }
+    function duplicateSelected() {
+        const els = store.selected();
+        if (!els.length)
+            return;
+        const copies = els.map((el) => {
+            const c = cloneElement(el);
+            c.x += 16;
+            c.y += 16;
+            return c;
+        });
+        store.update((doc) => {
+            doc.slides[store.slideIndex].elements.push(...copies);
+        });
+        store.setSel(copies.map((c) => c.id));
+    }
+    function copySelected(cut = false) {
+        const els = store.selected();
+        if (!els.length)
+            return;
+        store.clipboard = els.map((el) => clone(el));
+        if (cut)
+            deleteSelected();
+    }
+    function paste() {
+        const items = store.clipboard || [];
+        if (!items.length)
+            return;
+        const copies = items.map((el) => {
+            const c = cloneElement(el);
+            c.x += 20;
+            c.y += 20;
+            return c;
+        });
+        store.update((doc) => {
+            doc.slides[store.slideIndex].elements.push(...copies);
+        });
+        store.setSel(copies.map((c) => c.id));
+    }
+    function selectAll() {
+        store.setSel(store.elements().filter((e) => !e.locked).map((e) => e.id));
+    }
+    function nudge(dx, dy) {
+        const els = store.selected();
+        if (!els.length)
+            return;
+        store.update((doc) => {
+            for (const el of doc.slides[store.slideIndex].elements) {
+                if (!store.sel.includes(el.id) || el.locked)
+                    continue;
+                el.x += dx;
+                el.y += dy;
+                if (el.children)
+                    for (const c of el.children) {
+                        c.x += dx;
+                        c.y += dy;
+                    }
+            }
+        }, { coalesce: 'nudge' });
+    }
+    function zOrder(op) {
+        const ids = store.sel.slice();
+        if (!ids.length)
+            return;
+        store.update((doc) => {
+            const list = doc.slides[store.slideIndex].elements;
+            const picked = list.filter((e) => ids.includes(e.id));
+            const rest = list.filter((e) => !ids.includes(e.id));
+            if (op === 'front')
+                doc.slides[store.slideIndex].elements = rest.concat(picked);
+            else if (op === 'back')
+                doc.slides[store.slideIndex].elements = picked.concat(rest);
+            else {
+                const arr = list.slice();
+                const idxs = ids.map((id) => arr.findIndex((e) => e.id === id)).sort((a, b) => a - b);
+                if (op === 'forward') {
+                    for (let i = idxs.length - 1; i >= 0; i--) {
+                        const idx = idxs[i];
+                        if (idx < arr.length - 1 && !ids.includes(arr[idx + 1].id)) {
+                            [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+                        }
+                    }
+                }
+                else {
+                    for (let i = 0; i < idxs.length; i++) {
+                        const idx = idxs[i];
+                        if (idx > 0 && !ids.includes(arr[idx - 1].id)) {
+                            [arr[idx], arr[idx - 1]] = [arr[idx - 1], arr[idx]];
+                        }
+                    }
+                }
+                doc.slides[store.slideIndex].elements = arr;
+            }
+        });
+    }
+    function moveTo(el, x, y) {
+        const dx = x == null ? 0 : x - el.x;
+        const dy = y == null ? 0 : y - el.y;
+        el.x += dx;
+        el.y += dy;
+        if (el.children)
+            for (const c of el.children) {
+                c.x += dx;
+                c.y += dy;
+            }
+    }
+    function alignElements(op) {
+        const els = store.selected();
+        if (!els.length)
+            return;
+        const box = els.length > 1
+            ? unionBBox(els.map((e) => elementRect(e)))
+            : { x: 0, y: 0, width: store.doc.slideSize.width, height: store.doc.slideSize.height };
+        store.update((doc) => {
+            for (const el of doc.slides[store.slideIndex].elements) {
+                if (!store.sel.includes(el.id) || el.locked)
+                    continue;
+                const r = elementRect(el);
+                const dx = r.x - el.x, dy = r.y - el.y;
+                switch (op) {
+                    case 'left':
+                        moveTo(el, box.x - dx, null);
+                        break;
+                    case 'hcenter':
+                        moveTo(el, box.x + box.width / 2 - (r.width / 2) - dx, null);
+                        break;
+                    case 'right':
+                        moveTo(el, box.x + box.width - r.width - dx, null);
+                        break;
+                    case 'top':
+                        moveTo(el, null, box.y - dy);
+                        break;
+                    case 'vcenter':
+                        moveTo(el, null, box.y + box.height / 2 - r.height / 2 - dy);
+                        break;
+                    case 'bottom':
+                        moveTo(el, null, box.y + box.height - r.height - dy);
+                        break;
+                }
+            }
+        });
+    }
+    function distribute(op) {
+        const els = store.selected();
+        if (els.length < 3)
+            return;
+        store.update((doc) => {
+            const work = doc.slides[store.slideIndex].elements.filter((e) => store.sel.includes(e.id) && !e.locked);
+            const rects = work.map((e) => ({ el: e, r: elementRect(e) }));
+            if (op === 'h') {
+                rects.sort((a, b) => a.r.x - b.r.x);
+                const first = rects[0], last = rects[rects.length - 1];
+                const span = (last.r.x + last.r.width) - first.r.x;
+                const total = rects.reduce((s, it) => s + it.r.width, 0);
+                const gap = (span - total) / (rects.length - 1);
+                let cursor = first.r.x;
+                for (const it of rects) {
+                    moveTo(it.el, cursor - (it.r.x - it.el.x), null);
+                    cursor += it.r.width + gap;
+                }
+            }
+            else {
+                rects.sort((a, b) => a.r.y - b.r.y);
+                const first = rects[0], last = rects[rects.length - 1];
+                const span = (last.r.y + last.r.height) - first.r.y;
+                const total = rects.reduce((s, it) => s + it.r.height, 0);
+                const gap = (span - total) / (rects.length - 1);
+                let cursor = first.r.y;
+                for (const it of rects) {
+                    moveTo(it.el, null, cursor - (it.r.y - it.el.y));
+                    cursor += it.r.height + gap;
+                }
+            }
+        });
+    }
+    function groupSelection() {
+        const els = store.selected();
+        if (els.length < 2)
+            return;
+        const group = createGroupElement(els.map((el) => clone(el)));
+        const rect = unionBBox(els.map((e) => elementRect(e)));
+        group.x = rect.x;
+        group.y = rect.y;
+        group.width = rect.width;
+        group.height = rect.height;
+        const ids = els.map((e) => e.id);
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            const minIdx = Math.min(...ids.map((id) => slide.elements.findIndex((e) => e.id === id)));
+            slide.elements = slide.elements.filter((e) => !ids.includes(e.id));
+            slide.elements.splice(Math.min(minIdx, slide.elements.length), 0, group);
+        });
+        store.setSel([group.id]);
+    }
+    function ungroupSelection() {
+        const els = store.selected().filter((e) => e.type === 'group');
+        if (!els.length)
+            return;
+        const newIds = [];
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            const out = [];
+            for (const el of slide.elements) {
+                if (els.some((g) => g.id === el.id)) {
+                    for (const c of (el.children || [])) {
+                        const cc = cloneElement(c);
+                        newIds.push(cc.id);
+                        out.push(cc);
+                    }
+                }
+                else
+                    out.push(el);
+            }
+            slide.elements = out;
+        });
+        store.setSel(newIds);
+    }
+    function toggleLock(force) {
+        const els = store.selected();
+        if (!els.length)
+            return;
+        const val = force === undefined ? !els[0].locked : force;
+        store.update((doc) => {
+            for (const el of doc.slides[store.slideIndex].elements) {
+                if (store.sel.includes(el.id))
+                    el.locked = val;
+            }
+        });
+        if (val)
+            store.setSel([]);
+    }
+    function toggleHidden(force) {
+        const els = store.selected();
+        if (!els.length)
+            return;
+        const val = force === undefined ? !els[0].hidden : force;
+        store.update((doc) => {
+            for (const el of doc.slides[store.slideIndex].elements) {
+                if (store.sel.includes(el.id))
+                    el.hidden = val;
+            }
+        });
+    }
+    function addSlide(layoutId, opts = {}) {
+        const doc = store.doc;
+        const slide = buildSlideFromLayout(layoutId || 'titleBody', doc.theme, doc.slideSize);
+        store.update((d) => {
+            d.slides.splice(store.slideIndex + 1, 0, slide);
+        });
+        store.setSlide(store.slideIndex + 1);
+        store.setSel([]);
+        return slide;
+    }
+    function duplicateSlide(index = store.slideIndex) {
+        const copy = clone(store.doc.slides[index]);
+        copy.id = uid('s');
+        copy.elements = copy.elements.map(cloneElement);
+        store.update((d) => { d.slides.splice(index + 1, 0, copy); });
+        store.setSlide(index + 1);
+    }
+    function deleteSlide(index = store.slideIndex) {
+        if (store.doc.slides.length <= 1)
+            return;
+        store.update((d) => { d.slides.splice(index, 1); });
+        store.setSlide(Math.min(index, store.doc.slides.length - 1), { force: true });
+    }
+    function moveSlide(from, to) {
+        if (from === to || from < 0 || to < 0)
+            return;
+        store.update((d) => {
+            const [s] = d.slides.splice(from, 1);
+            d.slides.splice(to, 0, s);
+        });
+        store.setSlide(to, { force: true });
+    }
+    function toggleSlideHidden(index = store.slideIndex) {
+        const idx = Math.max(0, Math.min(index, store.doc.slides.length - 1));
+        store.update((d) => { d.slides[idx].hidden = !d.slides[idx].hidden; });
+    }
+    function applyLayout(layoutId) {
+        const elements = buildSlideFromLayout(layoutId, store.doc.theme, store.doc.slideSize).elements;
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            slide.elements = elements;
+        }, { history: true });
+        store.setSel([]);
+    }
+    function setBackground(bg) {
+        store.update((doc) => { doc.slides[store.slideIndex].background = bg; }, { coalesce: 'bg' });
+    }
+    function setSlideSize(size) {
+        store.update((doc) => { doc.slideSize = { ...size }; });
+    }
+    function applyTheme(themeId, all = false) {
+        const theme = getTheme(themeId);
+        store.update((doc) => {
+            doc.theme = themeId;
+            if (all) {
+                for (const s of doc.slides) {
+                    if (!s.background || (typeof s.background === 'object' && s.background.type === 'solid')) {
+                        s.background = { type: 'solid', color: theme.bg };
+                    }
+                }
+            }
+            else {
+                const s = doc.slides[store.slideIndex];
+                if (s && (!s.background || (typeof s.background === 'object' && s.background.type === 'solid'))) {
+                    s.background = { type: 'solid', color: theme.bg };
+                }
+            }
+        });
+    }
+    function setNotes(text) {
+        store.update((doc) => { doc.slides[store.slideIndex].notes = text; }, { coalesce: 'notes' });
+    }
+    function applyTextStyleSel(patch, opts = {}) {
+        store.update((doc) => {
+            for (const el of doc.slides[store.slideIndex].elements) {
+                if (!store.sel.includes(el.id))
+                    continue;
+                if (el.type !== 'text')
+                    continue;
+                applyTextStyle(el, patch);
+                if (el.children)
+                    for (const c of el.children)
+                        if (c.type === 'text')
+                            applyTextStyle(c, patch);
+            }
+        }, opts);
+    }
+    function setBackgroundImage(data) {
+        store.update((doc) => { doc.slides[store.slideIndex].background = { type: 'image', data }; }, { coalesce: 'bg' });
+    }
+    function findInDoc(doc, id) {
+        for (const el of doc.slides[store.slideIndex].elements) {
+            if (el.id === id)
+                return el;
+            if (el.children) {
+                const f = el.children.find((c) => c.id === id);
+                if (f)
+                    return f;
+            }
+        }
+        return null;
+    }
+    function setElementGeo(id, geo) {
+        store.update((doc) => {
+            const el = findInDoc(doc, id);
+            if (!el)
+                return;
+            if (geo.x != null || geo.y != null) {
+                const dx = (geo.x == null ? el.x : geo.x) - el.x;
+                const dy = (geo.y == null ? el.y : geo.y) - el.y;
+                el.x += dx;
+                el.y += dy;
+                if (el.children)
+                    for (const c of el.children) {
+                        c.x += dx;
+                        c.y += dy;
+                    }
+            }
+            if (geo.w != null) {
+                const w = Math.max(4, geo.w);
+                if (el.type === 'group') {
+                    const fx = w / el.width;
+                    for (const c of el.children || []) {
+                        c.x = el.x + (c.x - el.x) * fx;
+                        c.width = Math.max(4, c.width * fx);
+                    }
+                }
+                el.width = w;
+            }
+            if (geo.h != null) {
+                const hh = Math.max(4, geo.h);
+                if (el.type === 'group') {
+                    const fy = hh / el.height;
+                    for (const c of el.children || []) {
+                        c.y = el.y + (c.y - el.y) * fy;
+                        c.height = Math.max(4, c.height * fy);
+                    }
+                }
+                el.height = hh;
+            }
+            if (geo.rot != null)
+                el.rotation = ((geo.rot + 180) % 360) - 180;
+        }, { coalesce: 'insp' });
+    }
+    function resizeTable(el, rows, cols) {
+        store.update((doc) => {
+            const target = findInDoc(doc, el.id);
+            if (!target || target.type !== 'table')
+                return;
+            const curRows = target.rows.length;
+            target.rows[0] ? target.rows[0].cells.length : 0;
+            const cellTpl = () => ({ text: '', fill: null, align: null, valign: null });
+            for (let r = 0; r < curRows; r++) {
+                let cells = target.rows[r].cells;
+                while (cells.length < cols)
+                    cells.push(cellTpl());
+                if (cells.length > cols)
+                    cells.length = cols;
+            }
+            while (target.rows.length < rows) {
+                target.rows.push({ height: Math.round((el.height || 200) / Math.max(1, rows)), cells: new Array(cols).fill(0).map(cellTpl) });
+            }
+            if (target.rows.length > rows)
+                target.rows.length = rows;
+            const w = (el.width || 400) / Math.max(1, cols);
+            target.colWidths = new Array(cols).fill(Math.round(w));
+            target.rows.forEach((r) => { r.height = Math.round((el.height || 200) / Math.max(1, rows)); });
+            syncTableStyle(target);
+        });
+    }
+    function updateElement(id, patch, opts = {}) {
+        store.update((doc) => {
+            const el = findInDoc(doc, id);
+            if (el)
+                Object.assign(el, patch);
+        }, opts);
+    }
+    function setTransition(trans) {
+        store.update((doc) => {
+            doc.slides[store.slideIndex].transition = trans;
+        }, { coalesce: 'trans' });
+    }
+    function addAnimation(anim) {
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            if (!slide.animations)
+                slide.animations = [];
+            slide.animations.push({ ...anim });
+        });
+    }
+    function updateAnimation(index, patch) {
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            if (slide.animations && slide.animations[index]) {
+                Object.assign(slide.animations[index], patch);
+            }
+        });
+    }
+    function removeAnimation(index) {
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            if (slide.animations)
+                slide.animations.splice(index, 1);
+        });
+    }
+    function moveAnimation(index, dir) {
+        store.update((doc) => {
+            const slide = doc.slides[store.slideIndex];
+            if (!slide.animations)
+                return;
+            const ni = index + dir;
+            if (ni < 0 || ni >= slide.animations.length)
+                return;
+            const [a] = slide.animations.splice(index, 1);
+            slide.animations.splice(ni, 0, a);
+        });
+    }
+    return {
+        cloneElement, addElement, deleteSelected, duplicateSelected, copySelected, paste, selectAll, nudge,
+        zOrder, alignElements, distribute, groupSelection, ungroupSelection, toggleLock, toggleHidden,
+        addSlide, duplicateSlide, deleteSlide, moveSlide, toggleSlideHidden, applyLayout,
+        setBackground, setSlideSize, applyTheme, setNotes, applyTextStyleSel, setBackgroundImage,
+        setElementGeo, resizeTable, updateElement, findInDoc,
+        setTransition, addAnimation, updateAnimation, removeAnimation, moveAnimation
+    };
+}
+
+const DEFAULT_PALETTE = ['#1A73E8', '#4285F4', '#34A853', '#FBBC04', '#EA4335', '#8430CE'];
+function niceScale(min, max, ticks = 5) {
+    if (!isFinite(min) || !isFinite(max))
+        return { min: 0, max: 1, step: 0.2 };
+    if (min === max) {
+        max = min + 1;
+    }
+    const span = max - min;
+    const rawStep = span / ticks;
+    const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const norm = rawStep / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+    return {
+        min: Math.floor(min / step) * step,
+        max: Math.ceil(max / step) * step,
+        step
+    };
+}
+function fmtNum(v) {
+    if (Math.abs(v) >= 10000)
+        return (v / 1000).toFixed(0) + 'k';
+    if (Number.isInteger(v))
+        return String(v);
+    return String(Math.round(v * 100) / 100);
+}
+function renderChartSVG(el, opts = {}) {
+    const W = opts.width || el.width || 640;
+    const H = opts.height || el.height || 380;
+    const palette = opts.palette && opts.palette.length ? opts.palette : DEFAULT_PALETTE;
+    const [baseType, variant] = String(el.chartType || 'barChart').split('|');
+    const cats = (el.categories || []).map(String);
+    const series = (el.series || []).filter((s) => s);
+    const fontScale = Math.max(0.7, Math.min(1.4, H / 380));
+    const fs = Math.round(11 * fontScale);
+    const textColor = opts.textColor || '#5F6368';
+    const hasTitle = !!el.title;
+    const hasLegend = !!el.legend && series.length > 0 && baseType !== 'pieChart' && baseType !== 'doughnutChart';
+    const padTop = hasTitle ? Math.round(26 * fontScale) : 8;
+    const padBottom = hasLegend ? Math.round(24 * fontScale) : Math.round(20 * fontScale);
+    const parts = [];
+    if (hasTitle) {
+        parts.push(`<text x="${W / 2}" y="${Math.round(17 * fontScale)}" text-anchor="middle" font-size="${Math.round(13 * fontScale)}" font-weight="600" fill="${opts.titleColor || '#202124'}">${escapeHtml(el.title)}</text>`);
+    }
+    if (baseType === 'pieChart' || baseType === 'doughnutChart') {
+        const ser = series[0] || { values: [] };
+        const values = (ser.values || []).map((v) => Math.max(0, Number(v) || 0));
+        const total = values.reduce((a, b) => a + b, 0) || 1;
+        const cx = W / 2;
+        const cy = padTop + (H - padTop - padBottom) / 2;
+        const r = Math.max(10, Math.min(W, H - padTop - padBottom) / 2 - 12);
+        const inner = baseType === 'doughnutChart' ? r * ((el.holeSize ?? 50) / 100) : 0;
+        let start = -Math.PI / 2;
+        values.forEach((v, i) => {
+            const ang = (v / total) * Math.PI * 2;
+            const end = start + ang;
+            if (v <= 0) {
+                start = end;
+                return;
+            }
+            const color = (ser.pointColors && ser.pointColors[i])
+                || ((ser.color && i === 0 && !el.varyColors) ? ser.color : palette[i % palette.length]);
+            const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start);
+            const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end);
+            const large = ang > Math.PI ? 1 : 0;
+            if (inner > 0) {
+                const ix2 = cx + inner * Math.cos(end), iy2 = cy + inner * Math.sin(end);
+                const ix1 = cx + inner * Math.cos(start), iy1 = cy + inner * Math.sin(start);
+                parts.push(`<path d="M${x1} ${y1}A${r} ${r} 0 ${large} 1 ${x2} ${y2}L${ix2} ${iy2}A${inner} ${inner} 0 ${large} 0 ${ix1} ${iy1}Z" fill="${color}" stroke="#fff" stroke-width="1"/>`);
+            }
+            else {
+                parts.push(`<path d="M${cx} ${cy}L${x1} ${y1}A${r} ${r} 0 ${large} 1 ${x2} ${y2}Z" fill="${color}" stroke="#fff" stroke-width="1"/>`);
+            }
+            if (el.dataLabels) {
+                const mid = start + ang / 2;
+                const lr = inner > 0 ? (r + inner) / 2 : r * 0.68;
+                parts.push(`<text x="${cx + lr * Math.cos(mid)}" y="${cy + lr * Math.sin(mid)}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" fill="#fff">${escapeHtml(String(Math.round((v / total) * 100)) + '%')}</text>`);
+            }
+            start = end;
+        });
+        if (hasLegend) {
+            const items = cats.map((c, i) => {
+                const x = 6 + (i % Math.max(1, Math.floor(W / 90))) * 90;
+                const y = H - 8 - Math.floor(i / Math.max(1, Math.floor(W / 90))) * 16;
+                return `<rect x="${x}" y="${y - 8}" width="9" height="9" rx="2" fill="${palette[i % palette.length]}"/><text x="${x + 13}" y="${y}" font-size="${fs}" fill="${textColor}">${escapeHtml(c)}</text>`;
+            });
+            parts.push(...items);
+        }
+        return wrap(W, H, parts);
+    }
+    const isBar = baseType === 'barChart' && variant === 'bar';
+    const leftPad = Math.round(38 * fontScale);
+    const rightPad = 10;
+    const plotX = leftPad;
+    const plotY = padTop + 6;
+    const plotW = Math.max(20, W - leftPad - rightPad);
+    const plotH = Math.max(20, H - plotY - padBottom);
+    let min = Infinity, max = -Infinity;
+    const stacked = variant === 'stacked';
+    if (stacked) {
+        for (let i = 0; i < cats.length; i++) {
+            let sum = 0;
+            for (const s of series)
+                sum += Number(s.values?.[i]) || 0;
+            min = Math.min(min, Math.min(0, sum));
+            max = Math.max(max, sum);
+        }
+    }
+    else {
+        for (const s of series)
+            for (const v of s.values || []) {
+                const n = Number(v) || 0;
+                min = Math.min(min, n);
+                max = Math.max(max, n);
+            }
+    }
+    if (!isFinite(min)) {
+        min = 0;
+        max = 1;
+    }
+    if (min > 0)
+        min = 0;
+    const scale = niceScale(min, max, 5);
+    const vToY = (v) => plotY + plotH - ((v - scale.min) / (scale.max - scale.min)) * plotH;
+    const vToX = (v) => plotX + ((v - scale.min) / (scale.max - scale.min)) * plotW;
+    for (let v = scale.min; v <= scale.max + 1e-9; v += scale.step) {
+        const y = vToY(v);
+        parts.push(`<line x1="${plotX}" y1="${y}" x2="${plotX + plotW}" y2="${y}" stroke="#E8EAED" stroke-width="1"/>`);
+        parts.push(`<text x="${plotX - 6}" y="${y + fs / 3}" text-anchor="end" font-size="${fs}" fill="${textColor}">${fmtNum(Math.round(v * 100) / 100)}</text>`);
+    }
+    parts.push(`<line x1="${plotX}" y1="${plotY + plotH}" x2="${plotX + plotW}" y2="${plotY + plotH}" stroke="#BDC1C6" stroke-width="1"/>`);
+    const n = Math.max(1, cats.length);
+    const band = (isBar ? plotH : plotW) / n;
+    const colors = series.map((s, i) => s.color || palette[i % palette.length]);
+    if (isBar) {
+        cats.forEach((c, i) => {
+            const y0 = plotY + i * band;
+            const per = band * 0.62 / Math.max(1, series.length);
+            series.forEach((s, j) => {
+                const v = Number(s.values?.[i]) || 0;
+                const x = stacked ? plotX : vToX(0);
+                const w = Math.max(0, vToX(v) - vToX(0));
+                const yy = stacked ? y0 + band * 0.19 : y0 + band * 0.19 + per * j;
+                parts.push(`<rect x="${Math.min(x, x + w)}" y="${yy}" width="${Math.abs(w)}" height="${stacked ? band * 0.62 : per}" fill="${colors[j]}" rx="1"/>`);
+                if (el.dataLabels && v !== 0) {
+                    parts.push(`<text x="${x + w + 4}" y="${yy + (stacked ? band * 0.31 : per / 2) + fs / 3}" font-size="${fs}" fill="${textColor}">${fmtNum(v)}</text>`);
+                }
+            });
+            parts.push(`<text x="${plotX - 6}" y="${y0 + band / 2 + fs / 3}" text-anchor="end" font-size="${fs}" fill="${textColor}">${escapeHtml(c)}</text>`);
+        });
+    }
+    else {
+        cats.forEach((c, i) => {
+            const x = plotX + band * (i + 0.5);
+            parts.push(`<text x="${x}" y="${plotY + plotH + Math.round(14 * fontScale)}" text-anchor="middle" font-size="${fs}" fill="${textColor}">${escapeHtml(c)}</text>`);
+        });
+        if (baseType === 'barChart') {
+            cats.forEach((c, i) => {
+                const groupX = plotX + i * band;
+                const per = band * 0.7 / Math.max(1, series.length);
+                let accBase = 0;
+                series.forEach((s, j) => {
+                    const v = Number(s.values?.[i]) || 0;
+                    const y = vToY(stacked ? accBase + v : v);
+                    const h = Math.max(0, vToY(0) - y);
+                    const x = stacked ? groupX + band * 0.15 : groupX + band * 0.15 + per * j;
+                    parts.push(`<rect x="${x}" y="${y}" width="${stacked ? band * 0.7 : per}" height="${h}" fill="${colors[j]}" rx="1"/>`);
+                    if (el.dataLabels && v !== 0) {
+                        parts.push(`<text x="${x + (stacked ? band * 0.35 : per / 2)}" y="${y - 4}" text-anchor="middle" font-size="${fs}" fill="${textColor}">${fmtNum(v)}</text>`);
+                    }
+                    accBase += v;
+                });
+            });
+        }
+        else if (baseType === 'lineChart' || baseType === 'areaChart') {
+            const pts = series.map((s) => cats.map((_, i) => {
+                const x = plotX + band * (i + 0.5);
+                const y = vToY(Number(s.values?.[i]) || 0);
+                return [x, y];
+            }));
+            if (baseType === 'areaChart') {
+                pts.forEach((p, j) => {
+                    if (!p.length)
+                        return;
+                    const d = `M${p[0][0]} ${vToY(0)}` + p.map(([x, y]) => `L${x} ${y}`).join('') + `L${p[p.length - 1][0]} ${vToY(0)}Z`;
+                    parts.push(`<path d="${d}" fill="${colors[j]}" fill-opacity="0.28"/>`);
+                });
+            }
+            pts.forEach((p, j) => {
+                if (!p.length)
+                    return;
+                let d = p.length === 1 ? '' : `M${p[0][0]} ${p[0][1]}`;
+                if (el.smooth && p.length > 2) {
+                    for (let i = 1; i < p.length; i++) {
+                        const [x0, y0] = p[i - 1], [x1, y1] = p[i];
+                        const cx = (x0 + x1) / 2;
+                        d += `C${cx} ${y0} ${cx} ${y1} ${x1} ${y1}`;
+                    }
+                }
+                else {
+                    for (let i = 1; i < p.length; i++)
+                        d += `L${p[i][0]} ${p[i][1]}`;
+                }
+                parts.push(`<path d="${d}" fill="none" stroke="${colors[j]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
+                if (el.marker !== false) {
+                    p.forEach(([x, y]) => parts.push(`<circle cx="${x}" cy="${y}" r="3" fill="#fff" stroke="${colors[j]}" stroke-width="2"/>`));
+                }
+                if (el.dataLabels) {
+                    p.forEach(([x, y], i) => parts.push(`<text x="${x}" y="${y - 8}" text-anchor="middle" font-size="${fs}" fill="${textColor}">${fmtNum(Number(series[j].values?.[i]) || 0)}</text>`));
+                }
+            });
+        }
+        else if (baseType === 'scatterChart') {
+            series.forEach((s, j) => {
+                (s.values || []).forEach((v, i) => {
+                    const x = plotX + band * (i + 0.5);
+                    const y = vToY(Number(v) || 0);
+                    parts.push(`<circle cx="${x}" cy="${y}" r="4" fill="${colors[j]}" fill-opacity="0.8"/>`);
+                    if (el.dataLabels)
+                        parts.push(`<text x="${x}" y="${y - 8}" text-anchor="middle" font-size="${fs}" fill="${textColor}">${fmtNum(Number(v) || 0)}</text>`);
+                });
+            });
+        }
+        else if (baseType === 'radarChart') {
+            const cx = plotX + plotW / 2, cy = plotY + plotH / 2;
+            const rad = Math.min(plotW, plotH) / 2 - 6;
+            const ang = (i) => -Math.PI / 2 + (i / n) * Math.PI * 2;
+            for (let ring = 1; ring <= 4; ring++) {
+                const rr = (rad * ring) / 4;
+                const p = cats.map((_, i) => `${cx + rr * Math.cos(ang(i))},${cy + rr * Math.sin(ang(i))}`).join(' ');
+                parts.push(`<polygon points="${p}" fill="none" stroke="#E8EAED"/>`);
+            }
+            cats.forEach((c, i) => {
+                const x = cx + rad * Math.cos(ang(i)), y = cy + rad * Math.sin(ang(i));
+                parts.push(`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#E8EAED"/>`);
+                parts.push(`<text x="${cx + (rad + 12) * Math.cos(ang(i))}" y="${cy + (rad + 12) * Math.sin(ang(i)) + fs / 3}" text-anchor="middle" font-size="${fs}" fill="${textColor}">${escapeHtml(c)}</text>`);
+            });
+            series.forEach((s, j) => {
+                const p = cats.map((_, i) => {
+                    const v = Number(s.values?.[i]) || 0;
+                    const rr = rad * Math.max(0, Math.min(1, (v - scale.min) / (scale.max - scale.min || 1)));
+                    return `${cx + rr * Math.cos(ang(i))},${cy + rr * Math.sin(ang(i))}`;
+                }).join(' ');
+                parts.push(`<polygon points="${p}" fill="${colors[j]}" fill-opacity="0.22" stroke="${colors[j]}" stroke-width="2"/>`);
+            });
+        }
+    }
+    if (hasLegend) {
+        let lx = plotX;
+        const ly = H - Math.round(8 * fontScale);
+        series.forEach((s, j) => {
+            const name = s.name || `系列 ${j + 1}`;
+            const w = name.length * fs * 0.62 + 26;
+            if (lx + w > W - 4)
+                return;
+            parts.push(`<rect x="${lx}" y="${ly - fs}" width="9" height="9" rx="2" fill="${colors[j]}"/>`);
+            parts.push(`<text x="${lx + 13}" y="${ly - fs / 4}" font-size="${fs}" fill="${textColor}">${escapeHtml(name)}</text>`);
+            lx += w;
+        });
+    }
+    return wrap(W, H, parts);
+}
+function wrap(W, H, parts) {
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
 }
 
 function parseComments(xml, authors) {
@@ -23057,5 +25850,5 @@ function extractSlideTiming(slideContent) {
     return { advanceTime, animations };
 }
 
-export { PPTXComposer, PPTXShapeUtils, bboxOf, pptxToHtml as default, editPptx, escapeHtml, extOfDataUrl, hexToRgb, inToPx, jsonToPptx, luminance, mixHex, normalizeColor, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, rgbToHex, rotatePoint, shade, stripDataUrl, unionBBox, withAlpha };
+export { ANIM_CLASSES, ANIM_DIRECTIONS, ANIM_TRIGGERS, ANIM_TYPES, CHART_TYPES, EditorStore, FONT_LIST, FONT_SIZES, LAYOUTS, PPTXComposer, PPTXShapeUtils, SHAPES, SLIDE_SIZES, THEMES, TRANSITIONS, TRANSITION_SPEEDS, applyTextStyle, bboxOf, buildSlideFromLayout, buildThemeXml, clamp, clone, createActions, createAudioElement, createChartElement, createDoc, createGroupElement, createImageElement, createParagraph, createShapeElement, createSlide, createStarterDoc, createStore, createTableElement, createTextElement, createVideoElement, pptxToHtml as default, defaultMediaPoster, docFromPptx, docToPptx, editPptx, effectMargin, elementRect, elementToPptx, escapeHtml, extOfDataUrl, getTheme, hexToRgb, inToPx, jsonToPptx, layoutElements, luminance, mixHex, normalizeBulletIn, normalizeBulletOut, normalizeColor, normalizeDoc, normalizeElement, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, renderChartSVG, rgbToHex, rotatePoint, rotatedRect, round, setActiveTheme, shade, shapeStyle, slideToPptx, stripDataUrl, syncTableStyle, uid, unionBBox, withAlpha };
 //# sourceMappingURL=ppt-parser.browser.js.map

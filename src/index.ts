@@ -1229,5 +1229,13 @@ export * from './utils/color';
 export * from './utils/geometry';
 export * from './utils/units';
 export * from './utils/format';
+export * from './utils/misc';
 export * from './types/pptx-document';
 export * from './compatibility-types';
+
+// Headless 编辑器内核（与 UI 无关：文档模型 + PPTX 双向转换 + 状态/操作 + 图表 + 元素几何）
+export * from './editor/model';
+export { createStore, EditorStore, normalizeDoc, normalizeElement } from './editor/store';
+export { createActions } from './editor/actions';
+export { renderChartSVG } from './editor/charts';
+export { elementRect, rotatedRect, effectMargin } from './editor/geometry';

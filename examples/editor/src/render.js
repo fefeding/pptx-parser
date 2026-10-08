@@ -2,7 +2,9 @@
  * 幻灯片渲染：内部模型 → DOM（画布 / 缩略图 / 演示共用）
  */
 import { h, ptToPx, normalizeColor, withAlpha, hexToRgb, clamp } from './util.js';
-import { presetShapePath } from '../../../dist/ppt-parser.browser.js';
+import { presetShapePath, elementRect, rotatedRect, effectMargin } from '../../../dist/ppt-parser.browser.js';
+// 元素级几何已下沉到库（src/editor/geometry.ts），此处 re-export 以兼容既有 import
+export { elementRect, rotatedRect, effectMargin };
 import { renderChartSVG } from './charts.js';
 import { getTheme } from './model.js';
 // 预览端（examples/index.html）使用的同一套 ECharts 图表渲染器：option 构建逻辑（含 3D）与预览完全一致
@@ -24,59 +26,6 @@ function mediaSrc(value, ext, fallbackMime) {
   if (/^data:/i.test(value) || /^https?:/i.test(value)) return value;
   const mime = fallbackMime || (ext && MEDIA_MIME[String(ext).toLowerCase().replace(/^\./, '')]) || 'application/octet-stream';
   return `data:${mime};base64,${value}`;
-}
-
-/** 元素的实际矩形（组合：page 坐标取子元素并集；relative 坐标直接用声明矩形） */
-export function elementRect(el) {
-  if (el.type === 'group') {
-    const kids = el.children || [];
-    // 子元素为组合相对坐标时，其并集原点随内容浮动，不能代表组合位置，用声明的 x/y/w/h
-    if (!kids.length || el.childrenCoordinates === 'relative') {
-      return { x: el.x, y: el.y, width: el.width || 0, height: el.height || 0 };
-    }
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (const c of kids) {
-      const r = rotatedRect(c);
-      x0 = Math.min(x0, r.x0); y0 = Math.min(y0, r.y0);
-      x1 = Math.max(x1, r.x1); y1 = Math.max(y1, r.y1);
-    }
-    return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
-  }
-  return { x: el.x, y: el.y, width: el.width, height: el.height };
-}
-
-/** 为包含阴影/发光等效果的元素计算选择框外边距（左右/上下，单位 px） */
-export function effectMargin(el) {
-  let left = 0, top = 0, right = 0, bottom = 0;
-  if (el.shadow) {
-    const s = el.shadow;
-    const rad = ((s.angle ?? 45) * Math.PI) / 180;
-    const dist = ptToPx(s.distance ?? 4);
-    const dx = dist * Math.cos(rad);
-    const dy = dist * Math.sin(rad);
-    const blur = ptToPx(s.blur ?? 8);
-    const EPS = 1e-6;
-    if (dx > EPS) right += dx + blur; else if (dx < -EPS) left += -dx + blur;
-    else { right += blur; left += blur; }
-    if (dy > EPS) bottom += dy + blur; else if (dy < -EPS) top += -dy + blur;
-    else { bottom += blur; top += blur; }
-  }
-  if (el.glow && el.glow.blur) {
-    const blur = ptToPx(el.glow.blur);
-    left = Math.max(left, blur); right = Math.max(right, blur);
-    top = Math.max(top, blur); bottom = Math.max(bottom, blur);
-  }
-  return { left, top, right, bottom };
-}
-
-export function rotatedRect(el) {
-  const w = el.width || 0, hh = el.height || 0;
-  if (!el.rotation) return { x0: el.x, y0: el.y, x1: el.x + w, y1: el.y + hh };
-  const cx = el.x + w / 2, cy = el.y + hh / 2;
-  const rad = (el.rotation * Math.PI) / 180;
-  const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
-  const nw = w * cos + hh * sin, nh = w * sin + hh * cos;
-  return { x0: cx - nw / 2, y0: cy - nh / 2, x1: cx + nw / 2, y1: cy + nh / 2 };
 }
 
 /* ======================= 背景 ======================= */
