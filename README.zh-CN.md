@@ -183,6 +183,44 @@ const updated = await editor.save();
 
 生成的文件可经 `pptxToJson` / `pptxToHtml` 往返解析。
 
+## Headless 编辑器内核
+
+除命令式封装 `editPptx` 外，库内置一套**与 UI 完全无关**的编辑器内核（`src/editor`，已随包发布）。它把文档模型、PPTX 双向转换、编辑操作、图表渲染与元素几何从具体渲染层下沉到库本身，因此任意前端框架或自有 UI 都能直接复用同一套业务逻辑，无需重写。
+
+```javascript
+import {
+  createStore, createActions, docFromPptx, docToPptx, renderChartSVG,
+  elementRect, rotatedRect, effectMargin
+} from '@fefeding/ppt-parser';
+
+// 1) 创建无 UI 的文档状态（可选持久化：传入实现 getItem/setItem 的 storage 适配）
+const store = createStore({ storage: localStorage });
+const sem = await pptxToJson(fileData, { mode: 'semantic' });
+store.setDoc(docFromPptx(sem.document));
+
+// 2) 创建编辑操作（工厂函数，不依赖单例，便于多实例/测试）
+const actions = createActions(store);
+actions.addSlide({ elements: [/* 与上文一致的元素格式 */] });
+actions.alignElements('hcenter');
+actions.updateElement(id, { fill: { color: '#4f46e5' } });
+
+// 3) 导出为 PPTX
+const pptxDoc = docToPptx(store.doc);
+const data = await jsonToPptx(pptxDoc);
+
+// 4) 图表与几何（纯函数，宿主自行决定如何挂载）
+const svg = renderChartSVG(chartElement); // 返回 SVG 字符串
+const rect = elementRect(element);        // 元素实际矩形（组合取子元素并集）
+```
+
+核心 API：
+
+- `createStore(options?)` → `EditorStore`：持有 `doc`，提供 `setDoc / getDoc / update`，并可选持久化（传入 `storage` 适配 `getItem/setItem`）。
+- `createActions(store)` → `EditorActions`：返回 `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`。
+- `docFromPptx(semanticDoc)` / `docToPptx(doc)`：编辑器文档 ↔ 标准 `PptxDocument` 的双向转换。
+- `renderChartSVG(chartEl)`：把图表元素渲染为 SVG 字符串（宿主决定如何挂载到 DOM）。
+- `elementRect / rotatedRect / effectMargin`：元素几何计算（组合并集矩形、旋转包围盒、阴影/发光外边距）。
+
 ## 支持的元素
 
 - **文本** — 多段落、run 内字号/颜色/粗体/斜体/下划线/字体、超链接（外部 URL 或 `#N` 跳转到第 N 页）、项目符号与编号列表、行距、缩进、文本框内边距、竖排文字方向、分栏、自动适配、艺术字变形、run 级描边与阴影、动态字段（页码/日期）

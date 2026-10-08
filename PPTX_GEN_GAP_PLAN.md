@@ -184,7 +184,7 @@
 ### 剩余已知限制（解析端，高价值 round-trip）
 
 - OMML 公式解析：`mc:AlternateContent` 仅取 `mc:Fallback` 渲染成图，不解析 `m:oMath`
-- 组合图 multi-plot：`extractChart` 首个命中即 `break`，多图表区只取第一个
+- 组合图 multi-plot（**解析端 ✅ 已修复**，2026-10）：`extractChart` 现遍历 `plotArea` 下全部 `c:*Chart` 节点并写入 `PptxChartElement.plots`，多绘图区不再丢数据；主 plot 属性仍映射到顶层 `chartType/series` 保持兼容。生成端 `jsonToPptx` 按 `plots` 写出多个图表节点（组合图完整 round-trip 输出）待补充。
 - `a:prstTxWarp` 艺术字、`a:path` 径向渐变、背景 `bgRef` 主题引用、切换 `p:snd`、`a:grpFill` 父级继承、备注进 HTML
 - SmartArt 布局引擎（T16 已知限制）
 

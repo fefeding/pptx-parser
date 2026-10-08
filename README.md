@@ -187,6 +187,44 @@ interface PptxParserOptions {
 }
 ```
 
+## Headless Editor Core
+
+Beyond the command-style `editPptx` wrapper, the library ships a **UI-agnostic editor core** (`src/editor`, included in the package). It lifts the document model, PPTX round-trip, edit operations, chart rendering and element geometry out of any specific renderer, so any frontend framework or custom UI can reuse the same business logic without rewriting it.
+
+```javascript
+import {
+  createStore, createActions, docFromPptx, docToPptx, renderChartSVG,
+  elementRect, rotatedRect, effectMargin
+} from '@fefeding/ppt-parser';
+
+// 1) Create a UI-free document state (optional persistence via a getItem/setItem storage adapter)
+const store = createStore({ storage: localStorage });
+const sem = await pptxToJson(fileData, { mode: 'semantic' });
+store.setDoc(docFromPptx(sem.document));
+
+// 2) Create edit operations (factory, no singleton — easy multi-instance/testing)
+const actions = createActions(store);
+actions.addSlide({ elements: [/* element format as above */] });
+actions.alignElements('hcenter');
+actions.updateElement(id, { fill: { color: '#4f46e5' } });
+
+// 3) Export back to PPTX
+const pptxDoc = docToPptx(store.doc);
+const data = await jsonToPptx(pptxDoc);
+
+// 4) Chart & geometry (pure functions — host decides how to mount)
+const svg = renderChartSVG(chartElement); // returns an SVG string
+const rect = elementRect(element);        // actual rect (group = union of children)
+```
+
+Core API:
+
+- `createStore(options?)` → `EditorStore`: holds `doc`, exposes `setDoc / getDoc / update`, with optional persistence (pass a `storage` implementing `getItem/setItem`).
+- `createActions(store)` → `EditorActions`: returns `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`.
+- `docFromPptx(semanticDoc)` / `docToPptx(doc)`: bidirectional conversion between the editor document and the standard `PptxDocument`.
+- `renderChartSVG(chartEl)`: renders a chart element to an SVG string (host decides how to mount it).
+- `elementRect / rotatedRect / effectMargin`: element geometry helpers (group union rect, rotated bounding box, shadow/glow margin).
+
 ## Supported Elements
 
 - **Text** — Multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks (external URL or `#N` to jump to slide N), bullet & numbered lists, line spacing, indentation, text box inset, vertical text direction, multi-column, autofit, WordArt transforms, run-level outline & shadow, dynamic fields (slide number, datetime)

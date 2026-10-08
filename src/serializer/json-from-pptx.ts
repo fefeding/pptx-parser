@@ -28,6 +28,7 @@ import type {
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
     PptxDiagramElement, PptxDiagramShape, PptxRawElement, PptxAnimation, PptxGroupElement, TextAlign, VAlign, ChartGrouping,
+    PptxChartType, PptxChartPlot,
     PptxFillImage, PptxTheme, PptxThemeColorScheme, PptxCustomGeometry, PptxGeometryPath, PptxGeometryCommand, PptxGradientFill
 } from '../types/pptx-document';
 
@@ -1093,7 +1094,7 @@ function readGradientFill(gradFill: any, themeMap: Record<string, string> = {}):
 }
 
 /** 从 c:chartSpace 反向提取图表语义 */
-function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Partial<PptxChartElement> | undefined {
+export function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Partial<PptxChartElement> | undefined {
     try {
         const chartSpace = chartXml && chartXml['c:chartSpace'];
         const chart = chartSpace && chartSpace['c:chart'];
@@ -1118,88 +1119,143 @@ function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Par
             }
         }
 
-        // 图表类型：取 plotArea 下首个图表节点（组合图取第一个 plot）
-        let chartNode: any = null;
-        let chartType = 'barChart';
+        // 图表类型：收集 plotArea 下全部图表节点（组合图支持多 plot，原实现仅取首个）
+        const plotEntries: { type: string; node: any }[] = [];
         for (const ct of CHART_PLOT_TYPES) {
-            const node = asArray(plotArea[ct])[0];
-            if (node) { chartNode = node; chartType = ct.replace('c:', ''); break; }
-        }
-        if (!chartNode) return undefined;
-
-        const isScatter = chartType === 'scatterChart';
-        const isBubble = chartType === 'bubbleChart';
-        const isStock = chartType === 'stockChart';
-
-        // 类别（位于首个 series 的 c:cat 下）
-        const firstSer = asArray(chartNode['c:ser'])[0];
-        const catNode = firstSer && firstSer['c:cat'];
-        let categories: string[] = [];
-        if (catNode) {
-            const strCache = catNode['c:strRef'] && catNode['c:strRef']['c:strCache'];
-            const pts = strCache ? asArray(strCache['c:pt']) : [];
-            categories = pts.map((p: any) => (p && p['c:v'] !== undefined ? String(p['c:v']) : '')).filter(Boolean);
-        }
-
-        // 系列
-        const series: PptxChartSeries[] = [];
-        for (const ser of asArray(chartNode['c:ser'])) {
-            const nameNode = ser['c:tx'] && ser['c:tx']['c:strRef'] && ser['c:tx']['c:strRef']['c:strCache'];
-            const namePts = nameNode ? asArray(nameNode['c:pt']) : [];
-            const name = namePts.length && namePts[0]['c:v'] ? String(namePts[0]['c:v']) : undefined;
-
-            const s: PptxChartSeries = {};
-            if (name) s.name = name;
-            if (isScatter || isBubble) {
-                // 散点/气泡：优先 c:xVal；个别导出器把 X 放在 c:cat（类别）下，做回退
-                let xv = numCacheValues(ser['c:xVal']);
-                if (!xv.length) xv = numCacheValues(ser['c:cat']);
-                s.x = xv;
-                s.y = numCacheValues(ser['c:yVal']);
-                if (isBubble) {
-                    // 气泡图：values 复用为气泡大小（与生成端一致）
-                    s.values = numCacheValues(ser['c:bubbleSize']);
-                }
-            } else if (isStock) {
-                s.open = numCacheValues(ser['c:openVal']);
-                s.high = numCacheValues(ser['c:highVal']);
-                s.low = numCacheValues(ser['c:lowVal']);
-                s.close = numCacheValues(ser['c:closeVal']);
-            } else {
-                s.values = numCacheValues(ser['c:val']);
+            for (const node of asArray(plotArea[ct])) {
+                if (node) plotEntries.push({ type: ct.replace('c:', ''), node });
             }
-            // 系列填充色：c:ser/c:spPr/a:solidFill（srgb 或 schemeClr，schemeClr 用主题色映射解析）
-            const serSpPr = ser['c:spPr'];
-            const serColor = serSpPr ? spColor(serSpPr['a:solidFill'], themeMap) : undefined;
-            if (serColor) s.color = serColor;
-            // 逐点填充（c:dPt）：饼/环等 varyColors 场景每点可带独立 spPr；
-            // solidFill 取色，gradFill 保留完整渐变（3D 饼/环多为 accent1 径向渐变，
-            // 压成纯色会让渲染端退回默认调色板导致整图配色错位）
-            const dPts = asArray(ser['c:dPt']);
-            if (dPts.length) {
-                const nPts = Math.max(s.values ? s.values.length : 0, ...(dPts.map((d: any) => {
-                    const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
-                    return idx + 1;
-                })));
-                if (nPts > 0) {
-                    const pc: (string | PptxGradientFill | undefined)[] = new Array(nPts).fill(undefined);
-                    for (const d of dPts) {
-                        const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
-                        if (idx < 0) continue;
-                        const dSpPr = d['c:spPr'];
-                        if (!dSpPr) continue;
-                        const grad = readGradientFill(dSpPr['a:gradFill'], themeMap);
-                        if (grad) { pc[idx] = grad; continue; }
-                        const solid = spColor(dSpPr['a:solidFill'], themeMap);
-                        if (solid) pc[idx] = solid;
+        }
+        if (!plotEntries.length) return undefined;
+
+        /** 提取单个 plot（组合图每个绘图区独立解析为一条 PptxChartPlot） */
+        const extractOnePlot = (plotNode: any, plotType: string): PptxChartPlot => {
+            const isScatter = plotType === 'scatterChart';
+            const isBubble = plotType === 'bubbleChart';
+            const isStock = plotType === 'stockChart';
+
+            // 类别（位于首个 series 的 c:cat 下）
+            const firstSer = asArray(plotNode['c:ser'])[0];
+            const catNode = firstSer && firstSer['c:cat'];
+            let categories: string[] = [];
+            if (catNode) {
+                const strCache = catNode['c:strRef'] && catNode['c:strRef']['c:strCache'];
+                const pts = strCache ? asArray(strCache['c:pt']) : [];
+                categories = pts.map((p: any) => (p && p['c:v'] !== undefined ? String(p['c:v']) : '')).filter(Boolean);
+            }
+
+            // 系列
+            const series: PptxChartSeries[] = [];
+            for (const ser of asArray(plotNode['c:ser'])) {
+                const nameNode = ser['c:tx'] && ser['c:tx']['c:strRef'] && ser['c:tx']['c:strRef']['c:strCache'];
+                const namePts = nameNode ? asArray(nameNode['c:pt']) : [];
+                const name = namePts.length && namePts[0]['c:v'] ? String(namePts[0]['c:v']) : undefined;
+
+                const s: PptxChartSeries = {};
+                if (name) s.name = name;
+                if (isScatter || isBubble) {
+                    // 散点/气泡：优先 c:xVal；个别导出器把 X 放在 c:cat（类别）下，做回退
+                    let xv = numCacheValues(ser['c:xVal']);
+                    if (!xv.length) xv = numCacheValues(ser['c:cat']);
+                    s.x = xv;
+                    s.y = numCacheValues(ser['c:yVal']);
+                    if (isBubble) {
+                        // 气泡图：values 复用为气泡大小（与生成端一致）
+                        s.values = numCacheValues(ser['c:bubbleSize']);
                     }
-                    s.pointColors = pc;
+                } else if (isStock) {
+                    s.open = numCacheValues(ser['c:openVal']);
+                    s.high = numCacheValues(ser['c:highVal']);
+                    s.low = numCacheValues(ser['c:lowVal']);
+                    s.close = numCacheValues(ser['c:closeVal']);
+                } else {
+                    s.values = numCacheValues(ser['c:val']);
                 }
+                // 系列填充色：c:ser/c:spPr/a:solidFill（srgb 或 schemeClr，schemeClr 用主题色映射解析）
+                const serSpPr = ser['c:spPr'];
+                const serColor = serSpPr ? spColor(serSpPr['a:solidFill'], themeMap) : undefined;
+                if (serColor) s.color = serColor;
+                // 逐点填充（c:dPt）：饼/环等 varyColors 场景每点可带独立 spPr；
+                // solidFill 取色，gradFill 保留完整渐变（3D 饼/环多为 accent1 径向渐变，
+                // 压成纯色会让渲染端退回默认调色板导致整图配色错位）
+                const dPts = asArray(ser['c:dPt']);
+                if (dPts.length) {
+                    const nPts = Math.max(s.values ? s.values.length : 0, ...(dPts.map((d: any) => {
+                        const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
+                        return idx + 1;
+                    })));
+                    if (nPts > 0) {
+                        const pc: (string | PptxGradientFill | undefined)[] = new Array(nPts).fill(undefined);
+                        for (const d of dPts) {
+                            const idx = d && d['c:idx'] && d['c:idx'].attrs ? Number(d['c:idx'].attrs.val) : -1;
+                            if (idx < 0) continue;
+                            const dSpPr = d['c:spPr'];
+                            if (!dSpPr) continue;
+                            const grad = readGradientFill(dSpPr['a:gradFill'], themeMap);
+                            if (grad) { pc[idx] = grad; continue; }
+                            const solid = spColor(dSpPr['a:solidFill'], themeMap);
+                            if (solid) pc[idx] = solid;
+                        }
+                        s.pointColors = pc;
+                    }
+                }
+                series.push(s);
             }
-            series.push(s);
-        }
 
-        // 标题
+            const attrOf = (parent: any, tag: string): string | undefined => {
+                const n = parent && parent[tag];
+                return n && n.attrs ? n.attrs.val : undefined;
+            };
+
+            const plot: PptxChartPlot = { chartType: plotType as PptxChartType, series };
+            if (categories.length) plot.categories = categories;
+            const grouping = attrOf(plotNode, 'c:grouping');
+            if (grouping) plot.grouping = grouping as ChartGrouping;
+            const barDir = attrOf(plotNode, 'c:barDir');
+            if (barDir === 'bar' || barDir === 'col') plot.barDir = barDir;
+            const varyColors = attrOf(plotNode, 'c:varyColors');
+            if (varyColors !== undefined) plot.varyColors = varyColors === '1';
+            const holeSize = attrOf(plotNode, 'c:holeSize');
+            if (holeSize !== undefined && holeSize !== '') plot.holeSize = Number(holeSize);
+            const ofPieType = attrOf(plotNode, 'c:ofPieType');
+            if (ofPieType === 'pie' || ofPieType === 'bar') plot.ofPieType = ofPieType;
+            const smoothVal = attrOf(firstSer, 'c:smooth');
+            if (smoothVal !== undefined) plot.smooth = smoothVal !== '0';
+            const markerNode = firstSer && firstSer['c:marker'];
+            if (markerNode) {
+                const symbol = attrOf(markerNode, 'c:symbol');
+                plot.marker = symbol !== 'none';
+            }
+            if (isBubble) {
+                const b3d = attrOf(plotNode, 'c:bubble3D');
+                const negB = attrOf(plotNode, 'c:showNegBubbles');
+                const scale = attrOf(plotNode, 'c:bubbleScale');
+                if (b3d !== undefined) plot.bubble3D = b3d === '1';
+                if (negB !== undefined) plot.showNegBubbles = negB === '1';
+                if (scale !== undefined) plot.bubbleScale = Number(scale);
+            }
+            const wireframe = attrOf(plotNode, 'c:wireframe');
+            if (wireframe !== undefined) plot.wireframe = wireframe === '1';
+            const v3dNode = plotNode['c:view3D'];
+            if (v3dNode && v3dNode.attrs) {
+                const va = v3dNode.attrs;
+                const v3d: any = {};
+                if (va.rotX !== undefined) v3d.rotX = parseFloat(va.rotX);
+                if (va.rotY !== undefined) v3d.rotY = parseFloat(va.rotY);
+                if (va.depthPercent !== undefined) v3d.depthPercent = parseFloat(va.depthPercent);
+                if (va.rAngAx !== undefined) v3d.rAngAx = va.rAngAx === '1';
+                if (Object.keys(v3d).length) plot.view3D = v3d;
+            }
+            const dLbls = plotNode['c:dLbls'];
+            const numFmt = dLbls && dLbls['c:numFmt'] && dLbls['c:numFmt'].attrs && dLbls['c:numFmt'].attrs.formatCode;
+            if (numFmt) plot.numberFormat = String(numFmt);
+            return plot;
+        };
+
+        const plots = plotEntries.map((e) => extractOnePlot(e.node, e.type));
+        const main = plots[0];
+
+        // 标题（chart 级，多 plot 共享）
         let title: string | undefined;
         const titleRich = chart['c:title'] && chart['c:title']['c:tx'] && chart['c:title']['c:tx']['c:rich'];
         if (titleRich) {
@@ -1216,74 +1272,33 @@ function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Par
         const legendPosition = legendNode && legendNode['c:legendPos'] && legendNode['c:legendPos'].attrs
             ? String(legendNode['c:legendPos'].attrs.val)
             : undefined;
-        const out: Partial<PptxChartElement> = { chartType, series };
+
+        const out: Partial<PptxChartElement> = { chartType: main.chartType, series: main.series, plots };
         if (spaceFill !== undefined) out.spaceFill = spaceFill;
-        if (categories.length) out.categories = categories;
+        if (main.categories && main.categories.length) out.categories = main.categories;
         if (title) out.title = title.trim();
         out.legend = legend;
         if (legendPosition) out.legendPosition = legendPosition;
 
-        // 读取子节点属性值的快捷方式
-        const attrOf = (parent: any, tag: string): string | undefined => {
-            const n = parent && parent[tag];
-            return n && n.attrs ? n.attrs.val : undefined;
-        };
+        // 主 plot 的类型特定属性映射到 chart 级（向后兼容单 plot 场景）
+        if (main.grouping) out.grouping = main.grouping;
+        if (main.barDir) out.barDir = main.barDir;
+        if (main.varyColors !== undefined) out.varyColors = main.varyColors;
+        if (main.holeSize !== undefined) out.holeSize = main.holeSize;
+        if (main.ofPieType) out.ofPieType = main.ofPieType;
+        if (main.smooth !== undefined) out.smooth = main.smooth;
+        if (main.marker !== undefined) out.marker = main.marker;
+        if (main.bubble3D !== undefined) out.bubble3D = main.bubble3D;
+        if (main.showNegBubbles !== undefined) out.showNegBubbles = main.showNegBubbles;
+        if (main.bubbleScale !== undefined) out.bubbleScale = main.bubbleScale;
+        if (main.wireframe !== undefined) out.wireframe = main.wireframe;
+        if (main.view3D) out.view3D = main.view3D;
 
-        // 分组/堆叠与方向
-        const grouping = attrOf(chartNode, 'c:grouping');
-        if (grouping) out.grouping = grouping as ChartGrouping;
-        const barDir = attrOf(chartNode, 'c:barDir');
-        if (barDir === 'bar' || barDir === 'col') out.barDir = barDir;
-        const varyColors = attrOf(chartNode, 'c:varyColors');
-        if (varyColors !== undefined) out.varyColors = varyColors === '1';
-
-        // 甜甜圈内径 / 子母饼图类型
-        const holeSize = attrOf(chartNode, 'c:holeSize');
-        if (holeSize !== undefined && holeSize !== '') out.holeSize = Number(holeSize);
-        const ofPieType = attrOf(chartNode, 'c:ofPieType');
-        if (ofPieType === 'pie' || ofPieType === 'bar') out.ofPieType = ofPieType;
-
-        // 平滑线 / 数据标记（取自首个系列）
-        const smoothVal = attrOf(firstSer, 'c:smooth');
-        if (smoothVal !== undefined) out.smooth = smoothVal !== '0';
-        const markerNode = firstSer && firstSer['c:marker'];
-        if (markerNode) {
-            const symbol = attrOf(markerNode, 'c:symbol');
-            out.marker = symbol !== 'none';
-        }
-
-        // 数字格式：数值轴优先，其次数据标签
+        // 数字格式：数值轴优先，其次主 plot 的数据标签
         const valAx = asArray(plotArea['c:valAx'])[0];
         const numFmt = (valAx && valAx['c:numFmt'] && valAx['c:numFmt'].attrs && valAx['c:numFmt'].attrs.formatCode)
-            || (chartNode['c:dLbls'] && chartNode['c:dLbls']['c:numFmt']
-                && chartNode['c:dLbls']['c:numFmt'].attrs && chartNode['c:dLbls']['c:numFmt'].attrs.formatCode);
+            || main.numberFormat;
         if (numFmt) out.numberFormat = String(numFmt);
-
-        // 气泡图属性
-        if (isBubble) {
-            const b3d = attrOf(chartNode, 'c:bubble3D');
-            const negB = attrOf(chartNode, 'c:showNegBubbles');
-            const scale = attrOf(chartNode, 'c:bubbleScale');
-            if (b3d !== undefined) out.bubble3D = b3d === '1';
-            if (negB !== undefined) out.showNegBubbles = negB === '1';
-            if (scale !== undefined) out.bubbleScale = Number(scale);
-        }
-
-        // 曲面图线框
-        const wireframe = attrOf(chartNode, 'c:wireframe');
-        if (wireframe !== undefined) out.wireframe = wireframe === '1';
-
-        // 三维视角（c:view3D）：旋转/厚度/直角轴
-        const v3dNode = chartNode['c:view3D'];
-        if (v3dNode && v3dNode.attrs) {
-            const va = v3dNode.attrs;
-            const v3d: any = {};
-            if (va.rotX !== undefined) v3d.rotX = parseFloat(va.rotX);
-            if (va.rotY !== undefined) v3d.rotY = parseFloat(va.rotY);
-            if (va.depthPercent !== undefined) v3d.depthPercent = parseFloat(va.depthPercent);
-            if (va.rAngAx !== undefined) v3d.rAngAx = va.rAngAx === '1';
-            if (Object.keys(v3d).length) out.view3D = v3d;
-        }
 
         return out;
     } catch {
@@ -3227,7 +3242,8 @@ async function graphicFrameToChart(
     const passKeys: (keyof PptxChartElement)[] = [
         'categories', 'title', 'legend', 'legendPosition', 'grouping', 'varyColors', 'barDir',
         'holeSize', 'smooth', 'marker', 'ofPieType', 'numberFormat',
-        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe', 'spaceFill'
+        'bubble3D', 'showNegBubbles', 'bubbleScale', 'wireframe', 'spaceFill',
+        'plots'
     ];
     const src = chartSemantic as unknown as Record<string, unknown>;
     const dst = chartEl as unknown as Record<string, unknown>;

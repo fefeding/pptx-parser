@@ -423,6 +423,48 @@ export interface PptxChartSeries {
     trendlines?: PptxTrendline[];
 }
 
+/** 组合图（多 plot）中的单个绘图区（c:plotArea 下的一个 c:*Chart 节点） */
+export interface PptxChartPlot {
+    chartType: PptxChartType;
+    series: PptxChartSeries[];
+    categories?: string[];
+    /** 分组/堆叠方式（bar/line/area 系有效） */
+    grouping?: ChartGrouping;
+    /** 条形方向（bar 系） */
+    barDir?: 'bar' | 'col';
+    /** 饼/环按点取色 */
+    varyColors?: boolean;
+    /** 甜甜圈内径百分比 */
+    holeSize?: number;
+    /** 子母饼图第二绘图区类型 */
+    ofPieType?: 'pie' | 'bar';
+    /** 折线/散点平滑 */
+    smooth?: boolean;
+    /** 折线/散点数据标记 */
+    marker?: boolean;
+    /** 气泡图：立体显示 */
+    bubble3D?: boolean;
+    /** 气泡图：显示负气泡 */
+    showNegBubbles?: boolean;
+    /** 气泡图：气泡缩放百分比（默认 100） */
+    bubbleScale?: number;
+    /** 曲面图：线框模式 */
+    wireframe?: boolean;
+    /** 三维视角（c:view3D） */
+    view3D?: {
+        /** 俯仰角（0-90） */
+        rotX?: number;
+        /** 旋转角（0-360） */
+        rotY?: number;
+        /** 厚度百分比（默认 100） */
+        depthPercent?: number;
+        /** 是否为直角轴（正交投影） */
+        rAngAx?: boolean;
+    };
+    /** 数字格式码（c:dLbls/c:numFmt） */
+    numberFormat?: string;
+}
+
 /** 趋势线类型（c:trendlineType@val，ECMA-376） */
 export type PptxTrendlineType =
     | 'linear' | 'exp' | 'log' | 'poly' | 'movingAvg' | 'power';
@@ -722,6 +764,12 @@ export interface PptxChartElement extends PptxElementBase {
     dataLabels?: boolean;
     /** 网格线：主要/次要（c:majorGridlines / c:minorGridlines） */
     gridlines?: { major?: boolean; minor?: boolean };
+    /**
+     * 组合图（多 plot）的全部绘图区。单图表时为空（沿用顶层 chartType/series 即可）；
+     * 解析端从 c:plotArea 下所有 c:*Chart 节点提取，保持文档顺序。
+     * 生成端若提供本字段（长度 >= 2）则写出多个图表节点实现组合图 round-trip。
+     */
+    plots?: PptxChartPlot[];
 }
 
 /** 渐变填充（形状填充、图表逐点填充 c:dPt 共用） */
