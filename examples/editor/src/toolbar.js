@@ -131,8 +131,8 @@ function buildQuickbar(host) {
 }
 
 function openShapePickerSub(anchor) {
-  openShapePicker(anchor, (type) => {
-    addElement(createShapeElement(type, { center: true }), { center: true });
+  openShapePicker(anchor, (type, opt) => {
+    addElement(createShapeElement(type, { center: true, ...(opt || {}) }), { center: true });
   });
 }
 function openTableSub(anchor) {

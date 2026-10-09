@@ -110,18 +110,34 @@ export function openPalette(anchor, opts) {
 }
 
 /* ======================= 形状面板 ======================= */
+const SHAPE_GROUPS = [
+  { key: 'basic', label: '基本形状' },
+  { key: 'line', label: '线条与连接符' },
+  { key: 'arrow', label: '箭头连接符' },
+  { key: 'flowchart', label: '流程图' }
+];
+
 export function openShapePicker(anchor, onPick) {
   closePop();
-  const node = h('div', { class: 'pop', style: { minWidth: '286px' } });
-  const grid = h('div', { class: 'shape-grid' });
-  for (const s of SHAPES) {
-    grid.appendChild(h('button', {
-      title: s.name,
-      html: `<svg viewBox="0 0 24 24"><path d="${s.d}" fill="#5f6368" stroke="none"/></svg>`,
-      onclick: () => { onPick(s.type); closePop(); }
-    }));
+  const node = h('div', { class: 'pop shape-picker', style: { minWidth: '286px', maxHeight: '70vh', overflowY: 'auto' } });
+  for (const g of SHAPE_GROUPS) {
+    const items = SHAPES.filter((s) => s.group === g.key);
+    if (!items.length) continue;
+    node.appendChild(h('div', { class: 'pop-title', text: g.label }));
+    const grid = h('div', { class: 'shape-grid' });
+    for (const s of items) {
+      const isLine = s.stroke || (s.type && /connector/.test(s.type));
+      const inner = isLine
+        ? `<svg viewBox="0 0 24 24"><path d="${s.d}" fill="none" stroke="#5f6368" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        : `<svg viewBox="0 0 24 24"><path d="${s.d}" fill="#5f6368" stroke="none"/></svg>`;
+      grid.appendChild(h('button', {
+        title: s.name,
+        html: inner,
+        onclick: () => { onPick(s.type, s.opt); closePop(); }
+      }));
+    }
+    node.appendChild(grid);
   }
-  node.appendChild(grid);
   place(node, anchor);
   closeCurrentPop = () => { node.remove(); closeCurrentPop = null; };
 }
