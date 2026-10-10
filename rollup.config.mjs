@@ -52,7 +52,8 @@ export default [
       typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
       cssAsString()
     ],
-    external: [...Object.keys(pkg.dependencies)]
+    external: [...Object.keys(pkg.dependencies)],
+    treeshake: false
   },
   // 打包浏览器版本：输出 ESM 格式（非压缩版本，包含所有依赖）
   {
@@ -77,6 +78,7 @@ export default [
       typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
       cssAsString()
     ],
+    treeshake: false,
     // 不标记 dependencies 为 external，让它们被打包进去
     // external: []
   },

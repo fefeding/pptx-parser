@@ -73,6 +73,8 @@ export class EditorStore {
     sel: string[] = [];            // 选中的元素 id（当前页顶层，组合编辑态下可为子元素 id）
     editingId: string | null = null; // 正在内联编辑的文本元素
     groupEdit: string | null = null; // 组合编辑态：正在编辑的组合 id（null 表示普通态）
+    vertexEdit: string | null = null; // 顶点编辑态：正在编辑顶点的线条 id（null 表示普通态）
+    vertexSel: any = null;            // 当前选中的顶点 { cmd, kind }
     clipboard: any[] = [];
     zoom = 1;
     showGrid = false;

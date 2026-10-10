@@ -6,7 +6,7 @@
  */
 import { clone, uid } from '../utils/misc';
 import { unionBBox } from '../utils/geometry';
-import { elementRect } from './geometry';
+import { elementRect, geometryApi, isLineElement, toVertexEditable, lineEndpoints, setLineEndpoints, geomPoints, connectionPoints, connectionPointOf, findGlueTarget, resyncGlue } from './geometry';
 import { buildSlideFromLayout, getTheme, syncTableStyle, createGroupElement, applyTextStyle } from './model';
 
 export function createActions(store: any) {
@@ -522,14 +522,100 @@ export function createActions(store: any) {
         });
     }
 
+    /* ======================= 线条顶点编辑 ======================= */
+    function enterVertexEdit(id: string) {
+        const el = store.findElement(id);
+        if (!el || !isLineElement(el)) return;
+        store.snapshot();
+        store.update((doc: any) => {
+            const t = findInDoc(doc, id);
+            if (!t) return;
+            const wasRotated = !!t.rotation;
+            if (!t.custGeom) {
+                t.custGeom = { paths: [toVertexEditable(t)] };
+                t.shapeType = null;
+                t.flipH = false; t.flipV = false;
+            }
+            if (wasRotated) t.rotation = 0;
+        });
+        store.vertexEdit = id;
+        store.vertexSel = null;
+        store.emit('sel');
+    }
+
+    function exitVertexEdit() {
+        if (!store.vertexEdit) return;
+        store.vertexEdit = null;
+        store.vertexSel = null;
+        store.emit('sel');
+    }
+
+    function setVertexSel(cmd: number, kind: string) {
+        store.vertexSel = { cmd, kind };
+    }
+
+    /** 顶点编辑：在离 p 最近的直线段中点插入一个 lnTo 顶点 */
+    function addVertexAt(id: string, p: any) {
+        const el = store.findElement(id);
+        if (!el || !el.custGeom) return;
+        const cg = el.custGeom.paths[0];
+        const W = el.width || 100, H = el.height || 100, fx = el.flipH, fy = el.flipV;
+        const lx = Math.max(0, Math.min(W, fx ? W - (p.x - el.x) : (p.x - el.x)));
+        const ly = Math.max(0, Math.min(H, fy ? H - (p.y - el.y) : (p.y - el.y)));
+        const cmds = cg.commands;
+        let best: any = null, bestD = 1e9;
+        for (let i = 0; i < cmds.length - 1; i++) {
+            const a = cmds[i], b = cmds[i + 1];
+            const aPt = (a.type === 'moveTo' || a.type === 'lnTo') ? { x: a.x, y: a.y } : null;
+            const bPt = (b.type === 'moveTo' || b.type === 'lnTo') ? { x: b.x, y: b.y } : null;
+            if (!aPt || !bPt) continue;
+            const dx = bPt.x - aPt.x, dy = bPt.y - aPt.y;
+            const len2 = dx * dx + dy * dy;
+            let t = len2 ? ((lx - aPt.x) * dx + (ly - aPt.y) * dy) / len2 : 0;
+            t = Math.max(0, Math.min(1, t));
+            const cx = aPt.x + t * dx, cy = aPt.y + t * dy;
+            const d = Math.hypot(lx - cx, ly - cy);
+            if (d < bestD) { bestD = d; best = { i, aPt, bPt }; }
+        }
+        if (!best) return;
+        store.update((doc: any) => {
+            const t = findInDoc(doc, id); if (!t || !t.custGeom) return;
+            const cmds2 = t.custGeom.paths[0].commands;
+            const mx = (best.aPt.x + best.bPt.x) / 2, my = (best.aPt.y + best.bPt.y) / 2;
+            cmds2.splice(best.i + 1, 0, { type: 'lnTo', x: mx, y: my });
+        });
+    }
+
+    /** 顶点编辑：删除当前选中顶点（保留至少 2 个直线点，禁止删起点 moveTo） */
+    function deleteSelectedVertex() {
+        if (!store.vertexEdit) return;
+        const sel = store.vertexSel; if (!sel) return;
+        store.update((doc: any) => {
+            const t = findInDoc(doc, store.vertexEdit); if (!t || !t.custGeom) return;
+            const cmds = t.custGeom.paths[0].commands;
+            const pts = cmds.filter((c: any) => c.type === 'moveTo' || c.type === 'lnTo' || c.type === 'quadBezTo' || c.type === 'cubicBezTo').length;
+            if (pts <= 2) return;
+            const c = cmds[sel.cmd];
+            if (!c || c.type === 'moveTo') return;
+            cmds.splice(sel.cmd, 1);
+        });
+        store.vertexSel = null;
+    }
+
     return {
         cloneElement, addElement, deleteSelected, duplicateSelected, copySelected, paste, selectAll, nudge,
         zOrder, alignElements, distribute, groupSelection, ungroupSelection, toggleLock, toggleHidden,
         addSlide, duplicateSlide, deleteSlide, moveSlide, toggleSlideHidden, applyLayout,
         setBackground, setSlideSize, applyTheme, setNotes, applyTextStyleSel, setBackgroundImage,
         setElementGeo, resizeTable, updateElement, findInDoc,
-        setTransition, addAnimation, updateAnimation, removeAnimation, moveAnimation
+        setTransition, addAnimation, updateAnimation, removeAnimation, moveAnimation,
+        enterVertexEdit, exitVertexEdit, setVertexSel, addVertexAt, deleteSelectedVertex,
+        geom: geometryApi
     };
 }
+
+// 把几何聚合对象挂到 createActions 上：createActions 是被保留的导出（其函数体含副作用），
+// 此模块级副作用赋值不会被 rollup 摇除，从而让消费方（vscode-pptx）能稳定取到全部几何 API。
+(createActions as any).geometryApi = geometryApi;
 
 export type EditorActions = ReturnType<typeof createActions>;
