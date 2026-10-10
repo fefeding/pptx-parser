@@ -80,6 +80,38 @@ interface ShapeUtilsModule {
 
 export const PPTXShapeUtils: ShapeUtilsModule = (function() {
     /**
+     * 判断 OOXML 端点箭头类型是否需要在渲染中绘制（'none'/空 表示无箭头）
+     */
+    function isArrowEndType(type: any): boolean {
+        return type !== undefined && type !== null && type !== '' && type !== 'none';
+    }
+
+    /**
+     * 生成端点箭头（a:headEnd / a:tailEnd）对应的 SVG marker。
+     *
+     * 尺寸随线宽缩放，但限制在合理区间：避免线宽改大后箭头尺寸线性膨胀（旧实现
+     * markerWidth=5 + markerUnits=strokeWidth 会让箭头 = 5×线宽），超出幻灯片
+     * 边界被 overflow:hidden 裁剪，视觉上表现为"箭头丢失"。
+     * markerUnits 用 userSpaceOnUse 以便按 px 精确控制尺寸；preserveAspectRatio='none'
+     * 让箭头按 len×wid 拉伸；同时支持 triangle/stealth/arrow/diamond/oval 多种类型。
+     */
+    function buildArrowMarker(id: string, type: string, color: string, strokeW: any): string {
+        const bw0 = parseFloat(String(strokeW));
+        const bw = (isFinite(bw0) && bw0 > 0) ? bw0 : 1;
+        const len = Math.min(Math.max(bw * 3.5, 10), 140);  // 沿线方向长度（px）
+        const wid = Math.min(Math.max(bw * 3, 8), 120);     // 垂直方向宽度（px），保证箭头明显粗于线条
+        let body: string;
+        switch (type) {
+            case 'stealth': body = `<path d='M 0 0 L 10 5 L 0 10 L 2.5 5 z' />`; break;
+            case 'diamond': body = `<path d='M 0 5 L 5 0 L 10 5 L 5 10 z' />`; break;
+            case 'oval':    body = `<ellipse cx='5' cy='5' rx='5' ry='5' />`; break;
+            case 'arrow':   body = `<path d='M 0 0 L 10 5 L 0 10' fill='none' stroke-width='2' />`; break;
+            default:        body = `<path d='M 0 0 L 10 5 L 0 10 z' />`; break;
+        }
+        return `<marker id='${id}' viewBox='0 0 10 10' preserveAspectRatio='none' refX='10' refY='5' markerWidth='${len}' markerHeight='${wid}' stroke='${color}' fill='${color}' orient='auto-start-reverse' markerUnits='userSpaceOnUse'>${body}</marker>`;
+    }
+
+    /**
      * 辅助函数：生成形状的 data- 属性字符串
      * @param {Object} node - 节点
      * @param {Object} slideXfrmNode - 变换节点
@@ -290,18 +322,19 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                 let hasCssEffect = false; // Track if there's a CSS effect (like shadow)
                 const effectsClassName = `${svgCssName}_effects`;
 
-                // 对于连接器，当width或height为0时，需要设置最小尺寸
+                // 对于连接器和直线，当 width 或 height 为 0（水平/垂直）时，需要给 SVG 容器设置最小尺寸，
+                // 否则容器某一维为 0 会导致其中内容整体不渲染（线宽改大也无法显示）
                 let svgSizeStyle = "";
 
-                if (isConnector && (w === 0 || h === 0)) {
-                    // 设置最小尺寸为strokeWidth的2倍（或至少4px），确保线条可见
-                    const strokeWidth = 1.5; // 默认stroke-width，实际可以从border获取
+                if ((isConnector || shapType === 'line') && (w === 0 || h === 0)) {
+                    // 最小尺寸取线宽的 2 倍（或至少 4px），保证线条及端点箭头可见
+                    const strokeWidth = 1.5;
                     const minSize = Math.max(strokeWidth * 2, 4);
                     // SVG容器的尺寸至少为minSize
                     const svgW = (w === 0 || w < minSize) ? minSize : w;
                     const svgH = (h === 0 || h < minSize) ? minSize : h;
                     svgSizeStyle = `width:${svgW}px; height:${svgH}px; overflow: visible;`;
-                    // 更新w和h为SVG容器尺寸，这样后续代码会使用正确的尺寸
+                    // 仅更新 SVG 容器尺寸；线条几何仍用 drawW/drawH（原始尺寸）
                     w = svgW;
                     h = svgH;
 
@@ -627,11 +660,12 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     softEdgeFilterStr = `filter="url(#${softEdgeId})"`;
                 } 
                 ////////////////////////////////////////////////////////////////////////////////////////
-                if ((headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) ||
-                    (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow"))) {
-                    // 箭头标记：refX=10 表示箭头尖端与线条端点对齐
-                    const triangleMarker = `<marker id='markerTriangle_${shpId}' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='5' markerHeight='5' stroke='${border.color}' fill='${border.color}' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>`;
-                    result += triangleMarker;
+                // 端点箭头：为 head/tail 分别生成 marker，尺寸随线宽缩放但有上限（见 buildArrowMarker）
+                if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                    result += buildArrowMarker(`markerHead_${shpId}`, headEndNodeAttrs["type"], border.color, border.width);
+                }
+                if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                    result += buildArrowMarker(`markerTail_${shpId}`, tailEndNodeAttrs["type"], border.color, border.width);
                 }
                 result += '</defs>'
             }
@@ -929,11 +963,11 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                         // 路径方向（SVG容器会通过flip变换处理翻转）
                         d = `M ${bendW} 0 L ${bendW} ${bendH} L 0 ${bendH}`;
                         result += `<path d='${d}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' fill='none' `;
-                        if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += `marker-start='url(#markerTriangle_${shpId})' `;
+                        if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                            result += `marker-start='url(#markerHead_${shpId})' `;
                         }
-                        if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += `marker-end='url(#markerTriangle_${shpId})' `;
+                        if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                            result += `marker-end='url(#markerTail_${shpId})' `;
                         }
                         result += "/>";
                         break;
@@ -1328,11 +1362,11 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                             shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
                             // 路径方向（SVG容器会通过flip变换处理翻转）
                             result += ` <polyline points='0 0,${(shapAdjst_val) * connectorW} 0,${(shapAdjst_val) * connectorW} ${connectorH},${connectorW} ${connectorH}' fill='transparent'' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
-                            if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                                result += `marker-start='url(#markerTriangle_${shpId})' `;
+                            if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                                result += `marker-start='url(#markerHead_${shpId})' `;
                             }
-                            if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                                result += `marker-end='url(#markerTriangle_${shpId})' `;
+                            if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                                result += `marker-end='url(#markerTail_${shpId})' `;
                             }
                             result += "/>";
                         }
@@ -2596,11 +2630,11 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                         var x1: any = 0, y1: any = 0, x2: any = lineW, y2: any = lineH;
                         
                         result += `<line x1='${x1}' y1='${y1}' x2='${x2}' y2='${y2}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
-                        if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += `marker-start='url(#markerTriangle_${shpId})' `;
+                        if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                            result += `marker-start='url(#markerHead_${shpId})' `;
                         }
-                        if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += `marker-end='url(#markerTriangle_${shpId})' `;
+                        if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                            result += `marker-end='url(#markerTail_${shpId})' `;
                         }
                         result += "/>";
                         break;
@@ -2660,11 +2694,11 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                         // 使用 SVG 路径元素创建曲线
                         result += `<path d='${pathD}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' fill='none' `;
                         
-                        if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += `marker-start='url(#markerTriangle_${shpId})' `;
+                        if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                            result += `marker-start='url(#markerHead_${shpId})' `;
                         }
-                        if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += `marker-end='url(#markerTriangle_${shpId})' `;
+                        if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                            result += `marker-end='url(#markerTail_${shpId})' `;
                         }
                         result += "/>";
                         break;

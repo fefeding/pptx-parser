@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.20
+ * @fefeding/ppt-parser v1.0.21
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -10221,6 +10221,34 @@ function presetShapePath(prst, w, h, adj = {}, opts = {}) {
 }
 
 const PPTXShapeUtils = (function () {
+    function isArrowEndType(type) {
+        return type !== undefined && type !== null && type !== '' && type !== 'none';
+    }
+    function buildArrowMarker(id, type, color, strokeW) {
+        const bw0 = parseFloat(String(strokeW));
+        const bw = (isFinite(bw0) && bw0 > 0) ? bw0 : 1;
+        const len = Math.min(Math.max(bw * 3.5, 10), 140);
+        const wid = Math.min(Math.max(bw * 3, 8), 120);
+        let body;
+        switch (type) {
+            case 'stealth':
+                body = `<path d='M 0 0 L 10 5 L 0 10 L 2.5 5 z' />`;
+                break;
+            case 'diamond':
+                body = `<path d='M 0 5 L 5 0 L 10 5 L 5 10 z' />`;
+                break;
+            case 'oval':
+                body = `<ellipse cx='5' cy='5' rx='5' ry='5' />`;
+                break;
+            case 'arrow':
+                body = `<path d='M 0 0 L 10 5 L 0 10' fill='none' stroke-width='2' />`;
+                break;
+            default:
+                body = `<path d='M 0 0 L 10 5 L 0 10 z' />`;
+                break;
+        }
+        return `<marker id='${id}' viewBox='0 0 10 10' preserveAspectRatio='none' refX='10' refY='5' markerWidth='${len}' markerHeight='${wid}' stroke='${color}' fill='${color}' orient='auto-start-reverse' markerUnits='userSpaceOnUse'>${body}</marker>`;
+    }
     function genShapeDataAttributes(node, slideXfrmNode, id, name, idx, type, rotate, sType) {
         let dataAttrs = '';
         let offX = 0, offY = 0, extCx = 0, extCy = 0, flipH = 0, flipV = 0;
@@ -10351,7 +10379,7 @@ const PPTXShapeUtils = (function () {
             const svgCssName = `_svg_css_${(Object.keys(warpObj.styleTable).length + 1)}_${Math.floor(Math.random() * 1001)}`;
             const effectsClassName = `${svgCssName}_effects`;
             let svgSizeStyle = "";
-            if (isConnector && (w === 0 || h === 0)) {
+            if ((isConnector || shapType === 'line') && (w === 0 || h === 0)) {
                 const strokeWidth = 1.5;
                 const minSize = Math.max(strokeWidth * 2, 4);
                 const svgW = (w === 0 || w < minSize) ? minSize : w;
@@ -10563,10 +10591,11 @@ const PPTXShapeUtils = (function () {
                 result += softEdgeFilter;
                 softEdgeFilterStr = `filter="url(#${softEdgeId})"`;
             }
-            if ((headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) ||
-                (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow"))) {
-                const triangleMarker = `<marker id='markerTriangle_${shpId}' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='5' markerHeight='5' stroke='${border.color}' fill='${border.color}' orient='auto-start-reverse' markerUnits='strokeWidth'><path d='M 0 0 L 10 5 L 0 10 z' /></marker>`;
-                result += triangleMarker;
+            if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                result += buildArrowMarker(`markerHead_${shpId}`, headEndNodeAttrs["type"], border.color, border.width);
+            }
+            if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                result += buildArrowMarker(`markerTail_${shpId}`, tailEndNodeAttrs["type"], border.color, border.width);
             }
             result += '</defs>';
         }
@@ -10856,11 +10885,11 @@ const PPTXShapeUtils = (function () {
                     const bendH = (drawH !== undefined) ? drawH : h;
                     d = `M ${bendW} 0 L ${bendW} ${bendH} L 0 ${bendH}`;
                     result += `<path d='${d}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' fill='none' `;
-                    if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                        result += `marker-start='url(#markerTriangle_${shpId})' `;
+                    if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                        result += `marker-start='url(#markerHead_${shpId})' `;
                     }
-                    if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                        result += `marker-end='url(#markerTriangle_${shpId})' `;
+                    if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                        result += `marker-end='url(#markerTail_${shpId})' `;
                     }
                     result += "/>";
                     break;
@@ -11241,11 +11270,11 @@ const PPTXShapeUtils = (function () {
                     if (shapAdjst !== undefined) {
                         shapAdjst_val = parseInt(shapAdjst.substr(4)) / 100000;
                         result += ` <polyline points='0 0,${(shapAdjst_val) * connectorW} 0,${(shapAdjst_val) * connectorW} ${connectorH},${connectorW} ${connectorH}' fill='transparent'' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
-                        if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                            result += `marker-start='url(#markerTriangle_${shpId})' `;
+                        if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                            result += `marker-start='url(#markerHead_${shpId})' `;
                         }
-                        if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                            result += `marker-end='url(#markerTriangle_${shpId})' `;
+                        if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                            result += `marker-end='url(#markerTail_${shpId})' `;
                         }
                         result += "/>";
                     }
@@ -12245,11 +12274,11 @@ const PPTXShapeUtils = (function () {
                         lineH = h;
                     var x1 = 0, y1 = 0, x2 = lineW, y2 = lineH;
                     result += `<line x1='${x1}' y1='${y1}' x2='${x2}' y2='${y2}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' `;
-                    if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                        result += `marker-start='url(#markerTriangle_${shpId})' `;
+                    if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                        result += `marker-start='url(#markerHead_${shpId})' `;
                     }
-                    if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                        result += `marker-end='url(#markerTriangle_${shpId})' `;
+                    if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                        result += `marker-end='url(#markerTail_${shpId})' `;
                     }
                     result += "/>";
                     break;
@@ -12298,11 +12327,11 @@ const PPTXShapeUtils = (function () {
                     }
                     pathD = `M 0,0 Q ${cx1},${cy1} ${curveW / 2},${curveH / 2} Q ${cx2},${cy2} ${curveW},${curveH}`;
                     result += `<path d='${pathD}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' fill='none' `;
-                    if (headEndNodeAttrs !== undefined && (headEndNodeAttrs["type"] === "triangle" || headEndNodeAttrs["type"] === "arrow")) {
-                        result += `marker-start='url(#markerTriangle_${shpId})' `;
+                    if (isArrowEndType(headEndNodeAttrs && headEndNodeAttrs["type"])) {
+                        result += `marker-start='url(#markerHead_${shpId})' `;
                     }
-                    if (tailEndNodeAttrs !== undefined && (tailEndNodeAttrs["type"] === "triangle" || tailEndNodeAttrs["type"] === "arrow")) {
-                        result += `marker-end='url(#markerTriangle_${shpId})' `;
+                    if (isArrowEndType(tailEndNodeAttrs && tailEndNodeAttrs["type"])) {
+                        result += `marker-end='url(#markerTail_${shpId})' `;
                     }
                     result += "/>";
                     break;

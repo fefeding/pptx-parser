@@ -14,6 +14,286 @@ let DOM = {};
 let drag = null;
 let selLayer = null;
 
+/* ======================= 线条：端点 / 顶点 / 连接点 ======================= */
+/** 是否可端点/顶点编辑的线条元素（连接符预设或开放自定义曲线） */
+export function isLineElement(el) {
+  if (!el || el.type !== 'shape') return false;
+  if (/^(curvedConnector|bentConnector|straightConnector|line)/.test(el.shapeType || '')) return true;
+  if (el.custGeom && Array.isArray(el.custGeom.paths)) {
+    return el.custGeom.paths.every((p) => !p.closed);
+  }
+  return false;
+}
+
+/** 线条两个端点的幻灯片绝对坐标（考虑 flip；rotation 为 0 时即对角点） */
+export function lineEndpoints(el) {
+  const x = el.x || 0, y = el.y || 0, w = el.width || 0, h = el.height || 0;
+  let a = { x: el.flipH ? x + w : x, y: el.flipV ? y + h : y };
+  let b = { x: el.flipH ? x : x + w, y: el.flipV ? y : y + h };
+  if (el.rotation) {
+    const cx = x + w / 2, cy = y + h / 2, deg = -el.rotation;
+    a = rotatePoint(a.x, a.y, cx, cy, deg);
+    b = rotatePoint(b.x, b.y, cx, cy, deg);
+  }
+  return { a, b };
+}
+
+/** 标准连接点（site）：8 方位 + 中心，返回绝对坐标 */
+export function connectionPoints(el) {
+  const r = elementRect(el);
+  const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+  return [
+    { site: 'top', x: cx, y: r.y },
+    { site: 'bottom', x: cx, y: r.y + r.height },
+    { site: 'left', x: r.x, y: cy },
+    { site: 'right', x: r.x + r.width, y: cy },
+    { site: 'topLeft', x: r.x, y: r.y },
+    { site: 'topRight', x: r.x + r.width, y: r.y },
+    { site: 'bottomLeft', x: r.x, y: r.y + r.height },
+    { site: 'bottomRight', x: r.x + r.width, y: r.y + r.height },
+    { site: 'center', x: cx, y: cy }
+  ];
+}
+
+/** 根据 site 取某形状当前连接点绝对坐标 */
+function connectionPointOf(el, site) {
+  const c = connectionPoints(el).find((c) => c.site === site) || connectionPoints(el).find((c) => c.site === 'center');
+  return { x: c.x, y: c.y };
+}
+
+/** 寻找离 p 最近、且在吸附阈值内的形状连接点（排除线条自身与被排除元素） */
+function findGlueTarget(p, excludeId) {
+  const tol = 14 / (store.zoom || 1);
+  let best = null, bestD = tol;
+  for (const el of store.elements()) {
+    if (el.id === excludeId) continue;
+    if (isLineElement(el) || el.type === 'group') continue; // 只吸附到形状/图片等实体
+    for (const cp of connectionPoints(el)) {
+      const d = Math.hypot(cp.x - p.x, cp.y - p.y);
+      if (d <= bestD) { bestD = d; best = { shapeId: el.id, site: cp.site, point: { x: cp.x, y: cp.y } }; }
+    }
+  }
+  return best;
+}
+
+/** 用两个绝对坐标端点重设线条包围盒与 flip（rotation 为 0 情形） */
+export function setLineEndpoints(el, a, b) {
+  const minX = Math.min(a.x, b.x), minY = Math.min(a.y, b.y);
+  el.x = Math.round(minX); el.y = Math.round(minY);
+  el.width = Math.round(Math.abs(b.x - a.x)); el.height = Math.round(Math.abs(b.y - a.y));
+  el.flipH = b.x < a.x; el.flipV = b.y < a.y;
+}
+
+/** 被移动的形状集合变化后，重算所有 glue 到这些形状的线条端点（在同一 draft 内完成） */
+function resyncGlue(doc, shapeIds) {
+  const idx = store.slideIndex;
+  for (const s of doc.slides[idx].elements) {
+    if (!isLineElement(s)) continue;
+    const gb = s.begin && shapeIds.includes(s.begin.shapeId);
+    const ge = s.end && shapeIds.includes(s.end.shapeId);
+    if (!gb && !ge) continue;
+    const a = gb ? connectionPointOf(findInDoc(doc, s.begin.shapeId), s.begin.site) : lineEndpoints(s).a;
+    const b = ge ? connectionPointOf(findInDoc(doc, s.end.shapeId), s.end.site) : lineEndpoints(s).b;
+    setLineEndpoints(s, a, b);
+  }
+}
+
+/** 选中线条时绘制端点手柄（顶点编辑模式额外绘制路径顶点，见 drawVertices） */
+function drawLineHandles(layer, el, hs) {
+  const { a, b } = lineEndpoints(el);
+  const mk = (which, pt) => h('div', {
+    class: `handle endpoint ${which}`,
+    dataset: { handle: 'endpoint', which, id: el.id },
+    style: {
+      left: `${pt.x}px`, top: `${pt.y}px`,
+      width: `${hs + 2}px`, height: `${hs + 2}px`,
+      marginLeft: `${-(hs + 2) / 2}px`, marginTop: `${-(hs + 2) / 2}px`
+    }
+  });
+  layer.appendChild(mk('start', a));
+  layer.appendChild(mk('end', b));
+}
+
+/* ---------- 顶点编辑（自定义几何 custGeom） ---------- */
+/** 将 line/connector 预设几何展开为可编辑的 custGeom（局部坐标 0..W,0..H，烘焙 flip） */
+export function toVertexEditable(el) {
+  const W = el.width || 100, H = el.height || 100;
+  const { a, b } = lineEndpoints(el);
+  // 直接用绝对端点减元素位置得到局部坐标：进入顶点编辑时会清零 rotation，
+  // custGeom 渲染（rotation=0）时局部坐标 + 元素位置即还原旋转后的真实端点。
+  const ax = a.x - el.x, ay = a.y - el.y;
+  const bx = b.x - el.x, by = b.y - el.y;
+  const st = el.shapeType || 'line';
+  let commands;
+  if (st.startsWith('bentConnector')) {
+    const mx = (ax + bx) / 2;
+    commands = [
+      { type: 'moveTo', x: ax, y: ay },
+      { type: 'lnTo', x: mx, y: ay },
+      { type: 'lnTo', x: mx, y: by },
+      { type: 'lnTo', x: bx, y: by }
+    ];
+  } else if (st.startsWith('curvedConnector')) {
+    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    const c1x = (ax + mx) / 2, c1y = ay;
+    const c2x = (mx + bx) / 2, c2y = by;
+    commands = [
+      { type: 'moveTo', x: ax, y: ay },
+      { type: 'quadBezTo', x1: c1x, y1: c1y, x: mx, y: my },
+      { type: 'quadBezTo', x1: c2x, y1: c2y, x: bx, y: by }
+    ];
+  } else {
+    commands = [
+      { type: 'moveTo', x: ax, y: ay },
+      { type: 'lnTo', x: bx, y: by }
+    ];
+  }
+  return { w: W, h: H, closed: false, commands };
+}
+
+/** 进入顶点编辑：预设线条转为 custGeom，便于自由编辑节点 */
+export function enterVertexEdit(el) {
+  store.snapshot();
+  store.update((doc) => {
+    const t = findInDoc(doc, el.id);
+    if (!t) return;
+    const wasRotated = !!t.rotation;
+    if (!t.custGeom) {
+      t.custGeom = { paths: [toVertexEditable(t)] };   // toVertexEditable 已把 rotation 反算进局部坐标，端点位置保留
+      t.shapeType = null;
+      t.flipH = false; t.flipV = false;
+    }
+    if (wasRotated) t.rotation = 0;   // 几何已烘焙进 custGeom，清零 rotation（不影响视觉端点）
+  });
+  store.vertexEdit = el.id;
+  store.emit('sel');
+}
+
+function exitVertexEdit() {
+  if (!store.vertexEdit) return;
+  store.vertexEdit = null;
+  store.emit('sel');
+}
+
+/** 取 custGeom 第一路径的全部可拖点（顶点 + 贝塞尔控制点），返回绝对坐标 */
+export function geomPoints(el) {
+  const p = (el.custGeom && el.custGeom.paths && el.custGeom.paths[0]) || null;
+  if (!p) return [];
+  const W = el.width || 100, H = el.height || 100;
+  const fx = el.flipH, fy = el.flipV;
+  const toAbs = (lx, ly) => ({ x: el.x + (fx ? W - lx : lx), y: el.y + (fy ? H - ly : ly) });
+  const pts = [];
+  p.commands.forEach((c, i) => {
+    if (c.type === 'moveTo' || c.type === 'lnTo') {
+      pts.push({ cmdIndex: i, kind: 'point', abs: toAbs(c.x, c.y) });
+    } else if (c.type === 'cubicBezTo') {
+      pts.push({ cmdIndex: i, kind: 'c1', abs: toAbs(c.x1, c.y1) });
+      pts.push({ cmdIndex: i, kind: 'c2', abs: toAbs(c.x2, c.y2) });
+      pts.push({ cmdIndex: i, kind: 'point', abs: toAbs(c.x, c.y) });
+    } else if (c.type === 'quadBezTo') {
+      pts.push({ cmdIndex: i, kind: 'c1', abs: toAbs(c.x1, c.y1) });
+      pts.push({ cmdIndex: i, kind: 'point', abs: toAbs(c.x, c.y) });
+    }
+  });
+  return pts;
+}
+
+/** 顶点编辑模式：绘制顶点（方块）与贝塞尔控制点（圆点 + 虚线手柄连线） */
+function drawVertices(layer, el, hs) {
+  const pts = geomPoints(el);
+  if (pts.length) {
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('style', 'position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none');
+    for (const pt of pts) {
+      if (pt.kind === 'c1' || pt.kind === 'c2') {
+        const vp = pts.find((q) => q.cmdIndex === pt.cmdIndex && q.kind === 'point');
+        if (vp) {
+          const ln = document.createElementNS(svgNS, 'line');
+          ln.setAttribute('x1', String(pt.abs.x)); ln.setAttribute('y1', String(pt.abs.y));
+          ln.setAttribute('x2', String(vp.abs.x)); ln.setAttribute('y2', String(vp.abs.y));
+          ln.setAttribute('stroke', '#1a73e8'); ln.setAttribute('stroke-width', String(1 / (store.zoom || 1)));
+          ln.setAttribute('stroke-dasharray', '3 3');
+          svg.appendChild(ln);
+        }
+      }
+    }
+    layer.appendChild(svg);
+  }
+  for (const pt of pts) {
+    const isSel = store.vertexSel && store.vertexSel.cmd === pt.cmdIndex && store.vertexSel.kind === pt.kind;
+    const cls = (pt.kind === 'point' ? 'handle vertex' : 'handle vctrl') + (isSel ? ' sel' : '');
+    layer.appendChild(h('div', {
+      class: cls,
+      dataset: { handle: pt.kind === 'point' ? 'vertex' : 'control', cmd: String(pt.cmdIndex), kind: pt.kind, id: el.id },
+      style: { left: `${pt.abs.x}px`, top: `${pt.abs.y}px`, width: `${hs}px`, height: `${hs}px`, marginLeft: `${-hs / 2}px`, marginTop: `${-hs / 2}px` }
+    }));
+  }
+}
+
+/** 顶点 / 控制点拖拽启动 */
+function startVertexDrag(e, ds) {
+  const el = store.findElement(ds.id);
+  if (!el || el.locked) return;
+  store.vertexSel = { cmd: Number(ds.cmd), kind: ds.kind };
+  store.snapshot();
+  drag = { type: 'vertex', id: ds.id, cmd: Number(ds.cmd), kind: ds.kind };
+  bindDrag();
+}
+
+/* ---------- 顶点增删 ---------- */
+function pointSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  let t = len2 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * dx, cy = ay + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+
+/** 顶点编辑：在离 p 最近的直线段中点插入一个 lnTo 顶点 */
+export function addVertexAt(el, p) {
+  const cg = el.custGeom && el.custGeom.paths && el.custGeom.paths[0];
+  if (!cg) return;
+  const W = el.width || 100, H = el.height || 100, fx = el.flipH, fy = el.flipV;
+  const lx = clamp(fx ? W - (p.x - el.x) : (p.x - el.x), 0, W);
+  const ly = clamp(fy ? H - (p.y - el.y) : (p.y - el.y), 0, H);
+  const cmds = cg.commands;
+  let best = null, bestD = 1e9;
+  for (let i = 0; i < cmds.length - 1; i++) {
+    const a = cmds[i], b = cmds[i + 1];
+    const aPt = (a.type === 'moveTo' || a.type === 'lnTo') ? { x: a.x, y: a.y } : null;
+    const bPt = (b.type === 'moveTo' || b.type === 'lnTo') ? { x: b.x, y: b.y } : null;
+    if (!aPt || !bPt) continue;
+    const d = pointSegDist(lx, ly, aPt.x, aPt.y, bPt.x, bPt.y);
+    if (d < bestD) { bestD = d; best = { i, aPt, bPt }; }
+  }
+  if (!best) return;
+  store.update((doc) => {
+    const t = findInDoc(doc, el.id); if (!t || !t.custGeom) return;
+    const cmds2 = t.custGeom.paths[0].commands;
+    const mx = (best.aPt.x + best.bPt.x) / 2, my = (best.aPt.y + best.bPt.y) / 2;
+    cmds2.splice(best.i + 1, 0, { type: 'lnTo', x: mx, y: my });
+  }, { history: false });
+}
+
+/** 顶点编辑：删除当前选中顶点（保留至少 2 个直线点，禁止删起点 moveTo） */
+export function deleteSelectedVertex() {
+  if (!store.vertexEdit) return;
+  const sel = store.vertexSel; if (!sel) return;
+  store.update((doc) => {
+    const t = findInDoc(doc, store.vertexEdit); if (!t || !t.custGeom) return;
+    const cmds = t.custGeom.paths[0].commands;
+    // 统计所有顶点（moveTo + 各线条段终点），曲线终点也算，统一约束至少保留 2 个
+    const pts = cmds.filter((c) => c.type === 'moveTo' || c.type === 'lnTo' || c.type === 'quadBezTo' || c.type === 'cubicBezTo').length;
+    if (pts <= 2) return;
+    const c = cmds[sel.cmd];
+    if (!c || c.type === 'moveTo') return;
+    cmds.splice(sel.cmd, 1);
+  }, { history: false });
+  store.vertexSel = null;
+}
+
 export function initCanvas(dom) {
   DOM = dom;
   DOM.stage.addEventListener('pointerdown', onPointerDown);
@@ -130,7 +410,12 @@ export function updateSelection() {
     rect.x -= m.left; rect.y -= m.top;
     rect.width += m.left + m.right;
     rect.height += m.top + m.bottom;
-    drawBox(rect, el.rotation, { handles: !el.locked, rotatable: !el.locked, id: el.id, locked: el.locked, group: el.type === 'group' });
+    const inVertex = store.vertexEdit === el.id && !!el.custGeom;
+    drawBox(rect, el.rotation, { handles: !el.locked && !inVertex, rotatable: false, id: el.id, locked: el.locked, group: el.type === 'group' });
+    if (!el.locked && isLineElement(el)) {
+      if (inVertex) drawVertices(layer, el, hs);
+      else drawLineHandles(layer, el, hs);
+    }
   } else {
     const expandedRects = [];
     for (const el of els) {
@@ -215,7 +500,10 @@ function onPointerDown(e) {
   const handleNode = e.target.closest && e.target.closest('[data-handle]');
   if (handleNode) {
     e.preventDefault();
-    startTransform(e, handleNode.dataset.handle, handleNode.dataset.id);
+    const hd = handleNode.dataset.handle;
+    if (hd === 'endpoint') { startEndpointDrag(e, handleNode.dataset.which, handleNode.dataset.id); return; }
+    if (hd === 'vertex' || hd === 'control') { startVertexDrag(e, handleNode.dataset); return; }
+    startTransform(e, hd, handleNode.dataset.id);
     return;
   }
   const elNode = e.target.closest && e.target.closest('.el');
@@ -250,12 +538,19 @@ function onPointerDown(e) {
 function onDblClick(e) {
   const elNode = e.target.closest && e.target.closest('.el');
   if (!elNode) {
+    if (store.vertexEdit) { exitVertexEdit(); return; }
     // 空白处双击：退出组合编辑态
     if (store.groupEdit) store.setGroupEdit(null);
     return;
   }
   const el = store.findElement(elNode.dataset.id);
   if (!el || el.locked) return;
+  // 线条：双击进入/保持顶点编辑（与 Office “编辑顶点”一致）
+  if (isLineElement(el)) {
+    if (store.vertexEdit !== el.id) { enterVertexEdit(el); return; }
+    addVertexAt(el, toSlide(e));   // 已在顶点编辑：双击线段中点插入顶点
+    return;
+  }
   const gNode = elNode.closest('.el-group');
   const gid = gNode && gNode.dataset.id;
   if (gid) {
@@ -328,6 +623,17 @@ function startTransform(e, dir, id) {
   bindDrag();
 }
 
+/* ---------- 端点拖拽（改变起点/终点） ---------- */
+function startEndpointDrag(e, which, id) {
+  const el = store.findElement(id);
+  if (!el || el.locked) return;
+  store.snapshot();
+  const { a, b } = lineEndpoints(el);
+  const fixed = which === 'start' ? b : a;   // 另一端保持不动
+  drag = { type: 'endpoint', which, id, fixed };
+  bindDrag();
+}
+
 /* ---------- 框选 ---------- */
 function startMarquee(e) {
   const p = toSlide(e);
@@ -371,6 +677,18 @@ function onDragMove(e) {
           });
         }
       }
+      // 连接线跟随：被移动的形状若被线条 glue，则重算线条端点
+      const movedShapeIds = new Set();
+      const all = drag.orig.map((o) => findInDoc(doc, o.id)).filter(Boolean);
+      for (const e of all) {
+        if (isLineElement(e) || e.type === 'group') continue;
+        movedShapeIds.add(e.id);
+      }
+      // 移动组合时，其内部形状也视为被移动，需触发 glue 重算
+      for (const e of all) {
+        if (e.type === 'group') (e.children || []).forEach((c) => movedShapeIds.add(c.id));
+      }
+      if (movedShapeIds.size) resyncGlue(doc, [...movedShapeIds]);
     }, { history: false });
     return;
   }
@@ -387,6 +705,43 @@ function onDragMove(e) {
     store.update((doc) => {
       const el = findInDoc(doc, drag.base.id);
       if (el) el.rotation = Math.round(next * 10) / 10;
+    }, { history: false });
+    return;
+  }
+  if (drag.type === 'endpoint') {
+    let p = toSlide(e);
+    const glue = findGlueTarget(p, drag.id);
+    if (glue) p = glue.point;
+    const other = drag.fixed;
+    store.update((doc) => {
+      const t = findInDoc(doc, drag.id);
+      if (!t) return;
+      setLineEndpoints(t, other, p);
+      if (glue) {
+        if (drag.which === 'start') t.begin = { shapeId: glue.shapeId, site: glue.site };
+        else t.end = { shapeId: glue.shapeId, site: glue.site };
+      } else {
+        if (drag.which === 'start') t.begin = null; else t.end = null;
+      }
+    }, { history: false });
+    return;
+  }
+  if (drag.type === 'vertex' || drag.type === 'control') {
+    const p = toSlide(e);
+    const el = store.findElement(drag.id);
+    if (!el) return;
+    const W = el.width || 100, H = el.height || 100;
+    const fx = el.flipH, fy = el.flipV;
+    const lx = clamp(fx ? W - (p.x - el.x) : (p.x - el.x), 0, W);
+    const ly = clamp(fy ? H - (p.y - el.y) : (p.y - el.y), 0, H);
+    store.update((doc) => {
+      const t = findInDoc(doc, drag.id);
+      if (!t || !t.custGeom) return;
+      const c = t.custGeom.paths[0].commands[drag.cmd];
+      if (!c) return;
+      if (drag.kind === 'point') { c.x = lx; c.y = ly; }
+      else if (drag.kind === 'c1') { c.x1 = lx; c.y1 = ly; }
+      else if (drag.kind === 'c2') { c.x2 = lx; c.y2 = ly; }
     }, { history: false });
     return;
   }
@@ -639,9 +994,15 @@ function onKeyDown(e) {
   if (meta && key.toLowerCase() === 'e') { e.preventDefault(); exportPptx(); return; }
 
   if (key === 'F5') { e.preventDefault(); startPresent(0); return; }
-  if (key === 'Delete' || key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
+  if (key === 'Delete' || key === 'Backspace') {
+    e.preventDefault();
+    if (store.vertexEdit) { deleteSelectedVertex(); return; }
+    deleteSelected();
+    return;
+  }
   if (key === 'Escape') {
     if (store.editingId) { exitEditing(); return; }
+    if (store.vertexEdit) { exitVertexEdit(); return; }
     if (store.groupEdit) { store.setGroupEdit(null); return; }
     store.clearSel();
     return;

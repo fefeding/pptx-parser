@@ -274,6 +274,15 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 .handle.sw { cursor: nesw-resize; } .handle.se { cursor: nwse-resize; }
 .handle.n { cursor: ns-resize; } .handle.s { cursor: ns-resize; }
 .handle.w { cursor: ew-resize; } .handle.e { cursor: ew-resize; }
+/* 线条端点手柄（圆形，区别于缩放手柄） */
+.handle.endpoint {
+  border-radius: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  background: var(--blue); border-color: #fff; cursor: crosshair;
+}
+/* 顶点编辑：路径顶点（方形）与贝塞尔控制点（圆形） */
+.handle.vertex { border-radius: 2px; width: 10px; height: 10px; margin: -5px 0 0 -5px; cursor: move; }
+.handle.vctrl { border-radius: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; background: #fbbc04; border-color: #fff; cursor: move; }
+.handle.vertex.sel, .handle.vctrl.sel { background: #ea4335; border-color: #fff; box-shadow: 0 0 0 2px rgba(234,67,53,.4); }
 .guide { position: absolute; background: #ea4335; pointer-events: none; }
 .guide.h { height: 1px; left: 0; right: 0; }
 .guide.v { width: 1px; top: 0; bottom: 0; }

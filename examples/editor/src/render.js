@@ -1033,12 +1033,13 @@ export function renderElement(el, ctx = {}) {
       if (el.shapeType === 'line') {
         const lc = normalizeColor((el.line && el.line.color) || '#000000') || '#000';
         const lw = Math.max(1, ptToPx((el.line && el.line.width) || 2));
-        const W = el.width || 100, H = el.height || 100;
+        const W = el.width || 0, H = el.height || 0;
         const NS = 'http://www.w3.org/2000/svg';
+        // 与 connector 同款：w/h 为 0（水平/垂直线）时设最小 SVG 尺寸，保证可见且可被选中
+        const minSize = Math.max(lw * 2, 4);
+        const svgW = Math.max(W, minSize), svgH = Math.max(H, minSize);
         const svg = document.createElementNS(NS, 'svg');
-        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-        svg.setAttribute('preserveAspectRatio', 'none');
-        svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;overflow:visible';
+        svg.style.cssText = `position:absolute;inset:0;width:${svgW}px;height:${svgH}px;overflow:visible`;
         const fx = el.flipH ? -1 : 1, fy = el.flipV ? -1 : 1;
         if (el.flipH || el.flipV) svg.style.transform = `scaleX(${fx}) scaleY(${fy})`;
         const line = document.createElementNS(NS, 'line');
