@@ -12,6 +12,10 @@
 - **通用模块** — 同时支持 ESM 和 CommonJS
 - **浏览器 & Node.js** — 两种环境均可无缝运行
 
+## 在线示例
+
+在线体验：[https://fefeding.github.io/pptx-parser/examples/index.html](https://fefeding.github.io/pptx-parser/examples/index.html)
+
 ## 安装
 
 ```bash
@@ -74,44 +78,6 @@ import { pptxToFiles } from '@fefeding/ppt-parser';
 const result = await pptxToFiles(fileData);
 console.log('文件列表:', result.files);
 console.log('内容:', result.content);
-```
-
-## 配置选项
-
-```typescript
-interface PptxParserOptions {
-  // 是否处理媒体文件（图片等）
-  mediaProcess?: boolean;
-
-  // 主题处理方式
-  themeProcess?: boolean | 'colorsAndImageOnly';
-
-  // 幻灯片尺寸调整
-  incSlide?: {
-    width: number;
-    height: number;
-  };
-
-  // 自定义样式表
-  styleTable?: Record<string, { name: string; text: string; suffix?: string }>;
-
-  // 回调函数
-  callbacks?: {
-    onFileStart?: () => void;
-    onError?: (error: { type: string; message: string }) => void;
-    onSlide?: (data: any, info: { slideNum: number; fileName: string }) => void;
-    onThumbnail?: (thumbnail: string | null) => void;
-    onSlideSize?: (slideSize: { width: number; height: number }) => void;
-    onGlobalCSS?: (css: string) => void;
-    onComplete?: (info: {
-      executionTime: number;
-      slideWidth: number;
-      slideHeight: number;
-      styleTable: any;
-      settings: PptxParserOptions;
-    }) => void;
-  };
-}
 ```
 
 ## 序列化回 PPTX
@@ -182,6 +148,44 @@ const updated = await editor.save();
 ```
 
 生成的文件可经 `pptxToJson` / `pptxToHtml` 往返解析。
+
+## 配置选项
+
+```typescript
+interface PptxParserOptions {
+  // 是否处理媒体文件（图片等）
+  mediaProcess?: boolean;
+
+  // 主题处理方式
+  themeProcess?: boolean | 'colorsAndImageOnly';
+
+  // 幻灯片尺寸调整
+  incSlide?: {
+    width: number;
+    height: number;
+  };
+
+  // 自定义样式表
+  styleTable?: Record<string, { name: string; text: string; suffix?: string }>;
+
+  // 回调函数
+  callbacks?: {
+    onFileStart?: () => void;
+    onError?: (error: { type: string; message: string }) => void;
+    onSlide?: (data: any, info: { slideNum: number; fileName: string }) => void;
+    onThumbnail?: (thumbnail: string | null) => void;
+    onSlideSize?: (slideSize: { width: number; height: number }) => void;
+    onGlobalCSS?: (css: string) => void;
+    onComplete?: (info: {
+      executionTime: number;
+      slideWidth: number;
+      slideHeight: number;
+      styleTable: any;
+      settings: PptxParserOptions;
+    }) => void;
+  };
+}
+```
 
 ## Headless 编辑器内核
 
@@ -284,6 +288,32 @@ async function handleUpload(event) {
 ```
 
 > 如需在 Vue 中渲染图表，请将 `examples/chart-lib/chart-renderer.js` 复制到项目中，并将 `echarts` 设为全局依赖。完整示例请参见 `examples/vue-demo` 目录。
+
+## VSCode 插件
+
+不想写代码？可以直接安装官方插件 **[PPTX Editor](https://marketplace.visualstudio.com/items?itemName=fefeding.vscode-pptx)**（[源码](https://github.com/fefeding/vscode-pptx)，MIT）——它正是基于上文「Headless 编辑器内核」（`createStore` / `docFromPptx` / `createActions` / `renderSlideInto`）构建的图形化编辑器，也是这套内核最大的实际应用场景。
+
+安装：
+
+```bash
+code --install-extension fefeding.vscode-pptx
+```
+
+或在 VS Code 扩展面板搜索 `PPTX Editor`（扩展 ID：`fefeding.vscode-pptx`）。
+
+主要能力：
+
+- **默认打开 `.pptx`** — 已注册为 `*.pptx` 的默认自定义编辑器，在资源管理器里双击即可打开，无需安装 Office 等额外软件
+- **幻灯片预览** — 用 `pptxToHtml` 按原始比例渲染每页（保真度最高）；左侧缩略图导航，支持「适应窗口」缩放与网格视图
+- **可视化编辑** — 点选元素、拖动移动、拖拽把手缩放、拖拽旋转点旋转；属性面板可修改位置 / 尺寸 / 旋转、文本（内容 / 字号 / 颜色 / 对齐 / 粗体 / 斜体 / 下划线）、形状填充与描边、替换图片；可插入文本框、矩形与本地图片
+- **线条编辑** — 连接线端点拖拽与顶点编辑（含贝塞尔控制点），靠近形状时自动吸附为连接点（glue），形状移动后自动跟随
+- **页面操作** — 新增空白页、复制、删除、上移下移、设置背景色、锁定、隐藏、演讲者备注
+- **排版功能** — 对齐 / 分布 / 组合 / 层级 / 查找替换
+- **演示模式** — 按 `F5` 全屏放映，方向键 / 空格 / 单击翻页
+- **保存与导出** — `Ctrl/Cmd+S` 保存；命令面板 `PPTX: Export Copy…` 导出副本、`PPTX: Discard Changes and Reload` 放弃修改并重新加载
+- **撤销 / 重做** — `Ctrl/Cmd+Z`、`Ctrl/Cmd+Y`
+
+已知限制：SmartArt、OLE、公式等复杂对象以原始 OOXML（`__raw`）保留，不可可视化编辑；保存时母版 / 版式会重写为单个空白版式，但文本、形状、图片、图表、表格等内容元素完整保留。
 
 ## 开发
 
