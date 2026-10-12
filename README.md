@@ -289,6 +289,32 @@ async function handleUpload(event) {
 
 > For chart rendering in Vue, copy `examples/chart-lib/chart-renderer.js` to your project and set up `echarts` as a global dependency. See the `examples/vue-demo` directory for a complete working example.
 
+## VSCode Extension
+
+Don't want to write code? Install the official extension **[PPTX Editor](https://marketplace.visualstudio.com/items?itemName=fefeding.vscode-pptx)** ([source](https://github.com/fefeding/vscode-pptx), MIT) — it is built directly on top of the Headless Editor Core described above (`createStore` / `docFromPptx` / `createActions` / `renderSlideInto`), and is the largest real-world consumer of that core.
+
+Install:
+
+```bash
+code --install-extension fefeding.vscode-pptx
+```
+
+Or search for `PPTX Editor` in the VS Code Extensions view (extension ID: `fefeding.vscode-pptx`).
+
+Highlights:
+
+- **Default `.pptx` handler** — registered as the default custom editor for `*.pptx`, so double-clicking a file in the Explorer just works; no Office installation required.
+- **Slide preview** — renders every slide at its original aspect ratio via `pptxToHtml` (most faithful); thumbnail navigation in the left sidebar with fit-to-window zoom and a grid view.
+- **Visual editing** — click to select, drag to move, drag handles to resize, drag the rotation grip to rotate; the properties panel covers position / size / rotation, text (content / font size / color / alignment / bold / italic / underline), shape fill and line, and image replacement; insert text boxes, rectangles and local images.
+- **Line editing** — connector endpoint dragging and vertex editing (including bezier control points); endpoints snap to nearby shapes as glue points and follow shapes when they move.
+- **Slide operations** — add blank slide, duplicate, delete, move up/down, background color, lock, hide, speaker notes.
+- **Layout tools** — align / distribute / group / z-order / find-and-replace.
+- **Presentation mode** — press `F5` for a fullscreen slideshow; navigate with arrow keys, space, or click.
+- **Save & export** — `Ctrl/Cmd+S` to save; `PPTX: Export Copy…` and `PPTX: Discard Changes and Reload` from the command palette.
+- **Undo / redo** — `Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`.
+
+Known limitations: complex objects such as SmartArt, OLE and equations are retained as raw OOXML (`__raw`) and are not visually editable; on save the slide masters / layouts are rewritten to a single blank layout, while content elements — text, shapes, images, charts, tables — are fully preserved.
+
 ## Development
 
 ```bash
