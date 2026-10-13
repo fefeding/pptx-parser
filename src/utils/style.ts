@@ -499,6 +499,22 @@ function getFillType(node: XmlNode | undefined) {
             // } else {
             //     color = "" + color;
             // }
+            // 整条继承链（run → 本形状 a:lstStyle → p:style/a:fontRef → 版式/母版 lstStyle）都没给出字色时，
+            // 按 OOXML 语义回退到主题默认文字色：优先 a:objectDefaults/a:txDef 的对应层级 defRPr，其次 tx1
+            // （经母版 clrMap 映射，深色母版会把 tx1 映射到浅色）。
+            // 不显式输出颜色时，宿主页面的环境色会渗入（例如 VSCode 深色 UI 的 --text #e6e6e6），
+            // 白底幻灯片上的深色文字会变成浅灰。
+            if (color === undefined && warpObj !== undefined && warpObj["themeContent"] !== undefined) {
+                const txDefLvl = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"],
+                    ["a:theme", "a:themeElements", "a:objectDefaults", "a:txDef", "a:lstStyle", `a:lvl${lvl || 1}pPr`, "a:defRPr"]);
+                const defSolidFill = (txDefLvl !== undefined) ? txDefLvl["a:solidFill"] : undefined;
+                const fillNode = defSolidFill || { "a:schemeClr": { attrs: { val: "tx1" } } };
+                const resolvedColor = getSolidFill(fillNode, undefined, undefined, warpObj);
+                if (resolvedColor !== undefined && resolvedColor !== "") {
+                    color = resolvedColor;
+                    colorType = "solid";
+                }
+            }
             let text_effcts = "", txt_effects;
             if (colorType == "solid") {
                 if (txtEffects.length > 0) {

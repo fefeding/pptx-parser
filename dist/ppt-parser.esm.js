@@ -2089,6 +2089,16 @@ async function getFontColorPr(node, pNode, lstStyle, pFontStyle, lvl, idx, type,
             }
         }
     }
+    if (color === undefined && warpObj !== undefined && warpObj["themeContent"] !== undefined) {
+        const txDefLvl = PPTXXmlUtils.getTextByPathList(warpObj["themeContent"], ["a:theme", "a:themeElements", "a:objectDefaults", "a:txDef", "a:lstStyle", `a:lvl${lvl || 1}pPr`, "a:defRPr"]);
+        const defSolidFill = (txDefLvl !== undefined) ? txDefLvl["a:solidFill"] : undefined;
+        const fillNode = defSolidFill || { "a:schemeClr": { attrs: { val: "tx1" } } };
+        const resolvedColor = getSolidFill(fillNode, undefined, undefined, warpObj);
+        if (resolvedColor !== undefined && resolvedColor !== "") {
+            color = resolvedColor;
+            colorType = "solid";
+        }
+    }
     let text_effcts = "", txt_effects;
     if (colorType == "solid") {
         if (txtEffects.length > 0) {

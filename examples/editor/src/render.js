@@ -465,7 +465,10 @@ function renderTextBody(el, ctx) {
     const bullet = paraHasContent ? bulletRaw : null;
     const firstRun = (p.runs || [])[0] || {};
     const bulletFontSize = ptToPx(effFont(firstRun));
-    const bulletColor = normalizeColor((bullet && bullet.color) || firstRun.color) || normalizeColor(el.color) || '#202124';
+    // 未显式指定字色时回退到主题正文色（导入 PPTX 时为主题 tx1，如 #000000），
+    // 而不是硬编码灰：否则与预览端 / PowerPoint 不一致。
+    const bulletColor = normalizeColor((bullet && bullet.color) || firstRun.color) || normalizeColor(el.color)
+      || getTheme(ctx.theme).text || '#202124';
     const bulletFont = fontFamilyOf(
       firstRun.fontFace, firstRun.fontFaceEa, el.fontFace, el.fontFaceEa, '微软雅黑'
     ) || quoteFont('微软雅黑');
@@ -570,7 +573,10 @@ function renderTextBody(el, ctx) {
         st.color = normalizeColor(run.color) || normalizeColor(el.color)
           || getTheme(ctx.theme).accents[0] || '#1A73E8';
       } else {
-        st.color = normalizeColor(run.color) || normalizeColor(el.color) || '#202124';
+        // run/元素都无显式字色时，按 OOXML 语义用主题正文色（导入 PPTX 即 tx1，通常 #000000），
+        // 原硬编码 #202124 会在白底幻灯片上偏灰、与预览端不一致。
+        st.color = normalizeColor(run.color) || normalizeColor(el.color)
+          || getTheme(ctx.theme).text || '#202124';
       }
       if (run.bold ?? el.bold) st.fontWeight = '700';
       if (run.italic ?? el.italic) st.fontStyle = 'italic';
@@ -664,7 +670,7 @@ function fontFamilyOf(...faces) {
   return out.length ? out.join(', ') : null;
 }
 
-function renderTableBody(el) {
+function renderTableBody(el, ctx) {
   const grid = h('div', { class: 'el-table', style: { width: '100%', height: '100%' } });
   const rows = el.rows || [];
   const cols = Math.max(1, ...rows.map((r) => (r.cells || []).length));
@@ -718,7 +724,7 @@ function renderTableBody(el) {
       d.style.borderBottom = side('bottom');
       if (cell.fill) d.style.background = normalizeColor(cell.fill) || 'transparent';
       d.style.fontSize = `${ptToPx(cell.fontSize || 14)}px`;
-      d.style.color = normalizeColor(cell.color) || '#202124';
+      d.style.color = normalizeColor(cell.color) || getTheme(ctx.theme).text || '#202124';
       if (cell.bold) d.style.fontWeight = '700';
       d.style.textAlign = cell.align || 'left';
       d.style.justifyContent = cell.align === 'center' ? 'center' : cell.align === 'right' ? 'flex-end' : 'flex-start';
@@ -1128,7 +1134,7 @@ export function renderElement(el, ctx = {}) {
       break;
     }
     case 'table': {
-      node.appendChild(renderTableBody(el));
+      node.appendChild(renderTableBody(el, ctx));
       break;
     }
     case 'chart': {
