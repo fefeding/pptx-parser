@@ -1616,7 +1616,12 @@ export function docFromPptx(pptxDoc: any, opts: { fileName?: string } = {}): any
         }
         if (s.animations && s.animations.length) {
             slide.animations = s.animations.map((a: any) => {
-                const idx = typeof a.target === 'number' ? a.target : 0;
+                // `a.target` from pptxToStandard is the pptx shape `spid` (a string such as "2"),
+                // while jsonToPptx writes spid as elementIndex + 2. Convert it back to the element
+                // index so we resolve the correct editor element id. Numeric targets (already an
+                // index, e.g. from a doc that round-tripped through the editor JSON) pass through.
+                const t = typeof a.target === 'number' ? a.target : Number(a.target) - 2;
+                const idx = Number.isFinite(t) && t >= 0 ? t : 0;
                 const el = slide.elements[idx];
                 return {
                     target: el ? el.id : (slide.elements[0] ? slide.elements[0].id : ''),

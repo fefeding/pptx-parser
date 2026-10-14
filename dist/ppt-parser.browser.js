@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.23
+ * @fefeding/ppt-parser v1.0.24
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -16196,7 +16196,7 @@ const NS = {
     m: 'http://schemas.openxmlformats.org/officeDocument/2006/math',
     ext: 'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties'
 };
-function escapeXml(str) {
+function escapeXml$1(str) {
     if (str === undefined || str === null)
         return '';
     return String(str)
@@ -16251,13 +16251,13 @@ function nodeToString(node, indent = '') {
     if (node === null || node === undefined)
         return '';
     if (typeof node === 'string') {
-        return escapeXml(node);
+        return escapeXml$1(node);
     }
     if (node.raw !== undefined)
         return node.raw;
     const attrs = node.attrs ?? {};
     const attrStr = Object.keys(attrs)
-        .map(key => ` ${key}="${escapeXml(attrs[key])}"`)
+        .map(key => ` ${key}="${escapeXml$1(attrs[key])}"`)
         .join('');
     if (!node.children || node.children.length === 0) {
         return `<${node.tagName}${attrStr}/>`;
@@ -16289,12 +16289,12 @@ function buildClrScheme(c) {
         return `<a:${k}><a:srgbClr val="${colorToHex(val)}"/></a:${k}>`;
     })
         .join('');
-    return `<a:clrScheme name="${escapeXml(c.name || 'Custom')}">${inner}</a:clrScheme>`;
+    return `<a:clrScheme name="${escapeXml$1(c.name || 'Custom')}">${inner}</a:clrScheme>`;
 }
 function buildFontScheme(f) {
-    const grp = (tag, g, defLatin) => `<a:${tag}><a:latin typeface="${escapeXml(g?.latin || defLatin)}"/>` +
-        `<a:ea typeface="${escapeXml(g?.ea || '')}"/><a:cs typeface="${escapeXml(g?.cs || '')}"/></a:${tag}>`;
-    return `<a:fontScheme name="${escapeXml(f.name || 'Custom')}">` +
+    const grp = (tag, g, defLatin) => `<a:${tag}><a:latin typeface="${escapeXml$1(g?.latin || defLatin)}"/>` +
+        `<a:ea typeface="${escapeXml$1(g?.ea || '')}"/><a:cs typeface="${escapeXml$1(g?.cs || '')}"/></a:${tag}>`;
+    return `<a:fontScheme name="${escapeXml$1(f.name || 'Custom')}">` +
         grp('majorFont', f.major, 'Calibri Light') + grp('minorFont', f.minor, 'Calibri') +
         `</a:fontScheme>`;
 }
@@ -16309,7 +16309,7 @@ function buildThemeXml$1(theme) {
         xml = xml.replace(/<a:fontScheme[^>]*>[\s\S]*?<\/a:fontScheme>/, buildFontScheme(theme.fonts));
     }
     if (theme?.name) {
-        xml = xml.replace(/<a:theme([^>]*)name="[^"]*"/, `<a:theme$1name="${escapeXml(theme.name)}"`);
+        xml = xml.replace(/<a:theme([^>]*)name="[^"]*"/, `<a:theme$1name="${escapeXml$1(theme.name)}"`);
     }
     return xml;
 }
@@ -16326,17 +16326,17 @@ function buildPlaceholderSpXml(ph, id) {
         rPrAttrs.push('b="1"');
     if (ph.fontFace)
         rPrAttrs.push('');
-    const rPrChildren = ph.fontFace ? `<a:latin typeface="${escapeXml(ph.fontFace)}"/>` : '';
+    const rPrChildren = ph.fontFace ? `<a:latin typeface="${escapeXml$1(ph.fontFace)}"/>` : '';
     const rPr = `<a:rPr ${rPrAttrs.join(' ')}>${rPrChildren}</a:rPr>`;
     const para = ph.prompt
-        ? `<a:p><a:r>${rPr}<a:t>${escapeXml(ph.prompt)}</a:t></a:r></a:p>`
+        ? `<a:p><a:r>${rPr}<a:t>${escapeXml$1(ph.prompt)}</a:t></a:r></a:p>`
         : '<a:p><a:endParaRPr lang="zh-CN" dirty="0"/></a:p>';
     const idxAttr = ph.idx != null ? ` idx="${ph.idx}"` : '';
     return `<p:sp>` +
         `<p:nvSpPr>` +
-        `<p:cNvPr id="${id}" name="${escapeXml(ph.name || `${ph.type} Placeholder ${id - 1}`)}"/>` +
+        `<p:cNvPr id="${id}" name="${escapeXml$1(ph.name || `${ph.type} Placeholder ${id - 1}`)}"/>` +
         `<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
-        `<p:nvPr><p:ph type="${escapeXml(ph.type)}"${idxAttr}/></p:nvPr>` +
+        `<p:nvPr><p:ph type="${escapeXml$1(ph.type)}"${idxAttr}/></p:nvPr>` +
         `</p:nvSpPr>` +
         `<p:spPr>` +
         `<a:xfrm><a:off x="${pxToEmu(ph.x || 0)}" y="${pxToEmu(ph.y || 0)}"/>` +
@@ -16371,7 +16371,7 @@ function buildSlideMasterXml(master, layoutRelIds, elementXml = '') {
     let xml = DEFAULT_MASTER_XML;
     const relIds = layoutRelIds && layoutRelIds.length ? layoutRelIds : ['rId1'];
     const layoutIds = relIds
-        .map((rid, i) => `<p:sldLayoutId id="${2147483649 + i}" r:id="${escapeXml(rid)}"/>`)
+        .map((rid, i) => `<p:sldLayoutId id="${2147483649 + i}" r:id="${escapeXml$1(rid)}"/>`)
         .join('');
     xml = xml.replace(/<p:sldLayoutIdLst>[\s\S]*?<\/p:sldLayoutIdLst>/, `<p:sldLayoutIdLst>${layoutIds}</p:sldLayoutIdLst>`);
     const placeholders = (master?.placeholders || []);
@@ -16394,7 +16394,7 @@ function buildSlideLayoutXml(layout, elementXml = '') {
     if (inner)
         xml = xml.replace('</p:spTree>', `${inner}</p:spTree>`);
     if (layout?.name) {
-        xml = xml.replace(/<p:cSld([^>]*)name="[^"]*"/, `<p:cSld$1name="${escapeXml(layout.name)}"`);
+        xml = xml.replace(/<p:cSld([^>]*)name="[^"]*"/, `<p:cSld$1name="${escapeXml$1(layout.name)}"`);
     }
     if (layout?.showMasterSp === false) {
         xml = xml.replace('<p:sldLayout ', '<p:sldLayout showMasterSp="0" ');
@@ -16457,7 +16457,7 @@ function buildTableStylesXml(styleIds = []) {
 }
 function buildCustomPropsXml(pairs) {
     const props = Object.entries(pairs)
-        .map(([name, value], i) => `<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="${i + 2}" name="${escapeXml(name)}"><vt:lpwstr>${escapeXml(value)}</vt:lpwstr></property>`)
+        .map(([name, value], i) => `<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="${i + 2}" name="${escapeXml$1(name)}"><vt:lpwstr>${escapeXml$1(value)}</vt:lpwstr></property>`)
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" ` +
@@ -16465,29 +16465,29 @@ function buildCustomPropsXml(pairs) {
 }
 function buildCommentsXml(comments) {
     const items = comments
-        .map((c, i) => `<p:cm authorId="${c.authorId}" dt="${escapeXml(c.dt)}" id="${i}">` +
+        .map((c, i) => `<p:cm authorId="${c.authorId}" dt="${escapeXml$1(c.dt)}" id="${i}">` +
         `<p:pos x="${c.x ?? 914400}" y="${c.y ?? 914400}"/>` +
-        `<p:text>${escapeXml(c.text)}</p:text></p:cm>`)
+        `<p:text>${escapeXml$1(c.text)}</p:text></p:cm>`)
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<p:cmLst xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}">${items}</p:cmLst>`;
 }
 function buildCommentAuthorsXml(authors) {
     const items = authors
-        .map((a) => `<p:cmAuthor id="${a.id}" name="${escapeXml(a.name)}" ` +
-        `initials="${escapeXml(a.initials || (a.name ? a.name[0] : 'A'))}" ` +
-        `lastIdx="${a.lastIdx ?? 0}" clr="${escapeXml(a.color || 'FF000000')}"/>`)
+        .map((a) => `<p:cmAuthor id="${a.id}" name="${escapeXml$1(a.name)}" ` +
+        `initials="${escapeXml$1(a.initials || (a.name ? a.name[0] : 'A'))}" ` +
+        `lastIdx="${a.lastIdx ?? 0}" clr="${escapeXml$1(a.color || 'FF000000')}"/>`)
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<p:commentAuthors xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}">${items}</p:commentAuthors>`;
 }
 function buildPresentationXml(slideSize, slides, opts = {}) {
     const slideEntries = slides
-        .map((s, i) => `<p:sldId id="${256 + i}" r:id="${escapeXml(s.relId)}"/>`)
+        .map((s, i) => `<p:sldId id="${256 + i}" r:id="${escapeXml$1(s.relId)}"/>`)
         .join('');
     const masterRelIds = opts.masterRelIds?.length ? opts.masterRelIds : ['rId1'];
     const masterEntries = masterRelIds
-        .map((rid, i) => `<p:sldMasterId id="${2147483648 + i}" r:id="${escapeXml(rid)}"/>`)
+        .map((rid, i) => `<p:sldMasterId id="${2147483648 + i}" r:id="${escapeXml$1(rid)}"/>`)
         .join('');
     let sectionXml = '';
     if (opts.sections && opts.sections.length) {
@@ -16495,12 +16495,12 @@ function buildPresentationXml(slideSize, slides, opts = {}) {
             const ids = (sec.slides || [])
                 .map(idx => `<p:sldId id="${256 + idx}"/>`)
                 .join('');
-            return `<p:section name="${escapeXml(sec.name || `Section ${i + 1}`)}" id="{${sectionGuid(i)}}"><p:sldIdLst>${ids}</p:sldIdLst></p:section>`;
+            return `<p:section name="${escapeXml$1(sec.name || `Section ${i + 1}`)}" id="{${sectionGuid(i)}}"><p:sldIdLst>${ids}</p:sldIdLst></p:section>`;
         }).join('');
         sectionXml = `<p:sectionLst>${items}</p:sectionLst>`;
     }
     const notesMasterXml = opts.notesMasterRelId
-        ? `<p:notesMasterIdLst><p:notesMasterId r:id="${escapeXml(opts.notesMasterRelId)}"/></p:notesMasterIdLst>`
+        ? `<p:notesMasterIdLst><p:notesMasterId r:id="${escapeXml$1(opts.notesMasterRelId)}"/></p:notesMasterIdLst>`
         : '';
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" saveSubsetFonts="1"><p:sldMasterIdLst>${masterEntries}</p:sldMasterIdLst>${notesMasterXml}<p:sldIdLst>${slideEntries}</p:sldIdLst>${sectionXml}<p:sldSz cx="${pxToEmu(slideSize.width)}" cy="${pxToEmu(slideSize.height)}"/><p:notesSz cx="6858000" cy="9144000"/><p:defaultTextStyle/></p:presentation>`;
 }
@@ -16517,13 +16517,13 @@ function obfuscateFontData(bytes) {
 }
 function buildFontTableXml(fonts, relIds) {
     const entries = fonts.map((f, i) => {
-        const panose = f.panose ? `<a:panose val="${escapeXml(f.panose)}"/>` : '';
+        const panose = f.panose ? `<a:panose val="${escapeXml$1(f.panose)}"/>` : '';
         const styleAttrs = `${f.bold ? ' b="1"' : ''}${f.italic ? ' i="1"' : ''}`;
         const subsetted = f.embedType === 'subset' ? '1' : '0';
         const embedded = relIds[i]
-            ? `<a:embeddedFont embed="embed" subsetted="${subsetted}"><a:fontData r:id="${escapeXml(relIds[i])}"/></a:embeddedFont>`
+            ? `<a:embeddedFont embed="embed" subsetted="${subsetted}"><a:fontData r:id="${escapeXml$1(relIds[i])}"/></a:embeddedFont>`
             : '';
-        return `<a:font script="Latn" typeface="${escapeXml(f.name)}"${styleAttrs}>${panose}` +
+        return `<a:font script="Latn" typeface="${escapeXml$1(f.name)}"${styleAttrs}>${panose}` +
             `<a:charset val="0"/><a:family val="roman"/><a:pitch val="variable"/>${embedded}</a:font>`;
     }).join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:fontTable ${DRAWING_NS}>${entries}</p:fontTable>`;
@@ -16542,7 +16542,7 @@ function sectionGuid(seed) {
 }
 function buildRelationshipsXml(rels) {
     const entries = rels
-        .map((r) => `<Relationship Id="${escapeXml(r.relId)}" Type="${escapeXml(r.type)}" Target="${escapeXml(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`)
+        .map((r) => `<Relationship Id="${escapeXml$1(r.relId)}" Type="${escapeXml$1(r.type)}" Target="${escapeXml$1(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`)
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="${NS.rel}">${entries}</Relationships>`;
 }
@@ -16563,7 +16563,7 @@ function buildContentTypesXml(mediaExts, slideCount, opts = {}) {
         .map(ext => `<Default Extension="${ext}" ContentType="${ext === 'rels' ? 'application/vnd.openxmlformats-package.relationships+xml' : 'application/xml'}"/>`)
         .join('');
     const mediaDefaults = [...new Set(mediaExts)]
-        .map(ext => `<Default Extension="${escapeXml(ext)}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/>`)
+        .map(ext => `<Default Extension="${escapeXml$1(ext)}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/>`)
         .join('');
     const slideOverrides = Array.from({ length: slideCount }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${Array.from({ length: Math.max(1, opts.masterCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideMasters/slideMaster${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>`).join('')}${Array.from({ length: Math.max(1, opts.layoutCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`).join('')}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${Array.from({ length: Math.max(0, (opts.themeCount ?? 1) - 1) }, (_, i) => `<Override PartName="/ppt/theme/theme${i + 2}.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
@@ -16584,7 +16584,7 @@ function buildCorePropsXml(metadata) {
         ['cp:contentStatus', md.status]
     ]
         .filter(([, val]) => val !== undefined && val !== null && val !== '')
-        .map(([tag, val]) => `<${tag}>${escapeXml(val)}</${tag}>`)
+        .map(([tag, val]) => `<${tag}>${escapeXml$1(val)}</${tag}>`)
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<cp:coreProperties xmlns:cp="${NS.cp}" xmlns:dc="${NS.dc}" xmlns:dcterms="${NS.dcterms}" xmlns:dcmitype="${NS.dcmitype}" xmlns:xsi="${NS.xsi}">${fields}<dcterms:created xsi:type="dcterms:W3CDTF">${created}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${modified}</dcterms:modified></cp:coreProperties>`;
 }
@@ -17492,7 +17492,7 @@ function gradientFillXml(g) {
         .join('')}</a:gsLst>`;
     if (g.gradientType === 'radial') {
         const path = g.gradientPath || 'circle';
-        return `<a:gradFill rotWithShape="1">${gsLst}<a:path path="${escapeXml(path)}"><a:fillToRect l="100000" t="100000" r="100000" b="100000"/></a:path></a:gradFill>`;
+        return `<a:gradFill rotWithShape="1">${gsLst}<a:path path="${escapeXml$1(path)}"><a:fillToRect l="100000" t="100000" r="100000" b="100000"/></a:path></a:gradFill>`;
     }
     const ang = (g.direction === 'vertical' ? 90 : g.direction === 'diagonal' ? 45 : 0) * 60000;
     return `<a:gradFill>${gsLst}<a:lin ang="${ang}" scaled="1"/></a:gradFill>`;
@@ -17501,7 +17501,7 @@ function strRefXml(values, col) {
     const n = values.length;
     let pts = '';
     for (let i = 0; i < n; i++) {
-        pts += `<c:pt idx="${i}"><c:v>${escapeXml(String(values[i]))}</c:v></c:pt>`;
+        pts += `<c:pt idx="${i}"><c:v>${escapeXml$1(String(values[i]))}</c:v></c:pt>`;
     }
     const last = n > 0 ? n - 1 : 0;
     return `<c:strRef><c:f>Sheet1!$${col}$2:$${col}$${2 + last}</c:f>` +
@@ -17520,8 +17520,8 @@ function numRefXml(values, col) {
 function buildTrendlineXml(t) {
     const parts = [];
     if (t.name)
-        parts.push(`<c:name>${escapeXml(t.name)}</c:name>`);
-    parts.push(`<c:trendlineType val="${escapeXml(t.type || 'linear')}"/>`);
+        parts.push(`<c:name>${escapeXml$1(t.name)}</c:name>`);
+    parts.push(`<c:trendlineType val="${escapeXml$1(t.type || 'linear')}"/>`);
     if (t.order != null)
         parts.push(`<c:order val="${Math.round(t.order)}"/>`);
     if (t.period != null)
@@ -17569,7 +17569,7 @@ function buildChartXml(el) {
         if (!dl)
             return '';
         const obj = (dl && typeof dl === 'object') ? dl : null;
-        const nf = numFmt ? `<c:numFmt formatCode="${escapeXml(numFmt)}" sourceLinked="0"/>` : '';
+        const nf = numFmt ? `<c:numFmt formatCode="${escapeXml$1(numFmt)}" sourceLinked="0"/>` : '';
         return `<c:dLbls>${nf}<c:showVal val="${(dl === true || !!obj?.showValue) ? 1 : 0}"/>` +
             `<c:showPercent val="${obj?.showPercent ? 1 : 0}"/><c:showSer val="${obj?.showSeries ? 1 : 0}"/>` +
             `<c:showCatName val="${obj?.showCategory ? 1 : 0}"/></c:dLbls>`;
@@ -17630,7 +17630,7 @@ function buildChartXml(el) {
         return serList.map((s, j) => {
             const i = offset + j;
             const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
-                `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
+                `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml$1(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
             let data;
             if (f.isScatter) {
                 data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
@@ -17736,26 +17736,26 @@ function buildChartXml(el) {
     const majorGl = gl && gl.major === false ? '' : '<c:majorGridlines/>';
     const minorGl = gl && gl.minor === true ? '<c:minorGridlines/>' : '';
     const axisTitleXml = (t) => t
-        ? `<c:axTitle><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml(t)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:axTitle>`
+        ? `<c:axTitle><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml$1(t)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:axTitle>`
         : '';
     let axes = '';
     if (!allPieLike) {
         const catOrValAxX = anyXY
             ? `<c:valAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="112"/><c:crosses val="autoZero"/></c:valAx>`
             : `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="${needsSerAx ? 113 : 112}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
-        const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.value)}<c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
+        const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml$1(el.numberFormat || 'General')}" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.value)}<c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
         axes = catOrValAxX + valAxY;
         if (needsSerAx) {
             axes += `<c:serAx><c:axId val="113"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/><c:crossAx val="111"/><c:crosses val="autoZero"/></c:serAx>`;
         }
         if (useSecondary) {
             axes += `<c:catAx><c:axId val="211"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:tickLblPos val="none"/><c:crossAx val="212"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
-            axes += `<c:valAx><c:axId val="212"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="r"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.secondaryValue)}<c:tickLblPos val="low"/><c:crossAx val="211"/><c:crosses val="max"/><c:crossBetween val="between"/></c:valAx>`;
+            axes += `<c:valAx><c:axId val="212"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="r"/><c:numFmt formatCode="${escapeXml$1(el.numberFormat || 'General')}" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.secondaryValue)}<c:tickLblPos val="low"/><c:crossAx val="211"/><c:crosses val="max"/><c:crossBetween val="between"/></c:valAx>`;
         }
     }
     const titleXml = el.title
         ? `<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/>` +
-            `<a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml(el.title)}</a:t></a:r></a:p>` +
+            `<a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml$1(el.title)}</a:t></a:r></a:p>` +
             `</c:rich></c:tx><c:overlay val="0"/></c:title>`
         : '';
     const legendPos = el.legendPosition || (typeof el.legend === 'string' ? el.legend : (el.legend ? 'r' : undefined));
@@ -18087,7 +18087,7 @@ function buildDiagramDataModel(nodes) {
         for (const node of ns) {
             modelId++;
             const mid = modelId;
-            const text = escapeXml(node.text || '');
+            const text = escapeXml$1(node.text || '');
             points.push(`<dsdgm:pt modelId="${mid}" type="node">` +
                 `<dsdgm:prSet loColr="none" hiColr="none"/>` +
                 `<dsdgm:spPr/>` +
@@ -18127,8 +18127,8 @@ function buildDiagramLayout(type, seed) {
     const uid = diagramUniqueId(seed * 4 + 1);
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<dgm:layoutDef xmlns:dgm="${DGML_NS}" uniqueId="${uid}" minVer="2.0.0.0" ` +
-        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramStyle" name="${escapeXml(type)}">` +
-        `<dgm:title val="${escapeXml(type)}"/><dgm:desc val="pptx-parser generated diagram"/>` +
+        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramStyle" name="${escapeXml$1(type)}">` +
+        `<dgm:title val="${escapeXml$1(type)}"/><dgm:desc val="pptx-parser generated diagram"/>` +
         `<dgm:catLst><dgm:cat type="${cat}" pri="1000"/></dgm:catLst>` +
         `<dgm:styleData/><dgm:adjLst/><dgm:nodeLst/><dgm:connLst/><dgm:foreachLst/>` +
         `<dgm:layoutNode name="ROOT" styleLbl="node"><dgm:alg type="hierChild"/>` +
@@ -18144,16 +18144,16 @@ function buildDiagramColors(type, seed) {
     const uid = diagramUniqueId(seed * 4 + 2);
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<dgm:colorsDef xmlns:dgm="${DGML_NS}" uniqueId="${uid}" minVer="2.0.0.0" ` +
-        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramColors" name="${escapeXml(type)} colors">` +
-        `<dgm:title val="${escapeXml(type)} colors"/><dgm:desc val="generated"/>` +
+        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramColors" name="${escapeXml$1(type)} colors">` +
+        `<dgm:title val="${escapeXml$1(type)} colors"/><dgm:desc val="generated"/>` +
         `<dgm:catLst/><dgm:varLst/><dgm:styleLblLst/><dgm:sampRagLst/></dgm:colorsDef>`;
 }
 function buildDiagramQuickStyle(type, seed) {
     const uid = diagramUniqueId(seed * 4 + 3);
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<dgm:quickStyleDef xmlns:dgm="${DGML_NS}" uniqueId="${uid}" minVer="2.0.0.0" ` +
-        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramQuickStyle" name="${escapeXml(type)} quick style">` +
-        `<dgm:title val="${escapeXml(type)} quick style"/><dgm:desc val="generated"/>` +
+        `defStyle="urn:microsoft.com/office/officeart/2005/8/diagramQuickStyle" name="${escapeXml$1(type)} quick style">` +
+        `<dgm:title val="${escapeXml$1(type)} quick style"/><dgm:desc val="generated"/>` +
         `<dgm:catLst/><dgm:varLst/><dgm:styleLblLst/></dgm:quickStyleDef>`;
 }
 const DSP_NS = 'http://schemas.microsoft.com/office/drawing/2008/diagram';
@@ -18286,7 +18286,7 @@ function buildDiagramDrawing(type, seed, nodes, W, H) {
         const xfrm = `<a:xfrm><a:off x="${s.x}" y="${s.y}"/><a:ext cx="${s.w}" cy="${s.h}"/></a:xfrm>`;
         if (s.kind === 'line') {
             const lwEmu = Math.max(9525, Math.round(pxToEmu(2)));
-            return `<dsp:cxnSp modelId="${escapeXml(modelId)}"><dsp:nvCxnSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvCxnSpPr><a:stCxn id="0" idx="0"/><a:endCxn id="0" idx="0"/></dsp:cNvCxnSpPr><dsp:nvPr/></dsp:nvCxnSpPr>` +
+            return `<dsp:cxnSp modelId="${escapeXml$1(modelId)}"><dsp:nvCxnSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvCxnSpPr><a:stCxn id="0" idx="0"/><a:endCxn id="0" idx="0"/></dsp:cNvCxnSpPr><dsp:nvPr/></dsp:nvCxnSpPr>` +
                 `<dsp:spPr bwMode="auto">${xfrm}` +
                 `<a:prstGeom prst="straightConnector1"><a:avLst/></a:prstGeom>` +
                 `<a:ln w="${lwEmu}"><a:solidFill><a:schemeClr val="${s.fill}"/></a:solidFill></a:ln>` +
@@ -18294,7 +18294,7 @@ function buildDiagramDrawing(type, seed, nodes, W, H) {
                 `</dsp:cxnSp>`;
         }
         const sz = Math.max(900, Math.min(2200, Math.round((s.h / 914400) * 1200)));
-        return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
+        return `<dsp:sp modelId="${escapeXml$1(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
             `<dsp:spPr bwMode="auto">${xfrm}` +
             `<a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom>` +
             `<a:solidFill><a:schemeClr val="${s.fill}"/></a:solidFill>` +
@@ -18302,7 +18302,7 @@ function buildDiagramDrawing(type, seed, nodes, W, H) {
             `</dsp:spPr>` +
             `<dsp:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/>` +
             `<a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="en-US" sz="${sz}" b="1"><a:solidFill><a:schemeClr val="lt1"/></a:solidFill></a:rPr>` +
-            `<a:t>${escapeXml(s.text)}</a:t></a:r></a:p></dsp:txBody></dsp:sp>`;
+            `<a:t>${escapeXml$1(s.text)}</a:t></a:r></a:p></dsp:txBody></dsp:sp>`;
     }).join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<dsp:drawing xmlns:dsp="${DSP_NS}" xmlns:a="${A_NS}" xmlns:r="${NS.r}">` +
@@ -18322,7 +18322,7 @@ function buildDiagramDrawingFromShapes(shapes, W, H) {
         const adjust = s.adjust && Object.keys(s.adjust).length
             ? Object.entries(s.adjust).map(([name, val]) => `<a:gd name="${name}" fmla="val ${val}"/>`).join('')
             : '';
-        const geom = `<a:prstGeom prst="${escapeXml(s.prst || 'rect')}"><a:avLst>${adjust}</a:avLst></a:prstGeom>`;
+        const geom = `<a:prstGeom prst="${escapeXml$1(s.prst || 'rect')}"><a:avLst>${adjust}</a:avLst></a:prstGeom>`;
         const fillXml = (s.fill === 'none' || !s.fill)
             ? (s.fill === 'none' ? '<a:noFill/>' : '')
             : `<a:solidFill><a:srgbClr val="${hex(s.fill)}"/></a:solidFill>`;
@@ -18335,15 +18335,15 @@ function buildDiagramDrawingFromShapes(shapes, W, H) {
         const sz = Math.max(900, Math.min(4000, Math.round((s.fontSize || 12) * 100)));
         const lines = String(s.text || '').split('\n').map((line) => `<a:p><a:pPr algn="${algn}"/><a:r><a:rPr lang="en-US" sz="${sz}"${s.bold ? ' b="1"' : ''}>` +
             (s.color ? `<a:solidFill><a:srgbClr val="${hex(s.color)}"/></a:solidFill>` : '') +
-            `</a:rPr><a:t>${escapeXml(line)}</a:t></a:r></a:p>`).join('');
+            `</a:rPr><a:t>${escapeXml$1(line)}</a:t></a:r></a:p>`).join('');
         const txBody = s.text
             ? `<dsp:txBody><a:bodyPr anchor="${anchor}"/><a:lstStyle/>${lines}</dsp:txBody>`
             : `<dsp:txBody><a:bodyPr anchor="${anchor}"/><a:lstStyle/><a:p><a:endParaRPr lang="en-US"/></a:p></dsp:txBody>`;
         if (s.connector) {
-            return `<dsp:cxnSp modelId="${escapeXml(modelId)}"><dsp:nvCxnSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvCxnSpPr/><dsp:nvPr/></dsp:nvCxnSpPr>` +
+            return `<dsp:cxnSp modelId="${escapeXml$1(modelId)}"><dsp:nvCxnSpPr><dsp:cNvPr id="${id}" name="Connector ${id}"/><dsp:cNvCxnSpPr/><dsp:nvPr/></dsp:nvCxnSpPr>` +
                 `<dsp:spPr bwMode="auto">${xfrm}${geom}<a:noFill/>${lineXml}</dsp:spPr></dsp:cxnSp>`;
         }
-        return `<dsp:sp modelId="${escapeXml(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
+        return `<dsp:sp modelId="${escapeXml$1(modelId)}"><dsp:nvSpPr><dsp:cNvPr id="${id}" name="Node ${id}"/><dsp:cNvSpPr/></dsp:nvSpPr>` +
             `<dsp:spPr bwMode="auto">${xfrm}${geom}${fillXml}${lineXml}</dsp:spPr>${txBody}</dsp:sp>`;
     }).join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
@@ -18751,7 +18751,7 @@ async function buildChartXlsx(workbook) {
     }).join('');
     const sstXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${strings.length}" uniqueCount="${strings.length}">` +
-        strings.map(s => `<si><t xml:space="preserve">${escapeXml(s)}</t></si>`).join('') +
+        strings.map(s => `<si><t xml:space="preserve">${escapeXml$1(s)}</t></si>`).join('') +
         `</sst>`;
     const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
         `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
@@ -19118,7 +19118,7 @@ async function jsonToPptx(presentation, options = {}) {
         contentTypeXml = contentTypeXml.replace('</Types>', `${drawOverride}</Types>`);
     }
     for (const part of allRawParts) {
-        const override = `<Override PartName="/${part.path}" ContentType="${escapeXml(part.contentType)}"/>`;
+        const override = `<Override PartName="/${part.path}" ContentType="${escapeXml$1(part.contentType)}"/>`;
         contentTypeXml = contentTypeXml.replace('</Types>', `${override}</Types>`);
     }
     zip.file('[Content_Types].xml', contentTypeXml);
@@ -19165,7 +19165,7 @@ function parseSldIdLst(presentationText) {
 }
 function rewriteSldIdLst(presentationText, entries) {
     const inner = entries
-        .map((e, i) => `<p:sldId id="${e.id || 256 + i}" r:id="${escapeXml(e.relId)}"/>`)
+        .map((e, i) => `<p:sldId id="${e.id || 256 + i}" r:id="${escapeXml$1(e.relId)}"/>`)
         .join('');
     return presentationText.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/, `<p:sldIdLst>${inner}</p:sldIdLst>`);
 }
@@ -19452,7 +19452,7 @@ async function editPptx(fileData) {
             }
             for (const part of newCtRawParts) {
                 if (!newCt.includes(`/${part.path}`)) {
-                    newCt = newCt.replace('</Types>', `<Override PartName="/${part.path}" ContentType="${escapeXml(part.contentType)}"/></Types>`);
+                    newCt = newCt.replace('</Types>', `<Override PartName="/${part.path}" ContentType="${escapeXml$1(part.contentType)}"/></Types>`);
                 }
             }
             zip.file('[Content_Types].xml', newCt);
@@ -21493,6 +21493,99 @@ function readCustGeom(custGeom) {
     }
     return paths.length ? { paths } : undefined;
 }
+function escapeXml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function serializeNode(tag, node) {
+    if (node == null)
+        return '';
+    if (typeof node === 'string')
+        return escapeXml(node);
+    if (Array.isArray(node))
+        return node.map((n) => serializeNode(tag, n)).join('');
+    if (typeof node !== 'object')
+        return '';
+    const attrs = node.attrs || {};
+    const attrStr = Object.keys(attrs)
+        .filter((k) => attrs[k] != null)
+        .map((k) => ` ${k}="${escapeXml(attrs[k])}"`)
+        .join('');
+    let inner = '';
+    for (const key of Object.keys(node)) {
+        if (key === 'attrs' || key.startsWith('_'))
+            continue;
+        const v = node[key];
+        if (v == null)
+            continue;
+        if (Array.isArray(v))
+            for (const item of v)
+                inner += serializeNode(key, item);
+        else
+            inner += serializeNode(key, v);
+    }
+    return `<${tag}${attrStr}>${inner}</${tag}>`;
+}
+function collectOomlText(node, acc = []) {
+    if (!node || typeof node !== 'object')
+        return acc;
+    for (const key of Object.keys(node)) {
+        const v = node[key];
+        if (v == null)
+            continue;
+        if (key === 'a:t' || key === 'm:t') {
+            for (const t of asArray(v)) {
+                if (typeof t === 'string')
+                    acc.push(t);
+                else
+                    collectOomlText(t, acc);
+            }
+        }
+        else if (typeof v === 'object') {
+            collectOomlText(v, acc);
+        }
+    }
+    return acc;
+}
+function extractMathFromSp(node) {
+    const txBody = node && node['p:txBody'];
+    if (!txBody)
+        return null;
+    let omathRoot = null;
+    let omathTag = '';
+    let fallbackText = '';
+    for (const pNode of asArray(txBody['a:p'])) {
+        const alt = pNode && pNode['mc:AlternateContent'];
+        if (!alt)
+            continue;
+        const choice = alt['mc:Choice'];
+        const a14m = choice && (choice['a14:m'] || choice['m:oMathPara']);
+        const para = a14m && a14m['m:oMathPara'];
+        const math = a14m && a14m['m:oMath'];
+        if (para) {
+            omathRoot = para;
+            omathTag = 'm:oMathPara';
+        }
+        else if (math) {
+            omathRoot = math;
+            omathTag = 'm:oMath';
+        }
+        const fb = alt['mc:Fallback'];
+        if (fb)
+            fallbackText += collectOomlText(fb).join('');
+    }
+    if (!omathRoot)
+        return null;
+    const xf = readXfrm(node, false);
+    const text = fallbackText || collectOomlText(omathRoot).join('');
+    const el = {
+        type: 'math',
+        x: xf ? xf.x : 0, y: xf ? xf.y : 0,
+        width: xf ? xf.width : 300, height: xf ? xf.height : 60,
+        omml: serializeNode(omathTag, omathRoot),
+        text
+    };
+    return el;
+}
 async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent, phCtx) {
     if (key === 'p:graphicFrame') {
         return await graphicFrameToElement(node, resObj, zip, themeMap, themeContent);
@@ -21543,6 +21636,11 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
         }
         catch { }
         return connEl;
+    }
+    if (key === 'p:sp') {
+        const mathEl = extractMathFromSp(node);
+        if (mathEl)
+            return mathEl;
     }
     const spPr = node['p:spPr'];
     if (node && node['p:txBody'] && node['p:txBody']['a:p']) {
@@ -22747,6 +22845,58 @@ async function rawGraphicFrame(node, resObj, zip) {
     }
     return el;
 }
+async function oleToElement(node, oleObj, resObj, zip) {
+    const xf = readXfrm(node, true);
+    const attrs = (oleObj && oleObj.attrs) || {};
+    const el = {
+        type: 'ole',
+        x: xf ? xf.x : 0, y: xf ? xf.y : 0,
+        width: xf ? xf.width : 200, height: xf ? xf.height : 150
+    };
+    if (attrs.progId)
+        el.progId = String(attrs.progId);
+    if (String(attrs.showAsIcon) === '1' || attrs.showAsIcon === true)
+        el.showAsIcon = true;
+    const rid = attrs['r:id'];
+    if (rid) {
+        const target = resObj[String(rid)] && resObj[String(rid)].target;
+        const part = resolvePart(target);
+        const ext = ((part || target || '').split('.').pop() || 'bin').toLowerCase();
+        el.extension = ext;
+        if (part) {
+            try {
+                const file = zip.file(part);
+                if (file)
+                    el.data = await file.async('base64');
+            }
+            catch { }
+        }
+        if (el.data)
+            el.target = part || String(target);
+    }
+    const picPr = oleObj && oleObj['p:nvPicPr'];
+    const blipFill = picPr && picPr['p:blipFill'];
+    const blip = blipFill && blipFill['a:blip'];
+    if (blip && blip.attrs && blip.attrs['r:embed']) {
+        const ptarget = resObj[String(blip.attrs['r:embed'])] && resObj[String(blip.attrs['r:embed'])].target;
+        const ppart = resolvePart(ptarget);
+        const pext = ((ppart || ptarget || '').split('.').pop() || 'png').toLowerCase();
+        const poster = { extension: pext };
+        if (ppart) {
+            try {
+                const file = zip.file(ppart);
+                if (file)
+                    poster.data = `data:${IMAGE_MIME[pext] || 'application/octet-stream'};base64,${await file.async('base64')}`;
+            }
+            catch { }
+        }
+        if (!poster.data && ptarget)
+            poster.src = String(ptarget);
+        if (poster.data || poster.src)
+            el.poster = poster;
+    }
+    return el;
+}
 async function graphicFrameToElement(node, resObj, zip, themeMap = {}, themeContent) {
     const graphicData = node['a:graphic'] && node['a:graphic']['a:graphicData'];
     if (!graphicData)
@@ -22757,6 +22907,10 @@ async function graphicFrameToElement(node, resObj, zip, themeMap = {}, themeCont
         return tableToElement(tbl, node, themeMap, resObj);
     if (graphicData['dgm:rel'] || uri === URI_DIAGRAM || /diagram/.test(uri)) {
         return await diagramToElement(node, resObj, zip, themeMap, themeContent);
+    }
+    const oleObj = graphicData['p:oleObj'];
+    if (oleObj || /\/ole$/i.test(uri)) {
+        return await oleToElement(node, oleObj, resObj, zip);
     }
     if (!graphicData['c:chart'])
         return rawGraphicFrame(node, resObj, zip);
@@ -23144,7 +23298,7 @@ async function extractTheme(zip) {
     }
 }
 
-var baseLayoutCss = ".slide {\r\n\twidth: 100%;\r\n\t/*max-width: 920px;*/\r\n\theight: 690px;\r\n\tposition: relative;\r\n\t/* background-color: #EFEFEF; */\r\n\ttext-align: center;\r\n\tborder-radius: 10px;\r\n\t/* box-shadow: 1px 1px 3px #AAA; */\r\n\toverflow: hidden;\r\n\t/*transform: scale(0.85);*/\r\n}\r\n\r\n.slide div.block {\r\n\tposition: absolute;\r\n\ttop: 0px;\r\n\tleft: 0px;\r\n\twidth: 100%;\r\n}\r\n\r\n.slide div.content {\r\n\tdisplay: flex;\r\n\tflex-direction: column;\r\n\t/*\r\n\tjustify-content: center;\r\n\talign-items: flex-end;\r\n\t*/\r\n}\r\n\r\n.slide div.v-up {\r\n\tjustify-content: flex-start;\r\n}\r\n.slide div.v-mid {\r\n\tjustify-content: center;\r\n}\r\n.slide div.v-down {\r\n\tjustify-content: flex-end;\r\n}\r\n\r\n.slide div.h-left {\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.h-mid {\r\n\talign-items: center;\r\n\tjustify-content: center;\r\n\ttext-align: center;\r\n}\r\n.slide div.h-right {\r\n\talign-items: flex-end;\r\n\ttext-align: right;\r\n}\r\n\r\n.slide div.up-left {\r\n\tjustify-content: flex-start;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.up-center {\r\n\tjustify-content: flex-start;\r\n\talign-items: center;\r\n}\r\n.slide div.up-right {\r\n\tjustify-content: flex-start;\r\n\talign-items: flex-end;\r\n}\r\n.slide div.center-left {\r\n\tjustify-content: center;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.center-center {\r\n\tjustify-content: center;\r\n\talign-items: center;\r\n}\r\n.slide div.center-right {\r\n\tjustify-content: center;\r\n\talign-items: flex-end;\r\n}\r\n.slide div.down-left {\r\n\tjustify-content: flex-end;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.down-center {\r\n\tjustify-content: flex-end;\r\n\talign-items: center;\r\n}\r\n.slide div.down-right {\r\n\tjustify-content: flex-end;\r\n\talign-items: flex-end;\r\n}\r\n\r\n\r\n.slide li.slide {\r\n\tmargin: 10px 0px;\r\n\tfont-size: 18px;\r\n}\r\n\r\n.slide table {\r\n\tposition: absolute;\r\n}\r\n\r\n.slide svg.drawing {\r\n\tposition: absolute;\r\n\toverflow: visible;\r\n}\r\n\r\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\r\n.slide div[style*=\"background-color: inherit\"] {\r\n\tbackground-color: transparent !important;\r\n}\r\n\r\n/* 针对包含无效边框样式的问题元素 */\r\n.slide div[style*=\"pxsolidhidden\"] {\r\n\tborder: none !important;\r\n}\r\n\r\n/* 处理文本换行符 */\r\n.slide .line-break-br {\r\n\tdisplay: inline;\r\n}\r\n.slide .line-break-br::before {\r\n\tcontent: \"\\A\";\r\n\twhite-space: pre;\r\n}\r\n\r\n/*\r\n#pptx-thumb {\r\n\tmin-width: 240px;\r\n\theight: 180px;\r\n}\r\n*/";
+var baseLayoutCss = ".slide {\n\twidth: 100%;\n\t/*max-width: 920px;*/\n\theight: 690px;\n\tposition: relative;\n\t/* background-color: #EFEFEF; */\n\ttext-align: center;\n\tborder-radius: 10px;\n\t/* box-shadow: 1px 1px 3px #AAA; */\n\toverflow: hidden;\n\t/*transform: scale(0.85);*/\n}\n\n.slide div.block {\n\tposition: absolute;\n\ttop: 0px;\n\tleft: 0px;\n\twidth: 100%;\n}\n\n.slide div.content {\n\tdisplay: flex;\n\tflex-direction: column;\n\t/*\n\tjustify-content: center;\n\talign-items: flex-end;\n\t*/\n}\n\n.slide div.v-up {\n\tjustify-content: flex-start;\n}\n.slide div.v-mid {\n\tjustify-content: center;\n}\n.slide div.v-down {\n\tjustify-content: flex-end;\n}\n\n.slide div.h-left {\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.h-mid {\n\talign-items: center;\n\tjustify-content: center;\n\ttext-align: center;\n}\n.slide div.h-right {\n\talign-items: flex-end;\n\ttext-align: right;\n}\n\n.slide div.up-left {\n\tjustify-content: flex-start;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.up-center {\n\tjustify-content: flex-start;\n\talign-items: center;\n}\n.slide div.up-right {\n\tjustify-content: flex-start;\n\talign-items: flex-end;\n}\n.slide div.center-left {\n\tjustify-content: center;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.center-center {\n\tjustify-content: center;\n\talign-items: center;\n}\n.slide div.center-right {\n\tjustify-content: center;\n\talign-items: flex-end;\n}\n.slide div.down-left {\n\tjustify-content: flex-end;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.down-center {\n\tjustify-content: flex-end;\n\talign-items: center;\n}\n.slide div.down-right {\n\tjustify-content: flex-end;\n\talign-items: flex-end;\n}\n\n\n.slide li.slide {\n\tmargin: 10px 0px;\n\tfont-size: 18px;\n}\n\n.slide table {\n\tposition: absolute;\n}\n\n.slide svg.drawing {\n\tposition: absolute;\n\toverflow: visible;\n}\n\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\n.slide div[style*=\"background-color: inherit\"] {\n\tbackground-color: transparent !important;\n}\n\n/* 针对包含无效边框样式的问题元素 */\n.slide div[style*=\"pxsolidhidden\"] {\n\tborder: none !important;\n}\n\n/* 处理文本换行符 */\n.slide .line-break-br {\n\tdisplay: inline;\n}\n.slide .line-break-br::before {\n\tcontent: \"\\A\";\n\twhite-space: pre;\n}\n\n/*\n#pptx-thumb {\n\tmin-width: 240px;\n\theight: 180px;\n}\n*/";
 
 const NAMED = {
     white: '#ffffff', black: '#000000', red: '#d93025', green: '#1e8e3e', blue: '#1a73e8',
@@ -24903,7 +25057,8 @@ function docFromPptx(pptxDoc, opts = {}) {
         }
         if (s.animations && s.animations.length) {
             slide.animations = s.animations.map((a) => {
-                const idx = typeof a.target === 'number' ? a.target : 0;
+                const t = typeof a.target === 'number' ? a.target : Number(a.target) - 2;
+                const idx = Number.isFinite(t) && t >= 0 ? t : 0;
                 const el = slide.elements[idx];
                 return {
                     target: el ? el.id : (slide.elements[0] ? slide.elements[0].id : ''),
