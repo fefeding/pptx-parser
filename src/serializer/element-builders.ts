@@ -20,7 +20,7 @@ import { REL_TYPES, DEFAULT_TABLE_STYLE_ID } from './templates';
 import type {
     PptxBackground, PptxTransition, PptxImageSrcRect, PptxImageTile,
     PptxTrendline, Pptx3D, PptxCustomGeometry, PptxAutofit, PptxGeometryPath, PptxGeometryCommand,
-    PptxDiagramShape, PptxGradientFill
+    PptxDiagramShape, PptxGradientFill, PptxChartPlot
 } from '../types/pptx-document';
 
 /**
@@ -362,6 +362,13 @@ export interface SerializerElement {
     chartType?: string;
     categories?: string[];
     series?: ChartSeriesSpec[];
+    /**
+     * 组合图（多 plot）：长度 >= 2 时生成端写出多个 c:*Chart 节点，共享同一组类目/数值轴；
+     * 系列 idx/order 跨 plot 全局连续，数据引用列按 plot 顺序分配。
+     * 仅支持类目系图表（bar/line/area 及 3D、pie/doughnut/ofPie、radar）；
+     * 不支持 secondaryValueAxis（fail-fast）。
+     */
+    plots?: PptxChartPlot[];
     /** 图表区填充（c:chartSpace/c:spPr）：'none' 或 #RRGGBB；缺省透明 */
     spaceFill?: string;
     varyColors?: boolean;
@@ -494,6 +501,31 @@ export interface SerializerElement {
     secondaryValueAxis?: boolean;
     /** 网格线（c:majorGridlines / c:minorGridlines） */
     gridlines?: { major?: boolean; minor?: boolean };
+    // ---- gauge 仪表盘（type:'gauge'，OOXML 无原生类型，生成端用 blockArc 形状组合）----
+    /** 仪表盘当前值（type:'gauge'） */
+    value?: number;
+    /** 仪表盘最小值（默认 0） */
+    min?: number;
+    /** 仪表盘最大值（默认 100） */
+    max?: number;
+    /** 仪表盘单位（如 '%'、'分'），追加在数值之后 */
+    unit?: string;
+    /** 仪表盘中心标签文本 */
+    label?: string;
+    /** 仪表盘背景环颜色（#RRGGBB，默认浅灰 D9D9D9） */
+    backgroundColor?: string;
+    /** 仪表盘环厚度占比 0~1（默认 0.25） */
+    thickness?: number;
+    /** 仪表盘是否显示中心数值（默认 true） */
+    showValue?: boolean;
+    /** 仪表盘中心数值文本颜色（默认 #333333） */
+    textColor?: string;
+    /** 仪表盘标签文本颜色（默认 #666666） */
+    labelColor?: string;
+    /** 仪表盘中心数值字号（px，默认按高度 18% 自适应） */
+    valueFontSize?: number;
+    /** 仪表盘标签字号（px，默认按高度 9% 自适应） */
+    labelFontSize?: number;
 }
 /** 幻灯片 JSON */
 export interface SerializerSlide {
@@ -1610,6 +1642,10 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
  *   series: [ { name, x:[..], y:[..] } ]                      // 散点
  * }
  *
+ * 组合图：提供 plots（长度 >= 2，每项 { chartType, series, categories?, ... }）时写出多个
+ * c:*Chart 节点，共享同一组类目/数值轴；仅支持类目系图表，scatter/bubble/stock/surface
+ * 与 secondaryValueAxis 不支持（fail-fast）。
+ *
  * @param {Object} ctx - 构建上下文
  * @param {Object} el - 图表元素 JSON
  * @returns {Object} p:graphicFrame 节点
@@ -1641,6 +1677,66 @@ function buildChartElement(ctx: SerializerContext, el: SerializerElement) {
             )
         )
     );
+}
+
+/**
+ * 构建仪表盘元素（全环进度盘）。OOXML 无原生 gauge 图表类型，用 blockArc 形状组合模拟：
+ * - 背景环：blockArc（backgroundColor，默认浅灰），占满包围盒
+ * - 值环：blockArc（color，主题色），扫掠比例 = clamp((value-min)/(max-min), 0, 1)
+ * - 中心：文本框（大数值 + 可选标签），水平垂直居中
+ * 多个 p:sp 由 buildSlideRoot 展开追加到 spTree（解析端拆为独立 shape/text，符合预期）。
+ * @returns 多个 p:sp 节点（背景环 / 值环 / 中心文本）
+ */
+async function buildGaugeElement(ctx: SerializerContext, el: SerializerElement): Promise<BuilderNode[]> {
+    const w = el.width ?? 200;
+    const h = el.height ?? 200;
+    const min = el.min != null ? Number(el.min) : 0;
+    const max = el.max != null ? Number(el.max) : 100;
+    const value = el.value != null ? Number(el.value) : 0;
+    const ratio = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
+    const bgColor = el.backgroundColor ? colorToHex(el.backgroundColor) : 'D9D9D9';
+    const valColor = el.color ? colorToHex(el.color) : '4A90D9';
+    const thickness = el.thickness != null ? Math.min(1, Math.max(0.05, Number(el.thickness))) : 0.25;
+    const adj3 = Math.round(thickness * 100000);
+    // OOXML 角度单位：1/60000 度；约定 0=3 点钟方向、顺时针。359° 近整环（留 1° 避免首尾重叠）。
+    const FULL = 359 * 60000;
+    const valSweep = Math.round(ratio * FULL);
+
+    const arcNode = (color: string, adj2: number): Promise<BuilderNode> => buildShapeElement(ctx, {
+        type: 'shape', shapeType: 'blockArc',
+        x: el.x ?? 0, y: el.y ?? 0, width: w, height: h,
+        fill: color, line: 'none',
+        adjust: { adj1: 0, adj2, adj3 }
+    });
+
+    const nodes: BuilderNode[] = [
+        await arcNode(bgColor, FULL),
+        await arcNode(valColor, valSweep),
+    ];
+
+    if (el.showValue !== false) {
+        const innerW = w * 0.6;
+        const innerH = h * 0.45;
+        const innerX = (el.x ?? 0) + (w - innerW) / 2;
+        const innerY = (el.y ?? 0) + (h - innerH) / 2;
+        const valueText = `${Math.round(value * 100) / 100}${el.unit || ''}`;
+        const paragraphs: ParagraphSpec[] = [{
+            align: 'center',
+            runs: [{ text: valueText, options: { fontSize: el.valueFontSize ?? Math.round(h * 0.18), bold: true, color: el.textColor || '#333333' } }]
+        }];
+        if (el.label) {
+            paragraphs.push({
+                align: 'center',
+                runs: [{ text: el.label, options: { fontSize: el.labelFontSize ?? Math.round(h * 0.09), color: el.labelColor || '#666666' } }]
+            });
+        }
+        const textNode = await buildTextElement(ctx, {
+            type: 'text', x: innerX, y: innerY, width: innerW, height: innerH,
+            align: 'center', valign: 'middle', paragraphs
+        });
+        if (textNode) nodes.push(textNode);
+    }
+    return nodes;
 }
 
 /**
@@ -1713,54 +1809,171 @@ function buildTrendlineXml(t: PptxTrendline): string {
  */
 function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWorkbookData } {
     const type = el.chartType || 'barChart';
-    // 不能用 /pie/i —— 会把 ofPieChart（子母饼图）误判为普通饼图，导致缺必需的 c:ofPieType
-    const isPie = type === 'pieChart' || type === 'pie3DChart';
-    const isDoughnut = type === 'doughnutChart';
-    const isOfPie = type === 'ofPieChart';
-    const isPieLike = isPie || isDoughnut || isOfPie; // 饼类（无坐标轴）
-    const isScatter = type === 'scatterChart';
-    const isStock = type === 'stockChart';
-    const isRadar = type === 'radarChart';
-    const isSurface = type === 'surfaceChart' || type === 'surface3DChart';
-    const is3D = /3D/i.test(type); // 注意：bar3DChart / pie3DChart 以 3DChart 结尾，不能用 /3D$/
-    const isBubble = type === 'bubbleChart';
-    const isBarLike = type === 'barChart' || type === 'bar3DChart';
-    const isLineArea = type === 'lineChart' || type === 'areaChart' ||
-        type === 'line3DChart' || type === 'area3DChart';
-    const cats = el.categories || [];
-    const series = el.series || [];
-    const varyColors = el.varyColors !== undefined
-        ? (el.varyColors ? 1 : 0)
-        : (isPie || isDoughnut || isOfPie ? 1 : 0);
-    // 分组/堆叠：bar 系默认 clustered，line/area 系默认 standard（其余类型无此元素）
-    const groupingVal = el.grouping
-        ? String(el.grouping)
-        : (isBarLike ? 'clustered' : isLineArea ? 'standard' : '');
 
     /**
-     * 构造 c:ser 列表（抽成函数以支持次坐标轴：每对坐标轴对应独立的图表节点，
-     * 系列需按 axis 分组，idx/order 在两组间连续编号）
-     * @param {Array} serList - 系列子集
+     * 单图表类型的分支判定（组合图下每个 plot 独立判定）
+     * 注意：不能用 /pie/i —— 会把 ofPieChart（子母饼图）误判为普通饼图，导致缺必需的 c:ofPieType
+     */
+    const flagsOf = (t: string) => {
+        const isPie = t === 'pieChart' || t === 'pie3DChart';
+        const isDoughnut = t === 'doughnutChart';
+        const isOfPie = t === 'ofPieChart';
+        const isPieLike = isPie || isDoughnut || isOfPie; // 饼类（无坐标轴）
+        const isScatter = t === 'scatterChart';
+        const isStock = t === 'stockChart';
+        const isRadar = t === 'radarChart';
+        const isSurface = t === 'surfaceChart' || t === 'surface3DChart';
+        // 注意：bar3DChart / pie3DChart 以 3DChart 结尾，不能用 /3D$/
+        const is3D = /3D/i.test(t);
+        const isBubble = t === 'bubbleChart';
+        const isBarLike = t === 'barChart' || t === 'bar3DChart';
+        const isLineArea = t === 'lineChart' || t === 'areaChart' ||
+            t === 'line3DChart' || t === 'area3DChart';
+        return { isPie, isDoughnut, isOfPie, isPieLike, isScatter, isStock, isRadar, isSurface, is3D, isBubble, isBarLike, isLineArea };
+    };
+
+    /** 列号 → 列字母（1→A … 26→Z，27→AA） */
+    const colLetter = (n: number): string => {
+        let s = '';
+        while (n > 0) {
+            const r = (n - 1) % 26;
+            s = String.fromCharCode(65 + r) + s;
+            n = Math.floor((n - 1) / 26);
+        }
+        return s;
+    };
+
+    /** 数据标签 → c:dLbls 内部（numFmt + 四个 show*）；dataLabels 为 falsy 时返回空串 */
+    const dLblsXml = (dl: SerializerElement['dataLabels'], numFmt?: string): string => {
+        if (!dl) return '';
+        const obj = (dl && typeof dl === 'object') ? dl : null;
+        const nf = numFmt ? `<c:numFmt formatCode="${escapeXml(numFmt)}" sourceLinked="0"/>` : '';
+        return `<c:dLbls>${nf}<c:showVal val="${(dl === true || !!obj?.showValue) ? 1 : 0}"/>` +
+            `<c:showPercent val="${obj?.showPercent ? 1 : 0}"/><c:showSer val="${obj?.showSeries ? 1 : 0}"/>` +
+            `<c:showCatName val="${obj?.showCategory ? 1 : 0}"/></c:dLbls>`;
+    };
+
+    // ---------- plot 规格归一化（组合图 / 单图表统一表示） ----------
+    interface PlotSpec {
+        type: string;
+        series: ChartSeriesSpec[];
+        cats: string[];
+        varyColors: 0 | 1;
+        grouping: string;
+        barDir: string;
+        holeSize: number;
+        ofPieType: string;
+        bubble3D: boolean;
+        bubbleScale?: number;
+        showNegBubbles: boolean;
+        wireframe: boolean;
+        smooth: boolean;
+        marker: boolean;
+        numberFormat?: string;
+        dataLabels: SerializerElement['dataLabels'];
+        /** 系列数值列的起始列号（A 列为共享类目；单图表恒为 2 即 B 列，保持旧行为） */
+        colBase: number;
+    }
+
+    const mkSpec = (
+        t: string, series: ChartSeriesSpec[], cats: string[], o: Partial<SerializerElement>, colBase: number
+    ): PlotSpec => {
+        const f = flagsOf(t);
+        return {
+            type: t,
+            series,
+            cats,
+            varyColors: o.varyColors !== undefined
+                ? (o.varyColors ? 1 : 0)
+                : (f.isPie || f.isDoughnut || f.isOfPie ? 1 : 0),
+            // 分组/堆叠：bar 系默认 clustered，line/area 系默认 standard（其余类型无此元素）
+            grouping: o.grouping
+                ? String(o.grouping)
+                : (f.isBarLike ? 'clustered' : f.isLineArea ? 'standard' : ''),
+            barDir: String(o.barDir || 'col'),
+            holeSize: o.holeSize !== undefined ? o.holeSize : 50,
+            ofPieType: o.ofPieType === 'bar' ? 'bar' : 'pie',
+            bubble3D: !!o.bubble3D,
+            bubbleScale: o.bubbleScale,
+            showNegBubbles: !!o.showNegBubbles,
+            wireframe: !!o.wireframe,
+            smooth: !!o.smooth,
+            marker: !!o.marker,
+            numberFormat: o.numberFormat,
+            dataLabels: o.dataLabels,
+            colBase
+        };
+    };
+
+    const cats = el.categories || [];
+    const series = el.series || [];
+
+    // 组合图：plots 长度 >= 2 时逐 plot 写出多个 c:*Chart 节点（共享类目/数值轴）；
+    // 否则用顶层字段构造单 plot 规格（向后兼容，输出与旧实现一致）。
+    // 约束 fail-fast（避免静默错版）：
+    // - 仅支持类目系图表（bar/line/area 及 3D、pie/doughnut/ofPie、radar）：
+    //   scatter/bubble/stock/surface 需独立坐标系（X 值轴 / serAx / 3D 视角），不与类目系共享轴；
+    // - 不支持 secondaryValueAxis（次轴组合图请用顶层 chartType + secondaryValueAxis）。
+    const usePlots = Array.isArray(el.plots) && el.plots!.length >= 2;
+    if (usePlots) {
+        const unsupported = el.plots!.find((p) => {
+            const f = flagsOf(p.chartType);
+            return f.isScatter || f.isBubble || f.isStock || f.isSurface;
+        });
+        if (unsupported) {
+            throw new Error(`[pptx-parser] 组合图不支持混入 ${unsupported.chartType}：scatter/bubble/stock/surface 需独立坐标系，请拆分为独立图表，或用顶层 chartType + secondaryValueAxis`);
+        }
+        if (el.secondaryValueAxis) {
+            throw new Error('[pptx-parser] 组合图（plots）不支持 secondaryValueAxis 次坐标轴：请改用顶层 chartType + secondaryValueAxis');
+        }
+    }
+
+    const specs: PlotSpec[] = usePlots
+        ? el.plots!.map((p) => mkSpec(
+            p.chartType,
+            (p.series || []) as ChartSeriesSpec[],
+            p.categories || el.categories || [],
+            p,
+            0 // 占位，下面统一分配
+        ))
+        : [mkSpec(type, series, cats, el, 2)];
+
+    // 列分配：组合图 A 列为共享类目，各 plot 系列依次占列（与嵌入工作簿一致）；
+    // 单图表恒为 B 列起（与原实现一致）
+    if (usePlots) {
+        let base = 2;
+        for (const s of specs) {
+            s.colBase = base;
+            base += s.series.length;
+        }
+    }
+
+    /**
+     * 构造 c:ser 列表（按 plot 规格输出；idx/order 由 offset 保证跨 plot 全局连续）
+     * @param {Array} serList - 该 plot 的系列子集
      * @param {number} offset - idx/order 起始偏移（保证跨节点唯一）
+     * @param {Object} spec - 所属 plot 规格（类型 / 类目 / 列基 / marker / smooth）
      * @returns {string} c:ser XML
      */
-    const buildSerXml = (serList: ChartSeriesSpec[], offset: number): string => {
+    const buildSerXml = (serList: ChartSeriesSpec[], offset: number, spec: PlotSpec): string => {
+        const f = flagsOf(spec.type);
         return serList.map((s: ChartSeriesSpec, j: number) => {
             const i = offset + j;
             const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
                 `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
             let data;
-            if (isScatter) {
+            if (f.isScatter) {
                 data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
-            } else if (isBubble) {
+            } else if (f.isBubble) {
                 data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal><c:bubbleSize>${numRefXml(s.values || [], 'D')}</c:bubbleSize>`;
-            } else if (isStock) {
+            } else if (f.isStock) {
                 data = `<c:openVal>${numRefXml(s.open || [], 'B')}</c:openVal>` +
                     `<c:highVal>${numRefXml(s.high || [], 'C')}</c:highVal>` +
                     `<c:lowVal>${numRefXml(s.low || [], 'D')}</c:lowVal>` +
                     `<c:closeVal>${numRefXml(s.close || s.values || [], 'E')}</c:closeVal>`;
             } else {
-                data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
+                // 类目系：A 列为共享类目，数值列按 plot 列基 + 系列序分配（组合图各 plot 不串列）
+                data = `<c:cat>${strRefXml(spec.cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], colLetter(spec.colBase + j))}</c:val>`;
             }
             const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
             // 逐点填充（c:dPt）：位于 spPr/marker 之后、trendline/cat 之前（CT_*Ser 顺序）
@@ -1775,91 +1988,97 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
                 })
                 .join('');
             // marker 位于数据之前，smooth 位于数据之后（CT_LineSer / CT_ScatterSer 的元素顺序）
-            const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
-            const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
-            const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
+            const isSmoothable = f.isScatter || spec.type === 'lineChart' || spec.type === 'line3DChart';
+            const markerXml = (spec.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
+            const smoothXml = (spec.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
             // 趋势线：CT_*Ser 中位于数据之前（trendline → errBars → cat/val）
             const trendlineXml = (s.trendlines || []).map((t: PptxTrendline) => buildTrendlineXml(t)).join('');
             return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${dPtXml}${trendlineXml}${data}${smoothXml}</c:ser>`;
         }).join('');
     };
 
-    // 次坐标轴：同一 plotArea 内需要**两个图表节点**，系列按 axis 归属其一
+    // 次坐标轴：同一 plotArea 内需要**两个图表节点**，系列按 axis 归属其一（仅单图表路径；
+    // 组合图走 plots，已在上方 fail-fast 排除 secondaryValueAxis）
     const secSeries = el.secondaryValueAxis ? series.filter((s: ChartSeriesSpec) => s.axis === 'secondary') : [];
     const priSeries = el.secondaryValueAxis && secSeries.length
         ? series.filter((s: ChartSeriesSpec) => s.axis !== 'secondary')
         : series;
     // 仅当主/次两组都非空时才拆分（否则退化为单一节点，避免产生空的第二个图表）
-    const useSecondary = !!el.secondaryValueAxis && secSeries.length > 0 && priSeries.length > 0;
-    const serXml = buildSerXml(useSecondary ? priSeries : series, 0);
-    const serXmlSec = useSecondary ? buildSerXml(secSeries, priSeries.length) : '';
+    const useSecondary = !usePlots && !!el.secondaryValueAxis && secSeries.length > 0 && priSeries.length > 0;
 
-    // 数字格式码：同时作用于数据标签与数值轴
-    const numFmtXml = el.numberFormat
-        ? `<c:numFmt formatCode="${escapeXml(el.numberFormat)}" sourceLinked="0"/>`
-        : '';
-
-    // 数据标签必须位于各图表类型节点内部（CT_Chart 本身不含 dLbls 元素）
-    const dlObj = (el.dataLabels && typeof el.dataLabels === 'object') ? el.dataLabels : null;
-    const dLblsInner = el.dataLabels
-        ? `<c:dLbls>${numFmtXml}<c:showVal val="${(el.dataLabels === true || !!dlObj?.showValue) ? 1 : 0}"/>` +
-          `<c:showPercent val="${dlObj?.showPercent ? 1 : 0}"/><c:showSer val="${dlObj?.showSeries ? 1 : 0}"/>` +
-          `<c:showCatName val="${dlObj?.showCategory ? 1 : 0}"/></c:dLbls>`
-        : '';
-
-    // 图表类型特定根（含轴 id；饼类无轴）
+    // 轴 id：主坐标轴对 111/112（+113 serAx）；次坐标轴对固定 211/212
     const axIds2 = `<c:axId val="111"/><c:axId val="112"/>`;
     const axIds3 = `<c:axId val="111"/><c:axId val="112"/><c:axId val="113"/>`;
-    // 需要序列轴 serAx 的类型：所有 3D 图表 + 曲面图（CT_SurfaceChart 的 serAx 为必需）
-    const needsSerAx = is3D || isSurface;
+    const SECONDARY_AX_IDS = `<c:axId val="211"/><c:axId val="212"/>`;
+    // 需要序列轴 serAx 的类型：所有 3D 图表 + 曲面图（CT_SurfaceChart 的 serAx 为必需）——按全部 plot 并集判定
+    const any3D = specs.some((s) => { const f = flagsOf(s.type); return f.is3D || f.isSurface; });
+    const needsSerAx = any3D;
     const axIds = needsSerAx ? axIds3 : axIds2;
+
     // 各分支均严格按对应 CT_*Chart 的子元素顺序输出，否则 PowerPoint/WPS 会静默忽略
-    const makePlot = (serPart: string, axIdsPart: string): string => {
-    if (isOfPie) {
-        // c:ofPieType 是 CT_OfPieChart 的必需元素，缺失时子母饼图无法识别
-        const ofPieType = el.ofPieType === 'bar' ? 'bar' : 'pie';
-        return `<c:${type}><c:ofPieType val="${ofPieType}"/><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}` +
-            `<c:gapWidth val="100"/><c:splitType val="auto"/><c:splitPos val="0"/>` +
-            `<c:secondPieSize val="75"/><c:serLines/></c:${type}>`;
-    } else if (isDoughnut) {
-        const holeSize = el.holeSize !== undefined ? el.holeSize : 50;
-        return `<c:${type}><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}<c:holeSize val="${holeSize}"/></c:${type}>`;
-    } else if (isPie) {
-        return `<c:${type}><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}</c:${type}>`;
-    } else if (isBubble) {
-        const bubble3DXml = el.bubble3D ? '<c:bubble3D val="1"/>' : '';
-        const bubbleScaleXml = el.bubbleScale !== undefined ? `<c:bubbleScale val="${el.bubbleScale}"/>` : '';
-        const showNegXml = el.showNegBubbles ? '<c:showNegBubbles val="1"/>' : '';
-        return `<c:${type}>${serPart}${dLblsInner}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIdsPart}</c:${type}>`;
-    } else if (isRadar) {
-        return `<c:${type}><c:radarStyle val="standard"/>${serPart}${dLblsInner}${axIdsPart}</c:${type}>`;
-    } else if (isStock) {
-        // CT_StockChart 无 c:serLines（该元素属于 ofPieChart），高低点连线用 hiLowLines
-        return `<c:${type}>${serPart}${dLblsInner}<c:hiLowLines/>${axIdsPart}</c:${type}>`;
-    } else if (isSurface) {
-        // CT_SurfaceChart 不含 dLbls
-        const wireframeXml = el.wireframe ? '<c:wireframe val="1"/>' : '';
-        return `<c:${type}>${wireframeXml}${serPart}<c:bandFmts/>${axIdsPart}</c:${type}>`;
-    } else {
-        const dir = isBarLike ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
-        const grouping = groupingVal ? `<c:grouping val="${groupingVal}"/>` : '';
-        const markerXml = (el.marker && isLineArea) ? '<c:marker><c:symbol val="circle"/></c:marker>' : '';
-        return `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}${markerXml}${axIdsPart}</c:${type}>`;
-    }
+    const makePlot = (serPart: string, spec: PlotSpec, axIdsPart: string): string => {
+        const f = flagsOf(spec.type);
+        // 数据标签必须位于各图表类型节点内部（CT_Chart 本身不含 dLbls 元素）
+        const dLbls = dLblsXml(spec.dataLabels, spec.numberFormat ?? el.numberFormat);
+        if (f.isOfPie) {
+            // c:ofPieType 是 CT_OfPieChart 的必需元素，缺失时子母饼图无法识别
+            return `<c:${spec.type}><c:ofPieType val="${spec.ofPieType}"/><c:varyColors val="${spec.varyColors}"/>${serPart}${dLbls}` +
+                `<c:gapWidth val="100"/><c:splitType val="auto"/><c:splitPos val="0"/>` +
+                `<c:secondPieSize val="75"/><c:serLines/></c:${spec.type}>`;
+        } else if (f.isDoughnut) {
+            return `<c:${spec.type}><c:varyColors val="${spec.varyColors}"/>${serPart}${dLbls}<c:holeSize val="${spec.holeSize}"/></c:${spec.type}>`;
+        } else if (f.isPie) {
+            return `<c:${spec.type}><c:varyColors val="${spec.varyColors}"/>${serPart}${dLbls}</c:${spec.type}>`;
+        } else if (f.isBubble) {
+            const bubble3DXml = spec.bubble3D ? '<c:bubble3D val="1"/>' : '';
+            const bubbleScaleXml = spec.bubbleScale !== undefined ? `<c:bubbleScale val="${spec.bubbleScale}"/>` : '';
+            const showNegXml = spec.showNegBubbles ? '<c:showNegBubbles val="1"/>' : '';
+            return `<c:${spec.type}>${serPart}${dLbls}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIdsPart}</c:${spec.type}>`;
+        } else if (f.isRadar) {
+            return `<c:${spec.type}><c:radarStyle val="standard"/>${serPart}${dLbls}${axIdsPart}</c:${spec.type}>`;
+        } else if (f.isStock) {
+            // CT_StockChart 无 c:serLines（该元素属于 ofPieChart），高低点连线用 hiLowLines
+            return `<c:${spec.type}>${serPart}${dLbls}<c:hiLowLines/>${axIdsPart}</c:${spec.type}>`;
+        } else if (f.isSurface) {
+            // CT_SurfaceChart 不含 dLbls
+            const wireframeXml = spec.wireframe ? '<c:wireframe val="1"/>' : '';
+            return `<c:${spec.type}>${wireframeXml}${serPart}<c:bandFmts/>${axIdsPart}</c:${spec.type}>`;
+        } else {
+            const dir = f.isBarLike ? `<c:barDir val="${spec.barDir}"/>` : '';
+            const grouping = spec.grouping ? `<c:grouping val="${spec.grouping}"/>` : '';
+            const markerXml = (spec.marker && f.isLineArea) ? '<c:marker><c:symbol val="circle"/></c:marker>' : '';
+            return `<c:${spec.type}>${dir}${grouping}<c:varyColors val="${spec.varyColors}"/>${serPart}${dLbls}${markerXml}${axIdsPart}</c:${spec.type}>`;
+        }
     };
 
-    // 主坐标轴对（111/112[+113]）；次坐标轴对固定为 211/212
-    const SECONDARY_AX_IDS = `<c:axId val="211"/><c:axId val="212"/>`;
-    const plotChart = makePlot(serXml, axIds)
-        + (useSecondary ? makePlot(serXmlSec, SECONDARY_AX_IDS) : '');
+    // 图表节点组装：组合图逐 plot 输出（idx/order 跨 plot 全局连续）；
+    // 单图表按次坐标轴需要拆成两个节点（系列按 axis 归属，次轴对 211/212）
+    const nodes: { serPart: string; spec: PlotSpec; axIdsPart: string }[] = [];
+    if (usePlots) {
+        let idx = 0;
+        for (const spec of specs) {
+            nodes.push({ serPart: buildSerXml(spec.series, idx, spec), spec, axIdsPart: axIds });
+            idx += spec.series.length;
+        }
+    } else {
+        const spec0 = specs[0];
+        nodes.push({ serPart: buildSerXml(useSecondary ? priSeries : series, 0, spec0), spec: spec0, axIdsPart: axIds });
+        if (useSecondary) {
+            nodes.push({ serPart: buildSerXml(secSeries, priSeries.length, spec0), spec: spec0, axIdsPart: SECONDARY_AX_IDS });
+        }
+    }
+
+    const plotChart = nodes.map((n) => makePlot(n.serPart, n.spec, n.axIdsPart)).join('');
 
     // 3D 视图需置于 c:chart 下（ECMA-376：view3D 属于 CT_Chart，位于 plotArea 之前）
-    const view3D = is3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="20"/><c:depthPercent val="100"/></c:view3D>' : '';
+    const view3D = any3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="20"/><c:depthPercent val="100"/></c:view3D>' : '';
 
-    // 坐标轴（饼类除外；3D 图表与曲面图还需第三个序列轴 serAx）
+    // 坐标轴（全部 plot 均为饼类时不生成；3D 图表与曲面图还需第三个序列轴 serAx）
     // 散点图/气泡图：X/Y 轴均为值轴（c:valAx），不能用类别轴（ECMA-376 CT_ScatterChart）
     // 所有轴补全 WPS 必需的 c:crosses/c:tickLblPos/c:numFmt 等元素
-    const isXYValAx = isScatter || isBubble; // X 轴也是值轴
+    // 轴集合按全部 plot 的类型并集判定：组合图中各类目系 plot 共享同一组 catAx/valAx（111/112）
+    const allPieLike = specs.every((s) => flagsOf(s.type).isPieLike);
+    const anyXY = specs.some((s) => { const f = flagsOf(s.type); return f.isScatter || f.isBubble; }); // X 轴也是值轴
 
     // 网格线：默认只画主网格线；显式 gridlines:{ major:false } 可关闭，minor:true 追加次网格线
     const gl = el.gridlines;
@@ -1871,8 +2090,8 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
         : '';
 
     let axes = '';
-    if (!isPieLike) {
-        const catOrValAxX = isXYValAx
+    if (!allPieLike) {
+        const catOrValAxX = anyXY
             ? `<c:valAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="112"/><c:crosses val="autoZero"/></c:valAx>`
             : `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="${needsSerAx ? 113 : 112}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
         const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.value)}<c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
@@ -1901,7 +2120,11 @@ function buildChartXml(el: SerializerElement): { xml: string; workbook: ChartWor
     const autoTitleDeleted = `<c:autoTitleDeleted val="${el.title ? 0 : 1}"/>`;
 
     // 构建嵌入工作簿数据（WPS 要求图表必须关联 xlsx，即使 numCache 已内联数据）
-    const workbook = buildChartWorkbookData(type, cats, series);
+    // 组合图：A 列为共享类目，各 plot 系列按全局列序展开（与 XML 引用列一致）；
+    // 单图表：按顶层 type/cats/series 构建（scatter/bubble/stock 保持各自列结构）
+    const workbook = usePlots
+        ? buildChartWorkbookData('barChart', specs[0].cats, specs.flatMap((s) => s.series))
+        : buildChartWorkbookData(type, cats, series);
 
     // 图表区填充（c:chartSpace/c:spPr）：位于 </c:chart> 之后（CT_ChartSpace 顺序）
     const spaceFillSpPr = el.spaceFill
@@ -2266,7 +2489,10 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
     for (const c of children) {
         const cc = pageCoords ? { ...c, x: (c.x || 0) - gx, y: (c.y || 0) - gy } : c;
         const n = await buildElement(ctx, cc);
-        if (n) childNodes.push(n);
+        if (!n) continue;
+        // gauge 等元素返回多个节点（形状组合），展开加入 group 子节点
+        if (Array.isArray(n)) childNodes.push(...(n as BuilderNode[]));
+        else childNodes.push(n);
     }
     const w = pxToEmu(el.width || 0);
     const h = pxToEmu(el.height || 0);
@@ -2949,7 +3175,7 @@ function buildMathElement(ctx: SerializerContext, el: SerializerElement) {
     );
 }
 
-export async function buildElement(ctx: SerializerContext, el: SerializerElement) {
+export async function buildElement(ctx: SerializerContext, el: SerializerElement): Promise<BuilderNode | BuilderNode[] | null> {
     if (!el || typeof el !== 'object') return null;
     // 版式/母版装饰形状：解析端为还原视觉导入，实际归属 layout/master 的 spTree。
     // 跳过即可保持导出与源文件一致（母版/版式本身已由 doc.masters/themeXmls 无损回写）。
@@ -2973,6 +3199,8 @@ export async function buildElement(ctx: SerializerContext, el: SerializerElement
             return buildMediaElement(ctx, el, el.type as 'video' | 'audio');
         case 'chart':
             return buildChartElement(ctx, el);
+        case 'gauge':
+            return buildGaugeElement(ctx, el);
         case 'table':
             return buildTableElement(ctx, el);
         case 'group':
@@ -3244,7 +3472,10 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
     const elementNodes = [];
     for (const el of (slide && slide.elements) || []) {
         const node = await buildElement(ctx, el);
-        if (node) elementNodes.push(node);
+        if (!node) continue;
+        // gauge 等元素返回多个 p:sp 节点（形状组合），需展开追加到 spTree
+        if (Array.isArray(node)) elementNodes.push(...(node as BuilderNode[]));
+        else elementNodes.push(node);
     }
 
     // 背景（纯色 / 渐变 / 图片）

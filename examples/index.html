@@ -310,7 +310,7 @@ window.chartRenderer = chartRenderer;
             </div>
             <h2>点击上传 PPTX 文件</h2>
             <p>或者将文件拖拽到此处，支持 .pptx 格式</p>
-            <input id="uploadFileInput" type="file" accept=".pptx" />
+            <input id="uploadFileInput" type="file" accept=".pptx,.ppt" />
         </div>
 
         <div class="progress-container" id="progressContainer">
@@ -501,7 +501,8 @@ async function parseAndRender(fileData) {
 
 async function handleFile(file) {
 	// 验证文件类型
-	if (file.name.split('.').pop().toLowerCase() !== "pptx") {
+    const ext = file.name.split('.').pop().toLowerCase();
+	if (ext !== "pptx" && ext !== "ppt") {
 		alert("请上传有效的 .pptx 文件");
 		return;
 	}

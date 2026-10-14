@@ -194,6 +194,8 @@ export interface PptxFillImage {
     type: 'image'; data?: string; src?: string; extension?: string;
     srcRect?: PptxImageSrcRect;
     tile?: PptxImageTile;
+    /** 图片透明度（a:blip/a:alphaModFix@amt 的逆运算），0~100；100 表示完全透明 */
+    transparency?: number;
 }
 
 /** 形状边框：{ color, width(pt), transparency, dashType } / 'none'(无边框) / null(继承) */
@@ -463,6 +465,8 @@ export interface PptxChartPlot {
     };
     /** 数字格式码（c:dLbls/c:numFmt） */
     numberFormat?: string;
+    /** 数据标签（c:dLbls）：true=显示值，或细粒度控制各显示项 */
+    dataLabels?: boolean | { showValue?: boolean; showPercent?: boolean; showSeries?: boolean; showCategory?: boolean };
 }
 
 /** 趋势线类型（c:trendlineType@val，ECMA-376） */
@@ -767,9 +771,52 @@ export interface PptxChartElement extends PptxElementBase {
     /**
      * 组合图（多 plot）的全部绘图区。单图表时为空（沿用顶层 chartType/series 即可）；
      * 解析端从 c:plotArea 下所有 c:*Chart 节点提取，保持文档顺序。
-     * 生成端若提供本字段（长度 >= 2）则写出多个图表节点实现组合图 round-trip。
+     * 生成端已支持：提供本字段（长度 >= 2）时写出多个图表节点实现组合图 round-trip——
+     * 各 plot 共享同一组类目/数值轴（axId 111/112），series idx/order 跨 plot 连续，
+     * 数据引用列按 plot 顺序分配。约束：仅支持类目系图表（bar/line/area 及 3D、
+     * pie/doughnut/ofPie/radar），scatter/bubble/stock/surface 需独立坐标系不支持混排，
+     * 且不支持 secondaryValueAxis（fail-fast）。
      */
     plots?: PptxChartPlot[];
+}
+
+/**
+ * 仪表盘元素（全环进度盘）。OOXML 无原生 gauge 图表类型，生成端用 blockArc 形状组合模拟：
+ * - 背景环（backgroundColor，默认浅灰）+ 值环（color，主题色）占满包围盒
+ * - 中心文本框显示数值（value + unit）与可选标签（label）
+ * - 值环扫掠比例 = clamp((value - min) / (max - min), 0, 1)
+ * 用于 KPI / 完成率等指标可视化（无原生图表类型，故独立于 PptxChartElement）。
+ */
+export interface PptxGaugeElement extends PptxElementBase {
+    type: 'gauge';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** 当前值 */
+    value: number;
+    /** 最小值（默认 0） */
+    min?: number;
+    /** 最大值（默认 100） */
+    max?: number;
+    /** 单位（如 '%'、'分'），追加在数值之后 */
+    unit?: string;
+    /** 中心下方标签文本（如 '完成率'） */
+    label?: string;
+    /** 背景环颜色（#RRGGBB，默认浅灰 D9D9D9） */
+    backgroundColor?: string;
+    /** 环厚度占比 0~1（默认 0.25） */
+    thickness?: number;
+    /** 是否显示中心数值（默认 true） */
+    showValue?: boolean;
+    /** 中心数值文本颜色（默认 #333333） */
+    textColor?: string;
+    /** 标签文本颜色（默认 #666666） */
+    labelColor?: string;
+    /** 中心数值字号（px，默认按高度 18% 自适应） */
+    valueFontSize?: number;
+    /** 标签字号（px，默认按高度 9% 自适应） */
+    labelFontSize?: number;
 }
 
 /** 渐变填充（形状填充、图表逐点填充 c:dPt 共用） */
@@ -1044,6 +1091,10 @@ export interface PptxConnectorElement extends PptxElementBase {
     line?: PptxLine;
     /** 几何调整值（a:avLst） */
     adjust?: Record<string, number>;
+    /** 特效（阴影/发光，对应 a:effectLst） */
+    effects?: PptxShapeEffects;
+    /** 三维属性（a:sp3d + a:scene3d） */
+    threeD?: Pptx3D;
 }
 
 /** OLE 嵌入对象元素（p:oleObj，通常外裹 p:graphicFrame） */
@@ -1085,6 +1136,7 @@ export type PptxElement =
     | PptxShapeElement
     | PptxImageElement
     | PptxChartElement
+    | PptxGaugeElement
     | PptxTableElement
     | PptxDiagramElement
     | PptxGroupElement

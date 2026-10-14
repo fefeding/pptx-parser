@@ -27,7 +27,7 @@ import type {
     PptxDocument, PptxSlide, PptxElement, PptxTextElement, PptxShapeElement,
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
-    PptxDiagramElement, PptxDiagramShape, PptxRawElement, PptxAnimation, PptxGroupElement, TextAlign, VAlign, ChartGrouping,
+    PptxDiagramElement, PptxDiagramShape, PptxRawElement, PptxAnimation, PptxGroupElement, PptxConnectorElement, PptxOleElement, PptxMathElement, TextAlign, VAlign, ChartGrouping,
     PptxChartType, PptxChartPlot,
     PptxFillImage, PptxTheme, PptxThemeColorScheme, PptxCustomGeometry, PptxGeometryPath, PptxGeometryCommand, PptxGradientFill
 } from '../types/pptx-document';
@@ -236,7 +236,7 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
  * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
  * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
  */
-function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined, inheritedLvl?: (lvl: number) => any, inheritedBodyPrRaw?: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number } {
+function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined, inheritedLvl?: (lvl: number) => any, inheritedBodyPrRaw?: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number; prstTxWarp?: string } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
     let text = '';
@@ -471,7 +471,8 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
         if (valign) (para as any).valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction };
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction,
+        prstTxWarp: ownAttrs.prstTxWarp != null ? String(ownAttrs.prstTxWarp) : undefined };
 }
 
 /**
@@ -506,7 +507,7 @@ async function resolveBulletBlips(
 }
 
 /** 提取一个 p:sp 的文本为正文段落 */
-function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined, phCtx?: PlaceholderCtx, ph?: PlaceholderAttrs): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number } {
+function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined, phCtx?: PlaceholderCtx, ph?: PlaceholderAttrs): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number; prstTxWarp?: string } {
     // p:style/a:fontRef 的颜色是形状文本的默认字色（run 无显式色时生效，与预览端一致）
     const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
     // 占位符文本需从「版式/母版同名占位符」继承样式（颜色/字号/对齐/内边距等）
@@ -536,7 +537,7 @@ function spColor(node: any, themeMap: Record<string, string>): string | undefine
 }
 
 /** 从 p:spPr 读取几何/填充/边框/特效（themeMap 用于把 schemeClr 解析为实际 RRGGBB） */
-function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'line' | 'effects' | 'effectsRaw'> {
+function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxShapeElement, 'shapeType' | 'fill' | 'line' | 'effects' | 'effectsRaw' | 'threeD'> {
     const out: any = { shapeType: 'rect' };
     if (!spPr) return out;
     const prst = spPr['a:prstGeom'];
@@ -676,12 +677,69 @@ function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxSh
         if (Object.keys(effects).length) out.effects = effects;
     }
 
-    // 语义层未建模的 spPr 特效原始节点：3D 属性（a:scene3d/a:sp3d）/ 双色调 a:duotone /
-    // 填充覆盖 a:fillOverlay。保留以便生成端用 rawNodeToBuilder 原样回写，保证 round-trip 不丢信息。
-    // 注意：a:effectLst 内的 reflection/softEdge/blur 已语义化为 effects 字段并合并进同一 effectLst，
-    // 故不在此 raw 列表中（避免写出第二个 a:effectLst 破坏 CT_ShapeProperties 顺序约束）。
+    // 三维属性语义化（a:sp3d + a:scene3d）→ threeD 字段，round-trip 对称于生成端 build3DNodes。
+    // 语义化后不再进入 effectsRaw，避免生成端重复写出 a:sp3d/a:scene3d 破坏 CT_ShapeProperties 顺序约束。
+    const sp3d = spPr['a:sp3d'];
+    const scene3d = spPr['a:scene3d'];
+    if (sp3d || scene3d) {
+        const threeD: any = {};
+        if (sp3d && sp3d.attrs) {
+            const shape3d: any = {};
+            if (sp3d.attrs.extrusionH != null) shape3d.extrusionHeight = emuToPt(sp3d.attrs.extrusionH);
+            if (sp3d.attrs.contourW != null) shape3d.contourWidth = emuToPt(sp3d.attrs.contourW);
+            if (sp3d.attrs.prstMaterial != null) shape3d.material = String(sp3d.attrs.prstMaterial);
+            const extClr = spColor(firstChild(sp3d, 'a:extrusionClr'), themeMap);
+            if (extClr) shape3d.extrusionColor = extClr;
+            const cntClr = spColor(firstChild(sp3d, 'a:contourClr'), themeMap);
+            if (cntClr) shape3d.contourColor = cntClr;
+            const bevelT = sp3d['a:bevelT'];
+            if (bevelT && bevelT.attrs) {
+                const bt: any = {};
+                if (bevelT.attrs.w != null) bt.width = emuToPt(bevelT.attrs.w);
+                if (bevelT.attrs.h != null) bt.height = emuToPt(bevelT.attrs.h);
+                if (bevelT.attrs.prst != null) bt.preset = String(bevelT.attrs.prst);
+                if (Object.keys(bt).length) shape3d.bevelTop = bt;
+            }
+            const bevelB = sp3d['a:bevelB'];
+            if (bevelB && bevelB.attrs) {
+                const bb: any = {};
+                if (bevelB.attrs.w != null) bb.width = emuToPt(bevelB.attrs.w);
+                if (bevelB.attrs.h != null) bb.height = emuToPt(bevelB.attrs.h);
+                if (bevelB.attrs.prst != null) bb.preset = String(bevelB.attrs.prst);
+                if (Object.keys(bb).length) shape3d.bevelBottom = bb;
+            }
+            if (Object.keys(shape3d).length) threeD.shape = shape3d;
+        }
+        if (scene3d) {
+            const scene: any = {};
+            const cam = scene3d['a:camera'];
+            if (cam && cam.attrs) {
+                if (cam.attrs.prst != null) scene.camera = String(cam.attrs.prst);
+                if (cam.attrs.fov != null) scene.fov = Number(cam.attrs.fov) / 60000;
+                if (cam.attrs.zoom != null) scene.zoom = Number(cam.attrs.zoom) / 1000;
+                const rot = cam['a:rot'];
+                if (rot && rot.attrs) {
+                    if (rot.attrs.lat != null) scene.rotX = Number(rot.attrs.lat) / 60000;
+                    if (rot.attrs.lon != null) scene.rotY = Number(rot.attrs.lon) / 60000;
+                    if (rot.attrs.rev != null) scene.rotZ = Number(rot.attrs.rev) / 60000;
+                }
+            }
+            const light = scene3d['a:lightRig'];
+            if (light && light.attrs) {
+                if (light.attrs.rig != null) scene.lightRig = String(light.attrs.rig);
+                if (light.attrs.dir != null) scene.lightDir = String(light.attrs.dir);
+            }
+            if (Object.keys(scene).length) threeD.scene = scene;
+        }
+        if (threeD.shape || threeD.scene) out.threeD = threeD;
+    }
+
+    // 语义层未建模的 spPr 特效原始节点：双色调 a:duotone / 填充覆盖 a:fillOverlay。
+    // 保留以便生成端用 rawNodeToBuilder 原样回写，保证 round-trip 不丢信息。
+    // 注意：a:effectLst 内的 reflection/softEdge/blur 已语义化为 effects 字段；
+    // a:scene3d/a:sp3d 已语义化为 threeD 字段；故均不在此 raw 列表中。
     const rawFx: Array<{ tag: string; node: any }> = [];
-    for (const t of ['a:scene3d', 'a:sp3d', 'a:duotone', 'a:fillOverlay']) {
+    for (const t of ['a:duotone', 'a:fillOverlay']) {
         if (spPr[t]) rawFx.push({ tag: t, node: spPr[t] });
     }
     if (rawFx.length) out.effectsRaw = rawFx;
@@ -904,7 +962,11 @@ function extractNotes(notesContent: any): string | undefined {
 }
 
 /** 提取过渡效果 */
-function extractTransition(slideContent: any): PptxTransition | undefined {
+async function extractTransition(
+    slideContent: any,
+    resObj: Record<string, { type?: string; target?: string }> = {},
+    zip?: JSZip
+): Promise<PptxTransition | undefined> {
     const sld = slideContent && slideContent['p:sld'];
     if (!sld) return undefined;
     const t = sld['p:transition'];
@@ -919,7 +981,33 @@ function extractTransition(slideContent: any): PptxTransition | undefined {
         const m: Record<string, number> = { '1': 500, '2': 1000, '3': 2000 };
         duration = m[String(t.attrs['spd'])] || 1000;
     }
-    return { type, duration };
+    const out: PptxTransition = { type, duration };
+    // 切换伴随音效（p:transition/p:snd）：内置音效名或 r:embed 媒体关系。
+    // PptxTransition 无 __raw 兜底，必须在此显式解析，否则声音信息在解析端永久丢失。
+    const snd = t['p:snd'];
+    if (snd && snd.attrs) {
+        const sound: { name?: string; data?: string; extension?: string } = {};
+        const embed = snd.attrs['r:embed'];
+        if (embed) {
+            const target = resObj[String(embed)] && resObj[String(embed)].target;
+            const part = resolvePart(target);
+            const ext = ((part || target || '').split('.').pop() || 'wav').toLowerCase();
+            if (part && zip) {
+                try {
+                    const file = zip.file(part);
+                    if (file) {
+                        const mime = AUDIO_MIME[ext] || 'application/octet-stream';
+                        sound.data = `data:${mime};base64,${await file.async('base64')}`;
+                        sound.extension = ext;
+                    }
+                } catch { /* 忽略媒体读取失败 */ }
+            }
+            if (!sound.data && target) sound.name = String(target);
+        }
+        if (snd.attrs.name) sound.name = String(snd.attrs.name);
+        if (sound.name || sound.data) out.sound = sound;
+    }
+    return out;
 }
 
 /** 取形状节点的 cNvPr id（= OOXML 形状 spid） */
@@ -1652,7 +1740,7 @@ export async function extractSlideToStandard(
             { content: slideData.slideMasterContent, res: slideData.masterResObj }
         ], themeMap, slideData.themeContent);
         if (bg !== undefined) slide.background = bg;
-        const transition = extractTransition(slideContent);
+        const transition = await extractTransition(slideContent, resObj, zip);
         if (transition) slide.transition = transition;
         const notes = extractNotes(slideData.notesContent);
         if (notes) slide.notes = notes;
@@ -1854,6 +1942,11 @@ const IMAGE_MIME: Record<string, string> = {
     bmp: 'image/bmp', svg: 'image/svg+xml', webp: 'image/webp', tiff: 'image/tiff',
     emf: 'image/emf', wmf: 'image/wmf'
 };
+/** 音频扩展名 → MIME（切换音效 p:snd 内联为 dataURL 时使用） */
+const AUDIO_MIME: Record<string, string> = {
+    wav: 'audio/wav', mp3: 'audio/mpeg', m4a: 'audio/mp4', wma: 'audio/x-ms-wma',
+    mid: 'audio/midi', midi: 'audio/midi', aac: 'audio/aac', ogg: 'audio/ogg', flac: 'audio/flac'
+};
 
 /**
  * 图片填充（a:blipFill，用于形状 p:spPr 或背景 p:bgPr）→ PptxFillImage。
@@ -1877,6 +1970,14 @@ async function readImageFill(
     const part = resolvePart(target);
     const ext = ((part || target || '').split('.').pop() || 'png').toLowerCase();
     const out: PptxFillImage = { type: 'image', extension: ext };
+
+    // 图片透明度（a:blip/a:alphaModFix@amt）：amt 为「保留不透明度」千分比（100000=100%）。
+    // 语义层转成 0~100 的 transparency（amt=100000 → 0% 透明；amt=50000 → 50% 透明）。
+    const alphaMod = blip['a:alphaModFix'];
+    if (alphaMod && alphaMod.attrs && alphaMod.attrs.amt != null) {
+        const amt = Number(alphaMod.attrs.amt);
+        out.transparency = Math.max(0, Math.min(100, Math.round(100 - amt / 1000)));
+    }
 
     if (part) {
         try {
@@ -1970,6 +2071,91 @@ function readCustGeom(custGeom: any): PptxCustomGeometry | undefined {
     return paths.length ? { paths } : undefined;
 }
 
+/** XML 属性/文本转义 */
+function escapeXml(s: string): string {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * 将「XML→JSON 解析节点」序列化回 XML 字符串。
+ * 节点约定（见 xml-to-json 解析器）：纯文本元素值是字符串（如 node['a:t']='abc'）；
+ * 含子元素的节点是对象，属性在 node.attrs，子元素按 tag 名作为 key（可能是数组）。
+ */
+function serializeNode(tag: string, node: any): string {
+    if (node == null) return '';
+    if (typeof node === 'string') return escapeXml(node);
+    if (Array.isArray(node)) return node.map((n) => serializeNode(tag, n)).join('');
+    if (typeof node !== 'object') return '';
+    const attrs = node.attrs || {};
+    const attrStr = Object.keys(attrs)
+        .filter((k) => attrs[k] != null)
+        .map((k) => ` ${k}="${escapeXml(attrs[k])}"`)
+        .join('');
+    let inner = '';
+    for (const key of Object.keys(node)) {
+        if (key === 'attrs' || key.startsWith('_')) continue;
+        const v = (node as any)[key];
+        if (v == null) continue;
+        if (Array.isArray(v)) for (const item of v) inner += serializeNode(key, item);
+        else inner += serializeNode(key, v);
+    }
+    return `<${tag}${attrStr}>${inner}</${tag}>`;
+}
+
+/** 递归收集 OMML/DrawingML 文本（a:t 与 m:t），用于公式纯文本回退 */
+function collectOomlText(node: any, acc: string[] = []): string[] {
+    if (!node || typeof node !== 'object') return acc;
+    for (const key of Object.keys(node)) {
+        const v = (node as any)[key];
+        if (v == null) continue;
+        if (key === 'a:t' || key === 'm:t') {
+            for (const t of asArray(v)) {
+                if (typeof t === 'string') acc.push(t);
+                else collectOomlText(t, acc);
+            }
+        } else if (typeof v === 'object') {
+            collectOomlText(v, acc);
+        }
+    }
+    return acc;
+}
+
+/**
+ * p:sp（txBox）内嵌 OMML 公式 → PptxMathElement。
+ * OMML 通过 mc:AlternateContent 挂载：mc:Choice@Requires=a14 内 a14:m → m:oMathPara/m:oMath（本体）；
+ * mc:Fallback 内 a:t（纯文本兜底）。此前 extractTextBody 只取 a:r/a:t，忽略该结构，导致公式文本丢失。
+ */
+function extractMathFromSp(node: any): PptxMathElement | null {
+    const txBody = node && node['p:txBody'];
+    if (!txBody) return null;
+    let omathRoot: any = null;
+    let omathTag = '';
+    let fallbackText = '';
+    for (const pNode of asArray(txBody['a:p'])) {
+        const alt = pNode && pNode['mc:AlternateContent'];
+        if (!alt) continue;
+        const choice = alt['mc:Choice'];
+        const a14m = choice && (choice['a14:m'] || choice['m:oMathPara']);
+        const para = a14m && a14m['m:oMathPara'];
+        const math = a14m && a14m['m:oMath'];
+        if (para) { omathRoot = para; omathTag = 'm:oMathPara'; }
+        else if (math) { omathRoot = math; omathTag = 'm:oMath'; }
+        const fb = alt['mc:Fallback'];
+        if (fb) fallbackText += collectOomlText(fb).join('');
+    }
+    if (!omathRoot) return null;
+    const xf = readXfrm(node, false);
+    const text = fallbackText || collectOomlText(omathRoot).join('');
+    const el: PptxMathElement = {
+        type: 'math',
+        x: xf ? xf.x : 0, y: xf ? xf.y : 0,
+        width: xf ? xf.width : 300, height: xf ? xf.height : 60,
+        omml: serializeNode(omathTag, omathRoot),
+        text
+    };
+    return el;
+}
+
 /** 单个 OOXML 节点 → PptxElement */
 async function nodeToElement(
     key: string,
@@ -1986,7 +2172,45 @@ async function nodeToElement(
     if (key === 'p:pic') {
         return await picToImage(node, resObj, zip);
     }
-    // p:sp / p:cxnSp → text 或 shape
+    // p:cxnSp → 连接线（语义化为 type:'connector'，携带 start/end 坐标与连接关系）
+    if (key === 'p:cxnSp') {
+        const spPr = node['p:spPr'];
+        const xf = readXfrm(node, false);
+        if (!xf) return null;
+        const geom = spPr && spPr['a:prstGeom'];
+        const shapeType = (geom && geom.attrs && geom.attrs.prst) ? String(geom.attrs.prst) : 'straightConnector1';
+        const connEl: PptxConnectorElement = {
+            type: 'connector',
+            x: xf.x, y: xf.y, width: xf.width, height: xf.height,
+            shapeType,
+            start: { x: xf.x, y: xf.y },
+            end: { x: xf.x + xf.width, y: xf.y + xf.height }
+        };
+        if (xf.rotation) connEl.rotation = xf.rotation;
+        if (xf.flipH) connEl.flipH = true;
+        if (xf.flipV) connEl.flipV = true;
+        const cNvPr = node['p:nvCxnSpPr'] && node['p:nvCxnSpPr']['p:cNvPr'];
+        if (cNvPr && cNvPr.attrs && cNvPr.attrs.name) connEl.name = String(cNvPr.attrs.name);
+        const cNvCxn = node['p:nvCxnSpPr'] && node['p:nvCxnSpPr']['p:cNvCxnSpPr'];
+        if (cNvCxn) {
+            const st = cNvCxn['a:stCxn']; const en = cNvCxn['a:endCxn'];
+            if (st && st.attrs) (connEl as any).beginCxn = { id: String(st.attrs.id), idx: st.attrs.idx != null ? Number(st.attrs.idx) : undefined };
+            if (en && en.attrs) (connEl as any).endCxn = { id: String(en.attrs.id), idx: en.attrs.idx != null ? Number(en.attrs.idx) : undefined };
+        }
+        try {
+            const spVis = readSpPr(spPr, themeMap);
+            if (spVis.line) connEl.line = spVis.line;
+            if (spVis.effects) connEl.effects = spVis.effects;
+            if (spVis.threeD) connEl.threeD = spVis.threeD;
+        } catch { /* 忽略特效解析失败 */ }
+        return connEl;
+    }
+    // 公式（OMML）：p:sp（txBox）内 mc:AlternateContent 挂载，单独产出 math 元素
+    if (key === 'p:sp') {
+        const mathEl = extractMathFromSp(node);
+        if (mathEl) return mathEl;
+    }
+    // p:sp → text 或 shape
     const spPr = node['p:spPr'];
     // 图片项目符号需要读 zip，先把 buBlip 的 r:embed 就地解析成 data URL
     if (node && node['p:txBody'] && node['p:txBody']['a:p']) {
@@ -1994,7 +2218,7 @@ async function nodeToElement(
     }
     // 读取占位符声明，便于下方文本样式从版式/母版同名占位符继承
     const ph = readPlaceholderAttrs(node);
-    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
+    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction, prstTxWarp } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
     const geom = spPr && spPr['a:prstGeom'];
 
     if (hasText || isTxBoxSp(node)) {
@@ -2019,6 +2243,7 @@ async function nodeToElement(
         if (rtlCol) textEl.rtlCol = true;
         if (fontScale != null) textEl.fontScale = fontScale;
         if (lnSpcReduction != null) textEl.lnSpcReduction = lnSpcReduction;
+        if (prstTxWarp) textEl.prstTxWarp = prstTxWarp;
         // 提取形状外观（填充/边框/特效）。纯文本框（txBox=1）也可能带背景填充，
         // 因此统一读取 spPr；只有「非矩形 + 非纯文本框」才保留 shapeType/adjust，
         // 避免把普通矩形文本框渲染成异形。
@@ -3180,6 +3405,62 @@ async function rawGraphicFrame(
     return el;
 }
 
+/**
+ * p:graphicFrame（OLE 嵌入对象）→ PptxOleElement。
+ * 从 p:oleObj 提取 progId / 嵌入二进制（ppt/embeddings/*.bin 内联为 base64）/ 显示代理图，
+ * round-trip 自包含（生成端 buildOleElement 依此写出嵌入部件与 poster）。
+ */
+async function oleToElement(
+    node: any,
+    oleObj: any,
+    resObj: Record<string, { type?: string; target?: string }>,
+    zip: JSZip
+): Promise<PptxOleElement> {
+    const xf = readXfrm(node, true);
+    const attrs = (oleObj && oleObj.attrs) || {};
+    const el: PptxOleElement = {
+        type: 'ole',
+        x: xf ? xf.x : 0, y: xf ? xf.y : 0,
+        width: xf ? xf.width : 200, height: xf ? xf.height : 150
+    };
+    if (attrs.progId) el.progId = String(attrs.progId);
+    if (String(attrs.showAsIcon) === '1' || attrs.showAsIcon === true) el.showAsIcon = true;
+    // 嵌入部件（p:oleObj@r:id → ppt/embeddings/*.bin）：内联为 base64 保证自包含
+    const rid = attrs['r:id'];
+    if (rid) {
+        const target = resObj[String(rid)] && resObj[String(rid)].target;
+        const part = resolvePart(target);
+        const ext = ((part || target || '').split('.').pop() || 'bin').toLowerCase();
+        el.extension = ext;
+        if (part) {
+            try {
+                const file = zip.file(part);
+                if (file) el.data = await file.async('base64');
+            } catch { /* 忽略媒体读取失败 */ }
+        }
+        if (el.data) el.target = part || String(target);
+    }
+    // 显示代理图（p:oleObj/p:nvPicPr/p:blipFill/a:blip@r:embed）
+    const picPr = oleObj && oleObj['p:nvPicPr'];
+    const blipFill = picPr && picPr['p:blipFill'];
+    const blip = blipFill && blipFill['a:blip'];
+    if (blip && blip.attrs && blip.attrs['r:embed']) {
+        const ptarget = resObj[String(blip.attrs['r:embed'])] && resObj[String(blip.attrs['r:embed'])].target;
+        const ppart = resolvePart(ptarget);
+        const pext = ((ppart || ptarget || '').split('.').pop() || 'png').toLowerCase();
+        const poster: any = { extension: pext };
+        if (ppart) {
+            try {
+                const file = zip.file(ppart);
+                if (file) poster.data = `data:${IMAGE_MIME[pext] || 'application/octet-stream'};base64,${await file.async('base64')}`;
+            } catch { /* 忽略媒体读取失败 */ }
+        }
+        if (!poster.data && ptarget) poster.src = String(ptarget);
+        if (poster.data || poster.src) el.poster = poster;
+    }
+    return el;
+}
+
 /** p:graphicFrame → 按 graphicData 类型分派到 table / diagram / chart */
 async function graphicFrameToElement(
     node: any,
@@ -3198,6 +3479,11 @@ async function graphicFrameToElement(
     // 图示 / SmartArt：dgm:rel 或其命名空间 uri
     if (graphicData['dgm:rel'] || uri === URI_DIAGRAM || /diagram/.test(uri)) {
         return await diagramToElement(node, resObj, zip, themeMap, themeContent);
+    }
+    // OLE 嵌入对象：a:graphicData uri=.../ole 且含 p:oleObj
+    const oleObj = graphicData['p:oleObj'];
+    if (oleObj || /\/ole$/i.test(uri)) {
+        return await oleToElement(node, oleObj, resObj, zip);
     }
     // 图表：仅当确实存在 c:chart 才按图表解析；否则（OLE 对象、内嵌文档/媒体、
     // 其他第三方 graphicData 等）降级为 raw 占位——携带原始 XML 交由生成端原样回写，

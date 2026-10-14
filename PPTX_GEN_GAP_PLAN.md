@@ -95,7 +95,8 @@
 - **规范**：`c:doughnutChart/c:bubbleChart/c:radarChart/c:stockChart/c:surfaceChart/c:bar3DChart` 等；`c:dLbls`/`c:axTitle`/次坐标轴/趋势线/图例位置
 - **现状**：`buildChartXml`（`element-builders.ts:662`）仅 6 种基础类型
 - **实现要点**：扩展 `chartType`；系列/轴/图例样式化；数据标签
-- **验收**：生成对应 `c:*` 节点与 `c:dLbls`
+- **gauge 仪表盘（2026-10-14 新增 ✅）**：OOXML 无原生 gauge 图表类型，`type:'gauge'` 用 `blockArc` 形状组合模拟**全环进度盘**（背景环 + 值环 + 中心文本）；值环扫掠比例 = clamp((value-min)/(max-min),0,1)（OOXML 角度 1/60000 度）；支持 `unit`/`label`/`thickness`/`color`/`textColor`/`labelColor` 等。解析端 round-trip 自动拆为独立 `blockArc` 形状 + 文本（符合预期）。
+- **验收**：生成对应 `c:*` 节点与 `c:dLbls`；gauge 生成两个 `blockArc` 与中心数值文本（见 test/gauge-gen.test.ts）
 
 ### T12 ✅ 图片裁剪 + 调整/透明度
 - **规范**：`a:blip` 的 `a:srcRect`、`a:alphaModFix`/`a:lum`、透明色 `a:biLevel`
@@ -190,7 +191,7 @@
 ### 剩余已知限制（解析端，高价值 round-trip）
 
 - OMML 公式解析：`mc:AlternateContent` 仅取 `mc:Fallback` 渲染成图，不解析 `m:oMath`
-- 组合图 multi-plot（**解析端 ✅ 已修复**，2026-10）：`extractChart` 现遍历 `plotArea` 下全部 `c:*Chart` 节点并写入 `PptxChartElement.plots`，多绘图区不再丢数据；主 plot 属性仍映射到顶层 `chartType/series` 保持兼容。生成端 `jsonToPptx` 按 `plots` 写出多个图表节点（组合图完整 round-trip 输出）待补充。
+- 组合图 multi-plot（**解析端 ✅ / 生成端 ✅ 均已实现**，2026-10）：解析端 `extractChart` 遍历 `plotArea` 下全部 `c:*Chart` 节点并写入 `PptxChartElement.plots`，多绘图区不再丢数据；主 plot 属性仍映射到顶层 `chartType/series` 保持兼容。生成端 `jsonToPptx` 按 `plots`（长度 >= 2）写出多个图表节点：各 plot 独立类型/系列/类目/分组，共享同一组 `catAx`/`valAx`（axId 111/112），series `idx/order` 跨 plot 全局连续，数据引用列按 plot 顺序分配（A 列共享类目）并与嵌入工作簿对齐。约束（fail-fast）：仅支持类目系图表（bar/line/area 及 3D、pie/doughnut/ofPie、radar）；scatter/bubble/stock/surface 需独立坐标系不支持混排；不支持 `secondaryValueAxis`（次轴组合图请用顶层单类型 + `secondaryValueAxis`）。
 - `a:prstTxWarp` 艺术字、`a:path` 径向渐变、背景 `bgRef` 主题引用、切换 `p:snd`、`a:grpFill` 父级继承、备注进 HTML
 - SmartArt 布局引擎（T16 已知限制）
 

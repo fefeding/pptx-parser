@@ -506,7 +506,13 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
         const parts: string[] = [];
         for (const e of els) {
             const node = await buildElement(c, e);
-            if (node) parts.push(nodeToString(node));
+            if (!node) continue;
+            // gauge 等元素返回多个 p:sp 节点（形状组合），需逐个序列化
+            if (Array.isArray(node)) {
+                for (const n of node) parts.push(nodeToString(n));
+            } else {
+                parts.push(nodeToString(node));
+            }
         }
         return parts.join('');
     };
