@@ -95,7 +95,8 @@
 - **规范**：`c:doughnutChart/c:bubbleChart/c:radarChart/c:stockChart/c:surfaceChart/c:bar3DChart` 等；`c:dLbls`/`c:axTitle`/次坐标轴/趋势线/图例位置
 - **现状**：`buildChartXml`（`element-builders.ts:662`）仅 6 种基础类型
 - **实现要点**：扩展 `chartType`；系列/轴/图例样式化；数据标签
-- **验收**：生成对应 `c:*` 节点与 `c:dLbls`
+- **gauge 仪表盘（2026-10-14 新增 ✅）**：OOXML 无原生 gauge 图表类型，`type:'gauge'` 用 `blockArc` 形状组合模拟**全环进度盘**（背景环 + 值环 + 中心文本）；值环扫掠比例 = clamp((value-min)/(max-min),0,1)（OOXML 角度 1/60000 度）；支持 `unit`/`label`/`thickness`/`color`/`textColor`/`labelColor` 等。解析端 round-trip 自动拆为独立 `blockArc` 形状 + 文本（符合预期）。
+- **验收**：生成对应 `c:*` 节点与 `c:dLbls`；gauge 生成两个 `blockArc` 与中心数值文本（见 test/gauge-gen.test.ts）
 
 ### T12 ✅ 图片裁剪 + 调整/透明度
 - **规范**：`a:blip` 的 `a:srcRect`、`a:alphaModFix`/`a:lum`、透明色 `a:biLevel`

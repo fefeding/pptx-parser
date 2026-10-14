@@ -778,6 +778,45 @@ export interface PptxChartElement extends PptxElementBase {
     plots?: PptxChartPlot[];
 }
 
+/**
+ * 仪表盘元素（全环进度盘）。OOXML 无原生 gauge 图表类型，生成端用 blockArc 形状组合模拟：
+ * - 背景环（backgroundColor，默认浅灰）+ 值环（color，主题色）占满包围盒
+ * - 中心文本框显示数值（value + unit）与可选标签（label）
+ * - 值环扫掠比例 = clamp((value - min) / (max - min), 0, 1)
+ * 用于 KPI / 完成率等指标可视化（无原生图表类型，故独立于 PptxChartElement）。
+ */
+export interface PptxGaugeElement extends PptxElementBase {
+    type: 'gauge';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** 当前值 */
+    value: number;
+    /** 最小值（默认 0） */
+    min?: number;
+    /** 最大值（默认 100） */
+    max?: number;
+    /** 单位（如 '%'、'分'），追加在数值之后 */
+    unit?: string;
+    /** 中心下方标签文本（如 '完成率'） */
+    label?: string;
+    /** 背景环颜色（#RRGGBB，默认浅灰 D9D9D9） */
+    backgroundColor?: string;
+    /** 环厚度占比 0~1（默认 0.25） */
+    thickness?: number;
+    /** 是否显示中心数值（默认 true） */
+    showValue?: boolean;
+    /** 中心数值文本颜色（默认 #333333） */
+    textColor?: string;
+    /** 标签文本颜色（默认 #666666） */
+    labelColor?: string;
+    /** 中心数值字号（px，默认按高度 18% 自适应） */
+    valueFontSize?: number;
+    /** 标签字号（px，默认按高度 9% 自适应） */
+    labelFontSize?: number;
+}
+
 /** 渐变填充（形状填充、图表逐点填充 c:dPt 共用） */
 export interface PptxGradientFill {
     type: 'gradient';
@@ -1091,6 +1130,7 @@ export type PptxElement =
     | PptxShapeElement
     | PptxImageElement
     | PptxChartElement
+    | PptxGaugeElement
     | PptxTableElement
     | PptxDiagramElement
     | PptxGroupElement

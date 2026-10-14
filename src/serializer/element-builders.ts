@@ -501,6 +501,31 @@ export interface SerializerElement {
     secondaryValueAxis?: boolean;
     /** 网格线（c:majorGridlines / c:minorGridlines） */
     gridlines?: { major?: boolean; minor?: boolean };
+    // ---- gauge 仪表盘（type:'gauge'，OOXML 无原生类型，生成端用 blockArc 形状组合）----
+    /** 仪表盘当前值（type:'gauge'） */
+    value?: number;
+    /** 仪表盘最小值（默认 0） */
+    min?: number;
+    /** 仪表盘最大值（默认 100） */
+    max?: number;
+    /** 仪表盘单位（如 '%'、'分'），追加在数值之后 */
+    unit?: string;
+    /** 仪表盘中心标签文本 */
+    label?: string;
+    /** 仪表盘背景环颜色（#RRGGBB，默认浅灰 D9D9D9） */
+    backgroundColor?: string;
+    /** 仪表盘环厚度占比 0~1（默认 0.25） */
+    thickness?: number;
+    /** 仪表盘是否显示中心数值（默认 true） */
+    showValue?: boolean;
+    /** 仪表盘中心数值文本颜色（默认 #333333） */
+    textColor?: string;
+    /** 仪表盘标签文本颜色（默认 #666666） */
+    labelColor?: string;
+    /** 仪表盘中心数值字号（px，默认按高度 18% 自适应） */
+    valueFontSize?: number;
+    /** 仪表盘标签字号（px，默认按高度 9% 自适应） */
+    labelFontSize?: number;
 }
 /** 幻灯片 JSON */
 export interface SerializerSlide {
@@ -1655,6 +1680,66 @@ function buildChartElement(ctx: SerializerContext, el: SerializerElement) {
 }
 
 /**
+ * 构建仪表盘元素（全环进度盘）。OOXML 无原生 gauge 图表类型，用 blockArc 形状组合模拟：
+ * - 背景环：blockArc（backgroundColor，默认浅灰），占满包围盒
+ * - 值环：blockArc（color，主题色），扫掠比例 = clamp((value-min)/(max-min), 0, 1)
+ * - 中心：文本框（大数值 + 可选标签），水平垂直居中
+ * 多个 p:sp 由 buildSlideRoot 展开追加到 spTree（解析端拆为独立 shape/text，符合预期）。
+ * @returns 多个 p:sp 节点（背景环 / 值环 / 中心文本）
+ */
+async function buildGaugeElement(ctx: SerializerContext, el: SerializerElement): Promise<BuilderNode[]> {
+    const w = el.width ?? 200;
+    const h = el.height ?? 200;
+    const min = el.min != null ? Number(el.min) : 0;
+    const max = el.max != null ? Number(el.max) : 100;
+    const value = el.value != null ? Number(el.value) : 0;
+    const ratio = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
+    const bgColor = el.backgroundColor ? colorToHex(el.backgroundColor) : 'D9D9D9';
+    const valColor = el.color ? colorToHex(el.color) : '4A90D9';
+    const thickness = el.thickness != null ? Math.min(1, Math.max(0.05, Number(el.thickness))) : 0.25;
+    const adj3 = Math.round(thickness * 100000);
+    // OOXML 角度单位：1/60000 度；约定 0=3 点钟方向、顺时针。359° 近整环（留 1° 避免首尾重叠）。
+    const FULL = 359 * 60000;
+    const valSweep = Math.round(ratio * FULL);
+
+    const arcNode = (color: string, adj2: number): Promise<BuilderNode> => buildShapeElement(ctx, {
+        type: 'shape', shapeType: 'blockArc',
+        x: el.x ?? 0, y: el.y ?? 0, width: w, height: h,
+        fill: color, line: 'none',
+        adjust: { adj1: 0, adj2, adj3 }
+    });
+
+    const nodes: BuilderNode[] = [
+        await arcNode(bgColor, FULL),
+        await arcNode(valColor, valSweep),
+    ];
+
+    if (el.showValue !== false) {
+        const innerW = w * 0.6;
+        const innerH = h * 0.45;
+        const innerX = (el.x ?? 0) + (w - innerW) / 2;
+        const innerY = (el.y ?? 0) + (h - innerH) / 2;
+        const valueText = `${Math.round(value * 100) / 100}${el.unit || ''}`;
+        const paragraphs: ParagraphSpec[] = [{
+            align: 'center',
+            runs: [{ text: valueText, options: { fontSize: el.valueFontSize ?? Math.round(h * 0.18), bold: true, color: el.textColor || '#333333' } }]
+        }];
+        if (el.label) {
+            paragraphs.push({
+                align: 'center',
+                runs: [{ text: el.label, options: { fontSize: el.labelFontSize ?? Math.round(h * 0.09), color: el.labelColor || '#666666' } }]
+            });
+        }
+        const textNode = await buildTextElement(ctx, {
+            type: 'text', x: innerX, y: innerY, width: innerW, height: innerH,
+            align: 'center', valign: 'middle', paragraphs
+        });
+        if (textNode) nodes.push(textNode);
+    }
+    return nodes;
+}
+
+/**
  * 渐变填充 → a:gradFill 片段（图表逐点填充 c:dPt 用）。
  * 径向渐变写 a:path，线性渐变写 a:lin（ang 单位 1/60000 度）。
  * @returns XML 片段；无有效色标时返回空串
@@ -2404,7 +2489,10 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
     for (const c of children) {
         const cc = pageCoords ? { ...c, x: (c.x || 0) - gx, y: (c.y || 0) - gy } : c;
         const n = await buildElement(ctx, cc);
-        if (n) childNodes.push(n);
+        if (!n) continue;
+        // gauge 等元素返回多个节点（形状组合），展开加入 group 子节点
+        if (Array.isArray(n)) childNodes.push(...(n as BuilderNode[]));
+        else childNodes.push(n);
     }
     const w = pxToEmu(el.width || 0);
     const h = pxToEmu(el.height || 0);
@@ -3087,7 +3175,7 @@ function buildMathElement(ctx: SerializerContext, el: SerializerElement) {
     );
 }
 
-export async function buildElement(ctx: SerializerContext, el: SerializerElement) {
+export async function buildElement(ctx: SerializerContext, el: SerializerElement): Promise<BuilderNode | BuilderNode[] | null> {
     if (!el || typeof el !== 'object') return null;
     // 版式/母版装饰形状：解析端为还原视觉导入，实际归属 layout/master 的 spTree。
     // 跳过即可保持导出与源文件一致（母版/版式本身已由 doc.masters/themeXmls 无损回写）。
@@ -3111,6 +3199,8 @@ export async function buildElement(ctx: SerializerContext, el: SerializerElement
             return buildMediaElement(ctx, el, el.type as 'video' | 'audio');
         case 'chart':
             return buildChartElement(ctx, el);
+        case 'gauge':
+            return buildGaugeElement(ctx, el);
         case 'table':
             return buildTableElement(ctx, el);
         case 'group':
@@ -3382,7 +3472,10 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
     const elementNodes = [];
     for (const el of (slide && slide.elements) || []) {
         const node = await buildElement(ctx, el);
-        if (node) elementNodes.push(node);
+        if (!node) continue;
+        // gauge 等元素返回多个 p:sp 节点（形状组合），需展开追加到 spTree
+        if (Array.isArray(node)) elementNodes.push(...(node as BuilderNode[]));
+        else elementNodes.push(node);
     }
 
     // 背景（纯色 / 渐变 / 图片）
