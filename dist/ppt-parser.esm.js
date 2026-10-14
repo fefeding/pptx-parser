@@ -16194,6 +16194,54 @@ function buildChartElement(ctx, el) {
     ctx.charts.push({ name: chartName, xml, workbook });
     return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), buildXfrm(el, 'p:xfrm'), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: NS.c }, xmlNode('c:chart', { 'xmlns:c': NS.c, 'xmlns:r': NS.r, 'r:id': relId }))));
 }
+async function buildGaugeElement(ctx, el) {
+    const w = el.width ?? 200;
+    const h = el.height ?? 200;
+    const min = el.min != null ? Number(el.min) : 0;
+    const max = el.max != null ? Number(el.max) : 100;
+    const value = el.value != null ? Number(el.value) : 0;
+    const ratio = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
+    const bgColor = el.backgroundColor ? colorToHex(el.backgroundColor) : 'D9D9D9';
+    const valColor = el.color ? colorToHex(el.color) : '4A90D9';
+    const thickness = el.thickness != null ? Math.min(1, Math.max(0.05, Number(el.thickness))) : 0.25;
+    const adj3 = Math.round(thickness * 100000);
+    const FULL = 359 * 60000;
+    const valSweep = Math.round(ratio * FULL);
+    const arcNode = (color, adj2) => buildShapeElement(ctx, {
+        type: 'shape', shapeType: 'blockArc',
+        x: el.x ?? 0, y: el.y ?? 0, width: w, height: h,
+        fill: color, line: 'none',
+        adjust: { adj1: 0, adj2, adj3 }
+    });
+    const nodes = [
+        await arcNode(bgColor, FULL),
+        await arcNode(valColor, valSweep),
+    ];
+    if (el.showValue !== false) {
+        const innerW = w * 0.6;
+        const innerH = h * 0.45;
+        const innerX = (el.x ?? 0) + (w - innerW) / 2;
+        const innerY = (el.y ?? 0) + (h - innerH) / 2;
+        const valueText = `${Math.round(value * 100) / 100}${el.unit || ''}`;
+        const paragraphs = [{
+                align: 'center',
+                runs: [{ text: valueText, options: { fontSize: el.valueFontSize ?? Math.round(h * 0.18), bold: true, color: el.textColor || '#333333' } }]
+            }];
+        if (el.label) {
+            paragraphs.push({
+                align: 'center',
+                runs: [{ text: el.label, options: { fontSize: el.labelFontSize ?? Math.round(h * 0.09), color: el.labelColor || '#666666' } }]
+            });
+        }
+        const textNode = await buildTextElement(ctx, {
+            type: 'text', x: innerX, y: innerY, width: innerW, height: innerH,
+            align: 'center', valign: 'middle', paragraphs
+        });
+        if (textNode)
+            nodes.push(textNode);
+    }
+    return nodes;
+}
 function gradientFillXml(g) {
     const stops = (g.stops || []).filter((s) => s && s.color);
     if (!stops.length)
@@ -16251,47 +16299,112 @@ function buildTrendlineXml(t) {
 }
 function buildChartXml(el) {
     const type = el.chartType || 'barChart';
-    const isPie = type === 'pieChart' || type === 'pie3DChart';
-    const isDoughnut = type === 'doughnutChart';
-    const isOfPie = type === 'ofPieChart';
-    const isPieLike = isPie || isDoughnut || isOfPie;
-    const isScatter = type === 'scatterChart';
-    const isStock = type === 'stockChart';
-    const isRadar = type === 'radarChart';
-    const isSurface = type === 'surfaceChart' || type === 'surface3DChart';
-    const is3D = /3D/i.test(type);
-    const isBubble = type === 'bubbleChart';
-    const isBarLike = type === 'barChart' || type === 'bar3DChart';
-    const isLineArea = type === 'lineChart' || type === 'areaChart' ||
-        type === 'line3DChart' || type === 'area3DChart';
+    const flagsOf = (t) => {
+        const isPie = t === 'pieChart' || t === 'pie3DChart';
+        const isDoughnut = t === 'doughnutChart';
+        const isOfPie = t === 'ofPieChart';
+        const isPieLike = isPie || isDoughnut || isOfPie;
+        const isScatter = t === 'scatterChart';
+        const isStock = t === 'stockChart';
+        const isRadar = t === 'radarChart';
+        const isSurface = t === 'surfaceChart' || t === 'surface3DChart';
+        const is3D = /3D/i.test(t);
+        const isBubble = t === 'bubbleChart';
+        const isBarLike = t === 'barChart' || t === 'bar3DChart';
+        const isLineArea = t === 'lineChart' || t === 'areaChart' ||
+            t === 'line3DChart' || t === 'area3DChart';
+        return { isPie, isDoughnut, isOfPie, isPieLike, isScatter, isStock, isRadar, isSurface, is3D, isBubble, isBarLike, isLineArea };
+    };
+    const colLetter = (n) => {
+        let s = '';
+        while (n > 0) {
+            const r = (n - 1) % 26;
+            s = String.fromCharCode(65 + r) + s;
+            n = Math.floor((n - 1) / 26);
+        }
+        return s;
+    };
+    const dLblsXml = (dl, numFmt) => {
+        if (!dl)
+            return '';
+        const obj = (dl && typeof dl === 'object') ? dl : null;
+        const nf = numFmt ? `<c:numFmt formatCode="${escapeXml(numFmt)}" sourceLinked="0"/>` : '';
+        return `<c:dLbls>${nf}<c:showVal val="${(dl === true || !!obj?.showValue) ? 1 : 0}"/>` +
+            `<c:showPercent val="${obj?.showPercent ? 1 : 0}"/><c:showSer val="${obj?.showSeries ? 1 : 0}"/>` +
+            `<c:showCatName val="${obj?.showCategory ? 1 : 0}"/></c:dLbls>`;
+    };
+    const mkSpec = (t, series, cats, o, colBase) => {
+        const f = flagsOf(t);
+        return {
+            type: t,
+            series,
+            cats,
+            varyColors: o.varyColors !== undefined
+                ? (o.varyColors ? 1 : 0)
+                : (f.isPie || f.isDoughnut || f.isOfPie ? 1 : 0),
+            grouping: o.grouping
+                ? String(o.grouping)
+                : (f.isBarLike ? 'clustered' : f.isLineArea ? 'standard' : ''),
+            barDir: String(o.barDir || 'col'),
+            holeSize: o.holeSize !== undefined ? o.holeSize : 50,
+            ofPieType: o.ofPieType === 'bar' ? 'bar' : 'pie',
+            bubble3D: !!o.bubble3D,
+            bubbleScale: o.bubbleScale,
+            showNegBubbles: !!o.showNegBubbles,
+            wireframe: !!o.wireframe,
+            smooth: !!o.smooth,
+            marker: !!o.marker,
+            numberFormat: o.numberFormat,
+            dataLabels: o.dataLabels,
+            colBase
+        };
+    };
     const cats = el.categories || [];
     const series = el.series || [];
-    const varyColors = el.varyColors !== undefined
-        ? (el.varyColors ? 1 : 0)
-        : (isPie || isDoughnut || isOfPie ? 1 : 0);
-    const groupingVal = el.grouping
-        ? String(el.grouping)
-        : (isBarLike ? 'clustered' : isLineArea ? 'standard' : '');
-    const buildSerXml = (serList, offset) => {
+    const usePlots = Array.isArray(el.plots) && el.plots.length >= 2;
+    if (usePlots) {
+        const unsupported = el.plots.find((p) => {
+            const f = flagsOf(p.chartType);
+            return f.isScatter || f.isBubble || f.isStock || f.isSurface;
+        });
+        if (unsupported) {
+            throw new Error(`[pptx-parser] 组合图不支持混入 ${unsupported.chartType}：scatter/bubble/stock/surface 需独立坐标系，请拆分为独立图表，或用顶层 chartType + secondaryValueAxis`);
+        }
+        if (el.secondaryValueAxis) {
+            throw new Error('[pptx-parser] 组合图（plots）不支持 secondaryValueAxis 次坐标轴：请改用顶层 chartType + secondaryValueAxis');
+        }
+    }
+    const specs = usePlots
+        ? el.plots.map((p) => mkSpec(p.chartType, (p.series || []), p.categories || el.categories || [], p, 0))
+        : [mkSpec(type, series, cats, el, 2)];
+    if (usePlots) {
+        let base = 2;
+        for (const s of specs) {
+            s.colBase = base;
+            base += s.series.length;
+        }
+    }
+    const buildSerXml = (serList, offset, spec) => {
+        const f = flagsOf(spec.type);
         return serList.map((s, j) => {
             const i = offset + j;
             const tx = `<c:tx><c:strRef><c:f>Sheet1!$A$1</c:f>` +
                 `<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(s.name || `Series${i + 1}`)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
             let data;
-            if (isScatter) {
+            if (f.isScatter) {
                 data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal>`;
             }
-            else if (isBubble) {
+            else if (f.isBubble) {
                 data = `<c:xVal>${numRefXml(s.x || [], 'B')}</c:xVal><c:yVal>${numRefXml(s.y || [], 'C')}</c:yVal><c:bubbleSize>${numRefXml(s.values || [], 'D')}</c:bubbleSize>`;
             }
-            else if (isStock) {
+            else if (f.isStock) {
                 data = `<c:openVal>${numRefXml(s.open || [], 'B')}</c:openVal>` +
                     `<c:highVal>${numRefXml(s.high || [], 'C')}</c:highVal>` +
                     `<c:lowVal>${numRefXml(s.low || [], 'D')}</c:lowVal>` +
                     `<c:closeVal>${numRefXml(s.close || s.values || [], 'E')}</c:closeVal>`;
             }
             else {
-                data = `<c:cat>${strRefXml(cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], 'B')}</c:val>`;
+                data = `<c:cat>${strRefXml(spec.cats, 'A')}</c:cat><c:val>${numRefXml(s.values || [], colLetter(spec.colBase + j))}</c:val>`;
             }
             const spPr = s.color ? `<c:spPr><a:solidFill><a:srgbClr val="${colorToHex(s.color)}"/></a:solidFill></c:spPr>` : '';
             const dPtXml = (s.pointColors || [])
@@ -16304,9 +16417,9 @@ function buildChartXml(el) {
                 return fill ? `<c:dPt><c:idx val="${pi}"/><c:spPr>${fill}</c:spPr></c:dPt>` : '';
             })
                 .join('');
-            const isSmoothable = isScatter || type === 'lineChart' || type === 'line3DChart';
-            const markerXml = (el.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
-            const smoothXml = (el.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
+            const isSmoothable = f.isScatter || spec.type === 'lineChart' || spec.type === 'line3DChart';
+            const markerXml = (spec.marker && isSmoothable) ? '<c:marker><c:symbol val="circle"/><c:size val="7"/></c:marker>' : '';
+            const smoothXml = (spec.smooth && isSmoothable) ? '<c:smooth val="1"/>' : '';
             const trendlineXml = (s.trendlines || []).map((t) => buildTrendlineXml(t)).join('');
             return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${spPr}${markerXml}${dPtXml}${trendlineXml}${data}${smoothXml}</c:ser>`;
         }).join('');
@@ -16315,64 +16428,69 @@ function buildChartXml(el) {
     const priSeries = el.secondaryValueAxis && secSeries.length
         ? series.filter((s) => s.axis !== 'secondary')
         : series;
-    const useSecondary = !!el.secondaryValueAxis && secSeries.length > 0 && priSeries.length > 0;
-    const serXml = buildSerXml(useSecondary ? priSeries : series, 0);
-    const serXmlSec = useSecondary ? buildSerXml(secSeries, priSeries.length) : '';
-    const numFmtXml = el.numberFormat
-        ? `<c:numFmt formatCode="${escapeXml(el.numberFormat)}" sourceLinked="0"/>`
-        : '';
-    const dlObj = (el.dataLabels && typeof el.dataLabels === 'object') ? el.dataLabels : null;
-    const dLblsInner = el.dataLabels
-        ? `<c:dLbls>${numFmtXml}<c:showVal val="${(el.dataLabels === true || !!dlObj?.showValue) ? 1 : 0}"/>` +
-            `<c:showPercent val="${dlObj?.showPercent ? 1 : 0}"/><c:showSer val="${dlObj?.showSeries ? 1 : 0}"/>` +
-            `<c:showCatName val="${dlObj?.showCategory ? 1 : 0}"/></c:dLbls>`
-        : '';
+    const useSecondary = !usePlots && !!el.secondaryValueAxis && secSeries.length > 0 && priSeries.length > 0;
     const axIds2 = `<c:axId val="111"/><c:axId val="112"/>`;
     const axIds3 = `<c:axId val="111"/><c:axId val="112"/><c:axId val="113"/>`;
-    const needsSerAx = is3D || isSurface;
+    const SECONDARY_AX_IDS = `<c:axId val="211"/><c:axId val="212"/>`;
+    const any3D = specs.some((s) => { const f = flagsOf(s.type); return f.is3D || f.isSurface; });
+    const needsSerAx = any3D;
     const axIds = needsSerAx ? axIds3 : axIds2;
-    const makePlot = (serPart, axIdsPart) => {
-        if (isOfPie) {
-            const ofPieType = el.ofPieType === 'bar' ? 'bar' : 'pie';
-            return `<c:${type}><c:ofPieType val="${ofPieType}"/><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}` +
+    const makePlot = (serPart, spec, axIdsPart) => {
+        const f = flagsOf(spec.type);
+        const dLbls = dLblsXml(spec.dataLabels, spec.numberFormat ?? el.numberFormat);
+        if (f.isOfPie) {
+            return `<c:${spec.type}><c:ofPieType val="${spec.ofPieType}"/><c:varyColors val="${spec.varyColors}"/>${serPart}${dLbls}` +
                 `<c:gapWidth val="100"/><c:splitType val="auto"/><c:splitPos val="0"/>` +
-                `<c:secondPieSize val="75"/><c:serLines/></c:${type}>`;
+                `<c:secondPieSize val="75"/><c:serLines/></c:${spec.type}>`;
         }
-        else if (isDoughnut) {
-            const holeSize = el.holeSize !== undefined ? el.holeSize : 50;
-            return `<c:${type}><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}<c:holeSize val="${holeSize}"/></c:${type}>`;
+        else if (f.isDoughnut) {
+            return `<c:${spec.type}><c:varyColors val="${spec.varyColors}"/>${serPart}${dLbls}<c:holeSize val="${spec.holeSize}"/></c:${spec.type}>`;
         }
-        else if (isPie) {
-            return `<c:${type}><c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}</c:${type}>`;
+        else if (f.isPie) {
+            return `<c:${spec.type}><c:varyColors val="${spec.varyColors}"/>${serPart}${dLbls}</c:${spec.type}>`;
         }
-        else if (isBubble) {
-            const bubble3DXml = el.bubble3D ? '<c:bubble3D val="1"/>' : '';
-            const bubbleScaleXml = el.bubbleScale !== undefined ? `<c:bubbleScale val="${el.bubbleScale}"/>` : '';
-            const showNegXml = el.showNegBubbles ? '<c:showNegBubbles val="1"/>' : '';
-            return `<c:${type}>${serPart}${dLblsInner}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIdsPart}</c:${type}>`;
+        else if (f.isBubble) {
+            const bubble3DXml = spec.bubble3D ? '<c:bubble3D val="1"/>' : '';
+            const bubbleScaleXml = spec.bubbleScale !== undefined ? `<c:bubbleScale val="${spec.bubbleScale}"/>` : '';
+            const showNegXml = spec.showNegBubbles ? '<c:showNegBubbles val="1"/>' : '';
+            return `<c:${spec.type}>${serPart}${dLbls}${bubble3DXml}${bubbleScaleXml}${showNegXml}${axIdsPart}</c:${spec.type}>`;
         }
-        else if (isRadar) {
-            return `<c:${type}><c:radarStyle val="standard"/>${serPart}${dLblsInner}${axIdsPart}</c:${type}>`;
+        else if (f.isRadar) {
+            return `<c:${spec.type}><c:radarStyle val="standard"/>${serPart}${dLbls}${axIdsPart}</c:${spec.type}>`;
         }
-        else if (isStock) {
-            return `<c:${type}>${serPart}${dLblsInner}<c:hiLowLines/>${axIdsPart}</c:${type}>`;
+        else if (f.isStock) {
+            return `<c:${spec.type}>${serPart}${dLbls}<c:hiLowLines/>${axIdsPart}</c:${spec.type}>`;
         }
-        else if (isSurface) {
-            const wireframeXml = el.wireframe ? '<c:wireframe val="1"/>' : '';
-            return `<c:${type}>${wireframeXml}${serPart}<c:bandFmts/>${axIdsPart}</c:${type}>`;
+        else if (f.isSurface) {
+            const wireframeXml = spec.wireframe ? '<c:wireframe val="1"/>' : '';
+            return `<c:${spec.type}>${wireframeXml}${serPart}<c:bandFmts/>${axIdsPart}</c:${spec.type}>`;
         }
         else {
-            const dir = isBarLike ? `<c:barDir val="${el.barDir || 'col'}"/>` : '';
-            const grouping = groupingVal ? `<c:grouping val="${groupingVal}"/>` : '';
-            const markerXml = (el.marker && isLineArea) ? '<c:marker><c:symbol val="circle"/></c:marker>' : '';
-            return `<c:${type}>${dir}${grouping}<c:varyColors val="${varyColors}"/>${serPart}${dLblsInner}${markerXml}${axIdsPart}</c:${type}>`;
+            const dir = f.isBarLike ? `<c:barDir val="${spec.barDir}"/>` : '';
+            const grouping = spec.grouping ? `<c:grouping val="${spec.grouping}"/>` : '';
+            const markerXml = (spec.marker && f.isLineArea) ? '<c:marker><c:symbol val="circle"/></c:marker>' : '';
+            return `<c:${spec.type}>${dir}${grouping}<c:varyColors val="${spec.varyColors}"/>${serPart}${dLbls}${markerXml}${axIdsPart}</c:${spec.type}>`;
         }
     };
-    const SECONDARY_AX_IDS = `<c:axId val="211"/><c:axId val="212"/>`;
-    const plotChart = makePlot(serXml, axIds)
-        + (useSecondary ? makePlot(serXmlSec, SECONDARY_AX_IDS) : '');
-    const view3D = is3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="20"/><c:depthPercent val="100"/></c:view3D>' : '';
-    const isXYValAx = isScatter || isBubble;
+    const nodes = [];
+    if (usePlots) {
+        let idx = 0;
+        for (const spec of specs) {
+            nodes.push({ serPart: buildSerXml(spec.series, idx, spec), spec, axIdsPart: axIds });
+            idx += spec.series.length;
+        }
+    }
+    else {
+        const spec0 = specs[0];
+        nodes.push({ serPart: buildSerXml(useSecondary ? priSeries : series, 0, spec0), spec: spec0, axIdsPart: axIds });
+        if (useSecondary) {
+            nodes.push({ serPart: buildSerXml(secSeries, priSeries.length, spec0), spec: spec0, axIdsPart: SECONDARY_AX_IDS });
+        }
+    }
+    const plotChart = nodes.map((n) => makePlot(n.serPart, n.spec, n.axIdsPart)).join('');
+    const view3D = any3D ? '<c:view3D><c:rotX val="30"/><c:rotY val="20"/><c:depthPercent val="100"/></c:view3D>' : '';
+    const allPieLike = specs.every((s) => flagsOf(s.type).isPieLike);
+    const anyXY = specs.some((s) => { const f = flagsOf(s.type); return f.isScatter || f.isBubble; });
     const gl = el.gridlines;
     const majorGl = gl && gl.major === false ? '' : '<c:majorGridlines/>';
     const minorGl = gl && gl.minor === true ? '<c:minorGridlines/>' : '';
@@ -16380,8 +16498,8 @@ function buildChartXml(el) {
         ? `<c:axTitle><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="zh-CN"/><a:t>${escapeXml(t)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:axTitle>`
         : '';
     let axes = '';
-    if (!isPieLike) {
-        const catOrValAxX = isXYValAx
+    if (!allPieLike) {
+        const catOrValAxX = anyXY
             ? `<c:valAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="112"/><c:crosses val="autoZero"/></c:valAx>`
             : `<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/>${minorGl}${axisTitleXml(el.axisTitles?.category)}<c:tickLblPos val="low"/><c:crossAx val="${needsSerAx ? 113 : 112}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>`;
         const valAxY = `<c:valAx><c:axId val="112"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:numFmt formatCode="${escapeXml(el.numberFormat || 'General')}" sourceLinked="0"/>${majorGl}${minorGl}${axisTitleXml(el.axisTitles?.value)}<c:tickLblPos val="low"/><c:crossAx val="111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
@@ -16404,7 +16522,9 @@ function buildChartXml(el) {
         ? `<c:legend><c:legendPos val="${legendPos}"/><c:overlay val="0"/></c:legend>`
         : '';
     const autoTitleDeleted = `<c:autoTitleDeleted val="${el.title ? 0 : 1}"/>`;
-    const workbook = buildChartWorkbookData(type, cats, series);
+    const workbook = usePlots
+        ? buildChartWorkbookData('barChart', specs[0].cats, specs.flatMap((s) => s.series))
+        : buildChartWorkbookData(type, cats, series);
     const spaceFillSpPr = el.spaceFill
         ? `<c:spPr>${el.spaceFill === 'none' ? '<a:noFill/>' : `<a:solidFill><a:srgbClr val="${colorToHex(el.spaceFill)}"/></a:solidFill>`}</c:spPr>`
         : '';
@@ -16659,7 +16779,11 @@ async function buildGroupElement(ctx, el) {
     for (const c of children) {
         const cc = pageCoords ? { ...c, x: (c.x || 0) - gx, y: (c.y || 0) - gy } : c;
         const n = await buildElement(ctx, cc);
-        if (n)
+        if (!n)
+            continue;
+        if (Array.isArray(n))
+            childNodes.push(...n);
+        else
             childNodes.push(n);
     }
     const w = pxToEmu(el.width || 0);
@@ -17114,6 +17238,8 @@ async function buildElement(ctx, el) {
             return buildMediaElement(ctx, el, el.type);
         case 'chart':
             return buildChartElement(ctx, el);
+        case 'gauge':
+            return buildGaugeElement(ctx, el);
         case 'table':
             return buildTableElement(ctx, el);
         case 'group':
@@ -17268,7 +17394,11 @@ async function buildSlideRoot(ctx, slide) {
     const elementNodes = [];
     for (const el of (slide && slide.elements) || []) {
         const node = await buildElement(ctx, el);
-        if (node)
+        if (!node)
+            continue;
+        if (Array.isArray(node))
+            elementNodes.push(...node);
+        else
             elementNodes.push(node);
     }
     const bgNode = await buildBackground(slide && slide.background, ctx);
@@ -17629,8 +17759,15 @@ async function jsonToPptx(presentation, options = {}) {
         const parts = [];
         for (const e of els) {
             const node = await buildElement(c, e);
-            if (node)
+            if (!node)
+                continue;
+            if (Array.isArray(node)) {
+                for (const n of node)
+                    parts.push(nodeToString(n));
+            }
+            else {
                 parts.push(nodeToString(node));
+            }
         }
         return parts.join('');
     };
@@ -18654,7 +18791,8 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref, inheri
             para.valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction };
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction,
+        prstTxWarp: ownAttrs.prstTxWarp != null ? String(ownAttrs.prstTxWarp) : undefined };
 }
 async function resolveBulletBlips(txBody, resObj, zip) {
     if (!txBody)
@@ -18856,8 +18994,86 @@ function readSpPr(spPr, themeMap = {}) {
         if (Object.keys(effects).length)
             out.effects = effects;
     }
+    const sp3d = spPr['a:sp3d'];
+    const scene3d = spPr['a:scene3d'];
+    if (sp3d || scene3d) {
+        const threeD = {};
+        if (sp3d && sp3d.attrs) {
+            const shape3d = {};
+            if (sp3d.attrs.extrusionH != null)
+                shape3d.extrusionHeight = emuToPt(sp3d.attrs.extrusionH);
+            if (sp3d.attrs.contourW != null)
+                shape3d.contourWidth = emuToPt(sp3d.attrs.contourW);
+            if (sp3d.attrs.prstMaterial != null)
+                shape3d.material = String(sp3d.attrs.prstMaterial);
+            const extClr = spColor(firstChild(sp3d, 'a:extrusionClr'), themeMap);
+            if (extClr)
+                shape3d.extrusionColor = extClr;
+            const cntClr = spColor(firstChild(sp3d, 'a:contourClr'), themeMap);
+            if (cntClr)
+                shape3d.contourColor = cntClr;
+            const bevelT = sp3d['a:bevelT'];
+            if (bevelT && bevelT.attrs) {
+                const bt = {};
+                if (bevelT.attrs.w != null)
+                    bt.width = emuToPt(bevelT.attrs.w);
+                if (bevelT.attrs.h != null)
+                    bt.height = emuToPt(bevelT.attrs.h);
+                if (bevelT.attrs.prst != null)
+                    bt.preset = String(bevelT.attrs.prst);
+                if (Object.keys(bt).length)
+                    shape3d.bevelTop = bt;
+            }
+            const bevelB = sp3d['a:bevelB'];
+            if (bevelB && bevelB.attrs) {
+                const bb = {};
+                if (bevelB.attrs.w != null)
+                    bb.width = emuToPt(bevelB.attrs.w);
+                if (bevelB.attrs.h != null)
+                    bb.height = emuToPt(bevelB.attrs.h);
+                if (bevelB.attrs.prst != null)
+                    bb.preset = String(bevelB.attrs.prst);
+                if (Object.keys(bb).length)
+                    shape3d.bevelBottom = bb;
+            }
+            if (Object.keys(shape3d).length)
+                threeD.shape = shape3d;
+        }
+        if (scene3d) {
+            const scene = {};
+            const cam = scene3d['a:camera'];
+            if (cam && cam.attrs) {
+                if (cam.attrs.prst != null)
+                    scene.camera = String(cam.attrs.prst);
+                if (cam.attrs.fov != null)
+                    scene.fov = Number(cam.attrs.fov) / 60000;
+                if (cam.attrs.zoom != null)
+                    scene.zoom = Number(cam.attrs.zoom) / 1000;
+                const rot = cam['a:rot'];
+                if (rot && rot.attrs) {
+                    if (rot.attrs.lat != null)
+                        scene.rotX = Number(rot.attrs.lat) / 60000;
+                    if (rot.attrs.lon != null)
+                        scene.rotY = Number(rot.attrs.lon) / 60000;
+                    if (rot.attrs.rev != null)
+                        scene.rotZ = Number(rot.attrs.rev) / 60000;
+                }
+            }
+            const light = scene3d['a:lightRig'];
+            if (light && light.attrs) {
+                if (light.attrs.rig != null)
+                    scene.lightRig = String(light.attrs.rig);
+                if (light.attrs.dir != null)
+                    scene.lightDir = String(light.attrs.dir);
+            }
+            if (Object.keys(scene).length)
+                threeD.scene = scene;
+        }
+        if (threeD.shape || threeD.scene)
+            out.threeD = threeD;
+    }
     const rawFx = [];
-    for (const t of ['a:scene3d', 'a:sp3d', 'a:duotone', 'a:fillOverlay']) {
+    for (const t of ['a:duotone', 'a:fillOverlay']) {
         if (spPr[t])
             rawFx.push({ tag: t, node: spPr[t] });
     }
@@ -19033,7 +19249,7 @@ function extractNotes(notesContent) {
     const joined = texts.join('\n').trim();
     return joined.length ? joined : undefined;
 }
-function extractTransition(slideContent) {
+async function extractTransition(slideContent, resObj = {}, zip) {
     const sld = slideContent && slideContent['p:sld'];
     if (!sld)
         return undefined;
@@ -19053,7 +19269,35 @@ function extractTransition(slideContent) {
         const m = { '1': 500, '2': 1000, '3': 2000 };
         duration = m[String(t.attrs['spd'])] || 1000;
     }
-    return { type, duration };
+    const out = { type, duration };
+    const snd = t['p:snd'];
+    if (snd && snd.attrs) {
+        const sound = {};
+        const embed = snd.attrs['r:embed'];
+        if (embed) {
+            const target = resObj[String(embed)] && resObj[String(embed)].target;
+            const part = resolvePart(target);
+            const ext = ((part || target || '').split('.').pop() || 'wav').toLowerCase();
+            if (part && zip) {
+                try {
+                    const file = zip.file(part);
+                    if (file) {
+                        const mime = AUDIO_MIME[ext] || 'application/octet-stream';
+                        sound.data = `data:${mime};base64,${await file.async('base64')}`;
+                        sound.extension = ext;
+                    }
+                }
+                catch { }
+            }
+            if (!sound.data && target)
+                sound.name = String(target);
+        }
+        if (snd.attrs.name)
+            sound.name = String(snd.attrs.name);
+        if (sound.name || sound.data)
+            out.sound = sound;
+    }
+    return out;
 }
 function getShapeId(key, node) {
     const nvKey = {
@@ -19713,7 +19957,7 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
         ], themeMap, slideData.themeContent);
         if (bg !== undefined)
             slide.background = bg;
-        const transition = extractTransition(slideContent);
+        const transition = await extractTransition(slideContent, resObj, zip);
         if (transition)
             slide.transition = transition;
         const notes = extractNotes(slideData.notesContent);
@@ -19885,6 +20129,10 @@ const IMAGE_MIME = {
     bmp: 'image/bmp', svg: 'image/svg+xml', webp: 'image/webp', tiff: 'image/tiff',
     emf: 'image/emf', wmf: 'image/wmf'
 };
+const AUDIO_MIME = {
+    wav: 'audio/wav', mp3: 'audio/mpeg', m4a: 'audio/mp4', wma: 'audio/x-ms-wma',
+    mid: 'audio/midi', midi: 'audio/midi', aac: 'audio/aac', ogg: 'audio/ogg', flac: 'audio/flac'
+};
 async function readImageFill(blipFill, resObj, zip) {
     const blip = blipFill && blipFill['a:blip'];
     if (!blip || !blip.attrs || !blip.attrs['r:embed'])
@@ -19894,6 +20142,11 @@ async function readImageFill(blipFill, resObj, zip) {
     const part = resolvePart(target);
     const ext = ((part || target || '').split('.').pop() || 'png').toLowerCase();
     const out = { type: 'image', extension: ext };
+    const alphaMod = blip['a:alphaModFix'];
+    if (alphaMod && alphaMod.attrs && alphaMod.attrs.amt != null) {
+        const amt = Number(alphaMod.attrs.amt);
+        out.transparency = Math.max(0, Math.min(100, Math.round(100 - amt / 1000)));
+    }
     if (part) {
         try {
             const file = zip.file(part);
@@ -20006,6 +20259,50 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
     if (key === 'p:pic') {
         return await picToImage(node, resObj, zip);
     }
+    if (key === 'p:cxnSp') {
+        const spPr = node['p:spPr'];
+        const xf = readXfrm(node, false);
+        if (!xf)
+            return null;
+        const geom = spPr && spPr['a:prstGeom'];
+        const shapeType = (geom && geom.attrs && geom.attrs.prst) ? String(geom.attrs.prst) : 'straightConnector1';
+        const connEl = {
+            type: 'connector',
+            x: xf.x, y: xf.y, width: xf.width, height: xf.height,
+            shapeType,
+            start: { x: xf.x, y: xf.y },
+            end: { x: xf.x + xf.width, y: xf.y + xf.height }
+        };
+        if (xf.rotation)
+            connEl.rotation = xf.rotation;
+        if (xf.flipH)
+            connEl.flipH = true;
+        if (xf.flipV)
+            connEl.flipV = true;
+        const cNvPr = node['p:nvCxnSpPr'] && node['p:nvCxnSpPr']['p:cNvPr'];
+        if (cNvPr && cNvPr.attrs && cNvPr.attrs.name)
+            connEl.name = String(cNvPr.attrs.name);
+        const cNvCxn = node['p:nvCxnSpPr'] && node['p:nvCxnSpPr']['p:cNvCxnSpPr'];
+        if (cNvCxn) {
+            const st = cNvCxn['a:stCxn'];
+            const en = cNvCxn['a:endCxn'];
+            if (st && st.attrs)
+                connEl.beginCxn = { id: String(st.attrs.id), idx: st.attrs.idx != null ? Number(st.attrs.idx) : undefined };
+            if (en && en.attrs)
+                connEl.endCxn = { id: String(en.attrs.id), idx: en.attrs.idx != null ? Number(en.attrs.idx) : undefined };
+        }
+        try {
+            const spVis = readSpPr(spPr, themeMap);
+            if (spVis.line)
+                connEl.line = spVis.line;
+            if (spVis.effects)
+                connEl.effects = spVis.effects;
+            if (spVis.threeD)
+                connEl.threeD = spVis.threeD;
+        }
+        catch { }
+        return connEl;
+    }
     const spPr = node['p:spPr'];
     if (node && node['p:txBody'] && node['p:txBody']['a:p']) {
         try {
@@ -20014,7 +20311,7 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
         catch { }
     }
     const ph = readPlaceholderAttrs(node);
-    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
+    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction, prstTxWarp } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
     const geom = spPr && spPr['a:prstGeom'];
     if (hasText || isTxBoxSp(node)) {
         const xf = readXfrm(node, false);
@@ -20047,6 +20344,8 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
             textEl.fontScale = fontScale;
         if (lnSpcReduction != null)
             textEl.lnSpcReduction = lnSpcReduction;
+        if (prstTxWarp)
+            textEl.prstTxWarp = prstTxWarp;
         const isPureTextBox = isTxBoxSp(node);
         if (isPureTextBox)
             textEl.txBox = true;
@@ -21604,7 +21903,7 @@ async function extractTheme(zip) {
     }
 }
 
-var baseLayoutCss = ".slide {\n\twidth: 100%;\n\t/*max-width: 920px;*/\n\theight: 690px;\n\tposition: relative;\n\t/* background-color: #EFEFEF; */\n\ttext-align: center;\n\tborder-radius: 10px;\n\t/* box-shadow: 1px 1px 3px #AAA; */\n\toverflow: hidden;\n\t/*transform: scale(0.85);*/\n}\n\n.slide div.block {\n\tposition: absolute;\n\ttop: 0px;\n\tleft: 0px;\n\twidth: 100%;\n}\n\n.slide div.content {\n\tdisplay: flex;\n\tflex-direction: column;\n\t/*\n\tjustify-content: center;\n\talign-items: flex-end;\n\t*/\n}\n\n.slide div.v-up {\n\tjustify-content: flex-start;\n}\n.slide div.v-mid {\n\tjustify-content: center;\n}\n.slide div.v-down {\n\tjustify-content: flex-end;\n}\n\n.slide div.h-left {\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.h-mid {\n\talign-items: center;\n\tjustify-content: center;\n\ttext-align: center;\n}\n.slide div.h-right {\n\talign-items: flex-end;\n\ttext-align: right;\n}\n\n.slide div.up-left {\n\tjustify-content: flex-start;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.up-center {\n\tjustify-content: flex-start;\n\talign-items: center;\n}\n.slide div.up-right {\n\tjustify-content: flex-start;\n\talign-items: flex-end;\n}\n.slide div.center-left {\n\tjustify-content: center;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.center-center {\n\tjustify-content: center;\n\talign-items: center;\n}\n.slide div.center-right {\n\tjustify-content: center;\n\talign-items: flex-end;\n}\n.slide div.down-left {\n\tjustify-content: flex-end;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.down-center {\n\tjustify-content: flex-end;\n\talign-items: center;\n}\n.slide div.down-right {\n\tjustify-content: flex-end;\n\talign-items: flex-end;\n}\n\n\n.slide li.slide {\n\tmargin: 10px 0px;\n\tfont-size: 18px;\n}\n\n.slide table {\n\tposition: absolute;\n}\n\n.slide svg.drawing {\n\tposition: absolute;\n\toverflow: visible;\n}\n\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\n.slide div[style*=\"background-color: inherit\"] {\n\tbackground-color: transparent !important;\n}\n\n/* 针对包含无效边框样式的问题元素 */\n.slide div[style*=\"pxsolidhidden\"] {\n\tborder: none !important;\n}\n\n/* 处理文本换行符 */\n.slide .line-break-br {\n\tdisplay: inline;\n}\n.slide .line-break-br::before {\n\tcontent: \"\\A\";\n\twhite-space: pre;\n}\n\n/*\n#pptx-thumb {\n\tmin-width: 240px;\n\theight: 180px;\n}\n*/";
+var baseLayoutCss = ".slide {\r\n\twidth: 100%;\r\n\t/*max-width: 920px;*/\r\n\theight: 690px;\r\n\tposition: relative;\r\n\t/* background-color: #EFEFEF; */\r\n\ttext-align: center;\r\n\tborder-radius: 10px;\r\n\t/* box-shadow: 1px 1px 3px #AAA; */\r\n\toverflow: hidden;\r\n\t/*transform: scale(0.85);*/\r\n}\r\n\r\n.slide div.block {\r\n\tposition: absolute;\r\n\ttop: 0px;\r\n\tleft: 0px;\r\n\twidth: 100%;\r\n}\r\n\r\n.slide div.content {\r\n\tdisplay: flex;\r\n\tflex-direction: column;\r\n\t/*\r\n\tjustify-content: center;\r\n\talign-items: flex-end;\r\n\t*/\r\n}\r\n\r\n.slide div.v-up {\r\n\tjustify-content: flex-start;\r\n}\r\n.slide div.v-mid {\r\n\tjustify-content: center;\r\n}\r\n.slide div.v-down {\r\n\tjustify-content: flex-end;\r\n}\r\n\r\n.slide div.h-left {\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.h-mid {\r\n\talign-items: center;\r\n\tjustify-content: center;\r\n\ttext-align: center;\r\n}\r\n.slide div.h-right {\r\n\talign-items: flex-end;\r\n\ttext-align: right;\r\n}\r\n\r\n.slide div.up-left {\r\n\tjustify-content: flex-start;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.up-center {\r\n\tjustify-content: flex-start;\r\n\talign-items: center;\r\n}\r\n.slide div.up-right {\r\n\tjustify-content: flex-start;\r\n\talign-items: flex-end;\r\n}\r\n.slide div.center-left {\r\n\tjustify-content: center;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.center-center {\r\n\tjustify-content: center;\r\n\talign-items: center;\r\n}\r\n.slide div.center-right {\r\n\tjustify-content: center;\r\n\talign-items: flex-end;\r\n}\r\n.slide div.down-left {\r\n\tjustify-content: flex-end;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.down-center {\r\n\tjustify-content: flex-end;\r\n\talign-items: center;\r\n}\r\n.slide div.down-right {\r\n\tjustify-content: flex-end;\r\n\talign-items: flex-end;\r\n}\r\n\r\n\r\n.slide li.slide {\r\n\tmargin: 10px 0px;\r\n\tfont-size: 18px;\r\n}\r\n\r\n.slide table {\r\n\tposition: absolute;\r\n}\r\n\r\n.slide svg.drawing {\r\n\tposition: absolute;\r\n\toverflow: visible;\r\n}\r\n\r\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\r\n.slide div[style*=\"background-color: inherit\"] {\r\n\tbackground-color: transparent !important;\r\n}\r\n\r\n/* 针对包含无效边框样式的问题元素 */\r\n.slide div[style*=\"pxsolidhidden\"] {\r\n\tborder: none !important;\r\n}\r\n\r\n/* 处理文本换行符 */\r\n.slide .line-break-br {\r\n\tdisplay: inline;\r\n}\r\n.slide .line-break-br::before {\r\n\tcontent: \"\\A\";\r\n\twhite-space: pre;\r\n}\r\n\r\n/*\r\n#pptx-thumb {\r\n\tmin-width: 240px;\r\n\theight: 180px;\r\n}\r\n*/";
 
 const NAMED = {
     white: '#ffffff', black: '#000000', red: '#d93025', green: '#1e8e3e', blue: '#1a73e8',

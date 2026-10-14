@@ -194,6 +194,8 @@ export interface PptxFillImage {
     type: 'image'; data?: string; src?: string; extension?: string;
     srcRect?: PptxImageSrcRect;
     tile?: PptxImageTile;
+    /** 图片透明度（a:blip/a:alphaModFix@amt 的逆运算），0~100；100 表示完全透明 */
+    transparency?: number;
 }
 
 /** 形状边框：{ color, width(pt), transparency, dashType } / 'none'(无边框) / null(继承) */
@@ -1089,6 +1091,10 @@ export interface PptxConnectorElement extends PptxElementBase {
     line?: PptxLine;
     /** 几何调整值（a:avLst） */
     adjust?: Record<string, number>;
+    /** 特效（阴影/发光，对应 a:effectLst） */
+    effects?: PptxShapeEffects;
+    /** 三维属性（a:sp3d + a:scene3d） */
+    threeD?: Pptx3D;
 }
 
 /** OLE 嵌入对象元素（p:oleObj，通常外裹 p:graphicFrame） */
