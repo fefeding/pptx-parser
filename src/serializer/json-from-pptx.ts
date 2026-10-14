@@ -1063,20 +1063,48 @@ function extractTiming(slideContent: any): { advanceTime?: number; animations?: 
             let dur: number | undefined;
             let presetClass: string | undefined;
             let presetId: number | undefined;
+            let presetSubtype: string | undefined;
             let delay: number | undefined;
             let repeat: number | 'indefinite' | undefined;
+            let trigger: PptxAnimation['trigger'] | undefined;
+            // 效果 cTn 可能嵌套更深（preset cTn → dur cTn），递归收集所有后代 cTn 以提取 preset/dur/方向/触发
             const childTnLst = c['p:childTnLst'];
             if (childTnLst) {
-                for (const inner of asArray(childTnLst['p:cTn'])) {
-                    if (inner && inner.attrs) {
-                        // preset 透传真实名称（不再收敛为 4 种，避免 swivel/bounce 等退化为 fade）
-                        if (inner.attrs.preset) preset = String(inner.attrs.preset);
-                        if (inner.attrs.dur != null) dur = Number(inner.attrs.dur) / 1000;
-                        if (inner.attrs.presetClass) presetClass = String(inner.attrs.presetClass);
-                        if (inner.attrs.presetId != null) presetId = Number(inner.attrs.presetId);
-                        if (inner.attrs.delay != null && inner.attrs.delay !== 'indefinite') delay = Number(inner.attrs.delay) / 1000;
-                        if (inner.attrs.repeatCount != null) {
-                            repeat = inner.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(inner.attrs.repeatCount) / 1000;
+                const innerCtn: any[] = [];
+                (function walkInner(n: any) {
+                    if (!n || typeof n !== 'object') return;
+                    for (const k of Object.keys(n)) {
+                        if (k === 'p:cTn') { for (const ic of asArray(n[k])) { innerCtn.push(ic); walkInner(ic); } }
+                        else { const v = n[k]; if (Array.isArray(v)) v.forEach(walkInner); else if (v && typeof v === 'object') walkInner(v); }
+                    }
+                })(childTnLst);
+                for (const inner of innerCtn) {
+                    if (!inner || !inner.attrs) continue;
+                    // preset 透传真实名称（不再收敛为 4 种，避免 swivel/bounce 等退化为 fade）
+                    if (inner.attrs.preset) preset = String(inner.attrs.preset);
+                    if (inner.attrs.dur != null) dur = Number(inner.attrs.dur) / 1000;
+                    if (inner.attrs.presetClass) presetClass = String(inner.attrs.presetClass);
+                    if (inner.attrs.presetId != null) presetId = Number(inner.attrs.presetId);
+                    // 方向：presetSubtype（'left'/'right'/'top'/'bottom'）→ 编辑器 'l'/'r'/'t'/'b'
+                    if (inner.attrs.presetSubtype != null) {
+                        const dmap: Record<string, string> = { left: 'l', right: 'r', top: 't', bottom: 'b' };
+                        const d = dmap[String(inner.attrs.presetSubtype)];
+                        if (d) presetSubtype = d;
+                    }
+                    if (inner.attrs.delay != null && inner.attrs.delay !== 'indefinite') delay = Number(inner.attrs.delay) / 1000;
+                    if (inner.attrs.repeatCount != null) {
+                        repeat = inner.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(inner.attrs.repeatCount) / 1000;
+                    }
+                    // 触发时机：效果 cTn 的 stCondLst/cond/@type（PptxAnimationTrigger 为对象形态）
+                    const stc = inner['p:stCondLst'];
+                    if (stc) {
+                        for (const cond of asArray(stc['p:cond'])) {
+                            if (cond && cond.attrs) {
+                                const ct = cond.attrs.type;
+                                if (ct === 'onClick' || ct === 'begin') trigger = { type: 'onClick' };
+                                else if (ct === 'withPrev') trigger = { type: 'withPrev' };
+                                else if (ct === 'afterPrev') trigger = { type: 'afterPrev' };
+                            }
                         }
                     }
                 }
@@ -1088,8 +1116,10 @@ function extractTiming(slideContent: any): { advanceTime?: number; animations?: 
             };
             if (presetClass) anim.presetClass = presetClass as PptxAnimation['presetClass'];
             if (presetId != null) anim.presetId = presetId;
+            if (presetSubtype) anim.direction = presetSubtype;
             if (delay != null) anim.delay = delay;
             if (repeat != null) anim.repeat = repeat;
+            if (trigger) anim.trigger = trigger;
             animations.push(anim);
         }
     }

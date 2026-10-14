@@ -924,6 +924,18 @@ export interface PptxTableElement extends PptxElementBase {
     rows: PptxTableRow[];
 }
 
+/**
+ * SmartArt 重布局引擎支持的目标布局类别（relayoutDiagram / inferDiagramType 使用）：
+ * - list     垂直列表（全宽节点框 + 框间竖直连接线）
+ * - process  水平流程（横排节点框 + 框间箭头；竖版画布自动转垂直）
+ * - hierarchy 树形/组织结构（全深度 tidy tree + 肘形连接线）
+ * - cycle    环形（节点沿圆周分布 + 相邻连线）
+ * - pyramid  金字塔（自底向上梯形分层）
+ * - matrix   矩阵网格（≤4 节点为 2×2，更多按近似方形网格）
+ * - venn     维恩图（≤3 圆交叠；更多节点退化为 matrix）
+ */
+export type DiagramLayoutType = 'list' | 'process' | 'hierarchy' | 'cycle' | 'pyramid' | 'matrix' | 'venn';
+
 /** SmartArt 图示节点（层级结构，叶子含 text） */
 export interface PptxDiagramNode {
     /** 节点文本 */
@@ -991,6 +1003,15 @@ export interface PptxDiagramElement extends PptxElementBase {
     texts?: string[];
     /** 缓存绘图形状（解析自 drawingN.xml，含树形布局坐标，供编辑器/渲染端还原） */
     shapes?: PptxDiagramShape[];
+    /**
+     * 重布局标记：置 true 后生成端不再走 __raw 无损透传，而是按 nodes/shapes
+     * 重新生成 diagrams 部件（data 与缓存绘图 drawing 按重布局结果重建；
+     * layout/colors/quickStyle 尽量复用 __raw 原件以保留 SmartArt 身份与样式）。
+     * 由 relayoutDiagram() 自动设置，无需手工赋值。
+     */
+    relayout?: boolean;
+    /** 最近一次重布局使用的布局类别（见 DiagramLayoutType） */
+    layoutType?: DiagramLayoutType;
     /** 数据部件路径（便于调试与二次读取） */
     dataPath?: string;
 }

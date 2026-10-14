@@ -453,6 +453,12 @@ export interface SerializerElement {
     texts?: string[];
     /** 图示缓存绘图形状（解析端，见 PptxDiagramShape） */
     shapes?: PptxDiagramShape[];
+    /**
+     * SmartArt 重布局标记（relayoutDiagram() 自动设置）：置 true 后不走 __raw 无损透传，
+     * 按 nodes/shapes 重建 diagrams 部件（data/drawing 重生成，
+     * layout/colors/quickStyle 复用 __raw 原件保留 SmartArt 身份与样式）
+     */
+    relayout?: boolean;
     /** 原始 OOXML 载荷（解析端产出，语义层未覆盖时用于无损回写） */
     __raw?: unknown;
     /** 强制以 __raw 回写（即使 type 已受语义层支持） */
@@ -551,12 +557,12 @@ export interface SerializerSlide {
         duration?: number;
         presetClass?: string;
         presetId?: number;
-        presetSubtype?: number;
+        presetSubtype?: string | number;
         delay?: number;
         repeat?: number | 'indefinite';
         direction?: string;
         path?: string;
-        trigger?: { type?: 'afterPrev' | 'withPrev' | 'onClick'; target?: number; delay?: number };
+        trigger?: string | { type?: 'afterPrev' | 'withPrev' | 'onClick'; target?: number; delay?: number };
     }>;
     /** 隐藏幻灯片（show="0"） */
     hidden?: boolean;
@@ -1413,6 +1419,66 @@ function rawShapeFxNodes(el: SerializerElement): BuilderNode[] {
 }
 
 /**
+ * 构建 a:effectLst 节点（阴影 / 发光 / 反射 / 柔化边缘 / 模糊）。
+ * 形状（p:sp）与连接线（p:cxnSp）共享：两者的特效均写在 spPr/a:effectLst，
+ * 且必须排在 a:scene3d/a:sp3d 之前以满足 CT_ShapeProperties 的顺序约束。
+ *
+ * @returns a:effectLst 节点；el.effects 为空时返回 null
+ */
+function buildEffectLst(el: SerializerElement): BuilderNode | null {
+    if (!el.effects) return null;
+    const effChildren: BuilderNode[] = [];
+    const sh = el.effects.shadow;
+    if (sh && sh !== true) {
+        const shType = sh.type || 'outer';
+        const blur = sh.blur !== undefined ? sh.blur : 4;
+        const dist = sh.distance !== undefined ? sh.distance : 3;
+        const ang = sh.angle !== undefined ? sh.angle : 90;
+        const color = sh.color || '#000000';
+        const alpha = sh.transparency != null ? Math.round((100 - sh.transparency) * 1000) : 60000;
+        // 注意：OOXML 中阴影的模糊半径属性名是 blurRad（不是 blur），发光的半径属性名是 rad
+        effChildren.push(xmlNode(shType === 'inner' ? 'a:innerShdw' : 'a:outerShdw',
+            { blurRad: ptToEmu(blur), dist: ptToEmu(dist), dir: Math.round(ang * 60000) },
+            xmlNode('a:srgbClr', { val: colorToHex(color) }, xmlNode('a:alpha', { val: alpha }))
+        ));
+    } else if (sh === true) {
+        effChildren.push(xmlNode('a:outerShdw', { blurRad: ptToEmu(4), dist: ptToEmu(3), dir: 5400000 },
+            xmlNode('a:srgbClr', { val: '000000' }, xmlNode('a:alpha', { val: 60000 }))
+        ));
+    }
+    const gw = el.effects.glow;
+    if (gw && gw !== true) {
+        effChildren.push(xmlNode('a:glow', { rad: ptToEmu(gw.blur !== undefined ? gw.blur : 5) },
+            xmlNode('a:srgbClr', { val: colorToHex(gw.color || '#FFFF00') })));
+    } else if (gw === true) {
+        effChildren.push(xmlNode('a:glow', { rad: ptToEmu(5) },
+            xmlNode('a:srgbClr', { val: colorToHex('#FFFF00') })));
+    }
+    // 反射（a:effectLst/a:reflection）：与阴影/发光同处一个 effectLst，避免双 effectLst 违反顺序约束
+    const refl = (el.effects as any).reflection;
+    if (refl) {
+        effChildren.push(xmlNode('a:reflection', {
+            blurRad: ptToEmu(refl.blur ?? 0),
+            dist: ptToEmu(refl.distance ?? 0),
+            dir: Math.round((refl.angle ?? 90) * 60000),
+            stA: Math.round((refl.alpha != null ? refl.alpha : 50) * 1000),
+            endA: 0,
+            sx: Math.round((refl.scale ?? 100) * 1000),
+            sy: Math.round((refl.scale ?? 100) * 1000),
+            rotWithShape: 0
+        }));
+    }
+    // 柔化边缘（a:effectLst/a:softEdge@rad）
+    const soft = (el.effects as any).softEdge;
+    if (soft) effChildren.push(xmlNode('a:softEdge', { rad: ptToEmu(soft.radius) }));
+    // 模糊（a:effectLst/a:blur@rad）
+    const blurN = (el.effects as any).blur;
+    if (blurN) effChildren.push(xmlNode('a:blur', { rad: ptToEmu(blurN.radius) }));
+    if (effChildren.length) return xmlNode('a:effectLst', null, ...effChildren);
+    return null;
+}
+
+/**
  * 形状外观（spPr 的 fill / line / effectLst），buildShapeElement 与 buildTextElement 共享：
  * 带文字的形状（type:'text' + shapeType）同样需要填充/边框/特效，否则导出后形状底丢失。
  */
@@ -1445,58 +1511,8 @@ async function buildShapeAppearance(ctx: SerializerContext, el: SerializerElemen
         lineNode = xmlNode('a:ln', lnAttrs, ...lnChildren);
     }
 
-    // 特效（a:effectLst：阴影 / 发光）
-    let effectNode: BuilderNode | null = null;
-    if (el.effects) {
-        const effChildren: BuilderNode[] = [];
-        const sh = el.effects.shadow;
-        if (sh && sh !== true) {
-            const shType = sh.type || 'outer';
-            const blur = sh.blur !== undefined ? sh.blur : 4;
-            const dist = sh.distance !== undefined ? sh.distance : 3;
-            const ang = sh.angle !== undefined ? sh.angle : 90;
-            const color = sh.color || '#000000';
-            const alpha = sh.transparency != null ? Math.round((100 - sh.transparency) * 1000) : 60000;
-            // 注意：OOXML 中阴影的模糊半径属性名是 blurRad（不是 blur），发光的半径属性名是 rad
-            effChildren.push(xmlNode(shType === 'inner' ? 'a:innerShdw' : 'a:outerShdw',
-                { blurRad: ptToEmu(blur), dist: ptToEmu(dist), dir: Math.round(ang * 60000) },
-                xmlNode('a:srgbClr', { val: colorToHex(color) }, xmlNode('a:alpha', { val: alpha }))
-            ));
-        } else if (sh === true) {
-            effChildren.push(xmlNode('a:outerShdw', { blurRad: ptToEmu(4), dist: ptToEmu(3), dir: 5400000 },
-                xmlNode('a:srgbClr', { val: '000000' }, xmlNode('a:alpha', { val: 60000 }))
-            ));
-        }
-        const gw = el.effects.glow;
-        if (gw && gw !== true) {
-            effChildren.push(xmlNode('a:glow', { rad: ptToEmu(gw.blur !== undefined ? gw.blur : 5) },
-                xmlNode('a:srgbClr', { val: colorToHex(gw.color || '#FFFF00') })));
-        } else if (gw === true) {
-            effChildren.push(xmlNode('a:glow', { rad: ptToEmu(5) },
-                xmlNode('a:srgbClr', { val: colorToHex('#FFFF00') })));
-        }
-        // 反射（a:effectLst/a:reflection）：与阴影/发光同处一个 effectLst，避免双 effectLst 违反顺序约束
-        const refl = (el.effects as any).reflection;
-        if (refl) {
-            effChildren.push(xmlNode('a:reflection', {
-                blurRad: ptToEmu(refl.blur ?? 0),
-                dist: ptToEmu(refl.distance ?? 0),
-                dir: Math.round((refl.angle ?? 90) * 60000),
-                stA: Math.round((refl.alpha != null ? refl.alpha : 50) * 1000),
-                endA: 0,
-                sx: Math.round((refl.scale ?? 100) * 1000),
-                sy: Math.round((refl.scale ?? 100) * 1000),
-                rotWithShape: 0
-            }));
-        }
-        // 柔化边缘（a:effectLst/a:softEdge@rad）
-        const soft = (el.effects as any).softEdge;
-        if (soft) effChildren.push(xmlNode('a:softEdge', { rad: ptToEmu(soft.radius) }));
-        // 模糊（a:effectLst/a:blur@rad）
-        const blurN = (el.effects as any).blur;
-        if (blurN) effChildren.push(xmlNode('a:blur', { rad: ptToEmu(blurN.radius) }));
-        if (effChildren.length) effectNode = xmlNode('a:effectLst', null, ...effChildren);
-    }
+    // 特效（a:effectLst：阴影 / 发光 / 反射 / 柔化边缘 / 模糊），形状与连接线共享同一逻辑
+    const effectNode = buildEffectLst(el);
     return { fillNode, lineNode, effectNode };
 }
 
@@ -2885,8 +2901,12 @@ function buildDiagramDrawingFromShapes(shapes: DiagramShapeCache[], W: number, H
             ? (s.fill === 'none' ? '<a:noFill/>' : '')
             : `<a:solidFill><a:srgbClr val="${hex(s.fill)}"/></a:solidFill>`;
         const lw = Math.max(9525, pxToEmu(s.lineWidth || 0.75));
-        const lineXml = s.lineColor
-            ? `<a:ln w="${lw}"><a:solidFill><a:srgbClr val="${hex(s.lineColor)}"/></a:solidFill></a:ln>`
+        // 箭头（a:headEnd/a:tailEnd）：解析端已提取进 PptxDiagramShape，
+        // 缺此发射则 round-trip 与 relayout 的流程箭头全部丢失
+        const headEnd = s.startArrow ? `<a:headEnd type="${escapeXml(s.startArrow)}" w="med" len="med"/>` : '';
+        const tailEnd = s.endArrow ? `<a:tailEnd type="${escapeXml(s.endArrow)}" w="med" len="med"/>` : '';
+        const lineXml = s.lineColor || headEnd || tailEnd
+            ? `<a:ln w="${lw}">${s.lineColor ? `<a:solidFill><a:srgbClr val="${hex(s.lineColor)}"/></a:solidFill>` : ''}${headEnd}${tailEnd}</a:ln>`
             : '';
         const anchor = s.anchor === 't' ? 't' : s.anchor === 'b' ? 'b' : 'ctr';
         const algn = s.align === 'l' ? 'l' : s.align === 'r' ? 'r' : 'ctr';
@@ -2930,6 +2950,23 @@ function buildDiagramDrawingFromShapes(shapes: DiagramShapeCache[], W: number, H
  * @param {Object} el - 图示元素 JSON { type:'diagram', diagramType, nodes? | texts?+shapes? }
  * @returns {Promise<Object>} p:graphicFrame 节点
  */
+/**
+ * 重布局场景下复用 __raw.parts 中的原始 diagram 部件内容（layout/colors/quickStyle），
+ * 保留原 SmartArt 身份与样式（PowerPoint 端再编辑时按原 layoutDef 重排）。
+ * 仅在 el.relayout 标记存在时生效；未命中返回 null（调用方回退骨架生成）。
+ */
+function findRawDiagramPart(el: SerializerElement, kind: 'layout' | 'colors' | 'quickStyle'): string | null {
+    if (!el.relayout || !el.__raw) return null;
+    const parts = (el.__raw as { parts?: Array<{ path?: string; content?: unknown }> }).parts;
+    if (!Array.isArray(parts)) return null;
+    const re = new RegExp(`(?:^|/)diagrams/${kind}\\d*\\.xml$`, 'i');
+    for (const p of parts) {
+        const path = String(p.path || '');
+        if (typeof p.content === 'string' && p.content && re.test(path)) return p.content;
+    }
+    return null;
+}
+
 async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement) {
     ctx.diagramIndex++;
     const n = ctx.diagramIndex;
@@ -2941,9 +2978,11 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
         ? el.nodes
         : (Array.isArray(el.texts) ? el.texts.map((t: string) => ({ text: String(t) })) : []);
     const dataXml = buildDiagramDataModel(nodes);
-    const layoutXml = buildDiagramLayout(dgmType, n);
-    const colorsXml = buildDiagramColors(dgmType, n);
-    const quickStyleXml = buildDiagramQuickStyle(dgmType, n);
+    // 重布局（relayout 标记）：data/drawing 按重布局结果重建；
+    // layout/colors/quickStyle 复用 __raw 原件，保留原 layoutDef/colorsDef/styleDef
+    const layoutXml = findRawDiagramPart(el, 'layout') || buildDiagramLayout(dgmType, n);
+    const colorsXml = findRawDiagramPart(el, 'colors') || buildDiagramColors(dgmType, n);
+    const quickStyleXml = findRawDiagramPart(el, 'quickStyle') || buildDiagramQuickStyle(dgmType, n);
     // 缓存绘图部件（Microsoft 标准 dsp:drawing）：按布局算好的形状/填充/文字，解析端与 PowerPoint 对齐
     const drawW = pxToEmu(el.width || 400);
     const drawH = pxToEmu(el.height || 300);
@@ -3014,6 +3053,8 @@ function buildConnectorElement(ctx: SerializerContext, el: SerializerElement) {
             cap: 'flat'
         }, ...lnChildren);
 
+    const effectNode = buildEffectLst(el);
+
     return xmlNode('p:cxnSp',
         null,
         xmlNode('p:nvCxnSpPr',
@@ -3030,7 +3071,11 @@ function buildConnectorElement(ctx: SerializerContext, el: SerializerElement) {
                     ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
                     : xmlNode('a:avLst')),
             lnNode,
-            ...build3DNodes(el.threeD)
+            ...(effectNode ? [effectNode] : []),
+            // scene3d / sp3d 必须排在 effectLst 之后
+            ...build3DNodes(el.threeD),
+            // 语义层未建模的 spPr 特效原始节点：原样追加在末尾，保证 round-trip 不丢信息
+            ...rawShapeFxNodes(el)
         )
     );
 }
@@ -3212,8 +3257,9 @@ export async function buildElement(ctx: SerializerContext, el: SerializerElement
         case 'math':
             return buildMathElement(ctx, el);
         case 'diagram':
-            // 有 __raw 载荷（解析端回读）时回落无损回退；否则按语义层生成原生 diagrams 部件
-            return el.__raw ? buildRawElement(ctx, el) : buildDiagramElement(ctx, el);
+            // 有 __raw 载荷（解析端回读）时回落无损回退；relayout 标记（重布局引擎产出）
+            // 时改走语义生成以反映节点/布局变更；否则按语义层生成原生 diagrams 部件
+            return el.__raw && !el.relayout ? buildRawElement(ctx, el) : buildDiagramElement(ctx, el);
         default:
             // 语义层未覆盖 → 回退 __raw
             return buildRawElement(ctx, el);
@@ -3411,8 +3457,8 @@ function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
         // presetId 优先取显式值，否则查常见 preset 编号表
         const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[preset] ?? 1);
 
-        // 触发时机 → p:stCondLst/p:cond
-        const trig = a.trigger?.type || 'afterPrev';
+        // 触发时机 → p:stCondLst/p:cond（编辑器模型以字符串存储 trigger：'onClick'/'withPrev'/'afterPrev'）
+        const trig = (typeof a.trigger === 'string' ? a.trigger : a.trigger?.type) || 'afterPrev';
         const condAttrs: Record<string, unknown> = {};
         if (trig === 'onClick') {
             // 「点击时开始」：delay=indefinite 表示等待用户触发
@@ -3437,6 +3483,9 @@ function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
             type: 'withEffect',
             preset
         };
+        // 进入动画方向（编辑器 'l'/'r'/'t'/'b'）→ OOXML presetSubtype（'left'/'right'/'top'/'bottom'）
+        const DIR_SUBTYPE: Record<string, string> = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
+        if (a.direction && DIR_SUBTYPE[a.direction]) presetAttrs.presetSubtype = DIR_SUBTYPE[a.direction];
         if (a.presetSubtype != null) presetAttrs.presetSubtype = a.presetSubtype;
         if (a.delay != null) presetAttrs.delay = Math.round(a.delay * 1000);
         if (a.repeat != null) presetAttrs.repeatCount = a.repeat === 'indefinite' ? 'indefinite' : Math.round(a.repeat * 1000);

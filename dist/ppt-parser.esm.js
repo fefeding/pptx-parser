@@ -7397,7 +7397,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
         case "star4": {
             const adj = getAdjValue(node, "adj", 19098);
             const cnstVal1 = 50000 * SLIDE_FACTOR;
-            const a = clamp$3(adj, 0, cnstVal1);
+            const a = clamp$4(adj, 0, cnstVal1);
             const iwd2 = wd2 * a / cnstVal1;
             const ihd2 = hd2 * a / cnstVal1;
             const sdx = iwd2 * Math.cos(0.7853981634);
@@ -7416,7 +7416,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const vf = getAdjValue(node, "vf", 110557);
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const swd2 = wd2 * hf / cnstVal1;
             const shd2 = hd2 * vf / cnstVal1;
             const svc = vc * vf / cnstVal1;
@@ -7453,7 +7453,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
             const hd4 = h / 4;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const swd2 = wd2 * hf / cnstVal1;
             const dx1 = swd2 * Math.cos(0.5235987756);
             const x1 = hc - dx1;
@@ -7479,7 +7479,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const vf = getAdjValue(node, "vf", 105210);
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const swd2 = wd2 * hf / cnstVal1;
             const shd2 = hd2 * vf / cnstVal1;
             const svc = vc * vf / cnstVal1;
@@ -7524,7 +7524,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const adj = getAdjValue(node, "adj", 37500);
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const dx1 = wd2 * Math.cos(0.7853981634);
             const x1 = hc - dx1;
             const x2 = hc + dx1;
@@ -7554,7 +7554,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const hf = getAdjValue(node, "hf", 105146);
             const maxAdj = 50000 * SLIDE_FACTOR;
             const cnstVal1 = 100000 * SLIDE_FACTOR;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const swd2 = wd2 * hf / cnstVal1;
             const dx1 = swd2 * 95106 / 100000;
             const dx2 = swd2 * 58779 / 100000;
@@ -7593,7 +7593,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const maxAdj = 50000 * SLIDE_FACTOR;
             const hd4 = h / 4;
             const wd4 = w / 4;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const dx1 = wd2 * Math.cos(0.5235987756);
             const dy1 = hd2 * Math.sin(1.0471975512);
             const x1 = hc - dx1;
@@ -7629,7 +7629,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
         case "star16": {
             const adj = getAdjValue(node, "adj", 37500);
             const maxAdj = 50000 * SLIDE_FACTOR;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const dx1 = wd2 * 92388 / 100000;
             const dx2 = wd2 * 70711 / 100000;
             const dx3 = wd2 * 38268 / 100000;
@@ -7683,7 +7683,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const maxAdj = 50000 * SLIDE_FACTOR;
             const hd4 = h / 4;
             const wd4 = w / 4;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const dx1 = wd2 * Math.cos(0.2617993878);
             const dx2 = wd2 * Math.cos(0.5235987756);
             const dx3 = wd2 * Math.cos(0.7853981634);
@@ -7761,7 +7761,7 @@ function renderStar(shapType, w, h, imgFillFlg, grndFillFlg, fillColor, border, 
             const maxAdj = 50000 * SLIDE_FACTOR;
             const hd4 = h / 4;
             const wd4 = w / 4;
-            const a = clamp$3(adj, 0, maxAdj);
+            const a = clamp$4(adj, 0, maxAdj);
             const dx1 = wd2 * 98079 / 100000;
             const dx2 = wd2 * 92388 / 100000;
             const dx3 = wd2 * 83147 / 100000;
@@ -7879,7 +7879,7 @@ function getAdjValue(node, name, defaultValue) {
     }
     return defaultValue * SLIDE_FACTOR;
 }
-function clamp$3(value, min, max) {
+function clamp$4(value, min, max) {
     return value < min ? min : value > max ? max : value;
 }
 
@@ -16040,6 +16040,53 @@ function rawShapeFxNodes(el) {
         return [];
     return arr.map((r) => rawNodeToBuilder(r.tag, r.node, {}));
 }
+function buildEffectLst(el) {
+    if (!el.effects)
+        return null;
+    const effChildren = [];
+    const sh = el.effects.shadow;
+    if (sh && sh !== true) {
+        const shType = sh.type || 'outer';
+        const blur = sh.blur !== undefined ? sh.blur : 4;
+        const dist = sh.distance !== undefined ? sh.distance : 3;
+        const ang = sh.angle !== undefined ? sh.angle : 90;
+        const color = sh.color || '#000000';
+        const alpha = sh.transparency != null ? Math.round((100 - sh.transparency) * 1000) : 60000;
+        effChildren.push(xmlNode(shType === 'inner' ? 'a:innerShdw' : 'a:outerShdw', { blurRad: ptToEmu(blur), dist: ptToEmu(dist), dir: Math.round(ang * 60000) }, xmlNode('a:srgbClr', { val: colorToHex(color) }, xmlNode('a:alpha', { val: alpha }))));
+    }
+    else if (sh === true) {
+        effChildren.push(xmlNode('a:outerShdw', { blurRad: ptToEmu(4), dist: ptToEmu(3), dir: 5400000 }, xmlNode('a:srgbClr', { val: '000000' }, xmlNode('a:alpha', { val: 60000 }))));
+    }
+    const gw = el.effects.glow;
+    if (gw && gw !== true) {
+        effChildren.push(xmlNode('a:glow', { rad: ptToEmu(gw.blur !== undefined ? gw.blur : 5) }, xmlNode('a:srgbClr', { val: colorToHex(gw.color || '#FFFF00') })));
+    }
+    else if (gw === true) {
+        effChildren.push(xmlNode('a:glow', { rad: ptToEmu(5) }, xmlNode('a:srgbClr', { val: colorToHex('#FFFF00') })));
+    }
+    const refl = el.effects.reflection;
+    if (refl) {
+        effChildren.push(xmlNode('a:reflection', {
+            blurRad: ptToEmu(refl.blur ?? 0),
+            dist: ptToEmu(refl.distance ?? 0),
+            dir: Math.round((refl.angle ?? 90) * 60000),
+            stA: Math.round((refl.alpha != null ? refl.alpha : 50) * 1000),
+            endA: 0,
+            sx: Math.round((refl.scale ?? 100) * 1000),
+            sy: Math.round((refl.scale ?? 100) * 1000),
+            rotWithShape: 0
+        }));
+    }
+    const soft = el.effects.softEdge;
+    if (soft)
+        effChildren.push(xmlNode('a:softEdge', { rad: ptToEmu(soft.radius) }));
+    const blurN = el.effects.blur;
+    if (blurN)
+        effChildren.push(xmlNode('a:blur', { rad: ptToEmu(blurN.radius) }));
+    if (effChildren.length)
+        return xmlNode('a:effectLst', null, ...effChildren);
+    return null;
+}
 async function buildShapeAppearance(ctx, el) {
     const fillNode = await buildFillNode(ctx, el.fill);
     let lineNode = null;
@@ -16070,51 +16117,7 @@ async function buildShapeAppearance(ctx, el) {
             lnChildren.push(xmlNode('a:tailEnd', { type: lnAny.endArrow }));
         lineNode = xmlNode('a:ln', lnAttrs, ...lnChildren);
     }
-    let effectNode = null;
-    if (el.effects) {
-        const effChildren = [];
-        const sh = el.effects.shadow;
-        if (sh && sh !== true) {
-            const shType = sh.type || 'outer';
-            const blur = sh.blur !== undefined ? sh.blur : 4;
-            const dist = sh.distance !== undefined ? sh.distance : 3;
-            const ang = sh.angle !== undefined ? sh.angle : 90;
-            const color = sh.color || '#000000';
-            const alpha = sh.transparency != null ? Math.round((100 - sh.transparency) * 1000) : 60000;
-            effChildren.push(xmlNode(shType === 'inner' ? 'a:innerShdw' : 'a:outerShdw', { blurRad: ptToEmu(blur), dist: ptToEmu(dist), dir: Math.round(ang * 60000) }, xmlNode('a:srgbClr', { val: colorToHex(color) }, xmlNode('a:alpha', { val: alpha }))));
-        }
-        else if (sh === true) {
-            effChildren.push(xmlNode('a:outerShdw', { blurRad: ptToEmu(4), dist: ptToEmu(3), dir: 5400000 }, xmlNode('a:srgbClr', { val: '000000' }, xmlNode('a:alpha', { val: 60000 }))));
-        }
-        const gw = el.effects.glow;
-        if (gw && gw !== true) {
-            effChildren.push(xmlNode('a:glow', { rad: ptToEmu(gw.blur !== undefined ? gw.blur : 5) }, xmlNode('a:srgbClr', { val: colorToHex(gw.color || '#FFFF00') })));
-        }
-        else if (gw === true) {
-            effChildren.push(xmlNode('a:glow', { rad: ptToEmu(5) }, xmlNode('a:srgbClr', { val: colorToHex('#FFFF00') })));
-        }
-        const refl = el.effects.reflection;
-        if (refl) {
-            effChildren.push(xmlNode('a:reflection', {
-                blurRad: ptToEmu(refl.blur ?? 0),
-                dist: ptToEmu(refl.distance ?? 0),
-                dir: Math.round((refl.angle ?? 90) * 60000),
-                stA: Math.round((refl.alpha != null ? refl.alpha : 50) * 1000),
-                endA: 0,
-                sx: Math.round((refl.scale ?? 100) * 1000),
-                sy: Math.round((refl.scale ?? 100) * 1000),
-                rotWithShape: 0
-            }));
-        }
-        const soft = el.effects.softEdge;
-        if (soft)
-            effChildren.push(xmlNode('a:softEdge', { rad: ptToEmu(soft.radius) }));
-        const blurN = el.effects.blur;
-        if (blurN)
-            effChildren.push(xmlNode('a:blur', { rad: ptToEmu(blurN.radius) }));
-        if (effChildren.length)
-            effectNode = xmlNode('a:effectLst', null, ...effChildren);
-    }
+    const effectNode = buildEffectLst(el);
     return { fillNode, lineNode, effectNode };
 }
 async function buildShapeElement(ctx, el) {
@@ -17086,8 +17089,10 @@ function buildDiagramDrawingFromShapes(shapes, W, H) {
             ? (s.fill === 'none' ? '<a:noFill/>' : '')
             : `<a:solidFill><a:srgbClr val="${hex(s.fill)}"/></a:solidFill>`;
         const lw = Math.max(9525, pxToEmu(s.lineWidth || 0.75));
-        const lineXml = s.lineColor
-            ? `<a:ln w="${lw}"><a:solidFill><a:srgbClr val="${hex(s.lineColor)}"/></a:solidFill></a:ln>`
+        const headEnd = s.startArrow ? `<a:headEnd type="${escapeXml$1(s.startArrow)}" w="med" len="med"/>` : '';
+        const tailEnd = s.endArrow ? `<a:tailEnd type="${escapeXml$1(s.endArrow)}" w="med" len="med"/>` : '';
+        const lineXml = s.lineColor || headEnd || tailEnd
+            ? `<a:ln w="${lw}">${s.lineColor ? `<a:solidFill><a:srgbClr val="${hex(s.lineColor)}"/></a:solidFill>` : ''}${headEnd}${tailEnd}</a:ln>`
             : '';
         const anchor = s.anchor === 't' ? 't' : s.anchor === 'b' ? 'b' : 'ctr';
         const algn = s.align === 'l' ? 'l' : s.align === 'r' ? 'r' : 'ctr';
@@ -17112,6 +17117,20 @@ function buildDiagramDrawingFromShapes(shapes, W, H) {
         sps +
         `</dsp:spTree></dsp:drawing>`;
 }
+function findRawDiagramPart(el, kind) {
+    if (!el.relayout || !el.__raw)
+        return null;
+    const parts = el.__raw.parts;
+    if (!Array.isArray(parts))
+        return null;
+    const re = new RegExp(`(?:^|/)diagrams/${kind}\\d*\\.xml$`, 'i');
+    for (const p of parts) {
+        const path = String(p.path || '');
+        if (typeof p.content === 'string' && p.content && re.test(path))
+            return p.content;
+    }
+    return null;
+}
 async function buildDiagramElement(ctx, el) {
     ctx.diagramIndex++;
     const n = ctx.diagramIndex;
@@ -17121,9 +17140,9 @@ async function buildDiagramElement(ctx, el) {
         ? el.nodes
         : (Array.isArray(el.texts) ? el.texts.map((t) => ({ text: String(t) })) : []);
     const dataXml = buildDiagramDataModel(nodes);
-    const layoutXml = buildDiagramLayout(dgmType, n);
-    const colorsXml = buildDiagramColors(dgmType, n);
-    const quickStyleXml = buildDiagramQuickStyle(dgmType, n);
+    const layoutXml = findRawDiagramPart(el, 'layout') || buildDiagramLayout(dgmType, n);
+    const colorsXml = findRawDiagramPart(el, 'colors') || buildDiagramColors(dgmType, n);
+    const quickStyleXml = findRawDiagramPart(el, 'quickStyle') || buildDiagramQuickStyle(dgmType, n);
     const drawW = pxToEmu(el.width || 400);
     const drawH = pxToEmu(el.height || 300);
     const drawingXml = cachedShapes.length
@@ -17163,9 +17182,10 @@ function buildConnectorElement(ctx, el) {
             w: line && line.width != null ? ptToEmu(line.width) : null,
             cap: 'flat'
         }, ...lnChildren);
+    const effectNode = buildEffectLst(el);
     return xmlNode('p:cxnSp', null, xmlNode('p:nvCxnSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Connector ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvCxnSpPr'), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType || 'straightConnector1') }, el.adjust && Object.keys(el.adjust).length
         ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
-        : xmlNode('a:avLst')), lnNode, ...build3DNodes(el.threeD)));
+        : xmlNode('a:avLst')), lnNode, ...(effectNode ? [effectNode] : []), ...build3DNodes(el.threeD), ...rawShapeFxNodes(el)));
 }
 async function buildOleElement(ctx, el) {
     const id = ctx.nextElementId++;
@@ -17251,7 +17271,7 @@ async function buildElement(ctx, el) {
         case 'math':
             return buildMathElement(ctx, el);
         case 'diagram':
-            return el.__raw ? buildRawElement(ctx, el) : buildDiagramElement(ctx, el);
+            return el.__raw && !el.relayout ? buildRawElement(ctx, el) : buildDiagramElement(ctx, el);
         default:
             return buildRawElement(ctx, el);
     }
@@ -17354,7 +17374,7 @@ function buildTimingNode(slide) {
         const preset = a.type || 'fade';
         const presetClass = (a.presetClass || 'entr');
         const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[preset] ?? 1);
-        const trig = a.trigger?.type || 'afterPrev';
+        const trig = (typeof a.trigger === 'string' ? a.trigger : a.trigger?.type) || 'afterPrev';
         const condAttrs = {};
         if (trig === 'onClick') {
             condAttrs.type = 'begin';
@@ -17377,6 +17397,9 @@ function buildTimingNode(slide) {
             type: 'withEffect',
             preset
         };
+        const DIR_SUBTYPE = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
+        if (a.direction && DIR_SUBTYPE[a.direction])
+            presetAttrs.presetSubtype = DIR_SUBTYPE[a.direction];
         if (a.presetSubtype != null)
             presetAttrs.presetSubtype = a.presetSubtype;
         if (a.delay != null)
@@ -17671,7 +17694,8 @@ async function jsonToPptx(presentation, options = {}) {
             zip.file(`${dir}_rels/data${d.index}.xml.rels`, buildRelationshipsXml([
                 { relId: 'rId1', type: REL_TYPES.diagramLayout, target: `layout${d.index}.xml` },
                 { relId: 'rId2', type: REL_TYPES.diagramColors, target: `colors${d.index}.xml` },
-                { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` }
+                { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` },
+                { relId: 'rId4', type: REL_TYPES.diagramDrawing, target: `drawing${d.index}.xml` }
             ]));
             allDiagramIndices.push(d.index);
         }
@@ -18142,10 +18166,12 @@ async function editPptx(fileData) {
                 zip.file(`${dir}layout${d.index}.xml`, d.layoutXml);
                 zip.file(`${dir}colors${d.index}.xml`, d.colorsXml);
                 zip.file(`${dir}quickStyle${d.index}.xml`, d.quickStyleXml);
+                zip.file(`${dir}drawing${d.index}.xml`, d.drawingXml);
                 zip.file(`${dir}_rels/data${d.index}.xml.rels`, buildRelationshipsXml([
                     { relId: 'rId1', type: REL_TYPES.diagramLayout, target: `layout${d.index}.xml` },
                     { relId: 'rId2', type: REL_TYPES.diagramColors, target: `colors${d.index}.xml` },
-                    { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` }
+                    { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` },
+                    { relId: 'rId4', type: REL_TYPES.diagramDrawing, target: `drawing${d.index}.xml` }
                 ]));
                 newCtDiagrams.push(d.index);
             }
@@ -18201,10 +18227,10 @@ async function editPptx(fileData) {
                 }
             }
             for (const idx of newCtDiagrams) {
-                for (const kind of ['data', 'layout', 'colors', 'quickStyle']) {
+                for (const kind of ['data', 'layout', 'colors', 'quickStyle', 'drawing']) {
                     const partName = `/ppt/diagrams/${kind}${idx}.xml`;
                     if (!newCt.includes(partName)) {
-                        const ct = { data: 'application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml', layout: 'application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml', colors: 'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml', quickStyle: 'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml' }[kind];
+                        const ct = { data: 'application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml', layout: 'application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml', colors: 'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml', quickStyle: 'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml', drawing: 'application/vnd.ms-office.drawingml.diagramDrawing+xml' }[kind];
                         newCt = newCt.replace('</Types>', `<Override PartName="${partName}" ContentType="${ct}"/></Types>`);
                     }
                 }
@@ -19352,24 +19378,66 @@ function extractTiming(slideContent) {
             let dur;
             let presetClass;
             let presetId;
+            let presetSubtype;
             let delay;
             let repeat;
+            let trigger;
             const childTnLst = c['p:childTnLst'];
             if (childTnLst) {
-                for (const inner of asArray(childTnLst['p:cTn'])) {
-                    if (inner && inner.attrs) {
-                        if (inner.attrs.preset)
-                            preset = String(inner.attrs.preset);
-                        if (inner.attrs.dur != null)
-                            dur = Number(inner.attrs.dur) / 1000;
-                        if (inner.attrs.presetClass)
-                            presetClass = String(inner.attrs.presetClass);
-                        if (inner.attrs.presetId != null)
-                            presetId = Number(inner.attrs.presetId);
-                        if (inner.attrs.delay != null && inner.attrs.delay !== 'indefinite')
-                            delay = Number(inner.attrs.delay) / 1000;
-                        if (inner.attrs.repeatCount != null) {
-                            repeat = inner.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(inner.attrs.repeatCount) / 1000;
+                const innerCtn = [];
+                (function walkInner(n) {
+                    if (!n || typeof n !== 'object')
+                        return;
+                    for (const k of Object.keys(n)) {
+                        if (k === 'p:cTn') {
+                            for (const ic of asArray(n[k])) {
+                                innerCtn.push(ic);
+                                walkInner(ic);
+                            }
+                        }
+                        else {
+                            const v = n[k];
+                            if (Array.isArray(v))
+                                v.forEach(walkInner);
+                            else if (v && typeof v === 'object')
+                                walkInner(v);
+                        }
+                    }
+                })(childTnLst);
+                for (const inner of innerCtn) {
+                    if (!inner || !inner.attrs)
+                        continue;
+                    if (inner.attrs.preset)
+                        preset = String(inner.attrs.preset);
+                    if (inner.attrs.dur != null)
+                        dur = Number(inner.attrs.dur) / 1000;
+                    if (inner.attrs.presetClass)
+                        presetClass = String(inner.attrs.presetClass);
+                    if (inner.attrs.presetId != null)
+                        presetId = Number(inner.attrs.presetId);
+                    if (inner.attrs.presetSubtype != null) {
+                        const dmap = { left: 'l', right: 'r', top: 't', bottom: 'b' };
+                        const d = dmap[String(inner.attrs.presetSubtype)];
+                        if (d)
+                            presetSubtype = d;
+                    }
+                    if (inner.attrs.delay != null && inner.attrs.delay !== 'indefinite')
+                        delay = Number(inner.attrs.delay) / 1000;
+                    if (inner.attrs.repeatCount != null) {
+                        repeat = inner.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(inner.attrs.repeatCount) / 1000;
+                    }
+                    const stc = inner['p:stCondLst'];
+                    if (stc) {
+                        for (const cond of asArray(stc['p:cond'])) {
+                            if (cond && cond.attrs) {
+                                const ct = cond.attrs.type;
+                                if (ct === 'onClick' || ct === 'begin')
+                                    trigger = { type: 'onClick' };
+                                else if (ct === 'withPrev')
+                                    trigger = { type: 'withPrev' };
+                                else if (ct === 'afterPrev')
+                                    trigger = { type: 'afterPrev' };
+                            }
                         }
                     }
                 }
@@ -19383,10 +19451,14 @@ function extractTiming(slideContent) {
                 anim.presetClass = presetClass;
             if (presetId != null)
                 anim.presetId = presetId;
+            if (presetSubtype)
+                anim.direction = presetSubtype;
             if (delay != null)
                 anim.delay = delay;
             if (repeat != null)
                 anim.repeat = repeat;
+            if (trigger)
+                anim.trigger = trigger;
             animations.push(anim);
         }
     }
@@ -22058,6 +22130,620 @@ async function extractTheme(zip) {
 }
 
 var baseLayoutCss = ".slide {\n\twidth: 100%;\n\t/*max-width: 920px;*/\n\theight: 690px;\n\tposition: relative;\n\t/* background-color: #EFEFEF; */\n\ttext-align: center;\n\tborder-radius: 10px;\n\t/* box-shadow: 1px 1px 3px #AAA; */\n\toverflow: hidden;\n\t/*transform: scale(0.85);*/\n}\n\n.slide div.block {\n\tposition: absolute;\n\ttop: 0px;\n\tleft: 0px;\n\twidth: 100%;\n}\n\n.slide div.content {\n\tdisplay: flex;\n\tflex-direction: column;\n\t/*\n\tjustify-content: center;\n\talign-items: flex-end;\n\t*/\n}\n\n.slide div.v-up {\n\tjustify-content: flex-start;\n}\n.slide div.v-mid {\n\tjustify-content: center;\n}\n.slide div.v-down {\n\tjustify-content: flex-end;\n}\n\n.slide div.h-left {\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.h-mid {\n\talign-items: center;\n\tjustify-content: center;\n\ttext-align: center;\n}\n.slide div.h-right {\n\talign-items: flex-end;\n\ttext-align: right;\n}\n\n.slide div.up-left {\n\tjustify-content: flex-start;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.up-center {\n\tjustify-content: flex-start;\n\talign-items: center;\n}\n.slide div.up-right {\n\tjustify-content: flex-start;\n\talign-items: flex-end;\n}\n.slide div.center-left {\n\tjustify-content: center;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.center-center {\n\tjustify-content: center;\n\talign-items: center;\n}\n.slide div.center-right {\n\tjustify-content: center;\n\talign-items: flex-end;\n}\n.slide div.down-left {\n\tjustify-content: flex-end;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.down-center {\n\tjustify-content: flex-end;\n\talign-items: center;\n}\n.slide div.down-right {\n\tjustify-content: flex-end;\n\talign-items: flex-end;\n}\n\n\n.slide li.slide {\n\tmargin: 10px 0px;\n\tfont-size: 18px;\n}\n\n.slide table {\n\tposition: absolute;\n}\n\n.slide svg.drawing {\n\tposition: absolute;\n\toverflow: visible;\n}\n\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\n.slide div[style*=\"background-color: inherit\"] {\n\tbackground-color: transparent !important;\n}\n\n/* 针对包含无效边框样式的问题元素 */\n.slide div[style*=\"pxsolidhidden\"] {\n\tborder: none !important;\n}\n\n/* 处理文本换行符 */\n.slide .line-break-br {\n\tdisplay: inline;\n}\n.slide .line-break-br::before {\n\tcontent: \"\\A\";\n\twhite-space: pre;\n}\n\n/*\n#pptx-thumb {\n\tmin-width: 240px;\n\theight: 180px;\n}\n*/";
+
+const LAYOUT_TYPES = new Set([
+    'list', 'process', 'hierarchy', 'cycle', 'pyramid', 'matrix', 'venn'
+]);
+const DEFAULT_PALETTE$1 = [
+    '#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5', '#70AD47'
+];
+const round2 = (v) => Math.round(v * 100) / 100;
+const clamp$3 = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+function decodeXmlEntities(s) {
+    if (!s || s.indexOf('&') === -1)
+        return s;
+    return s
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&#(\d+);/g, (_, d) => {
+        try {
+            return String.fromCodePoint(Number(d));
+        }
+        catch {
+            return _;
+        }
+    })
+        .replace(/&amp;/g, '&');
+}
+function readAttr(attrs, name) {
+    const m = new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`).exec(attrs);
+    return m ? m[1] : undefined;
+}
+function findRawPartContent(el, kind) {
+    const raw = el.__raw;
+    if (!raw || !Array.isArray(raw.parts))
+        return null;
+    const dataPath = el.dataPath ? String(el.dataPath) : '';
+    if (kind === 'data' && dataPath) {
+        for (const p of raw.parts) {
+            if (String(p.path || '') === dataPath && typeof p.content === 'string' && p.content)
+                return p.content;
+        }
+    }
+    const re = new RegExp(`(?:^|/)diagrams/${kind}\\d*\\.xml$`, 'i');
+    for (const p of raw.parts) {
+        const path = String(p.path || '');
+        if (re.test(path) && typeof p.content === 'string' && p.content)
+            return p.content;
+    }
+    return null;
+}
+function flattenNodes(nodes, out = []) {
+    for (const n of nodes) {
+        if (!n)
+            continue;
+        out.push(n);
+        if (n.children && n.children.length)
+            flattenNodes(n.children, out);
+    }
+    return out;
+}
+function parseDataModelNodes(xml) {
+    const pts = new Map();
+    const ptRe = /<([A-Za-z_][\w.-]*):pt\s+([^>]*?)(?:\/>|>((?:(?!<\/\1:pt>)[\s\S])*?)<\/\1:pt>)/g;
+    let m;
+    while ((m = ptRe.exec(xml)) !== null) {
+        const attrs = m[2];
+        const body = m[3] || '';
+        const modelId = readAttr(attrs, 'modelId');
+        if (modelId === undefined)
+            continue;
+        pts.set(modelId, { type: readAttr(attrs, 'type') || 'node', text: extractPtText(body) });
+    }
+    if (!pts.size)
+        return null;
+    const cxns = [];
+    const cxnRe = /<([A-Za-z_][\w.-]*):cxn\s+([^>]*?)(?:\/>|>[\s\S]*?<\/\1:cxn>)/g;
+    while ((m = cxnRe.exec(xml)) !== null) {
+        const attrs = m[2];
+        const srcId = readAttr(attrs, 'srcId');
+        const destId = readAttr(attrs, 'destId');
+        if (srcId === undefined || destId === undefined)
+            continue;
+        const ordRaw = readAttr(attrs, 'destOrd') ?? readAttr(attrs, 'srcOrd');
+        const ordNum = ordRaw === undefined ? Number.NaN : Number(ordRaw);
+        cxns.push({
+            type: readAttr(attrs, 'type') || 'parOf',
+            srcId,
+            destId,
+            ord: Number.isFinite(ordNum) ? ordNum : cxns.length
+        });
+    }
+    const nodeIds = new Set();
+    const docIds = [];
+    for (const [id, info] of pts) {
+        if (info.type === 'node')
+            nodeIds.add(id);
+        else if (info.type === 'doc')
+            docIds.push(id);
+    }
+    if (!nodeIds.size)
+        return null;
+    const kids = new Map();
+    const referenced = new Set();
+    for (const c of cxns) {
+        if (c.type !== 'parOf')
+            continue;
+        const srcIsParent = nodeIds.has(c.srcId) || docIds.includes(c.srcId);
+        if (!srcIsParent || !nodeIds.has(c.destId))
+            continue;
+        if (!kids.has(c.srcId))
+            kids.set(c.srcId, []);
+        kids.get(c.srcId).push({ id: c.destId, ord: c.ord });
+        referenced.add(c.destId);
+    }
+    const build = (id, seen) => {
+        const info = pts.get(id);
+        if (!info || info.type !== 'node' || seen.has(id))
+            return null;
+        seen.add(id);
+        const node = { text: info.text || '' };
+        const children = (kids.get(id) || [])
+            .slice().sort((a, b) => a.ord - b.ord)
+            .map((k) => build(k.id, seen))
+            .filter((x) => x !== null);
+        if (children.length)
+            node.children = children;
+        return node;
+    };
+    let roots = [];
+    const seen = new Set();
+    for (const docId of docIds) {
+        for (const k of kids.get(docId) || []) {
+            const nd = build(k.id, seen);
+            if (nd)
+                roots.push(nd);
+        }
+    }
+    if (!roots.length) {
+        for (const id of nodeIds) {
+            if (!referenced.has(id)) {
+                const nd = build(id, seen);
+                if (nd)
+                    roots.push(nd);
+            }
+        }
+    }
+    if (!roots.length) {
+        for (const id of nodeIds) {
+            const nd = build(id, new Set());
+            if (nd) {
+                roots = [nd];
+                break;
+            }
+        }
+    }
+    return roots.length ? roots : null;
+}
+function extractPtText(body) {
+    const strRe = /<[A-Za-z_][\w.-]*:str\s+[^>]*\bval\s*=\s*"([^"]*)"/g;
+    let hasStr = false;
+    const vals = [];
+    let sm;
+    while ((sm = strRe.exec(body)) !== null) {
+        hasStr = true;
+        const v = decodeXmlEntities(sm[1]);
+        if (v)
+            vals.push(v);
+    }
+    if (hasStr)
+        return vals.join('\n');
+    const lines = [];
+    for (const para of body.split(/<\/a:p>/)) {
+        const runRe = /<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>/g;
+        let line = '';
+        let rm;
+        while ((rm = runRe.exec(para)) !== null)
+            line += decodeXmlEntities(rm[1]);
+        if (line)
+            lines.push(line);
+    }
+    return lines.length ? lines.join('\n') : '';
+}
+function extractDiagramNodes(el) {
+    const content = findRawPartContent(el, 'data');
+    if (!content)
+        return null;
+    try {
+        return parseDataModelNodes(content);
+    }
+    catch {
+        return null;
+    }
+}
+function inferDiagramType(el) {
+    const layout = findRawPartContent(el, 'layout');
+    if (layout) {
+        const cat = /<[A-Za-z_][\w.-]*:cat\b[^>]*\btype\s*=\s*"([^"]+)"/i.exec(layout);
+        if (cat) {
+            const t = cat[1].toLowerCase();
+            if (t === 'hier' || t.includes('hierarch') || t.includes('orgchart'))
+                return 'hierarchy';
+            if (t === 'process' || t === 'flowchart')
+                return 'process';
+            if (t === 'cycle')
+                return 'cycle';
+            if (t === 'pyramid' || t === 'pyra')
+                return 'pyramid';
+            if (t === 'matrix')
+                return 'matrix';
+            if (t === 'venn')
+                return 'venn';
+            if (t === 'list')
+                return 'list';
+        }
+        const algOf = (t) => new RegExp(`<[A-Za-z_][\\w.-]*:alg\\b[^>]*\\btype\\s*=\\s*"${t}"`, 'i').test(layout);
+        if (algOf('hierRoot') || algOf('hierChild') || algOf('hierLn'))
+            return 'hierarchy';
+        if (algOf('cyCl'))
+            return 'cycle';
+        if (algOf('pyra'))
+            return 'pyramid';
+        if (algOf('snake'))
+            return 'list';
+        if (algOf('conn'))
+            return 'process';
+    }
+    for (const tag of [el.diagramType, el.layoutType]) {
+        const t = String(tag || '').toLowerCase();
+        if (LAYOUT_TYPES.has(t))
+            return t;
+    }
+    const shapes = (el.shapes || []).filter((s) => !s.connector);
+    if (shapes.length >= 3) {
+        const centers = shapes.map((s) => ({ x: (s.x || 0) + (s.width || 0) / 2, y: (s.y || 0) + (s.height || 0) / 2 }));
+        const cx = centers.reduce((a, p) => a + p.x, 0) / centers.length;
+        const cy = centers.reduce((a, p) => a + p.y, 0) / centers.length;
+        const dists = centers.map((p) => Math.hypot(p.x - cx, p.y - cy));
+        const dMean = dists.reduce((a, d) => a + d, 0) / dists.length;
+        const dMaxDev = dists.reduce((a, d) => Math.max(a, Math.abs(d - dMean)), 0);
+        if (dMean > 0 && dMaxDev / dMean < 0.28)
+            return 'cycle';
+        const xs = shapes.map((s) => s.x || 0);
+        const ys = shapes.map((s) => s.y || 0);
+        const spreadX = Math.max(...xs) - Math.min(...xs);
+        const spreadY = Math.max(...ys) - Math.min(...ys);
+        if (spreadY > spreadX * 1.4)
+            return 'list';
+        if (spreadX > spreadY * 1.4)
+            return 'process';
+    }
+    return 'list';
+}
+function collectStyleTemplate(el) {
+    const tmpl = { nodePrst: 'roundRect', palette: [] };
+    const shapes = (el.shapes || []);
+    for (const s of shapes) {
+        if (s.connector)
+            continue;
+        const fill = String(s.fill || '');
+        if (/^#?[0-9A-Fa-f]{6}$/.test(fill) && !tmpl.palette.includes(fill))
+            tmpl.palette.push(fill);
+    }
+    const first = shapes.find((s) => !s.connector && s.text) || shapes.find((s) => !s.connector);
+    if (first) {
+        if (first.prst)
+            tmpl.nodePrst = first.prst;
+        if (first.lineColor)
+            tmpl.nodeLineColor = first.lineColor;
+        if (first.lineWidth)
+            tmpl.nodeLineWidth = first.lineWidth;
+        if (first.fontSize)
+            tmpl.fontSize = first.fontSize;
+        if (first.color)
+            tmpl.color = first.color;
+        if (first.bold != null)
+            tmpl.bold = first.bold;
+        if (first.align)
+            tmpl.align = first.align;
+        if (first.anchor)
+            tmpl.anchor = first.anchor;
+    }
+    const conn = shapes.find((s) => s.connector);
+    if (conn) {
+        if (conn.lineColor)
+            tmpl.connLineColor = conn.lineColor;
+        if (conn.lineWidth)
+            tmpl.connLineWidth = conn.lineWidth;
+        if (conn.endArrow)
+            tmpl.connEndArrow = conn.endArrow;
+    }
+    return tmpl;
+}
+function fitFontSize(text, w, h, base) {
+    if (!text)
+        return base;
+    const charW = Math.max(6, base * 0.62);
+    const perLine = Math.max(3, Math.floor((w - 10) / charW));
+    const lines = Math.max(1, Math.ceil(String(text).length / perLine));
+    const need = lines * base * 1.4 + 6;
+    return need <= h ? base : Math.max(9, Math.floor((base * h) / need));
+}
+function nodeShape(x, y, w, h, text, tmpl, colorIdx) {
+    const palette = tmpl.palette.length ? tmpl.palette : DEFAULT_PALETTE$1;
+    const fontSize = fitFontSize(text || '', w, h, tmpl.fontSize || 14);
+    const shape = {
+        x: round2(x),
+        y: round2(y),
+        width: round2(Math.max(w, 1)),
+        height: round2(Math.max(h, 1)),
+        prst: tmpl.nodePrst || 'roundRect',
+        fill: palette[colorIdx % palette.length],
+        lineColor: tmpl.nodeLineColor || '#FFFFFF',
+        lineWidth: tmpl.nodeLineWidth || 1,
+        text: text || '',
+        fontSize,
+        color: tmpl.color || '#FFFFFF',
+        bold: tmpl.bold ?? true,
+        align: tmpl.align || 'ctr',
+        anchor: tmpl.anchor || 'ctr'
+    };
+    return shape;
+}
+function connShape(x1, y1, x2, y2, tmpl, arrow) {
+    const shape = {
+        x: round2(Math.min(x1, x2)),
+        y: round2(Math.min(y1, y2)),
+        width: round2(Math.abs(x2 - x1)),
+        height: round2(Math.abs(y2 - y1)),
+        prst: 'straightConnector1',
+        connector: true,
+        lineColor: tmpl.connLineColor || '#A6A6A6',
+        lineWidth: tmpl.connLineWidth || 1
+    };
+    if (x2 < x1)
+        shape.flipH = true;
+    if (y2 < y1)
+        shape.flipV = true;
+    if (arrow)
+        shape.endArrow = tmpl.connEndArrow || 'triangle';
+    return shape;
+}
+function layoutList(flat, W, H, pad, tmpl) {
+    const n = flat.length;
+    if (!n)
+        return [];
+    const gap = n > 1 ? 10 : 0;
+    const boxW = Math.max(20, W - 2 * pad);
+    const boxH = Math.max(18, (H - 2 * pad - gap * (n - 1)) / n);
+    const shapes = [];
+    let prevBottom = -1;
+    for (let i = 0; i < n; i++) {
+        const y = pad + i * (boxH + gap);
+        shapes.push(nodeShape(pad, y, boxW, boxH, flat[i].text || '', tmpl, i));
+        if (prevBottom >= 0)
+            shapes.push(connShape(W / 2, prevBottom, W / 2, y, tmpl));
+        prevBottom = y + boxH;
+    }
+    return shapes;
+}
+function layoutProcess(flat, W, H, pad, tmpl) {
+    const n = flat.length;
+    if (!n)
+        return [];
+    const vertical = W < H && n > 2;
+    if (vertical) {
+        const list = layoutList(flat, W, H, pad, tmpl);
+        for (const s of list)
+            if (s.connector)
+                s.endArrow = tmpl.connEndArrow || 'triangle';
+        return list;
+    }
+    const gap = n > 1 ? Math.max(8, Math.min(18, (W - 2 * pad) / (n * 4))) : 0;
+    const boxW = Math.max(20, (W - 2 * pad - gap * (n - 1)) / n);
+    const boxH = Math.max(18, H - 2 * pad);
+    const midY = pad + boxH / 2;
+    const shapes = [];
+    let prevRight = -1;
+    for (let i = 0; i < n; i++) {
+        const x = pad + i * (boxW + gap);
+        shapes.push(nodeShape(x, pad, boxW, boxH, flat[i].text || '', tmpl, i));
+        if (prevRight >= 0)
+            shapes.push(connShape(prevRight, midY, x, midY, tmpl, true));
+        prevRight = x + boxW;
+    }
+    return shapes;
+}
+function treeDepth(nodes, depth = 1) {
+    let max = depth;
+    for (const n of nodes) {
+        if (n.children && n.children.length)
+            max = Math.max(max, treeDepth(n.children, depth + 1));
+    }
+    return max;
+}
+function layoutHierarchy(nodes, W, H, pad, tmpl) {
+    if (!nodes.length)
+        return [];
+    const availW = W - 2 * pad;
+    const availH = H - 2 * pad;
+    let boxW = clamp$3(W * 0.18, 80, 200);
+    let boxH = clamp$3(H * 0.16, 32, 72);
+    let gapX = 16;
+    const levels = treeDepth(nodes);
+    if (levels * boxH > availH)
+        boxH = Math.max(20, availH / levels);
+    const gapY = levels > 1 ? clamp$3((availH - levels * boxH) / (levels - 1), 12, 48) : 0;
+    const widthCache = new Map();
+    const subtreeW = (node) => {
+        const hit = widthCache.get(node);
+        if (hit !== undefined)
+            return hit;
+        let w = boxW;
+        if (node.children && node.children.length) {
+            let s = 0;
+            for (const c of node.children)
+                s += subtreeW(c);
+            w = Math.max(boxW, s + gapX * (node.children.length - 1));
+        }
+        widthCache.set(node, w);
+        return w;
+    };
+    const totalW = (list) => {
+        let s = 0;
+        for (const r of list)
+            s += subtreeW(r);
+        return s + gapX * Math.max(0, list.length - 1);
+    };
+    if (totalW(nodes) > availW) {
+        const factor = availW / totalW(nodes);
+        boxW = Math.max(56, boxW * factor);
+        gapX = Math.max(6, gapX * factor);
+        widthCache.clear();
+    }
+    const shapes = [];
+    let nodeIdx = 0;
+    const place = (node, left, depth) => {
+        const myIdx = nodeIdx++;
+        const y = pad + depth * (boxH + gapY);
+        if (!node.children || !node.children.length) {
+            const x = left + (subtreeW(node) - boxW) / 2;
+            shapes.push(nodeShape(x, y, boxW, boxH, node.text || '', tmpl, myIdx));
+            return x + boxW / 2;
+        }
+        const centers = [];
+        let cur = left;
+        for (const c of node.children) {
+            const cw = subtreeW(c);
+            centers.push(place(c, cur, depth + 1));
+            cur += cw + gapX;
+        }
+        const c0 = centers[0];
+        const c1 = centers[centers.length - 1];
+        const cx = (c0 + c1) / 2;
+        shapes.push(nodeShape(cx - boxW / 2, y, boxW, boxH, node.text || '', tmpl, myIdx));
+        const busY = y + boxH + gapY / 2;
+        shapes.push(connShape(cx, y + boxH, cx, busY, tmpl));
+        if (c1 > c0)
+            shapes.push(connShape(c0, busY, c1, busY, tmpl));
+        for (let i = 0; i < centers.length; i++) {
+            shapes.push(connShape(centers[i], busY, centers[i], y + boxH + gapY, tmpl));
+        }
+        return cx;
+    };
+    let cursor = pad;
+    for (const root of nodes) {
+        const w = subtreeW(root);
+        place(root, cursor, 0);
+        cursor += w + gapX;
+    }
+    return shapes;
+}
+function layoutCycle(flat, W, H, pad, tmpl) {
+    const n = flat.length;
+    if (!n)
+        return [];
+    if (n === 1) {
+        const bs = clamp$3(Math.min(W, H) * 0.4, 40, 180);
+        return [nodeShape((W - bs) / 2, (H - bs) / 2, bs, bs, flat[0].text || '', tmpl, 0)];
+    }
+    const bs = clamp$3(Math.min(W, H) * 0.26, 48, 130);
+    const cx = W / 2;
+    const cy = H / 2;
+    const R = Math.max(10, Math.min(W, H) / 2 - pad - bs / 2);
+    const centers = [];
+    for (let i = 0; i < n; i++) {
+        const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+        centers.push({ x: cx + R * Math.cos(ang), y: cy + R * Math.sin(ang) });
+    }
+    const shapes = [];
+    for (let i = 0; i < n; i++) {
+        const c = centers[i];
+        shapes.push(nodeShape(c.x - bs / 2, c.y - bs / 2, bs, bs, flat[i].text || '', tmpl, i));
+        const next = centers[(i + 1) % n];
+        shapes.push(connShape(c.x, c.y, next.x, next.y, tmpl));
+    }
+    return shapes;
+}
+function layoutPyramid(flat, W, H, pad, tmpl) {
+    const n = flat.length;
+    if (!n)
+        return [];
+    const availW = W - 2 * pad;
+    const availH = H - 2 * pad;
+    const gap = n > 1 ? 6 : 0;
+    const layerH = Math.max(14, (availH - gap * (n - 1)) / n);
+    const shapes = [];
+    for (let i = 0; i < n; i++) {
+        const w = (availW * (i + 1)) / n;
+        const y = pad + i * (layerH + gap);
+        const s = nodeShape((W - w) / 2, y, w, layerH, flat[i].text || '', tmpl, i);
+        s.prst = 'trapezoid';
+        shapes.push(s);
+    }
+    return shapes;
+}
+function layoutMatrix(flat, W, H, pad, tmpl) {
+    const n = flat.length;
+    if (!n)
+        return [];
+    const cols = n <= 4 ? 2 : Math.ceil(Math.sqrt(n));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const gapX = 10;
+    const gapY = 10;
+    const cellW = Math.max(30, (W - 2 * pad - gapX * (cols - 1)) / cols);
+    const cellH = Math.max(24, (H - 2 * pad - gapY * (rows - 1)) / rows);
+    const shapes = [];
+    for (let i = 0; i < n; i++) {
+        const r = Math.floor(i / cols);
+        const c = i % cols;
+        const s = nodeShape(pad + c * (cellW + gapX), pad + r * (cellH + gapY), cellW, cellH, flat[i].text || '', tmpl, i);
+        s.prst = 'rect';
+        shapes.push(s);
+    }
+    return shapes;
+}
+function layoutVenn(flat, W, H, pad, tmpl) {
+    const n = flat.length;
+    if (n > 3)
+        return layoutMatrix(flat, W, H, pad, tmpl);
+    if (!n)
+        return [];
+    const r = clamp$3(Math.min(W, H) * 0.3, 40, 160);
+    let centers;
+    if (n === 1) {
+        centers = [{ x: W / 2, y: H / 2 }];
+    }
+    else if (n === 2) {
+        centers = [
+            { x: W / 2 - r * 0.55, y: H / 2 },
+            { x: W / 2 + r * 0.55, y: H / 2 }
+        ];
+    }
+    else {
+        centers = [
+            { x: W / 2, y: H / 2 - r * 0.5 },
+            { x: W / 2 - r * 0.55, y: H / 2 + r * 0.35 },
+            { x: W / 2 + r * 0.55, y: H / 2 + r * 0.35 }
+        ];
+    }
+    const shapes = [];
+    for (let i = 0; i < n; i++) {
+        const s = nodeShape(centers[i].x - r, centers[i].y - r, r * 2, r * 2, flat[i].text || '', tmpl, i);
+        s.prst = 'ellipse';
+        shapes.push(s);
+    }
+    return shapes;
+}
+function layoutShapes(type, nodes, W, H, pad, tmpl) {
+    switch (type) {
+        case 'process':
+            return layoutProcess(flattenNodes(nodes), W, H, pad, tmpl);
+        case 'hierarchy':
+            return layoutHierarchy(nodes, W, H, pad, tmpl);
+        case 'cycle':
+            return layoutCycle(flattenNodes(nodes), W, H, pad, tmpl);
+        case 'pyramid':
+            return layoutPyramid(flattenNodes(nodes), W, H, pad, tmpl);
+        case 'matrix':
+            return layoutMatrix(flattenNodes(nodes), W, H, pad, tmpl);
+        case 'venn':
+            return layoutVenn(flattenNodes(nodes), W, H, pad, tmpl);
+        case 'list':
+        default:
+            return layoutList(flattenNodes(nodes), W, H, pad, tmpl);
+    }
+}
+function relayoutDiagram(el, options = {}) {
+    const type = options.type || el.layoutType || inferDiagramType(el);
+    let nodes = (options.nodes && options.nodes.length ? options.nodes : null) ||
+        (el.nodes && el.nodes.length ? el.nodes : null) ||
+        extractDiagramNodes(el);
+    if (!nodes)
+        nodes = nodesFromShapes(el.shapes);
+    if (!nodes && el.texts && el.texts.length)
+        nodes = el.texts.map((t) => ({ text: t }));
+    if (!nodes || !nodes.length)
+        nodes = [{ text: el.name || '标题' }];
+    const W = el.width && el.width > 0 ? el.width : 480;
+    const H = el.height && el.height > 0 ? el.height : 320;
+    const pad = typeof options.padding === 'number' && options.padding >= 0 ? options.padding : 12;
+    const tmpl = collectStyleTemplate(el);
+    const shapes = layoutShapes(type, nodes, W, H, pad, tmpl);
+    el.nodes = nodes;
+    el.shapes = shapes;
+    el.texts = flattenNodes(nodes).map((nd) => nd.text || '');
+    el.layoutType = type;
+    el.diagramType = type;
+    el.relayout = true;
+    return el;
+}
+function nodesFromShapes(shapes) {
+    const texts = (shapes || []).filter((s) => !s.connector && s.text).map((s) => ({ text: String(s.text) }));
+    return texts.length ? texts : null;
+}
 
 const NAMED = {
     white: '#ffffff', black: '#000000', red: '#d93025', green: '#1e8e3e', blue: '#1a73e8',
@@ -26222,5 +26908,5 @@ function extractSlideTiming(slideContent) {
     return { advanceTime, animations };
 }
 
-export { ANIM_CLASSES, ANIM_DIRECTIONS, ANIM_TRIGGERS, ANIM_TYPES, CHART_TYPES, EditorStore, FONT_LIST, FONT_SIZES, LAYOUTS, PPTXComposer, PPTXShapeUtils, SHAPES, SLIDE_SIZES, THEMES, TRANSITIONS, TRANSITION_SPEEDS, absoluteElementRect, applyTextStyle, bboxOf, buildSlideFromLayout, buildThemeXml, clamp$1 as clamp, clone, createActions, createAudioElement, createChartElement, createDoc, createGroupElement, createImageElement, createParagraph, createShapeElement, createSlide, createStarterDoc, createStore, createTableElement, createTextElement, createVideoElement, pptxToHtml as default, defaultMediaPoster, docFromPptx, docToPptx, editPptx, effectMargin, elementRect, elementToPptx, escapeHtml, extOfDataUrl, getTheme, hexToRgb, inToPx, jsonToPptx, layoutElements, luminance, mixHex, normalizeBulletIn, normalizeBulletOut, normalizeColor, normalizeDoc, normalizeElement, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, renderChartSVG, rgbToHex, rotatePoint, rotatedRect, round, setActiveTheme, shade, shapeStyle, slideToPptx, stripDataUrl, syncTableStyle, uid, unionBBox, withAlpha };
+export { ANIM_CLASSES, ANIM_DIRECTIONS, ANIM_TRIGGERS, ANIM_TYPES, CHART_TYPES, EditorStore, FONT_LIST, FONT_SIZES, LAYOUTS, PPTXComposer, PPTXShapeUtils, SHAPES, SLIDE_SIZES, THEMES, TRANSITIONS, TRANSITION_SPEEDS, absoluteElementRect, applyTextStyle, bboxOf, buildSlideFromLayout, buildThemeXml, clamp$1 as clamp, clone, createActions, createAudioElement, createChartElement, createDoc, createGroupElement, createImageElement, createParagraph, createShapeElement, createSlide, createStarterDoc, createStore, createTableElement, createTextElement, createVideoElement, pptxToHtml as default, defaultMediaPoster, docFromPptx, docToPptx, editPptx, effectMargin, elementRect, elementToPptx, escapeHtml, extOfDataUrl, extractDiagramNodes, getTheme, hexToRgb, inToPx, inferDiagramType, jsonToPptx, layoutElements, luminance, mixHex, normalizeBulletIn, normalizeBulletOut, normalizeColor, normalizeDoc, normalizeElement, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, relayoutDiagram, renderChartSVG, rgbToHex, rotatePoint, rotatedRect, round, setActiveTheme, shade, shapeStyle, slideToPptx, stripDataUrl, syncTableStyle, uid, unionBBox, withAlpha };
 //# sourceMappingURL=ppt-parser.esm.js.map

@@ -393,7 +393,8 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
                 buildRelationshipsXml([
                     { relId: 'rId1', type: REL_TYPES.diagramLayout, target: `layout${d.index}.xml` },
                     { relId: 'rId2', type: REL_TYPES.diagramColors, target: `colors${d.index}.xml` },
-                    { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` }
+                    { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` },
+                    { relId: 'rId4', type: REL_TYPES.diagramDrawing, target: `drawing${d.index}.xml` }
                 ]));
             allDiagramIndices.push(d.index);
         }
@@ -1006,7 +1007,7 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
                 }
             }
 
-            // 图示部件（data/layout/colors/quickStyle 四件套 + dataN.xml.rels）
+            // 图示部件（data/layout/colors/quickStyle/drawing 五件套 + dataN.xml.rels）
             const newCtDiagrams: number[] = [];
             for (const d of ctx.diagrams) {
                 const dir = `ppt/diagrams/`;
@@ -1014,11 +1015,13 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
                 zip.file(`${dir}layout${d.index}.xml`, d.layoutXml);
                 zip.file(`${dir}colors${d.index}.xml`, d.colorsXml);
                 zip.file(`${dir}quickStyle${d.index}.xml`, d.quickStyleXml);
+                zip.file(`${dir}drawing${d.index}.xml`, d.drawingXml);
                 zip.file(`${dir}_rels/data${d.index}.xml.rels`,
                     buildRelationshipsXml([
                         { relId: 'rId1', type: REL_TYPES.diagramLayout, target: `layout${d.index}.xml` },
                         { relId: 'rId2', type: REL_TYPES.diagramColors, target: `colors${d.index}.xml` },
-                        { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` }
+                        { relId: 'rId3', type: REL_TYPES.diagramQuickStyle, target: `quickStyle${d.index}.xml` },
+                        { relId: 'rId4', type: REL_TYPES.diagramDrawing, target: `drawing${d.index}.xml` }
                     ]));
                 newCtDiagrams.push(d.index);
             }
@@ -1084,10 +1087,10 @@ async function editPptx(fileData: ArrayBuffer | Uint8Array | string) {
                 }
             }
             for (const idx of newCtDiagrams) {
-                for (const kind of ['data', 'layout', 'colors', 'quickStyle'] as const) {
+                for (const kind of ['data', 'layout', 'colors', 'quickStyle', 'drawing'] as const) {
                     const partName = `/ppt/diagrams/${kind}${idx}.xml`;
                     if (!newCt.includes(partName)) {
-                        const ct = { data: 'application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml', layout: 'application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml', colors: 'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml', quickStyle: 'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml' }[kind];
+                        const ct = { data: 'application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml', layout: 'application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml', colors: 'application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml', quickStyle: 'application/vnd.openxmlformats-officedocument.drawingml.diagramQuickStyle+xml', drawing: 'application/vnd.ms-office.drawingml.diagramDrawing+xml' }[kind];
                         newCt = newCt.replace('</Types>', `<Override PartName="${partName}" ContentType="${ct}"/></Types>`);
                     }
                 }

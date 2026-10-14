@@ -1279,6 +1279,10 @@ function extractSlideTiming(slideContent: XmlNode) {
 
 export default pptxToHtml;
 export { pptxToJson, pptxToHtml, pptxToFiles, jsonToPptx, editPptx, PPTXComposer, pptxToStandard };
+// SmartArt 重布局引擎（P2-9）：对解析端 diagram 元素按目标布局类别重排节点，
+// 生成端自动重建 data/drawing 部件并复用 __raw 的 layout/colors/quickStyle 原件
+export { relayoutDiagram, inferDiagramType, extractDiagramNodes } from './core/diagram-relayout';
+export type { DiagramRelayoutOptions } from './core/diagram-relayout';
 export { PPTXShapeUtils } from './shape/shape';
 export { presetShapePath } from './shape/preset-shape';
 export * from './utils/color';
