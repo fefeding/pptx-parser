@@ -190,7 +190,7 @@
 ### 剩余已知限制（解析端，高价值 round-trip）
 
 - OMML 公式解析：`mc:AlternateContent` 仅取 `mc:Fallback` 渲染成图，不解析 `m:oMath`
-- 组合图 multi-plot（**解析端 ✅ 已修复**，2026-10）：`extractChart` 现遍历 `plotArea` 下全部 `c:*Chart` 节点并写入 `PptxChartElement.plots`，多绘图区不再丢数据；主 plot 属性仍映射到顶层 `chartType/series` 保持兼容。生成端 `jsonToPptx` 按 `plots` 写出多个图表节点（组合图完整 round-trip 输出）待补充。
+- 组合图 multi-plot（**解析端 ✅ / 生成端 ✅ 均已实现**，2026-10）：解析端 `extractChart` 遍历 `plotArea` 下全部 `c:*Chart` 节点并写入 `PptxChartElement.plots`，多绘图区不再丢数据；主 plot 属性仍映射到顶层 `chartType/series` 保持兼容。生成端 `jsonToPptx` 按 `plots`（长度 >= 2）写出多个图表节点：各 plot 独立类型/系列/类目/分组，共享同一组 `catAx`/`valAx`（axId 111/112），series `idx/order` 跨 plot 全局连续，数据引用列按 plot 顺序分配（A 列共享类目）并与嵌入工作簿对齐。约束（fail-fast）：仅支持类目系图表（bar/line/area 及 3D、pie/doughnut/ofPie、radar）；scatter/bubble/stock/surface 需独立坐标系不支持混排；不支持 `secondaryValueAxis`（次轴组合图请用顶层单类型 + `secondaryValueAxis`）。
 - `a:prstTxWarp` 艺术字、`a:path` 径向渐变、背景 `bgRef` 主题引用、切换 `p:snd`、`a:grpFill` 父级继承、备注进 HTML
 - SmartArt 布局引擎（T16 已知限制）
 

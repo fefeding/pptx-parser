@@ -463,6 +463,8 @@ export interface PptxChartPlot {
     };
     /** 数字格式码（c:dLbls/c:numFmt） */
     numberFormat?: string;
+    /** 数据标签（c:dLbls）：true=显示值，或细粒度控制各显示项 */
+    dataLabels?: boolean | { showValue?: boolean; showPercent?: boolean; showSeries?: boolean; showCategory?: boolean };
 }
 
 /** 趋势线类型（c:trendlineType@val，ECMA-376） */
@@ -767,7 +769,11 @@ export interface PptxChartElement extends PptxElementBase {
     /**
      * 组合图（多 plot）的全部绘图区。单图表时为空（沿用顶层 chartType/series 即可）；
      * 解析端从 c:plotArea 下所有 c:*Chart 节点提取，保持文档顺序。
-     * 生成端若提供本字段（长度 >= 2）则写出多个图表节点实现组合图 round-trip。
+     * 生成端已支持：提供本字段（长度 >= 2）时写出多个图表节点实现组合图 round-trip——
+     * 各 plot 共享同一组类目/数值轴（axId 111/112），series idx/order 跨 plot 连续，
+     * 数据引用列按 plot 顺序分配。约束：仅支持类目系图表（bar/line/area 及 3D、
+     * pie/doughnut/ofPie/radar），scatter/bubble/stock/surface 需独立坐标系不支持混排，
+     * 且不支持 secondaryValueAxis（fail-fast）。
      */
     plots?: PptxChartPlot[];
 }
