@@ -3340,7 +3340,24 @@ const ANIMATION_PRESET_IDS: Record<string, number> = {
     circle: 6, crawl: 7, diamond: 8, dissolve: 9, fade: 10, peek: 11, plus: 12,
     randomBars: 13, random: 13, split: 14, spokes: 15, strips: 16, swivel: 17,
     wedge: 18, wheel: 19, wipe: 20, zoom: 21, bounce: 22, grow: 23, spin: 24,
-    pulsate: 1, color: 2, transparency: 3, boldFlash: 4, brush: 5, wave: 6
+    ascend: 25,
+    // Emphasis (presetClass="emph") preset ids live in a separate, higher range than the
+    // entrance/exit effects above. These are the OOXML preset ids PowerPoint expects for the
+    // emphasis effects. (grow/shrink reuses id 23 from above.)
+    pulse: 54, shake: 55, flash: 53, boldFlash: 53
+};
+
+/**
+ * Editor/UI animation type names → OOXML `animEffect` preset token. The editor model uses
+ * friendly names (`bounceIn`, `fadeIn`, `wipeIn`, `riseUp`, `flyOut`, …) that don't match the
+ * tokens PowerPoint expects (`bounce`, `fade`, `wipe`, `ascend`, `fly`, …). Without this mapping,
+ * `buildTimingNode` writes the raw name as `preset` and looks up an unknown id (falling back to 1 =
+ * "Appear"), so the exported animation silently degrades to "just show" in PowerPoint — e.g. a
+ * "bounce" becomes no animation at all.
+ */
+const ANIM_PRESET_TOKEN: Record<string, string> = {
+    flyIn: 'fly', fadeIn: 'fade', wipeIn: 'wipe', zoomIn: 'zoom', riseUp: 'ascend', bounceIn: 'bounce',
+    flyOut: 'fly', fadeOut: 'fade', wipeOut: 'wipe', zoomOut: 'zoom'
 };
 
 export function buildTransition(t: PptxTransition | undefined, ctx?: SerializerContext): BuilderNode | null {
@@ -3454,8 +3471,11 @@ function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
         // preset 透传真实名称（不再收敛为 4 种），未知类型回退 fade
         const preset = a.type || 'fade';
         const presetClass = (a.presetClass || 'entr') as string;
+        // 编辑器类型名（bounceIn / fadeIn / …）需映射到 OOXML preset token（bounce / fade / …），
+        // 否则 presetId 查不到会回退成 1（Appear），导出后在 PowerPoint 里没有动画效果。
+        const presetToken = ANIM_PRESET_TOKEN[preset] ?? preset;
         // presetId 优先取显式值，否则查常见 preset 编号表
-        const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[preset] ?? 1);
+        const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[presetToken] ?? 1);
 
         // 触发时机 → p:stCondLst/p:cond（编辑器模型以字符串存储 trigger：'onClick'/'withPrev'/'afterPrev'）
         const trig = (typeof a.trigger === 'string' ? a.trigger : a.trigger?.type) || 'afterPrev';
@@ -3481,7 +3501,7 @@ function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
             presetClass,
             presetId,
             type: 'withEffect',
-            preset
+            preset: presetToken
         };
         // 进入动画方向（编辑器 'l'/'r'/'t'/'b'）→ OOXML presetSubtype（'left'/'right'/'top'/'bottom'）
         const DIR_SUBTYPE: Record<string, string> = { l: 'left', r: 'right', t: 'top', b: 'bottom' };

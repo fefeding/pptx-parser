@@ -17322,7 +17322,12 @@ const ANIMATION_PRESET_IDS = {
     circle: 6, crawl: 7, diamond: 8, dissolve: 9, fade: 10, peek: 11, plus: 12,
     randomBars: 13, random: 13, split: 14, spokes: 15, strips: 16, swivel: 17,
     wedge: 18, wheel: 19, wipe: 20, zoom: 21, bounce: 22, grow: 23, spin: 24,
-    pulsate: 1, color: 2, transparency: 3, boldFlash: 4, brush: 5, wave: 6
+    ascend: 25,
+    pulse: 54, shake: 55, flash: 53, boldFlash: 53
+};
+const ANIM_PRESET_TOKEN = {
+    flyIn: 'fly', fadeIn: 'fade', wipeIn: 'wipe', zoomIn: 'zoom', riseUp: 'ascend', bounceIn: 'bounce',
+    flyOut: 'fly', fadeOut: 'fade', wipeOut: 'wipe', zoomOut: 'zoom'
 };
 function buildTransition(t, ctx) {
     if (!t)
@@ -17373,7 +17378,8 @@ function buildTimingNode(slide) {
             : a.target != null ? a.target + 2 : 2;
         const preset = a.type || 'fade';
         const presetClass = (a.presetClass || 'entr');
-        const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[preset] ?? 1);
+        const presetToken = ANIM_PRESET_TOKEN[preset] ?? preset;
+        const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[presetToken] ?? 1);
         const trig = (typeof a.trigger === 'string' ? a.trigger : a.trigger?.type) || 'afterPrev';
         const condAttrs = {};
         if (trig === 'onClick') {
@@ -17395,7 +17401,7 @@ function buildTimingNode(slide) {
             presetClass,
             presetId,
             type: 'withEffect',
-            preset
+            preset: presetToken
         };
         const DIR_SUBTYPE = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
         if (a.direction && DIR_SUBTYPE[a.direction])
@@ -19334,6 +19340,35 @@ function getShapeId(key, node) {
     const cNvPr = nv && nv['p:cNvPr'];
     return cNvPr && cNvPr.attrs && cNvPr.attrs.id != null ? String(cNvPr.attrs.id) : undefined;
 }
+function ooxmlTokenToEditorType$1(token, cls) {
+    if (cls === 'exit') {
+        switch (token) {
+            case 'fade': return 'fadeOut';
+            case 'wipe': return 'wipeOut';
+            case 'zoom': return 'zoomOut';
+            case 'fly': return 'flyOut';
+        }
+    }
+    else if (cls === 'emph') {
+        switch (token) {
+            case 'grow': return 'grow';
+            case 'pulse': return 'pulse';
+            case 'shake': return 'shake';
+            case 'flashOnce': return 'flash';
+        }
+    }
+    else {
+        switch (token) {
+            case 'bounce': return 'bounceIn';
+            case 'fade': return 'fadeIn';
+            case 'wipe': return 'wipeIn';
+            case 'zoom': return 'zoomIn';
+            case 'ascend': return 'riseUp';
+            case 'fly': return 'flyIn';
+        }
+    }
+    return token;
+}
 function extractTiming(slideContent) {
     const sld = slideContent && slideContent['p:sld'];
     const timing = sld && sld['p:timing'];
@@ -19444,7 +19479,7 @@ function extractTiming(slideContent) {
             }
             const anim = {
                 target: String(spid),
-                type: preset,
+                type: ooxmlTokenToEditorType$1(preset, presetClass),
                 duration: dur ?? 1
             };
             if (presetClass)
@@ -26818,6 +26853,35 @@ function extractSlideTransition(slideContent) {
         duration: duration
     };
 }
+function ooxmlTokenToEditorType(token, cls) {
+    if (cls === 'exit') {
+        switch (token) {
+            case 'fade': return 'fadeOut';
+            case 'wipe': return 'wipeOut';
+            case 'zoom': return 'zoomOut';
+            case 'fly': return 'flyOut';
+        }
+    }
+    else if (cls === 'emph') {
+        switch (token) {
+            case 'grow': return 'grow';
+            case 'pulse': return 'pulse';
+            case 'shake': return 'shake';
+            case 'flashOnce': return 'flash';
+        }
+    }
+    else {
+        switch (token) {
+            case 'bounce': return 'bounceIn';
+            case 'fade': return 'fadeIn';
+            case 'wipe': return 'wipeIn';
+            case 'zoom': return 'zoomIn';
+            case 'ascend': return 'riseUp';
+            case 'fly': return 'flyIn';
+        }
+    }
+    return token;
+}
 function extractSlideTiming(slideContent) {
     const sld = slideContent["p:sld"];
     const timing = sld && sld["p:timing"];
@@ -26889,7 +26953,7 @@ function extractSlideTiming(slideContent) {
             }
             const anim = {
                 spid: Number(spid),
-                type: preset,
+                type: ooxmlTokenToEditorType(preset, presetClass),
                 duration: dur ?? 1
             };
             if (presetClass)

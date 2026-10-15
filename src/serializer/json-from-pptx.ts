@@ -1021,6 +1021,35 @@ function getShapeId(key: string, node: any): string | undefined {
     return cNvPr && cNvPr.attrs && cNvPr.attrs.id != null ? String(cNvPr.attrs.id) : undefined;
 }
 
+/** OOXML preset token → 编辑器/UI 动画类型名（写入端 ANIM_PRESET_TOKEN 的反向映射）。 */
+function ooxmlTokenToEditorType(token: string, cls?: string): string {
+  if (cls === 'exit') {
+    switch (token) {
+      case 'fade': return 'fadeOut';
+      case 'wipe': return 'wipeOut';
+      case 'zoom': return 'zoomOut';
+      case 'fly': return 'flyOut';
+    }
+  } else if (cls === 'emph') {
+    switch (token) {
+      case 'grow': return 'grow';
+      case 'pulse': return 'pulse';
+      case 'shake': return 'shake';
+      case 'flashOnce': return 'flash';
+    }
+  } else {
+    switch (token) {
+      case 'bounce': return 'bounceIn';
+      case 'fade': return 'fadeIn';
+      case 'wipe': return 'wipeIn';
+      case 'zoom': return 'zoomIn';
+      case 'ascend': return 'riseUp';
+      case 'fly': return 'flyIn';
+    }
+  }
+  return token;
+}
+
 /** 解析 p:timing：自动播放 afterTime + 元素进入动画 p:spTgt */
 function extractTiming(slideContent: any): { advanceTime?: number; animations?: PptxAnimation[] } {
     const sld = slideContent && slideContent['p:sld'];
@@ -1111,7 +1140,7 @@ function extractTiming(slideContent: any): { advanceTime?: number; animations?: 
             }
             const anim: PptxAnimation = {
                 target: String(spid),
-                type: preset,
+                type: ooxmlTokenToEditorType(preset, presetClass),
                 duration: dur ?? 1
             };
             if (presetClass) anim.presetClass = presetClass as PptxAnimation['presetClass'];

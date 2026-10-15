@@ -1193,6 +1193,39 @@ function extractSlideTransition(slideContent: XmlNode) {
 }
 
 /**
+ * OOXML preset token → 编辑器/UI 动画类型名（ANIM_PRESET_TOKEN 的反向映射）。
+ * 写入时用 token（bounce/fade/ascend…），读回时还原成编辑器名（bounceIn/fadeIn/riseUp…），
+ * 这样导出再导入不会丢失类型。
+ */
+function ooxmlTokenToEditorType(token: string, cls?: string): string {
+  if (cls === 'exit') {
+    switch (token) {
+      case 'fade': return 'fadeOut';
+      case 'wipe': return 'wipeOut';
+      case 'zoom': return 'zoomOut';
+      case 'fly': return 'flyOut';
+    }
+  } else if (cls === 'emph') {
+    switch (token) {
+      case 'grow': return 'grow';
+      case 'pulse': return 'pulse';
+      case 'shake': return 'shake';
+      case 'flashOnce': return 'flash';
+    }
+  } else {
+    switch (token) {
+      case 'bounce': return 'bounceIn';
+      case 'fade': return 'fadeIn';
+      case 'wipe': return 'wipeIn';
+      case 'zoom': return 'zoomIn';
+      case 'ascend': return 'riseUp';
+      case 'fly': return 'flyIn';
+    }
+  }
+  return token;
+}
+
+/**
  * 提取幻灯片计时（自动播放 + 元素动画），解析自 p:timing
  * @param {Object} slideContent - 幻灯片内容
  * @returns {Object|null} { advanceTime, animations:[{spid,type,duration}] } 或 null
@@ -1263,7 +1296,7 @@ function extractSlideTiming(slideContent: XmlNode) {
             }
             const anim: Record<string, unknown> = {
                 spid: Number(spid),
-                type: preset,
+                type: ooxmlTokenToEditorType(preset, presetClass),
                 duration: dur ?? 1
             };
             if (presetClass) anim.presetClass = presetClass;
