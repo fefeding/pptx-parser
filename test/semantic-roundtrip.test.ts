@@ -157,10 +157,11 @@ describe('group 子元素动画 round-trip（此前 target 索引偏移导致丢
         for (const a of anims) {
             expect(typeof a.target).toBe('string');
         }
-        // 确认三种 preset 都保留
+        // 确认三种 preset 都保留。往返后解析端统一回编辑器友好名，
+        // 故 fade / wipe 会以 fadeIn / wipeIn 形式回来（语义不变）
         const types = anims.map((a: any) => a.type);
-        expect(types).toContain('fade');
+        expect(types).toContain('fadeIn');
         expect(types).toContain('flyIn');
-        expect(types).toContain('wipe');
+        expect(types).toContain('wipeIn');
     });
 });

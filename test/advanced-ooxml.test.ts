@@ -236,8 +236,9 @@ describe('高级 OOXML 生成能力', () => {
         expect(xml).toContain('presetId="2"');
         // 点击触发：delay=indefinite
         expect(xml).toContain('delay="indefinite"');
-        // preset 透传真实名称，不再收敛为四种
-        expect(xml).toContain('preset="flyIn"');
+        // 编辑器友好名 flyIn 会映射为 PowerPoint 识别的 OOXML preset token "fly"
+        // （不映射时 PowerPoint 无法识别该动画，会静默退化为直接显示）
+        expect(xml).toContain('preset="fly"');
     });
 
     it('切换：advTm / 禁止点击切换 / 方向', async () => {
