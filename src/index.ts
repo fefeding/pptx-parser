@@ -356,7 +356,13 @@ async function parsePPTXInternal(zip: JSZip, msgQueue: ChartQueueItem[], setting
 function resolveRelTargetFromRels(relsPath: string, target: string): string {
     if (!target) return target;
     if (/^https?:/i.test(target)) return target;
-    if (target.startsWith('/')) return 'ppt' + target;
+    // 绝对路径 Target（以 "/" 开头）已是相对包根的写法（如 /ppt/charts/chart2.xml），
+    // 直接去掉前导斜杠即可；此前拼成 "ppt" + target 会多出一层 ppt/，
+    // 导致图表等部件定位到 ppt/ppt/... 而不存在（表现为图表只剩空占位、无数据）。
+    if (target.startsWith('/')) {
+        const abs = target.replace(/^\/+/, '');
+        return abs.startsWith('ppt/') ? abs : 'ppt/' + abs;
+    }
     if (target.startsWith('ppt/')) return target;
     // ppt/slides/_rels/slide1.xml.rels → ppt/slides/（源部件所在目录）
     const baseDir = relsPath.replace(/_rels\/[^/]*\.rels$/, '').replace(/[^/]+$/, '');
