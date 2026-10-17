@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.27
+ * @fefeding/ppt-parser v1.0.28
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -26209,8 +26209,10 @@ function resolveRelTargetFromRels(relsPath, target) {
         return target;
     if (/^https?:/i.test(target))
         return target;
-    if (target.startsWith('/'))
-        return 'ppt' + target;
+    if (target.startsWith('/')) {
+        const abs = target.replace(/^\/+/, '');
+        return abs.startsWith('ppt/') ? abs : 'ppt/' + abs;
+    }
     if (target.startsWith('ppt/'))
         return target;
     const baseDir = relsPath.replace(/_rels\/[^/]*\.rels$/, '').replace(/[^/]+$/, '');
