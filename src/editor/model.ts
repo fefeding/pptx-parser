@@ -762,6 +762,8 @@ export function elementToPptx(el: any): any {
         x: r2(el.x), y: r2(el.y),
         width: r2(el.width), height: r2(el.height)
     };
+    // 保留元素 id：连接线写 a:stCxn/a:endCxn 时需要按 id 找到目标形状
+    if (el.id) out.id = el.id;
     if (el.rotation) out.rotation = Math.round(el.rotation * 100) / 100;
     if (el.name) out.name = el.name;
     // 版式/母版装饰形状必须原样带回 inherited：jsonToPptx 靠该标记跳过它们，
@@ -790,6 +792,8 @@ export function elementToPptx(el: any): any {
             if (el.indent) out.indentLeft = el.indent;
             if (el.textDirection) out.textDirection = el.textDirection;
             if (el.inset) out.inset = el.inset;
+            // 自动适配模式：回写 a:noAutofit / a:normAutofit / a:spAutoFit
+            if (el.autofit) out.autofit = el.autofit;
             if (el.rtlCol) out.rtlCol = true;
             // 纯文本框标记是解析端的结构信息（非用户样式），原样透传以保住行距兜底行为
             if (el.txBox) out.txBox = true;
@@ -834,12 +838,40 @@ export function elementToPptx(el: any): any {
                 if (p.indentRight != null) para.indentRight = pxToPt(p.indentRight);
                 if (p.spaceBefore != null) para.spaceBefore = pxToPt(p.spaceBefore);
                 if (p.spaceAfter != null) para.spaceAfter = pxToPt(p.spaceAfter);
+                // 列表层级（a:pPr@lvl）
+                if (p.level) para.level = p.level;
                 return para;
             });
             if (!out.paragraphs.length) out.paragraphs = [{ runs: [{ text: '' }] }];
             return out;
         }
         case 'shape': {
+            // 连接线（来自 p:cxnSp）：统一按可编辑的 p:cxnSp 重新生成。
+            // 不走 __raw 原样回写 —— 原节点里的 p:cNvPr@id 与 a:stCxn/a:endCxn 引用的是
+            // 源文件里的数字 id，重新序列化后其他形状 id 会重排，回写会指向错误形状
+            // （甚至与新分配的 id 冲突，导致 PowerPoint 提示「需要修复」）。
+            if (el.connector) {
+                out.type = 'connector';
+                out.shapeType = el.shapeType || 'straightConnector1';
+                out.start = { x: r2(el.x), y: r2(el.y) };
+                out.end = { x: r2(el.x + el.width), y: r2(el.y + el.height) };
+                // 胶着关系（跟随形状移动）：目标形状 id 为编辑模型元素 id，生成端再换成数字 id
+                if (el.begin && el.begin.shapeId) out.glueBegin = { shapeId: el.begin.shapeId, site: el.begin.site };
+                if (el.end && el.end.shapeId) out.glueEnd = { shapeId: el.end.shapeId, site: el.end.site };
+                if (el.flipH) out.flipH = true;
+                if (el.flipV) out.flipV = true;
+                if (el.adjust && Object.keys(el.adjust).length) out.adjust = el.adjust;
+                if (el.line && el.line !== 'none') {
+                    out.line = {
+                        color: el.line.color != null ? (normalizeColor(el.line.color) || undefined) : undefined,
+                        width: el.line.width != null ? el.line.width : 1,
+                        dashType: el.line.dashType || 'solid',
+                        startArrow: el.line.startArrow || undefined,
+                        endArrow: el.line.endArrow || undefined
+                    };
+                }
+                return out;
+            }
             out.type = 'shape';
             out.shapeType = el.shapeType || 'rect';
             out.fill = fillToPptx(el.fill);
@@ -1237,6 +1269,14 @@ function elementFromPptx(pe: any): any {
         el.inherited = true;
         el.locked = true;
     }
+    // 连接线（p:cxnSp）在标准 JSON 里是独立类型，编辑器统一按「线形状」处理：
+    // 端点编辑、连接点吸附、渲染因此都能复用现成的线元素逻辑。
+    // __raw 与原始几何一并保留 —— 未被改动时导出走无损回写（保住 a:stCxn/a:endCxn
+    // 等原生连接语义），被改动后才按可编辑的连接线重新生成。
+    const isConnector = pe.type === 'connector';
+    if (isConnector) {
+        pe = { ...pe, type: 'shape', shapeType: pe.shapeType || 'straightConnector1', fill: 'none' };
+    }
     switch (pe.type) {
         case 'text': {
             el.type = 'text';
@@ -1256,6 +1296,8 @@ function elementFromPptx(pe: any): any {
             el.rtlCol = !!pe.rtlCol;
             if (pe.fontScale != null) el.fontScale = pe.fontScale;
             if (pe.lnSpcReduction != null) el.lnSpcReduction = pe.lnSpcReduction;
+            // 自动适配模式（none/normal/shape）：导出时回写 a:noAutofit / a:normAutofit / a:spAutoFit
+            if (pe.autofit) el.autofit = pe.autofit;
             // 纯文本框标记：预览端对 txBox=1 且无 a:lnSpc 的文本框兜底 line-height 1.3，行距需一致
             el.txBox = !!pe.txBox;
             el.inset = (pe.inset && typeof pe.inset === 'object')
@@ -1323,7 +1365,9 @@ function elementFromPptx(pe: any): any {
                         indentLeft: p.indentLeft != null ? ptToPx(p.indentLeft) : undefined,
                         indentRight: p.indentRight != null ? ptToPx(p.indentRight) : undefined,
                         spaceBefore: p.spaceBefore != null ? ptToPx(p.spaceBefore) : undefined,
-                        spaceAfter: p.spaceAfter != null ? ptToPx(p.spaceAfter) : undefined
+                        spaceAfter: p.spaceAfter != null ? ptToPx(p.spaceAfter) : undefined,
+                        // 列表层级（a:pPr@lvl）：多级项目符号的级别，0 为第一级
+                        level: p.level != null ? Number(p.level) : 0
                     };
                 });
             } else if (pe.runs && pe.runs.length) {
@@ -1350,6 +1394,15 @@ function elementFromPptx(pe: any): any {
             if (pe.effectsRaw && Array.isArray(pe.effectsRaw)) el.effectsRaw = pe.effectsRaw;
             if (pe.adjust && typeof pe.adjust === 'object') el.adjust = pe.adjust;
             if (pe.custGeom && Array.isArray(pe.custGeom.paths) && pe.custGeom.paths.length) el.custGeom = pe.custGeom;
+            if (isConnector) {
+                el.connector = true;
+                // 原生连接关系（a:stCxn/a:endCxn）：此处存的是源文件里的数字 id，
+                // 由 docFromPptx 按页内元素映射成编辑模型的元素 id（begin/end）
+                if (pe.beginCxn) el.cxnBegin = { id: String(pe.beginCxn.id), idx: pe.beginCxn.idx };
+                if (pe.endCxn) el.cxnEnd = { id: String(pe.endCxn.id), idx: pe.endCxn.idx };
+                // 原始 p:cxnSp 节点（保留原样，便于回退查看）
+                if (pe.__raw) el.__raw = pe.__raw;
+            }
             return el;
         }
         case 'image': {
@@ -1552,6 +1605,43 @@ function elementFromPptx(pe: any): any {
     }
 }
 
+/** 形状连接点序号 → 编辑模型里的 site 名（与 connectionPoints 的命名一致） */
+const SITE_BY_IDX: Record<number, string> = { 0: 'top', 1: 'left', 2: 'bottom', 3: 'right' };
+
+/**
+ * 把连接线的原生连接关系（a:stCxn / a:endCxn）映射成编辑模型的 begin/end。
+ *
+ * OOXML 里连接关系引用的是目标形状的数字 id（源文件 p:cNvPr@id），
+ * 编辑模型用的是元素 id，故需先建立「数字 id → 元素 id」的映射。
+ * @param stdEls 该页的标准 JSON 元素（带 __raw 原始节点）
+ * @param slide  已导入的编辑模型页
+ */
+function resolveConnectorGlue(stdEls: any[], slide: any) {
+    const numIdToElId = new Map<string, string>();
+    stdEls.forEach((pe: any, i: number) => {
+        const raw = pe && pe.__raw && pe.__raw.node;
+        if (!raw) return;
+        const nv = raw['p:nvSpPr'] || raw['p:nvCxnSpPr'] || raw['p:nvPicPr'] || raw['p:nvGraphicFramePr'];
+        const cNvPr = nv && nv['p:cNvPr'];
+        const idAttr = cNvPr && cNvPr.attrs && cNvPr.attrs.id;
+        const ed = slide.elements[i];
+        if (idAttr != null && ed) numIdToElId.set(String(idAttr), ed.id);
+    });
+    for (const el of slide.elements || []) {
+        if (!el.connector) continue;
+        if (el.cxnBegin) {
+            const target = numIdToElId.get(String(el.cxnBegin.id));
+            if (target) el.begin = { shapeId: target, site: SITE_BY_IDX[el.cxnBegin.idx] || 'top' };
+        }
+        if (el.cxnEnd) {
+            const target = numIdToElId.get(String(el.cxnEnd.id));
+            if (target) el.end = { shapeId: target, site: SITE_BY_IDX[el.cxnEnd.idx] || 'top' };
+        }
+        delete el.cxnBegin;
+        delete el.cxnEnd;
+    }
+}
+
 export function docFromPptx(pptxDoc: any, opts: { fileName?: string } = {}): any {
     const doc = createDoc('blue');
     const size = pptxDoc.slideSize || {};
@@ -1595,11 +1685,15 @@ export function docFromPptx(pptxDoc: any, opts: { fileName?: string } = {}): any
     if (pptxDoc.themeXmls && pptxDoc.themeXmls.length) doc.themeXmls = pptxDoc.themeXmls;
     if (pptxDoc.masters && pptxDoc.masters.length) doc.masters = pptxDoc.masters;
     doc.slides = (pptxDoc.slides || []).map((s: any) => {
-        const slide = createSlide((s.elements || []).map(elementFromPptx), {
+        const stdEls: any[] = s.elements || [];
+        const slide = createSlide(stdEls.map(elementFromPptx), {
             background: s.background || null,
             notes: s.notes || '',
             hidden: !!s.hidden
         });
+        // 连接线胶着：a:stCxn/a:endCxn 里的 id 是目标形状在源文件里的数字 id，
+        // 这里映射成编辑模型的元素 id，连接线才能在编辑时跟随形状移动
+        resolveConnectorGlue(stdEls, slide);
         if (s.transition && s.transition.type) {
             slide.transition = { type: s.transition.type, duration: s.transition.duration || 800 };
         }

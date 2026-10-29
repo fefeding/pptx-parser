@@ -1140,22 +1140,17 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                         break;
                     }
                     case "donut": {
+                        // 与编辑器端 presetShapePath 共用同一几何（避免两端形状不一致）
                         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        let adj = 25000 * SLIDE_FACTOR;
-                        const cnstVal1 = 50000 * SLIDE_FACTOR;
-                        const cnstVal2 = 100000 * SLIDE_FACTOR;
+                        let adjVal = 25000;
                         if (shapAdjst !== undefined) {
-                            adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR;
+                            adjVal = parseInt(shapAdjst.substr(4));
                         }
-                        let a, dr, iwd2, ihd2;
-                        if (adj < 0) a = 0
-                        else if (adj > cnstVal1) a = cnstVal1
-                        else a = adj
-                        dr = Math.min(w, h) * a / cnstVal2;
-                        iwd2 = w / 2 - dr;
-                        ihd2 = h / 2 - dr;
-                        var d: any = `M${0},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L")} zM${dr},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L")} z`;
-                        result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr} />`;
+                        const geo = presetShapePath("donut", w, h, { adj: adjVal });
+                        var d: any = geo ? geo.d : "";
+                        // 圆环需要 evenodd 才能在中心挖孔
+                        const fillRuleAttr = geo && geo.fillRule ? ` fill-rule='${geo.fillRule}'` : "";
+                        result += `<path   d='${d}'${fillRuleAttr}  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr} />`;
                         break;
                     }
                     case "noSmoking": {
@@ -1218,44 +1213,21 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                         break;
                     }
                     case "halfFrame": {
+                        // 与编辑器端 presetShapePath 共用同一几何（避免两端形状不一致）
                         const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                        let sAdj1, sAdj1_val = 3.5;
-                        let sAdj2, sAdj2_val = 3.5;
-                        const cnsVal = 100000 * SLIDE_FACTOR;
+                        const adjMap: Record<string, number> = { adj1: 50000, adj2: 50000 };
                         if (shapAdjst_ary !== undefined) {
-                            for (const i of shapAdjst_ary.keys()){
-                                const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                                if (sAdj_name == "adj1") {
-                                    sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    sAdj1_val = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR;
-                                } else if (sAdj_name == "adj2") {
-                                    sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                    sAdj2_val = parseInt(sAdj2.substr(4)) * SLIDE_FACTOR;
+                            for (const i of shapAdjst_ary.keys()) {
+                                const adjName = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                                const adjFmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                                if (adjName == "adj1" || adjName == "adj2") {
+                                    adjMap[adjName] = parseInt(adjFmla.substr(4));
                                 }
                             }
                         }
-                        const minWH = Math.min(w, h);
-                        let maxAdj2 = (cnsVal * w) / minWH;
-                        let a1, a2;
-                        if (sAdj2_val < 0) a2 = 0
-                        else if (sAdj2_val > maxAdj2) a2 = maxAdj2
-                        else a2 = sAdj2_val
-                        var x1: any = (minWH * a2) / cnsVal;
-                        const g1 = h * x1 / w;
-                        let g2 = h - g1;
-                        let maxAdj1 = (cnsVal * g2) / minWH;
-                        if (sAdj1_val < 0) a1 = 0
-                        else if (sAdj1_val > maxAdj1) a1 = maxAdj1
-                        else a1 = sAdj1_val
-                        var y1: any = minWH * a1 / cnsVal;
-                        var dx2: any = y1 * w / h;
-                        var x2: any = w - dx2;
-                        let dy2 = x1 * h / w;
-                        var y2: any = h - dy2;
-                        var d: any = `M0,0 L${w},${0} L${x2},${y1} L${x1},${y1} L${x1},${y2} L0,${h} z`;
-
+                        const geo = presetShapePath("halfFrame", w, h, adjMap);
+                        var d: any = geo ? geo.d : "";
                         result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
-                        //console.log("w: ",w,", h: ",h,", sAdj1_val: ",sAdj1_val,", sAdj2_val: ",sAdj2_val,",maxAdj1: ",maxAdj1,",maxAdj2: ",maxAdj2)
                         break;
                     }
                     case "bracePair":
@@ -1269,19 +1241,14 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                         break;
                     }
                     case "moon": {
+                        // 与编辑器端 presetShapePath 共用同一几何（避免两端形状不一致）
                         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        let adj = 0.5;
+                        let adjVal = 50000;
                         if (shapAdjst !== undefined) {
-                            adj = parseInt(shapAdjst.substr(4)) / 100000;//*96/914400;;
+                            adjVal = parseInt(shapAdjst.substr(4));
                         }
-                        var hd2: any, cd2: any, cd4: any;
-
-                        hd2 = h / 2;
-                        cd2 = 180;
-                        cd4 = 90;
-
-                        let adj2 = (1 - adj) * w;
-                        var d: any = `M${w},${h}${PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L")} z`;
+                        const geo = presetShapePath("moon", w, h, { adj: adjVal });
+                        var d: any = geo ? geo.d : "";
                         result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                         break;
                     }
@@ -1471,72 +1438,15 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                         break;
                     }
                     case "sun": {
+                        // 与编辑器端 presetShapePath 共用同一几何（避免两端形状不一致）
                         const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                        const refr = SLIDE_FACTOR;
-                        let adj1 = 25000 * refr;
-                        const cnstVal1 = 12500 * refr;
-                        const cnstVal2 = 46875 * refr;
+                        let adjVal = 25000;
                         if (shapAdjst !== undefined) {
-                            adj1 = parseInt(shapAdjst.substr(4)) * refr;
+                            adjVal = parseInt(shapAdjst.substr(4));
                         }
-                        let a1;
-                        if (adj1 < cnstVal1) a1 = cnstVal1
-                        else if (adj1 > cnstVal2) a1 = cnstVal2
-                        else a1 = adj1
-
-                        const cnstVa3 = 50000 * refr;
-                        const cnstVa4 = 100000 * refr;
-                        let g0 = cnstVa3 - a1,
-                            g1 = g0 * (30274 * refr) / (32768 * refr),
-                            g2 = g0 * (12540 * refr) / (32768 * refr),
-                            g3 = g1 + cnstVa3,
-                            g4 = g2 + cnstVa3,
-                            g5 = cnstVa3 - g1,
-                            g6 = cnstVa3 - g2,
-                            g7 = g0 * (23170 * refr) / (32768 * refr),
-                            g8 = cnstVa3 + g7,
-                            g9 = cnstVa3 - g7,
-                            g10 = g5 * 3 / 4,
-                            g11 = g6 * 3 / 4,
-                            g12 = g10 + 3662 * refr,
-                            g13 = g11 + 36620 * refr,
-                            g14 = g11 + 12500 * refr,
-                            g15 = cnstVa4 - g10,
-                            g16 = cnstVa4 - g12,
-                            g17 = cnstVa4 - g13,
-                            g18 = cnstVa4 - g14,
-                            ox1 = w * (18436 * refr) / (21600 * refr),
-                            oy1 = h * (3163 * refr) / (21600 * refr),
-                            ox2 = w * (3163 * refr) / (21600 * refr),
-                            oy2 = h * (18436 * refr) / (21600 * refr),
-                            x8: any = w * g8 / cnstVa4,
-                            x9: any = w * g9 / cnstVa4,
-                            x10: any = w * g10 / cnstVa4,
-                            x12 = w * g12 / cnstVa4,
-                            x13 = w * g13 / cnstVa4,
-                            x14 = w * g14 / cnstVa4,
-                            x15 = w * g15 / cnstVa4,
-                            x16 = w * g16 / cnstVa4,
-                            x17 = w * g17 / cnstVa4,
-                            x18 = w * g18 / cnstVa4,
-                            x19 = w * a1 / cnstVa4,
-                            wR = w * g0 / cnstVa4,
-                            hR = h * g0 / cnstVa4,
-                            y8 = h * g8 / cnstVa4,
-                            y9 = h * g9 / cnstVa4,
-                            y10 = h * g10 / cnstVa4,
-                            y12 = h * g12 / cnstVa4,
-                            y13 = h * g13 / cnstVa4,
-                            y14 = h * g14 / cnstVa4,
-                            y15 = h * g15 / cnstVa4,
-                            y16 = h * g16 / cnstVa4,
-                            y17 = h * g17 / cnstVa4,
-                            y18 = h * g18 / cnstVa4;
-
-                        let d_val = `M${w},${h / 2} L${x15},${y18} L${x15},${y14}z M${ox1},${oy1} L${x16},${y17} L${x13},${y12}z M${w / 2},${0} L${x18},${y10} L${x14},${y10}z M${ox2},${oy1} L${x17},${y12} L${x12},${y17}z M${0},${h / 2} L${x10},${y14} L${x10},${y18}z M${ox2},${oy2} L${x12},${y13} L${x17},${y16}z M${w / 2},${h} L${x14},${y15} L${x18},${y15}z M${ox1},${oy2} L${x13},${y16} L${x16},${y13} z M${x19},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L")} z`;
-                        //console.log("adj1: ",adj1,d_val);
+                        const geo = presetShapePath("sun", w, h, { adj: adjVal });
+                        let d_val: any = geo ? geo.d : "";
                         result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
-
 
                         break;
                     }

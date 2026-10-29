@@ -7,7 +7,7 @@
  * 仅以 moveTo 语义薄包装 shapeArcAlt 以匹配编辑器调用约定。
  */
 
-import { shapeArc, shapeArcAlt as _shapeArcAlt, shapePie } from './path-generators';
+import { shapeArc, shapeArcAlt as _shapeArcAlt, shapePie, shapeGear } from './path-generators';
 
 const fmt = (n: number) => parseFloat(Number(n).toFixed(2));
 
@@ -25,6 +25,22 @@ type Adj = Record<string, number | string> | undefined;
 const num = (adj: Adj, key: string, def: number) => {
   const v = adj && adj[key] != null ? Number((adj as Record<string, number>)[key]) : def;
   return Number.isFinite(v) ? v : def;
+};
+/**
+ * 依次尝试多个调整值名称取第一个有效值。
+ * 预览端部分预设（如 sun/cloud）只读「第一个 a:gd」而非按名字取，
+ * 而编辑模型按名字归一化（a:gd@name=adj / adj1），
+ * 故这里同时兼容两种来源，避免同一形状在两端取到不同的调整值。
+ */
+const numAny = (adj: Adj, keys: string[], def: number) => {
+  for (const k of keys) {
+    const v = adj && (adj as Record<string, number>)[k];
+    if (v != null) {
+      const n = Number(v);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return def;
 };
 const clampV = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
@@ -346,6 +362,250 @@ export function presetShapePath(prst: string, w: number, h: number, adj: Adj = {
       const d = `${shapeArc(w / 2, h / 2, w, h, 180, 270)}Q ${x2},0 ${x1},${y1}Q ${w},${y2} ${w},${h / 2}` +
         `${shapeArc(w / 2, h / 2, w, h, 0, 90)}${shapeArc(w / 2, h / 2, w, h, 90, 180)} z`;
       return { d };
+    }
+    // ===== 复杂轮廓预设：与预览端 src/shape/shape.ts 同源移植 =====
+    // 此前这些形状在编辑器里只有 CSS 近似（border-radius / clip-path 多边形），
+    // 月亮渲染成椭圆、太阳渲染成椭圆、云朵渲染成圆角矩形，与预览端和 PowerPoint 都不符。
+    case 'moon': {
+      // 月牙：外弧 = 形状椭圆左半（自上尖端绕左到下尖端），
+      // 内弧 = 一个更大的椭圆在左侧切出的弧（尖端为尖角，与 PowerPoint 一致）。
+      // adj（0~1，默认 0.5）控制内弧深度：0 → 半椭圆（D 形），越大月牙越细。
+      // 注：预览端旧公式的弧半径与端点半径不一致（差 2 倍），会画出越界尖刺，此处按正确几何重写。
+      const a = clampV(numAny(adj, ['adj', 'adj1'], 50000) / 100000, 0, 1);
+      const hw = w / 2, hh = h / 2;
+      // 内弧椭圆：缩放系数 k，使内弧恰好通过两个尖端（推导见 k = [-1-(a-1)^2] / [2(a-1)]）
+      const k = clampV((-1 - (a - 1) * (a - 1)) / (2 * (a - 1)), 1, 1000);
+      const rxI = k * hw, ryI = k * hh;
+      // a→0 时 k→1，内弧退化为竖直线（无缺口）
+      const inner = a <= 0.0001
+        ? `L${hw},0`
+        : `A${fmt(rxI)},${fmt(ryI)} 0 0 1 ${hw},0`;
+      const d = `M${hw},0 A${fmt(hw)},${fmt(hh)} 0 0 0 ${hw},${h} ${inner} z`;
+      return { d };
+    }
+    case 'sun': {
+      const cn3 = 50000, cn4 = 100000;
+      const a1 = clampV(numAny(adj, ['adj', 'adj1'], 25000), 12500, 46875);
+      const g0 = cn3 - a1;
+      const g1 = g0 * 30274 / 32768;
+      const g2 = g0 * 12540 / 32768;
+      const g5 = cn3 - g1;
+      const g6 = cn3 - g2;
+      const g7 = g0 * 23170 / 32768;
+      const g8 = cn3 + g7;
+      const g9 = cn3 - g7;
+      const g10 = g5 * 3 / 4;
+      const g11 = g6 * 3 / 4;
+      const g12 = g10 + 3662;
+      const g13 = g11 + 36620;
+      const g14 = g11 + 12500;
+      const g15 = cn4 - g10;
+      const g16 = cn4 - g12;
+      const g17 = cn4 - g13;
+      const g18 = cn4 - g14;
+      const ox1 = w * 18436 / 21600, oy1 = h * 3163 / 21600;
+      const ox2 = w * 3163 / 21600, oy2 = h * 18436 / 21600;
+      const X = (g: number) => (w * g / cn4);
+      const Y = (g: number) => (h * g / cn4);
+      const x10 = X(g10), x12 = X(g12), x13 = X(g13), x14 = X(g14), x15 = X(g15);
+      const x16 = X(g16), x17 = X(g17), x18 = X(g18);
+      const y10 = Y(g10), y12 = Y(g12), y13 = Y(g13), y14 = Y(g14), y15 = Y(g15);
+      const y16 = Y(g16), y17 = Y(g17), y18 = Y(g18);
+      const wR = w * g0 / cn4, hR = h * g0 / cn4;
+      const d = `M${w},${h / 2} L${x15},${y18} L${x15},${y14}z` +
+        ` M${ox1},${oy1} L${x16},${y17} L${x13},${y12}z` +
+        ` M${w / 2},${0} L${x18},${y10} L${x14},${y10}z` +
+        ` M${ox2},${oy1} L${x17},${y12} L${x12},${y17}z` +
+        ` M${0},${h / 2} L${x10},${y14} L${x10},${y18}z` +
+        ` M${ox2},${oy2} L${x12},${y13} L${x17},${y16}z` +
+        ` M${w / 2},${h} L${x14},${y15} L${x18},${y15}z` +
+        ` M${ox1},${oy2} L${x13},${y16} L${x16},${y13} z` +
+        // 中心圆：旧公式用 shapeArc 生成 360° 弧，起止点重合导致整段退化（中心不填充），
+        // 此处改为两段半椭圆弧（半径 = (50000-adj)/100000 × 尺寸）。
+        ` M${w / 2 - wR},${h / 2} A${fmt(wR)},${fmt(hR)} 0 0 1 ${w / 2 + wR},${h / 2}` +
+        ` A${fmt(wR)},${fmt(hR)} 0 0 1 ${w / 2 - wR},${h / 2} z`;
+      return { d };
+    }
+    case 'cloud': {
+      // 云形基于 43200×43200 的正方形设计：X 用 w 缩放，Y 用 h 缩放
+      const RX = (v: number) => (w * v / 43200);
+      const RY = (v: number) => (h * v / 43200);
+      const x0 = fmt(RX(3900)), y0 = fmt(RY(14370));
+      const rX1 = RX(6753), rY1 = RY(9190);
+      const rX2 = RX(5333), rY2 = RY(7267);
+      const rX3 = RX(4365), rY3 = RY(5945);
+      const rX4 = RX(4857), rY4 = RY(6595);
+      const rY5 = RY(7273);
+      const rX6 = RX(6775), rY6 = RY(9220);
+      const rX7 = RX(5785), rY7 = RY(7867);
+      const rX8 = RX(6752), rY8 = RY(9215);
+      const rX9 = RX(7720), rY9 = RY(10543);
+      const rX10 = RX(4360), rY10 = RY(5918);
+      const rX11 = RX(4345);
+      // 起始角 / 扫描角（单位：度）
+      const sA1 = -11429249 / 60000, wA1 = 7426832 / 60000;
+      const sA2 = -8646143 / 60000, wA2 = 5396714 / 60000;
+      const sA3 = -8748475 / 60000, wA3 = 5983381 / 60000;
+      const sA4 = -7859164 / 60000, wA4 = 7034504 / 60000;
+      const sA5 = -4722533 / 60000, wA5 = 6541615 / 60000;
+      const sA6 = -2776035 / 60000, wA6 = 7816140 / 60000;
+      const sA7 = 37501 / 60000, wA7 = 6842000 / 60000;
+      const sA8 = 1347096 / 60000, wA8 = 6910353 / 60000;
+      const sA9 = 3974558 / 60000, wA9 = 4542661 / 60000;
+      const sA10 = -16496525 / 60000, wA10 = 8804134 / 60000;
+      const sA11 = -14809710 / 60000, wA11 = 9151131 / 60000;
+      // 椭圆弧（SVG A 命令）：返回 { end, path }
+      const arc = (cx: number, cy: number, rx: number, ry: number, startDeg: number, sweepDeg: number) => {
+        const endDeg = startDeg + sweepDeg;
+        const endX = cx + rx * Math.cos(endDeg * Math.PI / 180);
+        const endY = cy + ry * Math.sin(endDeg * Math.PI / 180);
+        const largeArc = Math.abs(sweepDeg) > 180 ? 1 : 0;
+        const sweep = sweepDeg > 0 ? 1 : 0;
+        return {
+          end: { x: endX, y: endY },
+          path: `A ${fmt(rx)} ${fmt(ry)} 0 ${largeArc} ${sweep} ${fmt(endX)} ${fmt(endY)}`
+        };
+      };
+      // 弧心 = 起点 - 半径 * cos/sin(起始角)，逐段推导下一段弧心
+      let px = x0, py = y0;
+      const seg = (rx: number, ry: number, sDeg: number, wDeg: number) => {
+        const cx = px - rx * Math.cos(sDeg * Math.PI / 180);
+        const cy = py - ry * Math.sin(sDeg * Math.PI / 180);
+        const r = arc(cx, cy, rx, ry, sDeg, wDeg);
+        px = r.end.x; py = r.end.y;
+        return r.path;
+      };
+      const parts = [
+        seg(rX1, rY1, sA1, wA1),
+        seg(rX2, rY2, sA2, wA2),
+        seg(rX3, rY3, sA3, wA3),
+        seg(rX4, rY4, sA4, wA4),
+        seg(rX2, rY5, sA5, wA5),
+        seg(rX6, rY6, sA6, wA6),
+        seg(rX7, rY7, sA7, wA7),
+        seg(rX8, rY8, sA8, wA8),
+        seg(rX9, rY9, sA9, wA9),
+        seg(rX10, rY10, sA10, wA10),
+        seg(rX11, rY3, sA11, wA11)
+      ];
+      return { d: `M${x0},${y0} ${parts.join(' ')} z` };
+    }
+    case 'donut': {
+      // 圆环：外椭圆 + 内孔（evenodd 填充挖孔）。
+      // 旧公式的弧半径与端点半径不一致，内孔被画成四角星形，此处按正确几何重写。
+      const a = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 50000);
+      const dr = Math.min(w, h) * a / 100000;
+      const wd2 = w / 2, hd2 = h / 2;
+      const rx = wd2 - dr, ry = hd2 - dr;
+      const d = `M0,${hd2}` +
+        ` A${fmt(wd2)},${fmt(hd2)} 0 0 1 ${w},${hd2}` +
+        ` A${fmt(wd2)},${fmt(hd2)} 0 0 1 0,${hd2} z` +
+        ` M${dr},${hd2}` +
+        ` A${fmt(rx)},${fmt(ry)} 0 0 1 ${w - dr},${hd2}` +
+        ` A${fmt(rx)},${fmt(ry)} 0 0 1 ${dr},${hd2} z`;
+      return { d, fillRule: 'evenodd' };
+    }
+    case 'frame': {
+      const a1 = clampV(numAny(adj, ['adj', 'adj1'], 12500), 0, 50000);
+      const x1 = Math.min(w, h) * a1 / 100000;
+      const x4 = w - x1, y4 = h - x1;
+      // 外框 + 内框（反向绕行 → nonzero 填充下中间镂空）
+      return { d: `M0,0 L${w},0 L${w},${h} L0,${h} zM${x1},${x1} L${x1},${y4} L${x4},${y4} L${x4},${x1} z` };
+    }
+    case 'halfFrame': {
+      // 半框：与预览端 shape.ts 的 halfFrame 同式（右下角切出一个直角缺口）
+      // 预览端旧默认值为 3.5（实际等价 0）会让路径退化成零面积，这里给回可用的缺省值
+      const a1 = clampV(numAny(adj, ['adj1', 'adj'], 50000), 0, 100000);
+      const a2 = clampV(numAny(adj, ['adj2', 'adj'], 50000), 0, 100000);
+      const minWH = Math.min(w, h);
+      const cn = 100000;
+      const maxAdj2 = cn * w / minWH;
+      const v2 = Math.min(a2, maxAdj2);
+      const x1 = minWH * v2 / cn;
+      const g1 = h * x1 / w;
+      const g2 = h - g1;
+      const maxAdj1 = cn * g2 / minWH;
+      const v1 = Math.min(a1, maxAdj1);
+      const y1 = minWH * v1 / cn;
+      const dx2 = y1 * w / h;
+      const x2 = w - dx2;
+      const dy2 = x1 * h / w;
+      const y2 = h - dy2;
+      return { d: `M0,0 L${w},0 L${x2},${y1} L${x1},${y1} L${x1},${y2} L0,${h} z` };
+    }
+    case 'gear6':
+    case 'gear9': {
+      const pts = prst === 'gear6' ? 6 : 9;
+      const d = shapeGear(w, h / 3.5, pts);
+      return { d, transform: `rotate(20,${(3 / 7) * h},${(3 / 7) * h})` };
+    }
+    case 'heart': {
+      const dx1 = w * 49 / 48;
+      const dx2 = w * 10 / 48;
+      const x1 = w / 2 - dx1, x2 = w / 2 - dx2;
+      const x3 = w / 2 + dx2, x4 = w / 2 + dx1;
+      const y1 = -h / 3;
+      const d = `M${w / 2},${h / 4}C${x3},${y1} ${x4},${h / 4} ${w / 2},${h}C${x1},${h / 4} ${x2},${y1} ${w / 2},${h / 4} z`;
+      return { d };
+    }
+    case 'lightningBolt': {
+      const px = (v: number) => (w * v / 21600);
+      const py = (v: number) => (h * v / 21600);
+      const x1 = px(5022), x2 = px(11050), x3 = px(8472), x5 = px(10012);
+      const x6 = px(14767), x7 = px(12222), x8 = px(12860), x10 = px(7602), x11 = px(16577);
+      const y1 = py(3890), y2 = py(6080), y3 = py(6797), y5 = py(12877);
+      const y6 = py(9705), y7 = py(12007), y8 = py(13987), y9 = py(8382), y11 = py(14915);
+      const d = `M${x3},0 L${x8},${y2} L${x2},${y3} L${x11},${y7} L${x6},${y5} L${w},${h}` +
+        ` L${x5},${y11} L${x7},${y8} L${x1},${y6} L${x10},${y9} L0,${y1} z`;
+      return { d };
+    }
+    case 'cube': {
+      const a = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 100000);
+      const ss = Math.min(w, h);
+      const y1 = ss * a / 100000;
+      const y4 = h - y1, x4 = w - y1;
+      const d = `M0,${y1} L${y1},0 L${w},0 L${w},${y4} L${x4},${h} L0,${h} z` +
+        `M0,${y1} L${x4},${y1} M${x4},${y1} L${w},0 M${x4},${y1} L${x4},${h}`;
+      return { d };
+    }
+    case 'bevel': {
+      const a = clampV(numAny(adj, ['adj', 'adj1'], 12500), 0, 50000);
+      const ss = Math.min(w, h);
+      const x1 = ss * a / 100000;
+      const x2 = w - x1, y2 = h - x1;
+      const d = `M0,0 L${w},0 L${w},${h} L0,${h} z` +
+        ` M${x1},${x1} L${x2},${x1} L${x2},${y2} L${x1},${y2} z` +
+        ` M0,0 L${x1},${x1} M0,${h} L${x1},${y2} M${w},0 L${x2},${x1} M${w},${h} L${x2},${y2}`;
+      return { d };
+    }
+    case 'foldedCorner': {
+      const a = clampV(numAny(adj, ['adj', 'adj1'], 16667), 0, 50000);
+      const ss = Math.min(w, h);
+      const dy2 = ss * a / 100000;
+      const dy1 = dy2 / 5;
+      const x1 = w - dy2, x2 = x1 + dy1;
+      const y2 = h - dy2, y1 = y2 + dy1;
+      const d = `M${x1},${h} L${x2},${y1} L${w},${y2} L${x1},${h} L0,${h} L0,0 L${w},0 L${w},${y2}`;
+      return { d };
+    }
+    case 'corner': {
+      // 缺角矩形：右下角被切掉一块
+      const a1 = clampV(numAny(adj, ['adj1', 'adj'], 50000), 0, 100000);
+      const a2 = clampV(numAny(adj, ['adj2', 'adj'], 50000), 0, 100000);
+      const minWH = Math.min(w, h);
+      const maxAdj1 = 100000 * h / minWH;
+      const maxAdj2 = 100000 * w / minWH;
+      const v1 = Math.min(a1, maxAdj1), v2 = Math.min(a2, maxAdj2);
+      const x1 = minWH * v2 / 100000;
+      const dy1 = minWH * v1 / 100000;
+      const y1 = h - dy1;
+      return { d: `M0,0 L${x1},0 L${x1},${y1} L${w},${y1} L${w},${h} L0,${h} z` };
+    }
+    case 'diagStripe': {
+      const a1 = clampV(numAny(adj, ['adj', 'adj1'], 50000), 0, 100000);
+      const x2 = w * a1 / 100000;
+      const y2 = h * a1 / 100000;
+      return { d: `M0,${y2} L${x2},0 L${w},0 L0,${h} z` };
     }
     default:
       return null;

@@ -236,7 +236,7 @@ function readRunStyle(rPr: any, themeMap: Record<string, string> = {}, resolveHr
  * 提取 txBody（p:txBody 或表格单元格 a:txBody）为正文段落
  * @returns paragraphs 段落列表；hasText 是否含文本；valign 文本体垂直对齐；text 纯文本拼接
  */
-function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined, inheritedLvl?: (lvl: number) => any, inheritedBodyPrRaw?: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number; prstTxWarp?: string } {
+function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallbackColor?: string, resolveHref?: (rid: string) => string | undefined, inheritedLvl?: (lvl: number) => any, inheritedBodyPrRaw?: any): { paragraphs: PptxParagraph[]; hasText: boolean; valign?: VAlign; text: string; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number; autofit?: 'none' | 'normal' | 'shape'; prstTxWarp?: string } {
     const paragraphs: PptxParagraph[] = [];
     let hasText = false;
     let text = '';
@@ -285,10 +285,15 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
     // 预览端同样缩放；不处理会导致大字号标题（如本例 72pt）在编辑器里溢出折行。
     let fontScale: number | undefined;
     let lnSpcReduction: number | undefined;
+    // 自动适配模式本身也要保留：编辑器据此回写 a:noAutofit / a:normAutofit / a:spAutoFit
+    let autofit: 'none' | 'normal' | undefined;
     if (bodyPr) {
         const noAutofit = !!(bodyPr['a:noAutofit']);
         const norm = bodyPr['a:normAutofit'] && bodyPr['a:normAutofit'].attrs;
-        if (!noAutofit && norm) {
+        if (noAutofit) {
+            autofit = 'none';
+        } else if (norm) {
+            autofit = 'normal';
             if (norm.fontScale != null) fontScale = Number(norm.fontScale) / 100000;
             if (norm.lnScale != null) lnSpcReduction = Number(norm.lnScale) / 100000;
         }
@@ -466,12 +471,14 @@ function extractTxBody(txBody: any, themeMap: Record<string, string> = {}, fallb
         if (indentLeft != null) para.indentLeft = indentLeft;
         if (indentRight != null) para.indentRight = indentRight;
         if (indent != null) para.indent = indent;
+        // 列表层级（a:pPr@lvl）：0 为第一级，只有非第一级才显式记录
+        if (paraLvl > 0) para.level = paraLvl;
         // 从右到左段落（a:pPr@rtl="1"）：RTL 段落缺省右对齐
         if (isRtlPara) para.rtl = true;
         if (valign) (para as any).valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction,
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction, autofit,
         prstTxWarp: ownAttrs.prstTxWarp != null ? String(ownAttrs.prstTxWarp) : undefined };
 }
 
@@ -507,7 +514,7 @@ async function resolveBulletBlips(
 }
 
 /** 提取一个 p:sp 的文本为正文段落 */
-function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined, phCtx?: PlaceholderCtx, ph?: PlaceholderAttrs): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number; prstTxWarp?: string } {
+function extractTextBody(spNode: any, themeMap: Record<string, string> = {}, resolveHref?: (rid: string) => string | undefined, phCtx?: PlaceholderCtx, ph?: PlaceholderAttrs): { paragraphs: PptxParagraph[]; hasText: boolean; textDirection?: string; inset?: { l?: number; r?: number; t?: number; b?: number }; noWrap?: boolean; rtlCol?: boolean; fontScale?: number; lnSpcReduction?: number; autofit?: 'none' | 'normal' | 'shape'; prstTxWarp?: string } {
     // p:style/a:fontRef 的颜色是形状文本的默认字色（run 无显式色时生效，与预览端一致）
     const fontRefColor = spColor(spNode && spNode['p:style'] && spNode['p:style']['a:fontRef'], themeMap);
     // 占位符文本需从「版式/母版同名占位符」继承样式（颜色/字号/对齐/内边距等）
@@ -2277,7 +2284,7 @@ async function nodeToElement(
     }
     // 读取占位符声明，便于下方文本样式从版式/母版同名占位符继承
     const ph = readPlaceholderAttrs(node);
-    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction, prstTxWarp } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
+    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction, autofit, prstTxWarp } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
     const geom = spPr && spPr['a:prstGeom'];
 
     if (hasText || isTxBoxSp(node)) {
@@ -2302,6 +2309,7 @@ async function nodeToElement(
         if (rtlCol) textEl.rtlCol = true;
         if (fontScale != null) textEl.fontScale = fontScale;
         if (lnSpcReduction != null) textEl.lnSpcReduction = lnSpcReduction;
+        if (autofit) textEl.autofit = autofit;
         if (prstTxWarp) textEl.prstTxWarp = prstTxWarp;
         // 提取形状外观（填充/边框/特效）。纯文本框（txBox=1）也可能带背景填充，
         // 因此统一读取 spPr；只有「非矩形 + 非纯文本框」才保留 shapeType/adjust，

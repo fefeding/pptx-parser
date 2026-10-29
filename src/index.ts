@@ -1338,3 +1338,5 @@ export { createStore, EditorStore, normalizeDoc, normalizeElement } from './edit
 export { createActions } from './editor/actions';
 export { renderChartSVG } from './editor/charts';
 export { elementRect, rotatedRect, effectMargin, absoluteElementRect } from './editor/geometry';
+export { updateDiagramTexts } from './editor/diagram-text';
+export type { DiagramTextUpdate } from './editor/diagram-text';

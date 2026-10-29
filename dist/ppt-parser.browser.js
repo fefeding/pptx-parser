@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.28
+ * @fefeding/ppt-parser v1.0.31
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -10253,6 +10253,17 @@ const num = (adj, key, def) => {
     const v = adj && adj[key] != null ? Number(adj[key]) : def;
     return Number.isFinite(v) ? v : def;
 };
+const numAny = (adj, keys, def) => {
+    for (const k of keys) {
+        const v = adj && adj[k];
+        if (v != null) {
+            const n = Number(v);
+            if (Number.isFinite(n))
+                return n;
+        }
+    }
+    return def;
+};
 const clampV = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
 const rectD = (w, h) => `M${0},${0} L${w},${0} L${w},${h} L${0},${h} z`;
 function presetShapePath(prst, w, h, adj = {}, opts = {}) {
@@ -10565,6 +10576,230 @@ function presetShapePath(prst, w, h, adj = {}, opts = {}) {
             const d = `${shapeArc(w / 2, h / 2, w, h, 180, 270)}Q ${x2},0 ${x1},${y1}Q ${w},${y2} ${w},${h / 2}` +
                 `${shapeArc(w / 2, h / 2, w, h, 0, 90)}${shapeArc(w / 2, h / 2, w, h, 90, 180)} z`;
             return { d };
+        }
+        case 'moon': {
+            const a = clampV(numAny(adj, ['adj', 'adj1'], 50000) / 100000, 0, 1);
+            const hw = w / 2, hh = h / 2;
+            const k = clampV((-1 - (a - 1) * (a - 1)) / (2 * (a - 1)), 1, 1000);
+            const rxI = k * hw, ryI = k * hh;
+            const inner = a <= 0.0001
+                ? `L${hw},0`
+                : `A${fmt(rxI)},${fmt(ryI)} 0 0 1 ${hw},0`;
+            const d = `M${hw},0 A${fmt(hw)},${fmt(hh)} 0 0 0 ${hw},${h} ${inner} z`;
+            return { d };
+        }
+        case 'sun': {
+            const cn3 = 50000, cn4 = 100000;
+            const a1 = clampV(numAny(adj, ['adj', 'adj1'], 25000), 12500, 46875);
+            const g0 = cn3 - a1;
+            const g1 = g0 * 30274 / 32768;
+            const g2 = g0 * 12540 / 32768;
+            const g5 = cn3 - g1;
+            const g6 = cn3 - g2;
+            const g7 = g0 * 23170 / 32768;
+            const g8 = cn3 + g7;
+            const g9 = cn3 - g7;
+            const g10 = g5 * 3 / 4;
+            const g11 = g6 * 3 / 4;
+            const g12 = g10 + 3662;
+            const g13 = g11 + 36620;
+            const g14 = g11 + 12500;
+            const g15 = cn4 - g10;
+            const g16 = cn4 - g12;
+            const g17 = cn4 - g13;
+            const g18 = cn4 - g14;
+            const ox1 = w * 18436 / 21600, oy1 = h * 3163 / 21600;
+            const ox2 = w * 3163 / 21600, oy2 = h * 18436 / 21600;
+            const X = (g) => (w * g / cn4);
+            const Y = (g) => (h * g / cn4);
+            const x10 = X(g10), x12 = X(g12), x13 = X(g13), x14 = X(g14), x15 = X(g15);
+            const x16 = X(g16), x17 = X(g17), x18 = X(g18);
+            const y10 = Y(g10), y12 = Y(g12), y13 = Y(g13), y14 = Y(g14), y15 = Y(g15);
+            const y16 = Y(g16), y17 = Y(g17), y18 = Y(g18);
+            const wR = w * g0 / cn4, hR = h * g0 / cn4;
+            const d = `M${w},${h / 2} L${x15},${y18} L${x15},${y14}z` +
+                ` M${ox1},${oy1} L${x16},${y17} L${x13},${y12}z` +
+                ` M${w / 2},${0} L${x18},${y10} L${x14},${y10}z` +
+                ` M${ox2},${oy1} L${x17},${y12} L${x12},${y17}z` +
+                ` M${0},${h / 2} L${x10},${y14} L${x10},${y18}z` +
+                ` M${ox2},${oy2} L${x12},${y13} L${x17},${y16}z` +
+                ` M${w / 2},${h} L${x14},${y15} L${x18},${y15}z` +
+                ` M${ox1},${oy2} L${x13},${y16} L${x16},${y13} z` +
+                ` M${w / 2 - wR},${h / 2} A${fmt(wR)},${fmt(hR)} 0 0 1 ${w / 2 + wR},${h / 2}` +
+                ` A${fmt(wR)},${fmt(hR)} 0 0 1 ${w / 2 - wR},${h / 2} z`;
+            return { d };
+        }
+        case 'cloud': {
+            const RX = (v) => (w * v / 43200);
+            const RY = (v) => (h * v / 43200);
+            const x0 = fmt(RX(3900)), y0 = fmt(RY(14370));
+            const rX1 = RX(6753), rY1 = RY(9190);
+            const rX2 = RX(5333), rY2 = RY(7267);
+            const rX3 = RX(4365), rY3 = RY(5945);
+            const rX4 = RX(4857), rY4 = RY(6595);
+            const rY5 = RY(7273);
+            const rX6 = RX(6775), rY6 = RY(9220);
+            const rX7 = RX(5785), rY7 = RY(7867);
+            const rX8 = RX(6752), rY8 = RY(9215);
+            const rX9 = RX(7720), rY9 = RY(10543);
+            const rX10 = RX(4360), rY10 = RY(5918);
+            const rX11 = RX(4345);
+            const sA1 = -11429249 / 60000, wA1 = 7426832 / 60000;
+            const sA2 = -8646143 / 60000, wA2 = 5396714 / 60000;
+            const sA3 = -8748475 / 60000, wA3 = 5983381 / 60000;
+            const sA4 = -7859164 / 60000, wA4 = 7034504 / 60000;
+            const sA5 = -4722533 / 60000, wA5 = 6541615 / 60000;
+            const sA6 = -2776035 / 60000, wA6 = 7816140 / 60000;
+            const sA7 = 37501 / 60000, wA7 = 6842000 / 60000;
+            const sA8 = 1347096 / 60000, wA8 = 6910353 / 60000;
+            const sA9 = 3974558 / 60000, wA9 = 4542661 / 60000;
+            const sA10 = -16496525 / 60000, wA10 = 8804134 / 60000;
+            const sA11 = -14809710 / 60000, wA11 = 9151131 / 60000;
+            const arc = (cx, cy, rx, ry, startDeg, sweepDeg) => {
+                const endDeg = startDeg + sweepDeg;
+                const endX = cx + rx * Math.cos(endDeg * Math.PI / 180);
+                const endY = cy + ry * Math.sin(endDeg * Math.PI / 180);
+                const largeArc = Math.abs(sweepDeg) > 180 ? 1 : 0;
+                const sweep = sweepDeg > 0 ? 1 : 0;
+                return {
+                    end: { x: endX, y: endY },
+                    path: `A ${fmt(rx)} ${fmt(ry)} 0 ${largeArc} ${sweep} ${fmt(endX)} ${fmt(endY)}`
+                };
+            };
+            let px = x0, py = y0;
+            const seg = (rx, ry, sDeg, wDeg) => {
+                const cx = px - rx * Math.cos(sDeg * Math.PI / 180);
+                const cy = py - ry * Math.sin(sDeg * Math.PI / 180);
+                const r = arc(cx, cy, rx, ry, sDeg, wDeg);
+                px = r.end.x;
+                py = r.end.y;
+                return r.path;
+            };
+            const parts = [
+                seg(rX1, rY1, sA1, wA1),
+                seg(rX2, rY2, sA2, wA2),
+                seg(rX3, rY3, sA3, wA3),
+                seg(rX4, rY4, sA4, wA4),
+                seg(rX2, rY5, sA5, wA5),
+                seg(rX6, rY6, sA6, wA6),
+                seg(rX7, rY7, sA7, wA7),
+                seg(rX8, rY8, sA8, wA8),
+                seg(rX9, rY9, sA9, wA9),
+                seg(rX10, rY10, sA10, wA10),
+                seg(rX11, rY3, sA11, wA11)
+            ];
+            return { d: `M${x0},${y0} ${parts.join(' ')} z` };
+        }
+        case 'donut': {
+            const a = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 50000);
+            const dr = Math.min(w, h) * a / 100000;
+            const wd2 = w / 2, hd2 = h / 2;
+            const rx = wd2 - dr, ry = hd2 - dr;
+            const d = `M0,${hd2}` +
+                ` A${fmt(wd2)},${fmt(hd2)} 0 0 1 ${w},${hd2}` +
+                ` A${fmt(wd2)},${fmt(hd2)} 0 0 1 0,${hd2} z` +
+                ` M${dr},${hd2}` +
+                ` A${fmt(rx)},${fmt(ry)} 0 0 1 ${w - dr},${hd2}` +
+                ` A${fmt(rx)},${fmt(ry)} 0 0 1 ${dr},${hd2} z`;
+            return { d, fillRule: 'evenodd' };
+        }
+        case 'frame': {
+            const a1 = clampV(numAny(adj, ['adj', 'adj1'], 12500), 0, 50000);
+            const x1 = Math.min(w, h) * a1 / 100000;
+            const x4 = w - x1, y4 = h - x1;
+            return { d: `M0,0 L${w},0 L${w},${h} L0,${h} zM${x1},${x1} L${x1},${y4} L${x4},${y4} L${x4},${x1} z` };
+        }
+        case 'halfFrame': {
+            const a1 = clampV(numAny(adj, ['adj1', 'adj'], 50000), 0, 100000);
+            const a2 = clampV(numAny(adj, ['adj2', 'adj'], 50000), 0, 100000);
+            const minWH = Math.min(w, h);
+            const cn = 100000;
+            const maxAdj2 = cn * w / minWH;
+            const v2 = Math.min(a2, maxAdj2);
+            const x1 = minWH * v2 / cn;
+            const g1 = h * x1 / w;
+            const g2 = h - g1;
+            const maxAdj1 = cn * g2 / minWH;
+            const v1 = Math.min(a1, maxAdj1);
+            const y1 = minWH * v1 / cn;
+            const dx2 = y1 * w / h;
+            const x2 = w - dx2;
+            const dy2 = x1 * h / w;
+            const y2 = h - dy2;
+            return { d: `M0,0 L${w},0 L${x2},${y1} L${x1},${y1} L${x1},${y2} L0,${h} z` };
+        }
+        case 'gear6':
+        case 'gear9': {
+            const pts = prst === 'gear6' ? 6 : 9;
+            const d = shapeGear(w, h / 3.5, pts);
+            return { d, transform: `rotate(20,${(3 / 7) * h},${(3 / 7) * h})` };
+        }
+        case 'heart': {
+            const dx1 = w * 49 / 48;
+            const dx2 = w * 10 / 48;
+            const x1 = w / 2 - dx1, x2 = w / 2 - dx2;
+            const x3 = w / 2 + dx2, x4 = w / 2 + dx1;
+            const y1 = -h / 3;
+            const d = `M${w / 2},${h / 4}C${x3},${y1} ${x4},${h / 4} ${w / 2},${h}C${x1},${h / 4} ${x2},${y1} ${w / 2},${h / 4} z`;
+            return { d };
+        }
+        case 'lightningBolt': {
+            const px = (v) => (w * v / 21600);
+            const py = (v) => (h * v / 21600);
+            const x1 = px(5022), x2 = px(11050), x3 = px(8472), x5 = px(10012);
+            const x6 = px(14767), x7 = px(12222), x8 = px(12860), x10 = px(7602), x11 = px(16577);
+            const y1 = py(3890), y2 = py(6080), y3 = py(6797), y5 = py(12877);
+            const y6 = py(9705), y7 = py(12007), y8 = py(13987), y9 = py(8382), y11 = py(14915);
+            const d = `M${x3},0 L${x8},${y2} L${x2},${y3} L${x11},${y7} L${x6},${y5} L${w},${h}` +
+                ` L${x5},${y11} L${x7},${y8} L${x1},${y6} L${x10},${y9} L0,${y1} z`;
+            return { d };
+        }
+        case 'cube': {
+            const a = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 100000);
+            const ss = Math.min(w, h);
+            const y1 = ss * a / 100000;
+            const y4 = h - y1, x4 = w - y1;
+            const d = `M0,${y1} L${y1},0 L${w},0 L${w},${y4} L${x4},${h} L0,${h} z` +
+                `M0,${y1} L${x4},${y1} M${x4},${y1} L${w},0 M${x4},${y1} L${x4},${h}`;
+            return { d };
+        }
+        case 'bevel': {
+            const a = clampV(numAny(adj, ['adj', 'adj1'], 12500), 0, 50000);
+            const ss = Math.min(w, h);
+            const x1 = ss * a / 100000;
+            const x2 = w - x1, y2 = h - x1;
+            const d = `M0,0 L${w},0 L${w},${h} L0,${h} z` +
+                ` M${x1},${x1} L${x2},${x1} L${x2},${y2} L${x1},${y2} z` +
+                ` M0,0 L${x1},${x1} M0,${h} L${x1},${y2} M${w},0 L${x2},${x1} M${w},${h} L${x2},${y2}`;
+            return { d };
+        }
+        case 'foldedCorner': {
+            const a = clampV(numAny(adj, ['adj', 'adj1'], 16667), 0, 50000);
+            const ss = Math.min(w, h);
+            const dy2 = ss * a / 100000;
+            const dy1 = dy2 / 5;
+            const x1 = w - dy2, x2 = x1 + dy1;
+            const y2 = h - dy2, y1 = y2 + dy1;
+            const d = `M${x1},${h} L${x2},${y1} L${w},${y2} L${x1},${h} L0,${h} L0,0 L${w},0 L${w},${y2}`;
+            return { d };
+        }
+        case 'corner': {
+            const a1 = clampV(numAny(adj, ['adj1', 'adj'], 50000), 0, 100000);
+            const a2 = clampV(numAny(adj, ['adj2', 'adj'], 50000), 0, 100000);
+            const minWH = Math.min(w, h);
+            const maxAdj1 = 100000 * h / minWH;
+            const maxAdj2 = 100000 * w / minWH;
+            const v1 = Math.min(a1, maxAdj1), v2 = Math.min(a2, maxAdj2);
+            const x1 = minWH * v2 / 100000;
+            const dy1 = minWH * v1 / 100000;
+            const y1 = h - dy1;
+            return { d: `M0,0 L${x1},0 L${x1},${y1} L${w},${y1} L${w},${h} L0,${h} z` };
+        }
+        case 'diagStripe': {
+            const a1 = clampV(numAny(adj, ['adj', 'adj1'], 50000), 0, 100000);
+            const x2 = w * a1 / 100000;
+            const y2 = h * a1 / 100000;
+            return { d: `M0,${y2} L${x2},0 L${w},0 L0,${h} z` };
         }
         default:
             return null;
@@ -11428,24 +11663,14 @@ const PPTXShapeUtils = (function () {
                 }
                 case "donut": {
                     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                    let adj = 25000 * SLIDE_FACTOR$1;
-                    const cnstVal1 = 50000 * SLIDE_FACTOR$1;
-                    const cnstVal2 = 100000 * SLIDE_FACTOR$1;
+                    let adjVal = 25000;
                     if (shapAdjst !== undefined) {
-                        adj = parseInt(shapAdjst.substr(4)) * SLIDE_FACTOR$1;
+                        adjVal = parseInt(shapAdjst.substr(4));
                     }
-                    let a, dr, iwd2, ihd2;
-                    if (adj < 0)
-                        a = 0;
-                    else if (adj > cnstVal1)
-                        a = cnstVal1;
-                    else
-                        a = adj;
-                    dr = Math.min(w, h) * a / cnstVal2;
-                    iwd2 = w / 2 - dr;
-                    ihd2 = h / 2 - dr;
-                    var d = `M${0},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 180, 270, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 270, 360, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 0, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, w / 2, h / 2, 90, 180, false).replace("M", "L")} zM${dr},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 180, 90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 90, 0, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 0, -90, false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w / 2, h / 2, iwd2, ihd2, 270, 180, false).replace("M", "L")} z`;
-                    result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr} />`;
+                    const geo = presetShapePath("donut", w, h, { adj: adjVal });
+                    var d = geo ? geo.d : "";
+                    const fillRuleAttr = geo && geo.fillRule ? ` fill-rule='${geo.fillRule}'` : "";
+                    result += `<path   d='${d}'${fillRuleAttr}  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' ${oShadowSvgUrlStr} />`;
                     break;
                 }
                 case "noSmoking": {
@@ -11492,47 +11717,18 @@ const PPTXShapeUtils = (function () {
                 }
                 case "halfFrame": {
                     const shapAdjst_ary = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
-                    let sAdj1, sAdj1_val = 3.5;
-                    let sAdj2, sAdj2_val = 3.5;
-                    const cnsVal = 100000 * SLIDE_FACTOR$1;
+                    const adjMap = { adj1: 50000, adj2: 50000 };
                     if (shapAdjst_ary !== undefined) {
                         for (const i of shapAdjst_ary.keys()) {
-                            const sAdj_name = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
-                            if (sAdj_name == "adj1") {
-                                sAdj1 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                sAdj1_val = parseInt(sAdj1.substr(4)) * SLIDE_FACTOR$1;
-                            }
-                            else if (sAdj_name == "adj2") {
-                                sAdj2 = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
-                                sAdj2_val = parseInt(sAdj2.substr(4)) * SLIDE_FACTOR$1;
+                            const adjName = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "name"]);
+                            const adjFmla = PPTXXmlUtils.getTextByPathList(shapAdjst_ary[i], ["attrs", "fmla"]);
+                            if (adjName == "adj1" || adjName == "adj2") {
+                                adjMap[adjName] = parseInt(adjFmla.substr(4));
                             }
                         }
                     }
-                    const minWH = Math.min(w, h);
-                    let maxAdj2 = (cnsVal * w) / minWH;
-                    let a1, a2;
-                    if (sAdj2_val < 0)
-                        a2 = 0;
-                    else if (sAdj2_val > maxAdj2)
-                        a2 = maxAdj2;
-                    else
-                        a2 = sAdj2_val;
-                    var x1 = (minWH * a2) / cnsVal;
-                    const g1 = h * x1 / w;
-                    let g2 = h - g1;
-                    let maxAdj1 = (cnsVal * g2) / minWH;
-                    if (sAdj1_val < 0)
-                        a1 = 0;
-                    else if (sAdj1_val > maxAdj1)
-                        a1 = maxAdj1;
-                    else
-                        a1 = sAdj1_val;
-                    var y1 = minWH * a1 / cnsVal;
-                    var dx2 = y1 * w / h;
-                    var x2 = w - dx2;
-                    let dy2 = x1 * h / w;
-                    var y2 = h - dy2;
-                    var d = `M0,0 L${w},${0} L${x2},${y1} L${x1},${y1} L${x1},${y2} L0,${h} z`;
+                    const geo = presetShapePath("halfFrame", w, h, adjMap);
+                    var d = geo ? geo.d : "";
                     result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                     break;
                 }
@@ -11547,16 +11743,12 @@ const PPTXShapeUtils = (function () {
                 }
                 case "moon": {
                     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                    let adj = 0.5;
+                    let adjVal = 50000;
                     if (shapAdjst !== undefined) {
-                        adj = parseInt(shapAdjst.substr(4)) / 100000;
+                        adjVal = parseInt(shapAdjst.substr(4));
                     }
-                    var hd2, cd2, cd4;
-                    hd2 = h / 2;
-                    cd2 = 180;
-                    cd4 = 90;
-                    let adj2 = (1 - adj) * w;
-                    var d = `M${w},${h}${PPTXShapeUtils.shapeArc(w, hd2, w, hd2, cd4, (cd4 + cd2), false).replace("M", "L")}${PPTXShapeUtils.shapeArc(w, hd2, adj2, hd2, (cd4 + cd2), cd4, false).replace("M", "L")} z`;
+                    const geo = presetShapePath("moon", w, h, { adj: adjVal });
+                    var d = geo ? geo.d : "";
                     result += `<path   d='${d}'  fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                     break;
                 }
@@ -11710,24 +11902,12 @@ const PPTXShapeUtils = (function () {
                 }
                 case "sun": {
                     const shapAdjst = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd", "attrs", "fmla"]);
-                    const refr = SLIDE_FACTOR$1;
-                    let adj1 = 25000 * refr;
-                    const cnstVal1 = 12500 * refr;
-                    const cnstVal2 = 46875 * refr;
+                    let adjVal = 25000;
                     if (shapAdjst !== undefined) {
-                        adj1 = parseInt(shapAdjst.substr(4)) * refr;
+                        adjVal = parseInt(shapAdjst.substr(4));
                     }
-                    let a1;
-                    if (adj1 < cnstVal1)
-                        a1 = cnstVal1;
-                    else if (adj1 > cnstVal2)
-                        a1 = cnstVal2;
-                    else
-                        a1 = adj1;
-                    const cnstVa3 = 50000 * refr;
-                    const cnstVa4 = 100000 * refr;
-                    let g0 = cnstVa3 - a1, g1 = g0 * (30274 * refr) / (32768 * refr), g2 = g0 * (12540 * refr) / (32768 * refr), g3 = g1 + cnstVa3, g4 = g2 + cnstVa3, g5 = cnstVa3 - g1, g6 = cnstVa3 - g2, g7 = g0 * (23170 * refr) / (32768 * refr), g8 = cnstVa3 + g7, g9 = cnstVa3 - g7, g10 = g5 * 3 / 4, g11 = g6 * 3 / 4, g12 = g10 + 3662 * refr, g13 = g11 + 36620 * refr, g14 = g11 + 12500 * refr, g15 = cnstVa4 - g10, g16 = cnstVa4 - g12, g17 = cnstVa4 - g13, g18 = cnstVa4 - g14, ox1 = w * (18436 * refr) / (21600 * refr), oy1 = h * (3163 * refr) / (21600 * refr), ox2 = w * (3163 * refr) / (21600 * refr), oy2 = h * (18436 * refr) / (21600 * refr), x8 = w * g8 / cnstVa4, x9 = w * g9 / cnstVa4, x10 = w * g10 / cnstVa4, x12 = w * g12 / cnstVa4, x13 = w * g13 / cnstVa4, x14 = w * g14 / cnstVa4, x15 = w * g15 / cnstVa4, x16 = w * g16 / cnstVa4, x17 = w * g17 / cnstVa4, x18 = w * g18 / cnstVa4, x19 = w * a1 / cnstVa4, wR = w * g0 / cnstVa4, hR = h * g0 / cnstVa4, y8 = h * g8 / cnstVa4, y9 = h * g9 / cnstVa4, y10 = h * g10 / cnstVa4, y12 = h * g12 / cnstVa4, y13 = h * g13 / cnstVa4, y14 = h * g14 / cnstVa4, y15 = h * g15 / cnstVa4, y16 = h * g16 / cnstVa4, y17 = h * g17 / cnstVa4, y18 = h * g18 / cnstVa4;
-                    let d_val = `M${w},${h / 2} L${x15},${y18} L${x15},${y14}z M${ox1},${oy1} L${x16},${y17} L${x13},${y12}z M${w / 2},${0} L${x18},${y10} L${x14},${y10}z M${ox2},${oy1} L${x17},${y12} L${x12},${y17}z M${0},${h / 2} L${x10},${y14} L${x10},${y18}z M${ox2},${oy2} L${x12},${y13} L${x17},${y16}z M${w / 2},${h} L${x14},${y15} L${x18},${y15}z M${ox1},${oy2} L${x13},${y16} L${x16},${y13} z M${x19},${h / 2}${PPTXShapeUtils.shapeArc(w / 2, h / 2, wR, hR, 180, 540, false).replace("M", "L")} z`;
+                    const geo = presetShapePath("sun", w, h, { adj: adjVal });
+                    let d_val = geo ? geo.d : "";
                     result += `<path   d='${d_val}' fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
                     break;
                 }
@@ -16672,6 +16852,7 @@ function createElementContext(options = {}) {
         media: [],
         parts: [],
         nextElementId: 2,
+        idMap: {},
         nextRelId: 2,
         mediaIndex: options.startMediaIndex || 0,
         charts: [],
@@ -16685,6 +16866,12 @@ function addRelationship(ctx, type, target, external) {
     const relId = `rId${ctx.nextRelId++}`;
     ctx.rels.push({ relId, type, target, external: !!external });
     return relId;
+}
+function assignId(ctx, el) {
+    const id = ctx.nextElementId++;
+    if (el && el.id != null)
+        ctx.idMap[String(el.id)] = id;
+    return id;
 }
 async function resolveImageData(el) {
     if (el.data) {
@@ -16915,6 +17102,8 @@ function buildParagraph(ctx, paragraph, defaults) {
         pPrAttrs.marR = ptToEmu(p.indentRight);
     if (p.indent != null)
         pPrAttrs.indent = ptToEmu(p.indent);
+    if (p.level)
+        pPrAttrs.lvl = p.level;
     const pPrChildren = [];
     if (p.lineSpacing != null) {
         const ls = p.lineSpacing;
@@ -17022,7 +17211,7 @@ function normalizeTextVerticalType(value) {
     return TEXT_VERTICAL_TYPES.has(v) ? v : undefined;
 }
 async function buildTextElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const anchorMap = { top: null, middle: 'ctr', bottom: 'b' };
     const bodyPrAttrs = { wrap: 'square', rtlCol: el.rtlCol ? 1 : 0 };
     const anchor = anchorMap[el.valign ?? 'top'];
@@ -17058,8 +17247,8 @@ async function buildTextElement(ctx, el) {
         }
         else {
             bodyPrChildren.push(xmlNode('a:normAutofit', {
-                fontScale: el.fontScale != null ? Math.round(el.fontScale * 1000) : null,
-                lnSpcReduction: el.lnSpcReduction != null ? Math.round(el.lnSpcReduction * 1000) : null
+                fontScale: el.fontScale != null ? Math.round(el.fontScale * 100000) : null,
+                lnSpcReduction: el.lnSpcReduction != null ? Math.round(el.lnSpcReduction * 100000) : null
             }));
         }
     }
@@ -17362,7 +17551,7 @@ async function buildShapeAppearance(ctx, el) {
     return { fillNode, lineNode, effectNode };
 }
 async function buildShapeElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const { fillNode, lineNode, effectNode } = await buildShapeAppearance(ctx, el);
     return xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Shape ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvSpPr'), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), el.custGeom
         ? buildCustomGeometry(el.custGeom)
@@ -17384,7 +17573,7 @@ function buildBulletPicture(ctx, bullet) {
     return xmlNode('a:buBlip', null, xmlNode('a:blip', { 'r:embed': rid }));
 }
 async function buildImageElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const { base64, ext } = await resolveImageData(el);
     ctx.mediaIndex++;
     const mediaName = `image${ctx.mediaIndex}.${ext}`;
@@ -17429,7 +17618,7 @@ async function buildImageElement(ctx, el) {
     return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Image ${id - 1}` }, cNvPrChildren), xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noChangeAspect: 1 })), xmlNode('p:nvPr')), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': embedRelId }, ...blipChildren), ...(srcRectNode ? [srcRectNode] : []), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')), ...rawShapeFxNodes(el)));
 }
 function buildChartElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     ctx.chartIndex++;
     const chartNum = ctx.chartIndex;
     const chartName = `chart${chartNum}.xml`;
@@ -17933,7 +18122,7 @@ function buildTableCell(ctx, cell, tableBorder) {
     return xmlNode('a:tc', attrs, xmlNode('a:txBody', null, xmlNode('a:bodyPr', { wrap: 'square', rtlCol: 0 }), xmlNode('a:lstStyle'), ...paragraphs.map((p) => buildParagraph(ctx, p, defaults))), xmlNode('a:tcPr', tcPrAttrs, ...tcPrChildren));
 }
 function buildTableElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const rows = el.rows || [];
     const width = el.width || 0;
     const height = el.height || 0;
@@ -17978,6 +18167,8 @@ function rawNodeToBuilder(tag, node, remap) {
     const attrs = {};
     const srcAttrs = (src.attrs || {});
     for (const k of Object.keys(srcAttrs)) {
+        if (k === 'order')
+            continue;
         const raw = String(srcAttrs[k]);
         attrs[k] = remap[raw] || raw;
     }
@@ -18014,7 +18205,7 @@ function buildRawElement(ctx, el) {
     return rawNodeToBuilder(payload.tag, payload.node, remap);
 }
 async function buildGroupElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const children = el.children || [];
     const childNodes = [];
     const pageCoords = el.childrenCoordinates === 'page';
@@ -18040,7 +18231,7 @@ async function buildGroupElement(ctx, el) {
 }
 const TRANSPARENT_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 async function buildMediaElement(ctx, el, kind) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     ctx.mediaIndex++;
     const ext = el.extension || (kind === 'video' ? 'mp4' : 'm4a');
     const mediaName = `${kind}${ctx.mediaIndex}.${ext}`;
@@ -18395,7 +18586,7 @@ async function buildDiagramElement(ctx, el) {
     const quickStyleRelId = addRelationship(ctx, REL_TYPES.diagramQuickStyle, `../diagrams/quickStyle${n}.xml`);
     const drawingRelId = addRelationship(ctx, REL_TYPES.diagramDrawing, `../diagrams/drawing${n}.xml`);
     ctx.diagrams.push({ index: n, dataXml, layoutXml, colorsXml, quickStyleXml, drawingXml });
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Diagram ${id}` }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), xmlNode('p:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: pxToEmu(el.width || 400), cy: pxToEmu(el.height || 300) })), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: DGML_NS }, xmlNode('dgm:relIds', {
         'xmlns:dgm': DGML_NS,
         'xmlns:r': NS.r,
@@ -18405,8 +18596,14 @@ async function buildDiagramElement(ctx, el) {
         'r:qs': quickStyleRelId
     }))));
 }
+const SITE_IDX = { top: 0, left: 1, bottom: 2, right: 3 };
+function connectorCxnNode(tag, glue) {
+    if (!glue || !glue.shapeId)
+        return null;
+    return xmlNode(tag, { id: `@@el:${glue.shapeId}`, idx: String(SITE_IDX[glue.site] ?? 0) });
+}
 function buildConnectorElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const line = (el.line && el.line !== 'none') ? el.line : null;
     const lnChildren = [];
     if (line && line.color)
@@ -18424,12 +18621,19 @@ function buildConnectorElement(ctx, el) {
             cap: 'flat'
         }, ...lnChildren);
     const effectNode = buildEffectLst(el);
-    return xmlNode('p:cxnSp', null, xmlNode('p:nvCxnSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Connector ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvCxnSpPr'), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType || 'straightConnector1') }, el.adjust && Object.keys(el.adjust).length
+    const cxnChildren = [];
+    const stCxn = connectorCxnNode('a:stCxn', el.glueBegin);
+    const endCxn = connectorCxnNode('a:endCxn', el.glueEnd);
+    if (stCxn)
+        cxnChildren.push(stCxn);
+    if (endCxn)
+        cxnChildren.push(endCxn);
+    return xmlNode('p:cxnSp', null, xmlNode('p:nvCxnSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Connector ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvCxnSpPr', null, ...cxnChildren), xmlNode('p:nvPr')), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: normalizeShapeType(el.shapeType || 'straightConnector1') }, el.adjust && Object.keys(el.adjust).length
         ? xmlNode('a:avLst', null, ...Object.entries(el.adjust).map(([name, val]) => xmlNode('a:gd', { name, fmla: `val ${val}` })))
         : xmlNode('a:avLst')), lnNode, ...(effectNode ? [effectNode] : []), ...build3DNodes(el.threeD), ...rawShapeFxNodes(el)));
 }
 async function buildOleElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const ext = (el.extension || 'bin').replace(/^\./, '');
     let oleRelId = null;
     if (el.data) {
@@ -18468,7 +18672,7 @@ async function buildOleElement(ctx, el) {
     }, ...picChildren))));
 }
 function buildMathElement(ctx, el) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const text = el.text ?? '';
     const altContent = xmlNode('mc:AlternateContent', {
         'xmlns:mc': NS.mc,
@@ -18660,6 +18864,38 @@ function buildTimingNode(slide) {
     }
     return xmlNode('p:timing', null, xmlNode('p:tnLst', null, xmlNode('p:par', null, xmlNode('p:cTn', { id: 1, fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterPrev' })), xmlNode('p:childTnLst', null, ...childNodes)))));
 }
+function resolveConnectorCxn(ctx, nodes) {
+    const walk = (node) => {
+        if (!node || typeof node !== 'object')
+            return;
+        if (Array.isArray(node)) {
+            for (let i = node.length - 1; i >= 0; i--) {
+                const child = node[i];
+                if (!child || typeof child !== 'object' || Array.isArray(child))
+                    continue;
+                if (child.tagName === 'a:stCxn' || child.tagName === 'a:endCxn') {
+                    const raw = child.attrs && child.attrs.id;
+                    if (typeof raw === 'string' && raw.startsWith('@@el:')) {
+                        const target = ctx.idMap[raw.slice(5)];
+                        if (target == null) {
+                            node.splice(i, 1);
+                            continue;
+                        }
+                        child.attrs = { ...child.attrs, id: String(target) };
+                    }
+                }
+                else {
+                    walk(child);
+                }
+            }
+            return;
+        }
+        if (Array.isArray(node.children))
+            walk(node.children);
+    };
+    for (const n of nodes)
+        walk(n);
+}
 async function buildSlideRoot(ctx, slide) {
     const elementNodes = [];
     for (const el of (slide && slide.elements) || []) {
@@ -18671,6 +18907,7 @@ async function buildSlideRoot(ctx, slide) {
         else
             elementNodes.push(node);
     }
+    resolveConnectorCxn(ctx, elementNodes);
     const bgNode = await buildBackground(slide && slide.background, ctx);
     const transitionNode = buildTransition(slide && slide.transition, ctx);
     const timingNode = buildTimingNode(slide);
@@ -19871,10 +20108,15 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref, inheri
     }
     let fontScale;
     let lnSpcReduction;
+    let autofit;
     if (bodyPr) {
         const noAutofit = !!(bodyPr['a:noAutofit']);
         const norm = bodyPr['a:normAutofit'] && bodyPr['a:normAutofit'].attrs;
-        if (!noAutofit && norm) {
+        if (noAutofit) {
+            autofit = 'none';
+        }
+        else if (norm) {
+            autofit = 'normal';
             if (norm.fontScale != null)
                 fontScale = Number(norm.fontScale) / 100000;
             if (norm.lnScale != null)
@@ -20058,13 +20300,15 @@ function extractTxBody(txBody, themeMap = {}, fallbackColor, resolveHref, inheri
             para.indentRight = indentRight;
         if (indent != null)
             para.indent = indent;
+        if (paraLvl > 0)
+            para.level = paraLvl;
         if (isRtlPara)
             para.rtl = true;
         if (valign)
             para.valign = valign;
         paragraphs.push(para);
     }
-    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction,
+    return { paragraphs, hasText, valign, text, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction, autofit,
         prstTxWarp: ownAttrs.prstTxWarp != null ? String(ownAttrs.prstTxWarp) : undefined };
 }
 async function resolveBulletBlips(txBody, resObj, zip) {
@@ -21757,7 +22001,7 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
         catch { }
     }
     const ph = readPlaceholderAttrs(node);
-    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction, prstTxWarp } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
+    const { paragraphs, hasText, textDirection, inset, noWrap, rtlCol, fontScale, lnSpcReduction, autofit, prstTxWarp } = extractTextBody(node, themeMap, resolveHyperlink(resObj), phCtx, ph);
     const geom = spPr && spPr['a:prstGeom'];
     if (hasText || isTxBoxSp(node)) {
         const xf = readXfrm(node, false);
@@ -21790,6 +22034,8 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
             textEl.fontScale = fontScale;
         if (lnSpcReduction != null)
             textEl.lnSpcReduction = lnSpcReduction;
+        if (autofit)
+            textEl.autofit = autofit;
         if (prstTxWarp)
             textEl.prstTxWarp = prstTxWarp;
         const isPureTextBox = isTxBoxSp(node);
@@ -23405,7 +23651,7 @@ async function extractTheme(zip) {
     }
 }
 
-var baseLayoutCss = ".slide {\r\n\twidth: 100%;\r\n\t/*max-width: 920px;*/\r\n\theight: 690px;\r\n\tposition: relative;\r\n\t/* background-color: #EFEFEF; */\r\n\ttext-align: center;\r\n\tborder-radius: 10px;\r\n\t/* box-shadow: 1px 1px 3px #AAA; */\r\n\toverflow: hidden;\r\n\t/*transform: scale(0.85);*/\r\n}\r\n\r\n.slide div.block {\r\n\tposition: absolute;\r\n\ttop: 0px;\r\n\tleft: 0px;\r\n\twidth: 100%;\r\n}\r\n\r\n.slide div.content {\r\n\tdisplay: flex;\r\n\tflex-direction: column;\r\n\t/*\r\n\tjustify-content: center;\r\n\talign-items: flex-end;\r\n\t*/\r\n}\r\n\r\n.slide div.v-up {\r\n\tjustify-content: flex-start;\r\n}\r\n.slide div.v-mid {\r\n\tjustify-content: center;\r\n}\r\n.slide div.v-down {\r\n\tjustify-content: flex-end;\r\n}\r\n\r\n.slide div.h-left {\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.h-mid {\r\n\talign-items: center;\r\n\tjustify-content: center;\r\n\ttext-align: center;\r\n}\r\n.slide div.h-right {\r\n\talign-items: flex-end;\r\n\ttext-align: right;\r\n}\r\n\r\n.slide div.up-left {\r\n\tjustify-content: flex-start;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.up-center {\r\n\tjustify-content: flex-start;\r\n\talign-items: center;\r\n}\r\n.slide div.up-right {\r\n\tjustify-content: flex-start;\r\n\talign-items: flex-end;\r\n}\r\n.slide div.center-left {\r\n\tjustify-content: center;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.center-center {\r\n\tjustify-content: center;\r\n\talign-items: center;\r\n}\r\n.slide div.center-right {\r\n\tjustify-content: center;\r\n\talign-items: flex-end;\r\n}\r\n.slide div.down-left {\r\n\tjustify-content: flex-end;\r\n\talign-items: flex-start;\r\n\ttext-align: left;\r\n}\r\n.slide div.down-center {\r\n\tjustify-content: flex-end;\r\n\talign-items: center;\r\n}\r\n.slide div.down-right {\r\n\tjustify-content: flex-end;\r\n\talign-items: flex-end;\r\n}\r\n\r\n\r\n.slide li.slide {\r\n\tmargin: 10px 0px;\r\n\tfont-size: 18px;\r\n}\r\n\r\n.slide table {\r\n\tposition: absolute;\r\n}\r\n\r\n.slide svg.drawing {\r\n\tposition: absolute;\r\n\toverflow: visible;\r\n}\r\n\r\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\r\n.slide div[style*=\"background-color: inherit\"] {\r\n\tbackground-color: transparent !important;\r\n}\r\n\r\n/* 针对包含无效边框样式的问题元素 */\r\n.slide div[style*=\"pxsolidhidden\"] {\r\n\tborder: none !important;\r\n}\r\n\r\n/* 处理文本换行符 */\r\n.slide .line-break-br {\r\n\tdisplay: inline;\r\n}\r\n.slide .line-break-br::before {\r\n\tcontent: \"\\A\";\r\n\twhite-space: pre;\r\n}\r\n\r\n/*\r\n#pptx-thumb {\r\n\tmin-width: 240px;\r\n\theight: 180px;\r\n}\r\n*/";
+var baseLayoutCss = ".slide {\n\twidth: 100%;\n\t/*max-width: 920px;*/\n\theight: 690px;\n\tposition: relative;\n\t/* background-color: #EFEFEF; */\n\ttext-align: center;\n\tborder-radius: 10px;\n\t/* box-shadow: 1px 1px 3px #AAA; */\n\toverflow: hidden;\n\t/*transform: scale(0.85);*/\n}\n\n.slide div.block {\n\tposition: absolute;\n\ttop: 0px;\n\tleft: 0px;\n\twidth: 100%;\n}\n\n.slide div.content {\n\tdisplay: flex;\n\tflex-direction: column;\n\t/*\n\tjustify-content: center;\n\talign-items: flex-end;\n\t*/\n}\n\n.slide div.v-up {\n\tjustify-content: flex-start;\n}\n.slide div.v-mid {\n\tjustify-content: center;\n}\n.slide div.v-down {\n\tjustify-content: flex-end;\n}\n\n.slide div.h-left {\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.h-mid {\n\talign-items: center;\n\tjustify-content: center;\n\ttext-align: center;\n}\n.slide div.h-right {\n\talign-items: flex-end;\n\ttext-align: right;\n}\n\n.slide div.up-left {\n\tjustify-content: flex-start;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.up-center {\n\tjustify-content: flex-start;\n\talign-items: center;\n}\n.slide div.up-right {\n\tjustify-content: flex-start;\n\talign-items: flex-end;\n}\n.slide div.center-left {\n\tjustify-content: center;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.center-center {\n\tjustify-content: center;\n\talign-items: center;\n}\n.slide div.center-right {\n\tjustify-content: center;\n\talign-items: flex-end;\n}\n.slide div.down-left {\n\tjustify-content: flex-end;\n\talign-items: flex-start;\n\ttext-align: left;\n}\n.slide div.down-center {\n\tjustify-content: flex-end;\n\talign-items: center;\n}\n.slide div.down-right {\n\tjustify-content: flex-end;\n\talign-items: flex-end;\n}\n\n\n.slide li.slide {\n\tmargin: 10px 0px;\n\tfont-size: 18px;\n}\n\n.slide table {\n\tposition: absolute;\n}\n\n.slide svg.drawing {\n\tposition: absolute;\n\toverflow: visible;\n}\n\n/* 修复特定的background-color: inherit问题，只针对有问题的元素 */\n.slide div[style*=\"background-color: inherit\"] {\n\tbackground-color: transparent !important;\n}\n\n/* 针对包含无效边框样式的问题元素 */\n.slide div[style*=\"pxsolidhidden\"] {\n\tborder: none !important;\n}\n\n/* 处理文本换行符 */\n.slide .line-break-br {\n\tdisplay: inline;\n}\n.slide .line-break-br::before {\n\tcontent: \"\\A\";\n\twhite-space: pre;\n}\n\n/*\n#pptx-thumb {\n\tmin-width: 240px;\n\theight: 180px;\n}\n*/";
 
 const LAYOUT_TYPES = new Set([
     'list', 'process', 'hierarchy', 'cycle', 'pyramid', 'matrix', 'venn'
@@ -24863,6 +25109,8 @@ function elementToPptx(el) {
         x: r2(el.x), y: r2(el.y),
         width: r2(el.width), height: r2(el.height)
     };
+    if (el.id)
+        out.id = el.id;
     if (el.rotation)
         out.rotation = Math.round(el.rotation * 100) / 100;
     if (el.name)
@@ -24902,6 +25150,8 @@ function elementToPptx(el) {
                 out.textDirection = el.textDirection;
             if (el.inset)
                 out.inset = el.inset;
+            if (el.autofit)
+                out.autofit = el.autofit;
             if (el.rtlCol)
                 out.rtlCol = true;
             if (el.txBox)
@@ -24958,6 +25208,8 @@ function elementToPptx(el) {
                     para.spaceBefore = pxToPt(p.spaceBefore);
                 if (p.spaceAfter != null)
                     para.spaceAfter = pxToPt(p.spaceAfter);
+                if (p.level)
+                    para.level = p.level;
                 return para;
             });
             if (!out.paragraphs.length)
@@ -24965,6 +25217,32 @@ function elementToPptx(el) {
             return out;
         }
         case 'shape': {
+            if (el.connector) {
+                out.type = 'connector';
+                out.shapeType = el.shapeType || 'straightConnector1';
+                out.start = { x: r2(el.x), y: r2(el.y) };
+                out.end = { x: r2(el.x + el.width), y: r2(el.y + el.height) };
+                if (el.begin && el.begin.shapeId)
+                    out.glueBegin = { shapeId: el.begin.shapeId, site: el.begin.site };
+                if (el.end && el.end.shapeId)
+                    out.glueEnd = { shapeId: el.end.shapeId, site: el.end.site };
+                if (el.flipH)
+                    out.flipH = true;
+                if (el.flipV)
+                    out.flipV = true;
+                if (el.adjust && Object.keys(el.adjust).length)
+                    out.adjust = el.adjust;
+                if (el.line && el.line !== 'none') {
+                    out.line = {
+                        color: el.line.color != null ? (normalizeColor(el.line.color) || undefined) : undefined,
+                        width: el.line.width != null ? el.line.width : 1,
+                        dashType: el.line.dashType || 'solid',
+                        startArrow: el.line.startArrow || undefined,
+                        endArrow: el.line.endArrow || undefined
+                    };
+                }
+                return out;
+            }
             out.type = 'shape';
             out.shapeType = el.shapeType || 'rect';
             out.fill = fillToPptx(el.fill);
@@ -25410,6 +25688,10 @@ function elementFromPptx(pe) {
         el.inherited = true;
         el.locked = true;
     }
+    const isConnector = pe.type === 'connector';
+    if (isConnector) {
+        pe = { ...pe, type: 'shape', shapeType: pe.shapeType || 'straightConnector1', fill: 'none' };
+    }
     switch (pe.type) {
         case 'text': {
             el.type = 'text';
@@ -25429,6 +25711,8 @@ function elementFromPptx(pe) {
                 el.fontScale = pe.fontScale;
             if (pe.lnSpcReduction != null)
                 el.lnSpcReduction = pe.lnSpcReduction;
+            if (pe.autofit)
+                el.autofit = pe.autofit;
             el.txBox = !!pe.txBox;
             el.inset = (pe.inset && typeof pe.inset === 'object')
                 ? { l: pe.inset.l, r: pe.inset.r, t: pe.inset.t, b: pe.inset.b }
@@ -25489,7 +25773,8 @@ function elementFromPptx(pe) {
                         indentLeft: p.indentLeft != null ? ptToPx(p.indentLeft) : undefined,
                         indentRight: p.indentRight != null ? ptToPx(p.indentRight) : undefined,
                         spaceBefore: p.spaceBefore != null ? ptToPx(p.spaceBefore) : undefined,
-                        spaceAfter: p.spaceAfter != null ? ptToPx(p.spaceAfter) : undefined
+                        spaceAfter: p.spaceAfter != null ? ptToPx(p.spaceAfter) : undefined,
+                        level: p.level != null ? Number(p.level) : 0
                     };
                 });
             }
@@ -25524,6 +25809,15 @@ function elementFromPptx(pe) {
                 el.adjust = pe.adjust;
             if (pe.custGeom && Array.isArray(pe.custGeom.paths) && pe.custGeom.paths.length)
                 el.custGeom = pe.custGeom;
+            if (isConnector) {
+                el.connector = true;
+                if (pe.beginCxn)
+                    el.cxnBegin = { id: String(pe.beginCxn.id), idx: pe.beginCxn.idx };
+                if (pe.endCxn)
+                    el.cxnEnd = { id: String(pe.endCxn.id), idx: pe.endCxn.idx };
+                if (pe.__raw)
+                    el.__raw = pe.__raw;
+            }
             return el;
         }
         case 'image': {
@@ -25718,6 +26012,37 @@ function elementFromPptx(pe) {
         }
     }
 }
+const SITE_BY_IDX = { 0: 'top', 1: 'left', 2: 'bottom', 3: 'right' };
+function resolveConnectorGlue(stdEls, slide) {
+    const numIdToElId = new Map();
+    stdEls.forEach((pe, i) => {
+        const raw = pe && pe.__raw && pe.__raw.node;
+        if (!raw)
+            return;
+        const nv = raw['p:nvSpPr'] || raw['p:nvCxnSpPr'] || raw['p:nvPicPr'] || raw['p:nvGraphicFramePr'];
+        const cNvPr = nv && nv['p:cNvPr'];
+        const idAttr = cNvPr && cNvPr.attrs && cNvPr.attrs.id;
+        const ed = slide.elements[i];
+        if (idAttr != null && ed)
+            numIdToElId.set(String(idAttr), ed.id);
+    });
+    for (const el of slide.elements || []) {
+        if (!el.connector)
+            continue;
+        if (el.cxnBegin) {
+            const target = numIdToElId.get(String(el.cxnBegin.id));
+            if (target)
+                el.begin = { shapeId: target, site: SITE_BY_IDX[el.cxnBegin.idx] || 'top' };
+        }
+        if (el.cxnEnd) {
+            const target = numIdToElId.get(String(el.cxnEnd.id));
+            if (target)
+                el.end = { shapeId: target, site: SITE_BY_IDX[el.cxnEnd.idx] || 'top' };
+        }
+        delete el.cxnBegin;
+        delete el.cxnEnd;
+    }
+}
 function docFromPptx(pptxDoc, opts = {}) {
     const doc = createDoc('blue');
     const size = pptxDoc.slideSize || {};
@@ -25758,11 +26083,13 @@ function docFromPptx(pptxDoc, opts = {}) {
     if (pptxDoc.masters && pptxDoc.masters.length)
         doc.masters = pptxDoc.masters;
     doc.slides = (pptxDoc.slides || []).map((s) => {
-        const slide = createSlide((s.elements || []).map(elementFromPptx), {
+        const stdEls = s.elements || [];
+        const slide = createSlide(stdEls.map(elementFromPptx), {
             background: s.background || null,
             notes: s.notes || '',
             hidden: !!s.hidden
         });
+        resolveConnectorGlue(stdEls, slide);
         if (s.transition && s.transition.type) {
             slide.transition = { type: s.transition.type, duration: s.transition.duration || 800 };
         }
@@ -27281,6 +27608,87 @@ function wrap(W, H, parts) {
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
 }
 
+const DATA_PART_RE = /diagrams\/data\d*\.xml$/i;
+const DRAWING_PART_RE = /diagrams\/drawing\d*\.xml$/i;
+const A_T_RE = /<a:t(\s[^>]*?)?>([\s\S]*?)<\/a:t>|<a:t(\s[^>]*?)?\/>/g;
+function decodeXml(s) {
+    return String(s)
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&#(\d+);/g, (_m, d) => String.fromCharCode(Number(d)))
+        .replace(/&#x([0-9a-f]+);/gi, (_m, h) => String.fromCharCode(parseInt(h, 16)))
+        .replace(/&amp;/g, '&');
+}
+function patchTexts(xml, texts) {
+    let used = 0;
+    const out = xml.replace(A_T_RE, (full, attrs1, inner, attrs2) => {
+        if (inner === undefined)
+            return full;
+        if (!decodeXml(inner).trim())
+            return full;
+        if (used >= texts.length)
+            return full;
+        const t = texts[used++];
+        const attrs = attrs1 || '';
+        return `<a:t${attrs}>${escapeXml$1(t)}</a:t>`;
+    });
+    return { xml: out, used };
+}
+function syncShapeTexts(el, origTexts, newTexts) {
+    const shapes = Array.isArray(el.shapes) ? el.shapes : [];
+    let cursor = 0;
+    for (const s of shapes) {
+        if (!s || s.connector)
+            continue;
+        if (typeof s.text !== 'string' || !s.text)
+            continue;
+        const lines = String(s.text).split('\n');
+        let hit = false;
+        const next = lines.map((line) => {
+            for (let i = cursor; i < origTexts.length; i++) {
+                if (origTexts[i] === line) {
+                    cursor = i + 1;
+                    hit = true;
+                    return newTexts[i] ?? line;
+                }
+            }
+            return line;
+        });
+        if (hit)
+            s.text = next.join('\n');
+    }
+}
+function updateDiagramTexts(el, texts) {
+    if (!el || el.type !== 'diagram')
+        return { texts: [], changed: false };
+    const orig = Array.isArray(el.texts) ? el.texts.map((t) => String(t ?? '')) : [];
+    const next = (Array.isArray(texts) ? texts : []).map((t) => String(t ?? ''));
+    while (next.length < orig.length)
+        next.push(orig[next.length]);
+    next.length = orig.length;
+    let changed = next.some((t, i) => t !== orig[i]);
+    const parts = (el.__raw && Array.isArray(el.__raw.parts)) ? el.__raw.parts : [];
+    const dataPart = parts.find((p) => p && DATA_PART_RE.test(String(p.path || '')));
+    const drawPart = parts.find((p) => p && DRAWING_PART_RE.test(String(p.path || '')));
+    if (dataPart && typeof dataPart.content === 'string') {
+        const r = patchTexts(dataPart.content, next);
+        if (r.xml !== dataPart.content)
+            changed = true;
+        dataPart.content = r.xml;
+    }
+    if (drawPart && typeof drawPart.content === 'string') {
+        const r = patchTexts(drawPart.content, next);
+        syncShapeTexts(el, orig, next);
+        if (r.xml !== drawPart.content)
+            changed = true;
+        drawPart.content = r.xml;
+    }
+    el.texts = next.slice();
+    return { texts: next, changed };
+}
+
 function parseComments(xml, authors) {
     if (!xml || !xml['p:cmLst'])
         return [];
@@ -28215,5 +28623,5 @@ function extractSlideTiming(slideContent) {
     return { advanceTime, animations };
 }
 
-export { ANIM_CLASSES, ANIM_DIRECTIONS, ANIM_TRIGGERS, ANIM_TYPES, CHART_TYPES, EditorStore, FONT_LIST, FONT_SIZES, LAYOUTS, PPTXComposer, PPTXShapeUtils, SHAPES, SLIDE_SIZES, THEMES, TRANSITIONS, TRANSITION_SPEEDS, absoluteElementRect, applyTextStyle, bboxOf, buildSlideFromLayout, buildThemeXml, clamp$1 as clamp, clone, createActions, createAudioElement, createChartElement, createDoc, createGroupElement, createImageElement, createParagraph, createShapeElement, createSlide, createStarterDoc, createStore, createTableElement, createTextElement, createVideoElement, pptxToHtml as default, defaultMediaPoster, docFromPptx, docToPptx, editPptx, effectMargin, elementRect, elementToPptx, escapeHtml, extOfDataUrl, extractDiagramNodes, getTheme, hexToRgb, inToPx, inferDiagramType, jsonToPptx, layoutElements, luminance, mixHex, normalizeBulletIn, normalizeBulletOut, normalizeColor, normalizeDoc, normalizeElement, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, relayoutDiagram, renderChartSVG, rgbToHex, rotatePoint, rotatedRect, round, setActiveTheme, shade, shapeStyle, slideToPptx, stripDataUrl, syncTableStyle, uid, unionBBox, withAlpha };
+export { ANIM_CLASSES, ANIM_DIRECTIONS, ANIM_TRIGGERS, ANIM_TYPES, CHART_TYPES, EditorStore, FONT_LIST, FONT_SIZES, LAYOUTS, PPTXComposer, PPTXShapeUtils, SHAPES, SLIDE_SIZES, THEMES, TRANSITIONS, TRANSITION_SPEEDS, absoluteElementRect, applyTextStyle, bboxOf, buildSlideFromLayout, buildThemeXml, clamp$1 as clamp, clone, createActions, createAudioElement, createChartElement, createDoc, createGroupElement, createImageElement, createParagraph, createShapeElement, createSlide, createStarterDoc, createStore, createTableElement, createTextElement, createVideoElement, pptxToHtml as default, defaultMediaPoster, docFromPptx, docToPptx, editPptx, effectMargin, elementRect, elementToPptx, escapeHtml, extOfDataUrl, extractDiagramNodes, getTheme, hexToRgb, inToPx, inferDiagramType, jsonToPptx, layoutElements, luminance, mixHex, normalizeBulletIn, normalizeBulletOut, normalizeColor, normalizeDoc, normalizeElement, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, relayoutDiagram, renderChartSVG, rgbToHex, rotatePoint, rotatedRect, round, setActiveTheme, shade, shapeStyle, slideToPptx, stripDataUrl, syncTableStyle, uid, unionBBox, updateDiagramTexts, withAlpha };
 //# sourceMappingURL=ppt-parser.browser.js.map

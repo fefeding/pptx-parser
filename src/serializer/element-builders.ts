@@ -143,6 +143,8 @@ export interface SerializerContext {
     diagrams: SerializerDiagram[];
     parts: SerializerPart[];
     nextElementId: number;
+    /** 编辑模型元素 id → 本次生成的数字 id（连接线写 a:stCxn/a:endCxn 时需要） */
+    idMap: Record<string, number>;
     nextRelId: number;
     mediaIndex: number;
     chartIndex: number;
@@ -216,6 +218,8 @@ export interface ParagraphSpec {
     indent?: number;
     /** 从右到左段落（a:pPr@rtl="1"） */
     rtl?: boolean;
+    /** 列表层级（a:pPr@lvl，0=第一级） */
+    level?: number;
 }
 /** 单元格/表格边框：颜色 + 线宽(pt) */
 export interface CellBorder {
@@ -471,6 +475,10 @@ export interface SerializerElement {
     inherited?: boolean;
     /** 替代文本（无障碍，p:cNvPr@descr） */
     descr?: string;
+    /** 连接线起点胶着到的形状：{ shapeId, site }（site: top/left/bottom/right…） */
+    glueBegin?: { shapeId?: string; site?: string };
+    /** 连接线终点胶着到的形状：{ shapeId, site } */
+    glueEnd?: { shapeId?: string; site?: string };
     /** 分栏数（a:bodyPr@numCol，默认 1；需 >1 才写出） */
     numCol?: number;
     /** 是否从右向左排布列（a:bodyPr@rtlCol，影响 RTL 文本折行） */
@@ -599,6 +607,8 @@ export function createElementContext(options: ElementContextOptions = {}): Seria
         parts: ([] as SerializerPart[]),
         /** 幻灯片内元素自增 id（1 被 spTree 根占用） */
         nextElementId: 2,
+        /** 编辑模型元素 id → 本次生成的数字 id（连接线写 a:stCxn/a:endCxn 时需要） */
+        idMap: ({} as Record<string, number>),
         /** 关系自增 id（rId1 固定为版式引用） */
         nextRelId: 2,
         /** 媒体文件自增编号 */
@@ -628,6 +638,19 @@ function addRelationship(ctx: SerializerContext, type: string, target: string, e
     const relId = `rId${ctx.nextRelId++}`;
     ctx.rels.push({ relId, type, target, external: !!external });
     return relId;
+}
+
+/**
+ * 分配幻灯片内元素 id，并登记「编辑模型元素 id → 数字 id」映射。
+ * 连接线的 a:stCxn/a:endCxn 需要引用目标形状的数字 id，故必须记录映射。
+ * @param ctx 构建上下文
+ * @param el 元素（带 id 时登记映射）
+ * @returns {number} 分配到的数字 id
+ */
+function assignId(ctx: SerializerContext, el: any): number {
+    const id = ctx.nextElementId++;
+    if (el && el.id != null) ctx.idMap[String(el.id)] = id;
+    return id;
 }
 
 /**
@@ -949,6 +972,8 @@ function buildParagraph(ctx: SerializerContext, paragraph: ParagraphSpec, defaul
     if (p.indentLeft != null) pPrAttrs.marL = ptToEmu(p.indentLeft);
     if (p.indentRight != null) pPrAttrs.marR = ptToEmu(p.indentRight);
     if (p.indent != null) pPrAttrs.indent = ptToEmu(p.indent);
+    // 列表层级（a:pPr@lvl）：0 为第一级，缺省不写
+    if (p.level) pPrAttrs.lvl = p.level;
 
     const pPrChildren: BuilderNode[] = [];
 
@@ -1084,7 +1109,7 @@ function normalizeTextVerticalType(value?: string): string | undefined {
 }
 
 async function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const anchorMap: Record<string, string | null> = { top: null, middle: 'ctr', bottom: 'b' };
     const bodyPrAttrs: Record<string, number | string | null> = { wrap: 'square', rtlCol: el.rtlCol ? 1 : 0 };
     const anchor = anchorMap[el.valign ?? 'top'];
@@ -1113,8 +1138,9 @@ async function buildTextElement(ctx: SerializerContext, el: SerializerElement) {
             bodyPrChildren.push(xmlNode('a:spAutoFit'));
         } else {
             bodyPrChildren.push(xmlNode('a:normAutofit', {
-                fontScale: el.fontScale != null ? Math.round(el.fontScale * 1000) : null,
-                lnSpcReduction: el.lnSpcReduction != null ? Math.round(el.lnSpcReduction * 1000) : null
+                // fontScale/lnSpcReduction 是比例（0~1），OOXML 用 1/1000 百分比表示
+                fontScale: el.fontScale != null ? Math.round(el.fontScale * 100000) : null,
+                lnSpcReduction: el.lnSpcReduction != null ? Math.round(el.lnSpcReduction * 100000) : null
             }));
         }
     }
@@ -1517,7 +1543,7 @@ async function buildShapeAppearance(ctx: SerializerContext, el: SerializerElemen
 }
 
 async function buildShapeElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const { fillNode, lineNode, effectNode } = await buildShapeAppearance(ctx, el);
 
     return xmlNode('p:sp',
@@ -1576,7 +1602,7 @@ function buildBulletPicture(ctx: SerializerContext, bullet: { data?: string; ext
  * @returns {Promise<Object>} p:pic 节点
  */
 async function buildImageElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const { base64, ext } = await resolveImageData(el);
 
     ctx.mediaIndex++;
@@ -1667,7 +1693,7 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
  * @returns {Object} p:graphicFrame 节点
  */
 function buildChartElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     ctx.chartIndex++;
     const chartNum = ctx.chartIndex;
     const chartName = `chart${chartNum}.xml`;
@@ -2355,7 +2381,7 @@ function buildTableCell(ctx: SerializerContext, cell: SerializerTableCell, table
  * @returns {Object} p:graphicFrame 节点
  */
 function buildTableElement(ctx: SerializerContext, el: SerializerElement): BuilderNode {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const rows = el.rows || [];
     const width = el.width || 0;
     const height = el.height || 0;
@@ -2439,6 +2465,9 @@ function rawNodeToBuilder(tag: string, node: unknown, remap: Record<string, stri
     const attrs: Record<string, unknown> = {};
     const srcAttrs = (src.attrs || {}) as Record<string, unknown>;
     for (const k of Object.keys(srcAttrs)) {
+        // `order` 是解析器为保留子节点顺序加的内部标记（OOXML 无此属性），
+        // 原样回写会产出非法 XML，PowerPoint 打开时可能提示「需要修复」。
+        if (k === 'order') continue;
         const raw = String(srcAttrs[k]);
         attrs[k] = remap[raw] || raw;
     }
@@ -2495,7 +2524,7 @@ export function buildRawElement(ctx: SerializerContext, el: SerializerElement): 
  */
 /** 构建分组元素（p:grpSp），递归构建子元素 */
 async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const children = el.children || [];
     const childNodes: BuilderNode[] = [];
     // 'page' 模式：子元素坐标是页绝对坐标，构建时减 group 偏移转为组内局部坐标（OOXML 标准）
@@ -2546,7 +2575,7 @@ const TRANSPARENT_PNG_BASE64 =
 
 /** 构建视频/音频媒体元素（p:pic + 媒体关系） */
 async function buildMediaElement(ctx: SerializerContext, el: SerializerElement, kind: 'video' | 'audio') {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     ctx.mediaIndex++;
     const ext = el.extension || (kind === 'video' ? 'mp4' : 'm4a');
     const mediaName = `${kind}${ctx.mediaIndex}.${ext}`;
@@ -2997,7 +3026,7 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
     const drawingRelId = addRelationship(ctx, REL_TYPES.diagramDrawing, `../diagrams/drawing${n}.xml`);
     ctx.diagrams.push({ index: n, dataXml, layoutXml, colorsXml, quickStyleXml, drawingXml });
 
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     return xmlNode('p:graphicFrame',
         null,
         xmlNode('p:nvGraphicFramePr',
@@ -3027,6 +3056,19 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
 }
 
 /**
+ * 形状连接点 site 名 → OOXML 连接点序号（a:stCxn@idx / a:endCxn@idx）
+ * 矩形等预设几何的连接点顺序：0=上 1=左 2=下 3=右
+ */
+const SITE_IDX: Record<string, number> = { top: 0, left: 1, bottom: 2, right: 3 };
+
+/** 连接线端点与形状的胶着关系（编辑模型里的 begin/end） */
+function connectorCxnNode(tag: 'a:stCxn' | 'a:endCxn', glue: any): BuilderNode | null {
+    if (!glue || !glue.shapeId) return null;
+    // 目标形状的数字 id 在整页构建完成后才能确定，先写占位符，构建完再回填
+    return xmlNode(tag, { id: `@@el:${glue.shapeId}`, idx: String(SITE_IDX[glue.site] ?? 0) });
+}
+
+/**
  * 构建连接线元素（p:cxnSp）
  *
  * 与 p:sp 的区别：外层是 p:nvCxnSpPr / p:cNvCxnSpPr，且 a:xfrm 语义为起止两点
@@ -3037,7 +3079,7 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
  * @returns {Object} p:cxnSp 节点
  */
 function buildConnectorElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const line = (el.line && el.line !== 'none') ? el.line as { color?: string; width?: number; dashType?: string; startArrow?: string; endArrow?: string } : null;
 
     const lnChildren: BuilderNode[] = [];
@@ -3055,12 +3097,19 @@ function buildConnectorElement(ctx: SerializerContext, el: SerializerElement) {
 
     const effectNode = buildEffectLst(el);
 
+    // 连接关系（a:stCxn/a:endCxn）：目标形状的数字 id 待整页构建完成后回填
+    const cxnChildren: BuilderNode[] = [];
+    const stCxn = connectorCxnNode('a:stCxn', el.glueBegin);
+    const endCxn = connectorCxnNode('a:endCxn', el.glueEnd);
+    if (stCxn) cxnChildren.push(stCxn);
+    if (endCxn) cxnChildren.push(endCxn);
+
     return xmlNode('p:cxnSp',
         null,
         xmlNode('p:nvCxnSpPr',
             null,
             xmlNode('p:cNvPr', { id, name: el.name || `Connector ${id - 1}`, descr: el.descr || null }),
-            xmlNode('p:cNvCxnSpPr'),
+            xmlNode('p:cNvCxnSpPr', null, ...cxnChildren),
             xmlNode('p:nvPr')
         ),
         xmlNode('p:spPr',
@@ -3091,7 +3140,7 @@ function buildConnectorElement(ctx: SerializerContext, el: SerializerElement) {
  * @returns {Object} p:graphicFrame 节点
  */
 async function buildOleElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const ext = (el.extension || 'bin').replace(/^\./, '');
 
     // 嵌入部件落到 ppt/embeddings/（与媒体 ppt/media 区分）
@@ -3179,7 +3228,7 @@ async function buildOleElement(ctx: SerializerContext, el: SerializerElement) {
  * @returns {Object} p:sp 节点
  */
 function buildMathElement(ctx: SerializerContext, el: SerializerElement) {
-    const id = ctx.nextElementId++;
+    const id = assignId(ctx, el);
     const text = el.text ?? '';
 
     const altContent = xmlNode('mc:AlternateContent',
@@ -3537,6 +3586,40 @@ function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
     );
 }
 
+/**
+ * 回填连接线的胶着目标 id（a:stCxn / a:endCxn 的 id 属性）。
+ *
+ * 构建连接线时目标形状的数字 id 还不知道（可能尚未构建），故先写 `@@el:<元素id>` 占位符；
+ * 整页构建完成后按 idMap 换成真实数字 id。目标形状已被删除时移除该节点
+ * （指向不存在形状的连接关系会让 PowerPoint 报「需要修复」）。
+ * @param ctx 构建上下文
+ * @param nodes 页面元素节点树
+ */
+function resolveConnectorCxn(ctx: SerializerContext, nodes: BuilderNode[]) {
+    const walk = (node: any): void => {
+        if (!node || typeof node !== 'object') return;
+        if (Array.isArray(node)) {
+            for (let i = node.length - 1; i >= 0; i--) {
+                const child = node[i];
+                if (!child || typeof child !== 'object' || Array.isArray(child)) continue;
+                if (child.tagName === 'a:stCxn' || child.tagName === 'a:endCxn') {
+                    const raw = child.attrs && child.attrs.id;
+                    if (typeof raw === 'string' && raw.startsWith('@@el:')) {
+                        const target = ctx.idMap[raw.slice(5)];
+                        if (target == null) { node.splice(i, 1); continue; }  // 目标已删除
+                        child.attrs = { ...child.attrs, id: String(target) };
+                    }
+                } else {
+                    walk(child);
+                }
+            }
+            return;
+        }
+        if (Array.isArray(node.children)) walk(node.children);
+    };
+    for (const n of nodes) walk(n);
+}
+
 export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSlide) {
     const elementNodes = [];
     for (const el of (slide && slide.elements) || []) {
@@ -3546,6 +3629,8 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
         if (Array.isArray(node)) elementNodes.push(...(node as BuilderNode[]));
         else elementNodes.push(node);
     }
+    // 连接线的 a:stCxn/a:endCxn 目标 id 占位符在此回填（此时全页 id 已分配完毕）
+    resolveConnectorCxn(ctx, elementNodes);
 
     // 背景（纯色 / 渐变 / 图片）
     const bgNode = await buildBackground(slide && slide.background, ctx);

@@ -145,6 +145,8 @@ export interface PptxParagraph {
     indentRight?: number;
     /** 悬挂缩进 pt（a:pPr@indent，项目符号相对文本的缩进） */
     indent?: number;
+    /** 列表层级（a:pPr@lvl，0=第一级） */
+    level?: number;
     /** 从右到左段落（a:pPr@rtl="1"）；缺省 LTR。RTL 段落默认右对齐 */
     rtl?: boolean;
 }
@@ -540,6 +542,8 @@ interface PptxElementBase {
     rawFallback?: boolean;
     /** 元素名称（可选，便于编辑区分） */
     name?: string;
+    /** 元素 id（编辑模型 → 标准 JSON 时保留；连接线按 id 解析胶着目标形状） */
+    id?: string;
     /** 替代文本（无障碍，p:cNvPr@descr） */
     descr?: string;
     /** 是否为装饰性元素（无障碍，p:cNvPr@title 之外的隐藏标记） */
