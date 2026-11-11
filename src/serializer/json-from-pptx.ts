@@ -1057,109 +1057,259 @@ function ooxmlTokenToEditorType(token: string, cls?: string): string {
   return token;
 }
 
-/** 解析 p:timing：自动播放 afterTime + 元素进入动画 p:spTgt */
-function extractTiming(slideContent: any): { advanceTime?: number; animations?: PptxAnimation[] } {
-    const sld = slideContent && slideContent['p:sld'];
-    const timing = sld && sld['p:timing'];
-    if (!timing) return {};
-    const result: { advanceTime?: number; animations?: PptxAnimation[] } = {};
-    const animations: PptxAnimation[] = [];
+/** OOXML presetId → preset token（读回生成端写出的合规 timing） */
+const PRESET_ID_TOKEN: Record<string, string> = {
+    '1': 'appear', '2': 'fly', '3': 'blinds', '4': 'box', '5': 'checkerboard',
+    '6': 'circle', '7': 'crawl', '8': 'diamond', '9': 'dissolve', '10': 'fade',
+    '11': 'peek', '12': 'plus', '13': 'randomBars', '14': 'split', '15': 'spokes',
+    '16': 'strips', '17': 'swivel', '18': 'wedge', '19': 'wheel', '20': 'wipe',
+    '21': 'zoom', '22': 'bounce', '23': 'grow', '24': 'spin', '25': 'ascend',
+    '53': 'flashOnce', '54': 'pulse', '55': 'shake'
+};
 
-    // 递归收集所有 p:cTn
-    const allCtn: any[] = [];
-    (function walk(n: any) {
+/** 标准 JSON 与预览 HTML 共用的 p:timing 解析结果（duration 单位为秒） */
+export interface ParsedTimingAnimation {
+    spid: string;
+    type: string;
+    presetToken: string;
+    duration: number;
+    presetClass?: string;
+    presetId?: number;
+    direction?: string;
+    delay?: number;
+    repeat?: number | 'indefinite';
+    trigger?: 'onClick' | 'withPrev' | 'afterPrev';
+}
+
+/** 递归收集 p:timing 下所有 p:cTn，并记录最近的外层 cTn（旧版 timing 把 spid 放在父节点） */
+function collectTimingCtn(root: any): { node: any; parent: any }[] {
+    const out: { node: any; parent: any }[] = [];
+    const walk = (n: any, nearest: any): void => {
         if (!n || typeof n !== 'object') return;
+        if (Array.isArray(n)) { for (const x of n) walk(x, nearest); return; }
         for (const k of Object.keys(n)) {
+            if (k === 'attrs') continue;
             if (k === 'p:cTn') {
-                for (const c of asArray(n[k])) { allCtn.push(c); walk(c); }
+                for (const c of asArray(n[k])) {
+                    out.push({ node: c, parent: nearest });
+                    walk(c, c);
+                }
             } else {
-                const v = n[k];
-                if (Array.isArray(v)) v.forEach(walk);
-                else if (v && typeof v === 'object') walk(v);
+                walk(n[k], nearest);
             }
         }
-    })(timing);
+    };
+    walk(root, null);
+    return out;
+}
 
-    for (const c of allCtn) {
-        // 自动播放：stCondLst 下存在 afterTime cond
-        const stCondLst = c['p:stCondLst'];
-        if (stCondLst) {
-            for (const cond of asArray(stCondLst['p:cond'])) {
-                if (cond && cond.attrs && cond.attrs.type === 'afterTime' && cond.attrs.val != null) {
-                    result.advanceTime = Number(cond.attrs.val);
-                }
-            }
-        }
-        // 元素动画：tgtEl > spTgt spid + childTnLst > cTn preset/dur
-        const tgtEl = c['p:tgtEl'];
-        const spTgt = tgtEl && tgtEl['p:spTgt'];
-        const spid = spTgt && spTgt.attrs && spTgt.attrs.spid;
-        if (spid != null) {
-            let preset = 'fade';
-            let dur: number | undefined;
-            let presetClass: string | undefined;
-            let presetId: number | undefined;
-            let presetSubtype: string | undefined;
-            let delay: number | undefined;
-            let repeat: number | 'indefinite' | undefined;
-            let trigger: PptxAnimation['trigger'] | undefined;
-            // 效果 cTn 可能嵌套更深（preset cTn → dur cTn），递归收集所有后代 cTn 以提取 preset/dur/方向/触发
-            const childTnLst = c['p:childTnLst'];
-            if (childTnLst) {
-                const innerCtn: any[] = [];
-                (function walkInner(n: any) {
-                    if (!n || typeof n !== 'object') return;
-                    for (const k of Object.keys(n)) {
-                        if (k === 'p:cTn') { for (const ic of asArray(n[k])) { innerCtn.push(ic); walkInner(ic); } }
-                        else { const v = n[k]; if (Array.isArray(v)) v.forEach(walkInner); else if (v && typeof v === 'object') walkInner(v); }
-                    }
-                })(childTnLst);
-                for (const inner of innerCtn) {
-                    if (!inner || !inner.attrs) continue;
-                    // preset 透传真实名称（不再收敛为 4 种，避免 swivel/bounce 等退化为 fade）
-                    if (inner.attrs.preset) preset = String(inner.attrs.preset);
-                    if (inner.attrs.dur != null) dur = Number(inner.attrs.dur) / 1000;
-                    if (inner.attrs.presetClass) presetClass = String(inner.attrs.presetClass);
-                    if (inner.attrs.presetId != null) presetId = Number(inner.attrs.presetId);
-                    // 方向：presetSubtype（'left'/'right'/'top'/'bottom'）→ 编辑器 'l'/'r'/'t'/'b'
-                    if (inner.attrs.presetSubtype != null) {
-                        const dmap: Record<string, string> = { left: 'l', right: 'r', top: 't', bottom: 'b' };
-                        const d = dmap[String(inner.attrs.presetSubtype)];
-                        if (d) presetSubtype = d;
-                    }
-                    if (inner.attrs.delay != null && inner.attrs.delay !== 'indefinite') delay = Number(inner.attrs.delay) / 1000;
-                    if (inner.attrs.repeatCount != null) {
-                        repeat = inner.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(inner.attrs.repeatCount) / 1000;
-                    }
-                    // 触发时机：效果 cTn 的 stCondLst/cond/@type（PptxAnimationTrigger 为对象形态）
-                    const stc = inner['p:stCondLst'];
-                    if (stc) {
-                        for (const cond of asArray(stc['p:cond'])) {
-                            if (cond && cond.attrs) {
-                                const ct = cond.attrs.type;
-                                if (ct === 'onClick' || ct === 'begin') trigger = { type: 'onClick' };
-                                else if (ct === 'withPrev') trigger = { type: 'withPrev' };
-                                else if (ct === 'afterPrev') trigger = { type: 'afterPrev' };
-                            }
-                        }
-                    }
-                }
-            }
-            const anim: PptxAnimation = {
-                target: String(spid),
-                type: ooxmlTokenToEditorType(preset, presetClass),
-                duration: dur ?? 1
-            };
-            if (presetClass) anim.presetClass = presetClass as PptxAnimation['presetClass'];
-            if (presetId != null) anim.presetId = presetId;
-            if (presetSubtype) anim.direction = presetSubtype;
-            if (delay != null) anim.delay = delay;
-            if (repeat != null) anim.repeat = repeat;
-            if (trigger) anim.trigger = trigger;
-            animations.push(anim);
+/** 在任意子树里找第一个 p:spTgt@spid（PowerPoint 把它放在 p:cBhvr/p:tgtEl 下） */
+function findSpid(n: any): string | undefined {
+    if (!n || typeof n !== 'object') return undefined;
+    if (Array.isArray(n)) {
+        for (const x of n) { const r = findSpid(x); if (r) return r; }
+        return undefined;
+    }
+    const st = n['p:spTgt'];
+    if (st) {
+        for (const s of asArray(st)) {
+            if (s && s.attrs && s.attrs.spid != null) return String(s.attrs.spid);
         }
     }
-    if (animations.length) result.animations = animations;
+    for (const k of Object.keys(n)) {
+        if (k === 'attrs') continue;
+        const r = findSpid(n[k]);
+        if (r) return r;
+    }
+    return undefined;
+}
+
+/** 在任意子树里找第一个指定标签的 attrs（如 p:animEffect@filter） */
+function findTagAttrs(n: any, tag: string): any {
+    if (!n || typeof n !== 'object') return undefined;
+    if (Array.isArray(n)) {
+        for (const x of n) { const r = findTagAttrs(x, tag); if (r) return r; }
+        return undefined;
+    }
+    if (n[tag]) {
+        for (const v of asArray(n[tag])) { if (v && v.attrs) return v.attrs; }
+    }
+    for (const k of Object.keys(n)) {
+        if (k === 'attrs') continue;
+        const r = findTagAttrs(n[k], tag);
+        if (r) return r;
+    }
+    return undefined;
+}
+
+/**
+ * 从 p:animEffect 的行为节点取效果时长。
+ * PowerPoint 的 p:set 也有一个 `dur="1"`（仅表示「立即设置可见性」），不能当成动画时长。
+ */
+function findEffectDur(node: any): number | undefined {
+    const walk = (n: any): number | undefined => {
+        if (!n || typeof n !== 'object') return undefined;
+        if (Array.isArray(n)) {
+            for (const x of n) { const r = walk(x); if (r != null) return r; }
+            return undefined;
+        }
+        if (n['p:animEffect']) {
+            for (const eff of asArray(n['p:animEffect'])) {
+                const bh = eff && eff['p:cBhvr'];
+                for (const c of asArray(bh && bh['p:cTn'])) {
+                    if (c && c.attrs && c.attrs.dur != null && Number(c.attrs.dur) > 1) {
+                        return Number(c.attrs.dur);
+                    }
+                }
+            }
+        }
+        for (const k of Object.keys(n)) {
+            if (k === 'attrs') continue;
+            const r = walk(n[k]);
+            if (r != null) return r;
+        }
+        return undefined;
+    };
+    return walk(node);
+}
+
+/** 收集节点子树里的所有 p:cTn（含 p:set/p:animEffect 的行为节点） */
+function allCtnIn(n: any): any[] {
+    const out: any[] = [];
+    const walk = (x: any): void => {
+        if (!x || typeof x !== 'object') return;
+        if (Array.isArray(x)) { for (const y of x) walk(y); return; }
+        for (const k of Object.keys(x)) {
+            if (k === 'attrs') continue;
+            if (k === 'p:cTn') { for (const c of asArray(x[k])) { out.push(c); walk(c); } }
+            else walk(x[k]);
+        }
+    };
+    walk(n);
+    return out;
+}
+
+/**
+ * 解析 p:timing，兼容两种结构：
+ * - PowerPoint / 新版生成端：p:seq/mainSeq → click group → effect cTn(presetID/nodeType)，
+ *   spid 位于行为节点 p:cBhvr/p:tgtEl/p:spTgt；
+ * - 旧版生成端：p:cTn 直属 p:tgtEl/p:spTgt，preset/dur 在 childTnLst 的内层 cTn。
+ */
+export function parseTiming(slideContent: any): { advanceTime?: number; animations: ParsedTimingAnimation[] } {
+    const sld = slideContent && slideContent['p:sld'];
+    const timing = sld && sld['p:timing'];
+    if (!timing) return { animations: [] };
+    const ctns = collectTimingCtn(timing);
+
+    let advanceTime: number | undefined;
+    for (const { node } of ctns) {
+        const stc = node && node['p:stCondLst'];
+        if (!stc) continue;
+        for (const cond of asArray(stc['p:cond'])) {
+            if (cond && cond.attrs && cond.attrs.type === 'afterTime' && cond.attrs.val != null) {
+                advanceTime = Number(cond.attrs.val);
+            }
+        }
+    }
+
+    const animations: ParsedTimingAnimation[] = [];
+    for (const { node, parent } of ctns) {
+        const attrs = node && node.attrs;
+        if (!attrs) continue;
+        const nodeType = String(attrs.nodeType || '');
+        const isEffect = attrs.preset != null || attrs.presetId != null || attrs.presetID != null ||
+            (attrs.presetClass != null && ['clickEffect', 'withEffect', 'afterEffect'].includes(nodeType));
+        if (!isEffect) continue;
+        const spid = findSpid(node) || (parent ? findSpid(parent) : undefined);
+        if (spid == null) continue;
+
+        let preset: string | undefined;
+        // 效果时长优先取 p:animEffect 的行为节点，避免把 p:set 的 dur=1 当成动画时长
+        const effectDur = findEffectDur(node);
+        let dur: number | undefined = effectDur != null ? effectDur / 1000 : undefined;
+        let presetClass: string | undefined;
+        let presetId: number | undefined;
+        let subtype: string | number | undefined;
+        let delay: number | undefined;
+        let repeat: number | 'indefinite' | undefined;
+        let trigger: ParsedTimingAnimation['trigger'];
+        if (nodeType === 'clickEffect') trigger = 'onClick';
+        else if (nodeType === 'withEffect') trigger = 'withPrev';
+        else if (nodeType === 'afterEffect') trigger = 'afterPrev';
+
+        for (const c of [node, ...allCtnIn(node)]) {
+            const a = c && c.attrs;
+            if (!a) continue;
+            if (a.preset != null && preset == null) preset = String(a.preset);
+            if (a.dur != null && dur == null) dur = Number(a.dur) / 1000;
+            if (a.presetClass != null && presetClass == null) presetClass = String(a.presetClass);
+            if ((a.presetID != null || a.presetId != null) && presetId == null) {
+                const v = Number(a.presetID != null ? a.presetID : a.presetId);
+                if (Number.isFinite(v)) presetId = v;
+            }
+            if (a.presetSubtype != null && subtype == null) subtype = a.presetSubtype;
+            if (a.delay != null && a.delay !== 'indefinite' && delay == null) delay = Number(a.delay) / 1000;
+            if (a.repeatCount != null && repeat == null) {
+                repeat = a.repeatCount === 'indefinite' ? 'indefinite' : Number(a.repeatCount) / 1000;
+            }
+            if (!trigger) {
+                const stc = c['p:stCondLst'];
+                if (stc) {
+                    for (const cond of asArray(stc['p:cond'])) {
+                        const ca = cond && cond.attrs;
+                        if (!ca) continue;
+                        if (ca.type === 'begin' || ca.delay === 'indefinite') trigger = 'onClick';
+                        else if (ca.type === 'withPrev') trigger = 'withPrev';
+                        else if (ca.type === 'afterPrev') trigger = 'afterPrev';
+                    }
+                }
+            }
+        }
+
+        // presetID 是 PowerPoint 识别效果的权威编号，优先于行为节点的 filter
+        // （飞入的 animEffect filter 常常只是 "fade"，直接用会错认成淡入）
+        if (!preset && presetId != null) preset = PRESET_ID_TOKEN[String(presetId)];
+        if (!preset) {
+            const eff = findTagAttrs(node, 'p:animEffect');
+            if (eff && eff.filter) preset = String(eff.filter).replace(/\(.*$/, '');
+        }
+        if (!preset) preset = 'fade';
+        const dmap: Record<string, string> = { left: 'l', right: 'r', top: 't', bottom: 'b' };
+        const direction = subtype != null ? dmap[String(subtype)] : undefined;
+        const anim: ParsedTimingAnimation = {
+            spid,
+            type: ooxmlTokenToEditorType(preset, presetClass),
+            presetToken: preset,
+            duration: dur != null && Number.isFinite(dur) ? dur : 1
+        };
+        if (presetClass) anim.presetClass = presetClass;
+        if (presetId != null) anim.presetId = presetId;
+        if (direction) anim.direction = direction;
+        if (delay != null) anim.delay = delay;
+        if (repeat != null) anim.repeat = repeat;
+        if (trigger) anim.trigger = trigger;
+        animations.push(anim);
+    }
+    return { advanceTime, animations };
+}
+
+/** 解析 p:timing：自动播放 afterTime + 元素动画（标准 JSON 形态） */
+function extractTiming(slideContent: any): { advanceTime?: number; animations?: PptxAnimation[] } {
+    const parsed = parseTiming(slideContent);
+    const result: { advanceTime?: number; animations?: PptxAnimation[] } = {};
+    if (parsed.advanceTime != null) result.advanceTime = parsed.advanceTime;
+    if (parsed.animations.length) {
+        result.animations = parsed.animations.map((a) => {
+            const anim: PptxAnimation = { target: a.spid, type: a.type, duration: a.duration };
+            if (a.presetClass) anim.presetClass = a.presetClass as PptxAnimation['presetClass'];
+            if (a.presetId != null) anim.presetId = a.presetId;
+            if (a.direction) anim.direction = a.direction;
+            if (a.delay != null) anim.delay = a.delay;
+            if (a.repeat != null) anim.repeat = a.repeat;
+            if (a.trigger) anim.trigger = { type: a.trigger } as PptxAnimation['trigger'];
+            return anim;
+        });
+    }
     return result;
 }
 
@@ -1843,6 +1993,10 @@ export async function extractSlideToStandard(
                     }
                     // 统一挂载 __raw 载荷（含标签名，供生成端无损回写）
                     (el as any).__raw = { tag: key, node };
+                    // 记录 OOXML 形状 id（p:cNvPr@id）。动画的 p:spTgt@spid 靠它精确回绑，
+                    // 且不能依赖 __raw——group 等语义元素不挂 __raw。
+                    const shapeSpid = getShapeId(key, node);
+                    if (shapeSpid) (el as any).spid = shapeSpid;
                     // 依赖携带：语义层未覆盖的类型必须附带，否则 __raw 无法独立回写；
                     // 语义类型仅在 rawDeps:'all' 时附带（供 rawFallback 使用）
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
@@ -1855,6 +2009,8 @@ export async function extractSlideToStandard(
                         type: 'raw', x: 0, y: 0, width: 0, height: 0,
                         __raw: { tag: key, node }, rawFallback: true
                     };
+                    const rawSpid = getShapeId(key, node);
+                    if (rawSpid) (rawEl as any).spid = rawSpid;
                     if (allDeps) await attachRawDeps(rawEl, node, nodeResObj, zip);
                     return rawEl;
                 }
@@ -1922,6 +2078,9 @@ export async function extractSlideToStandard(
                     children,
                     childrenCoordinates: 'relative'
                 };
+                // group 不挂 __raw，但仍需 spid：动画可以指向整个组合
+                const groupSpid = getShapeId('p:grpSp', node);
+                if (groupSpid) (g as any).spid = groupSpid;
                 // 组合级旋转/翻转：OOXML grpSpPr/a:xfrm/@rot（1/60000 度）与 @flipH/@flipV。
                 // 作用于整个组容器（旋转中心为组边界框中心，与 PowerPoint 一致），子元素坐标保持相对偏移。
                 if (gxfAttrs && gxfAttrs.rot != null && Number(gxfAttrs.rot) !== 0) {

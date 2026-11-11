@@ -560,7 +560,8 @@ export interface SerializerSlide {
      * presetClass 支持 entr(进入) / exit(退出) / emph(强调) / path(路径)。
      */
     animations?: Array<{
-        target?: number;
+        /** 编辑器元素 id（生成端按 ctx.idMap 转成 spid）或 OOXML spid 字符串 / 兼容的数字下标 */
+        target?: number | string;
         type?: string;
         duration?: number;
         presetClass?: string;
@@ -2513,7 +2514,25 @@ export function buildRawElement(ctx: SerializerContext, el: SerializerElement): 
         if (part && part.path) ctx.parts.push(part);
     }
 
+    // __raw 原样回写时 cNvPr@id 保持源文件值，不经过 assignId。登记映射，
+    // 否则动画（p:spTgt@spid）无法精确指向这类元素。
+    const rawId = rawShapeId(payload.node);
+    const elId = (el as any).id;
+    if (elId != null && rawId != null) ctx.idMap[String(elId)] = Number(rawId);
+
     return rawNodeToBuilder(payload.tag, payload.node, remap);
+}
+
+/** 从原始形状节点里取 p:cNvPr@id（即 OOXML spid） */
+function rawShapeId(node: any): string | undefined {
+    if (!node || typeof node !== 'object') return undefined;
+    for (const k of ['p:nvSpPr', 'p:nvPicPr', 'p:nvCxnSpPr', 'p:nvGraphicFramePr', 'p:nvGrpSpPr']) {
+        const nv = node[k];
+        if (!nv) continue;
+        const cNvPr = Array.isArray(nv['p:cNvPr']) ? nv['p:cNvPr'][0] : nv['p:cNvPr'];
+        if (cNvPr && cNvPr.attrs && cNvPr.attrs.id != null) return String(cNvPr.attrs.id);
+    }
+    return undefined;
 }
 
 /**
@@ -3495,95 +3514,158 @@ export function buildNotesSlide(notes: string): BuilderNode {
  * @param {Object} slide - 幻灯片 JSON { background, notes, transition, elements }
  * @returns {Promise<Object>} p:sld 根节点
  */
-/** 构建幻灯片计时（自动播放 + 元素动画），生成 p:timing */
-function buildTimingNode(slide: SerializerSlide): BuilderNode | null {
+/** 归一化动画触发方式（编辑器用字符串，标准 JSON 用对象） */
+function animTriggerType(t: any): 'onClick' | 'withPrev' | 'afterPrev' {
+    const v = typeof t === 'string' ? t : t && t.type;
+    return v === 'onClick' || v === 'withPrev' ? v : 'afterPrev';
+}
+
+/** 编辑器类型名 → p:animEffect@filter（PowerPoint 实际播放的行为节点） */
+const ANIM_EFFECT_FILTER: Record<string, string> = {
+    dissolve: 'dissolve', circle: 'circle', wheel: 'wheel(1)',
+    zoom: 'zoom', zoomIn: 'zoom', zoomOut: 'zoom'
+};
+
+/**
+ * 把动画 target 解析成 OOXML p:spTgt@spid。
+ *
+ * 编辑器模型用元素 id（'e_xxx'），ctx.idMap 记录了「元素 id → 本次分配的数字 id」；
+ * 从 PPTX 解析回来的标准 JSON 则直接携带 spid 字符串。绝不能按「可见元素下标 + 2」
+ * 推算：版式装饰形状会被跳过、group 子元素还会额外占号，下标与真实 spid 并不对应。
+ * 解析不了时返回 null，调用方跳过该动画——退回第一个元素会让动画挂到别的形状上。
+ */
+function resolveAnimSpid(a: any, ctx: SerializerContext, slide: SerializerSlide): string | null {
+    const t = a && a.target;
+    if (t == null) return null;
+    const mapped = ctx.idMap[String(t)];
+    if (mapped != null) return String(mapped);
+    if (typeof t === 'string' && /^\d+$/.test(t.trim())) return t.trim();
+    if (typeof t === 'number' && Number.isFinite(t)) {
+        const el: any = (slide.elements || [])[t];
+        if (el && el.id != null && ctx.idMap[String(el.id)] != null) return String(ctx.idMap[String(el.id)]);
+        return String(t + 2);
+    }
+    if (typeof t === 'string') {
+        const idx = (slide.elements || []).findIndex((e: any) => e && e.id != null && String(e.id) === t);
+        if (idx >= 0) return String(idx + 2);
+    }
+    return null;
+}
+
+/** 构建单个动画效果节点（mainSeq effect，含真正播放的 p:set / p:animEffect） */
+function buildAnimEffectNode(a: any, spid: string, trig: string, nextId: () => number): BuilderNode {
+    const preset = a.type || 'fade';
+    const presetClass = a.presetClass || 'entr';
+    const presetToken = ANIM_PRESET_TOKEN[preset] ?? preset;
+    const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[presetToken] ?? 1);
+    // 标准 JSON 的 duration/delay 单位是秒，OOXML 的 dur/delay 单位是毫秒
+    const durMs = a.duration != null ? Math.max(1, Math.round(a.duration * 1000)) : 1000;
+    const delayMs = a.delay != null ? Math.max(0, Math.round(a.delay * 1000)) : 0;
+    const DIR_SUBTYPE: Record<string, string> = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
+    const subtype = a.presetSubtype ?? (a.direction && DIR_SUBTYPE[a.direction]);
+    const nodeType = trig === 'onClick' ? 'clickEffect' : trig === 'withPrev' ? 'withEffect' : 'afterEffect';
+    const attrs: Record<string, unknown> = {
+        id: nextId(), dur: durMs,
+        presetID: presetId,
+        presetId,            // 兼容旧解析端
+        presetClass,
+        presetSubtype: subtype ?? 0,
+        preset: presetToken, // 兼容旧解析端
+        nodeType, grpId: 0, fill: 'hold'
+    };
+    if (a.delay != null) attrs.delay = delayMs;
+    if (a.repeat != null) attrs.repeatCount = a.repeat === 'indefinite' ? 'indefinite' : Math.round(a.repeat * 1000);
+
+    const isExit = presetClass === 'exit';
+    const filter = ANIM_EFFECT_FILTER[presetToken] ?? 'fade';
+    const behaviors: BuilderNode[] = [
+        xmlNode('p:set', null,
+            xmlNode('p:cBhvr', null,
+                xmlNode('p:cTn', { id: nextId(), dur: 1, fill: 'hold' },
+                    xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: 0 }))),
+                xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid })),
+                xmlNode('p:attrNameLst', null, xmlNode('p:attrName', null, 'style.visibility'))),
+            xmlNode('p:to', null, xmlNode('p:strVal', { val: isExit ? 'hidden' : 'visible' }))),
+        xmlNode('p:animEffect', { transition: isExit ? 'out' : 'in', filter },
+            xmlNode('p:cBhvr', null,
+                xmlNode('p:cTn', { id: nextId(), dur: durMs }),
+                xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid }))))
+    ];
+    return xmlNode('p:par', null,
+        xmlNode('p:cTn', attrs,
+            xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: delayMs })),
+            xmlNode('p:childTnLst', null, ...behaviors)));
+}
+
+/** 构建幻灯片计时（自动播放 + 元素动画），生成 PowerPoint 可识别的 p:timing */
+function buildTimingNode(ctx: SerializerContext, slide: SerializerSlide): BuilderNode | null {
     if (!slide) return null;
-    // 自动切换时长：slide.advanceTime 与 transition.advanceAfterTime 等价，任一存在即生成计时条件
     const adv = slide.advanceTime ?? slide.transition?.advanceAfterTime;
-    const anims = slide.animations || [];
+    const anims = (slide.animations || [])
+        .map(a => ({ a, spid: resolveAnimSpid(a, ctx, slide) }))
+        .filter((x): x is { a: any; spid: string } => x.spid != null);
     if (adv == null && anims.length === 0) return null;
 
-    const childNodes: BuilderNode[] = [];
+    let nid = 3;
+    const nextId = () => nid++;
+    const rootChildren: BuilderNode[] = [];
+
+    // 自动换片与动画主序列平级，避免占用一次点击
     if (adv != null) {
-        childNodes.push(xmlNode('p:cTn',
-            { id: 2, fill: 'hold' },
-            xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterTime', val: Math.round(adv) })),
-            xmlNode('p:childTnLst', null, xmlNode('p:cTn', { id: 3, pres: 'sld', fill: 'hold' }))
-        ));
+        rootChildren.push(xmlNode('p:par', null,
+            xmlNode('p:cTn', { id: nextId(), fill: 'hold' },
+                xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterTime', val: Math.round(adv) })),
+                xmlNode('p:childTnLst', null,
+                    xmlNode('p:cTn', { id: nextId(), fill: 'hold' },
+                        xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: 0 })),
+                        xmlNode('p:childTnLst', null,
+                            xmlNode('p:cTn', { id: nextId(), dur: 1, fill: 'hold' })))))));
     }
-    let nid = 10;
-    for (const a of anims) {
-        // target 为字符串时直接用作 spid（解析端透传 cNvPr id，对 group 嵌套也正确）；
-        // 为数字时按旧公式 index+2 推算（向后兼容无 group 的扁平布局）
-        const spid = typeof a.target === 'string' ? a.target
-            : a.target != null ? a.target + 2 : 2;
-        // preset 透传真实名称（不再收敛为 4 种），未知类型回退 fade
-        const preset = a.type || 'fade';
-        const presetClass = (a.presetClass || 'entr') as string;
-        // 编辑器类型名（bounceIn / fadeIn / …）需映射到 OOXML preset token（bounce / fade / …），
-        // 否则 presetId 查不到会回退成 1（Appear），导出后在 PowerPoint 里没有动画效果。
-        const presetToken = ANIM_PRESET_TOKEN[preset] ?? preset;
-        // presetId 优先取显式值，否则查常见 preset 编号表
-        const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[presetToken] ?? 1);
 
-        // 触发时机 → p:stCondLst/p:cond（编辑器模型以字符串存储 trigger：'onClick'/'withPrev'/'afterPrev'）
-        const trig = (typeof a.trigger === 'string' ? a.trigger : a.trigger?.type) || 'afterPrev';
-        const condAttrs: Record<string, unknown> = {};
-        if (trig === 'onClick') {
-            // 「点击时开始」：delay=indefinite 表示等待用户触发
-            condAttrs.type = 'begin';
-            condAttrs.event = 'delay';
-            condAttrs.delay = 'indefinite';
-        } else {
-            condAttrs.type = trig === 'withPrev' ? 'withPrev' : 'afterPrev';
-        }
-
-        const effectChildren: BuilderNode[] = [
-            xmlNode('p:stCondLst', null, xmlNode('p:cond', condAttrs))
-        ];
-        if (a.duration != null) {
-            effectChildren.push(xmlNode('p:cTn', { id: nid++, dur: Math.round(a.duration * 1000), fill: 'hold' }));
-        }
-
-        const presetAttrs: Record<string, unknown> = {
-            id: nid++,
-            presetClass,
-            presetId,
-            type: 'withEffect',
-            preset: presetToken
-        };
-        // 进入动画方向（编辑器 'l'/'r'/'t'/'b'）→ OOXML presetSubtype（'left'/'right'/'top'/'bottom'）
-        const DIR_SUBTYPE: Record<string, string> = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
-        if (a.direction && DIR_SUBTYPE[a.direction]) presetAttrs.presetSubtype = DIR_SUBTYPE[a.direction];
-        if (a.presetSubtype != null) presetAttrs.presetSubtype = a.presetSubtype;
-        if (a.delay != null) presetAttrs.delay = Math.round(a.delay * 1000);
-        if (a.repeat != null) presetAttrs.repeatCount = a.repeat === 'indefinite' ? 'indefinite' : Math.round(a.repeat * 1000);
-        // 路径动画：presetClass='path' 时附加 <p:anim ...> 描述路径（简化为保留 path 文本供上层解析）
-        if (presetClass === 'path' && a.path) {
-            presetAttrs.presetSubtype = presetAttrs.presetSubtype ?? 0;
-        }
-
-        childNodes.push(xmlNode('p:cTn',
-            { id: nid++, fill: 'hold' },
-            xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid })),
-            xmlNode('p:childTnLst', null,
-                xmlNode('p:cTn', presetAttrs, ...effectChildren)
-            )
-        ));
+    // 按「点击步」分组：onClick 起新组，withPrev/afterPrev 并入当前组（PowerPoint mainSeq 语义）
+    const groups: BuilderNode[][] = [];
+    let current: BuilderNode[] | null = null;
+    for (const { a, spid } of anims) {
+        const trig = animTriggerType(a.trigger);
+        if (trig === 'onClick' || !current) { current = []; groups.push(current); }
+        current.push(buildAnimEffectNode(a, spid, trig, nextId));
     }
-    return xmlNode('p:timing',
-        null,
-        xmlNode('p:tnLst',
-            null,
-            xmlNode('p:par',
-                null,
-                xmlNode('p:cTn', { id: 1, fill: 'hold' },
-                    xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterPrev' })),
-                    xmlNode('p:childTnLst', null, ...childNodes)
-                )
-            )
-        )
-    );
+    if (groups.length) {
+        const seqPars = groups.map(effects =>
+            xmlNode('p:par', null,
+                xmlNode('p:cTn', { id: nextId(), fill: 'hold' },
+                    xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: 'indefinite' })),
+                    xmlNode('p:childTnLst', null,
+                        xmlNode('p:par', null,
+                            xmlNode('p:cTn', { id: nextId(), fill: 'hold' },
+                                xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: 0 })),
+                                xmlNode('p:childTnLst', null, ...effects)))))));
+        rootChildren.push(xmlNode('p:seq', { concurrent: 1, nextAc: 'seek' },
+            xmlNode('p:cTn', { id: 2, dur: 'indefinite', nodeType: 'mainSeq' },
+                xmlNode('p:childTnLst', null, ...seqPars)),
+            xmlNode('p:prevCondLst', null,
+                xmlNode('p:cond', { evt: 'onPrev', delay: 0 },
+                    xmlNode('p:tgtEl', null, xmlNode('p:sldTgt')))),
+            xmlNode('p:nextCondLst', null,
+                xmlNode('p:cond', { evt: 'onNext', delay: 0 },
+                    xmlNode('p:tgtEl', null, xmlNode('p:sldTgt'))))));
+    }
+
+    // 声明每个形状按整块构建，PowerPoint 才会把进入动画应用到形状整体
+    const spidSeen = new Set<string>();
+    const bldNodes: BuilderNode[] = [];
+    for (const { spid } of anims) {
+        if (spidSeen.has(spid)) continue;
+        spidSeen.add(spid);
+        bldNodes.push(xmlNode('p:bldP', { spid, grpId: 0 }));
+    }
+
+    return xmlNode('p:timing', null,
+        xmlNode('p:tnLst', null,
+            xmlNode('p:par', null,
+                xmlNode('p:cTn', { id: 1, dur: 'indefinite', restart: 'never', nodeType: 'tmRoot' },
+                    xmlNode('p:childTnLst', null, ...rootChildren)))),
+        bldNodes.length ? xmlNode('p:bldLst', null, ...bldNodes) : null);
 }
 
 /**
@@ -3637,7 +3719,7 @@ export async function buildSlideRoot(ctx: SerializerContext, slide: SerializerSl
 
     // 过渡效果（传入 ctx 以支持切换音效的媒体关系登记）
     const transitionNode = buildTransition(slide && slide.transition, ctx);
-    const timingNode = buildTimingNode(slide);
+    const timingNode = buildTimingNode(ctx, slide);
 
     return xmlNode('p:sld',
         { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',

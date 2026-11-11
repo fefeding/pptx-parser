@@ -124,7 +124,7 @@ describe('editor smoke', () => {
     const firstSlide = store.doc.slides[0];
     const animTarget = firstSlide.elements.find((e) => e.type === 'text');
     setTransition({ type: 'fade', duration: 800, advanceOnClick: true });
-    addAnimation({ target: animTarget.id, type: 'flyIn', presetClass: 'entr', duration: 0.5, direction: 'l', trigger: { type: 'onClick' } });
+    addAnimation({ target: animTarget.id, type: 'flyIn', presetClass: 'entr', duration: 500, direction: 'l', trigger: 'onClick' });
     const pptxWithAnim = docToPptx(store.doc);
     expect(pptxWithAnim.slides[0].transition.type).toBe('fade');
     expect(pptxWithAnim.slides[0].animations.length).toBe(1);

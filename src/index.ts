@@ -8,7 +8,7 @@ import { processMsgQueue, processSingleMsg, extractChartsFromSlide } from './uti
 import { SLIDE_FACTOR, FONT_SIZE_FACTOR } from './core/constants';
 import { jsonToPptx, editPptx } from './serializer/json-to-pptx';
 import { PPTXComposer } from './serializer/composer';
-import { buildStandardDocument, type StandardExtractOptions } from './serializer/json-from-pptx';
+import { buildStandardDocument, parseTiming, type StandardExtractOptions } from './serializer/json-from-pptx';
 import type { PptxDocument } from './types/pptx-document';
 import type { XmlNode, ParseSettings, ParseCallbacks } from './core/types';
 import baseLayoutCss from './css/pptxjs.css';
@@ -1199,121 +1199,26 @@ function extractSlideTransition(slideContent: XmlNode) {
 }
 
 /**
- * OOXML preset token → 编辑器/UI 动画类型名（ANIM_PRESET_TOKEN 的反向映射）。
- * 写入时用 token（bounce/fade/ascend…），读回时还原成编辑器名（bounceIn/fadeIn/riseUp…），
- * 这样导出再导入不会丢失类型。
- */
-function ooxmlTokenToEditorType(token: string, cls?: string): string {
-  if (cls === 'exit') {
-    switch (token) {
-      case 'fade': return 'fadeOut';
-      case 'wipe': return 'wipeOut';
-      case 'zoom': return 'zoomOut';
-      case 'fly': return 'flyOut';
-    }
-  } else if (cls === 'emph') {
-    switch (token) {
-      case 'grow': return 'grow';
-      case 'pulse': return 'pulse';
-      case 'shake': return 'shake';
-      case 'flashOnce': return 'flash';
-    }
-  } else {
-    switch (token) {
-      case 'bounce': return 'bounceIn';
-      case 'fade': return 'fadeIn';
-      case 'wipe': return 'wipeIn';
-      case 'zoom': return 'zoomIn';
-      case 'ascend': return 'riseUp';
-      case 'fly': return 'flyIn';
-    }
-  }
-  return token;
-}
-
-/**
- * 提取幻灯片计时（自动播放 + 元素动画），解析自 p:timing
- * @param {Object} slideContent - 幻灯片内容
- * @returns {Object|null} { advanceTime, animations:[{spid,type,duration}] } 或 null
+ * 提取幻灯片计时（自动播放 + 元素动画），解析自 p:timing。
+ * 与标准 JSON 链路共用 parseTiming，保证预览端与编辑端读到的动画一致。
+ * @returns {Object|null} { advanceTime, animations:[{spid,type,duration,trigger,direction,...}] } 或 null
  */
 function extractSlideTiming(slideContent: XmlNode) {
-    const sld: any = (slideContent as any)["p:sld"];
-    const timing = sld && sld["p:timing"];
-    if (!timing) return null;
-
-    // 动画条目除必需字段外，还透传 presetClass/presetId/delay/repeat 等可选属性
-    const animations: Array<{ spid: number; type: string; duration: number } & Record<string, unknown>> = [];
-    let advanceTime: number | undefined;
-
-    // 递归收集所有 p:cTn
-    const allCtn: any[] = [];
-    (function walk(n: any) {
-        if (!n || typeof n !== "object") return;
-        for (const k of Object.keys(n)) {
-            if (k === "p:cTn") {
-                const arr = Array.isArray(n[k]) ? n[k] : [n[k]];
-                for (const c of arr) { allCtn.push(c); walk(c); }
-            } else {
-                const v = n[k];
-                if (Array.isArray(v)) v.forEach(walk);
-                else if (v && typeof v === "object") walk(v);
-            }
-        }
-    })(timing);
-
-    for (const c of allCtn) {
-        // 自动播放：afterTime cond
-        const stCondLst = c["p:stCondLst"];
-        if (stCondLst) {
-            const conds = Array.isArray(stCondLst["p:cond"]) ? stCondLst["p:cond"] : [stCondLst["p:cond"]];
-            for (const cd of conds) {
-                if (cd && cd.attrs && cd.attrs.type === "afterTime" && cd.attrs.val != null) {
-                    advanceTime = Number(cd.attrs.val);
-                }
-            }
-        }
-        // 元素动画：tgtEl > spTgt spid + childTnLst > cTn preset/dur
-        const tgtEl = c["p:tgtEl"];
-        const spTgt = tgtEl && tgtEl["p:spTgt"];
-        const spid = spTgt && spTgt.attrs && spTgt.attrs.spid;
-        if (spid != null) {
-            let preset = "fade";
-            let dur: number | undefined;
-            let presetClass: string | undefined;
-            let presetId: number | undefined;
-            let delay: number | undefined;
-            let repeat: number | 'indefinite' | undefined;
-            const childTnLst = c["p:childTnLst"];
-            if (childTnLst) {
-                const inner = Array.isArray(childTnLst["p:cTn"]) ? childTnLst["p:cTn"] : [childTnLst["p:cTn"]];
-                for (const ic of inner) {
-                    if (ic && ic.attrs) {
-                        // preset 透传真实名称（此前仅保留 4 种，其余一律退化为 fade）
-                        if (ic.attrs.preset) preset = String(ic.attrs.preset);
-                        if (ic.attrs.dur != null) dur = Number(ic.attrs.dur) / 1000;
-                        if (ic.attrs.presetClass) presetClass = String(ic.attrs.presetClass);
-                        if (ic.attrs.presetId != null) presetId = Number(ic.attrs.presetId);
-                        if (ic.attrs.delay != null && ic.attrs.delay !== 'indefinite') delay = Number(ic.attrs.delay) / 1000;
-                        if (ic.attrs.repeatCount != null) {
-                            repeat = ic.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(ic.attrs.repeatCount) / 1000;
-                        }
-                    }
-                }
-            }
-            const anim: Record<string, unknown> = {
-                spid: Number(spid),
-                type: ooxmlTokenToEditorType(preset, presetClass),
-                duration: dur ?? 1
-            };
-            if (presetClass) anim.presetClass = presetClass;
-            if (presetId != null) anim.presetId = presetId;
-            if (delay != null) anim.delay = delay;
-            if (repeat != null) anim.repeat = repeat;
-            animations.push(anim as { spid: number; type: string; duration: number });
-        }
-    }
-    if (advanceTime == null && animations.length === 0) return null;
-    return { advanceTime, animations };
+    const parsed = parseTiming(slideContent);
+    if (parsed.advanceTime == null && parsed.animations.length === 0) return null;
+    const animations = parsed.animations.map((a) => {
+        const anim: Record<string, unknown> = {
+            spid: Number(a.spid), type: a.type, duration: a.duration
+        };
+        if (a.presetClass) anim.presetClass = a.presetClass;
+        if (a.presetId != null) anim.presetId = a.presetId;
+        if (a.direction) anim.direction = a.direction;
+        if (a.trigger) anim.trigger = a.trigger;
+        if (a.delay != null) anim.delay = a.delay;
+        if (a.repeat != null) anim.repeat = a.repeat;
+        return anim;
+    });
+    return { advanceTime: parsed.advanceTime, animations };
 }
 
 export default pptxToHtml;

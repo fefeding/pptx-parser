@@ -18202,7 +18202,24 @@ function buildRawElement(ctx, el) {
         if (part && part.path)
             ctx.parts.push(part);
     }
+    const rawId = rawShapeId(payload.node);
+    const elId = el.id;
+    if (elId != null && rawId != null)
+        ctx.idMap[String(elId)] = Number(rawId);
     return rawNodeToBuilder(payload.tag, payload.node, remap);
+}
+function rawShapeId(node) {
+    if (!node || typeof node !== 'object')
+        return undefined;
+    for (const k of ['p:nvSpPr', 'p:nvPicPr', 'p:nvCxnSpPr', 'p:nvGraphicFramePr', 'p:nvGrpSpPr']) {
+        const nv = node[k];
+        if (!nv)
+            continue;
+        const cNvPr = Array.isArray(nv['p:cNvPr']) ? nv['p:cNvPr'][0] : nv['p:cNvPr'];
+        if (cNvPr && cNvPr.attrs && cNvPr.attrs.id != null)
+            return String(cNvPr.attrs.id);
+    }
+    return undefined;
 }
 async function buildGroupElement(ctx, el) {
     const id = assignId(ctx, el);
@@ -18806,63 +18823,105 @@ function buildNotesSlide(notes) {
         'xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
         'xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main' }, xmlNode('p:cSld', null, xmlNode('p:spTree', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id: 1, name: '' }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: 0, y: 0 }), xmlNode('a:ext', { cx: 0, cy: 0 }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: 0, cy: 0 }))), xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id: 2, name: 'Notes Placeholder 1' }), xmlNode('p:cNvSpPr', null, xmlNode('p:ph', { type: 'body', idx: 1 })), xmlNode('p:nvPr')), xmlNode('p:spPr'), xmlNode('p:txBody', null, xmlNode('a:bodyPr', { rtlCol: 0 }), xmlNode('a:lstStyle'), xmlNode('a:p', null, xmlNode('a:r', null, xmlNode('a:rPr', { lang: 'zh-CN' }), xmlNode('a:t', null, notes))))))), xmlNode('p:clrMapOvr', null, xmlNode('a:masterClrMapping')));
 }
-function buildTimingNode(slide) {
+function animTriggerType(t) {
+    const v = typeof t === 'string' ? t : t && t.type;
+    return v === 'onClick' || v === 'withPrev' ? v : 'afterPrev';
+}
+const ANIM_EFFECT_FILTER = {
+    dissolve: 'dissolve', circle: 'circle', wheel: 'wheel(1)',
+    zoom: 'zoom', zoomIn: 'zoom', zoomOut: 'zoom'
+};
+function resolveAnimSpid(a, ctx, slide) {
+    const t = a && a.target;
+    if (t == null)
+        return null;
+    const mapped = ctx.idMap[String(t)];
+    if (mapped != null)
+        return String(mapped);
+    if (typeof t === 'string' && /^\d+$/.test(t.trim()))
+        return t.trim();
+    if (typeof t === 'number' && Number.isFinite(t)) {
+        const el = (slide.elements || [])[t];
+        if (el && el.id != null && ctx.idMap[String(el.id)] != null)
+            return String(ctx.idMap[String(el.id)]);
+        return String(t + 2);
+    }
+    if (typeof t === 'string') {
+        const idx = (slide.elements || []).findIndex((e) => e && e.id != null && String(e.id) === t);
+        if (idx >= 0)
+            return String(idx + 2);
+    }
+    return null;
+}
+function buildAnimEffectNode(a, spid, trig, nextId) {
+    const preset = a.type || 'fade';
+    const presetClass = a.presetClass || 'entr';
+    const presetToken = ANIM_PRESET_TOKEN[preset] ?? preset;
+    const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[presetToken] ?? 1);
+    const durMs = a.duration != null ? Math.max(1, Math.round(a.duration * 1000)) : 1000;
+    const delayMs = a.delay != null ? Math.max(0, Math.round(a.delay * 1000)) : 0;
+    const DIR_SUBTYPE = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
+    const subtype = a.presetSubtype ?? (a.direction && DIR_SUBTYPE[a.direction]);
+    const nodeType = trig === 'onClick' ? 'clickEffect' : trig === 'withPrev' ? 'withEffect' : 'afterEffect';
+    const attrs = {
+        id: nextId(), dur: durMs,
+        presetID: presetId,
+        presetId,
+        presetClass,
+        presetSubtype: subtype ?? 0,
+        preset: presetToken,
+        nodeType, grpId: 0, fill: 'hold'
+    };
+    if (a.delay != null)
+        attrs.delay = delayMs;
+    if (a.repeat != null)
+        attrs.repeatCount = a.repeat === 'indefinite' ? 'indefinite' : Math.round(a.repeat * 1000);
+    const isExit = presetClass === 'exit';
+    const filter = ANIM_EFFECT_FILTER[presetToken] ?? 'fade';
+    const behaviors = [
+        xmlNode('p:set', null, xmlNode('p:cBhvr', null, xmlNode('p:cTn', { id: nextId(), dur: 1, fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: 0 }))), xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid })), xmlNode('p:attrNameLst', null, xmlNode('p:attrName', null, 'style.visibility'))), xmlNode('p:to', null, xmlNode('p:strVal', { val: isExit ? 'hidden' : 'visible' }))),
+        xmlNode('p:animEffect', { transition: isExit ? 'out' : 'in', filter }, xmlNode('p:cBhvr', null, xmlNode('p:cTn', { id: nextId(), dur: durMs }), xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid }))))
+    ];
+    return xmlNode('p:par', null, xmlNode('p:cTn', attrs, xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: delayMs })), xmlNode('p:childTnLst', null, ...behaviors)));
+}
+function buildTimingNode(ctx, slide) {
     if (!slide)
         return null;
     const adv = slide.advanceTime ?? slide.transition?.advanceAfterTime;
-    const anims = slide.animations || [];
+    const anims = (slide.animations || [])
+        .map(a => ({ a, spid: resolveAnimSpid(a, ctx, slide) }))
+        .filter((x) => x.spid != null);
     if (adv == null && anims.length === 0)
         return null;
-    const childNodes = [];
+    let nid = 3;
+    const nextId = () => nid++;
+    const rootChildren = [];
     if (adv != null) {
-        childNodes.push(xmlNode('p:cTn', { id: 2, fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterTime', val: Math.round(adv) })), xmlNode('p:childTnLst', null, xmlNode('p:cTn', { id: 3, pres: 'sld', fill: 'hold' }))));
+        rootChildren.push(xmlNode('p:par', null, xmlNode('p:cTn', { id: nextId(), fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterTime', val: Math.round(adv) })), xmlNode('p:childTnLst', null, xmlNode('p:cTn', { id: nextId(), fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: 0 })), xmlNode('p:childTnLst', null, xmlNode('p:cTn', { id: nextId(), dur: 1, fill: 'hold' })))))));
     }
-    let nid = 10;
-    for (const a of anims) {
-        const spid = typeof a.target === 'string' ? a.target
-            : a.target != null ? a.target + 2 : 2;
-        const preset = a.type || 'fade';
-        const presetClass = (a.presetClass || 'entr');
-        const presetToken = ANIM_PRESET_TOKEN[preset] ?? preset;
-        const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[presetToken] ?? 1);
-        const trig = (typeof a.trigger === 'string' ? a.trigger : a.trigger?.type) || 'afterPrev';
-        const condAttrs = {};
-        if (trig === 'onClick') {
-            condAttrs.type = 'begin';
-            condAttrs.event = 'delay';
-            condAttrs.delay = 'indefinite';
+    const groups = [];
+    let current = null;
+    for (const { a, spid } of anims) {
+        const trig = animTriggerType(a.trigger);
+        if (trig === 'onClick' || !current) {
+            current = [];
+            groups.push(current);
         }
-        else {
-            condAttrs.type = trig === 'withPrev' ? 'withPrev' : 'afterPrev';
-        }
-        const effectChildren = [
-            xmlNode('p:stCondLst', null, xmlNode('p:cond', condAttrs))
-        ];
-        if (a.duration != null) {
-            effectChildren.push(xmlNode('p:cTn', { id: nid++, dur: Math.round(a.duration * 1000), fill: 'hold' }));
-        }
-        const presetAttrs = {
-            id: nid++,
-            presetClass,
-            presetId,
-            type: 'withEffect',
-            preset: presetToken
-        };
-        const DIR_SUBTYPE = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
-        if (a.direction && DIR_SUBTYPE[a.direction])
-            presetAttrs.presetSubtype = DIR_SUBTYPE[a.direction];
-        if (a.presetSubtype != null)
-            presetAttrs.presetSubtype = a.presetSubtype;
-        if (a.delay != null)
-            presetAttrs.delay = Math.round(a.delay * 1000);
-        if (a.repeat != null)
-            presetAttrs.repeatCount = a.repeat === 'indefinite' ? 'indefinite' : Math.round(a.repeat * 1000);
-        if (presetClass === 'path' && a.path) {
-            presetAttrs.presetSubtype = presetAttrs.presetSubtype ?? 0;
-        }
-        childNodes.push(xmlNode('p:cTn', { id: nid++, fill: 'hold' }, xmlNode('p:tgtEl', null, xmlNode('p:spTgt', { spid })), xmlNode('p:childTnLst', null, xmlNode('p:cTn', presetAttrs, ...effectChildren))));
+        current.push(buildAnimEffectNode(a, spid, trig, nextId));
     }
-    return xmlNode('p:timing', null, xmlNode('p:tnLst', null, xmlNode('p:par', null, xmlNode('p:cTn', { id: 1, fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { type: 'afterPrev' })), xmlNode('p:childTnLst', null, ...childNodes)))));
+    if (groups.length) {
+        const seqPars = groups.map(effects => xmlNode('p:par', null, xmlNode('p:cTn', { id: nextId(), fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: 'indefinite' })), xmlNode('p:childTnLst', null, xmlNode('p:par', null, xmlNode('p:cTn', { id: nextId(), fill: 'hold' }, xmlNode('p:stCondLst', null, xmlNode('p:cond', { delay: 0 })), xmlNode('p:childTnLst', null, ...effects)))))));
+        rootChildren.push(xmlNode('p:seq', { concurrent: 1, nextAc: 'seek' }, xmlNode('p:cTn', { id: 2, dur: 'indefinite', nodeType: 'mainSeq' }, xmlNode('p:childTnLst', null, ...seqPars)), xmlNode('p:prevCondLst', null, xmlNode('p:cond', { evt: 'onPrev', delay: 0 }, xmlNode('p:tgtEl', null, xmlNode('p:sldTgt')))), xmlNode('p:nextCondLst', null, xmlNode('p:cond', { evt: 'onNext', delay: 0 }, xmlNode('p:tgtEl', null, xmlNode('p:sldTgt'))))));
+    }
+    const spidSeen = new Set();
+    const bldNodes = [];
+    for (const { spid } of anims) {
+        if (spidSeen.has(spid))
+            continue;
+        spidSeen.add(spid);
+        bldNodes.push(xmlNode('p:bldP', { spid, grpId: 0 }));
+    }
+    return xmlNode('p:timing', null, xmlNode('p:tnLst', null, xmlNode('p:par', null, xmlNode('p:cTn', { id: 1, dur: 'indefinite', restart: 'never', nodeType: 'tmRoot' }, xmlNode('p:childTnLst', null, ...rootChildren)))), bldNodes.length ? xmlNode('p:bldLst', null, ...bldNodes) : null);
 }
 function resolveConnectorCxn(ctx, nodes) {
     const walk = (node) => {
@@ -18910,7 +18969,7 @@ async function buildSlideRoot(ctx, slide) {
     resolveConnectorCxn(ctx, elementNodes);
     const bgNode = await buildBackground(slide && slide.background, ctx);
     const transitionNode = buildTransition(slide && slide.transition, ctx);
-    const timingNode = buildTimingNode(slide);
+    const timingNode = buildTimingNode(ctx, slide);
     return xmlNode('p:sld', { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
         'xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
         'xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
@@ -20825,7 +20884,7 @@ function getShapeId(key, node) {
     const cNvPr = nv && nv['p:cNvPr'];
     return cNvPr && cNvPr.attrs && cNvPr.attrs.id != null ? String(cNvPr.attrs.id) : undefined;
 }
-function ooxmlTokenToEditorType$1(token, cls) {
+function ooxmlTokenToEditorType(token, cls) {
     if (cls === 'exit') {
         switch (token) {
             case 'fade': return 'fadeOut';
@@ -20854,136 +20913,293 @@ function ooxmlTokenToEditorType$1(token, cls) {
     }
     return token;
 }
-function extractTiming(slideContent) {
-    const sld = slideContent && slideContent['p:sld'];
-    const timing = sld && sld['p:timing'];
-    if (!timing)
-        return {};
-    const result = {};
-    const animations = [];
-    const allCtn = [];
-    (function walk(n) {
+const PRESET_ID_TOKEN = {
+    '1': 'appear', '2': 'fly', '3': 'blinds', '4': 'box', '5': 'checkerboard',
+    '6': 'circle', '7': 'crawl', '8': 'diamond', '9': 'dissolve', '10': 'fade',
+    '11': 'peek', '12': 'plus', '13': 'randomBars', '14': 'split', '15': 'spokes',
+    '16': 'strips', '17': 'swivel', '18': 'wedge', '19': 'wheel', '20': 'wipe',
+    '21': 'zoom', '22': 'bounce', '23': 'grow', '24': 'spin', '25': 'ascend',
+    '53': 'flashOnce', '54': 'pulse', '55': 'shake'
+};
+function collectTimingCtn(root) {
+    const out = [];
+    const walk = (n, nearest) => {
         if (!n || typeof n !== 'object')
             return;
+        if (Array.isArray(n)) {
+            for (const x of n)
+                walk(x, nearest);
+            return;
+        }
         for (const k of Object.keys(n)) {
+            if (k === 'attrs')
+                continue;
             if (k === 'p:cTn') {
                 for (const c of asArray(n[k])) {
-                    allCtn.push(c);
-                    walk(c);
+                    out.push({ node: c, parent: nearest });
+                    walk(c, c);
                 }
             }
             else {
-                const v = n[k];
-                if (Array.isArray(v))
-                    v.forEach(walk);
-                else if (v && typeof v === 'object')
-                    walk(v);
+                walk(n[k], nearest);
             }
         }
-    })(timing);
-    for (const c of allCtn) {
-        const stCondLst = c['p:stCondLst'];
-        if (stCondLst) {
-            for (const cond of asArray(stCondLst['p:cond'])) {
-                if (cond && cond.attrs && cond.attrs.type === 'afterTime' && cond.attrs.val != null) {
-                    result.advanceTime = Number(cond.attrs.val);
-                }
-            }
+    };
+    walk(root, null);
+    return out;
+}
+function findSpid(n) {
+    if (!n || typeof n !== 'object')
+        return undefined;
+    if (Array.isArray(n)) {
+        for (const x of n) {
+            const r = findSpid(x);
+            if (r)
+                return r;
         }
-        const tgtEl = c['p:tgtEl'];
-        const spTgt = tgtEl && tgtEl['p:spTgt'];
-        const spid = spTgt && spTgt.attrs && spTgt.attrs.spid;
-        if (spid != null) {
-            let preset = 'fade';
-            let dur;
-            let presetClass;
-            let presetId;
-            let presetSubtype;
-            let delay;
-            let repeat;
-            let trigger;
-            const childTnLst = c['p:childTnLst'];
-            if (childTnLst) {
-                const innerCtn = [];
-                (function walkInner(n) {
-                    if (!n || typeof n !== 'object')
-                        return;
-                    for (const k of Object.keys(n)) {
-                        if (k === 'p:cTn') {
-                            for (const ic of asArray(n[k])) {
-                                innerCtn.push(ic);
-                                walkInner(ic);
-                            }
-                        }
-                        else {
-                            const v = n[k];
-                            if (Array.isArray(v))
-                                v.forEach(walkInner);
-                            else if (v && typeof v === 'object')
-                                walkInner(v);
-                        }
-                    }
-                })(childTnLst);
-                for (const inner of innerCtn) {
-                    if (!inner || !inner.attrs)
-                        continue;
-                    if (inner.attrs.preset)
-                        preset = String(inner.attrs.preset);
-                    if (inner.attrs.dur != null)
-                        dur = Number(inner.attrs.dur) / 1000;
-                    if (inner.attrs.presetClass)
-                        presetClass = String(inner.attrs.presetClass);
-                    if (inner.attrs.presetId != null)
-                        presetId = Number(inner.attrs.presetId);
-                    if (inner.attrs.presetSubtype != null) {
-                        const dmap = { left: 'l', right: 'r', top: 't', bottom: 'b' };
-                        const d = dmap[String(inner.attrs.presetSubtype)];
-                        if (d)
-                            presetSubtype = d;
-                    }
-                    if (inner.attrs.delay != null && inner.attrs.delay !== 'indefinite')
-                        delay = Number(inner.attrs.delay) / 1000;
-                    if (inner.attrs.repeatCount != null) {
-                        repeat = inner.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(inner.attrs.repeatCount) / 1000;
-                    }
-                    const stc = inner['p:stCondLst'];
-                    if (stc) {
-                        for (const cond of asArray(stc['p:cond'])) {
-                            if (cond && cond.attrs) {
-                                const ct = cond.attrs.type;
-                                if (ct === 'onClick' || ct === 'begin')
-                                    trigger = { type: 'onClick' };
-                                else if (ct === 'withPrev')
-                                    trigger = { type: 'withPrev' };
-                                else if (ct === 'afterPrev')
-                                    trigger = { type: 'afterPrev' };
-                            }
-                        }
-                    }
-                }
-            }
-            const anim = {
-                target: String(spid),
-                type: ooxmlTokenToEditorType$1(preset, presetClass),
-                duration: dur ?? 1
-            };
-            if (presetClass)
-                anim.presetClass = presetClass;
-            if (presetId != null)
-                anim.presetId = presetId;
-            if (presetSubtype)
-                anim.direction = presetSubtype;
-            if (delay != null)
-                anim.delay = delay;
-            if (repeat != null)
-                anim.repeat = repeat;
-            if (trigger)
-                anim.trigger = trigger;
-            animations.push(anim);
+        return undefined;
+    }
+    const st = n['p:spTgt'];
+    if (st) {
+        for (const s of asArray(st)) {
+            if (s && s.attrs && s.attrs.spid != null)
+                return String(s.attrs.spid);
         }
     }
-    if (animations.length)
-        result.animations = animations;
+    for (const k of Object.keys(n)) {
+        if (k === 'attrs')
+            continue;
+        const r = findSpid(n[k]);
+        if (r)
+            return r;
+    }
+    return undefined;
+}
+function findTagAttrs(n, tag) {
+    if (!n || typeof n !== 'object')
+        return undefined;
+    if (Array.isArray(n)) {
+        for (const x of n) {
+            const r = findTagAttrs(x, tag);
+            if (r)
+                return r;
+        }
+        return undefined;
+    }
+    if (n[tag]) {
+        for (const v of asArray(n[tag])) {
+            if (v && v.attrs)
+                return v.attrs;
+        }
+    }
+    for (const k of Object.keys(n)) {
+        if (k === 'attrs')
+            continue;
+        const r = findTagAttrs(n[k], tag);
+        if (r)
+            return r;
+    }
+    return undefined;
+}
+function findEffectDur(node) {
+    const walk = (n) => {
+        if (!n || typeof n !== 'object')
+            return undefined;
+        if (Array.isArray(n)) {
+            for (const x of n) {
+                const r = walk(x);
+                if (r != null)
+                    return r;
+            }
+            return undefined;
+        }
+        if (n['p:animEffect']) {
+            for (const eff of asArray(n['p:animEffect'])) {
+                const bh = eff && eff['p:cBhvr'];
+                for (const c of asArray(bh && bh['p:cTn'])) {
+                    if (c && c.attrs && c.attrs.dur != null && Number(c.attrs.dur) > 1) {
+                        return Number(c.attrs.dur);
+                    }
+                }
+            }
+        }
+        for (const k of Object.keys(n)) {
+            if (k === 'attrs')
+                continue;
+            const r = walk(n[k]);
+            if (r != null)
+                return r;
+        }
+        return undefined;
+    };
+    return walk(node);
+}
+function allCtnIn(n) {
+    const out = [];
+    const walk = (x) => {
+        if (!x || typeof x !== 'object')
+            return;
+        if (Array.isArray(x)) {
+            for (const y of x)
+                walk(y);
+            return;
+        }
+        for (const k of Object.keys(x)) {
+            if (k === 'attrs')
+                continue;
+            if (k === 'p:cTn') {
+                for (const c of asArray(x[k])) {
+                    out.push(c);
+                    walk(c);
+                }
+            }
+            else
+                walk(x[k]);
+        }
+    };
+    walk(n);
+    return out;
+}
+function parseTiming(slideContent) {
+    const sld = slideContent && slideContent['p:sld'];
+    const timing = sld && sld['p:timing'];
+    if (!timing)
+        return { animations: [] };
+    const ctns = collectTimingCtn(timing);
+    let advanceTime;
+    for (const { node } of ctns) {
+        const stc = node && node['p:stCondLst'];
+        if (!stc)
+            continue;
+        for (const cond of asArray(stc['p:cond'])) {
+            if (cond && cond.attrs && cond.attrs.type === 'afterTime' && cond.attrs.val != null) {
+                advanceTime = Number(cond.attrs.val);
+            }
+        }
+    }
+    const animations = [];
+    for (const { node, parent } of ctns) {
+        const attrs = node && node.attrs;
+        if (!attrs)
+            continue;
+        const nodeType = String(attrs.nodeType || '');
+        const isEffect = attrs.preset != null || attrs.presetId != null || attrs.presetID != null ||
+            (attrs.presetClass != null && ['clickEffect', 'withEffect', 'afterEffect'].includes(nodeType));
+        if (!isEffect)
+            continue;
+        const spid = findSpid(node) || (parent ? findSpid(parent) : undefined);
+        if (spid == null)
+            continue;
+        let preset;
+        const effectDur = findEffectDur(node);
+        let dur = effectDur != null ? effectDur / 1000 : undefined;
+        let presetClass;
+        let presetId;
+        let subtype;
+        let delay;
+        let repeat;
+        let trigger;
+        if (nodeType === 'clickEffect')
+            trigger = 'onClick';
+        else if (nodeType === 'withEffect')
+            trigger = 'withPrev';
+        else if (nodeType === 'afterEffect')
+            trigger = 'afterPrev';
+        for (const c of [node, ...allCtnIn(node)]) {
+            const a = c && c.attrs;
+            if (!a)
+                continue;
+            if (a.preset != null && preset == null)
+                preset = String(a.preset);
+            if (a.dur != null && dur == null)
+                dur = Number(a.dur) / 1000;
+            if (a.presetClass != null && presetClass == null)
+                presetClass = String(a.presetClass);
+            if ((a.presetID != null || a.presetId != null) && presetId == null) {
+                const v = Number(a.presetID != null ? a.presetID : a.presetId);
+                if (Number.isFinite(v))
+                    presetId = v;
+            }
+            if (a.presetSubtype != null && subtype == null)
+                subtype = a.presetSubtype;
+            if (a.delay != null && a.delay !== 'indefinite' && delay == null)
+                delay = Number(a.delay) / 1000;
+            if (a.repeatCount != null && repeat == null) {
+                repeat = a.repeatCount === 'indefinite' ? 'indefinite' : Number(a.repeatCount) / 1000;
+            }
+            if (!trigger) {
+                const stc = c['p:stCondLst'];
+                if (stc) {
+                    for (const cond of asArray(stc['p:cond'])) {
+                        const ca = cond && cond.attrs;
+                        if (!ca)
+                            continue;
+                        if (ca.type === 'begin' || ca.delay === 'indefinite')
+                            trigger = 'onClick';
+                        else if (ca.type === 'withPrev')
+                            trigger = 'withPrev';
+                        else if (ca.type === 'afterPrev')
+                            trigger = 'afterPrev';
+                    }
+                }
+            }
+        }
+        if (!preset && presetId != null)
+            preset = PRESET_ID_TOKEN[String(presetId)];
+        if (!preset) {
+            const eff = findTagAttrs(node, 'p:animEffect');
+            if (eff && eff.filter)
+                preset = String(eff.filter).replace(/\(.*$/, '');
+        }
+        if (!preset)
+            preset = 'fade';
+        const dmap = { left: 'l', right: 'r', top: 't', bottom: 'b' };
+        const direction = subtype != null ? dmap[String(subtype)] : undefined;
+        const anim = {
+            spid,
+            type: ooxmlTokenToEditorType(preset, presetClass),
+            presetToken: preset,
+            duration: dur != null && Number.isFinite(dur) ? dur : 1
+        };
+        if (presetClass)
+            anim.presetClass = presetClass;
+        if (presetId != null)
+            anim.presetId = presetId;
+        if (direction)
+            anim.direction = direction;
+        if (delay != null)
+            anim.delay = delay;
+        if (repeat != null)
+            anim.repeat = repeat;
+        if (trigger)
+            anim.trigger = trigger;
+        animations.push(anim);
+    }
+    return { advanceTime, animations };
+}
+function extractTiming(slideContent) {
+    const parsed = parseTiming(slideContent);
+    const result = {};
+    if (parsed.advanceTime != null)
+        result.advanceTime = parsed.advanceTime;
+    if (parsed.animations.length) {
+        result.animations = parsed.animations.map((a) => {
+            const anim = { target: a.spid, type: a.type, duration: a.duration };
+            if (a.presetClass)
+                anim.presetClass = a.presetClass;
+            if (a.presetId != null)
+                anim.presetId = a.presetId;
+            if (a.direction)
+                anim.direction = a.direction;
+            if (a.delay != null)
+                anim.delay = a.delay;
+            if (a.repeat != null)
+                anim.repeat = a.repeat;
+            if (a.trigger)
+                anim.trigger = { type: a.trigger };
+            return anim;
+        });
+    }
     return result;
 }
 async function extractBackground(slideContent, resObj, zip, fallbacks = [], themeMap = {}, themeContent) {
@@ -21583,6 +21799,9 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                         }
                     }
                     el.__raw = { tag: key, node };
+                    const shapeSpid = getShapeId(key, node);
+                    if (shapeSpid)
+                        el.spid = shapeSpid;
                     if (allDeps || !SEMANTIC_TYPES.has(el.type)) {
                         await attachRawDeps(el, node, nodeResObj, zip);
                     }
@@ -21593,6 +21812,9 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                         type: 'raw', x: 0, y: 0, width: 0, height: 0,
                         __raw: { tag: key, node }, rawFallback: true
                     };
+                    const rawSpid = getShapeId(key, node);
+                    if (rawSpid)
+                        rawEl.spid = rawSpid;
                     if (allDeps)
                         await attachRawDeps(rawEl, node, nodeResObj, zip);
                     return rawEl;
@@ -21652,6 +21874,9 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                     children,
                     childrenCoordinates: 'relative'
                 };
+                const groupSpid = getShapeId('p:grpSp', node);
+                if (groupSpid)
+                    g.spid = groupSpid;
                 if (gxfAttrs && gxfAttrs.rot != null && Number(gxfAttrs.rot) !== 0) {
                     g.rotation = Number(gxfAttrs.rot) / 60000;
                 }
@@ -25456,10 +25681,14 @@ function elementToPptx(el) {
         }
     }
 }
+function animMsToSeconds(v) {
+    return typeof v === 'number' && v >= 20 ? v / 1000 : v;
+}
+function animSecondsToMs(v) {
+    return typeof v === 'number' && v > 0 && v < 20 ? v * 1000 : v;
+}
 function slideToPptx(slide) {
     const visibleEls = (slide.elements || []).filter((e) => !e.hidden);
-    const idToIndex = new Map();
-    visibleEls.forEach((e, i) => idToIndex.set(e.id, i));
     const out = { elements: visibleEls.map(elementToPptx) };
     if (slide.background)
         out.background = slide.background;
@@ -25467,6 +25696,8 @@ function slideToPptx(slide) {
         out.notes = slide.notes;
     if (slide.hidden)
         out.hidden = true;
+    if (slide.advanceTime != null)
+        out.advanceTime = slide.advanceTime;
     if (Array.isArray(slide.comments) && slide.comments.length) {
         out.comments = slide.comments.map((c) => ({
             author: c.author || 'Author',
@@ -25477,6 +25708,7 @@ function slideToPptx(slide) {
     }
     if (slide.transition && slide.transition.type && slide.transition.type !== 'none') {
         out.transition = {
+            ...slide.transition,
             type: slide.transition.type,
             duration: slide.transition.duration || 800,
             advanceOnClick: slide.transition.advanceOnClick !== false
@@ -25484,18 +25716,27 @@ function slideToPptx(slide) {
     }
     if (slide.animations && slide.animations.length) {
         out.animations = slide.animations.map((a) => {
-            const target = idToIndex.has(a.target) ? idToIndex.get(a.target) : (typeof a.target === 'number' ? a.target : 0);
-            const o = { target, type: a.type, duration: a.duration || 0.5 };
+            const o = {
+                target: a.target,
+                type: a.type,
+                duration: animMsToSeconds(a.duration ?? 500)
+            };
             if (a.presetClass)
                 o.presetClass = a.presetClass;
+            if (a.presetId != null)
+                o.presetId = a.presetId;
             if (a.direction)
                 o.direction = a.direction;
+            if (a.presetSubtype != null)
+                o.presetSubtype = a.presetSubtype;
             if (a.trigger)
-                o.trigger = a.trigger;
+                o.trigger = typeof a.trigger === 'string' ? a.trigger : (a.trigger.type || 'afterPrev');
             if (a.delay != null)
-                o.delay = a.delay;
+                o.delay = animMsToSeconds(a.delay);
             if (a.repeat != null)
                 o.repeat = a.repeat;
+            if (a.path)
+                o.path = a.path;
             return o;
         });
     }
@@ -26091,8 +26332,10 @@ function docFromPptx(pptxDoc, opts = {}) {
         });
         resolveConnectorGlue(stdEls, slide);
         if (s.transition && s.transition.type) {
-            slide.transition = { type: s.transition.type, duration: s.transition.duration || 800 };
+            slide.transition = { ...s.transition, type: s.transition.type, duration: s.transition.duration || 800 };
         }
+        if (s.advanceTime != null)
+            slide.advanceTime = s.advanceTime;
         if (typeof s.layout === 'number')
             slide.layout = s.layout;
         if (Array.isArray(s.comments) && s.comments.length) {
@@ -26104,17 +26347,60 @@ function docFromPptx(pptxDoc, opts = {}) {
             }));
         }
         if (s.animations && s.animations.length) {
-            slide.animations = s.animations.map((a) => {
-                const t = typeof a.target === 'number' ? a.target : Number(a.target) - 2;
-                const idx = Number.isFinite(t) && t >= 0 ? t : 0;
-                const el = slide.elements[idx];
-                return {
-                    target: el ? el.id : (slide.elements[0] ? slide.elements[0].id : ''),
-                    type: a.type, duration: a.duration || 0.5,
-                    presetClass: a.presetClass, direction: a.direction,
-                    trigger: a.trigger, delay: a.delay, repeat: a.repeat
-                };
+            const spidToElId = new Map();
+            stdEls.forEach((pe, i) => {
+                if (!pe || pe.inherited)
+                    return;
+                const ed = slide.elements[i];
+                if (!ed)
+                    return;
+                let numId = pe.spid != null ? String(pe.spid) : undefined;
+                const raw = pe.__raw && pe.__raw.node;
+                if (!numId && raw) {
+                    for (const k of ['p:nvSpPr', 'p:nvPicPr', 'p:nvCxnSpPr', 'p:nvGraphicFramePr', 'p:nvGrpSpPr']) {
+                        const nv = raw[k];
+                        if (!nv)
+                            continue;
+                        const cNvPr = Array.isArray(nv['p:cNvPr']) ? nv['p:cNvPr'][0] : nv['p:cNvPr'];
+                        if (cNvPr && cNvPr.attrs && cNvPr.attrs.id != null) {
+                            numId = String(cNvPr.attrs.id);
+                            break;
+                        }
+                    }
+                }
+                if (numId)
+                    spidToElId.set(numId, ed.id);
             });
+            slide.animations = s.animations.map((a) => {
+                const key = String(a.target ?? '');
+                let target = spidToElId.get(key);
+                if (!target && typeof a.target === 'number' && slide.elements[a.target]) {
+                    target = slide.elements[a.target].id;
+                }
+                if (!target && slide.elements.some((e) => e.id === key))
+                    target = key;
+                if (!target && spidToElId.size === 0 && /^\d+$/.test(key)) {
+                    const real = slide.elements.filter((e) => !e.inherited);
+                    const el = real[Number(key) - 2];
+                    if (el)
+                        target = el.id;
+                }
+                if (!target)
+                    return null;
+                const trig = typeof a.trigger === 'string' ? a.trigger : (a.trigger && a.trigger.type);
+                return {
+                    target,
+                    type: a.type,
+                    duration: animSecondsToMs(a.duration ?? 0.5),
+                    presetClass: a.presetClass,
+                    presetId: a.presetId,
+                    direction: a.direction,
+                    trigger: trig || 'afterPrev',
+                    delay: a.delay != null ? animSecondsToMs(a.delay) : undefined,
+                    repeat: a.repeat,
+                    path: a.path
+                };
+            }).filter(Boolean);
         }
         return slide;
     });
@@ -28504,123 +28790,29 @@ function extractSlideTransition(slideContent) {
         duration: duration
     };
 }
-function ooxmlTokenToEditorType(token, cls) {
-    if (cls === 'exit') {
-        switch (token) {
-            case 'fade': return 'fadeOut';
-            case 'wipe': return 'wipeOut';
-            case 'zoom': return 'zoomOut';
-            case 'fly': return 'flyOut';
-        }
-    }
-    else if (cls === 'emph') {
-        switch (token) {
-            case 'grow': return 'grow';
-            case 'pulse': return 'pulse';
-            case 'shake': return 'shake';
-            case 'flashOnce': return 'flash';
-        }
-    }
-    else {
-        switch (token) {
-            case 'bounce': return 'bounceIn';
-            case 'fade': return 'fadeIn';
-            case 'wipe': return 'wipeIn';
-            case 'zoom': return 'zoomIn';
-            case 'ascend': return 'riseUp';
-            case 'fly': return 'flyIn';
-        }
-    }
-    return token;
-}
 function extractSlideTiming(slideContent) {
-    const sld = slideContent["p:sld"];
-    const timing = sld && sld["p:timing"];
-    if (!timing)
+    const parsed = parseTiming(slideContent);
+    if (parsed.advanceTime == null && parsed.animations.length === 0)
         return null;
-    const animations = [];
-    let advanceTime;
-    const allCtn = [];
-    (function walk(n) {
-        if (!n || typeof n !== "object")
-            return;
-        for (const k of Object.keys(n)) {
-            if (k === "p:cTn") {
-                const arr = Array.isArray(n[k]) ? n[k] : [n[k]];
-                for (const c of arr) {
-                    allCtn.push(c);
-                    walk(c);
-                }
-            }
-            else {
-                const v = n[k];
-                if (Array.isArray(v))
-                    v.forEach(walk);
-                else if (v && typeof v === "object")
-                    walk(v);
-            }
-        }
-    })(timing);
-    for (const c of allCtn) {
-        const stCondLst = c["p:stCondLst"];
-        if (stCondLst) {
-            const conds = Array.isArray(stCondLst["p:cond"]) ? stCondLst["p:cond"] : [stCondLst["p:cond"]];
-            for (const cd of conds) {
-                if (cd && cd.attrs && cd.attrs.type === "afterTime" && cd.attrs.val != null) {
-                    advanceTime = Number(cd.attrs.val);
-                }
-            }
-        }
-        const tgtEl = c["p:tgtEl"];
-        const spTgt = tgtEl && tgtEl["p:spTgt"];
-        const spid = spTgt && spTgt.attrs && spTgt.attrs.spid;
-        if (spid != null) {
-            let preset = "fade";
-            let dur;
-            let presetClass;
-            let presetId;
-            let delay;
-            let repeat;
-            const childTnLst = c["p:childTnLst"];
-            if (childTnLst) {
-                const inner = Array.isArray(childTnLst["p:cTn"]) ? childTnLst["p:cTn"] : [childTnLst["p:cTn"]];
-                for (const ic of inner) {
-                    if (ic && ic.attrs) {
-                        if (ic.attrs.preset)
-                            preset = String(ic.attrs.preset);
-                        if (ic.attrs.dur != null)
-                            dur = Number(ic.attrs.dur) / 1000;
-                        if (ic.attrs.presetClass)
-                            presetClass = String(ic.attrs.presetClass);
-                        if (ic.attrs.presetId != null)
-                            presetId = Number(ic.attrs.presetId);
-                        if (ic.attrs.delay != null && ic.attrs.delay !== 'indefinite')
-                            delay = Number(ic.attrs.delay) / 1000;
-                        if (ic.attrs.repeatCount != null) {
-                            repeat = ic.attrs.repeatCount === 'indefinite' ? 'indefinite' : Number(ic.attrs.repeatCount) / 1000;
-                        }
-                    }
-                }
-            }
-            const anim = {
-                spid: Number(spid),
-                type: ooxmlTokenToEditorType(preset, presetClass),
-                duration: dur ?? 1
-            };
-            if (presetClass)
-                anim.presetClass = presetClass;
-            if (presetId != null)
-                anim.presetId = presetId;
-            if (delay != null)
-                anim.delay = delay;
-            if (repeat != null)
-                anim.repeat = repeat;
-            animations.push(anim);
-        }
-    }
-    if (advanceTime == null && animations.length === 0)
-        return null;
-    return { advanceTime, animations };
+    const animations = parsed.animations.map((a) => {
+        const anim = {
+            spid: Number(a.spid), type: a.type, duration: a.duration
+        };
+        if (a.presetClass)
+            anim.presetClass = a.presetClass;
+        if (a.presetId != null)
+            anim.presetId = a.presetId;
+        if (a.direction)
+            anim.direction = a.direction;
+        if (a.trigger)
+            anim.trigger = a.trigger;
+        if (a.delay != null)
+            anim.delay = a.delay;
+        if (a.repeat != null)
+            anim.repeat = a.repeat;
+        return anim;
+    });
+    return { advanceTime: parsed.advanceTime, animations };
 }
 
 export { ANIM_CLASSES, ANIM_DIRECTIONS, ANIM_TRIGGERS, ANIM_TYPES, CHART_TYPES, EditorStore, FONT_LIST, FONT_SIZES, LAYOUTS, PPTXComposer, PPTXShapeUtils, SHAPES, SLIDE_SIZES, THEMES, TRANSITIONS, TRANSITION_SPEEDS, absoluteElementRect, applyTextStyle, bboxOf, buildSlideFromLayout, buildThemeXml, clamp$1 as clamp, clone, createActions, createAudioElement, createChartElement, createDoc, createGroupElement, createImageElement, createParagraph, createShapeElement, createSlide, createStarterDoc, createStore, createTableElement, createTextElement, createVideoElement, pptxToHtml as default, defaultMediaPoster, docFromPptx, docToPptx, editPptx, effectMargin, elementRect, elementToPptx, escapeHtml, extOfDataUrl, extractDiagramNodes, getTheme, hexToRgb, inToPx, inferDiagramType, jsonToPptx, layoutElements, luminance, mixHex, normalizeBulletIn, normalizeBulletOut, normalizeColor, normalizeDoc, normalizeElement, pptxToFiles, pptxToHtml, pptxToJson, pptxToStandard, presetShapePath, ptToPx, pxToPt, relayoutDiagram, renderChartSVG, rgbToHex, rotatePoint, rotatedRect, round, setActiveTheme, shade, shapeStyle, slideToPptx, stripDataUrl, syncTableStyle, uid, unionBBox, updateDiagramTexts, withAlpha };

@@ -1047,14 +1047,23 @@ export function elementToPptx(el: any): any {
     }
 }
 
+/** 编辑器动画时长是毫秒，标准 JSON（PptxAnimation）与 OOXML 约定秒；已是秒的小值原样保留 */
+function animMsToSeconds(v: any): any {
+    return typeof v === 'number' && v >= 20 ? v / 1000 : v;
+}
+
+/** 解析回来的标准 JSON 动画时长是秒，编辑器模型统一用毫秒 */
+function animSecondsToMs(v: any): any {
+    return typeof v === 'number' && v > 0 && v < 20 ? v * 1000 : v;
+}
+
 export function slideToPptx(slide: any): any {
     const visibleEls = (slide.elements || []).filter((e: any) => !e.hidden);
-    const idToIndex = new Map();
-    visibleEls.forEach((e: any, i: number) => idToIndex.set(e.id, i));
     const out: any = { elements: visibleEls.map(elementToPptx) };
     if (slide.background) out.background = slide.background;
     if (slide.notes) out.notes = slide.notes;
     if (slide.hidden) out.hidden = true;
+    if (slide.advanceTime != null) out.advanceTime = slide.advanceTime;
     // 批注：pos 由 px 转回 EMU（标准 JSON 的批注锚点为 EMU）
     if (Array.isArray(slide.comments) && slide.comments.length) {
         out.comments = slide.comments.map((c: any) => ({
@@ -1065,7 +1074,9 @@ export function slideToPptx(slide: any): any {
         }));
     }
     if (slide.transition && slide.transition.type && slide.transition.type !== 'none') {
+        // 完整透传：advanceAfterTime 会驱动生成端写 p:timing 的自动换片条件
         out.transition = {
+            ...slide.transition,
             type: slide.transition.type,
             duration: slide.transition.duration || 800,
             advanceOnClick: slide.transition.advanceOnClick !== false
@@ -1073,13 +1084,23 @@ export function slideToPptx(slide: any): any {
     }
     if (slide.animations && slide.animations.length) {
         out.animations = slide.animations.map((a: any) => {
-            const target = idToIndex.has(a.target) ? idToIndex.get(a.target) : (typeof a.target === 'number' ? a.target : 0);
-            const o: any = { target, type: a.type, duration: a.duration || 0.5 };
+            // 保留编辑器元素 id。生成端用 ctx.idMap 把它换成真实的 p:cNvPr@id；
+            // 若在这里转成「可见元素下标」，版式装饰形状被跳过、group 子元素额外占号，
+            // 保存再打开动画就会挂到别的形状上。
+            const o: any = {
+                target: a.target,
+                type: a.type,
+                duration: animMsToSeconds(a.duration ?? 500)
+            };
             if (a.presetClass) o.presetClass = a.presetClass;
+            if (a.presetId != null) o.presetId = a.presetId;
             if (a.direction) o.direction = a.direction;
-            if (a.trigger) o.trigger = a.trigger;
-            if (a.delay != null) o.delay = a.delay;
+            if (a.presetSubtype != null) o.presetSubtype = a.presetSubtype;
+            // 标准层 trigger 允许对象形态，编辑器用字符串；统一成字符串便于播放端比较
+            if (a.trigger) o.trigger = typeof a.trigger === 'string' ? a.trigger : (a.trigger.type || 'afterPrev');
+            if (a.delay != null) o.delay = animMsToSeconds(a.delay);
             if (a.repeat != null) o.repeat = a.repeat;
+            if (a.path) o.path = a.path;
             return o;
         });
     }
@@ -1695,8 +1716,9 @@ export function docFromPptx(pptxDoc: any, opts: { fileName?: string } = {}): any
         // 这里映射成编辑模型的元素 id，连接线才能在编辑时跟随形状移动
         resolveConnectorGlue(stdEls, slide);
         if (s.transition && s.transition.type) {
-            slide.transition = { type: s.transition.type, duration: s.transition.duration || 800 };
+            slide.transition = { ...s.transition, type: s.transition.type, duration: s.transition.duration || 800 };
         }
+        if (s.advanceTime != null) slide.advanceTime = s.advanceTime;
         // 版式下标（展平版式序列）：配合 doc.masters 写回原母版/版式/主题绑定
         if (typeof s.layout === 'number') slide.layout = s.layout;
         // 批注：pos 由 EMU 转 px（与元素坐标一致），导出时再转回
@@ -1709,21 +1731,62 @@ export function docFromPptx(pptxDoc: any, opts: { fileName?: string } = {}): any
             }));
         }
         if (s.animations && s.animations.length) {
-            slide.animations = s.animations.map((a: any) => {
-                // `a.target` from pptxToStandard is the pptx shape `spid` (a string such as "2"),
-                // while jsonToPptx writes spid as elementIndex + 2. Convert it back to the element
-                // index so we resolve the correct editor element id. Numeric targets (already an
-                // index, e.g. from a doc that round-tripped through the editor JSON) pass through.
-                const t = typeof a.target === 'number' ? a.target : Number(a.target) - 2;
-                const idx = Number.isFinite(t) && t >= 0 ? t : 0;
-                const el = slide.elements[idx];
-                return {
-                    target: el ? el.id : (slide.elements[0] ? slide.elements[0].id : ''),
-                    type: a.type, duration: a.duration || 0.5,
-                    presetClass: a.presetClass, direction: a.direction,
-                    trigger: a.trigger, delay: a.delay, repeat: a.repeat
-                };
+            // 建立「源文件 p:cNvPr@id（spid）→ 编辑器元素 id」的精确映射。
+            // 不能再用 `Number(spid) - 2` 反推下标：版式/母版装饰形状会被解析端前置到
+            // elements 数组，group 子元素还会占用额外 id，下标与 spid 并无对应关系。
+            // 映射不到（形状已删除 / 动画指向版式形状）时丢弃该动画，绝不退回第一个元素，
+            // 否则「给一个形状设动画」会在重新打开后变成「别的形状在动」。
+            const spidToElId = new Map<string, string>();
+            stdEls.forEach((pe: any, i: number) => {
+                if (!pe || pe.inherited) return; // 装饰形状属于 layout/master，id 空间不同
+                const ed = slide.elements[i];
+                if (!ed) return;
+                // 解析端给所有元素（含 group / raw 回退）直接挂了 spid，优先用它；
+                // __raw 仅作为旧版 JSON 的兜底——group 元素并没有 __raw。
+                let numId: string | undefined = pe.spid != null ? String(pe.spid) : undefined;
+                const raw = pe.__raw && pe.__raw.node;
+                if (!numId && raw) {
+                    for (const k of ['p:nvSpPr', 'p:nvPicPr', 'p:nvCxnSpPr', 'p:nvGraphicFramePr', 'p:nvGrpSpPr']) {
+                        const nv = raw[k];
+                        if (!nv) continue;
+                        const cNvPr = Array.isArray(nv['p:cNvPr']) ? nv['p:cNvPr'][0] : nv['p:cNvPr'];
+                        if (cNvPr && cNvPr.attrs && cNvPr.attrs.id != null) {
+                            numId = String(cNvPr.attrs.id);
+                            break;
+                        }
+                    }
+                }
+                if (numId) spidToElId.set(numId, ed.id);
             });
+            slide.animations = s.animations.map((a: any) => {
+                const key = String(a.target ?? '');
+                let target = spidToElId.get(key);
+                // 兼容编辑器直出的 JSON：数字下标 / 元素 id 原样
+                if (!target && typeof a.target === 'number' && slide.elements[a.target]) {
+                    target = slide.elements[a.target].id;
+                }
+                if (!target && slide.elements.some((e: any) => e.id === key)) target = key;
+                // 完全没有 spid 信息的旧文档：按非装饰元素顺序反推（生成端 assignId 从 2 递增）
+                if (!target && spidToElId.size === 0 && /^\d+$/.test(key)) {
+                    const real = slide.elements.filter((e: any) => !e.inherited);
+                    const el = real[Number(key) - 2];
+                    if (el) target = el.id;
+                }
+                if (!target) return null;
+                const trig = typeof a.trigger === 'string' ? a.trigger : (a.trigger && a.trigger.type);
+                return {
+                    target,
+                    type: a.type,
+                    duration: animSecondsToMs(a.duration ?? 0.5),
+                    presetClass: a.presetClass,
+                    presetId: a.presetId,
+                    direction: a.direction,
+                    trigger: trig || 'afterPrev',
+                    delay: a.delay != null ? animSecondsToMs(a.delay) : undefined,
+                    repeat: a.repeat,
+                    path: a.path
+                };
+            }).filter(Boolean);
         }
         return slide;
     });

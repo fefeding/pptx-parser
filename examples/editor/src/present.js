@@ -165,7 +165,7 @@ function setupAnimations(slide) {
 function playNextAnim() {
   if (!state || !state.animQueue.length) return;
   const a = state.animQueue[0];
-  const trigger = (a.trigger && a.trigger.type) || 'onClick';
+  const trigger = (typeof a.trigger === 'string' ? a.trigger : a.trigger && a.trigger.type) || 'onClick';
   if (trigger === 'onClick') return; // 等待点击
   // withPrev / afterPrev 自动播放
   if (trigger === 'afterPrev' && state.animStep > 0) {
@@ -186,7 +186,8 @@ function doPlayAnim() {
   if (!el) { playNextAnim(); return; }
   el.style.visibility = '';
   delete el.dataset.animPending;
-  const ms = Math.round((a.duration || 0.5) * 1000);
+  // 编辑器模型统一用毫秒；兼容旧的秒值
+  const ms = a.duration >= 20 ? Math.round(a.duration) : Math.round((a.duration || 0.5) * 1000);
   const anim = animCSS(a, ms);
   if (anim) {
     el.style.animation = anim;
@@ -277,7 +278,7 @@ function onClick(e) {
   // 先尝试播放下一个 onClick 动画
   if (state && state.animQueue.length) {
     const a = state.animQueue[0];
-    const trigger = (a.trigger && a.trigger.type) || 'onClick';
+    const trigger = (typeof a.trigger === 'string' ? a.trigger : a.trigger && a.trigger.type) || 'onClick';
     if (trigger === 'onClick') { doPlayAnim(); return; }
   }
   next();

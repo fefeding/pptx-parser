@@ -591,8 +591,8 @@ function buildAnimationSection(slide) {
     if (!sel.length) return;
     const el = sel[0];
     addAnimation({
-      target: el.id, type: 'flyIn', presetClass: 'entr', duration: 0.5,
-      direction: 'l', trigger: { type: 'onClick' }
+      target: el.id, type: 'flyIn', presetClass: 'entr', duration: 500,
+      direction: 'l', trigger: 'onClick'
     });
   }});
   controls.push(addBtn);
@@ -635,11 +635,12 @@ function buildAnimEditPanel(el) {
   for (const d of ANIM_DIRECTIONS) dirSel.appendChild(h('option', { value: d.value, text: d.name }));
   dirSel.value = a.direction || 'l';
 
-  const trigSel = h('select', { onchange: (e) => updateAnimation(idx, { trigger: { type: e.target.value } }) });
+  const trigSel = h('select', { onchange: (e) => updateAnimation(idx, { trigger: e.target.value }) });
   for (const t of ANIM_TRIGGERS) trigSel.appendChild(h('option', { value: t.value, text: t.name }));
-  trigSel.value = (a.trigger && a.trigger.type) || 'onClick';
+  trigSel.value = (typeof a.trigger === 'string' ? a.trigger : a.trigger && a.trigger.type) || 'onClick';
 
-  const durInp = numInput((a.duration || 0.5) * 1000, (v) => updateAnimation(idx, { duration: v / 1000 }), { step: 100, min: 100 });
+  // 编辑器模型以毫秒存储 duration，面板直接显示毫秒
+  const durInp = numInput(a.duration || 500, (v) => updateAnimation(idx, { duration: v }), { step: 100, min: 100 });
 
   return section('动画属性', [
     field('类别', classSel),
