@@ -3557,12 +3557,17 @@ function buildAnimEffectNode(a: any, spid: string, trig: string, nextId: () => n
     const preset = a.type || 'fade';
     const presetClass = a.presetClass || 'entr';
     const presetToken = ANIM_PRESET_TOKEN[preset] ?? preset;
-    const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[presetToken] ?? 1);
+    // PowerPoint 主要按 presetID 定位效果。改过类型的动画会带着旧 presetID（例如 type 已是
+    // zoomIn 但 presetID 仍是 flyIn 的 2），若沿用旧值，preset 与 presetID 不一致，PowerPoint
+    // 会忽略这条动画或仍播旧效果。因此已知 preset 一律按当前类型反查，模型里的 presetId
+    // 只作为自定义/未知效果的回退。
+    const presetId = ANIMATION_PRESET_IDS[presetToken] ?? (a.presetId != null ? a.presetId : 1);
     // 标准 JSON 的 duration/delay 单位是秒，OOXML 的 dur/delay 单位是毫秒
     const durMs = a.duration != null ? Math.max(1, Math.round(a.duration * 1000)) : 1000;
     const delayMs = a.delay != null ? Math.max(0, Math.round(a.delay * 1000)) : 0;
     const DIR_SUBTYPE: Record<string, string> = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
-    const subtype = a.presetSubtype ?? (a.direction && DIR_SUBTYPE[a.direction]);
+    // 同理，方向改过之后旧的 presetSubtype 必须让位给当前 direction
+    const subtype = (a.direction && DIR_SUBTYPE[a.direction]) ?? a.presetSubtype;
     const nodeType = trig === 'onClick' ? 'clickEffect' : trig === 'withPrev' ? 'withEffect' : 'afterEffect';
     const attrs: Record<string, unknown> = {
         id: nextId(), dur: durMs,

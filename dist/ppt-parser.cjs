@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.31
+ * @fefeding/ppt-parser v1.0.32
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -17620,11 +17620,11 @@ function buildAnimEffectNode(a, spid, trig, nextId) {
     const preset = a.type || 'fade';
     const presetClass = a.presetClass || 'entr';
     const presetToken = ANIM_PRESET_TOKEN[preset] ?? preset;
-    const presetId = a.presetId != null ? a.presetId : (ANIMATION_PRESET_IDS[presetToken] ?? 1);
+    const presetId = ANIMATION_PRESET_IDS[presetToken] ?? (a.presetId != null ? a.presetId : 1);
     const durMs = a.duration != null ? Math.max(1, Math.round(a.duration * 1000)) : 1000;
     const delayMs = a.delay != null ? Math.max(0, Math.round(a.delay * 1000)) : 0;
     const DIR_SUBTYPE = { l: 'left', r: 'right', t: 'top', b: 'bottom' };
-    const subtype = a.presetSubtype ?? (a.direction && DIR_SUBTYPE[a.direction]);
+    const subtype = (a.direction && DIR_SUBTYPE[a.direction]) ?? a.presetSubtype;
     const nodeType = trig === 'onClick' ? 'clickEffect' : trig === 'withPrev' ? 'withEffect' : 'afterEffect';
     const attrs = {
         id: nextId(), dur: durMs,

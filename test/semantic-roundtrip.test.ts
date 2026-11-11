@@ -280,4 +280,29 @@ describe('编辑器动画往返（按真实 spid 绑定，不再错挂到别的�
         expect(new Set(spids).size).toBe(1);
         expect(spids[0]).toBe('3');
     });
+
+    it('改过类型的动画按新类型写 presetID/presetSubtype，不残留旧效果的编号', async () => {
+        const doc = docFromPptx({ ...size, slides: [{ elements: [mk('A', 20), mk('B', 120)] }] });
+        doc.slides[0].animations = [{
+            target: doc.slides[0].elements[1].id, type: 'flyIn', presetClass: 'entr',
+            duration: 500, trigger: 'afterPrev', presetId: 2, presetSubtype: 'left'
+        }];
+        // 模拟 UI 改类型/方向：旧 presetId(2=flyIn) 与 presetSubtype(left) 仍留在模型里
+        doc.slides[0].animations[0].type = 'zoomIn';
+        doc.slides[0].animations[0].direction = 'r';
+        const buf: any = await jsonToPptx(docToPptx(doc), { outputType: 'uint8array' });
+        const JSZip = (await import('jszip')).default;
+        const zip = await JSZip.loadAsync(buf);
+        const xml = await zip.file('ppt/slides/slide1.xml')!.async('text');
+        const ids = [...xml.matchAll(/presetID="(\d+)"/g)].map(m => m[1]);
+        expect(ids).toContain('21');          // zoom
+        expect(ids).not.toContain('2');       // 旧 flyIn
+        expect(xml).toContain('presetSubtype="right"');
+        expect(xml).not.toContain('presetSubtype="left"');
+
+        // 重新解析回来，类型与 presetId 也保持一致
+        const back = await pptxToStandard(buf);
+        expect(back.slides[0].animations[0].type).toBe('zoomIn');
+        expect(back.slides[0].animations[0].presetId).toBe(21);
+    });
 });
