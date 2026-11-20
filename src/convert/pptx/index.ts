@@ -1,8 +1,8 @@
 /**
- * PPTX 解析与生成公开入口
+ * PPTX 解析与生成公开入口（转换引擎内部使用）
  *
- * PPTX 能力由 @fefeding/ppt-parser 提供，本模块负责：
- * 1) 把 jdoc 的宽松入参（Blob / base64 / TypedArray）转成底层库要求的 ArrayBuffer
+ * PPTX 能力由主库 @fefeding/ppt-parser 提供，本模块负责：
+ * 1) 把宽松入参（Blob / base64 / TypedArray）转成底层库要求的 ArrayBuffer
  * 2) 把底层库的宽松出参（string | Buffer | Blob | ...）统一为 Uint8Array
  * 3) 导出标准文档契约 PptxDocument，供 jsonToPptx 往返
  *
@@ -17,16 +17,16 @@ import {
     pptxToHtml as basePptxToHtml,
     pptxToJson as basePptxToJson,
     pptxToStandard as basePptxToStandard
-} from '@fefeding/ppt-parser';
+} from '../..';
 import { wrapError } from '../core/errors';
 import { toArrayBuffer, type DocInput } from '../core/input';
 import type { DocAsset, DocAssetMode } from '../core/asset';
 import { extractPptxAssets } from './assets';
 import { resolvePptxAssetRefs } from './asset-refs';
 
-export type { PptxDocument } from '@fefeding/ppt-parser';
-export { PPTXShapeUtils, presetShapePath, createStore, createActions, renderChartSVG } from '@fefeding/ppt-parser';
-export { normalizeDoc, normalizeElement } from '@fefeding/ppt-parser';
+export type { PptxDocument } from '../..';
+export { PPTXShapeUtils, presetShapePath, createStore, createActions, renderChartSVG } from '../..';
+export { normalizeDoc, normalizeElement } from '../..';
 // 编辑核心与编辑器 UI 常量：供 VS Code 插件（及任何需要直接编辑 PPTX 的消费者）
 // 复用 ppt-parser 的编辑器能力。docFromPptx/docToPptx 是编辑器文档模型的序列化入口，
 // 其余为 ribbon/dialogs 所需的展示常量。
@@ -44,7 +44,7 @@ export {
   ANIM_TYPES,
   ANIM_DIRECTIONS,
   CHART_TYPES
-} from '@fefeding/ppt-parser';
+} from '../..';
 // 渲染辅助（pptx-editor 的 render.ts/geometry 用到）
 export {
   FONT_SIZES,
@@ -57,7 +57,7 @@ export {
   effectMargin,
   elementRect,
   rotatedRect
-} from '@fefeding/ppt-parser';
+} from '../..';
 
 /** 底层库可能返回多种类型，这里统一收敛为 Uint8Array */
 function toUint8(result: unknown): Uint8Array {

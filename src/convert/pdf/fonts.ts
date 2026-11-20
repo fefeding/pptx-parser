@@ -11,7 +11,7 @@
  * @module pdf/fonts
  */
 
-import { JdocError } from '../core/errors';
+import { ConvertError } from '../core/errors';
 import type { PdfFontSet } from './types';
 
 /** fontkit 模块的最小接口（避免直接依赖其类型声明） */
@@ -30,7 +30,7 @@ export async function registerPdfFontkit(): Promise<FontkitModule> {
             .then((mod) => (mod as { default?: FontkitModule }).default ?? (mod as unknown as FontkitModule))
             .catch((error) => {
                 fontkitPromise = undefined;
-                throw new JdocError(
+                throw new ConvertError(
                     '嵌入自定义字体需要 @pdf-lib/fontkit，请先安装：npm i @pdf-lib/fontkit',
                     'pdf',
                     { cause: error }
@@ -112,7 +112,7 @@ const detectCache = new Map<string, PdfFontSet | undefined>();
  */
 export async function detectSystemFonts(options: DetectSystemFontsOptions = {}): Promise<PdfFontSet | undefined> {
     if (!(globalThis as { process?: { versions?: { node?: string } } }).process?.versions?.node) {
-        throw new JdocError('系统字体探测仅支持 Node.js（浏览器端请自行传入 fonts）', 'pdf');
+        throw new ConvertError('系统字体探测仅支持 Node.js（浏览器端请自行传入 fonts）', 'pdf');
     }
 
     const key = JSON.stringify([options.candidates || [], options.includeUserFonts !== false]);

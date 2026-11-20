@@ -23,6 +23,8 @@ import {
   docToPptx,
   createStore,
   createActions,
+  normalizeColor,
+  unionBBox,
   updateDiagramTexts,
   FONT_LIST,
   THEMES,
@@ -515,12 +517,8 @@ function patchCurrentAnim(patch: any): void {
   const idx = currentAnimIndex();
   if (idx < 0 || idx >= anims.length) return;
   animEditIndex = idx;
-  const next: any = { ...patch };
-  // 类型/类别/方向变了，旧的 OOXML presetID/presetSubtype 必须失效：导出端会优先用它们，
-  // 与 preset 不一致时 PowerPoint 会忽略该动画或仍播旧效果（一直「从左侧飞入」）。
-  if ('type' in next || 'presetClass' in next) next.presetId = undefined;
-  if ('direction' in next) next.presetSubtype = undefined;
-  runAction(() => actions.updateAnimation(idx, next));
+  // presetID/presetSubtype 的失效规则已下沉到 actions.updateAnimation（主库编辑器内核）。
+  runAction(() => actions.updateAnimation(idx, patch));
 }
 
 function animLabel(a: any): string {
@@ -1025,7 +1023,7 @@ function applyTextStyle(patch: Record<string, unknown>): void {
   runAction(() => {
     store.update((doc: any) => {
       for (const id of store.sel.slice()) {
-        const el = findInDoc(doc, id);
+        const el = actions.findInDoc(doc, id);
         if (!el || (el.type !== 'text' && !(el.paragraphs || []).length)) continue;
         for (const [k, v] of Object.entries(patch)) {
           if (v === undefined) {
@@ -1080,7 +1078,7 @@ function applyParagraphStyle(patch: Record<string, unknown>): void {
   runAction(() => {
     store.update((doc: any) => {
       for (const id of store.sel.slice()) {
-        const el = findInDoc(doc, id);
+        const el = actions.findInDoc(doc, id);
         if (!el || el.type !== 'text') continue;
         for (const p of el.paragraphs || []) {
           for (const [k, v] of Object.entries(patch)) {
@@ -1723,7 +1721,7 @@ function onRectPointerDown(e: PointerEvent, el: any) {
 
   const apply = (patch: any) => {
     store.update((doc: any) => {
-      const t = findInDoc(doc, el.id);
+      const t = actions.findInDoc(doc, el.id);
       if (!t) return;
       Object.assign(t, patch);
     }, { history: false });
@@ -1857,7 +1855,7 @@ function startLineEndpointDrag(e: PointerEvent, which: 'start' | 'end', id: stri
     const p = clientToSlide(ev.clientX, ev.clientY);
     const glue = findGlueTarget(p, id, store.slide.elements, 14 / state.zoom);
     store.update((doc: any) => {
-      const t = findInDoc(doc, id); if (!t) return;
+      const t = actions.findInDoc(doc, id); if (!t) return;
       const ep = glue ? glue.point : p;
       const na = which === 'start' ? ep : a;
       const nb = which === 'start' ? b : ep;
@@ -1889,7 +1887,7 @@ function startLineVertexDrag(e: PointerEvent, ds: { id: string; cmd: number; kin
   const onMove = (ev: PointerEvent) => {
     const p = clientToSlide(ev.clientX, ev.clientY);
     store.update((doc: any) => {
-      const t = findInDoc(doc, ds.id); if (!t || !t.custGeom) return;
+      const t = actions.findInDoc(doc, ds.id); if (!t || !t.custGeom) return;
       const c = t.custGeom.paths[0].commands[ds.cmd]; if (!c) return;
       const W = t.width || 100, H = t.height || 100, fx = t.flipH, fy = t.flipV;
       const lx = Math.max(0, Math.min(W, fx ? W - (p.x - t.x) : (p.x - t.x)));
@@ -1912,34 +1910,9 @@ function startLineVertexDrag(e: PointerEvent, ds: { id: string; cmd: number; kin
 }
 
 // ---------- Canvas interaction: selection, marquee, smart guides, rich text ----------
-/** Locate an element across the whole doc (top level or inside a group). */
-function findInDoc(doc: any, id: string): any {
-  for (const slide of doc.slides || []) {
-    for (const el of slide.elements || []) {
-      if (el.id === id) return el;
-      for (const c of el.children || []) if (c.id === id) return c;
-    }
-  }
-  return null;
-}
-
-/** Union bounding box of the given ids, in slide coordinates. */
-function selUnion(ids: string[]) {
-  let x0 = Infinity;
-  let y0 = Infinity;
-  let x1 = -Infinity;
-  let y1 = -Infinity;
-  for (const id of ids) {
-    const el = store.findElement(id);
-    if (!el) continue;
-    const r = elementRect(el);
-    x0 = Math.min(x0, r.x);
-    y0 = Math.min(y0, r.y);
-    x1 = Math.max(x1, r.x + r.width);
-    y1 = Math.max(y1, r.y + r.height);
-  }
-  return Number.isFinite(x0) ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : null;
-}
+// findInDoc / selUnion 均由主库编辑器内核提供：
+//   - findInDoc: actions.findInDoc（跨幻灯片查找顶层/组合内元素）
+//   - unionBBox: 主库 utils/geometry，接收元素数组（下方调用点先 map 出元素）
 
 /** Move the rendered nodes with the model during a drag, instead of rebuilding the slide. */
 function syncElementNodes(ids: string[]) {
@@ -2030,7 +2003,9 @@ function startMove(e: PointerEvent) {
       kids: (el.children || []).map((c: any) => ({ id: c.id, x: num(c.x), y: num(c.y) }))
     };
   });
-  const box0 = selUnion(ids);
+  const box0 = unionBBox(
+    ids.map((id: string) => store.findElement(id)).filter(Boolean).map((el: any) => elementRect(el))
+  );
   if (!box0) return;
   const others = (store.slide?.elements || [])
     .filter((n: any) => n && !ids.includes(n.id) && !n.hidden)
@@ -2073,7 +2048,7 @@ function startMove(e: PointerEvent) {
     }
     store.update((doc: any) => {
       for (const o of orig) {
-        const el = findInDoc(doc, o.id);
+        const el = actions.findInDoc(doc, o.id);
         if (!el) continue;
         el.x = Math.round(o.x + dx);
         el.y = Math.round(o.y + dy);
@@ -2206,7 +2181,7 @@ function editDiagramText(id: string) {
     save: (next) =>
       runAction(() => {
         store.update((doc: any) => {
-          const elx = findInDoc(doc, id);
+          const elx = actions.findInDoc(doc, id);
           if (!elx) return;
           updateDiagramTexts(elx, next);
         });
@@ -2282,7 +2257,7 @@ function commitEditing(keepEditing = false) {
   const paras = parseRichBody(body, el);
   const prev = Array.isArray(el.paragraphs) ? el.paragraphs : [];
   store.update((doc: any) => {
-    const t = findInDoc(doc, id);
+    const t = actions.findInDoc(doc, id);
     if (!t) return;
     t.paragraphs = paras.map((p: any, i: number) => ({
       runs: p.runs,
@@ -2321,7 +2296,7 @@ function parseRichBody(body: HTMLElement, el: any) {
       if (cs.textDecorationLine.includes('underline') || cs.textDecoration.includes('underline')) run.underline = true;
       const size = parseFloat(cs.fontSize);
       if (Number.isFinite(size)) run.fontSize = Math.round((size * 72) / 96);
-      if (cs.color) run.color = rgbToHex(cs.color);
+      if (cs.color) run.color = normalizeColor(cs.color) || cs.color;
       const ff = cs.fontFamily.split(',')[0].replace(/["']/g, '').trim();
       if (ff) run.fontFace = ff;
       const last = runs[runs.length - 1];
@@ -2338,12 +2313,7 @@ function sameRunStyle(a: any, b: any) {
   return keys.every((k) => (a[k] ?? undefined) === (b[k] ?? undefined));
 }
 
-function rgbToHex(css: string): string {
-  const m = css.match(/rgba?\(([^)]+)\)/);
-  if (!m) return css;
-  const parts = m[1].split(',').map((v) => parseInt(v, 10));
-  return '#' + parts.slice(0, 3).map((v) => clamp(v, 0, 255).toString(16).padStart(2, '0')).join('');
-}
+// rgbToHex 已由主库 normalizeColor 覆盖（rgb()/rgba()/hex/命名色统一解析）。
 
 // ---------- Inspector ----------
 /**

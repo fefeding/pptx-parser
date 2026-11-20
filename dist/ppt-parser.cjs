@@ -26264,7 +26264,12 @@ function createActions(store) {
         store.update((doc) => {
             const slide = doc.slides[store.slideIndex];
             if (slide.animations && slide.animations[index]) {
-                Object.assign(slide.animations[index], patch);
+                const next = { ...patch };
+                if ('type' in next || 'presetClass' in next)
+                    next.presetId = undefined;
+                if ('direction' in next)
+                    next.presetSubtype = undefined;
+                Object.assign(slide.animations[index], next);
             }
         });
     }

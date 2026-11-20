@@ -1,7 +1,7 @@
 /**
  * DOCX 生成
  *
- * 基于 docx 库把 jdoc 的块结构写回 OOXML。设计原则：JSON 结构即 API，
+ * 基于 docx 库把 DocxBlock 块结构写回 OOXML。设计原则：JSON 结构即 API，
  * 所有必填项都给字符串简写（text / runs 二选一），减少调用方样板代码。
  *
  * @module docx/generate
@@ -28,7 +28,7 @@ import {
     WidthType,
     type IImageOptions
 } from 'docx';
-import { JdocError } from '../core/errors';
+import { ConvertError } from '../core/errors';
 import { bytesToBase64, toUint8Array, type DocInput } from '../core/input';
 import {
     getAsset,
@@ -67,15 +67,15 @@ const PAGE_SIZES: Record<string, { width: number; height: number }> = {
 };
 
 /** 引用块段落样式 ID（样式名固定为 Quote，供解析端识别） */
-const QUOTE_STYLE_ID = 'JdocQuote';
+const QUOTE_STYLE_ID = 'PptQuote';
 
 /** 目录条目段落样式 ID：id 用自定义值以免与文档已有样式冲突，name 必须是 "toc N" */
-const tocStyleId = (level: number): string => `JdocToc${level}`;
+const tocStyleId = (level: number): string => `PptToc${level}`;
 
 /** 有序列表 numbering reference */
-const ORDERED_REF = 'jdoc-ordered';
+const ORDERED_REF = 'ppt-ordered';
 /** 无序列表 numbering reference */
-const UNORDERED_REF = 'jdoc-unordered';
+const UNORDERED_REF = 'ppt-unordered';
 
 /** 列表各层级缩进（dxa） */
 const LIST_INDENT = [
@@ -165,7 +165,7 @@ async function decodeImageSource(
     if (isAssetRef(src)) {
         const ref = src as { assetId?: string; asset?: DocAsset };
         const asset = ref.asset ?? getAsset(assets, ref.assetId);
-        if (!asset) throw new JdocError('生成 DOCX 失败：资源引用无法解析（未提供对应的 assets）', 'docx');
+        if (!asset) throw new ConvertError('生成 DOCX 失败：资源引用无法解析（未提供对应的 assets）', 'docx');
         return { bytes: asset.data, mime: asset.mime || 'png' };
     }
     if (typeof src !== 'string') {
@@ -601,7 +601,7 @@ export async function generateDocx(
 ): Promise<Uint8Array> {
     const doc: DocxDocument = Array.isArray(input) ? { blocks: input } : input;
     if (!doc || !Array.isArray(doc.blocks)) {
-        throw new JdocError('生成 DOCX 失败：缺少 blocks 内容', 'docx');
+        throw new ConvertError('生成 DOCX 失败：缺少 blocks 内容', 'docx');
     }
 
     // 资源表：显式传入优先，否则沿用文档自带的 assets（解析 -> 改 -> 生成零搬运）
@@ -664,7 +664,7 @@ export async function generateDocx(
                 }))
             ]
         },
-        creator: doc.metadata?.creator || doc.metadata?.author || 'jdoc',
+        creator: doc.metadata?.creator || doc.metadata?.author || 'ppt-parser',
         title: doc.metadata?.title,
         subject: doc.metadata?.subject,
         description: doc.metadata?.description,

@@ -219,10 +219,73 @@ window.chartRenderer = chartRenderer;
         color: var(--text-muted);
     }
 
+    /* 格式转换工具条 */
+    .convert-bar {
+        display: none;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        margin-bottom: 1.5rem;
+        padding: 0.85rem 1rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    }
+
+    .convert-bar .convert-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-main);
+    }
+
+    .convert-bar .convert-file {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .convert-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .convert-actions .btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .convert-font {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+
+    .convert-font input {
+        width: 130px;
+        font-size: 0.75rem;
+    }
+
+    .convert-bar .convert-status {
+        margin-left: auto;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .convert-bar .convert-status.error { color: #dc2626; }
+
     /* 响应式调整 */
     @media (max-width: 768px) {
         .container { margin: 1rem auto; }
         .upload-section { padding: 2rem 1rem; }
+        .convert-bar .convert-status { margin-left: 0; }
     }
 
     /* ===== 播放演示（动画 / 切换 / 自动播放）===== */
@@ -332,11 +395,29 @@ window.chartRenderer = chartRenderer;
             </button>
         </div>
 
+        <div class="convert-bar" id="convertBar">
+            <span class="convert-title">格式转换</span>
+            <span class="convert-file" id="convertFile"></span>
+            <div class="convert-actions">
+                <button type="button" class="btn btn-secondary" data-convert-target="pdf">导出 PDF</button>
+                <button type="button" class="btn btn-secondary" data-convert-target="docx">导出 Word</button>
+                <button type="button" class="btn btn-secondary" data-convert-target="md">导出 Markdown</button>
+                <button type="button" class="btn btn-secondary" data-convert-target="html">导出 HTML</button>
+            </div>
+            <label class="convert-font" title="中文 PDF 会自动加载网络子集字体；离线或加载失败时可在此选择 TTF/OTF 字体">
+                PDF 字体
+                <input type="file" id="pdfFontInput" accept=".ttf,.otf" />
+            </label>
+            <span class="convert-status" id="convertStatus"></span>
+        </div>
+
         <div id="result"></div>
 	</div>
 <script type="module">
-// 引入 PPTX 解析核心模块
+// 引入 PPTX 解析核心模块与格式转换模块
 import pptxToHtml from '../dist/ppt-parser.browser.js';
+import { convert as convertPptxFile } from '../dist/convert.browser.js';
+import { collectCjkChars, loadCjkFont } from './cjk-font.js';
 
 // 获取 DOM 元素引用
 const resultDiv = document.getElementById("result");
@@ -346,10 +427,21 @@ const progressContainer = document.getElementById("progressContainer");
 const progressBar = document.getElementById("progressBar");
 const loadingText = document.getElementById("loadingText");
 const toolbar = document.getElementById("toolbar");
+const convertBar = document.getElementById("convertBar");
+const convertFile = document.getElementById("convertFile");
+const convertStatus = document.getElementById("convertStatus");
+const pdfFontInput = document.getElementById("pdfFontInput");
 
 // 预览缩放状态
 let currentScale = 1;
 let currentSlideSize = null;
+
+// 格式转换状态：始终使用最近一次成功解析的原始 PPTX 字节
+let currentFileData = null;
+let currentFileName = "presentation";
+let currentCjkChars = "";
+let pdfFontBytes = null;
+let converting = false;
 
 // 处理拖拽视觉效果
 ['dragenter', 'dragover'].forEach(eventName => {
@@ -436,10 +528,11 @@ uploadFileInput.addEventListener("change", function(evt) {
 });
 
 // 核心解析逻辑：接收 ArrayBuffer 数据进行解析并渲染
-async function parseAndRender(fileData) {
+async function parseAndRender(fileData, fileName = "presentation.pptx") {
 	// 初始化界面状态
 	resultDiv.innerHTML = "";
     toolbar.style.display = "none";
+    convertBar.style.display = "none";
     progressContainer.style.display = "block";
     progressBar.style.width = "0%";
     loadingText.innerText = "正在读取文件...";
@@ -488,9 +581,18 @@ async function parseAndRender(fileData) {
 			window.chartRenderer.renderCharts(result.charts);
 		}
 
+        // 记录转换用的原始字节，并启用格式转换工具条
+        currentFileData = fileData;
+        currentCjkChars = collectCjkChars(JSON.stringify(result.slides?.map(s => s.data)));
+        currentFileName = fileName.replace(/\.pptx?$/i, "") || "presentation";
+        convertFile.textContent = fileName;
+        convertStatus.textContent = "";
+        convertStatus.classList.remove("error");
+
         // 完成后的处理
         progressContainer.style.display = "none";
         toolbar.style.display = "flex";
+        convertBar.style.display = "flex";
 		
 	} catch (err) {
 		console.error(err);
@@ -510,10 +612,76 @@ async function handleFile(file) {
 	// 使用 FileReader 读取文件
 	const reader = new FileReader();
 	reader.onload = async function(e) {
-		await parseAndRender(e.target.result);
+		await parseAndRender(e.target.result, file.name);
 	};
 	reader.readAsArrayBuffer(file);
 }
+
+// ===== 格式转换：PPTX -> PDF / Word / Markdown / HTML =====
+const CONVERT_OUTPUTS = {
+    pdf: { ext: 'pdf', mime: 'application/pdf', label: 'PDF' },
+    docx: { ext: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', label: 'Word' },
+    md: { ext: 'md', mime: 'text/markdown;charset=utf-8', label: 'Markdown' },
+    html: { ext: 'html', mime: 'text/html;charset=utf-8', label: 'HTML' }
+};
+
+function downloadBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function runConvert(target) {
+    if (!currentFileData || converting) return;
+    const output = CONVERT_OUTPUTS[target];
+    const buttons = convertBar.querySelectorAll('[data-convert-target]');
+    converting = true;
+    buttons.forEach(btn => { btn.disabled = true; });
+    convertStatus.classList.remove('error');
+    convertStatus.textContent = `正在生成 ${output.label}...`;
+
+    try {
+        const options = { title: currentFileName, autoFont: true };
+        // 优先用手动上传的字体；否则自动加载只含本文字形的子集字体（浏览器无法探测系统字体）
+        let fontBytes = pdfFontBytes;
+        if (target === 'pdf' && !fontBytes && currentCjkChars) {
+            convertStatus.textContent = "正在加载中文字体...";
+            try {
+                fontBytes = await loadCjkFont(currentCjkChars);
+            } catch (fontErr) {
+                throw new Error(`自动加载中文字体失败（${fontErr.message}），请手动上传 TTF/OTF 字体`);
+            }
+        }
+        if (target === 'pdf' && fontBytes) options.fonts = { regular: fontBytes };
+        const result = await convertPptxFile(currentFileData, target, options);
+        downloadBlob(new Blob([result], { type: output.mime }), `${currentFileName}.${output.ext}`);
+        convertStatus.textContent = `已生成 ${currentFileName}.${output.ext}`;
+    } catch (err) {
+        console.error(err);
+        convertStatus.textContent = `转换失败：${err.message}`;
+        convertStatus.classList.add('error');
+    } finally {
+        converting = false;
+        buttons.forEach(btn => { btn.disabled = false; });
+    }
+}
+
+convertBar.querySelectorAll('[data-convert-target]').forEach(btn => {
+    btn.addEventListener('click', () => runConvert(btn.dataset.convertTarget));
+});
+
+pdfFontInput.addEventListener('change', async function() {
+    const file = pdfFontInput.files && pdfFontInput.files[0];
+    if (!file) return;
+    pdfFontBytes = new Uint8Array(await file.arrayBuffer());
+    convertStatus.classList.remove('error');
+    convertStatus.textContent = `已选择 PDF 字体：${file.name}`;
+});
 
 // ===== 预览缩放：自动适应宽度 + 手动缩放（与 vue-demo 一致）=====
 function applyScale() {
@@ -569,7 +737,7 @@ async function loadDefaultPptx() {
         const resp = await fetch(DEFAULT_PPTX_URL);
         if (!resp.ok) throw new Error("HTTP " + resp.status);
         const fileData = await resp.arrayBuffer();
-        await parseAndRender(fileData);
+        await parseAndRender(fileData, DEFAULT_PPTX_URL.split('/').pop());
     } catch (err) {
         console.error(err);
         progressContainer.style.display = "none";

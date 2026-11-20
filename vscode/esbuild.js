@@ -59,8 +59,10 @@ const browserFsStub = {
 // rollup 用 css-as-string 插件实现，esbuild 用 loader 的 text 加载器等价处理。
 const cssTextLoader = { '.css': 'text' };
 
-// 把对 @fefeding/ppt-parser 的引用统一改指向上层源码（含 chart-renderer 子路径）。
+// 把对 @fefeding/ppt-parser 的引用统一改指向上层源码（含 chart-renderer / convert 子路径）。
+// convert 是从插件下沉到主库的插件化转换引擎（src/convert/index.ts）。
 const parserAlias = {
+  '@fefeding/ppt-parser/convert': resolveParserSource('src/convert/index.ts'),
   '@fefeding/ppt-parser': resolveParserSource('src/index.ts'),
   '@fefeding/ppt-parser/chart-renderer': resolveParserSource('examples/chart-lib/chart-renderer.js')
 };
@@ -74,9 +76,9 @@ async function buildWithContext() {
     legalComments: 'none',
     alias: parserAlias,
     loader: cssTextLoader,
-    // parser 源码从 ../src 解析 jszip/tinycolor2 时会向上找 pptx-parser/node_modules。
-    // 把本插件的 node_modules 也纳入搜索路径，使 CI 只需安装 vscode 目录依赖即可构建。
-    nodePaths: [path.join(__dirname, 'node_modules')]
+    // parser 源码（含下沉的 src/convert）从 ../src 解析 jszip/tinycolor2/docx/pdf-lib 等
+    // 时会向上找 pptx-parser/node_modules。把本插件与主库的 node_modules 都纳入搜索路径。
+    nodePaths: [path.join(__dirname, 'node_modules'), path.join(PARSER_ROOT, 'node_modules')]
   };
 
   const extCtx = await esbuild.context({

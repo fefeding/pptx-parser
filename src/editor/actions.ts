@@ -499,7 +499,12 @@ export function createActions(store: any) {
         store.update((doc: any) => {
             const slide = doc.slides[store.slideIndex];
             if (slide.animations && slide.animations[index]) {
-                Object.assign(slide.animations[index], patch);
+                // 类型/类别/方向变化后，旧的 OOXML presetID/presetSubtype 必须失效：
+                // 导出端会优先用它们，与 preset 不一致时 PowerPoint 会忽略动画或仍播旧效果。
+                const next = { ...patch };
+                if ('type' in next || 'presetClass' in next) next.presetId = undefined;
+                if ('direction' in next) next.presetSubtype = undefined;
+                Object.assign(slide.animations[index], next);
             }
         });
     }

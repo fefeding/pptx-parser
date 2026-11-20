@@ -43,7 +43,7 @@ import type {
     PptxTableCell,
     PptxTextElement,
     PptxTextRun
-} from '@fefeding/ppt-parser';
+} from '../../..';
 
 /** 解析器导出的坐标单位是 px（96dpi，16:9 幻灯片为 1280×720），PDF 用 pt */
 const PX_TO_PT = 0.75;
@@ -204,9 +204,8 @@ export function gradientAt(stops: GradientStop[], t: number): { color: string; a
     const clamped = Math.max(0, Math.min(1, t));
     let lo = stops[0];
     let hi = stops[stops.length - 1];
-    // 与 jdoc 上游的差异：原条件 `i < stops.length - i` 在单停点数组（HTML 渐变停点
-    // 逐个转 SVG stop 时会传 [s]）里仍会进入循环并读 stops[1].position 而抛 TypeError。
-    // 正确的区间遍历上界是 length - 1。待上游修正后可去掉这处本地补丁。
+    // 区间遍历上界必须是 length - 1：单停点数组（HTML 渐变逐点转 SVG stop 时传 [s]）
+    // 若用 i < length - i 之类的条件会误入循环、读 stops[1].position 而抛 TypeError。
     for (let i = 0; i < stops.length - 1; i++) {
         const a = stops[i];
         const b = stops[i + 1];
@@ -801,7 +800,8 @@ function runToPdfRun(run: PptxTextRun, fallbackSize?: number, fontScale = 1): Pd
     if (run.italic) r.italic = true;
     if (run.strike) r.strike = true;
     if (run.color) r.color = normalizeColor(run.color);
-    const size = (run.fontSize ?? fallbackSize) * fontScale;
+    const baseSize = run.fontSize ?? fallbackSize;
+    const size = baseSize == null ? undefined : baseSize * fontScale;
     if (size) r.size = size;
     if (run.href) r.link = run.href;
     return r;

@@ -14,7 +14,7 @@
         </div>
 
         <label class="upload-btn">
-          <input type="file" accept=".pptx" @change="onFileChange" :disabled="loading" />
+          <input type="file" accept=".pptx" @change="onFileChange" :disabled="loading || converting" />
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
           </svg>
@@ -74,7 +74,28 @@
             <span class="meta-label">尺寸</span>
             <span class="meta-value">{{ slideSize.width }} × {{ slideSize.height }}</span>
           </div>
-          <button class="reset-btn" @click="reset">重新上传</button>
+          <button class="reset-btn" @click="reset" :disabled="converting">重新上传</button>
+        </div>
+
+        <div class="convert-bar">
+          <div class="convert-heading">
+            <span class="convert-title">格式转换</span>
+            <span class="convert-hint">将当前 PPTX 转换为其它格式并下载</span>
+          </div>
+          <div class="convert-actions">
+            <button class="convert-btn" :disabled="converting || !currentFileData" @click="runConvert('pdf')">PDF</button>
+            <button class="convert-btn" :disabled="converting || !currentFileData" @click="runConvert('docx')">Word</button>
+            <button class="convert-btn" :disabled="converting || !currentFileData" @click="runConvert('md')">Markdown</button>
+            <button class="convert-btn" :disabled="converting || !currentFileData" @click="runConvert('html')">HTML</button>
+          </div>
+          <label
+            class="font-picker"
+            title="中文 PDF 会自动加载网络子集字体；离线或加载失败时可上传 TTF/OTF 字体"
+          >
+            PDF 字体
+            <input type="file" accept=".ttf,.otf" :disabled="converting" @change="onFontChange" />
+          </label>
+          <span class="convert-status" :class="{ error: convertStatusError }">{{ convertStatus }}</span>
         </div>
 
         <div class="tabs">
@@ -165,6 +186,9 @@ import * as echarts from 'echarts'
 // echarts-gl：注册 bar3D / line3D / surface 等真 3D 坐标系，须在 echarts 之后引入
 import * as echartsGL from 'echarts-gl'
 import { chartRenderer } from '../../chart-lib/chart-renderer.js'
+// 格式转换能力由根目录构建产物提供（需先执行根目录 npm run build）
+import { convert, type ConvertOptions } from '../../../dist/convert.browser.js'
+import { collectCjkChars, loadCjkFont } from '../../cjk-font.js'
 
 // 设置全局 JSZip 对象，供 ppt-parser 使用
 ;(window as any).JSZip = JSZip
@@ -260,6 +284,92 @@ const fileSizeText = computed(() => {
 
 const isDragging = ref(false)
 
+// ---------- 格式转换 ----------
+type ConvertTarget = 'pdf' | 'docx' | 'md' | 'html'
+const CONVERT_OUTPUTS: Record<ConvertTarget, { ext: string; mime: string; label: string }> = {
+  pdf: { ext: 'pdf', mime: 'application/pdf', label: 'PDF' },
+  docx: { ext: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', label: 'Word' },
+  md: { ext: 'md', mime: 'text/markdown;charset=utf-8', label: 'Markdown' },
+  html: { ext: 'html', mime: 'text/html;charset=utf-8', label: 'HTML' }
+}
+
+// 转换始终使用最近一次成功解析的原始字节，避免 JSON 展示层的精简影响结果
+const currentFileData = shallowRef<ArrayBuffer | null>(null)
+const cjkChars = ref('')
+const pdfFontBytes = shallowRef<Uint8Array | null>(null)
+const converting = ref(false)
+const convertStatus = ref('')
+const convertStatusError = ref(false)
+// 文件切换时让仍在进行的转换失效，避免下载到上一份文件的结果
+let convertSeq = 0
+
+function clearConvertState() {
+  convertSeq += 1
+  currentFileData.value = null
+  cjkChars.value = ''
+  converting.value = false
+  convertStatus.value = ''
+  convertStatusError.value = false
+}
+
+function downloadBlob(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+async function runConvert(target: ConvertTarget) {
+  const fileData = currentFileData.value
+  if (!fileData || converting.value) return
+  const output = CONVERT_OUTPUTS[target]
+  const seq = ++convertSeq
+  converting.value = true
+  convertStatusError.value = false
+  convertStatus.value = `正在生成 ${output.label}…`
+
+  try {
+    const options: ConvertOptions = { title: fileName.value, autoFont: true }
+    // 优先用手动上传的字体；否则自动加载只含本文字形的子集字体（浏览器无法探测系统字体）
+    let fontBytes = pdfFontBytes.value
+    if (target === 'pdf' && !fontBytes && cjkChars.value) {
+      convertStatus.value = '正在加载中文字体…'
+      try {
+        fontBytes = await loadCjkFont(cjkChars.value)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : '未知错误'
+        throw new Error(`自动加载中文字体失败（${message}），请手动上传 TTF/OTF 字体`)
+      }
+    }
+    if (target === 'pdf' && fontBytes) options.fonts = { regular: fontBytes }
+    const result = await convert(fileData, target, options)
+    if (seq !== convertSeq) return
+    downloadBlob(new Blob([result], { type: output.mime }), `${fileName.value.replace(/\.pptx?$/i, '') || 'presentation'}.${output.ext}`)
+    convertStatus.value = `已生成 ${output.label} 文件`
+  } catch (e) {
+    if (seq !== convertSeq) return
+    convertStatusError.value = true
+    convertStatus.value = `转换失败：${e instanceof Error ? e.message : '未知错误'}`
+    console.error('PPTX 转换失败:', e)
+  } finally {
+    if (seq === convertSeq) converting.value = false
+  }
+}
+
+async function onFontChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  pdfFontBytes.value = new Uint8Array(await file.arrayBuffer())
+  convertStatusError.value = false
+  convertStatus.value = `已选择 PDF 字体：${file.name}`
+  input.value = ''
+}
+
 // ---------- 文件处理 ----------
 function onFileChange(event: Event) {
   const target = event.target as HTMLInputElement
@@ -270,11 +380,13 @@ function onFileChange(event: Event) {
 
 function onDrop(event: DragEvent) {
   isDragging.value = false
+  if (converting.value) return
   const file = event.dataTransfer?.files?.[0]
   if (file) handleFile(file)
 }
 
 function handleFile(file: File) {
+  if (converting.value) return
   const isPptx =
     file.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
     file.name.toLowerCase().endsWith('.pptx')
@@ -285,6 +397,7 @@ function handleFile(file: File) {
 
   loading.value = true
   error.value = ''
+  clearConvertState()
   slides.value = []
   slideSize.value = null
   jsonResult.value = null
@@ -304,6 +417,7 @@ async function runParse(fileData: ArrayBuffer) {
     // 结构化 JSON（用于展示）
     const json = await pptxToJson(fileData)
     jsonResult.value = json
+    cjkChars.value = collectCjkChars(JSON.stringify(json))
 
     // 渲染 HTML
     const result: PPTXResult = await pptxToHtml(fileData, {
@@ -321,6 +435,7 @@ async function runParse(fileData: ArrayBuffer) {
       width: result.slideSize?.width || 0,
       height: result.slideSize?.height || 0
     }
+    currentFileData.value = fileData
 
     await nextTick()
     if (result.styles?.global) applyGlobalStyles(result.styles.global)
@@ -342,6 +457,8 @@ async function runParse(fileData: ArrayBuffer) {
 }
 
 function reset() {
+  if (converting.value) return
+  clearConvertState()
   slides.value = []
   slideSize.value = null
   jsonResult.value = null
@@ -645,6 +762,79 @@ const copied = ref(false)
 }
 .reset-btn:hover {
   background: #e5e7eb;
+}
+.reset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 格式转换 */
+.convert-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: #fafaff;
+}
+.convert-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.convert-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.convert-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.convert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.convert-btn {
+  padding: 0.4rem 0.9rem;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  color: var(--primary-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.convert-btn:hover:not(:disabled) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.convert-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.font-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.font-picker input {
+  max-width: 150px;
+  font-size: 0.72rem;
+}
+.convert-status {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.convert-status.error {
+  color: #dc2626;
 }
 
 /* Tabs */

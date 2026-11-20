@@ -36,7 +36,7 @@ import {
     type PDFImage,
     type RGB
 } from 'pdf-lib';
-import { JdocError, wrapError } from '../core/errors';
+import { ConvertError, wrapError } from '../core/errors';
 import {
     getAsset,
     isAssetRef,
@@ -1094,8 +1094,8 @@ function drawBezierShape(
         const key = ctx.page.node.newExtGState('GS', gs);
         ops.push(pushGraphicsState(), setGraphicsState(key));
     }
-    if (hasFill) ops.push(setFillingColor(options.color));
-    if (hasStroke) {
+    if (options.color) ops.push(setFillingColor(options.color));
+    if (options.borderColor) {
         ops.push(setStrokingColor(options.borderColor));
         ops.push(setLineWidth(options.borderWidth ?? 1));
     }
@@ -1407,7 +1407,7 @@ export async function generatePdf(
                             ? element.rows.flat().map(tableCellText).join('')
                             : '';
                 if (hasCjk(cjkText)) {
-                    throw new JdocError(
+                    throw new ConvertError(
                         '生成中文 PDF 需要内嵌字体：请通过 fonts.regular 传入中文 TTF/OTF 字节',
                         'pdf'
                     );
@@ -1424,8 +1424,8 @@ export async function generatePdf(
             doc.setAuthor(spec.metadata.author || '');
             doc.setSubject(spec.metadata.subject || '');
             doc.setKeywords(spec.metadata.keywords ? spec.metadata.keywords.split(/[,;\s]+/).filter(Boolean) : []);
-            doc.setProducer(spec.metadata.producer || '@fefeding/jdoc');
-            doc.setCreator(spec.metadata.creator || '@fefeding/jdoc');
+            doc.setProducer(spec.metadata.producer || '@fefeding/ppt-parser');
+            doc.setCreator(spec.metadata.creator || '@fefeding/ppt-parser');
             if (spec.metadata.created) {
                 const date = new Date(spec.metadata.created);
                 if (!Number.isNaN(date.getTime())) doc.setCreationDate(date);

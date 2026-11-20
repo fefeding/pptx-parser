@@ -2,7 +2,7 @@
 //
 //   node scripts/verify-convert.mjs
 //
-// Bundles the host-side glue (src/convert.ts -> src/jdoc/*) the same way esbuild.js does for
+// Bundles the host-side glue (src/convert.ts -> parser's @fefeding/ppt-parser/convert) the same way esbuild.js does for
 // dist/extension.js, then converts every examples/*.pptx to docx / pdf / md / html and checks
 // the results are real documents (magic bytes / markup), not empty or partially failed output.
 // No VS Code instance is needed: neither module imports `vscode`.
@@ -32,11 +32,12 @@ await esbuild.build({
   logLevel: 'silent',
   legalComments: 'none',
   alias: {
+    '@fefeding/ppt-parser/convert': path.join(parserRoot, 'src', 'convert', 'index.ts'),
     '@fefeding/ppt-parser': path.join(parserRoot, 'src', 'index.ts'),
     '@fefeding/ppt-parser/chart-renderer': path.join(parserRoot, 'examples', 'chart-lib', 'chart-renderer.js')
   },
   loader: { '.css': 'text' },
-  nodePaths: [path.join(root, 'node_modules')]
+  nodePaths: [path.join(root, 'node_modules'), path.join(parserRoot, 'node_modules')]
 });
 
 const { CONVERT_TARGETS, convertPptxBytes, isPptxPath } = require(outFile);

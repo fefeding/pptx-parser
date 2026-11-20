@@ -267,7 +267,7 @@ export function assetToNodeStream(asset: DocAsset | Uint8Array): unknown {
     // 浏览器：ReadableStream 是 web 标准，可直接喂给 fetch/WHATWG Response
     const RS = (globalThis as { ReadableStream?: new (b: Uint8Array) => unknown }).ReadableStream;
     if (RS) return new RS(bytes.slice());
-    throw new TypeError('jdoc: 当前环境既无 Node Readable 也无 ReadableStream，无法生成流');
+    throw new TypeError('convert: 当前环境既无 Node Readable 也无 ReadableStream，无法生成流');
 }
 
 /**
@@ -280,7 +280,7 @@ export function assetToWebStream(asset: DocAsset | Uint8Array): ReadableStream<U
         .ReadableStream;
     // Node 18+ 与现代浏览器均有全局 ReadableStream
     if (RS) return new RS(bytes);
-    throw new TypeError('jdoc: 当前环境不支持 ReadableStream，请改用 assetToNodeStream 或 assetToArrayBuffer');
+    throw new TypeError('convert: 当前环境不支持 ReadableStream，请改用 assetToNodeStream 或 assetToArrayBuffer');
 }
 
 /**

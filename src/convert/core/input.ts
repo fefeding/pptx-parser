@@ -71,7 +71,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
  */
 export async function toUint8Array(input: DocInput): Promise<Uint8Array> {
     if (input == null) {
-        throw new TypeError('jdoc: 缺少输入数据');
+        throw new TypeError('convert: 缺少输入数据');
     }
 
     if (typeof input === 'string') {
@@ -102,7 +102,7 @@ export async function toUint8Array(input: DocInput): Promise<Uint8Array> {
         return new Uint8Array(await maybeBlob.arrayBuffer());
     }
 
-    throw new TypeError('jdoc: 不支持的输入类型，请传入 ArrayBuffer / Uint8Array / Buffer / Blob / base64 字符串');
+    throw new TypeError('convert: 不支持的输入类型，请传入 ArrayBuffer / Uint8Array / Buffer / Blob / base64 字符串');
 }
 
 /**
@@ -145,7 +145,7 @@ export async function toBinaryPayload(input: DocInput): Promise<ArrayBuffer | Ui
 export function assertNonEmpty(bytes: Uint8Array | ArrayBuffer, format: string, minSize = 4): void {
     const size = bytes instanceof ArrayBuffer ? bytes.byteLength : bytes.byteLength;
     if (size < minSize) {
-        throw new TypeError(`jdoc: ${format} 数据无效（长度 ${size} 字节，至少需要 ${minSize} 字节）`);
+        throw new TypeError(`convert: ${format} 数据无效（长度 ${size} 字节，至少需要 ${minSize} 字节）`);
     }
 }
 

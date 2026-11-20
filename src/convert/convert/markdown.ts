@@ -98,7 +98,7 @@ function inlineToRuns(tokens: Token[] | undefined): DocxRun[] {
             case 'link':
                 pushStyled(inlineToRuns((t as Tokens.Link).tokens), { link: (t as Tokens.Link).href });
                 break;
-            case 'jdocMathInline':
+            case 'ppMathInline':
                 runs.push({ text: `$${(t as Token & { text?: string }).text ?? ''}$` });
                 break;
             case 'br':
@@ -345,12 +345,12 @@ export function markdownToBlocks(markdown: string | Uint8Array, options: Markdow
                 blocks.push({ type: 'quote', runs: inlineToRuns(t.tokens), text: tokensToText(t.tokens) });
                 break;
             }
-            case 'jdocDiagramCode': {
+            case 'ppDiagramCode': {
                 const t = token as Token & { lang?: string; text?: string };
                 blocks.push({ type: 'code', text: t.text || '', language: t.lang || 'mermaid' });
                 break;
             }
-            case 'jdocMathBlock': {
+            case 'ppMathBlock': {
                 const t = token as Token & { text?: string };
                 blocks.push({ type: 'code', text: t.text || '', language: 'math' });
                 break;

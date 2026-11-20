@@ -1,12 +1,14 @@
 // Host-side glue for the PPTX format conversion command.
 //
-// The conversion engine lives in `src/jdoc/` (a trimmed copy of jdoc's PPTX conversion
-// chain). It runs in the extension host rather than the webview because:
-//   * generating a Chinese PDF needs system fonts (jdoc's autoFont probing uses node:fs);
+// The conversion engine now lives in the parser library's `@fefeding/ppt-parser/convert`
+// subpath (a plugin-based converter registry). It runs in the extension host rather than
+// the webview because:
+//   * generating a Chinese PDF needs system fonts (autoFont probing uses node:fs);
 //   * the host already holds the latest PPTX bytes, including unsaved webview edits;
 //   * the webview bundle stays a single self-contained IIFE (no extra worker/CSP concerns).
 
-import { convertPptx, type ConvertTarget } from './jdoc';
+import { convert } from '@fefeding/ppt-parser/convert';
+import type { ConvertTarget } from '@fefeding/ppt-parser/convert';
 
 export type { ConvertTarget };
 
@@ -54,5 +56,5 @@ export function convertPptxBytes(
   target: ConvertTarget,
   title: string
 ): Promise<Uint8Array | string> {
-  return withTimeout(convertPptx(bytes, target, { title, autoFont: true }), 60_000);
+  return withTimeout(convert(bytes, target, { title, autoFont: true }), 60_000);
 }

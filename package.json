@@ -16,6 +16,12 @@
     },
     "./chart-renderer": {
       "default": "./examples/chart-lib/chart-renderer.js"
+    },
+    "./convert": {
+      "types": "./dist/convert.d.ts",
+      "browser": "./dist/convert.browser.js",
+      "import": "./dist/convert.esm.js",
+      "require": "./dist/convert.cjs"
     }
   },
   "homepage": "https://github.com/fefeding/pptx-parser#readme",
@@ -49,7 +55,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
+    "docx": "^9.12.0",
     "jszip": "^3.10.2",
+    "marked": "^18.1.1",
+    "parse5": "^8.0.1",
+    "pdf-lib": "^1.17.1",
     "tinycolor2": "^1.6.0"
   },
   "devDependencies": {

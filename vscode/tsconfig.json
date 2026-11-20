@@ -13,6 +13,7 @@
     "sourceMap": true,
     "typeRoots": ["./node_modules/@types", "../node_modules/@types"],
     "paths": {
+      "@fefeding/ppt-parser/convert": ["../src/convert/index.ts"],
       "@fefeding/ppt-parser": ["../src/index.ts"],
       "@fefeding/ppt-parser/chart-renderer": ["../examples/chart-lib/chart-renderer.js"]
     }

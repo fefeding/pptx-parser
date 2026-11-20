@@ -27,13 +27,13 @@ function escapeText(value: string): string {
 /** 数学块容器（$$…$$ / \[…\] / ```math 围栏） */
 function mathBlockHtml(tex: string): string {
     const trimmed = tex.trim();
-    return `<pre class="jdoc-math-block" data-tex="${attrValue(trimmed)}"><code>${escapeText(trimmed)}</code></pre>`;
+    return `<pre class="pp-math-block" data-tex="${attrValue(trimmed)}"><code>${escapeText(trimmed)}</code></pre>`;
 }
 
 /** 行内数学容器（$…$ / \(…\)） */
 function mathInlineHtml(tex: string): string {
     const trimmed = tex.trim();
-    return `<code class="jdoc-math-inline" data-tex="${attrValue(trimmed)}">${escapeText(trimmed)}</code>`;
+    return `<code class="pp-math-inline" data-tex="${attrValue(trimmed)}">${escapeText(trimmed)}</code>`;
 }
 
 /**
@@ -49,7 +49,7 @@ export function markdownExtensions(
 
     // ---- 代码块：```mermaid / ```math ----
     const fenced: TokenizerAndRendererExtension = {
-        name: 'jdocDiagramCode',
+        name: 'ppDiagramCode',
         level: 'block',
         tokenizer(src: string): Tokens.Generic | undefined {
             if (!useDiagrams && !useMath) return undefined;
@@ -57,12 +57,12 @@ export function markdownExtensions(
             if (!m) return undefined;
             const lang = (m[1] || '').toLowerCase();
             if (useDiagrams && DIAGRAM_LANGS.has(lang)) {
-                return { type: 'jdocDiagramCode', raw: m[0], lang, text: m[2] || '' } as unknown as Tokens.Generic;
+                return { type: 'ppDiagramCode', raw: m[0], lang, text: m[2] || '' } as unknown as Tokens.Generic;
             }
             if (useMath && MATH_LANGS.has(lang)) {
                 // 与图表共用同一 token 名：marked 的 renderer 按 token 名查找，
                 // 返回未注册的类型会抛 "Token with ... type was not found"。
-                return { type: 'jdocDiagramCode', raw: m[0], lang, text: m[2] || '' } as unknown as Tokens.Generic;
+                return { type: 'ppDiagramCode', raw: m[0], lang, text: m[2] || '' } as unknown as Tokens.Generic;
             }
             return undefined;
         },
@@ -70,7 +70,7 @@ export function markdownExtensions(
             const generic = token as unknown as { lang?: string; text?: string };
             const text = generic.text || '';
             if (generic.lang && DIAGRAM_LANGS.has(generic.lang)) {
-                return `<pre class="jdoc-mermaid" data-diagram="mermaid"><code class="language-mermaid">${escapeText(text)}</code></pre>\n`;
+                return `<pre class="pp-mermaid" data-diagram="mermaid"><code class="language-mermaid">${escapeText(text)}</code></pre>\n`;
             }
             return `${mathBlockHtml(text)}\n`;
         }
@@ -78,7 +78,7 @@ export function markdownExtensions(
 
     // ---- 块级公式：$$…$$ 与 \[…\]（独占若干行） ----
     const mathBlock: TokenizerAndRendererExtension = {
-        name: 'jdocMathBlock',
+        name: 'ppMathBlock',
         level: 'block',
         start(src: string): number | undefined {
             if (!useMath) return undefined;
@@ -88,9 +88,9 @@ export function markdownExtensions(
         tokenizer(src: string): Tokens.Generic | undefined {
             if (!useMath) return undefined;
             const dollar = /^\$\$([\s\S]+?)\$\$[ \t]*(?:\n|$)/.exec(src);
-            if (dollar) return { type: 'jdocMathBlock', raw: dollar[0], text: dollar[1] } as unknown as Tokens.Generic;
+            if (dollar) return { type: 'ppMathBlock', raw: dollar[0], text: dollar[1] } as unknown as Tokens.Generic;
             const bracket = /^\\\[([\s\S]+?)\\][ \t]*(?:\n|$)/.exec(src);
-            if (bracket) return { type: 'jdocMathBlock', raw: bracket[0], text: bracket[1] } as unknown as Tokens.Generic;
+            if (bracket) return { type: 'ppMathBlock', raw: bracket[0], text: bracket[1] } as unknown as Tokens.Generic;
             return undefined;
         },
         renderer(token: Tokens.Generic): string {
@@ -100,7 +100,7 @@ export function markdownExtensions(
 
     // ---- 行内公式：$…$ 与 \(…\) ----
     const mathInline: TokenizerAndRendererExtension = {
-        name: 'jdocMathInline',
+        name: 'ppMathInline',
         level: 'inline',
         start(src: string): number | undefined {
             if (!useMath) return undefined;
@@ -113,9 +113,9 @@ export function markdownExtensions(
             if (!useMath) return undefined;
             // 行内 $ 前后不能紧跟空白，避开 "价格 $5 和 $6" 这类普通用法
             const dollar = /^\$(?!\s)([^$\n]+?)(?<!\s)\$/.exec(src);
-            if (dollar) return { type: 'jdocMathInline', raw: dollar[0], text: dollar[1] } as unknown as Tokens.Generic;
+            if (dollar) return { type: 'ppMathInline', raw: dollar[0], text: dollar[1] } as unknown as Tokens.Generic;
             const paren = /^\\\(([^)\n]+?)\\\)/.exec(src);
-            if (paren) return { type: 'jdocMathInline', raw: paren[0], text: paren[1] } as unknown as Tokens.Generic;
+            if (paren) return { type: 'ppMathInline', raw: paren[0], text: paren[1] } as unknown as Tokens.Generic;
             return undefined;
         },
         renderer(token: Tokens.Generic): string {

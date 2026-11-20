@@ -229,6 +229,28 @@ Core API:
 - `normalizeDoc(doc)` / `normalizeElement(el)`: fill in default fields after import/merge (`slideSize`, `elements`, `zIndex`, element `id`/`name`, …) to keep the document complete.
 - `EditorStore` (type): `{ doc, setDoc, getDoc, update, storage? }` returned by `createStore`.
 
+## Format Conversion (plugin-based)
+
+Convert a PPTX into other document formats via the `@fefeding/ppt-parser/convert` subpath. The engine is a **registry of pluggable converters** — four are built in (`docx`, `pdf`, `md`, `html`), and you can register or override your own:
+
+```javascript
+import { convert, converters, registerConverter } from '@fefeding/ppt-parser/convert';
+
+const docxBytes = await convert(pptxBytes, 'docx', { title: 'Deck', autoFont: true }); // Uint8Array
+const markdown = await convert(pptxBytes, 'md');                                       // string
+
+converters.list().map(c => c.id);      // ['docx', 'md', 'pdf', 'html']
+registerConverter({
+  id: 'my-format', ext: 'mf',
+  async convert(input, options) { return /* Uint8Array | string */; }
+});
+```
+
+- `convert(input, target, options)` — dispatches to the registered converter for `target`; accepts `ArrayBuffer | Uint8Array | Buffer | Blob | base64 | data URL` input. Binary targets return `Uint8Array`, text targets return `string`.
+- `registerConverter(converter)` / `converters` (`register/get/has/list/remove`) — extend or replace converters at runtime. A converter is `{ id, ext, label?, convert(input, options) }`.
+- Built-in behaviour: `pdf` and `html` render slide-by-slide (faithful layout); `docx` and `md` go through a block-based intermediate representation. Chinese PDF font auto-probing works in Node (browser callers can pass `fonts` explicitly).
+- `convertPptx(input, target, options)` remains as a backward-compatible alias of `convert`.
+
 ## Supported Elements
 
 - **Text** — Multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks (external URL or `#N` to jump to slide N), bullet & numbered lists, line spacing, indentation, text box inset, vertical text direction, multi-column, autofit, WordArt transforms, run-level outline & shadow, dynamic fields (slide number, datetime)
