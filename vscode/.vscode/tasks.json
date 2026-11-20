@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "compile",
+      "problemMatcher": [],
+      "label": "npm: compile",
+      "detail": "用 esbuild 打包扩展宿主与 webview"
+    },
+    {
+      "type": "npm",
+      "script": "dev",
+      "problemMatcher": {
+        "owner": "esbuild-watch",
+        "pattern": {
+          "regexp": "^\\[watch\\] build finished.*$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[esbuild\\] watching for changes",
+          "endsPattern": "^\\[watch\\] build finished"
+        }
+      },
+      "isBackground": true,
+      "label": "npm: dev (watch)",
+      "detail": "持续编译；改动后在扩展开发宿主窗口按 Ctrl/Cmd+R 刷新即可生效"
+    }
+  ]
+}

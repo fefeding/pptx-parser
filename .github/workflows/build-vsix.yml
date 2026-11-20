@@ -1,0 +1,140 @@
+name: Build and Release PPTX Editor VSIX
+
+# Builds the .vsix on every push/PR to main (uploaded as a CI artifact). On version tags
+# (vsix-v*) it creates a GitHub Release with the .vsix attached and publishes the extension
+# to both the VS Code Marketplace (VSCODE_TOKEN) and Open VSX (OVSX_TOKEN). The two publish
+# steps are independent jobs, so a failure on one registry does not block the other.
+#
+# The extension now lives in the `vscode/` subdirectory of the pptx-parser repo and bundles
+# the parser's TypeScript source directly (no npm dependency on @fefeding/ppt-parser).
+# A dedicated `vsix-v*` tag prefix is used so VSIX releases never collide with the parser
+# library's own npm version tags.
+on:
+  push:
+    tags:
+      - 'vsix-v*'
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # required by softprops/action-gh-release to create releases
+
+defaults:
+  run:
+    working-directory: vscode
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Tagged releases must match the extension's package.json version so the artifact is unambiguous.
+      - name: Verify tag matches extension version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          PKG_VER="$(node -p "require('./package.json').version")"
+          TAG="${GITHUB_REF_NAME#vsix-v}"
+          if [ "$PKG_VER" != "$TAG" ]; then
+            echo "::error::Git tag '${GITHUB_REF_NAME}' does not match vscode/package.json version '${PKG_VER}'. Bump the version before tagging."
+            exit 1
+          fi
+
+      # vsce package runs `vscode:prepublish` (production esbuild build, which compiles the
+      # parser source from ../src) and produces *.vsix inside vscode/.
+      - name: Package VSIX
+        run: npm run package
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-pptx-${{ github.sha }}
+          path: 'vscode/*.vsix'
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: 'vscode/*.vsix'
+          generate_release_notes: true
+          force: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish to the VS Code Marketplace on version tags. The repository secret VSCODE_TOKEN
+  # (an Azure DevOps PAT with Marketplace > Manage, owned by the publisher in package.json)
+  # is mapped to VSCE_PAT, which vsce reads.
+  publish-marketplace:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package VSIX
+        run: npx vsce package
+
+      - name: Publish to VS Code Marketplace
+        run: ./node_modules/.bin/vsce publish --packagePath *.vsix -p "$VSCE_PAT"
+        env:
+          VSCE_PAT: ${{ secrets.VSCODE_TOKEN }}
+
+  # Publish to the Open VSX Registry on version tags. OVSX_TOKEN may be stored as a repository
+  # secret OR a repository variable; the expression falls back to the variable when the secret
+  # is empty. NOTE: repository variables are NOT masked in logs, so prefer a secret for tokens.
+  publish-ovsx:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package VSIX
+        run: npx vsce package
+
+      - name: Publish to Open VSX
+        run: npx -y ovsx publish *.vsix -p "$OVSX_TOKEN"
+        env:
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN || vars.OVSX_TOKEN }}

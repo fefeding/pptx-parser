@@ -1,0 +1,132 @@
+{
+  "name": "vscode-pptx",
+  "displayName": "PPTX Editor",
+  "description": "VSCode PPTX preview and editor extension powered by pptx-parser (default handler for .pptx)",
+  "version": "0.1.32",
+  "publisher": "fefeding",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fefeding/pptx-parser.git",
+    "directory": "vscode"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "l10n": "./l10n",
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "main": "./dist/extension.js",
+  "keywords": [
+    "pptx",
+    "powerpoint",
+    "presentation",
+    "slide",
+    "ooxml",
+    "editor",
+    "office"
+  ],
+  "icon": "icon.png",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "pptx-parser.pptxEditor",
+        "displayName": "PPTX Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.pptx"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "pptx-parser.revert",
+        "title": "%command.revert%"
+      },
+      {
+        "command": "pptx-parser.exportCopy",
+        "title": "%command.exportCopy%"
+      },
+      {
+        "command": "pptx-parser.viewMode",
+        "title": "%command.viewMode%",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "pptx-parser.editMode",
+        "title": "%command.editMode%",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "pptx-parser.toggleMode",
+        "title": "%command.toggleMode%"
+      },
+      {
+        "command": "pptx-parser.convert",
+        "title": "%command.convert%",
+        "category": "PPTX",
+        "icon": "$(arrow-swap)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "pptx-parser.convert",
+          "when": "activeCustomEditor == 'pptx-parser.pptxEditor'",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "pptx-parser.convert",
+          "when": "resourceExtname == '.pptx'",
+          "group": "navigation@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "pptx-parser.convert",
+          "when": "resourceExtname == '.pptx'",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "pptx-parser.convert",
+          "when": "resourceExtname == '.pptx'",
+          "group": "navigation@2"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "node esbuild.js --production",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "dev": "node esbuild.js --watch",
+    "verify:convert": "node scripts/verify-convert.mjs",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
+    "docx": "^9.12.0",
+    "html-to-image": "^1.11.13",
+    "jszip": "^3.10.2",
+    "marked": "^18.1.1",
+    "parse5": "^8.0.1",
+    "pdf-lib": "^1.17.1",
+    "tinycolor2": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "1.75.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.23.1",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "command.revert": "PPTX：放弃更改并重新加载",
+  "command.exportCopy": "PPTX：导出副本…",
+  "command.viewMode": "PPTX：预览",
+  "command.editMode": "PPTX：编辑",
+  "command.toggleMode": "PPTX：切换预览 / 编辑",
+  "command.convert": "PPTX：转换文档格式…",
+  "customEditor.pptx": "PPTX 编辑器"
+}

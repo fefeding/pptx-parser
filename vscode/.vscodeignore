@@ -1,0 +1,19 @@
+.vscode/**
+.vscode-test/**
+src/**
+examples/**
+scripts/**
+**/__tests__/**
+.gitignore
+.eslintrc.json
+**/tsconfig.json
+**/*.map
+**/*.ts
+.esbuild.js
+.esbuild*
+esbuild.js
+
+# 所有 node 依赖仅用于构建期：宿主(extension.js)只依赖 vscode，webview 由 esbuild 把
+# ppt-parser/jszip/tinycolor2/pako 等全部内联进 dist/webview.js。把它们打进扩展包只会徒增
+# 体积（尤其是 @fefeding/ppt-parser 的 examples/chart-lib 还藏着另一份 echarts/echarts-gl）。
+node_modules/**

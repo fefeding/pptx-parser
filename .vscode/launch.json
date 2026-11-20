@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PPTX Editor: Run Extension (compile first)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode"],
+      "outFiles": ["${workspaceFolder}/vscode/dist/**/*.js"],
+      "stopOnEntry": false,
+      "preLaunchTask": "pptx-ext: compile"
+    },
+    {
+      "name": "PPTX Editor: Run Extension (watch)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode"],
+      "outFiles": ["${workspaceFolder}/vscode/dist/**/*.js"],
+      "stopOnEntry": false,
+      "preLaunchTask": "pptx-ext: watch",
+      "presentation": { "group": "1-build", "order": 2 }
+    }
+  ]
+}
