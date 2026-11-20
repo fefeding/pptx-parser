@@ -27266,7 +27266,7 @@ async function detectSystemFonts(options = {}) {
     const key = JSON.stringify([options.candidates || [], options.includeUserFonts !== false]);
     if (detectCache.has(key))
         return detectCache.get(key);
-    const fs = (await import('node:fs/promises'));
+    const fs = (await Promise.resolve().then(function () { return _browserFsStub$1; }));
     const result = await findFirstUsableFont(defaultCandidates(options), fs);
     detectCache.set(key, result);
     return result;
@@ -71504,6 +71504,18 @@ const converters = new ConverterRegistry();
 function registerConverter(converter) {
     converters.register(converter);
 }
+function formatOfTarget(target) {
+    switch (target) {
+        case 'docx':
+        case 'pdf':
+        case 'md':
+            return target;
+        case 'html':
+            return 'txt';
+        default:
+            return 'txt';
+    }
+}
 async function convert(input, target, options = {}) {
     const converter = converters.get(target);
     if (!converter) {
@@ -71513,7 +71525,7 @@ async function convert(input, target, options = {}) {
         return await converter.convert(input, options);
     }
     catch (error) {
-        throw wrapError('pptx', `转换(${target})`, error);
+        throw wrapError(formatOfTarget(target), `转换(${target})`, error);
     }
 }
 const docxConverter = {
@@ -71539,7 +71551,7 @@ const mdConverter = {
             slideSeparator: true
         });
         const plain = blocks.some((b) => b.type === 'chart')
-            ? blocks.flatMap((b) => (b.type === 'chart' ? (b.fallback ? [b.fallback] : []) : []))
+            ? blocks.flatMap((b) => (b.type === 'chart' ? (b.fallback ? [b.fallback] : []) : [b]))
             : blocks;
         const pool = [...(options.assets || []), ...(assets || [])];
         const doc = { metadata, blocks: plain, assets: pool.length ? pool : undefined };
@@ -108126,5 +108138,13 @@ var fontkit_es = /*#__PURE__*/Object.freeze({
     default: fontkit
 });
 
-export { convert, convertPptx, converters, registerConverter };
+const readFile = () => { throw new Error("fs is unavailable in browsers"); };var _browserFsStub = { readFile };
+
+var _browserFsStub$1 = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    default: _browserFsStub,
+    readFile: readFile
+});
+
+export { ConvertError, convert, convertPptx, converters, registerConverter, wrapError };
 //# sourceMappingURL=convert.browser.js.map

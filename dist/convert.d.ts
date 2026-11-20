@@ -1,3 +1,15 @@
+type DocFormat = 'pptx' | 'docx' | 'xlsx' | 'pdf' | 'md' | 'txt';
+declare class ConvertError extends Error {
+    readonly format: DocFormat;
+    readonly code?: string;
+    readonly cause?: unknown;
+    constructor(message: string, format: DocFormat, options?: {
+        code?: string;
+        cause?: unknown;
+    });
+}
+declare function wrapError(format: DocFormat, action: string, error: unknown): ConvertError;
+
 type DocInput = ArrayBuffer | ArrayBufferView | Uint8Array | Blob | string;
 
 type AssetScope = 'docx' | 'xlsx' | 'pptx' | 'pdf' | 'bundle';
@@ -56,5 +68,5 @@ declare function registerConverter(converter: Converter): void;
 declare function convert(input: DocInput, target: string, options?: ConvertOptions): Promise<Uint8Array | string>;
 declare function convertPptx(input: DocInput, target: ConvertTarget, options?: ConvertOptions): Promise<Uint8Array | string>;
 
-export { convert, convertPptx, converters, registerConverter };
-export type { ConvertOptions, ConvertPptxOptions, ConvertTarget, Converter, DocAsset, DocInput, PdfFontSet };
+export { ConvertError, convert, convertPptx, converters, registerConverter, wrapError };
+export type { ConvertOptions, ConvertPptxOptions, ConvertTarget, Converter, DocAsset, DocFormat, DocInput, PdfFontSet };

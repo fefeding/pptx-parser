@@ -43,7 +43,7 @@ import type {
     PptxTableCell,
     PptxTextElement,
     PptxTextRun
-} from '../../..';
+} from '../..';
 
 /** 解析器导出的坐标单位是 px（96dpi，16:9 幻灯片为 1280×720），PDF 用 pt */
 const PX_TO_PT = 0.75;

@@ -37,7 +37,7 @@ import type {
     PptxGaugeElement,
     PptxDiagramNode,
     PptxMetadata
-} from '../../..';
+} from '../..';
 import { pptxChartToSpec } from '../pptx/chart';
 import type { DocxBlock, DocxCell, DocxCellDetail, DocxHeading, DocxMetadata, DocxRun, DocxTable } from '../docx/types';
 

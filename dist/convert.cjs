@@ -5520,6 +5520,18 @@ const converters = new ConverterRegistry();
 function registerConverter(converter) {
     converters.register(converter);
 }
+function formatOfTarget(target) {
+    switch (target) {
+        case 'docx':
+        case 'pdf':
+        case 'md':
+            return target;
+        case 'html':
+            return 'txt';
+        default:
+            return 'txt';
+    }
+}
 async function convert(input, target, options = {}) {
     const converter = converters.get(target);
     if (!converter) {
@@ -5529,7 +5541,7 @@ async function convert(input, target, options = {}) {
         return await converter.convert(input, options);
     }
     catch (error) {
-        throw wrapError('pptx', `转换(${target})`, error);
+        throw wrapError(formatOfTarget(target), `转换(${target})`, error);
     }
 }
 const docxConverter = {
@@ -5555,7 +5567,7 @@ const mdConverter = {
             slideSeparator: true
         });
         const plain = blocks.some((b) => b.type === 'chart')
-            ? blocks.flatMap((b) => (b.type === 'chart' ? (b.fallback ? [b.fallback] : []) : []))
+            ? blocks.flatMap((b) => (b.type === 'chart' ? (b.fallback ? [b.fallback] : []) : [b]))
             : blocks;
         const pool = [...(options.assets || []), ...(assets || [])];
         const doc = { metadata, blocks: plain, assets: pool.length ? pool : undefined };
@@ -5590,8 +5602,10 @@ async function convertPptx(input, target, options = {}) {
     return convert(input, target, options);
 }
 
+exports.ConvertError = ConvertError;
 exports.convert = convert;
 exports.convertPptx = convertPptx;
 exports.converters = converters;
 exports.registerConverter = registerConverter;
+exports.wrapError = wrapError;
 //# sourceMappingURL=convert.cjs.map

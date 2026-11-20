@@ -71,6 +71,12 @@ for (const name of files) {
       assert(Buffer.from(out.slice(0, 5)).toString() === '%PDF-', `${name} -> pdf: missing %PDF- header`);
     } else if (meta.id === 'md') {
       assert(typeof out === 'string' && out.trim().length > 0, `${name} -> md: empty markdown`);
+      // test-sample.pptx 含图表；曾有回归把「存在图表」时的非图表块全部丢弃，
+      // 只剩图表 fallback 表格。断言正文文本仍在，防止再次静默丢内容。
+      if (name === 'test-sample.pptx') {
+        assert(out.includes('T1 · 表格单元格边框线'), `${name} -> md: 正文文本丢失`);
+        assert(out.includes('编号第一项'), `${name} -> md: 列表文本丢失`);
+      }
     } else {
       assert(
         typeof out === 'string' && out.startsWith('<!DOCTYPE html>') && out.includes('jt-slide'),

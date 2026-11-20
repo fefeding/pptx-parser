@@ -221,13 +221,13 @@ const rect = elementRect(element);        // actual rect (group = union of child
 
 Core API:
 
-- `createStore(options?)` → `EditorStore`: holds `doc`, exposes `setDoc / getDoc / update`, with optional persistence (pass a `storage` implementing `getItem/setItem`).
+- `createStore(options?)` → `EditorStore`: holds `doc` as a public property, exposes `setDoc / update`, with optional persistence (pass a `storage` implementing `getItem/setItem`).
 - `createActions(store)` → `EditorActions`: returns `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`.
 - `docFromPptx(semanticDoc, { fileName? })` / `docToPptx(doc)`: bidirectional conversion between the editor document and the standard `PptxDocument`. `docFromPptx` resolves the document title with priority `core.xml dc:title` > `fileName` (extension stripped) > `'导入的演示文稿'`; when the source file has no title metadata, the file name is used as a fallback and written back into `core.xml` on export so the title stays consistent round-trip.
 - `renderChartSVG(chartEl)`: renders a chart element to an SVG string (host decides how to mount it).
 - `elementRect / rotatedRect / effectMargin / absoluteElementRect`: element geometry helpers (group union rect, rotated bounding box, shadow/glow margin, absolute rect relative to a parent).
 - `normalizeDoc(doc)` / `normalizeElement(el)`: fill in default fields after import/merge (`slideSize`, `elements`, `zIndex`, element `id`/`name`, …) to keep the document complete.
-- `EditorStore` (type): `{ doc, setDoc, getDoc, update, storage? }` returned by `createStore`.
+- `EditorStore` (type): `{ doc, setDoc, update, ... }` returned by `createStore`; read the current document via the `doc` property.
 
 ## Format Conversion (plugin-based)
 

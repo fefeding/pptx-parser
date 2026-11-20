@@ -404,8 +404,15 @@ export function createActions(store: any) {
         store.update((doc: any) => { doc.slides[store.slideIndex].background = { type: 'image', data }; }, { coalesce: 'bg' });
     }
 
-    function findInDoc(doc: any, id: string): any {
-        const list = doc.slides[store.slideIndex].elements;
+    /**
+     * 在当前幻灯片（或显式指定的 slideIndex）内查找顶层/组合内元素。
+     * 异步对话框打开期间可能换页，这类调用方应传入打开时记录的 slideIndex，
+     * 否则会写到错误的页上或静默丢弃编辑。
+     */
+    function findInDoc(doc: any, id: string, slideIndex: number | undefined = undefined): any {
+        const slide = doc.slides[slideIndex ?? store.slideIndex];
+        if (!slide) return null;
+        const list = slide.elements || [];
         const walk = (arr: any[]): any => {
             for (const el of arr) {
                 if (el.id === id) return el;
@@ -475,7 +482,8 @@ export function createActions(store: any) {
 
     function updateElement(id: string, patch: any, opts: any = {}) {
         store.update((doc: any) => {
-            const el = findInDoc(doc, id);
+            // opts.slideIndex：异步对话框可绑定打开时的页码，避免换页后写到错误的页
+            const el = findInDoc(doc, id, opts.slideIndex);
             if (el) Object.assign(el, patch);
         }, opts);
     }

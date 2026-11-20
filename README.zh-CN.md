@@ -221,13 +221,13 @@ const rect = elementRect(element);        // 元素实际矩形（组合取子�
 
 核心 API：
 
-- `createStore(options?)` → `EditorStore`：持有 `doc`，提供 `setDoc / getDoc / update`，并可选持久化（传入 `storage` 适配 `getItem/setItem`）。
+- `createStore(options?)` → `EditorStore`：以公有属性 `doc` 持有文档，提供 `setDoc / update`，并可选持久化（传入 `storage` 适配 `getItem/setItem`）。
 - `createActions(store)` → `EditorActions`：返回 `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`。
 - `docFromPptx(semanticDoc, { fileName? })` / `docToPptx(doc)`：编辑器文档 ↔ 标准 `PptxDocument` 的双向转换。`docFromPptx` 的标题优先级为 `core.xml 的 dc:title` > `fileName`（自动去扩展名）> `'导入的演示文稿'`；当原文件无标题元信息时，以文件名兜底，并在导出时一并写回 `core.xml`，保证来回一致。
 - `renderChartSVG(chartEl)`：把图表元素渲染为 SVG 字符串（宿主决定如何挂载到 DOM）。
 - `elementRect / rotatedRect / effectMargin / absoluteElementRect`：元素几何计算（组合并集矩形、旋转包围盒、阴影/发光外边距、相对某父级的绝对矩形）。
 - `normalizeDoc(doc)` / `normalizeElement(el)`：导入/合并后补齐缺省字段（`slideSize`、`elements`、`zIndex`、元素 `id`/`name` 等），确保文档完整。
-- `EditorStore`（类型）：`createStore` 返回，结构为 `{ doc, setDoc, getDoc, update, storage? }`。
+- `EditorStore`（类型）：`createStore` 返回，结构为 `{ doc, setDoc, update, ... }`；通过 `doc` 属性读取当前文档。
 
 ## 支持的元素
 

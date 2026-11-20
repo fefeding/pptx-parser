@@ -25,6 +25,11 @@ import {
   createActions,
   normalizeColor,
   unionBBox,
+  snapBox,
+  stripDataUrl,
+  base64ToBytes,
+  bytesToBase64,
+  animDurationMs,
   updateDiagramTexts,
   FONT_LIST,
   THEMES,
@@ -59,7 +64,7 @@ import {
   disposeDetachedCharts,
   disposeAllCharts
 } from './render';
-import { exportSlidesToPng, base64Of } from './exporter';
+import { exportSlidesToPng } from './exporter';
 import type { ExportedSlide } from './exporter';
 import {
   hasOpenModal,
@@ -204,20 +209,7 @@ function debounce(fn: (...a: any[]) => void, ms: number) {
     t = setTimeout(() => fn(...a), ms);
   };
 }
-function toBytes(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-function toBase64(bytes: Uint8Array): string {
-  let bin = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
-  }
-  return btoa(bin);
-}
+// base64 编解码由主库 base64ToBytes / bytesToBase64 提供（双端可用，含空格清理与 Buffer 兜底）。
 
 // ---------- Layout ----------
 /**
@@ -859,7 +851,7 @@ async function exportCurrentImage(): Promise<void> {
   if (!out?.length) return;
   post({
     type: 'exportImage',
-    bytes: base64Of(out[0].png),
+    bytes: stripDataUrl(out[0].png),
     suggestedName: `${baseName(state.title)}-${state.current + 1}.png`
   });
 }
@@ -873,7 +865,7 @@ async function exportAllImages(): Promise<void> {
     type: 'exportImages',
     images: out.map((s) => ({
       name: `${baseName(state.title)}-${String(s.index + 1).padStart(2, '0')}.png`,
-      bytes: base64Of(s.png)
+      bytes: stripDataUrl(s.png)
     }))
   });
 }
@@ -885,7 +877,7 @@ async function exportPdf(): Promise<void> {
   if (!out?.length) return;
   post({
     type: 'exportPdf',
-    images: out.map((s) => ({ bytes: base64Of(s.png) })),
+    images: out.map((s) => ({ bytes: stripDataUrl(s.png) })),
     widthPx: doc.slideSize.width,
     heightPx: doc.slideSize.height,
     suggestedName: `${baseName(state.title)}.pdf`
@@ -976,7 +968,7 @@ async function syncBytes(dirty: boolean): Promise<void> {
     }
     state.latest = await serializeDoc();
     state.dirty = true;
-    post({ type: 'sync', bytes: toBase64(state.latest), dirty: true });
+    post({ type: 'sync', bytes: bytesToBase64(state.latest), dirty: true });
     // syncBytes 是防抖后异步执行的，此时 renderAll 早已跑完，必须单独刷新功能区上的保存按钮
     syncChrome();
   } catch (e: any) {
@@ -1911,7 +1903,7 @@ function startLineVertexDrag(e: PointerEvent, ds: { id: string; cmd: number; kin
 
 // ---------- Canvas interaction: selection, marquee, smart guides, rich text ----------
 // findInDoc / selUnion 均由主库编辑器内核提供：
-//   - findInDoc: actions.findInDoc（跨幻灯片查找顶层/组合内元素）
+//   - findInDoc: actions.findInDoc（当前幻灯片内查找顶层/组合内元素）
 //   - unionBBox: 主库 utils/geometry，接收元素数组（下方调用点先 map 出元素）
 
 /** Move the rendered nodes with the model during a drag, instead of rebuilding the slide. */
@@ -1937,38 +1929,8 @@ function syncSelClasses() {
   });
 }
 
-/**
- * Smart guides: snap the moving box to the edges/centres of sibling elements and of the slide.
- * Returns the correction to add to the pointer delta, plus the guide lines to draw.
- */
-function snapBox(box: any, others: any[]) {
-  const tol = 6 / (state.zoom || 1);
-  const size = store.doc.slideSize || { width: 1280, height: 720 };
-  const tx = [box.x, box.x + box.width / 2, box.x + box.width];
-  const ty = [box.y, box.y + box.height / 2, box.y + box.height];
-  const candX = [0, size.width / 2, size.width];
-  const candY = [0, size.height / 2, size.height];
-  for (const o of others) {
-    candX.push(o.x, o.x + o.width / 2, o.x + o.width);
-    candY.push(o.y, o.y + o.height / 2, o.y + o.height);
-  }
-  let bestX: any = null;
-  let bestY: any = null;
-  for (const t of tx)
-    for (const c of candX) {
-      const d = c - t;
-      if (Math.abs(d) <= tol && (!bestX || Math.abs(d) < Math.abs(bestX.d))) bestX = { d, pos: c };
-    }
-  for (const t of ty)
-    for (const c of candY) {
-      const d = c - t;
-      if (Math.abs(d) <= tol && (!bestY || Math.abs(d) < Math.abs(bestY.d))) bestY = { d, pos: c };
-    }
-  const guides: any[] = [];
-  if (bestX) guides.push({ type: 'v', pos: bestX.pos });
-  if (bestY) guides.push({ type: 'h', pos: bestY.pos });
-  return { dx: bestX ? bestX.d : 0, dy: bestY ? bestY.d : 0, guides };
-}
+// 智能吸附算法已下沉到主库 snapBox（@fefeding/ppt-parser）。
+// showGuides/clearGuides 仍留在插件（DOM 渲染）。
 
 function showGuides(guides: any[]) {
   clearGuides();
@@ -2040,7 +2002,9 @@ function startMove(e: PointerEvent) {
     if (store.snap !== false) {
       const s = snapBox(
         { x: box0.x + dx, y: box0.y + dy, width: box0.width, height: box0.height },
-        others
+        others,
+        store.doc.slideSize || { width: 1280, height: 720 },
+        state.zoom
       );
       dx += s.dx;
       dy += s.dy;
@@ -2177,11 +2141,13 @@ function editDiagramText(id: string) {
     toast(t('insp.diagramHint'));
     return;
   }
+  // 对话框打开期间用户可能换页（F5 播放等），绑定打开时的页码，避免保存时写错页或丢编辑。
+  const slideIndex = store.slideIndex;
   openDiagramTextDialog(texts, {
     save: (next) =>
       runAction(() => {
         store.update((doc: any) => {
-          const elx = actions.findInDoc(doc, id);
+          const elx = actions.findInDoc(doc, id, slideIndex);
           if (!elx) return;
           updateDiagramTexts(elx, next);
         });
@@ -2193,8 +2159,9 @@ function editDiagramText(id: string) {
 function editTable(id: string) {
   const el = store.findElement(id);
   if (!el) return;
+  const slideIndex = store.slideIndex;
   openTableDialog(el, {
-    update: (patch: any) => runAction(() => actions.updateElement(id, patch)),
+    update: (patch: any) => runAction(() => actions.updateElement(id, patch, { slideIndex })),
     resize: (rows: number, cols: number) => runAction(() => actions.resizeTable(el, rows, cols)),
     reopen: () => editTable(id)
   });
@@ -2204,7 +2171,10 @@ function editTable(id: string) {
 function editChart(id: string) {
   const el = store.findElement(id);
   if (!el) return;
-  openChartDialog(el, { update: (patch: any) => runAction(() => actions.updateElement(id, patch)) });
+  const slideIndex = store.slideIndex;
+  openChartDialog(el, {
+    update: (patch: any) => runAction(() => actions.updateElement(id, patch, { slideIndex }))
+  });
 }
 
 /** Turn one text element into a contenteditable body and keep it focused. */
@@ -3802,10 +3772,7 @@ interface EntranceFrames {
  * but animations round-tripped through PPTX come back in seconds (e.g. 0.5), which would otherwise
  * produce an imperceptible 0.5ms animation. Anything below 20 is treated as seconds.
  */
-function animDurationMs(d: any): number {
-  const v = typeof d === 'number' && d > 0 ? d : 500;
-  return Math.round(v < 20 ? v * 1000 : v);
-}
+// 动画时长归一由主库 animDurationMs 提供（@fefeding/ppt-parser）。
 
 /** Map an animation record to its keyframes (for the `entr`/`exit`/`emph` classes). */
 function entranceKeyframes(a: any): EntranceFrames {
@@ -4200,8 +4167,8 @@ window.addEventListener('message', async (event: MessageEvent<HostToWebview>) =>
   try {
     switch (msg.type) {
       case 'init': {
-        state.original = toBytes(msg.originalBytes);
-        state.latest = toBytes(msg.bytes);
+        state.original = base64ToBytes(msg.originalBytes);
+        state.latest = base64ToBytes(msg.bytes);
         state.title = msg.title || state.title;
         state.mode = msg.mode === 'edit' ? 'edit' : 'preview';
         state.dirty = msg.dirty;
@@ -4215,7 +4182,7 @@ window.addEventListener('message', async (event: MessageEvent<HostToWebview>) =>
         break;
       }
       case 'bytes': {
-        state.latest = toBytes(msg.bytes);
+        state.latest = base64ToBytes(msg.bytes);
         state.dirty = msg.dirty;
         state.version++;
         if (state.mode === 'preview') await renderPreview();

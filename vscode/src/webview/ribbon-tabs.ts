@@ -7,6 +7,7 @@ import {
   THEMES,
   LAYOUTS,
   TRANSITIONS,
+  TRANSITION_SPEEDS,
   ANIM_CLASSES,
   ANIM_TYPES,
   ANIM_DIRECTIONS,
@@ -82,7 +83,11 @@ export type RibbonBuilders = {
   animListBox(): Widget;
 };
 
-const DEFAULT_TRANS_SPEED = '800';
+// 切换速度统一取主库常量，避免插件 UI 与编辑器模型出现 400/500 之类的漂移。
+const SPEED_BY_NAME: Record<string, number> = Object.fromEntries(
+  TRANSITION_SPEEDS.map((s: any) => [s.name, s.value])
+);
+const DEFAULT_TRANS_SPEED = String(SPEED_BY_NAME['中'] ?? 800);
 
 /** Animation presets offered by the Animations tab. */
 const ANIM_PRESETS: { cls: string; type: string; label: string }[] = [
@@ -108,9 +113,9 @@ export function buildTabs(b: RibbonBuilders, api: RibbonApi): RibbonTab[] {
   const fontOptions = FONT_LIST.map((f: string) => ({ value: f, label: data('font', f, f) }));
   const sizeOptions = FONT_SIZES.map((n: number) => ({ value: String(n), label: String(n) }));
   const speedOptions = [
-    { value: '1500', label: data('speed', 'slow', 'Slow') },
+    { value: String(SPEED_BY_NAME['慢'] ?? 1500), label: data('speed', 'slow', 'Slow') },
     { value: DEFAULT_TRANS_SPEED, label: data('speed', 'normal', 'Normal') },
-    { value: '400', label: data('speed', 'fast', 'Fast') }
+    { value: String(SPEED_BY_NAME['快'] ?? 500), label: data('speed', 'fast', 'Fast') }
   ];
   const triggerOptions = ['onClick', 'withPrev', 'afterPrev'].map((v) => ({ value: v, label: data('trigger', v, v) }));
   const directionOptions = ANIM_DIRECTIONS.map((d: any) => ({ value: d.value, label: data('animDir', d.value, d.name) }));

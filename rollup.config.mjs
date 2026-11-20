@@ -144,14 +144,32 @@ export default [
           return null;
         }
       },
+      // pdf/fonts.ts 的动态 import('node:fs/promises') 在浏览器端被 process.versions.node
+      // 守卫拦住、永不执行，但 Vite/webpack 仍会静态解析该 specifier 并告警/报错。
+      // 用一个空模块替换，产物里不再出现 node: 内置模块引用。
+      {
+        name: 'stub-node-builtins-for-browser',
+        resolveId(source) {
+          if (source === 'node:fs/promises' || source === 'fs') return '\0browser-fs-stub';
+          return null;
+        },
+        load(id) {
+          if (id === '\0browser-fs-stub') {
+            return 'export const readFile = () => { throw new Error("fs is unavailable in browsers"); };'
+              + 'export default { readFile };';
+          }
+          return null;
+        }
+      },
       nodeResolve({ browser: true, preferBuiltins: false, extensions: ['.ts', '.js', '.json'] }),
       commonjs({ include: /node_modules/ }),
       typescript({ tsconfig: './tsconfig.json', compilerOptions: { checkJs: false, noEmitOnError: false } }),
       cssAsString(),
       jsonAsEsm()
     ],
-    // 浏览器端不会进入 Node 专属的系统字体探测分支，这里的 node 内置模块只需保留在产物里
-    external: ['node:fs/promises', 'fs'],
+    // node 内置模块由上面的 stub-node-builtins-for-browser 内联为空实现；
+    // 不再 external，避免产物里出现裸的 import('node:fs/promises')。
+    external: [],
     treeshake: false
   },
   // 转换子路径类型声明

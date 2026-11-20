@@ -87,8 +87,4 @@ export async function exportSlidesToPng(opts: {
   return out;
 }
 
-/** dataURL → base64 payload (the host writes bytes, and the webview protocol carries base64). */
-export function base64Of(dataUrl: string): string {
-  const i = dataUrl.indexOf(',');
-  return i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
-}
+// dataURL → base64 由主库 stripDataUrl 提供（@fefeding/ppt-parser），插件不再重复实现。

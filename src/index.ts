@@ -1234,6 +1234,8 @@ export * from './utils/geometry';
 export * from './utils/units';
 export * from './utils/format';
 export * from './utils/misc';
+// 转换引擎的 base64 编解码工具（双端可用、无重依赖），供编辑器前端复用
+export { base64ToBytes, bytesToBase64 } from './convert/core/input';
 export * from './types/pptx-document';
 export * from './compatibility-types';
 
@@ -1242,6 +1244,7 @@ export * from './editor/model';
 export { createStore, EditorStore, normalizeDoc, normalizeElement } from './editor/store';
 export { createActions } from './editor/actions';
 export { renderChartSVG } from './editor/charts';
-export { elementRect, rotatedRect, effectMargin, absoluteElementRect } from './editor/geometry';
+export { elementRect, rotatedRect, effectMargin, absoluteElementRect, snapBox } from './editor/geometry';
+export type { SnapGuide, SnapBoxRect, SnapResult } from './editor/geometry';
 export { updateDiagramTexts } from './editor/diagram-text';
 export type { DiagramTextUpdate } from './editor/diagram-text';

@@ -24,7 +24,7 @@ import type {
     PptxTableElement,
     PptxTextElement,
     PptxTextRun
-} from '../../..';
+} from '../..';
 import type { DocInput } from '../core/input';
 import { wrapError } from '../core/errors';
 import {

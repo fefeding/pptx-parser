@@ -1831,3 +1831,12 @@ export function createStarterDoc(): any {
     doc.title = '未命名演示文稿';
     return doc;
 }
+
+/**
+ * 动画时长归一：标准 JSON 模型的 duration/delay 单位是秒，OOXML 的 dur/delay 是毫秒。
+ * 兼容历史数据里直接写毫秒的情况（>=20 视为已是毫秒，<20 视为秒）。
+ */
+export function animDurationMs(duration: unknown): number {
+    const v = typeof duration === 'number' && duration > 0 ? duration : 500;
+    return Math.round(v < 20 ? v * 1000 : v);
+}

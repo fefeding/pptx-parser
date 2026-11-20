@@ -18,7 +18,7 @@ import { pptxToSlideHtml } from './convert/pptx-html';
 import { pptxToBlocks } from './convert/pptx';
 import { blocksToMarkdown } from './convert/markdown';
 import { generateDocx } from './docx/generate';
-import { wrapError } from './core/errors';
+import { wrapError, type DocFormat } from './core/errors';
 import type { DocAsset } from './core/asset';
 import type { DocxBlock, DocxDocument } from './docx/types';
 import type { PdfFontSet } from './pdf/types';
@@ -26,7 +26,7 @@ import type { DocInput } from './core/input';
 
 /** 转换选项：所有转换器共用的上下文 */
 export interface ConvertOptions {
-    /** 输出标题（HTML 的 <title>、文档属性），缺省用文件名 */
+    /** 输出标题，目前仅 HTML 转换器使用（写入 <title>）；docx/pdf/md 沿用 PPTX 自带元数据 */
     title?: string;
     /** 内嵌字体（生成中文 PDF 时可由 autoFont 自动探测系统字体） */
     fonts?: PdfFontSet;
@@ -88,6 +88,20 @@ export function registerConverter(converter: Converter): void {
     converters.register(converter);
 }
 
+/** target → DocFormat（未知/自定义格式回落到 'txt'） */
+function formatOfTarget(target: string): DocFormat {
+    switch (target) {
+        case 'docx':
+        case 'pdf':
+        case 'md':
+            return target;
+        case 'html':
+            return 'txt';
+        default:
+            return 'txt';
+    }
+}
+
 /** 统一转换入口：按 target 分派到已注册的转换器 */
 export async function convert(
     input: DocInput,
@@ -101,7 +115,7 @@ export async function convert(
     try {
         return await converter.convert(input, options);
     } catch (error) {
-        throw wrapError('pptx', `转换(${target})`, error);
+        throw wrapError(formatOfTarget(target), `转换(${target})`, error);
     }
 }
 
@@ -134,7 +148,7 @@ const mdConverter: Converter<'md'> = {
             slideSeparator: true
         });
         const plain: DocxBlock[] = blocks.some((b) => b.type === 'chart')
-            ? blocks.flatMap((b) => (b.type === 'chart' ? (b.fallback ? [b.fallback] : []) : []))
+            ? blocks.flatMap((b) => (b.type === 'chart' ? (b.fallback ? [b.fallback] : []) : [b]))
             : blocks;
         const pool = [...(options.assets || []), ...(assets || [])];
         const doc: DocxDocument = { metadata, blocks: plain, assets: pool.length ? pool : undefined };
@@ -182,6 +196,8 @@ export async function convertPptx(
     return convert(input, target, options);
 }
 
+export { ConvertError, wrapError } from './core/errors';
+export type { DocFormat } from './core/errors';
 export type { DocInput } from './core/input';
 export type { DocAsset } from './core/asset';
 export type { PdfFontSet } from './pdf/types';

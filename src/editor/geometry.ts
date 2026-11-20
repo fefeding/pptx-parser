@@ -275,3 +275,63 @@ export const geometryApi = {
     isLineElement, lineEndpoints, setLineEndpoints, toVertexEditable, geomPoints,
     connectionPoints, connectionPointOf, findGlueTarget, resyncGlue
 };
+
+/** 智能吸附参考线 */
+export interface SnapGuide {
+    type: 'v' | 'h';
+    pos: number;
+}
+
+/** 参与吸附计算的矩形（文档坐标） */
+export interface SnapBoxRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+export interface SnapResult {
+    dx: number;
+    dy: number;
+    guides: SnapGuide[];
+}
+
+/**
+ * 智能吸附：把移动中的矩形对齐到兄弟元素与画布的边缘/中心。
+ * 纯计算，不触碰 DOM；zoom 由调用方传入（屏幕像素容差换算回文档坐标）。
+ */
+export function snapBox(
+    box: SnapBoxRect,
+    others: SnapBoxRect[],
+    size: { width: number; height: number },
+    zoom: number,
+    tolerancePx = 6
+): SnapResult {
+    const tol = tolerancePx / (zoom || 1);
+    const tx = [box.x, box.x + box.width / 2, box.x + box.width];
+    const ty = [box.y, box.y + box.height / 2, box.y + box.height];
+    const candX = [0, size.width / 2, size.width];
+    const candY = [0, size.height / 2, size.height];
+    for (const o of others) {
+        candX.push(o.x, o.x + o.width / 2, o.x + o.width);
+        candY.push(o.y, o.y + o.height / 2, o.y + o.height);
+    }
+    let bestX: { d: number; pos: number } | null = null;
+    let bestY: { d: number; pos: number } | null = null;
+    for (const t of tx) {
+        for (const c of candX) {
+            const d = c - t;
+            if (Math.abs(d) <= tol && (!bestX || Math.abs(d) < Math.abs(bestX.d))) bestX = { d, pos: c };
+        }
+    }
+    for (const t of ty) {
+        for (const c of candY) {
+            const d = c - t;
+            if (Math.abs(d) <= tol && (!bestY || Math.abs(d) < Math.abs(bestY.d))) bestY = { d, pos: c };
+        }
+    }
+    const guides: SnapGuide[] = [];
+    if (bestX) guides.push({ type: 'v', pos: bestX.pos });
+    if (bestY) guides.push({ type: 'h', pos: bestY.pos });
+    return { dx: bestX ? bestX.d : 0, dy: bestY ? bestY.d : 0, guides };
+}
