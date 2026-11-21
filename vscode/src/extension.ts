@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { statSync } from 'node:fs';
+import * as nodePath from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { PptxCustomDocument } from './pptx-document';
 import { CONVERT_TARGETS, convertPptxBytes, isPptxPath } from './convert';
@@ -23,6 +25,19 @@ function getNonce(): string {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
+}
+
+/**
+ * Cache-busting query for a local webview asset: VS Code caches resources by URL, so a rebuilt
+ * bundle with an unchanged path would keep serving the old JS to already-open panels. Appending
+ * the file's mtime makes the URL change whenever the bundle changes, forcing a fresh load.
+ */
+function assetVersion(extensionUri: vscode.Uri, relPath: string): string {
+  try {
+    return `?v=${statSync(nodePath.join(extensionUri.fsPath, relPath)).mtimeMs}`;
+  } catch {
+    return '';
+  }
 }
 
 class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocument> {
@@ -407,14 +422,14 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
   private getWebviewHtml(webview: vscode.Webview): string {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview.js')
-    );
+    ).with({ query: assetVersion(this.context.extensionUri, 'dist/webview.js').replace(/^\?/, '') });
     // Chart dependencies: echarts / echarts-gl loaded as global scripts (order-sensitive, must precede webview.js)
     const echartsUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.context.extensionUri, 'media', 'echarts.min.js')
-    );
+    ).with({ query: assetVersion(this.context.extensionUri, 'media/echarts.min.js').replace(/^\?/, '') });
     const echartsGlUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.context.extensionUri, 'media', 'echarts-gl.min.js')
-    );
+    ).with({ query: assetVersion(this.context.extensionUri, 'media/echarts-gl.min.js').replace(/^\?/, '') });
     // Base layout skeleton (.block/.content etc.) now comes from the parser's styles.global,
     // injected by the webview via ensureGlobalStyles().
     const nonce = getNonce();
