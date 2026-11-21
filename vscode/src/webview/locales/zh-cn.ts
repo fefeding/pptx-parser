@@ -139,6 +139,9 @@ export const zhCN: Record<keyof typeof en, string> = {
   'cmd.exportImage': '当前页为图片',
   'cmd.exportImages': '全部页为图片',
   'cmd.exportPdf': '导出 PDF',
+  'cmd.exportDocx': '导出 Word',
+  'cmd.exportMd': '导出 Markdown',
+  'cmd.exportHtml': '导出 HTML',
   'cmd.convertFormat': '转换文档格式',
   'grp.export': '导出',
 

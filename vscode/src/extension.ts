@@ -149,6 +149,10 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
             // guess from activeTextEditor (which may be a different file).
             await this.convertUri(document.uri);
             break;
+          case 'convertTo':
+            // Ribbon one-click export: convert this panel's document straight to the given format.
+            await this.convertUri(document.uri, message.target);
+            break;
           case 'revert':
             await document.revert();
             await sendInit();
@@ -337,7 +341,7 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
    * has no activeTextEditor) and then to the active text editor. For the active custom
    * editor we use its in-memory bytes so unsaved edits are reflected in the output.
    */
-  public async convertUri(uri?: vscode.Uri): Promise<void> {
+  public async convertUri(uri?: vscode.Uri, forcedTarget?: string): Promise<void> {
     const active = this._activeDoc;
     const target = uri || active?.uri || vscode.window.activeTextEditor?.document.uri;
     if (!target) {
@@ -355,14 +359,21 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
 
     const sourceName = target.path.split('/').pop() || 'presentation.pptx';
     const base = sourceName.replace(/\.[^.]+$/, '');
-    const items = CONVERT_TARGETS.map((meta) => ({ label: loc(meta.labelKey, meta.label), meta }));
-    const picked = await vscode.window.showQuickPick(items, {
-      placeHolder: loc('extension.convertTo', 'Convert "{0}" to which format?', sourceName),
-      title: loc('extension.convertTitle', 'PPTX: Convert Document Format')
-    });
-    if (!picked) return;
 
-    const meta: ConvertTargetMeta = picked.meta;
+    // Ribbon 一键导出：跳过格式选择器，直接解析目标元数据
+    let meta: ConvertTargetMeta | undefined;
+    if (forcedTarget) {
+      meta = CONVERT_TARGETS.find((m) => m.id === forcedTarget);
+      if (!meta) return;
+    } else {
+      const items = CONVERT_TARGETS.map((m) => ({ label: loc(m.labelKey, m.label), meta: m }));
+      const picked = await vscode.window.showQuickPick(items, {
+        placeHolder: loc('extension.convertTo', 'Convert "{0}" to which format?', sourceName),
+        title: loc('extension.convertTitle', 'PPTX: Convert Document Format')
+      });
+      if (!picked) return;
+      meta = picked.meta;
+    }
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: loc('extension.converting', 'Converting document…') },
       async () => {

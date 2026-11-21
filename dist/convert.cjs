@@ -3621,8 +3621,12 @@ function slideToHtml(slide, index, pageW, pageH) {
         : `background:${bg};`;
     const parts = [];
     collectHtml(slide.elements || [], parts);
+    const notes = slide.notes;
+    const notesHtml = notes && String(notes).trim()
+        ? `<div class="pptx-notes" data-notes="${esc(String(notes))}" style="display:none;white-space:pre-wrap;">${esc(String(notes))}</div>`
+        : '';
     return (`<section class="jt-slide" data-slide="${index}" style="width:${num(pageW)}px;` +
-        `height:${num(pageH)}px;${bgStyle}">${parts.join('')}</section>`);
+        `height:${num(pageH)}px;${bgStyle}">${parts.join('')}${notesHtml}</section>`);
 }
 async function pptxToSlideHtml(input, options = {}) {
     try {

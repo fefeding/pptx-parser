@@ -108,13 +108,15 @@ const originalLoad = Module._load;
 const handlers = {};
 const written = [];
 let pickIndex = 0;
+let capturedProvider = null;
+let quickPickCalls = 0;
 const fakeUri = (p) => ({ path: p, fsPath: p, toString: () => `file://${p}`, with: (o) => fakeUri(o.path || p) });
 const sourceUri = fakeUri('/tmp/deck.pptx');
 const vscodeStub = {
   window: {
-    registerCustomEditorProvider: () => ({ dispose() {} }),
+    registerCustomEditorProvider: (_viewType, provider) => { capturedProvider = provider; return { dispose() {} }; },
     activeTextEditor: undefined,
-    showQuickPick: async (items) => items[pickIndex],
+    showQuickPick: async (items) => { quickPickCalls++; return items[pickIndex]; },
     showSaveDialog: async () => fakeUri(`/tmp/deck.${CONVERT_TARGETS[pickIndex].ext}`),
     showInformationMessage: () => {},
     showWarningMessage: (m) => { throw new Error(`unexpected warning: ${m}`); },
@@ -157,6 +159,25 @@ try {
     if (meta.id === 'md') assert(bytes.toString('utf8').trim().length > 0, 'command -> md: empty');
     if (meta.id === 'html') assert(bytes.toString('utf8').includes('jt-slide'), 'command -> html: missing slides');
     console.log(`  command -> ${meta.id.padEnd(4)} ${String(bytes.length).padStart(9)} bytes  OK`);
+  }
+
+  // Stage 3: ribbon one-click export (convertTo with an explicit target, no QuickPick).
+  assert(capturedProvider, 'custom editor provider was not captured');
+  for (const id of ['docx', 'md', 'html']) {
+    const meta = CONVERT_TARGETS.find((m) => m.id === id);
+    written.length = 0;
+    const before = quickPickCalls;
+    // showSaveDialog stub derives the extension from pickIndex; align it with the forced target
+    pickIndex = CONVERT_TARGETS.indexOf(meta);
+    await capturedProvider.convertUri(sourceUri, id);
+    assert(quickPickCalls === before, `direct ${id}: should NOT open the format picker`);
+    assert(written.length === 1, `direct ${id}: nothing was written`);
+    const [dest, bytes] = written[0];
+    assert(dest.endsWith('.' + meta.ext), `direct ${id}: wrong output name ${dest}`);
+    if (id === 'docx') assert(bytes.slice(0, 4).toString('hex') === '504b0304', 'direct docx: not a ZIP');
+    if (id === 'md') assert(bytes.toString('utf8').trim().length > 0, 'direct md: empty');
+    if (id === 'html') assert(bytes.toString('utf8').includes('jt-slide'), 'direct html: missing slides');
+    console.log(`  direct  -> ${id.padEnd(4)} ${String(bytes.length).padStart(9)} bytes  OK (no picker)`);
   }
 } finally {
   Module._load = originalLoad;

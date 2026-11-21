@@ -87,7 +87,10 @@ const GLYPHS: Record<string, string> = {
   download: '<path d="M8 2.6v7.6M4.8 7.2L8 10.4l3.2-3.2"/><path d="M2.8 13.4h10.4"/>',
   swap: '<path d="M2.5 5.6h9.3M9.4 3.2l2.4 2.4-2.4 2.4"/><path d="M13.5 10.4H4.2M6.6 8L4.2 10.4l2.4 2.4"/>',
   edit: '<path d="M11.4 2.6l2 2-7.6 7.6-2.6.6.6-2.6z"/><path d="M2.4 13.6h11.2"/>',
-  menu: '<path d="M2.5 4.4h11M2.5 8h11M2.5 11.6h11"/>'
+  menu: '<path d="M2.5 4.4h11M2.5 8h11M2.5 11.6h11"/>',
+  doc: '<path d="M4 1.8h5l3.2 3.2v9.2H4z"/><path d="M9 1.8v3.2h3.2M6 8.2h4M6 10.8h4"/>',
+  md: '<rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.2"/><path d="M4 10.6V5.4l2.4 3 2.4-3v5.2M11.6 5.4v5.2"/>',
+  code: '<path d="M5.6 4.8L2.4 8l3.2 3.2M10.4 4.8L13.6 8l-3.2 3.2"/>'
 };
 
 /** SVG markup for an icon name (unknown names render nothing, never throw). */

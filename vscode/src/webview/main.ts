@@ -683,6 +683,12 @@ function ribbonCommands(name: string, ...args: any[]): any {
     // Format conversion runs in the extension host (it needs system fonts / Node APIs).
     // The host already holds the latest PPTX bytes, so unsaved edits are included.
     case 'convertFormat': post({ type: 'convert' }); return;
+    case 'convertTo':
+      // Ribbon one-click export: forward the chosen target to the host (args[0] = docx|md|html).
+      if (args[0] === 'docx' || args[0] === 'md' || args[0] === 'html') {
+        post({ type: 'convertTo', target: args[0] });
+      }
+      return;
 
     // --- slides ---
     case 'newSlide': return runAction(() => actions.addSlide(args[0]));

@@ -53,6 +53,11 @@ A VSCode extension built on [`@fefeding/ppt-parser`](https://github.com/fefeding
   current slide or the whole deck to PNG at 2× slide size — ECharts charts, SmartArt shapes and
   video poster frames included — and save them individually or assemble them into a PDF. Slides
   are rendered offscreen from the editor model and rasterized with `html-to-image`.
+- **Export as Word / Markdown / HTML**: one-click buttons in the View tab's Export group convert
+  the **current** document (including unsaved edits) to `.docx` / `.md` / `.html` via the parser's
+  conversion engine, then prompt for the save location. The generic "Convert Document" button
+  and the `PPTX: Convert Document Format...` command additionally offer PDF. Converted HTML keeps
+  speaker notes in a hidden `.pptx-notes[data-notes]` container for presenter views.
 - **Undo / Redo**: `Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`. Press `?` for the shortcut reference.
 
 ## Development

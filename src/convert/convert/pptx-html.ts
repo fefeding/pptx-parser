@@ -1016,9 +1016,15 @@ function slideToHtml(slide: PptxSlide, index: number, pageW: number, pageH: numb
         : `background:${bg};`;
     const parts: string[] = [];
     collectHtml(slide.elements || [], parts);
+    // 演讲者备注：与 pptxToHtml 预览一致，输出默认隐藏的容器 + data-notes，
+    // 供宿主在讲者视图中显示或提取；不影响幻灯片画面的还原度。
+    const notes = (slide as PptxSlide).notes;
+    const notesHtml = notes && String(notes).trim()
+        ? `<div class="pptx-notes" data-notes="${esc(String(notes))}" style="display:none;white-space:pre-wrap;">${esc(String(notes))}</div>`
+        : '';
     return (
         `<section class="jt-slide" data-slide="${index}" style="width:${num(pageW)}px;` +
-        `height:${num(pageH)}px;${bgStyle}">${parts.join('')}</section>`
+        `height:${num(pageH)}px;${bgStyle}">${parts.join('')}${notesHtml}</section>`
     );
 }
 

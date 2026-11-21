@@ -143,6 +143,9 @@ export const en = {
   'cmd.exportImage': 'Slide as PNG',
   'cmd.exportImages': 'All Slides as PNG',
   'cmd.exportPdf': 'Export as PDF',
+  'cmd.exportDocx': 'Export as Word',
+  'cmd.exportMd': 'Export as Markdown',
+  'cmd.exportHtml': 'Export as HTML',
   'cmd.convertFormat': 'Convert Document',
   'grp.export': 'Export',
 

@@ -30,6 +30,11 @@ export type WebviewToHost =
   | { type: 'exportPdf'; images: { bytes: string }[]; widthPx: number; heightPx: number; suggestedName: string }
   /** Ribbon "Convert Document": ask the host to run the convert command for the active document. */
   | { type: 'convert' }
+  /**
+   * Ribbon one-click export (Word / Markdown / HTML): convert the active document straight to
+   * `target` without the format picker. Binary targets return bytes, text targets a string.
+   */
+  | { type: 'convertTo'; target: 'docx' | 'md' | 'html' }
   /** Surface a webview-side problem (parse/serialize failure) in the host UI. */
   | { type: 'error'; message: string };
 
