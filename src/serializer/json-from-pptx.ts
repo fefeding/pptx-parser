@@ -29,8 +29,11 @@ import type {
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
     PptxDiagramElement, PptxDiagramShape, PptxRawElement, PptxAnimation, PptxGroupElement, PptxConnectorElement, PptxOleElement, PptxMathElement, TextAlign, VAlign, ChartGrouping,
     PptxChartType, PptxChartPlot,
-    PptxFillImage, PptxTheme, PptxThemeColorScheme, PptxCustomGeometry, PptxGeometryPath, PptxGeometryCommand, PptxGradientFill
+    PptxFillImage, PptxTheme, PptxThemeColorScheme, PptxCustomGeometry, PptxGeometryPath, PptxGeometryCommand, PptxGradientFill,
+    PptxFontResource
 } from '../types/pptx-document';
+import { base64ToBytes, bytesToBase64 } from '../convert/core/input';
+import { deobfuscateFontData } from './templates';
 
 /** plotArea 下可能出现的全部图表节点（ECMA-376 全集），用于反向提取时判定图表类型 */
 const CHART_PLOT_TYPES = [
@@ -553,6 +556,9 @@ function readSpPr(spPr: any, themeMap: Record<string, string> = {}): Pick<PptxSh
     // 填充
     if (spPr['a:noFill']) {
         out.fill = 'none';
+    } else if (spPr['a:grpFill']) {
+        // 跟随父组合填充（a:grpFill）：需保留为显式类型，否则 round-trip 会退化成无填充/默认色
+        out.fill = { type: 'group' };
     } else if (spPr['a:gradFill']) {
         const gf = spPr['a:gradFill'];
         const gsLst = gf['a:gsLst'];
@@ -989,6 +995,20 @@ async function extractTransition(
         duration = m[String(t.attrs['spd'])] || 1000;
     }
     const out: PptxTransition = { type, duration };
+    const ta = t.attrs || {};
+    // 自动切换停留时长（CT_SlideTransition@advTm，毫秒）
+    if (ta.advTm != null) out.advanceAfterTime = Math.round(Number(ta.advTm));
+    // 禁止点击切换：规范属性名 advClick（0/1 或 false/true）；
+    // 兼容旧版误写的非标准属性 advanceOnClick，保证历史文件回读不丢设置
+    const clickAttr = ta.advClick ?? ta.advanceOnClick;
+    if (clickAttr != null) {
+        const v = clickAttr;
+        out.advanceOnClick = !(v === '0' || v === 0 || v === 'false' || v === false);
+    }
+    // 切换方向：dir 是类型子元素（如 p:wipe/@dir）的属性，不是 p:transition 本身
+    const typeNode = t[`p:${type}`];
+    const dir = (typeNode && typeNode.attrs && typeNode.attrs.dir) || ta.dir;
+    if (dir != null) out.direction = String(dir);
     // 切换伴随音效（p:transition/p:snd）：内置音效名或 r:embed 媒体关系。
     // PptxTransition 无 __raw 兜底，必须在此显式解析，否则声音信息在解析端永久丢失。
     const snd = t['p:snd'];
@@ -2088,6 +2108,9 @@ export async function extractSlideToStandard(
                 }
                 if (gxfAttrs && (gxfAttrs.flipH === '1' || gxfAttrs.flipH === 'true' || gxfAttrs.flipH === true)) g.flipH = true;
                 if (gxfAttrs && (gxfAttrs.flipV === '1' || gxfAttrs.flipV === 'true' || gxfAttrs.flipV === true)) g.flipV = true;
+                // 组合级填充（grpSpPr）：子形状 a:grpFill 继承它，round-trip 需保留
+                const grpFill = readSpPr(node['p:grpSpPr'], themeMap).fill;
+                if (grpFill !== undefined) g.fill = grpFill;
                 return g;
             };
 
@@ -3929,6 +3952,104 @@ async function picToImage(
  * @param parsedData - processToJson 返回的 parsedData（含 slides/data、slideSize、metadata）
  * @param zip - JSZip 实例
  */
+/**
+ * 回读嵌入字体：ppt/fontTable.xml（a:font@typeface/panose/b/i + a:fontData@r:id）
+ * → ppt/fonts/fontN.fntdata（16 字节循环 XOR 混淆）→ 解混淆后的原始字体 base64。
+ * 与生成端 buildFontTableXml / obfuscateFontData 对称，保证 fonts 字段可 round-trip。
+ */
+/**
+ * 把 fontTable.xml.rels 的 Target 解析为 zip 内部件路径。
+ * 基准目录为 ppt/，需处理 ./、../、前导 /、URI 编码与绝对路径。
+ */
+function resolveFontPart(target: string): string | undefined {
+    if (!target || /^https?:/i.test(target)) return undefined;
+    let t: string;
+    try { t = decodeURIComponent(target); } catch { t = target; }
+    t = t.replace(/\\/g, '/');
+    const absolute = t.startsWith('/');
+    // fontTable.xml 所在目录是 ppt/；相对 Target 以此为基准，绝对 Target 以包根为基准
+    const base = absolute ? [] : ['ppt'];
+    const segments = base.slice();
+    for (const seg of t.split('/')) {
+        if (!seg || seg === '.') continue;
+        if (seg === '..') { if (segments.length) segments.pop(); continue; }
+        segments.push(seg);
+    }
+    const path = segments.join('/');
+    return path.startsWith('ppt/') ? path : `ppt/${path.replace(/^\/+/, '')}`;
+}
+
+async function extractEmbeddedFonts(zip: JSZip): Promise<PptxFontResource[]> {
+    try {
+        if (!zip.file('ppt/fontTable.xml')) return [];
+        const ftXml: any = await PPTXXmlUtils.readXmlFile(zip, 'ppt/fontTable.xml');
+        const root = ftXml && (ftXml['p:fontTable'] || (ftXml as any)['fontTable']);
+        if (!root) return [];
+        const relMap = await readRelMap(zip, 'ppt/_rels/fontTable.xml.rels');
+        const fontsRaw = root['a:font'];
+        const fontsList: any[] = Array.isArray(fontsRaw) ? fontsRaw : fontsRaw ? [fontsRaw] : [];
+        const out: PptxFontResource[] = [];
+        const list = <T>(v: T | T[] | undefined): T[] => Array.isArray(v) ? v : v ? [v] : [];
+        type Variant = { node: any; typeface: string; bold: boolean; italic: boolean; subsetted: boolean };
+        for (const f of fontsList) {
+            const attrs = (f && f.attrs) || {};
+            const panose = f && f['a:panose'];
+            const panoseVal = panose && panose.attrs && panose.attrs.val ? String(panose.attrs.val) : undefined;
+            const familyTypeface = attrs.typeface != null ? String(attrs.typeface) : '';
+            // 兼容两种 fontTable 结构：
+            //  (A) 标准 OOXML：a:embeddedFont 下按 a:regular/a:bold/a:italic/a:boldItalic 分变体，各含 a:fontData
+            //  (B) 本库生成/部分工具：a:embeddedFont 直接含 a:fontData
+            const variants: Variant[] = [];
+            for (const emb of list<any>(f && f['a:embeddedFont'])) {
+                const eAttrs = (emb && emb.attrs) || {};
+                const subsetted = eAttrs.subsetted === '1' || eAttrs.subsetted === 'true';
+                let matched = false;
+                for (const key of ['regular', 'bold', 'italic', 'boldItalic']) {
+                    const v = emb[`a:${key}`];
+                    if (!v) continue;
+                    matched = true;
+                    const vAttrs = (v.attrs || {}) as Record<string, unknown>;
+                    variants.push({
+                        node: v,
+                        typeface: vAttrs.typeface != null ? String(vAttrs.typeface) : familyTypeface,
+                        bold: key === 'bold' || key === 'boldItalic',
+                        italic: key === 'italic' || key === 'boldItalic',
+                        subsetted
+                    });
+                }
+                if (!matched && emb['a:fontData']) {
+                    variants.push({
+                        node: emb, typeface: familyTypeface,
+                        bold: attrs.b === '1' || attrs.b === 'true',
+                        italic: attrs.i === '1' || attrs.i === 'true',
+                        subsetted
+                    });
+                }
+            }
+            for (const variant of variants) {
+                const fd = variant.node && variant.node['a:fontData'];
+                const rid = fd && fd.attrs && fd.attrs['r:id'];
+                const rel = rid ? relMap[String(rid)] : undefined;
+                if (!rel || !variant.typeface || /^https?:/i.test(rel.target)) continue;
+                const fontPath = resolveFontPart(rel.target);
+                const fontFile = fontPath ? zip.file(fontPath) : undefined;
+                if (!fontFile) continue;
+                const obfuscated = base64ToBytes(await fontFile.async('base64'));
+                const raw = deobfuscateFontData(obfuscated);
+                const resource: PptxFontResource = { name: variant.typeface, data: bytesToBase64(raw) };
+                if (panoseVal) resource.panose = panoseVal;
+                if (variant.bold) resource.bold = true;
+                if (variant.italic) resource.italic = true;
+                resource.embedType = variant.subsetted ? 'subset' : 'full';
+                out.push(resource);
+            }
+        }
+        return out;
+    } catch {
+        return [];
+    }
+}
+
 export async function buildStandardDocument(
     parsedData: any,
     zip: JSZip,
@@ -3977,6 +4098,10 @@ export async function buildStandardDocument(
             pkg.slideLayoutIndex.forEach((li, si) => { if (slides[si]) slides[si].layout = li; });
         }
     } catch { /* ignore */ }
+
+    // 嵌入字体回读（ppt/fontTable.xml + ppt/fonts/*.fntdata，XOR 解混淆）
+    const fonts = await extractEmbeddedFonts(zip);
+    if (fonts.length) doc.fonts = fonts;
 
     return doc;
 }

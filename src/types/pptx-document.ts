@@ -174,7 +174,7 @@ export interface PptxFillGradient {
     gradientPath?: string;
 }
 /** 形状填充：颜色串 / {color} / {type:'solid',...} / {type:'gradient',...} / {type:'pattern',...} / {type:'image',...} / 'none' / null */
-export type PptxFill = string | PptxFillSolid | PptxFillGradient | PptxFillPattern | PptxFillImage | 'none' | null;
+export type PptxFill = string | PptxFillSolid | PptxFillGradient | PptxFillPattern | PptxFillImage | PptxFillGroup | 'none' | null;
 
 /**
  * 图片填充的源图裁剪（a:srcRect）：从图片各边裁掉的比例，取值 0~1。
@@ -188,6 +188,8 @@ export interface PptxImageSrcRect { l?: number; t?: number; r?: number; b?: numb
 export interface PptxImageTile { sx?: number; sy?: number; tx?: number; ty?: number; }
 /** 图案填充（a:pattFill）：prst 为 OOXML 预设图案名，fg/bg 为前景/背景色 */
 export interface PptxFillPattern { type: 'pattern'; prst: string; fg?: string; bg?: string; }
+/** 跟随组填充（a:grpFill）：子元素继承父组合 grpSpPr 的填充，round-trip 需保留 */
+export interface PptxFillGroup { type: 'group'; }
 /**
  * 图片填充（a:blipFill）：data 为内联 dataURL，src 为外链地址。
  * 与 p:pic 一致，round-trip 时自包含。
@@ -1059,6 +1061,8 @@ export interface PptxGroupElement extends PptxElementBase {
     flipH?: boolean;
     /** 组合级垂直翻转（grpSpPr/a:xfrm/@flipV，1/0/"true"/"false"） */
     flipV?: boolean;
+    /** 组合级填充（grpSpPr 的 fill）：子元素可使用 {type:'group'} 继承它 */
+    fill?: PptxFill;
 }
 
 /** 视频元素（mp4 等，p:pic + 媒体关系） */
@@ -1336,9 +1340,8 @@ export interface PptxFontResource {
     /** 字体族名（a:font@typeface，如 'Source Han Sans'） */
     name: string;
     /**
-     * 字体数据（base64）。OOXML 要求嵌入字体为 **经 XOR 混淆** 的 fntdata，
-     * 生成端会按 ECMA-376 规则对原始 TTF/OTF 做混淆后写入；
-     * 解析端回读时自动解混淆并还原为原始字节。
+     * 字体数据（base64，原始未混淆字节）。OOXML 要求嵌入字体为 **经 XOR 混淆** 的 fntdata：
+     * 生成端会按 ECMA-376 规则对原始 TTF/OTF 混淆后写入，解析端（pptxToStandard）回读时自动解混淆还原。
      */
     data: string;
     /** panose 分类（a:font@panose，20 位十六进制串） */

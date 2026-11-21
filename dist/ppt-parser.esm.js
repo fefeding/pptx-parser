@@ -2873,11 +2873,23 @@ function getGradientFill(node, warpObj) {
     if (lin !== undefined) {
         rot = PPTXXmlUtils.angleToDegrees(lin["attrs"]["ang"]) + 90;
     }
+    let radial = false;
+    let fillToRect;
+    const pathNode = node["a:path"];
+    if (pathNode !== undefined) {
+        radial = true;
+        const fr = pathNode["a:fillToRect"];
+        const a = fr && fr.attrs ? fr.attrs : {};
+        const pct = (v) => (v == null ? 0 : Number(v) / 100000);
+        fillToRect = { l: pct(a.l), t: pct(a.t), r: pct(a.r), b: pct(a.b) };
+    }
     return {
         "color": color_ary,
         "alpha": alpha_ary,
         "pos": pos_ary,
-        "rot": rot
+        "rot": rot,
+        "radial": radial,
+        "fillToRect": fillToRect
     };
 }
 function getImageSizeFromBuffer(buf) {
@@ -3742,13 +3754,24 @@ function subdivideGradientStops(rawStops) {
     }
     return out;
 }
-function getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry) {
-    let svgAngle = '', svgHeight = h, svgWidth = w, svg = '', xy_ary = SVGangle(angl, svgHeight, svgWidth), x1 = xy_ary[0], y1 = xy_ary[1], x2 = xy_ary[2], y2 = xy_ary[3];
+function getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry, radial, fillToRect) {
+    let svg = '';
     const sal = color_arry.length;
     let sr = sal < 20 ? 100 : 1000;
-    svgAngle = ` gradientUnits="userSpaceOnUse" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%"`;
-    svgAngle = `<linearGradient id="linGrd_${shpId}"${svgAngle}>\n`;
-    svg += svgAngle;
+    if (radial) {
+        const f = fillToRect || { l: 0, t: 0, r: 0, b: 0 };
+        const ww = Number(w) || 1, hh = Number(h) || 1;
+        const cx = (f.l + (1 - f.r)) / 2 * ww;
+        const cy = (f.t + (1 - f.b)) / 2 * hh;
+        const rx = Math.max(1e-6, Math.max(cx, ww - cx));
+        const ry = Math.max(1e-6, Math.max(cy, hh - cy));
+        svg += `<radialGradient id="linGrd_${shpId}" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(${cx} ${cy}) scale(${rx} ${ry})">\n`;
+    }
+    else {
+        const xy_ary = SVGangle(angl, h, w), x1 = xy_ary[0], y1 = xy_ary[1], x2 = xy_ary[2], y2 = xy_ary[3];
+        svg += `<linearGradient id="linGrd_${shpId}" gradientUnits="userSpaceOnUse" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%">\n`;
+    }
+    svg += '';
     const rawStops = [];
     for (let i = 0; i < sal; i++) {
         const tinClr = tinycolor$2(`#${color_arry[i]}`);
@@ -3777,7 +3800,7 @@ function getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry) {
         svg += `<stop offset="${offset}" style="stop-color:#${hex}; stop-opacity:${Math.round(st.alpha * 1000) / 1000};"`;
         svg += '/>\n';
     }
-    svg += `</linearGradient>\n`;
+    svg += radial ? `</radialGradient>\n` : `</linearGradient>\n`;
     return svg;
 }
 function getMiddleStops(s) {
@@ -9777,7 +9800,7 @@ const PPTXShapeUtils = (function () {
                 const alpha_arry = fillColor.alpha;
                 const angl = fillColor.rot - 90;
                 const pos_arry = fillColor.pos;
-                const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry);
+                const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry, fillColor.radial, fillColor.fillToRect);
                 result += svgGrdnt;
             }
             else if (clrFillType == "PIC_FILL") {
@@ -15454,6 +15477,9 @@ function obfuscateFontData(bytes) {
     }
     return out;
 }
+function deobfuscateFontData(bytes) {
+    return obfuscateFontData(bytes);
+}
 function buildFontTableXml(fonts, relIds) {
     const entries = fonts.map((f, i) => {
         const panose = f.panose ? `<a:panose val="${escapeXml$1(f.panose)}"/>` : '';
@@ -15505,7 +15531,10 @@ function buildContentTypesXml(mediaExts, slideCount, opts = {}) {
         .map(ext => `<Default Extension="${escapeXml$1(ext)}" ContentType="${MIME_MAP[String(ext).toLowerCase()] || 'application/octet-stream'}"/>`)
         .join('');
     const slideOverrides = Array.from({ length: slideCount }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${Array.from({ length: Math.max(1, opts.masterCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideMasters/slideMaster${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>`).join('')}${Array.from({ length: Math.max(1, opts.layoutCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`).join('')}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${Array.from({ length: Math.max(0, (opts.themeCount ?? 1) - 1) }, (_, i) => `<Override PartName="/ppt/theme/theme${i + 2}.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
+    const presContentType = opts.asTemplate
+        ? 'application/vnd.openxmlformats-officedocument.presentationml.template.main+xml'
+        : 'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml';
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="${presContentType}"/>${Array.from({ length: Math.max(1, opts.masterCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideMasters/slideMaster${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>`).join('')}${Array.from({ length: Math.max(1, opts.layoutCount ?? 1) }, (_, i) => `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`).join('')}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${Array.from({ length: Math.max(0, (opts.themeCount ?? 1) - 1) }, (_, i) => `<Override PartName="/ppt/theme/theme${i + 2}.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>${slideOverrides}</Types>`;
 }
 function buildCorePropsXml(metadata) {
     const md = metadata || {};
@@ -16086,6 +16115,8 @@ async function buildFillNode(ctx, fill) {
         return xmlNode('a:noFill');
     if (typeof fill === 'string')
         return xmlNode('a:solidFill', colorNode(fill));
+    if (fill.type === 'group')
+        return xmlNode('a:grpFill');
     if (fill.type === 'gradient') {
         const g = fill;
         const stops = (g.stops || []).map((s) => xmlNode('a:gs', { pos: Math.round((s.position || 0) * 100000) }, colorNode(s.color)));
@@ -16999,11 +17030,12 @@ async function buildGroupElement(ctx, el) {
     }
     const w = pxToEmu(el.width || 0);
     const h = pxToEmu(el.height || 0);
+    const grpFillNode = await buildFillNode(ctx, el.fill);
     return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', {
         rot: el.rotation ? Math.round(el.rotation * 60000) : undefined,
         flipH: el.flipH ? 1 : undefined,
         flipV: el.flipV ? 1 : undefined
-    }, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h }))), ...childNodes);
+    }, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: w, cy: h }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: w, cy: h })), grpFillNode), ...childNodes);
 }
 const TRANSPARENT_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 async function buildMediaElement(ctx, el, kind) {
@@ -17559,7 +17591,7 @@ function buildTransition(t, ctx) {
     if (t.advanceAfterTime != null)
         attrs.advTm = Math.round(t.advanceAfterTime);
     if (t.advanceOnClick === false)
-        attrs.advanceOnClick = 0;
+        attrs.advClick = 0;
     const children = [];
     children.push(xmlNode(tag, { dir: t.direction || null }));
     if (t.sound && ctx) {
@@ -17580,7 +17612,7 @@ function buildTransition(t, ctx) {
 function buildNotesSlide(notes) {
     return xmlNode('p:notesSlide', { 'xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
         'xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-        'xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main' }, xmlNode('p:cSld', null, xmlNode('p:spTree', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id: 1, name: '' }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: 0, y: 0 }), xmlNode('a:ext', { cx: 0, cy: 0 }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: 0, cy: 0 }))), xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id: 2, name: 'Notes Placeholder 1' }), xmlNode('p:cNvSpPr', null, xmlNode('p:ph', { type: 'body', idx: 1 })), xmlNode('p:nvPr')), xmlNode('p:spPr'), xmlNode('p:txBody', null, xmlNode('a:bodyPr', { rtlCol: 0 }), xmlNode('a:lstStyle'), xmlNode('a:p', null, xmlNode('a:r', null, xmlNode('a:rPr', { lang: 'zh-CN' }), xmlNode('a:t', null, notes))))))), xmlNode('p:clrMapOvr', null, xmlNode('a:masterClrMapping')));
+        'xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main' }, xmlNode('p:cSld', null, xmlNode('p:spTree', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id: 1, name: '' }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', null, xmlNode('a:off', { x: 0, y: 0 }), xmlNode('a:ext', { cx: 0, cy: 0 }), xmlNode('a:chOff', { x: 0, y: 0 }), xmlNode('a:chExt', { cx: 0, cy: 0 }))), xmlNode('p:sp', null, xmlNode('p:nvSpPr', null, xmlNode('p:cNvPr', { id: 2, name: 'Notes Placeholder 1' }), xmlNode('p:cNvSpPr'), xmlNode('p:nvPr', null, xmlNode('p:ph', { type: 'body', idx: 1 }))), xmlNode('p:spPr'), xmlNode('p:txBody', null, xmlNode('a:bodyPr', { rtlCol: 0 }), xmlNode('a:lstStyle'), xmlNode('a:p', null, xmlNode('a:r', null, xmlNode('a:rPr', { lang: 'zh-CN' }), xmlNode('a:t', null, notes))))))), xmlNode('p:clrMapOvr', null, xmlNode('a:masterClrMapping')));
 }
 function animTriggerType(t) {
     const v = typeof t === 'string' ? t : t && t.type;
@@ -18147,7 +18179,8 @@ async function jsonToPptx(presentation, options = {}) {
     let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length, {
         masterCount: useMasters ? masters.length : 1,
         layoutCount: useMasters ? flatLayouts.length : 1,
-        themeCount
+        themeCount,
+        asTemplate: options.asTemplate
     });
     if (pres.customProps) {
         contentTypeXml = contentTypeXml.replace('</Types>', `<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>`);
@@ -18715,6 +18748,157 @@ class PPTXComposer {
     }
 }
 
+function stripDataUrlPrefix(value) {
+    const match = /^data:[^,]*?(;base64)?,(.*)$/s.exec(value.trim());
+    if (match) {
+        if (!match[1])
+            return '';
+        return match[2];
+    }
+    return value.trim();
+}
+function isNodeBuffer(value) {
+    return typeof Buffer !== 'undefined' && Buffer.isBuffer(value);
+}
+function base64ToBytes(base64) {
+    const clean = base64.replace(/\s+/g, '');
+    if (!clean)
+        return new Uint8Array(0);
+    const globalAtob = globalThis.atob;
+    const binary = globalAtob
+        ? globalAtob(clean)
+        : Buffer.from(clean, 'base64').toString('binary');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i) & 0xff;
+    }
+    return bytes;
+}
+function bytesToBase64(bytes) {
+    const globalBtoa = globalThis.btoa;
+    if (globalBtoa) {
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+        }
+        return globalBtoa(binary);
+    }
+    return Buffer.from(bytes).toString('base64');
+}
+async function toUint8Array(input) {
+    if (input == null) {
+        throw new TypeError('convert: 缺少输入数据');
+    }
+    if (typeof input === 'string') {
+        return base64ToBytes(stripDataUrlPrefix(input));
+    }
+    if (isNodeBuffer(input)) {
+        const buf = input;
+        return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    }
+    if (input instanceof Uint8Array) {
+        return input;
+    }
+    if (ArrayBuffer.isView(input)) {
+        return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+    }
+    if (input instanceof ArrayBuffer) {
+        return new Uint8Array(input);
+    }
+    const maybeBlob = input;
+    if (typeof maybeBlob.arrayBuffer === 'function') {
+        return new Uint8Array(await maybeBlob.arrayBuffer());
+    }
+    throw new TypeError('convert: 不支持的输入类型，请传入 ArrayBuffer / Uint8Array / Buffer / Blob / base64 字符串');
+}
+async function toArrayBuffer(input) {
+    if (typeof input === 'string') {
+        const bytes = base64ToBytes(stripDataUrlPrefix(input));
+        return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    }
+    if (input instanceof ArrayBuffer) {
+        return input;
+    }
+    if (isNodeBuffer(input)) {
+        const buf = input;
+        return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    }
+    const bytes = await toUint8Array(input);
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+}
+async function toBinaryPayload(input) {
+    const bytes = await toUint8Array(input);
+    if (typeof Buffer !== 'undefined') {
+        return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    }
+    return bytes;
+}
+function assertNonEmpty(bytes, format, minSize = 4) {
+    const size = bytes instanceof ArrayBuffer ? bytes.byteLength : bytes.byteLength;
+    if (size < minSize) {
+        throw new TypeError(`convert: ${format} 数据无效（长度 ${size} 字节，至少需要 ${minSize} 字节）`);
+    }
+}
+const MD_STRONG = [
+    /^#{1,6}\s+\S/m,
+    /^```/m,
+    /\[[^\]\n]+\]\([^)\n]+\)/,
+    /!\[[^\]\n]*\]\([^)\n]+\)/,
+    /^\s*\|.*\|\s*$/m
+];
+const MD_WEAK = [
+    /^\s*[-*+]\s+\S/m,
+    /^\s*\d+\.\s+\S/m,
+    /^>\s+\S/m,
+    /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/m
+];
+function looksLikeMarkdown(text) {
+    if (MD_STRONG.some((re) => re.test(text)))
+        return true;
+    return MD_WEAK.filter((re) => re.test(text)).length >= 2;
+}
+async function detectFormat(input) {
+    const bytes = await toUint8Array(input);
+    if (!bytes.length)
+        return null;
+    if (bytes.length >= 4) {
+        if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46)
+            return 'pdf';
+        if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
+            const isZip = (bytes[2] === 0x03 && bytes[3] === 0x04) ||
+                (bytes[2] === 0x05 && bytes[3] === 0x06) ||
+                (bytes[2] === 0x07 && bytes[3] === 0x08);
+            if (!isZip)
+                return null;
+            const text = new TextDecoder('latin1').decode(bytes.slice(0, Math.min(bytes.length, 8192)));
+            if (text.includes('word/'))
+                return 'docx';
+            if (text.includes('xl/'))
+                return 'xlsx';
+            if (text.includes('ppt/'))
+                return 'pptx';
+            const tail = new TextDecoder('latin1').decode(bytes.slice(Math.max(0, bytes.length - 65536)));
+            if (tail.includes('word/'))
+                return 'docx';
+            if (tail.includes('xl/'))
+                return 'xlsx';
+            if (tail.includes('ppt/'))
+                return 'pptx';
+            return null;
+        }
+    }
+    if (!bytes.includes(0)) {
+        try {
+            const head = new TextDecoder('utf-8', { fatal: true }).decode(bytes.slice(0, Math.min(bytes.length, 8192)));
+            return looksLikeMarkdown(head) ? 'md' : 'txt';
+        }
+        catch {
+        }
+    }
+    return null;
+}
+
 const tinycolor = (color, opts) => new TinyColor(color, opts);
 const CHART_PLOT_TYPES = [
     'c:barChart', 'c:bar3DChart',
@@ -19184,6 +19368,9 @@ function readSpPr(spPr, themeMap = {}) {
     if (spPr['a:noFill']) {
         out.fill = 'none';
     }
+    else if (spPr['a:grpFill']) {
+        out.fill = { type: 'group' };
+    }
     else if (spPr['a:gradFill']) {
         const gf = spPr['a:gradFill'];
         const gsLst = gf['a:gsLst'];
@@ -19605,6 +19792,18 @@ async function extractTransition(slideContent, resObj = {}, zip) {
         duration = m[String(t.attrs['spd'])] || 1000;
     }
     const out = { type, duration };
+    const ta = t.attrs || {};
+    if (ta.advTm != null)
+        out.advanceAfterTime = Math.round(Number(ta.advTm));
+    const clickAttr = ta.advClick ?? ta.advanceOnClick;
+    if (clickAttr != null) {
+        const v = clickAttr;
+        out.advanceOnClick = !(v === '0' || v === 0 || v === 'false' || v === false);
+    }
+    const typeNode = t[`p:${type}`];
+    const dir = (typeNode && typeNode.attrs && typeNode.attrs.dir) || ta.dir;
+    if (dir != null)
+        out.direction = String(dir);
     const snd = t['p:snd'];
     if (snd && snd.attrs) {
         const sound = {};
@@ -20643,6 +20842,9 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
                     g.flipH = true;
                 if (gxfAttrs && (gxfAttrs.flipV === '1' || gxfAttrs.flipV === 'true' || gxfAttrs.flipV === true))
                     g.flipV = true;
+                const grpFill = readSpPr(node['p:grpSpPr'], themeMap).fill;
+                if (grpFill !== undefined)
+                    g.fill = grpFill;
                 return g;
             };
             slide.elements = await processTree(spTree);
@@ -22443,6 +22645,108 @@ async function picToImage(node, resObj, zip) {
     }
     return imgEl;
 }
+function resolveFontPart(target) {
+    if (!target || /^https?:/i.test(target))
+        return undefined;
+    let t;
+    try {
+        t = decodeURIComponent(target);
+    }
+    catch {
+        t = target;
+    }
+    t = t.replace(/\\/g, '/');
+    const absolute = t.startsWith('/');
+    const base = absolute ? [] : ['ppt'];
+    const segments = base.slice();
+    for (const seg of t.split('/')) {
+        if (!seg || seg === '.')
+            continue;
+        if (seg === '..') {
+            if (segments.length)
+                segments.pop();
+            continue;
+        }
+        segments.push(seg);
+    }
+    const path = segments.join('/');
+    return path.startsWith('ppt/') ? path : `ppt/${path.replace(/^\/+/, '')}`;
+}
+async function extractEmbeddedFonts(zip) {
+    try {
+        if (!zip.file('ppt/fontTable.xml'))
+            return [];
+        const ftXml = await PPTXXmlUtils.readXmlFile(zip, 'ppt/fontTable.xml');
+        const root = ftXml && (ftXml['p:fontTable'] || ftXml['fontTable']);
+        if (!root)
+            return [];
+        const relMap = await readRelMap(zip, 'ppt/_rels/fontTable.xml.rels');
+        const fontsRaw = root['a:font'];
+        const fontsList = Array.isArray(fontsRaw) ? fontsRaw : fontsRaw ? [fontsRaw] : [];
+        const out = [];
+        const list = (v) => Array.isArray(v) ? v : v ? [v] : [];
+        for (const f of fontsList) {
+            const attrs = (f && f.attrs) || {};
+            const panose = f && f['a:panose'];
+            const panoseVal = panose && panose.attrs && panose.attrs.val ? String(panose.attrs.val) : undefined;
+            const familyTypeface = attrs.typeface != null ? String(attrs.typeface) : '';
+            const variants = [];
+            for (const emb of list(f && f['a:embeddedFont'])) {
+                const eAttrs = (emb && emb.attrs) || {};
+                const subsetted = eAttrs.subsetted === '1' || eAttrs.subsetted === 'true';
+                let matched = false;
+                for (const key of ['regular', 'bold', 'italic', 'boldItalic']) {
+                    const v = emb[`a:${key}`];
+                    if (!v)
+                        continue;
+                    matched = true;
+                    const vAttrs = (v.attrs || {});
+                    variants.push({
+                        node: v,
+                        typeface: vAttrs.typeface != null ? String(vAttrs.typeface) : familyTypeface,
+                        bold: key === 'bold' || key === 'boldItalic',
+                        italic: key === 'italic' || key === 'boldItalic',
+                        subsetted
+                    });
+                }
+                if (!matched && emb['a:fontData']) {
+                    variants.push({
+                        node: emb, typeface: familyTypeface,
+                        bold: attrs.b === '1' || attrs.b === 'true',
+                        italic: attrs.i === '1' || attrs.i === 'true',
+                        subsetted
+                    });
+                }
+            }
+            for (const variant of variants) {
+                const fd = variant.node && variant.node['a:fontData'];
+                const rid = fd && fd.attrs && fd.attrs['r:id'];
+                const rel = rid ? relMap[String(rid)] : undefined;
+                if (!rel || !variant.typeface || /^https?:/i.test(rel.target))
+                    continue;
+                const fontPath = resolveFontPart(rel.target);
+                const fontFile = fontPath ? zip.file(fontPath) : undefined;
+                if (!fontFile)
+                    continue;
+                const obfuscated = base64ToBytes(await fontFile.async('base64'));
+                const raw = deobfuscateFontData(obfuscated);
+                const resource = { name: variant.typeface, data: bytesToBase64(raw) };
+                if (panoseVal)
+                    resource.panose = panoseVal;
+                if (variant.bold)
+                    resource.bold = true;
+                if (variant.italic)
+                    resource.italic = true;
+                resource.embedType = variant.subsetted ? 'subset' : 'full';
+                out.push(resource);
+            }
+        }
+        return out;
+    }
+    catch {
+        return [];
+    }
+}
 async function buildStandardDocument(parsedData, zip, options = {}) {
     const theme = await extractTheme(zip);
     const slides = await Promise.all((parsedData.slides || []).map(async (s) => extractSlideToStandard(s.data, zip, { ...options, theme: theme })));
@@ -22481,6 +22785,9 @@ async function buildStandardDocument(parsedData, zip, options = {}) {
         }
     }
     catch { }
+    const fonts = await extractEmbeddedFonts(zip);
+    if (fonts.length)
+        doc.fonts = fonts;
     return doc;
 }
 async function readRelMap(zip, relsPath) {
@@ -23374,157 +23681,6 @@ const round = (v, d = 2) => {
 };
 function clone(o) {
     return o == null ? o : JSON.parse(JSON.stringify(o));
-}
-
-function stripDataUrlPrefix(value) {
-    const match = /^data:[^,]*?(;base64)?,(.*)$/s.exec(value.trim());
-    if (match) {
-        if (!match[1])
-            return '';
-        return match[2];
-    }
-    return value.trim();
-}
-function isNodeBuffer(value) {
-    return typeof Buffer !== 'undefined' && Buffer.isBuffer(value);
-}
-function base64ToBytes(base64) {
-    const clean = base64.replace(/\s+/g, '');
-    if (!clean)
-        return new Uint8Array(0);
-    const globalAtob = globalThis.atob;
-    const binary = globalAtob
-        ? globalAtob(clean)
-        : Buffer.from(clean, 'base64').toString('binary');
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i) & 0xff;
-    }
-    return bytes;
-}
-function bytesToBase64(bytes) {
-    const globalBtoa = globalThis.btoa;
-    if (globalBtoa) {
-        let binary = '';
-        const chunkSize = 0x8000;
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
-        }
-        return globalBtoa(binary);
-    }
-    return Buffer.from(bytes).toString('base64');
-}
-async function toUint8Array(input) {
-    if (input == null) {
-        throw new TypeError('convert: 缺少输入数据');
-    }
-    if (typeof input === 'string') {
-        return base64ToBytes(stripDataUrlPrefix(input));
-    }
-    if (isNodeBuffer(input)) {
-        const buf = input;
-        return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
-    }
-    if (input instanceof Uint8Array) {
-        return input;
-    }
-    if (ArrayBuffer.isView(input)) {
-        return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
-    }
-    if (input instanceof ArrayBuffer) {
-        return new Uint8Array(input);
-    }
-    const maybeBlob = input;
-    if (typeof maybeBlob.arrayBuffer === 'function') {
-        return new Uint8Array(await maybeBlob.arrayBuffer());
-    }
-    throw new TypeError('convert: 不支持的输入类型，请传入 ArrayBuffer / Uint8Array / Buffer / Blob / base64 字符串');
-}
-async function toArrayBuffer(input) {
-    if (typeof input === 'string') {
-        const bytes = base64ToBytes(stripDataUrlPrefix(input));
-        return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    }
-    if (input instanceof ArrayBuffer) {
-        return input;
-    }
-    if (isNodeBuffer(input)) {
-        const buf = input;
-        return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    }
-    const bytes = await toUint8Array(input);
-    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-}
-async function toBinaryPayload(input) {
-    const bytes = await toUint8Array(input);
-    if (typeof Buffer !== 'undefined') {
-        return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    }
-    return bytes;
-}
-function assertNonEmpty(bytes, format, minSize = 4) {
-    const size = bytes instanceof ArrayBuffer ? bytes.byteLength : bytes.byteLength;
-    if (size < minSize) {
-        throw new TypeError(`convert: ${format} 数据无效（长度 ${size} 字节，至少需要 ${minSize} 字节）`);
-    }
-}
-const MD_STRONG = [
-    /^#{1,6}\s+\S/m,
-    /^```/m,
-    /\[[^\]\n]+\]\([^)\n]+\)/,
-    /!\[[^\]\n]*\]\([^)\n]+\)/,
-    /^\s*\|.*\|\s*$/m
-];
-const MD_WEAK = [
-    /^\s*[-*+]\s+\S/m,
-    /^\s*\d+\.\s+\S/m,
-    /^>\s+\S/m,
-    /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/m
-];
-function looksLikeMarkdown(text) {
-    if (MD_STRONG.some((re) => re.test(text)))
-        return true;
-    return MD_WEAK.filter((re) => re.test(text)).length >= 2;
-}
-async function detectFormat(input) {
-    const bytes = await toUint8Array(input);
-    if (!bytes.length)
-        return null;
-    if (bytes.length >= 4) {
-        if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46)
-            return 'pdf';
-        if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
-            const isZip = (bytes[2] === 0x03 && bytes[3] === 0x04) ||
-                (bytes[2] === 0x05 && bytes[3] === 0x06) ||
-                (bytes[2] === 0x07 && bytes[3] === 0x08);
-            if (!isZip)
-                return null;
-            const text = new TextDecoder('latin1').decode(bytes.slice(0, Math.min(bytes.length, 8192)));
-            if (text.includes('word/'))
-                return 'docx';
-            if (text.includes('xl/'))
-                return 'xlsx';
-            if (text.includes('ppt/'))
-                return 'pptx';
-            const tail = new TextDecoder('latin1').decode(bytes.slice(Math.max(0, bytes.length - 65536)));
-            if (tail.includes('word/'))
-                return 'docx';
-            if (tail.includes('xl/'))
-                return 'xlsx';
-            if (tail.includes('ppt/'))
-                return 'pptx';
-            return null;
-        }
-    }
-    if (!bytes.includes(0)) {
-        try {
-            const head = new TextDecoder('utf-8', { fatal: true }).decode(bytes.slice(0, Math.min(bytes.length, 8192)));
-            return looksLikeMarkdown(head) ? 'md' : 'txt';
-        }
-        catch {
-        }
-    }
-    return null;
 }
 
 const SLIDE_SIZES = {
@@ -27454,6 +27610,10 @@ async function convertSlideDataToHtml(slideData, slideSize, settings, zip, slide
         }).join('');
         result += `<div class="pptx-comments">${noteHtml}</div>`;
     }
+    const notesText = extractNotesFromContent(slideData.notesContent);
+    if (notesText) {
+        result += `<div class="pptx-notes" data-notes="${esc(notesText)}" style="display:none;white-space:pre-wrap;">${esc(notesText)}</div>`;
+    }
     if (docCustomProps && slideNum === 1 && Object.keys(docCustomProps).length) {
         const rows = Object.entries(docCustomProps)
             .map(([k, v]) => `<div class="pptx-custom-prop"><span class="pptx-custom-prop-name">${esc(k)}</span><span class="pptx-custom-prop-value">${esc(v)}</span></div>`)
@@ -27715,6 +27875,40 @@ async function pptxToFiles(fileData) {
     });
     await Promise.all(promises);
     return result;
+}
+function extractNotesFromContent(notesContent) {
+    if (!notesContent)
+        return undefined;
+    const spTree = PPTXXmlUtils.getTextByPathList(notesContent, ['p:notesSlide', 'p:cSld', 'p:spTree']);
+    if (!spTree)
+        return undefined;
+    const asArr = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
+    const texts = [];
+    for (const sp of asArr(spTree['p:sp'])) {
+        const nvSpPr = sp?.['p:nvSpPr'];
+        const nvPr = nvSpPr?.['p:nvPr'];
+        const ph = nvPr?.['p:ph'];
+        const phType = ph?.attrs?.type ?? ph?.attrs?.['type'];
+        if (ph && phType != null && phType !== 'body')
+            continue;
+        const txBody = sp['p:txBody'];
+        if (!txBody)
+            continue;
+        for (const p of asArr(txBody['a:p'])) {
+            let line = '';
+            for (const r of asArr(p['a:r'])) {
+                const t = r?.['a:t'];
+                if (typeof t === 'string')
+                    line += t;
+                else if (t && typeof t === 'object' && typeof t.text === 'string')
+                    line += t.text;
+            }
+            if (line)
+                texts.push(line);
+        }
+    }
+    const joined = texts.join('\n').trim();
+    return joined.length ? joined : undefined;
 }
 function extractSlideTransition(slideContent) {
     const sld = slideContent["p:sld"];

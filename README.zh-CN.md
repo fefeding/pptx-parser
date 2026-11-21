@@ -57,6 +57,8 @@ fileInput.addEventListener('change', async (e) => {
     div.innerHTML = slide.html;
     container.appendChild(div);
   });
+  // 演讲者备注以隐藏的 <div class="pptx-notes" data-notes="…"> 输出，
+  // 如需讲者视图可用 CSS 将其显示出来。
 });
 ```
 
@@ -110,7 +112,7 @@ composer
 const data = await composer.save(); // Uint8Array
 ```
 
-也支持对象式配置：`slide.addText({ text: 'Hi', x: 0, y: 0 })`。
+也支持对象式配置：`slide.addText({ text: 'Hi', x: 0, y: 0 })`。若要生成 PowerPoint 模板（`.potx`）而非演示文稿，给 `jsonToPptx` 或 `composer.save()` 传 `{ asTemplate: true }`——它会把 `presentation.xml` 的 ContentType 切换为 `template.main+xml`。
 
 ### JSON 转 PPTX
 
@@ -260,11 +262,11 @@ registerConverter({
 ## 支持的元素
 
 - **文本** — 多段落、run 内字号/颜色/粗体/斜体/下划线/字体、超链接（外部 URL 或 `#N` 跳转到第 N 页）、项目符号与编号列表、行距、缩进、文本框内边距、竖排文字方向、分栏、自动适配、艺术字变形、run 级描边与阴影、动态字段（页码/日期）
-- **形状** — 全部预设几何（`rect`、`roundRect`、`ellipse`、`triangle`、`arrow`、`star5`、`foldedCorner` 等）；渐变 / 纯色 / 图片 / 图案填充；图片填充支持平铺（`tile`）与源矩形裁剪（`srcRect`）；线型、阴影与发光效果；几何调整（`avLst`）；水平/垂直翻转；自定义几何路径（`custGeom`）；三维挤出/斜面/相机/光照（`threeD`）
+- **形状** — 全部预设几何（`rect`、`roundRect`、`ellipse`、`triangle`、`arrow`、`star5`、`foldedCorner` 等）；渐变（线性 + 径向 `a:path`）/ 纯色 / 图片 / 图案 / 继承组合填充（`a:grpFill`）；图片填充支持平铺（`tile`）与源矩形裁剪（`srcRect`）；线型、阴影与发光效果；几何调整（`avLst`）；水平/垂直翻转；自定义几何路径（`custGeom`）；三维挤出/斜面/相机/光照（`threeD`）
 - **图片** — PNG、JPEG、GIF、BMP、WEBP、SVG；base64/dataURL 或远程 `src`；裁剪、亮度/对比度/透明度
 - **表格** — 完整样式：单元格边框、对角线边框（`tlBr` / `blTr` / `both`）、单元格内边距、跨行跨列（`colSpan`/`rowSpan`）、合并（`hMerge`/`vMerge`）、填充、对齐、表格样式（`tableStyleId`）
 - **图表** — 柱状/条形、折线、面积、饼/环、子母饼、散点、气泡、雷达、股票、曲面（2D 与 3D）；多系列、系列颜色、逐点配色（`pointColors`）、图例、数据标签、分组、`barDir`、`holeSize`、`ofPieType`、`bubble3D`、`wireframe`、三维视角（`view3D`）、次坐标轴、趋势线、网格线、坐标轴标题
-- **组合** — `group` 元素，支持 `childrenCoordinates: 'local' | 'page' | 'relative'`
+- **组合** — `group` 元素，支持 `childrenCoordinates: 'local' | 'page' | 'relative'`；组合级填充，子元素可用 `fill: { type: 'group' }` 继承（`a:grpFill`）
 - **图示** — SmartArt（list / hierarchy / process / cycle / pyramid），含缓存绘图形状与连接线
 - **连接线** — `connector`（`straightConnector1` / `bentConnector3` / `curvedConnector2`），支持精确起止端点
 - **媒体** — 视频（`mp4`/`m4v`）与音频（`m4a`/`mp3`），可选封面图

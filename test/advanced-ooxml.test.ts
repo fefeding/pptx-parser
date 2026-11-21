@@ -248,7 +248,9 @@ describe('高级 OOXML 生成能力', () => {
 
         expect(xml).toContain('p:transition');
         expect(xml).toContain('advTm="5000"');
-        expect(xml).toContain('advanceOnClick="0"');
+        // OOXML 规范属性名是 advClick（旧代码误写 advanceOnClick，PowerPoint 会忽略）
+        expect(xml).toContain('advClick="0"');
+        expect(xml).not.toContain('advanceOnClick');
         expect(xml).toContain('dir="l"');
     });
 

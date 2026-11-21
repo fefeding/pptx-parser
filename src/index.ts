@@ -762,6 +762,14 @@ async function convertSlideDataToHtml(slideData: SlideDataRecord, slideSize: Sli
         result += `<div class="pptx-comments">${noteHtml}</div>`;
     }
 
+    // ===== 演讲者备注（ppt/notesSlides/notesSlideN.xml）=====
+    // 备注属于演讲者信息，不应遮挡幻灯片画面：用一个可被 CSS 隐藏的容器承载，
+    // 同时写入 section 的 data-notes 属性，方便宿主按需要提取（导出/讲者视图）。
+    const notesText = extractNotesFromContent((slideData as any).notesContent);
+    if (notesText) {
+        result += `<div class="pptx-notes" data-notes="${esc(notesText)}" style="display:none;white-space:pre-wrap;">${esc(notesText)}</div>`;
+    }
+
     // ===== 文档自定义属性可视化（docProps/custom.xml）=====
     // 自定义属性是文档级数据，仅在首页渲染一次，避免每页重复
     if (docCustomProps && slideNum === 1 && Object.keys(docCustomProps).length) {
@@ -1151,6 +1159,42 @@ async function pptxToFiles(fileData: PptxFileData) {
     await Promise.all(promises);
 
     return result;
+}
+
+/**
+ * 从 notesSlide XML 提取演讲者备注纯文本。
+ * 只取正文占位符（ph type=body）与无占位符文本框，跳过页码/日期/页脚/幻灯片缩略图占位符，
+ * 避免把自动生成的 "1" / 日期混进备注；同一段落的多个 run 合并为一行。
+ * 注意：语义层的 extractNotes（json-from-pptx）取所有 run 逐行拼接，二者口径不同——
+ * 此处面向讲者视图展示，故过滤占位符并按段落分行。
+ */
+function extractNotesFromContent(notesContent: XmlNode | null | undefined): string | undefined {
+    if (!notesContent) return undefined;
+    const spTree = PPTXXmlUtils.getTextByPathList(notesContent, ['p:notesSlide', 'p:cSld', 'p:spTree']);
+    if (!spTree) return undefined;
+    const asArr = <T>(v: T | T[] | undefined): T[] => (Array.isArray(v) ? v : v != null ? [v] : []);
+    const texts: string[] = [];
+    for (const sp of asArr<any>(spTree['p:sp'])) {
+        const nvSpPr = sp?.['p:nvSpPr'];
+        const nvPr = nvSpPr?.['p:nvPr'];
+        const ph = nvPr?.['p:ph'];
+        const phType = ph?.attrs?.type ?? ph?.attrs?.['type'];
+        // 正文占位符或无占位符的独立文本框才计入；其余（sldNum/dt/ftr/sldImg）跳过
+        if (ph && phType != null && phType !== 'body') continue;
+        const txBody = sp['p:txBody'];
+        if (!txBody) continue;
+        for (const p of asArr<any>(txBody['a:p'])) {
+            let line = '';
+            for (const r of asArr<any>(p['a:r'])) {
+                const t = r?.['a:t'];
+                if (typeof t === 'string') line += t;
+                else if (t && typeof t === 'object' && typeof (t as any).text === 'string') line += (t as any).text;
+            }
+            if (line) texts.push(line);
+        }
+    }
+    const joined = texts.join('\n').trim();
+    return joined.length ? joined : undefined;
 }
 
 // Export functions

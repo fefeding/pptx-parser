@@ -255,6 +255,8 @@ export interface ShapeFillImage {
     tile?: PptxImageTile;
 }
 export interface ShapeFillPattern { type: 'pattern'; prst: string; fg?: string; bg?: string; }
+/** 跟随父组合填充（a:grpFill） */
+export interface ShapeFillGroup { type: 'group'; }
 export interface ShapeLineSpec { color?: string; width?: number; transparency?: number; dashType?: string; cap?: 'rnd' | 'flat' | 'sq'; }
 export interface ShapeShadowSpec { type?: 'outer' | 'inner'; color?: string; blur?: number; distance?: number; angle?: number; transparency?: number; }
 export interface ShapeGlowSpec { color?: string; blur?: number; }
@@ -351,7 +353,7 @@ export interface SerializerElement {
     lang?: string;
     href?: string;
     /** 形状填充：颜色串 / {type:'solid',color,transparency} / {type:'gradient',...} / {type:'image',...} / {type:'pattern',prst} / 'none' / null */
-    fill?: string | ShapeFillSolid | ShapeFillGradient | ShapeFillImage | ShapeFillPattern | null;
+    fill?: string | ShapeFillSolid | ShapeFillGradient | ShapeFillImage | ShapeFillPattern | ShapeFillGroup | null;
     /** 形状边框：{ color, width, transparency, dashType } / 'none' / null */
     line?: ShapeLineSpec | 'none' | null;
     /** 形状特效（阴影 / 发光） */
@@ -1253,6 +1255,8 @@ async function buildFillNode(ctx: SerializerContext, fill: SerializerElement['fi
     if (fill === undefined) return null; // 未指定填充则继承主题
     if (fill === 'none' || fill === null) return xmlNode('a:noFill');
     if (typeof fill === 'string') return xmlNode('a:solidFill', colorNode(fill));
+    // 跟随父组合填充：子元素写 <a:grpFill/>，由 OOXML 继承父 grpSpPr 的填充
+    if ((fill as ShapeFillGroup).type === 'group') return xmlNode('a:grpFill');
     if ((fill as ShapeFillGradient).type === 'gradient') {
         const g = fill as ShapeFillGradient;
         const stops = (g.stops || []).map((s) =>
@@ -2560,6 +2564,8 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
     }
     const w = pxToEmu(el.width || 0);
     const h = pxToEmu(el.height || 0);
+    // 组合级填充（grpSpPr 的 fill）：子形状 a:grpFill 继承它；OOXML 顺序在 a:xfrm 之后
+    const grpFillNode = await buildFillNode(ctx, el.fill as SerializerElement['fill']);
     return xmlNode('p:grpSp',
         null,
         xmlNode('p:nvGrpSpPr',
@@ -2581,7 +2587,8 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
                 xmlNode('a:ext', { cx: w, cy: h }),
                 xmlNode('a:chOff', { x: 0, y: 0 }),
                 xmlNode('a:chExt', { cx: w, cy: h })
-            )
+            ),
+            grpFillNode
         ),
         // OOXML（CT_GroupShape）：grpSp 的子形状是其直接子节点，不包 p:spTree
         ...childNodes
@@ -3436,8 +3443,9 @@ export function buildTransition(t: PptxTransition | undefined, ctx?: SerializerC
     const attrs: Record<string, unknown> = { spd };
     // 自动切换停留时长（毫秒）；与 p:timing 的 afterTime 等价，但 PowerPoint 原生优先读 @advTm
     if (t.advanceAfterTime != null) attrs.advTm = Math.round(t.advanceAfterTime);
-    // 禁止点击切换（默认允许，故仅在显式 false 时输出）
-    if (t.advanceOnClick === false) attrs.advanceOnClick = 0;
+    // 禁止点击切换（默认允许，故仅在显式 false 时输出）。
+    // OOXML CT_SlideTransition 的规范属性名是 advClick（不是 advanceOnClick），PowerPoint 只认 advClick。
+    if (t.advanceOnClick === false) attrs.advClick = 0;
 
     const children: BuilderNode[] = [];
     children.push(xmlNode(tag, { dir: t.direction || null }));
@@ -3487,8 +3495,10 @@ export function buildNotesSlide(notes: string): BuilderNode {
                 xmlNode('p:sp', null,
                     xmlNode('p:nvSpPr', null,
                         xmlNode('p:cNvPr', { id: 2, name: 'Notes Placeholder 1' }),
-                        xmlNode('p:cNvSpPr', null, xmlNode('p:ph', { type: 'body', idx: 1 })),
-                        xmlNode('p:nvPr')
+                        xmlNode('p:cNvSpPr'),
+                        // p:ph 必须是 p:nvPr 的子元素（CT_ApplicationNonVisualDrawingProps），
+                        // 放进 p:cNvSpPr 会让 PowerPoint 不把它识别为备注正文占位符
+                        xmlNode('p:nvPr', null, xmlNode('p:ph', { type: 'body', idx: 1 }))
                     ),
                     xmlNode('p:spPr'),
                     xmlNode('p:txBody', null,

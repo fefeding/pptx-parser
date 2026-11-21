@@ -236,7 +236,7 @@ async function buildChartXlsx(workbook: { headers: string[]; rows: (string | num
     return xlsxZip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
 }
 
-async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutputType } = {}) {
+async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutputType; asTemplate?: boolean } = {}) {
     const pres = normalizePresentation(presentation);
     const slideSize = pres.slideSize || { width: 1280, height: 720 };
     const zip = new JSZip();
@@ -581,7 +581,8 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
     let contentTypeXml = buildContentTypesXml([...allMediaExts], pres.slides.length, {
         masterCount: useMasters ? masters!.length : 1,
         layoutCount: useMasters ? flatLayouts.length : 1,
-        themeCount
+        themeCount,
+        asTemplate: options.asTemplate
     });
     if ((pres as any).customProps) {
         contentTypeXml = contentTypeXml.replace('</Types>',

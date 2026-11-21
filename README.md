@@ -57,6 +57,8 @@ fileInput.addEventListener('change', async (e) => {
     div.innerHTML = slide.html;
     container.appendChild(div);
   });
+  // Speaker notes are emitted as a hidden <div class="pptx-notes" data-notes="…">;
+  // reveal it in a presenter view via CSS if needed.
 });
 ```
 
@@ -110,7 +112,7 @@ composer
 const data = await composer.save(); // Uint8Array
 ```
 
-Object-style config is also accepted: `slide.addText({ text: 'Hi', x: 0, y: 0 })`.
+Object-style config is also accepted: `slide.addText({ text: 'Hi', x: 0, y: 0 })`. To emit a PowerPoint template (`.potx`) instead of a presentation, pass `{ asTemplate: true }` to `jsonToPptx` or `composer.save()` — it switches `presentation.xml`'s content type to `template.main+xml`.
 
 ### JSON to PPTX
 
@@ -261,12 +263,12 @@ registerConverter({
 ## Supported Elements
 
 - **Text** — Multi-paragraph, runs with font size/color/bold/italic/underline/font face, hyperlinks (external URL or `#N` to jump to slide N), bullet & numbered lists, line spacing, indentation, text box inset, vertical text direction, multi-column, autofit, WordArt transforms, run-level outline & shadow, dynamic fields (slide number, datetime)
-- **Shapes** — All preset geometries (`rect`, `roundRect`, `ellipse`, `triangle`, `arrow`, `star5`, `foldedCorner`, …); gradient / solid / picture / pattern fills; picture fill with tiling (`tile`) and source-rectangle cropping (`srcRect`); line style, shadow & glow effects; geometric adjustment (`avLst`); horizontal/vertical flip; custom geometry paths (`custGeom`); 3D extrusion, bevel, camera & lighting (`threeD`)
+- **Shapes** — All preset geometries (`rect`, `roundRect`, `ellipse`, `triangle`, `arrow`, `star5`, `foldedCorner`, …); gradient (linear + radial `a:path`) / solid / picture / pattern / inherit-group (`a:grpFill`) fills; picture fill with tiling (`tile`) and source-rectangle cropping (`srcRect`); line style, shadow & glow effects; geometric adjustment (`avLst`); horizontal/vertical flip; custom geometry paths (`custGeom`); 3D extrusion, bevel, camera & lighting (`threeD`)
 - **Preset geometry paths** — `presetShapePath(prst, w, h, adj)` returns the SVG outline of any preset shape (star family, pie/arc/chord, callouts, ribbons, cylinders, moon, sun, cloud, donut, gear, heart, lightning, cube, bevel, folded corner …). The preview renderer and the headless editor share this single implementation, so both sides draw the same outline; `fillRule` is set for shapes that need holes (e.g. `donut`).
 - **Images** — PNG, JPEG, GIF, BMP, WEBP, SVG; base64/dataURL or remote `src`; cropping, brightness/contrast/transparency
 - **Tables** — Full styling: per-cell borders, diagonal borders (`tlBr` / `blTr` / `both`), cell inset, span (`colSpan`/`rowSpan`), merge (`hMerge`/`vMerge`), fill, alignment, and table styles (`tableStyleId`)
 - **Charts** — Bar/column, line, area, pie/doughnut, ofPie, scatter, bubble, radar, stock, surface (2D & 3D); multi-series, series colors, per-point colors (`pointColors`), legend, data labels, grouping, `barDir`, `holeSize`, `ofPieType`, `bubble3D`, `wireframe`, 3D view (`view3D`), secondary axis, trendlines, gridlines, axis titles
-- **Group** — `group` elements with `childrenCoordinates: 'local' | 'page' | 'relative'`
+- **Group** — `group` elements with `childrenCoordinates: 'local' | 'page' | 'relative'`; group-level fill with child `fill: { type: 'group' }` inheriting it (`a:grpFill`)
 - **Diagram** — SmartArt (list / hierarchy / process / cycle / pyramid) with cached drawing shapes and connectors
 - **Connector** — Connection lines (`straightConnector1` / `bentConnector3` / `curvedConnector2`) with precise start/end points
 - **Media** — Video (`mp4`/`m4v`) and audio (`m4a`/`mp3`) with optional poster

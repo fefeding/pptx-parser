@@ -447,6 +447,11 @@ export function obfuscateFontData(bytes: Uint8Array): Uint8Array {
     return out;
 }
 
+/** 解混淆嵌入字体（XOR 对称，obfuscate 的逆运算即自身） */
+export function deobfuscateFontData(bytes: Uint8Array): Uint8Array {
+    return obfuscateFontData(bytes);
+}
+
 /**
  * 生成 ppt/fontTable.xml（嵌入字体登记表）
  * @param {Array} fonts - 字体定义 [{ name, panose, bold, italic, embedType }]
@@ -511,7 +516,7 @@ export function buildRelationshipsXml(rels: Array<{ relId: string; type: string;
 export function buildContentTypesXml(
     mediaExts: Iterable<unknown>,
     slideCount: number,
-    opts: { masterCount?: number; layoutCount?: number; themeCount?: number } = {}
+    opts: { masterCount?: number; layoutCount?: number; themeCount?: number; asTemplate?: boolean } = {}
 ) {
     const MIME_MAP = {
         png: 'image/png',
@@ -534,7 +539,11 @@ export function buildContentTypesXml(
     const slideOverrides = Array.from({ length: slideCount }, (_, i) =>
         `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`
     ).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${Array.from({ length: Math.max(1, opts.masterCount ?? 1) }, (_, i) =>
+    // .potx 模板与 .pptx 的唯一结构性差异：presentation.xml 的 ContentType 为 template.main+xml
+    const presContentType = opts.asTemplate
+        ? 'application/vnd.openxmlformats-officedocument.presentationml.template.main+xml'
+        : 'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml';
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${defaults}${mediaDefaults}<Override PartName="/ppt/presentation.xml" ContentType="${presContentType}"/>${Array.from({ length: Math.max(1, opts.masterCount ?? 1) }, (_, i) =>
         `<Override PartName="/ppt/slideMasters/slideMaster${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>`
     ).join('')}${Array.from({ length: Math.max(1, opts.layoutCount ?? 1) }, (_, i) =>
         `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`

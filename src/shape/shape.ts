@@ -379,7 +379,7 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     // SVGangle 需要 a:lin/@ang 的原始角度（顺时针、0° 指向右）
                     const angl = fillColor.rot - 90;
                     const pos_arry = fillColor.pos;
-                    const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry);
+                    const svgGrdnt = PPTXStyleUtils.getSvgGradient(w, h, angl, color_arry, shpId, alpha_arry, pos_arry, fillColor.radial, fillColor.fillToRect);
                     //fill="url(#linGrd)"
                     //console.log("genShape: svgGrdnt: ", svgGrdnt)
                     result += svgGrdnt;

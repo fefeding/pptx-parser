@@ -125,7 +125,8 @@ const { files, content } = await pptxToFiles(fileData);
 ```ts
 const data = await jsonToPptx(pres, {
   outputType: 'uint8array',   // uint8array | arraybuffer | blob | nodebuffer | base64
-  theme: themeXmlString       // 可选：完整 theme XML 字符串（见 examples/generate-test-pptx.mjs 的 CUSTOM_THEME）
+  theme: themeXmlString,      // 可选：完整 theme XML 字符串（见 examples/generate-test-pptx.mjs 的 CUSTOM_THEME）
+  asTemplate: false           // 可选：true 则输出 .potx 模板（presentation.xml ContentType 切换为 template.main+xml）
 });
 ```
 

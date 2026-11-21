@@ -297,7 +297,7 @@ class PPTXComposer {
      * @param {Object} [options] - 序列化选项（同 jsonToPptx options）
      * @returns {Promise<Uint8Array>} PPTX 文件二进制数据
      */
-    save(options: { outputType?: ZipOutputType } = {}) {
+    save(options: { outputType?: ZipOutputType; asTemplate?: boolean } = {}) {
         return jsonToPptx(this.toJSON(), options);
     }
 }

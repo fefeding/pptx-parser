@@ -1511,11 +1511,25 @@ function getFillType(node: XmlNode | undefined) {
             if (lin !== undefined) {
                 rot = PPTXXmlUtils.angleToDegrees(lin["attrs"]["ang"]) + 90;
             }
+            // 路径（径向）渐变：<a:path path="circle|rect|shape"><a:fillToRect l/t/r/b/></a:path>
+            // fillToRect 的 l/t/r/b 单位为 1/1000 百分比（100000 = 100%），表示渐变外接椭圆距四边的内缩。
+            let radial = false;
+            let fillToRect: { l: number; t: number; r: number; b: number } | undefined;
+            const pathNode = node!["a:path"];
+            if (pathNode !== undefined) {
+                radial = true;
+                const fr = pathNode["a:fillToRect"];
+                const a = fr && fr.attrs ? fr.attrs : {};
+                const pct = (v: unknown) => (v == null ? 0 : Number(v) / 100000);
+                fillToRect = { l: pct(a.l), t: pct(a.t), r: pct(a.r), b: pct(a.b) };
+            }
             return {
                 "color": color_ary,
                 "alpha": alpha_ary,
                 "pos": pos_ary,
-                "rot": rot
+                "rot": rot,
+                "radial": radial,
+                "fillToRect": fillToRect
             }
         }
         /**
@@ -2945,22 +2959,27 @@ function getFillType(node: XmlNode | undefined) {
             return out;
         }
 
-        function getSvgGradient(w: any, h: any, angl: any, color_arry: any, shpId: any, alpha_arry?: any, pos_arry?: any) {
-            let svgAngle = '',
-                svgHeight = h,
-                svgWidth = w,
-                svg = '',
-                xy_ary = SVGangle(angl, svgHeight, svgWidth),
-                x1 = xy_ary[0],
-                y1 = xy_ary[1],
-                x2 = xy_ary[2],
-                y2 = xy_ary[3];
+        function getSvgGradient(w: any, h: any, angl: any, color_arry: any, shpId: any, alpha_arry?: any, pos_arry?: any, radial?: boolean, fillToRect?: { l: number; t: number; r: number; b: number }) {
+            let svg = '';
 
             const sal = color_arry.length;
             let sr = sal < 20 ? 100 : 1000;
-            svgAngle = ` gradientUnits="userSpaceOnUse" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%"`;
-            svgAngle = `<linearGradient id="linGrd_${shpId}"${svgAngle}>\n`;
-            svg += svgAngle;
+            if (radial) {
+                // 径向渐变：fillToRect 的 l/t/r/b 是「距四边的内缩百分比」，其中心即渐变焦点；
+                // 半径取焦点到远边的距离，保证最后一档颜色能铺满整个形状（SVG 单位圆经 gradientTransform 拉成椭圆）。
+                const f = fillToRect || { l: 0, t: 0, r: 0, b: 0 };
+                const ww = Number(w) || 1, hh = Number(h) || 1;
+                const cx = (f.l + (1 - f.r)) / 2 * ww;
+                const cy = (f.t + (1 - f.b)) / 2 * hh;
+                const rx = Math.max(1e-6, Math.max(cx, ww - cx));
+                const ry = Math.max(1e-6, Math.max(cy, hh - cy));
+                svg += `<radialGradient id="linGrd_${shpId}" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(${cx} ${cy}) scale(${rx} ${ry})">\n`;
+            } else {
+                const xy_ary = SVGangle(angl, h, w),
+                    x1 = xy_ary[0], y1 = xy_ary[1], x2 = xy_ary[2], y2 = xy_ary[3];
+                svg += `<linearGradient id="linGrd_${shpId}" gradientUnits="userSpaceOnUse" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%">\n`;
+            }
+            svg += '';
 
             // 收集原始色标：优先使用 OOXML a:gs/@pos（pos_arry），否则按 0/100 均分
             const rawStops: { offset: number; rgb: number[]; alpha: number }[] = [];
@@ -2994,7 +3013,7 @@ function getFillType(node: XmlNode | undefined) {
                 svg += '/>\n'
             }
 
-            svg += `</linearGradient>\n`;
+            svg += radial ? `</radialGradient>\n` : `</linearGradient>\n`;
 
             return svg
         }
