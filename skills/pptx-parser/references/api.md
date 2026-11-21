@@ -12,6 +12,10 @@ import pptxToHtml, {
 // 类型全部从入口导出（两处）：
 //   export * from './types/pptx-document'   —— PptxDocument / PptxSlide / PptxElement …
 //   export * from './compatibility-types'   —— PptxHtmlResult / PptxEditor / SlideElement …
+
+// 格式转换（独立子路径，插件化转换器注册表）
+import { convert, convertPptx, converters, registerConverter } from '@fefeding/ppt-parser/convert';
+import type { ConvertOptions, ConvertTarget, Converter, DocInput, DocAsset, PdfFontSet } from '@fefeding/ppt-parser/convert';
 ```
 
 ## 解析选项 `PptxParserOptions`
@@ -176,6 +180,52 @@ const out = await editor.save({ outputType: 'uint8array' });
 
 ---
 
+## 格式转换（`@fefeding/ppt-parser/convert`）
+
+独立子路径导出的一套**可插拔转换引擎**。内置 `docx` / `pdf` / `md` / `html` 四个转换器，在模块加载时自动注册；可在运行时覆盖或新增。
+
+```ts
+import { convert, converters, registerConverter } from '@fefeding/ppt-parser/convert';
+
+const docx = await convert(input, 'docx', { title: 'Deck', autoFont: true }); // Uint8Array
+const md   = await convert(input, 'md');                                      // string
+
+converters.list().map(c => c.id);   // ['docx', 'md', 'pdf', 'html']
+registerConverter({
+  id: 'my-format', ext: 'mf', label: 'My Format',
+  async convert(input, options) { return new Uint8Array(); }
+});
+```
+
+### `convert(input, target, options?)`
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| `input` | `DocInput` | `ArrayBuffer \| ArrayBufferView \| Uint8Array \| Blob \| string`（含 base64 / data URL） |
+| `target` | `string` | 转换器 id；内置 `docx` / `pdf` / `md` / `html`，或自定义注册的值 |
+| `options` | `ConvertOptions` | 见下表 |
+
+`ConvertOptions`：`title?: string`（仅 HTML 写入 `<title>`）、`fonts?: PdfFontSet`（生成 PDF 的内嵌字体，TTF 字节）、`autoFont?: boolean`（Node 端自动探测中文字体，默认 `true`）、`assets?: DocAsset[]`（额外资源表）。
+
+**返回**：二进制目标（docx/pdf）→ `Uint8Array`；文本目标（md/html）→ `string`。未注册的 `target` 抛 `TypeError`（消息列出已注册 id），其余异常由 `wrapError` 包成 `ConvertError`。`convertPptx(input, target, options)` 是 `convert` 的向后兼容别名（`target` 类型为 `ConvertTarget`）。
+
+### 转换器注册表
+
+`converters`：`register(c) / get(id) / has(id) / list() / remove(id)`。`Converter<Id>` 结构：`{ id, ext, label?, convert(input, options?): Promise<Uint8Array | string> }`。后注册的转换器覆盖同 id 的内置实现。
+
+### 保真行为（排障参考）
+
+| 目标 | 链路 | 要点 |
+|---|---|---|
+| `pdf` | `pptxToPdf`（版式直排） | 一页 = 一张幻灯片；单元格四边用 `drawLine`，颜色/线宽/`none` 均保留；`schemeClr` 按真实主题解析；中文自动探测 TTF，WOFF2/EOT 报错 |
+| `html` | `pptxToSlideHtml`（绝对定位画布） | 一页 = 一张幻灯片；单元格边框输出为行内 `border-top/right/bottom/left`；主题色解析 |
+| `docx` | `pptxToBlocks` → `generateDocx` | `slidePageBreak: true`（一页一张）；页/小标题映射 `Heading 1`/`Heading 2` 并保留原 run 字号/颜色；单元格边框映射到 DOCX 边框 |
+| `md` | `pptxToBlocks` → `blocksToMarkdown` | `slideSeparator: true`（页间 `hr`）；chart block 降级为 `fallback`，避免丢正文 |
+
+> 细粒度转换器（`pptxToBlocks`、`pptxDocumentToBlocks`、`blocksToMarkdown`、`markdownToBlocks`、`htmlToBlocks`、`pptxToSlideHtml`、`pptxToPdf`、`jsonToPdf`）是 `src/convert` 内部构件，未从子路径导出，仅供库内链路复用。
+
+---
+
 ## 编辑器内核（Headless Editor Core）
 
 与 UI 无关的可复用编辑器能力，全部从包入口导出（实现位于 `src/editor`，随 `dist`/`src` 一起发布）。任意前端框架或自有 UI 都能直接复用同一套文档模型与 PPTX 双向转换逻辑，而不必依赖 `examples/editor` 的具体渲染。
@@ -183,9 +233,10 @@ const out = await editor.save({ outputType: 'uint8array' });
 ```ts
 import {
   createStore, createActions, docFromPptx, docToPptx, renderChartSVG,
-  elementRect, rotatedRect, effectMargin, absoluteElementRect,
-  normalizeDoc, normalizeElement,
-  EditorStore
+  elementRect, rotatedRect, effectMargin, absoluteElementRect, snapBox,
+  normalizeDoc, normalizeElement, updateDiagramTexts, animDurationMs,
+  base64ToBytes, bytesToBase64, stripDataUrl,
+  EditorStore, SnapBoxRect, SnapGuide, SnapResult, DiagramTextUpdate
 } from '@fefeding/pptx-parser';
 ```
 
@@ -194,11 +245,12 @@ import {
 ```ts
 const store = createStore({ storage? });        // storage 可选，实现 getItem/setItem 即可持久化（如 localStorage）
 store.setDoc(doc);                              // doc 为 docFromPptx 得到的编辑器文档
-const doc = store.getDoc();                     // 取回当前文档快照
-store.update(patch);                            // 浅合并式更新
+const doc = store.doc;                          // 通过公有属性读取当前文档（没有 getDoc 方法）
+store.update((draft) => { /* 原地修改 draft */ }); // 带 coalesce 等选项的更新
+store.setSlide(1);                              // 切换当前页
 ```
 
-类型 `EditorStore`：`{ doc, setDoc, getDoc, update, storage? }`。
+类型 `EditorStore`：`{ doc, slideIndex, slide, setDoc, setSlide, update, storage? }`。
 
 ### 编辑操作 `createActions`
 
@@ -221,7 +273,9 @@ actions.removeAnimation(idx); actions.moveAnimation(from, to);
 // 文本 / 表格 / 几何 / 查找
 actions.applyTextStyleSel({ bold: true });
 actions.setElementGeo(id, geo); actions.resizeTable(id, rows, cols);
-actions.findInDoc('关键字');
+// 查找（支持显式页码：异步对话框打开后换页仍能正确定位）
+actions.findInDoc(doc, elementId);                 // 按元素 id 查找（跨组合递归）
+actions.updateElement(id, { fill: { color: '#f00' } }, { slideIndex: 0 });
 ```
 
 ### 文档 ↔ PptxDocument 转换
@@ -245,7 +299,28 @@ const rect = elementRect(element);              // 元素实际矩形（group = 
 const box  = rotatedRect(element);              // 含旋转的外接矩形
 const m    = effectMargin(element);             // 阴影/发光外边距
 const abs  = absoluteElementRect(element, parent); // 相对某父级的绝对矩形
+
+// 智能吸附（纯计算，无 DOM）：把移动中的矩形对齐到兄弟元素/画布边缘与中心
+const { dx, dy, guides } = snapBox(
+  { x, y, width, height },        // 当前 box（文档坐标）
+  siblingRects,                   // 其它元素矩形（SnapBoxRect[]）
+  { width: 1280, height: 720 },   // 画布尺寸
+  zoom,                           // 当前缩放，用于把屏幕容差换算回文档坐标
+  6                               // tolerancePx，默认 6
+);
+// guides: SnapGuide[] = { type: 'v'|'h', pos: number }
+
+// 动画时长归一：标准 JSON 秒 / OOXML 毫秒，<20 视为秒
+animDurationMs(0.5);              // 500
+animDurationMs(500);              // 500
 ```
+
+### 其它下沉工具
+
+- `updateDiagramTexts(el, texts)` → `DiagramTextUpdate`：同时改写 SmartArt 的语义文本（`el.texts`，对应 `diagrams/dataN.xml`）与缓存绘图文本（`el.shapes[].text`，对应 `drawingN.xml`）。导出走 `__raw` 原样回写，因此只改 `el.texts` 不会生效。
+- `base64ToBytes(b64)` / `bytesToBase64(bytes)`：无重依赖的 base64 编解码（双端可用）。
+- `stripDataUrl(dataUrl)` → 裸 base64（去掉 `data:...,` 前缀）。
+- `animDurationMs(duration)`：见上。
 
 ### 文档规范化
 

@@ -15,9 +15,14 @@ const MAX_CHARS = 800;
 const fontCache = new Map();
 const pending = new Map();
 
-/** 从任意文本（JSON 字符串亦可）中提取去重后的汉字集合 */
+/**
+ * 从任意文本（JSON 字符串亦可）中提取需要子集的字符集合。
+ * 不只收集汉字：标题里的 "T1 · " 等 ASCII/标点同样要进子集，否则 PDF 里这些字符会丢失。
+ * 排除空白与控制字符，避免 text= 参数过长/无意义。
+ */
 export function collectCjkChars(text) {
-  return Array.from(new Set(String(text || '').match(CJK_RE) || [])).join('');
+  const chars = Array.from(new Set(String(text || '').match(/[\u0020-\u007E\u00A0-\u024F\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/g) || []));
+  return chars.filter((c) => c.trim()).join('');
 }
 
 /** 加载覆盖 chars 的字体字节；无汉字时返回 null */
@@ -30,15 +35,31 @@ export async function loadCjkFont(chars) {
   if (pending.has(chars)) return pending.get(chars);
 
   const task = (async () => {
-    const cssResp = await fetch(FONT_CSS_URL + encodeURIComponent(chars));
-    if (!cssResp.ok) throw new Error(`字体服务返回 HTTP ${cssResp.status}`);
-    const css = await cssResp.text();
-    const match = css.match(/url\((https:[^)]+)\)/);
-    if (!match) throw new Error('未能从字体服务获取字体文件地址');
+    // 优先走 dev server 的字体代理（Node fetch 拿到真正的 TTF）。
+    // 浏览器直连 Google Fonts 会得到 WOFF2，pdf-lib 子集化后文字不可见。
+    let bytes;
+    try {
+      const proxyResp = await fetch('/api/cjk-font?chars=' + encodeURIComponent(chars));
+      if (proxyResp.ok) bytes = new Uint8Array(await proxyResp.arrayBuffer());
+    } catch { /* 静态部署无代理，回退直连 */ }
 
-    const fontResp = await fetch(match[1]);
-    if (!fontResp.ok) throw new Error(`字体文件下载失败（HTTP ${fontResp.status}）`);
-    const bytes = new Uint8Array(await fontResp.arrayBuffer());
+    if (!bytes) {
+      const cssResp = await fetch(FONT_CSS_URL + encodeURIComponent(chars));
+      if (!cssResp.ok) throw new Error(`字体服务返回 HTTP ${cssResp.status}`);
+      const css = await cssResp.text();
+      const match = css.match(/url\((https:[^)]+)\)/);
+      if (!match) throw new Error('未能从字体服务获取字体文件地址');
+      const fontResp = await fetch(match[1]);
+      if (!fontResp.ok) throw new Error(`字体文件下载失败（HTTP ${fontResp.status}）`);
+      bytes = new Uint8Array(await fontResp.arrayBuffer());
+    }
+
+    // 兜底防御：若拿到的仍是 WOFF2/EOT，明确报错引导用户上传 TTF，
+    // 避免生成「文字能提取却不可见」的坏 PDF。
+    const magic = String.fromCharCode(bytes[0] || 0, bytes[1] || 0, bytes[2] || 0, bytes[3] || 0);
+    if (magic === 'wOF2' || (bytes[0] === 0x4c && bytes[1] === 0x0a)) {
+      throw new Error('字体服务返回了 WOFF2/EOT，pdf-lib 无法正确处理；请手动上传 TTF/OTF 字体');
+    }
     fontCache.set(chars, bytes);
     return bytes;
   })();

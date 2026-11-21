@@ -645,6 +645,25 @@ export async function generateDocx(
         // 声明引用样式：解析端按样式名 Quote 还原 quote 块；toc 1-3 同理还原目录块
         styles: {
             paragraphStyles: [
+                // 幻灯片标题：覆盖 docx 内置 Heading1 的小号蓝字，默认大号深色加粗
+                {
+                    id: 'Heading1',
+                    name: 'Heading 1',
+                    basedOn: 'Normal',
+                    next: 'Normal',
+                    quickFormat: true,
+                    run: { size: 44, bold: true, color: '1F2937' },
+                    paragraph: { spacing: { before: 240, after: 160 } }
+                },
+                {
+                    id: 'Heading2',
+                    name: 'Heading 2',
+                    basedOn: 'Normal',
+                    next: 'Normal',
+                    quickFormat: true,
+                    run: { size: 32, bold: true, color: '1F2937' },
+                    paragraph: { spacing: { before: 200, after: 120 } }
+                },
                 {
                     id: QUOTE_STYLE_ID,
                     name: 'Quote',

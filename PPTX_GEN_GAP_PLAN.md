@@ -197,6 +197,21 @@
 
 ---
 
+## 关联：格式转换链路（PPTX → DOCX / PDF / MD / HTML）
+
+本计划的生成端字段同时也是 `src/convert/` 转换引擎的输入契约。转换保真对齐（2026-11）复用了下列已实现能力，排障时按此对应关系定位：
+
+| 生成端能力 | 转换链路的消费点 |
+|---|---|
+| T1 表格单元格边框（`PptxTableCell.borders`） | `pptxToBlocks` 映射到 `DocxCellDetail.borders` → DOCX 单元格边框 / HTML 行内 `border-*` / PDF 四边 `drawLine`；颜色、线宽与 `none` 均保留 |
+| T5 主题色（`schemeClr`）+ 多 `themeN.xml` | `pptxToBlocks` 用 `withThemeColors` 按「幻灯片→版式→母版→主题」链解析，DOCX/HTML/PDF 得到正确配色 |
+| 文本 run（字号/颜色/粗体） | 标题块保留原 runs，DOCX 映射 `Heading 1`/`Heading 2` 时不再丢字号与颜色 |
+| 元数据 / 文档属性 | 转换输出沿用 PPTX 自带元数据；DOCX 的 producer/creator 缺省写 `@fefeding/ppt-parser` |
+
+转换引擎已插件化下沉到主库 `@fefeding/ppt-parser/convert`（注册表 + 四个内置转换器），VSCode 插件经 alias 复用同一份源码，端到端校验为 `cd vscode && npm run verify:convert`（31 项断言）。转换端不生成 OOXML，因此不在 T1–T19 的验收范围内；但若发现某个样式在转换后丢失，优先检查上表对应的生成端/解析端字段是否完整透传。
+
+---
+
 ## 实现与测试约定
 1. 每项从对应 `⬜` 改为 `🔧`（实现中）再到 `✅`（测试通过）。
 2. 类型改动同步更新 `element-builders.ts`（生成端）与 `pptx-document.ts`（统一契约）；解析端如需 round-trip 回读，同步更新 `json-from-pptx.ts`。

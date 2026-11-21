@@ -448,6 +448,13 @@ export interface PdfTableCellObject {
     width?: number;
     /** 底纹填充色（对应 w:shd） */
     fill?: string;
+    /** 四边边框（覆盖表格统一边框） */
+    borders?: {
+        top?: { color?: string; width?: number } | 'none';
+        right?: { color?: string; width?: number } | 'none';
+        bottom?: { color?: string; width?: number } | 'none';
+        left?: { color?: string; width?: number } | 'none';
+    };
     /** 垂直对齐（对应 w:vAlign），默认垂直居中 */
     verticalAlign?: 'top' | 'middle' | 'bottom';
 }

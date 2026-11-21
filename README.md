@@ -7,6 +7,7 @@ A lightweight PPTX parsing library that makes working with PowerPoint files simp
 - **Simple & Easy** — Parse and convert PPTX files with just a few lines of code
 - **Zero Dependencies** — No framework lock-in, works in any JavaScript/TypeScript project
 - **Dual Conversion** — Parse PPTX to HTML or JSON, and serialize JSON (or the fluent `PPTXComposer`) back to a valid PPTX file
+- **Format Conversion** — Export PPTX to DOCX / PDF / Markdown / HTML via a pluggable converter registry (`@fefeding/ppt-parser/convert`)
 - **Comprehensive Elements** — Text, shapes, tables, images, charts and more
 - **Smart Unit Handling** — Automatic EMU to PX conversion
 - **Universal Module** — Supports both ESM and CommonJS
@@ -194,8 +195,9 @@ Beyond the command-style `editPptx` wrapper, the library ships a **UI-agnostic e
 ```javascript
 import {
   createStore, createActions, docFromPptx, docToPptx, renderChartSVG,
-  elementRect, rotatedRect, effectMargin, absoluteElementRect,
-  normalizeDoc, normalizeElement,
+  elementRect, rotatedRect, effectMargin, absoluteElementRect, snapBox,
+  normalizeDoc, normalizeElement, updateDiagramTexts, animDurationMs,
+  base64ToBytes, bytesToBase64,
   EditorStore
 } from '@fefeding/pptx-parser';
 
@@ -222,10 +224,14 @@ const rect = elementRect(element);        // actual rect (group = union of child
 Core API:
 
 - `createStore(options?)` → `EditorStore`: holds `doc` as a public property, exposes `setDoc / update`, with optional persistence (pass a `storage` implementing `getItem/setItem`).
-- `createActions(store)` → `EditorActions`: returns `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`.
+- `createActions(store)` → `EditorActions`: returns `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`. `findInDoc(doc, id, slideIndex?)` accepts an explicit slide index (async dialogs opened on one page can still save after the user switches pages); `updateElement(id, patch, { slideIndex? })` forwards the same option.
 - `docFromPptx(semanticDoc, { fileName? })` / `docToPptx(doc)`: bidirectional conversion between the editor document and the standard `PptxDocument`. `docFromPptx` resolves the document title with priority `core.xml dc:title` > `fileName` (extension stripped) > `'导入的演示文稿'`; when the source file has no title metadata, the file name is used as a fallback and written back into `core.xml` on export so the title stays consistent round-trip.
 - `renderChartSVG(chartEl)`: renders a chart element to an SVG string (host decides how to mount it).
 - `elementRect / rotatedRect / effectMargin / absoluteElementRect`: element geometry helpers (group union rect, rotated bounding box, shadow/glow margin, absolute rect relative to a parent).
+- `snapBox(box, others, size, zoom, tolerancePx?)` → `{ dx, dy, guides }`: smart-snap a moving rectangle to sibling edges/centers and the canvas; pure calculation, no DOM. Types `SnapBoxRect`, `SnapGuide`, `SnapResult` are exported.
+- `animDurationMs(duration)` → `number`: normalize animation duration/delay (standard JSON seconds vs. OOXML milliseconds, `< 20` treated as seconds) — the single source of truth shared by the editor and preview.
+- `updateDiagramTexts(el, texts)` → `DiagramTextUpdate`: update SmartArt text in both `diagrams/dataN.xml` (semantic `el.texts`) and `drawingN.xml` (cached shapes). Editing `el.texts` alone is not enough because export writes `__raw` back verbatim.
+- `base64ToBytes / bytesToBase64`: dependency-free base64 codec shared by the editor and conversion engine; `stripDataUrl(dataUrl)` strips a `data:` prefix (also exported from the root).
 - `normalizeDoc(doc)` / `normalizeElement(el)`: fill in default fields after import/merge (`slideSize`, `elements`, `zIndex`, element `id`/`name`, …) to keep the document complete.
 - `EditorStore` (type): `{ doc, setDoc, update, ... }` returned by `createStore`; read the current document via the `doc` property.
 
@@ -248,8 +254,9 @@ registerConverter({
 
 - `convert(input, target, options)` — dispatches to the registered converter for `target`; accepts `ArrayBuffer | Uint8Array | Buffer | Blob | base64 | data URL` input. Binary targets return `Uint8Array`, text targets return `string`.
 - `registerConverter(converter)` / `converters` (`register/get/has/list/remove`) — extend or replace converters at runtime. A converter is `{ id, ext, label?, convert(input, options) }`.
-- Built-in behaviour: `pdf` and `html` render slide-by-slide (faithful layout); `docx` and `md` go through a block-based intermediate representation. Chinese PDF font auto-probing works in Node (browser callers can pass `fonts` explicitly).
-- `convertPptx(input, target, options)` remains as a backward-compatible alias of `convert`.
+- Built-in behaviour: `pdf` and `html` render slide-by-slide (faithful layout); `docx` and `md` go through a block-based intermediate representation (`pptxToBlocks` → `blocksToMarkdown` / `generateDocx`).
+- Fidelity details: DOCX inserts a page break per slide (`slidePageBreak`) and maps slide/subheadings to `Heading 1` / `Heading 2` with the original run styling; table cell borders (colour/width, including `none`) are carried from the PPTX through the block IR into DOCX cell borders, HTML inline `border-*` CSS and PDF `drawLine` edges; PDF/HTML resolve `schemeClr` against the slide's real theme. Chinese PDF font auto-probing works in Node (browser callers can pass `fonts` explicitly, TTF only — WOFF2/EOT bytes are rejected).
+- `convertPptx(input, target, options)` remains as a backward-compatible alias of `convert`. The fine-grained converters (`pptxToBlocks`, `blocksToMarkdown`, `pptxToSlideHtml`, `pptxToPdf`, …) are internal building blocks under `src/convert` and are not part of the public subpath API.
 
 ## Supported Elements
 
@@ -334,9 +341,10 @@ Highlights:
 - **Layout tools** — align / distribute / group / z-order / find-and-replace.
 - **Presentation mode** — press `F5` for a fullscreen slideshow; navigate with arrow keys, space, or click.
 - **Save & export** — `Ctrl/Cmd+S` to save; `PPTX: Export Copy…` and `PPTX: Discard Changes and Reload` from the command palette.
+- **Format conversion** — `PPTX: Convert Document Format...` from the command palette (DOCX / PDF / Markdown / HTML); the extension calls this library's `@fefeding/ppt-parser/convert` entry (same registry, same fidelity improvements as the Node/browser builds), with a 60s timeout and Chinese PDF font auto-probing.
 - **Undo / redo** — `Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`.
 
-Known limitations: complex objects such as SmartArt, OLE and equations are retained as raw OOXML (`__raw`) and are not visually editable; on save the slide masters / layouts are rewritten to a single blank layout, while content elements — text, shapes, images, charts, tables — are fully preserved.
+Known limitations: complex objects such as SmartArt, OLE and equations are retained as raw OOXML (`__raw`); their layout is not visually editable (SmartArt **text**, however, can be edited in a dialog via `updateDiagramTexts`). On save the slide masters / layouts are rewritten to a single blank layout, while content elements — text, shapes, images, charts, tables — are fully preserved.
 
 ## Development
 
@@ -356,6 +364,13 @@ npm run build
 
 # Run tests
 npm test
+```
+
+The VSCode extension (`vscode/`) builds against the same source via aliases and ships its own conversion end-to-end check:
+
+```bash
+cd vscode
+npm run verify:convert   # test-sample.pptx -> docx/pdf/md/html + command-path (31 assertions)
 ```
 
 ## TypeScript

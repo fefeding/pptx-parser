@@ -820,6 +820,18 @@ function textToHtml(el: PptxTextElement): string {
     return out.join('');
 }
 
+/** 单元格边框 -> CSS（PPTX 的 pt 宽度换算成画布 px；none 显式无边框） */
+function cellBorderCss(
+    edge: { color?: string; width?: number } | 'none' | undefined,
+    side: string
+): string {
+    if (!edge) return '';
+    if (edge === 'none') return `border-${side}:none;`;
+    const w = Math.max(0.5, (edge.width ?? 1) * (96 / 72));
+    const color = normalizeColor(edge.color) ?? '#000000';
+    return `border-${side}:${num(w)}px solid ${color};`;
+}
+
 /** 表格 -> HTML */
 function tableToHtml(el: PptxTableElement): string {
     const rows = el.rows || [];
@@ -832,8 +844,19 @@ function tableToHtml(el: PptxTableElement): string {
                         cell.text ?? (cell.paragraphs || []).map((p) => p.text ?? '').join('\n')
                     );
                     const fill = cell.fill ? `background:${normalizeColor(cell.fill) ?? 'transparent'};` : '';
+                    // 四边边框：单元格级优先，其次单元格统一边框
+                    const bs = cell.borders || (
+                        cell.border
+                            ? { top: cell.border, right: cell.border, bottom: cell.border, left: cell.border }
+                            : undefined
+                    );
+                    const borders = bs
+                        ? (['top', 'right', 'bottom', 'left'] as const)
+                            .map((s) => cellBorderCss(bs[s], s))
+                            .join('')
+                        : '';
                     const tag = ri === 0 ? 'th' : 'td';
-                    return `<${tag} style="${fill}">${text.replace(/\n/g, '<br/>')}</${tag}>`;
+                    return `<${tag} style="${fill}${borders}">${text.replace(/\n/g, '<br/>')}</${tag}>`;
                 })
                 .join('');
             return `<tr>${cells}</tr>`;

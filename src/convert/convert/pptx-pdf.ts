@@ -940,12 +940,14 @@ function cellToPdfCell(cell: PptxTableCell): PdfTableCell {
             ?.map((p) => p.text ?? p.runs?.map((r) => r.text ?? '').join('') ?? '')
             .join('\n') ??
         '';
-    if (!cell.colSpan && !cell.rowSpan && !cell.fill) return text;
+    const bs = cell.borders || (cell.border ? { top: cell.border, right: cell.border, bottom: cell.border, left: cell.border } : undefined);
+    if (!cell.colSpan && !cell.rowSpan && !cell.fill && !bs) return text;
     const obj: PdfTableCellObject = { content: text };
     if (cell.colSpan && cell.colSpan > 1) obj.colspan = cell.colSpan;
     if (cell.rowSpan && cell.rowSpan > 1) obj.rowspan = cell.rowSpan;
     const fill = normalizeColor(cell.fill);
     if (fill) obj.fill = fill;
+    if (bs) obj.borders = bs;
     return obj;
 }
 

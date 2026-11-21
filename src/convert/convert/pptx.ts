@@ -39,7 +39,8 @@ import type {
     PptxMetadata
 } from '../..';
 import { pptxChartToSpec } from '../pptx/chart';
-import type { DocxBlock, DocxCell, DocxCellDetail, DocxHeading, DocxMetadata, DocxRun, DocxTable } from '../docx/types';
+import { normalizeColor, withThemeColors } from './pptx-pdf';
+import type { DocxBlock, DocxCell, DocxCellDetail, DocxCellBorder, DocxHeading, DocxMetadata, DocxRun, DocxTable } from '../docx/types';
 
 /** pptxToBlocks 选项 */
 export interface PptxToBlocksOptions {
@@ -58,6 +59,11 @@ export interface PptxToBlocksOptions {
      * 打开分隔线才知道哪里换页了；docx / html 等目标则不需要（各有分页/分节机制）。
      */
     slideSeparator?: boolean;
+    /**
+     * 是否在幻灯片之间插入显式分页块（`pageBreak`），默认 false。
+     * DOCX 用它在每张幻灯片之间强制分页，让 1 张幻灯片 = 1 页。
+     */
+    slidePageBreak?: boolean;
     /**
      * 是否把页内「小标题」文本框升级为二级标题，默认 true。
      *
@@ -97,7 +103,7 @@ function runToRun(run: PptxTextRun): DocxRun {
     if (run.italic) r.italic = true;
     if (run.underline) r.underline = true;
     if (run.strike) r.strike = true;
-    if (run.color) r.color = run.color;
+    if (run.color) r.color = normalizeColor(run.color) || run.color;
     if (run.fontFaceEa || run.fontFace) r.font = run.fontFaceEa || run.fontFace;
     if (run.fontSize) r.size = run.fontSize;
     if (run.href) r.link = run.href;
@@ -161,7 +167,19 @@ function pptxCellToBlockCell(cell: PptxTableCell): DocxCell | null {
     if (runs.length) detail.runs = runs;
     if (cell.colSpan && cell.colSpan > 1) detail.colspan = cell.colSpan;
     if (cell.rowSpan && cell.rowSpan > 1) detail.rowspan = cell.rowSpan;
-    if (cell.fill) detail.fill = cell.fill;
+    if (cell.fill) detail.fill = normalizeColor(cell.fill);
+    // 解析四边边框（HTML/DOCX 此前都丢掉了边框颜色，表格全变默认灰）
+    const edge = (e: { color?: string; width?: number } | 'none' | undefined): DocxCellBorder | undefined => {
+        if (e === 'none') return { style: 'nil' };
+        if (!e) return undefined;
+        return { style: 'single', size: e.width, color: normalizeColor(e.color) };
+    };
+    const bs = cell.borders || (cell.border ? { top: cell.border, right: cell.border, bottom: cell.border, left: cell.border } : undefined);
+    if (bs) {
+        detail.borders = {
+            top: edge(bs.top), right: edge(bs.right), bottom: edge(bs.bottom), left: edge(bs.left)
+        };
+    }
     return detail;
 }
 
@@ -439,12 +457,21 @@ function slideToBlocks(
         }
     }
     const titleText = titleEl ? firstTextOf(titleEl) : '';
+    // 保留标题原有的字号/颜色/字体，避免 DOCX 里退化成默认的小号蓝字
+    let titleRuns: DocxRun[] | undefined;
+    if (titleEl) {
+        for (const p of titleEl.paragraphs ?? []) {
+            const rs = paragraphToRuns(p);
+            if (rs.some((r) => r.text)) { titleRuns = rs; break; }
+        }
+    }
 
     if (options.slideHeading) {
         blocks.push({
             type: 'heading',
             level: options.headingLevel as DocxHeading['level'],
-            text: titleText || `幻灯片 ${index + 1}`
+            text: titleText || `幻灯片 ${index + 1}`,
+            runs: titleRuns
         });
     }
 
@@ -507,12 +534,17 @@ export function pptxDocumentToBlocks(
     doc: PptxDocument,
     options: PptxToBlocksOptions = {}
 ): PptxToBlocksResult {
-    const { slideHeading = true, headingLevel = 1, notes = false, slideSeparator = false, subHeadings = true } = options;
-    const blocks: DocxBlock[] = [];
-    for (let i = 0; i < doc.slides.length; i++) {
-        if (slideSeparator && i > 0) blocks.push({ type: 'hr' });
-        blocks.push(...slideToBlocks(doc.slides[i], i, { slideHeading, headingLevel, notes, subHeadings }));
-    }
+    const { slideHeading = true, headingLevel = 1, notes = false, slideSeparator = false, slidePageBreak = false, subHeadings = true } = options;
+    // 在主题色作用域内构建 blocks，让 scheme:accent1 等在 normalizeColor 时解析成具体 hex
+    const blocks = withThemeColors(doc, () => {
+        const out: DocxBlock[] = [];
+        for (let i = 0; i < doc.slides.length; i++) {
+            if (slideSeparator && i > 0) out.push({ type: 'hr' });
+            if (slidePageBreak && i > 0) out.push({ type: 'pageBreak' });
+            out.push(...slideToBlocks(doc.slides[i], i, { slideHeading, headingLevel, notes, subHeadings }));
+        }
+        return out;
+    });
     return {
         blocks,
         metadata: toDocxMetadata(doc.metadata)

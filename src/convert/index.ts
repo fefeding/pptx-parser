@@ -127,7 +127,7 @@ const docxConverter: Converter<'docx'> = {
     ext: 'docx',
     label: 'Word Document',
     async convert(input, options = {}) {
-        const { blocks, metadata, assets } = await pptxToBlocks(input, { slideSeparator: false });
+        const { blocks, metadata, assets } = await pptxToBlocks(input, { slideSeparator: false, slidePageBreak: true });
         const plain: DocxBlock[] = blocks.some((b) => b.type === 'chart')
             ? blocks.flatMap((b) => (b.type === 'chart' ? (b.fallback ? [b.fallback] : []) : [b]))
             : blocks;

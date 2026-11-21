@@ -198,11 +198,21 @@ export async function buildFonts(
 
         const embed = async (source: string | ArrayBuffer | Uint8Array | undefined, fallback?: string) => {
             const bytes = source ? await toFontBytes(source) : fallback ? await toFontBytes(fallback) : undefined;
+            if (!bytes) return undefined;
+            // WOFF2/EOT 必须拒绝：fontkit 的 TTF 子集化不会重建 WOFF2 的 loca/glyf 表，
+            // 嵌入后文字能被 pdftotext 提取却完全不渲染（只剩矢量边框）。这类字体需先解码成 TTF/OTF。
+            const magic = String.fromCharCode(bytes[0] ?? 0, bytes[1] ?? 0, bytes[2] ?? 0, bytes[3] ?? 0);
+            if (magic === 'wOF2') {
+                throw new Error('PDF 字体不支持 WOFF2 格式：请先解码为 TTF/OTF 再作为 fonts 传入（WOFF2 子集化后文字不可见）');
+            }
+            if (bytes[0] === 0x4c && bytes[1] === 0x0a) {
+                throw new Error('PDF 字体不支持 EOT 格式：请使用 TTF/OTF 字体');
+            }
             // 必须显式 subset: true：pdf-lib 的 embedFont 对该选项的默认值是 **false**
             // （见 PDFDocument.embedFont 内 `subset = options.subset ?? false`），不传就整份
             // 嵌入字体。Arial Unicode.ttf 有 22MB，不子集化会让一行中文的 PDF 膨胀到 15MB，
             // 且体积过大的 PDF 会让 pdfjs + canvas 栅格化直接失败。
-            return bytes ? doc.embedFont(bytes, { subset: true }) : undefined;
+            return doc.embedFont(bytes, { subset: true });
         };
 
         const regular = await embed(fonts.regular);
@@ -768,6 +778,7 @@ function drawTableElement(ctx: DrawContext, element: PdfTableElement): number {
         rowspan: number;
         width?: number;
         fill?: string;
+        borders?: PdfTableCellObject['borders'];
         verticalAlign?: 'top' | 'middle' | 'bottom';
     }
     const isCellObject = (c: PdfTableCell): c is PdfTableCellObject =>
@@ -781,6 +792,7 @@ function drawTableElement(ctx: DrawContext, element: PdfTableElement): number {
                 rowspan: Math.max(1, Math.round(cell.rowspan ?? 1)),
                 width: cell.width,
                 fill: cell.fill,
+                borders: cell.borders,
                 verticalAlign: cell.verticalAlign
             };
         }
@@ -878,17 +890,38 @@ function drawTableElement(ctx: DrawContext, element: PdfTableElement): number {
             const x = startX + colOffset(p.col);
             const fill = c.fill ? parseColor(c.fill) : isHeader ? headerFill : undefined;
 
-            if (borderColor || fill) {
+            if (fill) {
                 page.drawRectangle({
                     x,
                     y: ctx.pageHeight - topY - h,
                     width: w,
                     height: h,
-                    borderColor,
-                    borderWidth: 0.5,
                     color: fill
                 });
             }
+            // 单元格四边独立边框：单元格级颜色/线宽优先，缺省回落到表格统一边框
+            const cellB = c.borders;
+            const edgeLine = (
+                side: 'top' | 'right' | 'bottom' | 'left',
+                x1: number, y1: number, x2: number, y2: number
+            ): void => {
+                const spec = cellB?.[side];
+                let color = borderColor;
+                let width = 0.5;
+                if (spec === 'none') return;
+                if (spec) {
+                    color = parseColor(spec.color || '#000000');
+                    width = Math.max(0.3, spec.width ?? 1);
+                }
+                if (!color) return;
+                page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, color, thickness: width });
+            };
+            const bottomY = ctx.pageHeight - topY - h;
+            const topYpdf = ctx.pageHeight - topY;
+            edgeLine('top', x, topYpdf, x + w, topYpdf);
+            edgeLine('right', x + w, topYpdf, x + w, bottomY);
+            edgeLine('bottom', x, bottomY, x + w, bottomY);
+            edgeLine('left', x, topYpdf, x, bottomY);
 
             const font = isHeader ? ctx.fonts.bold : ctx.fonts.normal;
             const lines = cellLines.get(p) ?? [];

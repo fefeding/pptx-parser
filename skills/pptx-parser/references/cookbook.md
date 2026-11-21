@@ -306,3 +306,30 @@ await editor.setMetadata({ title: '新标题' });
 await editor.addSlide({ background: '#fff', elements: [{ type: 'text', x: 60, y: 60, width: 600, height: 50, text: '新增页' }] });
 const out = await editor.save({ outputType: 'uint8array' });
 ```
+
+## 格式转换（PPTX → DOCX / PDF / MD / HTML）
+
+```js
+import { convert, registerConverter } from '@fefeding/ppt-parser/convert';
+import { writeFileSync } from 'node:fs';
+
+// 二进制目标 → Uint8Array；文本目标 → string
+const docx = await convert(fileData, 'docx', { autoFont: true });
+writeFileSync('out.docx', Buffer.from(docx));
+
+const pdf = await convert(fileData, 'pdf', { autoFont: true }); // 中文走系统字体探测
+writeFileSync('out.pdf', Buffer.from(pdf));
+
+const md = await convert(fileData, 'md');       // 页间自动插 hr
+const html = await convert(fileData, 'html', { title: 'Deck' });
+
+// 浏览器里没有字体探测能力：显式传 TTF 字节（WOFF2/EOT 会被拒绝）
+await convert(fileData, 'pdf', { fonts: { /* PdfFontSet */ } });
+
+// 自定义/覆盖转换器
+registerConverter({
+  id: 'txt', ext: 'txt',
+  async convert(input, options) { return '...'; }
+});
+await convert(fileData, 'txt');
+```

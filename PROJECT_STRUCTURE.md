@@ -11,6 +11,7 @@ src/
 │
 ├── shape/              # 形状渲染模块
 │   ├── shape.ts        # 主形状渲染模块（4875 行，208 个形状类型）
+│   ├── preset-shape.ts # 预设几何路径（presetShapePath，预览端与编辑器共用）
 │   ├── arrow-shapes.ts # 箭头形状（基础和双向箭头）
 │   ├── star-shapes.ts  # 星形和多边形
 │   ├── bracket-shapes.ts # 括号形状（大括号、方括号等）
@@ -29,14 +30,43 @@ src/
 │   ├── composer.ts     # 流式构建 API（PPTXComposer）
 │   └── json-to-pptx.ts # 序列化主入口（jsonToPptx / editPptx 编辑器）
 │
+├── convert/            # 插件化格式转换引擎（@fefeding/ppt-parser/convert）
+│   ├── index.ts        # 注册表入口：convert / registerConverter / converters + 四个内置转换器
+│   ├── core/           # 输入归一（DocInput/base64/format 探测）、错误包装、资源与数字格式
+│   ├── convert/        # PPTX → 块 IR / HTML / PDF；块 IR → Markdown；HTML → 块 IR
+│   ├── docx/           # 块 IR → DOCX（generateDocx，含页分页与 Heading 样式）
+│   ├── pdf/            # PDF 生成（字体探测、表格四边 drawLine）+ 类型
+│   ├── markdown/       # Markdown 扩展解析
+│   ├── pptx/           # PPTX 资源/图表抽取，主题色解析
+│   └── chart/          # 图表 SVG 渲染（转换链路用）
+│
+├── editor/             # Headless 编辑器内核（与 UI 无关，随包发布）
+│   ├── index.ts        # 内核 barrel
+│   ├── model.ts        # 文档模型 + animDurationMs 等
+│   ├── store.ts        # EditorStore（doc 状态、setDoc/setSlide/update）
+│   ├── actions.ts      # createActions（findInDoc 支持显式 slideIndex）
+│   ├── charts.ts       # renderChartSVG
+│   ├── geometry.ts     # 元素几何 + snapBox 智能吸附（纯计算）
+│   └── diagram-text.ts # updateDiagramTexts（SmartArt 文本双部件同步）
+│
+├── types/              # PptxDocument 等统一契约类型
+├── css/                # 解析产物全局样式
 ├── utils/              # 工具函数
 │   ├── xml.ts          # XML 节点遍历和查询
 │   ├── style.ts        # 样式处理（填充、边框、阴影等）
 │   ├── text.ts         # 文本处理（样式、段落、RTL 支持）
-│   └── node.ts         # 节点处理（幻灯片、图表、SmartArt）
+│   ├── node.ts         # 节点处理（幻灯片、图表、SmartArt）
+│   ├── color.ts        # 颜色归一（normalizeColor）
+│   ├── geometry.ts     # 通用几何（unionBBox 等）
+│   ├── format.ts       # stripDataUrl / extOfDataUrl 等字符串工具
+│   ├── units.ts        # 单位换算
+│   └── misc.ts         # 杂项工具
 │
-└── index.ts            # 主入口文件
+├── compatibility-types.ts # 兼容类型（PptxHtmlResult / PptxEditor / SlideElement …）
+└── index.ts            # 主入口文件（含从 convert/core 与 editor 下沉的公共 API）
 ```
+
+顶层目录另有：`vscode/`（官方插件，经 esbuild alias 复用本库 `src/index.ts` 与 `src/convert/index.ts`，`npm run verify:convert` 做转换端到端校验）、`skills/pptx-parser/`（AI 编程助手技能）、`examples/`（预览/生成/往返 demo）、`test/`（vitest 回归）、`dist/`（Rollup 多入口产物：`ppt-parser.{esm,cjs,browser}.js`、`convert.{esm,cjs,browser}.js`、`*.d.ts`）。
 
 ## 模块说明
 
@@ -140,6 +170,29 @@ src/
 **导出函数:**
 - `getShapeCategory()`: 获取形状所属分类
 - `isComplexShape()`: 检查形状是否需要特殊处理
+
+---
+
+### convert/（插件化格式转换引擎）
+
+独立子路径 `@fefeding/ppt-parser/convert`，另有 Rollup 多入口产物 `dist/convert.{esm,cjs,browser}.js` + `dist/convert.d.ts`。设计要点：每种目标格式是一个可注册的 `Converter`，`convert(input, target, options)` 按 id 分派；内置 `docx`/`pdf`/`md`/`html` 自动注册，可被 `registerConverter` 覆盖。
+
+**数据链路**：
+- `pdf` / `html`：`pptxToPdf` / `pptxToSlideHtml` 按幻灯片绝对定位直排，一页 = 一张幻灯片。
+- `docx` / `md`：`pptxToBlocks`（PPTX → `DocxBlock[]` 块 IR，含 `slidePageBreak` / `slideSeparator`、主题色解析、标题 runs、表格边框）→ `generateDocx` / `blocksToMarkdown`。
+- 表格边框颜色/线宽从 `PptxTableCell.borders` 全链路贯通到 DOCX/HTML/PDF。
+
+**关键文件**：
+- `index.ts`：`convert` / `convertPptx` / `registerConverter` / `converters` 注册表与四个内置转换器。
+- `core/`：输入归一（`DocInput`、`base64ToBytes`/`bytesToBase64`、`detectFormat`）、`ConvertError`/`wrapError`、资源表与数字格式。
+- `pdf/fonts.ts`：中文字体探测；拒绝 WOFF2/EOT（子集化后字形轮廓为空），浏览器需显式传 TTF。
+- `core/input.ts` 的 base64 工具同时从主入口导出，供编辑器复用。
+
+转换器细粒度函数（`pptxToBlocks`、`blocksToMarkdown`、`pptxToSlideHtml`、`pptxToPdf` 等）是内部构件，**不**从子路径导出。
+
+### editor/（Headless 编辑器内核）
+
+与 UI 无关的编辑器能力，全部从主入口导出，`vscode/src/webview` 是其最大消费者。经 code review 已从插件下沉的公共逻辑集中在：`actions.ts` 的 `findInDoc(doc, id, slideIndex?)`（异步对话框跨页保存）、`geometry.ts` 的 `snapBox`（智能吸附，纯计算 + 缩放换算）、`model.ts` 的 `animDurationMs`（秒/毫秒归一的权威实现）、`diagram-text.ts` 的 `updateDiagramTexts`、`src/utils/format.ts` 的 `stripDataUrl`、`convert/core/input.ts` 的 base64 编解码。
 
 ---
 

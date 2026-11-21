@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.32
+ * @fefeding/ppt-parser v1.0.33
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -27396,7 +27396,16 @@ async function buildFonts(doc, fonts) {
         doc.registerFontkit((await registerPdfFontkit()));
         const embed = async (source, fallback) => {
             const bytes = source ? await toFontBytes(source) : fallback ? await toFontBytes(fallback) : undefined;
-            return bytes ? doc.embedFont(bytes, { subset: true }) : undefined;
+            if (!bytes)
+                return undefined;
+            const magic = String.fromCharCode(bytes[0] ?? 0, bytes[1] ?? 0, bytes[2] ?? 0, bytes[3] ?? 0);
+            if (magic === 'wOF2') {
+                throw new Error('PDF 字体不支持 WOFF2 格式：请先解码为 TTF/OTF 再作为 fonts 传入（WOFF2 子集化后文字不可见）');
+            }
+            if (bytes[0] === 0x4c && bytes[1] === 0x0a) {
+                throw new Error('PDF 字体不支持 EOT 格式：请使用 TTF/OTF 字体');
+            }
+            return doc.embedFont(bytes, { subset: true });
         };
         const regular = await embed(fonts.regular);
         const normal = regular || (await doc.embedFont(StandardFonts.Helvetica));
@@ -27814,6 +27823,7 @@ function drawTableElement(ctx, element) {
                 rowspan: Math.max(1, Math.round(cell.rowspan ?? 1)),
                 width: cell.width,
                 fill: cell.fill,
+                borders: cell.borders,
                 verticalAlign: cell.verticalAlign
             };
         }
@@ -27905,17 +27915,36 @@ function drawTableElement(ctx, element) {
                 h += heightOf(rr);
             const x = startX + colOffset(p.col);
             const fill = c.fill ? parseColor(c.fill) : isHeader ? headerFill : undefined;
-            if (borderColor || fill) {
+            if (fill) {
                 page.drawRectangle({
                     x,
                     y: ctx.pageHeight - topY - h,
                     width: w,
                     height: h,
-                    borderColor,
-                    borderWidth: 0.5,
                     color: fill
                 });
             }
+            const cellB = c.borders;
+            const edgeLine = (side, x1, y1, x2, y2) => {
+                const spec = cellB?.[side];
+                let color = borderColor;
+                let width = 0.5;
+                if (spec === 'none')
+                    return;
+                if (spec) {
+                    color = parseColor(spec.color || '#000000');
+                    width = Math.max(0.3, spec.width ?? 1);
+                }
+                if (!color)
+                    return;
+                page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, color, thickness: width });
+            };
+            const bottomY = ctx.pageHeight - topY - h;
+            const topYpdf = ctx.pageHeight - topY;
+            edgeLine('top', x, topYpdf, x + w, topYpdf);
+            edgeLine('right', x + w, topYpdf, x + w, bottomY);
+            edgeLine('bottom', x, bottomY, x + w, bottomY);
+            edgeLine('left', x, topYpdf, x, bottomY);
             const font = isHeader ? ctx.fonts.bold : ctx.fonts.normal;
             const lines = cellLines.get(p) ?? [];
             const textBlock = lines.length * lineH;
@@ -29143,7 +29172,8 @@ function cellToPdfCell(cell) {
             ?.map((p) => p.text ?? p.runs?.map((r) => r.text ?? '').join('') ?? '')
             .join('\n') ??
         '';
-    if (!cell.colSpan && !cell.rowSpan && !cell.fill)
+    const bs = cell.borders || (cell.border ? { top: cell.border, right: cell.border, bottom: cell.border, left: cell.border } : undefined);
+    if (!cell.colSpan && !cell.rowSpan && !cell.fill && !bs)
         return text;
     const obj = { content: text };
     if (cell.colSpan && cell.colSpan > 1)
@@ -29153,6 +29183,8 @@ function cellToPdfCell(cell) {
     const fill = normalizeColor(cell.fill);
     if (fill)
         obj.fill = fill;
+    if (bs)
+        obj.borders = bs;
     return obj;
 }
 function tableFontSize(el) {
@@ -29926,6 +29958,15 @@ function textToHtml(el) {
         `${dirStyle}${rot}">${body}</div>`);
     return out.join('');
 }
+function cellBorderCss(edge, side) {
+    if (!edge)
+        return '';
+    if (edge === 'none')
+        return `border-${side}:none;`;
+    const w = Math.max(0.5, (edge.width ?? 1) * (96 / 72));
+    const color = normalizeColor(edge.color) ?? '#000000';
+    return `border-${side}:${num(w)}px solid ${color};`;
+}
 function tableToHtml(el) {
     const rows = el.rows || [];
     if (!rows.length)
@@ -29936,8 +29977,16 @@ function tableToHtml(el) {
             .map((cell) => {
             const text = esc(cell.text ?? (cell.paragraphs || []).map((p) => p.text ?? '').join('\n'));
             const fill = cell.fill ? `background:${normalizeColor(cell.fill) ?? 'transparent'};` : '';
+            const bs = cell.borders || (cell.border
+                ? { top: cell.border, right: cell.border, bottom: cell.border, left: cell.border }
+                : undefined);
+            const borders = bs
+                ? ['top', 'right', 'bottom', 'left']
+                    .map((s) => cellBorderCss(bs[s], s))
+                    .join('')
+                : '';
             const tag = ri === 0 ? 'th' : 'td';
-            return `<${tag} style="${fill}">${text.replace(/\n/g, '<br/>')}</${tag}>`;
+            return `<${tag} style="${fill}${borders}">${text.replace(/\n/g, '<br/>')}</${tag}>`;
         })
             .join('');
         return `<tr>${cells}</tr>`;
@@ -30122,7 +30171,7 @@ function runToRun(run) {
     if (run.strike)
         r.strike = true;
     if (run.color)
-        r.color = run.color;
+        r.color = normalizeColor(run.color) || run.color;
     if (run.fontFaceEa || run.fontFace)
         r.font = run.fontFaceEa || run.fontFace;
     if (run.fontSize)
@@ -30182,7 +30231,20 @@ function pptxCellToBlockCell(cell) {
     if (cell.rowSpan && cell.rowSpan > 1)
         detail.rowspan = cell.rowSpan;
     if (cell.fill)
-        detail.fill = cell.fill;
+        detail.fill = normalizeColor(cell.fill);
+    const edge = (e) => {
+        if (e === 'none')
+            return { style: 'nil' };
+        if (!e)
+            return undefined;
+        return { style: 'single', size: e.width, color: normalizeColor(e.color) };
+    };
+    const bs = cell.borders || (cell.border ? { top: cell.border, right: cell.border, bottom: cell.border, left: cell.border } : undefined);
+    if (bs) {
+        detail.borders = {
+            top: edge(bs.top), right: edge(bs.right), bottom: edge(bs.bottom), left: edge(bs.left)
+        };
+    }
     return detail;
 }
 function pptxTableToBlock(table) {
@@ -30428,11 +30490,22 @@ function slideToBlocks(slide, index, options) {
         }
     }
     const titleText = titleEl ? firstTextOf(titleEl) : '';
+    let titleRuns;
+    if (titleEl) {
+        for (const p of titleEl.paragraphs ?? []) {
+            const rs = paragraphToRuns(p);
+            if (rs.some((r) => r.text)) {
+                titleRuns = rs;
+                break;
+            }
+        }
+    }
     if (options.slideHeading) {
         blocks.push({
             type: 'heading',
             level: options.headingLevel,
-            text: titleText || `幻灯片 ${index + 1}`
+            text: titleText || `幻灯片 ${index + 1}`,
+            runs: titleRuns
         });
     }
     const bodyEls = elements.filter((e) => e !== titleEl);
@@ -30482,13 +30555,18 @@ function toDocxMetadata(metadata) {
     return Object.keys(result).length ? result : undefined;
 }
 function pptxDocumentToBlocks(doc, options = {}) {
-    const { slideHeading = true, headingLevel = 1, notes = false, slideSeparator = false, subHeadings = true } = options;
-    const blocks = [];
-    for (let i = 0; i < doc.slides.length; i++) {
-        if (slideSeparator && i > 0)
-            blocks.push({ type: 'hr' });
-        blocks.push(...slideToBlocks(doc.slides[i], i, { slideHeading, headingLevel, notes, subHeadings }));
-    }
+    const { slideHeading = true, headingLevel = 1, notes = false, slideSeparator = false, slidePageBreak = false, subHeadings = true } = options;
+    const blocks = withThemeColors(doc, () => {
+        const out = [];
+        for (let i = 0; i < doc.slides.length; i++) {
+            if (slideSeparator && i > 0)
+                out.push({ type: 'hr' });
+            if (slidePageBreak && i > 0)
+                out.push({ type: 'pageBreak' });
+            out.push(...slideToBlocks(doc.slides[i], i, { slideHeading, headingLevel, notes, subHeadings }));
+        }
+        return out;
+    });
     return {
         blocks,
         metadata: toDocxMetadata(doc.metadata)
@@ -71431,6 +71509,24 @@ async function generateDocx(input, options = {}) {
         styles: {
             paragraphStyles: [
                 {
+                    id: 'Heading1',
+                    name: 'Heading 1',
+                    basedOn: 'Normal',
+                    next: 'Normal',
+                    quickFormat: true,
+                    run: { size: 44, bold: true, color: '1F2937' },
+                    paragraph: { spacing: { before: 240, after: 160 } }
+                },
+                {
+                    id: 'Heading2',
+                    name: 'Heading 2',
+                    basedOn: 'Normal',
+                    next: 'Normal',
+                    quickFormat: true,
+                    run: { size: 32, bold: true, color: '1F2937' },
+                    paragraph: { spacing: { before: 200, after: 120 } }
+                },
+                {
                     id: QUOTE_STYLE_ID,
                     name: 'Quote',
                     basedOn: 'Normal',
@@ -71533,7 +71629,7 @@ const docxConverter = {
     ext: 'docx',
     label: 'Word Document',
     async convert(input, options = {}) {
-        const { blocks, metadata, assets } = await pptxToBlocks(input, { slideSeparator: false });
+        const { blocks, metadata, assets } = await pptxToBlocks(input, { slideSeparator: false, slidePageBreak: true });
         const plain = blocks.some((b) => b.type === 'chart')
             ? blocks.flatMap((b) => (b.type === 'chart' ? (b.fallback ? [b.fallback] : []) : [b]))
             : blocks;

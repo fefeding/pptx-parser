@@ -7,6 +7,7 @@
 - **简单好用** — 只需几行代码即可解析和转换 PPTX 文件
 - **零依赖** — 不绑定任何框架，适用于任何 JavaScript/TypeScript 项目
 - **双向转换** — 支持 PPTX 到 HTML 或 JSON 的解析，也能把 JSON（或链式 `PPTXComposer`）序列化回合法的 PPTX 文件
+- **格式转换** — 通过可插拔转换器注册表（`@fefeding/ppt-parser/convert`）把 PPTX 导出为 DOCX / PDF / Markdown / HTML
 - **元素丰富** — 文本、形状、表格、图片、图表等全面支持
 - **智能单位转换** — 自动处理 EMU 到 PX 的单位转换
 - **通用模块** — 同时支持 ESM 和 CommonJS
@@ -194,8 +195,9 @@ interface PptxParserOptions {
 ```javascript
 import {
   createStore, createActions, docFromPptx, docToPptx, renderChartSVG,
-  elementRect, rotatedRect, effectMargin, absoluteElementRect,
-  normalizeDoc, normalizeElement,
+  elementRect, rotatedRect, effectMargin, absoluteElementRect, snapBox,
+  normalizeDoc, normalizeElement, updateDiagramTexts, animDurationMs,
+  base64ToBytes, bytesToBase64,
   EditorStore
 } from '@fefeding/ppt-parser';
 
@@ -222,12 +224,38 @@ const rect = elementRect(element);        // 元素实际矩形（组合取子�
 核心 API：
 
 - `createStore(options?)` → `EditorStore`：以公有属性 `doc` 持有文档，提供 `setDoc / update`，并可选持久化（传入 `storage` 适配 `getItem/setItem`）。
-- `createActions(store)` → `EditorActions`：返回 `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`。
+- `createActions(store)` → `EditorActions`：返回 `addSlide / deleteSelected / duplicateSelected / copySelected / paste / selectAll / nudge / zOrder / alignElements / distribute / groupSelection / ungroupSelection / toggleLock / toggleHidden / addSlide / duplicateSlide / deleteSlide / moveSlide / toggleSlideHidden / applyLayout / setBackground / setSlideSize / applyTheme / setNotes / applyTextStyleSel / setBackgroundImage / setElementGeo / resizeTable / updateElement / findInDoc / setTransition / addAnimation / updateAnimation / removeAnimation / moveAnimation`。`findInDoc(doc, id, slideIndex?)` 支持显式页码（异步对话框打开期间换页后仍能正确保存）；`updateElement(id, patch, { slideIndex? })` 透传同一选项。
 - `docFromPptx(semanticDoc, { fileName? })` / `docToPptx(doc)`：编辑器文档 ↔ 标准 `PptxDocument` 的双向转换。`docFromPptx` 的标题优先级为 `core.xml 的 dc:title` > `fileName`（自动去扩展名）> `'导入的演示文稿'`；当原文件无标题元信息时，以文件名兜底，并在导出时一并写回 `core.xml`，保证来回一致。
 - `renderChartSVG(chartEl)`：把图表元素渲染为 SVG 字符串（宿主决定如何挂载到 DOM）。
 - `elementRect / rotatedRect / effectMargin / absoluteElementRect`：元素几何计算（组合并集矩形、旋转包围盒、阴影/发光外边距、相对某父级的绝对矩形）。
+- `snapBox(box, others, size, zoom, tolerancePx?)` → `{ dx, dy, guides }`：智能吸附——把移动中的矩形对齐到兄弟元素与画布的边缘/中心；纯计算，不触碰 DOM。配套类型 `SnapBoxRect`、`SnapGuide`、`SnapResult` 均已导出。
+- `animDurationMs(duration)` → `number`：动画时长/延迟归一（标准 JSON 秒 vs. OOXML 毫秒，`< 20` 视为秒），编辑器与预览端共用这一权威实现。
+- `updateDiagramTexts(el, texts)` → `DiagramTextUpdate`：同时更新 SmartArt 的 `diagrams/dataN.xml`（语义 `el.texts`）与 `drawingN.xml`（缓存绘图形状）。只改 `el.texts` 不够——导出时 `__raw` 会原样回写。
+- `base64ToBytes / bytesToBase64`：无重依赖的 base64 编解码（编辑器与转换引擎共用）；`stripDataUrl(dataUrl)` 去掉 `data:` 前缀（同样从包入口导出）。
 - `normalizeDoc(doc)` / `normalizeElement(el)`：导入/合并后补齐缺省字段（`slideSize`、`elements`、`zIndex`、元素 `id`/`name` 等），确保文档完整。
 - `EditorStore`（类型）：`createStore` 返回，结构为 `{ doc, setDoc, update, ... }`；通过 `doc` 属性读取当前文档。
+
+## 格式转换（插件化）
+
+通过 `@fefeding/ppt-parser/convert` 子路径，可把 PPTX 转成其它文档格式。转换引擎是一个**可插拔的转换器注册表**——内置 `docx`、`pdf`、`md`、`html` 四种，你也可以注册或覆盖自己的实现：
+
+```javascript
+import { convert, converters, registerConverter } from '@fefeding/ppt-parser/convert';
+
+const docxBytes = await convert(pptxBytes, 'docx', { title: 'Deck', autoFont: true }); // Uint8Array
+const markdown = await convert(pptxBytes, 'md');                                       // string
+
+converters.list().map(c => c.id);      // ['docx', 'md', 'pdf', 'html']
+registerConverter({
+  id: 'my-format', ext: 'mf',
+  async convert(input, options) { return /* Uint8Array | string */; }
+});
+```
+
+- `convert(input, target, options)` — 按 `target` 分派到已注册的转换器；输入支持 `ArrayBuffer | Uint8Array | Buffer | Blob | base64 | data URL`。二进制目标返回 `Uint8Array`，文本目标返回 `string`。
+- `registerConverter(converter)` / `converters`（`register/get/has/list/remove`）——运行时扩展或替换转换器。转换器形如 `{ id, ext, label?, convert(input, options) }`。
+- 保真细节：DOCX 每张幻灯片插入分页（`slidePageBreak`），并把页面/小标题映射为 `Heading 1` / `Heading 2` 且保留原始 run 样式；表格单元格边框（颜色/线宽，含 `none`）从 PPTX 经块 IR 一路映射到 DOCX 单元格边框、HTML 行内 `border-*` CSS 与 PDF `drawLine` 四边；PDF/HTML 会按该页真实主题解析 `schemeClr`。中文 PDF 在 Node 下自动探测系统字体（浏览器调用方可显式传 `fonts`，仅接受 TTF——WOFF2/EOT 会被拒绝）。
+- `convertPptx(input, target, options)` 仍是 `convert` 的向后兼容别名。细粒度转换器（`pptxToBlocks`、`blocksToMarkdown`、`pptxToSlideHtml`、`pptxToPdf` 等）是 `src/convert` 的内部构件，不属于公开子路径 API。
 
 ## 支持的元素
 
@@ -311,9 +339,10 @@ code --install-extension fefeding.vscode-pptx
 - **排版功能** — 对齐 / 分布 / 组合 / 层级 / 查找替换
 - **演示模式** — 按 `F5` 全屏放映，方向键 / 空格 / 单击翻页
 - **保存与导出** — `Ctrl/Cmd+S` 保存；命令面板 `PPTX: Export Copy…` 导出副本、`PPTX: Discard Changes and Reload` 放弃修改并重新加载
+- **格式转换** — 命令面板 `PPTX: Convert Document Format...`（DOCX / PDF / Markdown / HTML）；插件调用本库的 `@fefeding/ppt-parser/convert` 入口（同一注册表、同样的保真改进，与 Node/浏览器构建一致），带 60 秒超时与中文 PDF 字体自动探测
 - **撤销 / 重做** — `Ctrl/Cmd+Z`、`Ctrl/Cmd+Y`
 
-已知限制：SmartArt、OLE、公式等复杂对象以原始 OOXML（`__raw`）保留，不可可视化编辑；保存时母版 / 版式会重写为单个空白版式，但文本、形状、图片、图表、表格等内容元素完整保留。
+已知限制：SmartArt、OLE、公式等复杂对象以原始 OOXML（`__raw`）保留，布局不可可视化编辑（但 SmartArt **文字**可通过对话框编辑，底层调用 `updateDiagramTexts`）；保存时母版 / 版式会重写为单个空白版式，但文本、形状、图片、图表、表格等内容元素完整保留。
 
 ## 开发
 
@@ -333,6 +362,13 @@ npm run build
 
 # 运行测试
 npm test
+```
+
+VSCode 插件（`vscode/`）通过 alias 复用同一套源码，并自带转换端到端校验：
+
+```bash
+cd vscode
+npm run verify:convert   # test-sample.pptx -> docx/pdf/md/html + 命令路径（31 项断言）
 ```
 
 ## TypeScript
