@@ -9,6 +9,8 @@ import type { MenuItem } from './menu';
 import { SHAPES, CHART_TYPES } from '@fefeding/ppt-parser';
 
 let activeModal: HTMLElement | null = null;
+/** Per-dialog "closed" callbacks, so promise-based dialogs resolve on *every* close path. */
+const modalCloseHandlers = new WeakMap<HTMLElement, () => void>();
 
 export function hasOpenModal(): boolean {
   return !!activeModal;
@@ -16,9 +18,12 @@ export function hasOpenModal(): boolean {
 
 /** Close the current dialog, if any. Bound to Escape and to the backdrop. */
 export function closeModal(): void {
-  activeModal?.remove();
+  const modal = activeModal;
+  const onClose = modal ? modalCloseHandlers.get(modal) : undefined;
+  modal?.remove();
   activeModal = null;
   document.removeEventListener('keydown', onModalKey, true);
+  onClose?.();
 }
 
 /** Escape cancels, Enter confirms — Office dialog behaviour. */
@@ -81,7 +86,11 @@ function checkBox(label: string, value: boolean, onChange: (v: boolean) => void)
 }
 
 // ---------- dialog shell ----------
-function openDialog(title: string, build: (close: () => void) => (HTMLElement | null)[]): void {
+function openDialog(
+  title: string,
+  build: (close: () => void) => (HTMLElement | null)[],
+  onClose?: () => void
+): void {
   closeModal();
   const inner = h('div', { class: 'dlg' }, [
     h('div', { class: 'dlg-head' }, [
@@ -90,6 +99,7 @@ function openDialog(title: string, build: (close: () => void) => (HTMLElement | 
     ])
   ]);
   const modal = h('div', { class: 'modal' }, [inner]);
+  if (onClose) modalCloseHandlers.set(modal, onClose);
   modal.addEventListener('pointerdown', (e) => {
     if (e.target === modal) closeModal();
   });
@@ -110,23 +120,62 @@ export function openConfirm(opts: {
 }): Promise<boolean> {
   return new Promise((resolve) => {
     let done = false;
-    const finish = (v: boolean, close: () => void) => {
+    const finish = (v: boolean) => {
       if (done) return;
       done = true;
       closeModal();
       resolve(v);
     };
-    openDialog(t('dlg.confirmTitle'), (close) => [
-      h('p', { class: 'dlg-msg' }, [opts.message]),
-      opts.detail ? h('p', { class: 'dlg-detail' }, [opts.detail]) : null,
-      row(
-        [
-          btn(t('common.cancel'), () => finish(false, close)),
-          btn(opts.okLabel || t('common.ok'), () => finish(true, close), 'btn primary' + (opts.danger ? ' danger' : ''))
-        ],
-        'dlg-actions'
-      )
-    ]);
+    openDialog(
+      t('dlg.confirmTitle'),
+      () => [
+        h('p', { class: 'dlg-msg' }, [opts.message]),
+        opts.detail ? h('p', { class: 'dlg-detail' }, [opts.detail]) : null,
+        row(
+          [
+            btn(t('common.cancel'), () => finish(false)),
+            btn(opts.okLabel || t('common.ok'), () => finish(true), 'btn primary' + (opts.danger ? ' danger' : ''))
+          ],
+          'dlg-actions'
+        )
+      ],
+      () => finish(false)
+    );
+  });
+}
+
+// ---------- prompt (replaces window.prompt, which is blocked in webviews) ----------
+export function openPrompt(opts: {
+  message: string;
+  value?: string;
+  okLabel?: string;
+}): Promise<string | null> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v: string | null) => {
+      if (done) return;
+      done = true;
+      closeModal();
+      resolve(v);
+    };
+    const field = input('text', opts.value ?? '');
+    openDialog(
+      t('dlg.promptTitle'),
+      () => [
+        h('p', { class: 'dlg-msg' }, [opts.message]),
+        field,
+        row(
+          [
+            btn(t('common.cancel'), () => finish(null)),
+            btn(opts.okLabel || t('common.ok'), () => finish(field.value), 'btn primary')
+          ],
+          'dlg-actions'
+        )
+      ],
+      () => finish(null)
+    );
+    field.focus();
+    field.select();
   });
 }
 
@@ -159,46 +208,239 @@ export function openTableDialog(
   api: { update: (patch: any) => void; resize: (rows: number, cols: number) => void; reopen: () => void }
 ): void {
   openDialog(t('dlg.table.edit'), (close) => {
-    const rows: any[] = Array.isArray(el.rows) ? el.rows : [];
+    const rows: any[] = JSON.parse(JSON.stringify(Array.isArray(el.rows) ? el.rows : []));
     const cols = Math.max(1, ...rows.map((r: any) => (r.cells || []).length));
-    const draft: string[][] = rows.map((r: any) =>
-      Array.from({ length: cols }, (_, j) => String((((r.cells || [])[j] || {}) as any).text ?? ''))
-    );
+    while (rows.length < 1) rows.push({ cells: [] });
+    rows.forEach((r) => {
+      if (!Array.isArray(r.cells)) r.cells = [];
+      while (r.cells.length < cols) r.cells.push({});
+    });
+    const colWidths: number[] = Array.isArray(el.colWidths) ? el.colWidths.slice() : [];
+    const rowHeights: number[] = Array.isArray(el.rowHeights) ? el.rowHeights.slice() : [];
+    while (colWidths.length < cols) colWidths.push(100);
+    while (rowHeights.length < rows.length) rowHeights.push(30);
 
-    const rowsIn = input('number', String(rows.length || 1), 'dlg-cell');
-    const colsIn = input('number', String(cols), 'dlg-cell');
-
+    let anchor: { r: number; c: number } | null = null;
+    let focus: { r: number; c: number } | null = null;
+    const cells: HTMLElement[] = [];
+    const colHeads: HTMLElement[] = [];
+    const rowHeads: HTMLElement[] = [];
     const grid = h('div', { class: 'dlg-table' });
-    draft.forEach((r, i) =>
-      r.forEach((v, j) => {
-        const cell = input('text', v, 'dlg-cell');
-        cell.addEventListener('input', () => {
-          draft[i][j] = cell.value;
-        });
-        grid.append(cell);
-      })
-    );
 
+    const range = () => {
+      if (!anchor || !focus) return null;
+      return {
+        r0: Math.min(anchor.r, focus.r), r1: Math.max(anchor.r, focus.r),
+        c0: Math.min(anchor.c, focus.c), c1: Math.max(anchor.c, focus.c)
+      };
+    };
+    const eachSelected = (fn: (cell: any, r: number, c: number) => void) => {
+      const box = range();
+      if (!box) return;
+      for (let r = box.r0; r <= box.r1; r++)
+        for (let c = box.c0; c <= box.c1; c++) fn(rows[r].cells[c], r, c);
+    };
+    const paintSel = () => {
+      const box = range();
+      cells.forEach((node) => {
+        const r = Number((node as any).dataset.r), c = Number((node as any).dataset.c);
+        node.classList.toggle('sel', !!box && r >= box.r0 && r <= box.r1 && c >= box.c0 && c <= box.c1);
+      });
+    };
+    const setSizes = () => {
+      colHeads.forEach((node, j) => (node.style.width = `${colWidths[j]}px`));
+      rowHeads.forEach((node, i) => (node.style.height = `${rowHeights[i]}px`));
+      cells.forEach((node) => {
+        const c = Number((node as any).dataset.c);
+        const cell = rows[Number((node as any).dataset.r)].cells[c];
+        const span = Math.max(1, Number(cell.colSpan) || 1);
+        node.style.width = `${colWidths.slice(c, c + span).reduce((a, b) => a + b, 0)}px`;
+      });
+    };
+    const dragSize = (e: PointerEvent, kind: 'col' | 'row', index: number) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const start = kind === 'col' ? e.clientX : e.clientY;
+      const base = kind === 'col' ? colWidths[index] : rowHeights[index];
+      const move = (ev: PointerEvent) => {
+        const delta = (kind === 'col' ? ev.clientX : ev.clientY) - start;
+        if (kind === 'col') colWidths[index] = Math.max(48, base + delta);
+        else rowHeights[index] = Math.max(24, base + delta);
+        setSizes();
+      };
+      const up = () => {
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+    };
+
+    const head = h('div', { class: 'dlg-table-head' }, [h('div', { class: 'dlg-table-corner' })]);
+    colWidths.forEach((_, j) => {
+      const node = h('div', { class: 'dlg-table-colhead' }, [String(j + 1)]);
+      node.addEventListener('pointerdown', (e: PointerEvent) => dragSize(e, 'col', j));
+      colHeads.push(node);
+      head.append(node);
+    });
+    grid.append(head);
+    rows.forEach((r, i) => {
+      const line = h('div', { class: 'dlg-table-line' });
+      const rh = h('div', { class: 'dlg-table-rowhead' }, [String(i + 1)]);
+      rh.addEventListener('pointerdown', (e: PointerEvent) => dragSize(e, 'row', i));
+      rowHeads.push(rh);
+      line.append(rh);
+      r.cells.forEach((cell: any, j: number) => {
+        const wrap = h('div', {
+          class: 'dlg-table-cell',
+          dataset: { r: String(i), c: String(j) }
+        });
+        const text = input('text', String(cell.text || ''), 'dlg-cell');
+        text.addEventListener('input', () => (cell.text = text.value));
+        wrap.append(text);
+        wrap.addEventListener('click', (ev: MouseEvent) => {
+          const at = { r: i, c: j };
+          if (ev.shiftKey && anchor) focus = at;
+          else { anchor = at; focus = at; }
+          paintSel();
+          syncStyle();
+        });
+        cells.push(wrap);
+        line.append(wrap);
+      });
+      grid.append(line);
+    });
+    setSizes();
+    paintSel();
+
+    const fillIn = input('color', '#ffffff', 'dlg-cell');
+    const borderIn = input('color', '#808080', 'dlg-cell');
+    const borderW = input('number', '1', 'dlg-cell');
+    const fontIn = input('color', '#000000', 'dlg-cell');
+    const fontSizeIn = input('number', '14', 'dlg-cell');
+    const boldIn = input('checkbox', ''), italicIn = input('checkbox', ''), underlineIn = input('checkbox', '');
+    [boldIn, italicIn, underlineIn].forEach((n) => (n.className = 'dlg-check'));
+    const alignIn = select([
+      { value: 'left', name: t('data.align.left') }, { value: 'center', name: t('data.align.center') }, { value: 'right', name: t('data.align.right') }
+    ], 'left', 'dlg-cell');
+    const valignIn = select([
+      { value: 'top', name: t('insp.valign') + ': top' }, { value: 'middle', name: t('insp.valign') + ': middle' }, { value: 'bottom', name: t('insp.valign') + ': bottom' }
+    ], 'top', 'dlg-cell');
+    const syncStyle = () => {
+      const box = range();
+      const cell = box ? rows[box.r0].cells[box.c0] : null;
+      if (!cell) return;
+      fillIn.value = /^#[0-9a-f]{6}$/i.test(String(cell.fill || '')) ? cell.fill : '#ffffff';
+      borderIn.value = /^#[0-9a-f]{6}$/i.test(String((cell.borders || {}).bottom?.color || '')) ? cell.borders.bottom.color : '#808080';
+      borderW.value = String((cell.borders || {}).bottom?.width ?? 1);
+      fontIn.value = /^#[0-9a-f]{6}$/i.test(String(cell.color || '')) ? cell.color : '#000000';
+      fontSizeIn.value = String(cell.fontSize || 14);
+      boldIn.checked = !!cell.bold;
+      italicIn.checked = !!cell.italic;
+      underlineIn.checked = !!cell.underline;
+      alignIn.value = cell.align || 'left';
+      valignIn.value = cell.valign || 'top';
+    };
+    const applyStyle = (patch: any) => eachSelected((cell) => Object.assign(cell, patch));
+    const applyBorders = (patch: any) => eachSelected((cell) => {
+      const borders: any = { ...(cell.borders || {}) };
+      for (const side of ['left', 'right', 'top', 'bottom']) {
+        borders[side] = { ...(borders[side] || {}), ...patch };
+      }
+      cell.borders = borders;
+    });
+    fillIn.addEventListener('input', () => applyStyle({ fill: fillIn.value }));
+    borderIn.addEventListener('input', () => applyBorders({ color: borderIn.value }));
+    borderW.addEventListener('input', () => applyBorders({ width: Number(borderW.value) }));
+    fontIn.addEventListener('input', () => applyStyle({ color: fontIn.value }));
+    fontSizeIn.addEventListener('input', () => applyStyle({ fontSize: Number(fontSizeIn.value) }));
+    boldIn.addEventListener('change', () => applyStyle({ bold: boldIn.checked }));
+    italicIn.addEventListener('change', () => applyStyle({ italic: italicIn.checked }));
+    underlineIn.addEventListener('change', () => applyStyle({ underline: underlineIn.checked }));
+    alignIn.addEventListener('change', () => applyStyle({ align: alignIn.value }));
+    valignIn.addEventListener('change', () => applyStyle({ valign: valignIn.value }));
+
+    const saveAndReopen = () => {
+      api.update({ rows, colWidths, rowHeights });
+      close();
+      api.reopen();
+    };
+    const merge = () => {
+      const box = range();
+      if (!box || (box.r0 === box.r1 && box.c0 === box.c1)) return;
+      const texts: string[] = [];
+      for (let r = box.r0; r <= box.r1; r++)
+        for (let c = box.c0; c <= box.c1; c++) {
+          const value = String(rows[r].cells[c].text || '').trim();
+          if (value) texts.push(value);
+        }
+      const top = rows[box.r0].cells[box.c0];
+      top.text = texts.join(' ');
+      top.colSpan = box.c1 - box.c0 + 1;
+      top.rowSpan = box.r1 - box.r0 + 1;
+      for (let r = box.r0; r <= box.r1; r++)
+        for (let c = box.c0; c <= box.c1; c++) {
+          if (r === box.r0 && c === box.c0) continue;
+          const cell = rows[r].cells[c];
+          cell.hMerge = true;
+          cell.vMerge = true;
+          cell.text = '';
+        }
+      saveAndReopen();
+    };
+    const split = () => {
+      const box = range();
+      if (!box) return;
+      const top = rows[box.r0].cells[box.c0];
+      const cs = Math.max(1, Number(top.colSpan) || 1), rs = Math.max(1, Number(top.rowSpan) || 1);
+      top.colSpan = 1;
+      top.rowSpan = 1;
+      for (let r = box.r0; r < Math.min(rows.length, box.r0 + rs); r++)
+        for (let c = box.c0; c < Math.min(rows[r].cells.length, box.c0 + cs); c++) {
+          if (r === box.r0 && c === box.c0) continue;
+          const cell = rows[r].cells[c];
+          cell.hMerge = false;
+          cell.vMerge = false;
+        }
+      saveAndReopen();
+    };
+
+    const rowsIn = input('number', String(rows.length), 'dlg-cell');
+    const colsIn = input('number', String(cols), 'dlg-cell');
     return [
       row([
         labelled(t('dlg.rows'), rowsIn),
         labelled(t('dlg.cols'), colsIn),
         btn(t('dlg.resize'), () => {
           api.resize(intOf(rowsIn.value, 1, 30, 1), intOf(colsIn.value, 1, 20, 1));
-          // The action rebuilds this table's rows, so reopen against the fresh model
           close();
           api.reopen();
         })
       ]),
+      h('div', { class: 'dlg-hint' }, [t('dlg.table.selectHint')]),
       grid,
+      row([
+        btn(t('dlg.table.merge'), merge),
+        btn(t('dlg.table.split'), split)
+      ]),
+      row([
+        labelled(t('dlg.table.fill'), fillIn),
+        labelled(t('dlg.table.border'), borderIn),
+        labelled(t('dlg.table.borderWidth'), borderW),
+        labelled(t('dlg.table.fontColor'), fontIn),
+        labelled(t('dlg.table.fontSize'), fontSizeIn)
+      ]),
+      row([
+        labelled(t('dlg.table.bold'), boldIn),
+        labelled(t('dlg.table.italic'), italicIn),
+        labelled(t('dlg.table.underline'), underlineIn),
+        labelled(t('insp.align'), alignIn),
+        labelled(t('insp.valign'), valignIn)
+      ]),
       row([
         btn(t('common.cancel'), close),
         btn(t('common.save'), () => {
-          const next = draft.map((r, i) => ({
-            height: (rows[i] || {}).height,
-            cells: r.map((text, j) => ({ ...((rows[i] || {}).cells || [])[j], text }))
-          }));
-          api.update({ rows: next });
+          api.update({ rows, colWidths, rowHeights });
           close();
         }, 'btn primary')
       ], 'dlg-actions')
@@ -213,9 +455,17 @@ export function openChartDialog(el: any, api: { update: (patch: any) => void }):
       chartType: el.chartType || 'barChart',
       title: el.title || '',
       legend: el.legend !== false,
+      legendPosition: el.legendPosition || 'right',
       dataLabels: !!el.dataLabels,
       smooth: !!el.smooth,
       marker: !!el.marker,
+      axisTitles: {
+        category: String(el.axisTitles?.category || ''),
+        value: String(el.axisTitles?.value || '')
+      },
+      gridlines: { major: el.gridlines?.major !== false },
+      numberFormat: String(el.numberFormat || ''),
+      trendType: String(el.series?.[0]?.trendlines?.[0]?.type || 'none'),
       categories: Array.isArray(el.categories) ? el.categories.slice() : [],
       series: Array.isArray(el.series) ? JSON.parse(JSON.stringify(el.series)) : []
     };
@@ -290,6 +540,55 @@ export function openChartDialog(el: any, api: { update: (patch: any) => void }):
     renderCats();
     renderSeries();
 
+    // Excel-style grid: paste tab/comma separated cells (first row = series names, first column = categories).
+    const dataArea = h('textarea', { class: 'dlg-data', spellcheck: 'false' }) as HTMLTextAreaElement;
+    const serializeData = () => {
+      const header = ['', ...draft.series.map((s: any, i: number) => s.name || t('dlg.newSeries', i + 1))].join('\t');
+      const body = draft.categories.map((c: string, i: number) =>
+        [c, ...draft.series.map((s: any) => (s.values || [])[i] ?? 0)].join('\t')
+      );
+      return [header, ...body].join('\n');
+    };
+    dataArea.value = serializeData();
+    const initialData = dataArea.value;
+    const parseData = () => {
+      const lines = dataArea.value.split(/\r?\n/).filter((line) => line.trim());
+      if (!lines.length) return;
+      const table = lines.map((line) => line.split('\t').map((v) => v.trim()));
+      const names = table[0].slice(1);
+      const body = table.slice(1);
+      const old = draft.series;
+      draft.categories = body.map((r) => r[0] || '');
+      draft.series = names.map((name: string, i: number) => ({
+        ...(old[i] || {}),
+        name,
+        values: body.map((r) => parseFloat(r[i + 1]) || 0)
+      }));
+      renderCats();
+      renderSeries();
+    };
+
+    const legendPosSel = select([
+      { value: 'right', name: t('dlg.chart.legendRight') },
+      { value: 'left', name: t('dlg.chart.legendLeft') },
+      { value: 'top', name: t('dlg.chart.legendTop') },
+      { value: 'bottom', name: t('dlg.chart.legendBottom') }
+    ], draft.legendPosition, 'dlg-cell');
+    legendPosSel.addEventListener('change', () => (draft.legendPosition = legendPosSel.value));
+    const catAxisIn = input('text', draft.axisTitles.category, 'dlg-cell');
+    catAxisIn.addEventListener('input', () => (draft.axisTitles.category = catAxisIn.value));
+    const valAxisIn = input('text', draft.axisTitles.value, 'dlg-cell');
+    valAxisIn.addEventListener('input', () => (draft.axisTitles.value = valAxisIn.value));
+    const numberIn = input('text', draft.numberFormat, 'dlg-cell');
+    numberIn.addEventListener('input', () => (draft.numberFormat = numberIn.value));
+    const trendSel = select([
+      { value: 'none', name: t('dlg.chart.trendNone') },
+      { value: 'linear', name: t('dlg.chart.trendLinear') },
+      { value: 'exponential', name: t('dlg.chart.trendExp') },
+      { value: 'polynomial', name: t('dlg.chart.trendPoly') }
+    ], draft.trendType, 'dlg-cell');
+    trendSel.addEventListener('change', () => (draft.trendType = trendSel.value));
+
     return [
       labelled(t('dlg.type'), typeSel),
       labelled(t('dlg.title'), titleIn),
@@ -299,6 +598,21 @@ export function openChartDialog(el: any, api: { update: (patch: any) => void }):
         checkBox(t('dlg.smooth'), draft.smooth, (v) => (draft.smooth = v)),
         checkBox(t('dlg.markers'), draft.marker, (v) => (draft.marker = v))
       ]),
+      row([
+        labelled(t('dlg.chart.legendPos'), legendPosSel),
+        labelled(t('dlg.chart.axisCat'), catAxisIn),
+        labelled(t('dlg.chart.axisVal'), valAxisIn)
+      ]),
+      row([
+        labelled(t('dlg.chart.numberFormat'), numberIn),
+        labelled(t('dlg.chart.trendline'), trendSel),
+        checkBox(t('dlg.chart.gridlines'), draft.gridlines.major, (v) => (draft.gridlines.major = v))
+      ]),
+      h('div', { class: 'dlg-block' }, [
+        h('b', {}, [t('dlg.chart.dataPaste')]),
+        dataArea,
+        btn(t('dlg.chart.applyData'), parseData)
+      ]),
       h('div', { class: 'dlg-split' }, [
         h('div', {}, [h('b', {}, [t('dlg.categories')]), catWrap]),
         h('div', {}, [h('b', {}, [t('dlg.series')]), serWrap])
@@ -306,6 +620,12 @@ export function openChartDialog(el: any, api: { update: (patch: any) => void }):
       row([
         btn(t('common.cancel'), close),
         btn(t('common.save'), () => {
+          if (dataArea.value !== initialData) parseData();
+          draft.series.forEach((s: any) => {
+            s.trendlines = draft.trendType === 'none'
+              ? []
+              : [{ type: draft.trendType, name: t('dlg.chart.trendline') }];
+          });
           api.update(draft);
           close();
         }, 'btn primary')
@@ -412,8 +732,10 @@ export function openMediaDialog(api: { addMedia: (type: 'video' | 'audio', data:
       const file = input('file', '', '');
       file.style.display = 'none';
       file.accept = accept;
+      file.addEventListener('cancel', () => file.remove());
       file.addEventListener('change', () => {
         const f = file.files?.[0];
+        file.remove();
         if (!f) return;
         const rd = new FileReader();
         rd.onload = () => {

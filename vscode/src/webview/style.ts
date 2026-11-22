@@ -204,6 +204,11 @@ button { font-family: inherit; }
 .slides-panel { width: 180px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex: 0 0 auto; }
 .sp-head { padding: 5px 6px 5px 8px; font-size: 12px; color: var(--muted); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
 .sp-new { padding: 2px 6px; }
+.find-bar { padding: 5px 6px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 3px; }
+.find-line { display: flex; align-items: center; gap: 2px; }
+.find-input { min-width: 0; flex: 1 1 auto; font-size: 11px; padding: 2px 4px; border: 1px solid var(--border); border-radius: 3px; background: var(--vscode-input-background, var(--bg)); color: inherit; }
+.find-line .btn { padding: 1px 4px; font-size: 11px; flex: 0 0 auto; }
+.find-count { font-size: 10px; color: var(--muted); min-width: 28px; text-align: right; flex: 0 0 auto; }
 .sp-list { overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
 .thumb {
   position: relative; border: 2px solid transparent; border-radius: 4px; cursor: pointer; background: #fff;
@@ -248,7 +253,15 @@ button { font-family: inherit; }
 .ol-row .ol-text { flex: 1 1 auto; min-width: 0; word-break: break-word; }
 .ol-row .ol-notes { flex: 0 0 auto; color: var(--muted); font-size: 10px; }
 
-.canvas-area { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--vscode-editor-background, #161616); }
+.canvas-area { position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--vscode-editor-background, #161616); }
+.ruler { display: none; position: absolute; z-index: 40; pointer-events: none; background: var(--panel); color: var(--muted); font-size: 9px; }
+.show-ruler .ruler { display: block; }
+.ruler-h { top: 0; left: 0; right: 0; height: 18px; border-bottom: 1px solid var(--border); background-image: repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 20px); }
+.ruler-v { top: 0; left: 0; bottom: 0; width: 18px; border-right: 1px solid var(--border); background-image: repeating-linear-gradient(180deg, var(--border) 0 1px, transparent 1px 20px); }
+.show-ruler .canvas-scroll { padding-top: 34px; padding-left: 34px; }
+.slide-host.show-guides::before, .slide-host.show-guides::after { content: ''; position: absolute; pointer-events: none; z-index: 5; background: rgba(255,0,0,.35); }
+.slide-host.show-guides::before { left: 50%; top: 0; bottom: 0; width: 1px; }
+.slide-host.show-guides::after { top: 50%; left: 0; right: 0; height: 1px; }
 /* Center via margin:auto on the child (.stage) instead of the flex container:
    a centered flex item that overflows the viewport makes the top/left unreachable by scrolling. */
 .canvas-scroll { flex: 1 1 auto; overflow: auto; display: flex; padding: 20px; }
@@ -422,7 +435,21 @@ button { font-family: inherit; }
   font-size: 12px; background: var(--vscode-input-background, var(--bg)); color: inherit; min-width: 0;
 }
 .dlg-cell { width: 100%; box-sizing: border-box; }
-.dlg-table { display: grid; gap: 4px; }
+.dlg-table { display: block; overflow: auto; max-height: 42vh; border: 1px solid var(--border); border-radius: 4px; }
+.dlg-table-head, .dlg-table-line { display: flex; align-items: stretch; }
+.dlg-table-head { position: sticky; top: 0; z-index: 1; background: var(--panel); }
+.dlg-table-corner, .dlg-table-colhead, .dlg-table-rowhead {
+  flex: 0 0 auto; min-width: 24px; text-align: center; font-size: 10px; color: var(--muted);
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; user-select: none; cursor: ew-resize;
+}
+.dlg-table-corner, .dlg-table-rowhead { cursor: ns-resize; }
+.dlg-table-colhead { min-height: 20px; }
+.dlg-table-rowhead { width: 24px; }
+.dlg-table-cell { flex: 0 0 auto; padding: 1px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.dlg-table-cell.sel { background: var(--accent-bg); outline: 1px solid var(--accent-2); }
+.dlg-hint { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.dlg-data { width: 100%; box-sizing: border-box; min-height: 90px; margin: 4px 0; font-family: var(--vscode-editor-font-family, monospace); font-size: 11px; resize: vertical; background: var(--vscode-input-background, var(--bg)); color: inherit; border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; }
 .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
 .dlg-check-row { display: flex; align-items: center; gap: 4px; font-size: 12px; }
 .dlg-shapes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
@@ -475,13 +502,27 @@ button { font-family: inherit; }
 .anim-row { padding: 4px 6px; border: 1px solid transparent; border-radius: 4px; align-items: center; }
 .anim-row:hover { background: var(--panel-2); }
 .anim-row.on { border-color: var(--accent-2); background: var(--panel-2); }
+.anim-pane-row { display: flex; align-items: center; gap: 3px; padding: 3px 4px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 3px; cursor: grab; }
+.anim-pane-row .anim-pane-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.anim-pane-row .btn { padding: 1px 5px; font-size: 11px; }
+.comment-row { border: 1px solid var(--border); border-radius: 4px; padding: 5px 6px; margin-bottom: 4px; }
+.comment-row.resolved { opacity: .55; }
+.comment-row.resolved .comment-text { text-decoration: line-through; }
+.comment-meta { font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+.comment-text { font-size: 11px; white-space: pre-wrap; margin-bottom: 4px; }
+.comment-reply { font-size: 11px; color: var(--muted); padding-left: 8px; border-left: 2px solid var(--accent-2); margin-bottom: 3px; white-space: pre-wrap; }
+.comment-row .btn { padding: 1px 5px; font-size: 11px; }
 .chk { display: flex; align-items: center; gap: 6px; }
 .el-list { list-style: none; margin: 0; padding: 0; }
 .el-list li { padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 4px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; }
 .el-list li:hover { background: var(--panel-2); }
 .el-list li.active { border-color: var(--accent-2); background: var(--panel-2); }
-.el-list li .tag { color: var(--muted); font-size: 11px; }
-.el-list li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.el-list li .tag { color: var(--muted); font-size: 11px; flex: 0 0 auto; }
+.el-list li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
+.el-list li .el-acts { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.el-list li .el-act { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 3px; background: transparent; color: var(--muted); cursor: pointer; }
+.el-list li .el-act:hover { background: var(--panel-3); color: var(--text); }
+.el-list li .el-rename { min-width: 0; width: 100%; box-sizing: border-box; background: var(--vscode-input-background, var(--panel-2)); color: var(--text); border: 1px solid var(--accent-2); border-radius: 3px; padding: 1px 4px; font-size: 12px; font-family: inherit; }
 .el-list li.empty { border-color: transparent; cursor: default; }
 /* Drawer for the element list: its own scroll box, so a slide with dozens of elements can never
    push the property fields below the fold. */
@@ -521,6 +562,21 @@ button { font-family: inherit; }
 .present-count { font-variant-numeric: tabular-nums; }
 .present-hint { opacity: .7; }
 .present-exit { background: rgba(255,255,255,.12); border-color: transparent; color: #fff; }
+.present-exit.on { background: rgba(255,255,255,.28); color: #fff; }
+.present.on.present-black .slide-host { visibility: hidden; }
+.present-presenter {
+  position: absolute; top: 12px; left: 12px; width: 320px; max-height: 56vh; overflow: auto;
+  display: none; z-index: 90; box-sizing: border-box; padding: 10px 12px;
+  background: rgba(24,24,24,.94); border: 1px solid rgba(255,255,255,.18); border-radius: 6px;
+  color: #eee; font-size: 12px; line-height: 1.5;
+}
+.present-presenter.on { display: block; }
+.present-presenter-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.present-presenter-head strong { font-size: 12px; color: #fff; }
+.present-presenter h4 { margin: 10px 0 4px; font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: .04em; }
+.present-notes-text { white-space: pre-wrap; min-height: 40px; }
+.present-next-text { color: #bbb; }
+.present-timer { font-variant-numeric: tabular-nums; color: #bbb; }
 
 /* ===== Document properties panel (available in both preview and edit mode) ===== */
 .doc-info {

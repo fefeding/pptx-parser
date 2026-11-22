@@ -141,6 +141,15 @@ export function buildTabs(b: RibbonBuilders, api: RibbonApi): RibbonTab[] {
     b.miniButton({ ico: 'alignBottom', title: t('cmd.alignBottom'), needs: ['edit', 'text'], active: (s) => s.caps.valign === 'bottom', onClick: () => api.cmd('setValign', 'bottom') })
   ];
 
+  const alignRow = (): Widget[] => [
+    b.miniButton({ ico: 'alignLeft', title: t('cmd.alignLeft'), needs: ['edit', 'multi'], onClick: () => api.cmd('align', 'left') }),
+    b.miniButton({ ico: 'alignCenter', title: t('cmd.alignCenter'), needs: ['edit', 'multi'], onClick: () => api.cmd('align', 'hcenter') }),
+    b.miniButton({ ico: 'alignRight', title: t('cmd.alignRight'), needs: ['edit', 'multi'], onClick: () => api.cmd('align', 'right') }),
+    b.miniButton({ ico: 'alignTop', title: t('cmd.alignTop'), needs: ['edit', 'multi'], onClick: () => api.cmd('align', 'top') }),
+    b.miniButton({ ico: 'alignMiddle', title: t('cmd.alignMiddle'), needs: ['edit', 'multi'], onClick: () => api.cmd('align', 'vcenter') }),
+    b.miniButton({ ico: 'alignBottom', title: t('cmd.alignBottom'), needs: ['edit', 'multi'], onClick: () => api.cmd('align', 'bottom') })
+  ];
+
   const arrangeRow = (): Widget[] => [
     b.miniButton({ ico: 'zFront', title: t('cmd.bringFront'), needs: ['edit', 'selection'], onClick: () => api.cmd('zOrder', 'front') }),
     b.miniButton({ ico: 'zFront', title: t('cmd.bringForward'), needs: ['edit', 'selection'], onClick: () => api.cmd('zOrder', 'forward') }),
@@ -226,6 +235,7 @@ export function buildTabs(b: RibbonBuilders, api: RibbonApi): RibbonTab[] {
           b.miniButton({ ico: 'flipH', title: t('cmd.flipH'), needs: ['edit', 'shape'], onClick: () => api.cmd('flip', 'h') }),
           b.miniButton({ ico: 'flipV', title: t('cmd.flipV'), needs: ['edit', 'shape'], onClick: () => api.cmd('flip', 'v') })
         ],
+        alignRow(),
         arrangeRow(),
         [
           b.miniButton({ ico: 'group', title: withAccel(t('cmd.group'), 'mod+g'), needs: ['edit', 'multi'], onClick: () => api.cmd('groupSel') }),
@@ -442,17 +452,22 @@ export function buildTabs(b: RibbonBuilders, api: RibbonApi): RibbonTab[] {
     b.group(t('grp.window'), [
       [b.miniButton({ ico: 'grid', title: t('cmd.grid'), needs: 'edit', active: (s) => s.grid, onClick: () => api.cmd('grid') })],
       [b.miniButton({ ico: 'snap', title: t('cmd.snap'), needs: 'edit', active: (s) => s.snap, onClick: () => api.cmd('snap') })],
+      [b.miniButton({ ico: 'grid', title: t('cmd.ruler'), active: (s) => s.ruler, onClick: () => api.cmd('ruler') })],
+      [b.miniButton({ ico: 'snap', title: t('cmd.guides'), needs: 'edit', active: (s) => s.guides, onClick: () => api.cmd('guides') })],
       [b.miniButton({ ico: 'notes', title: t('grp.window'), needs: 'edit', onClick: () => api.cmd('toggleInspector') })]
     ]),
     b.group(t('grp.export'), [
       [
         b.bigButton({ ico: 'picture', label: t('cmd.exportImage'), onClick: () => api.cmd('exportImage') }),
         b.bigButton({ ico: 'download', label: t('cmd.exportImages'), onClick: () => api.cmd('exportImages') }),
-        b.bigButton({ ico: 'save', label: t('cmd.exportPdf'), onClick: () => api.cmd('exportPdf') }),
+        b.bigButton({ ico: 'save', label: t('cmd.exportPdfVector'), onClick: () => api.cmd('convertTo', 'pdf') }),
         b.bigButton({ ico: 'swap', label: t('cmd.convertFormat'), onClick: () => api.cmd('convertFormat') }),
         b.bigButton({ ico: 'doc', label: t('cmd.exportDocx'), onClick: () => api.cmd('convertTo', 'docx') }),
         b.bigButton({ ico: 'md', label: t('cmd.exportMd'), onClick: () => api.cmd('convertTo', 'md') }),
         b.bigButton({ ico: 'code', label: t('cmd.exportHtml'), onClick: () => api.cmd('convertTo', 'html') })
+      ],
+      [
+        b.miniButton({ ico: 'picture', title: t('cmd.exportPdfRaster'), onClick: () => api.cmd('exportPdf') })
       ]
     ])
   ]);

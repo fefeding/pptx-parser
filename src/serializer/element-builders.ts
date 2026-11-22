@@ -584,6 +584,12 @@ export interface SerializerSlide {
 
 /** 幻灯片批注（commentsN.xml 的 p:cm） */
 export interface SerializerComment {
+    /** 批注 id（p:cm@id） */
+    id?: string;
+    /** 是否已解决 */
+    resolved?: boolean;
+    /** 回复串 */
+    replies?: { author?: string; text: string; dt?: string }[];
     /** 作者（用于 commentAuthors；缺省 'Author'） */
     author?: string;
     /** 批注正文 */
@@ -1658,7 +1664,7 @@ async function buildImageElement(ctx: SerializerContext, el: SerializerElement) 
         null,
         xmlNode('p:nvPicPr',
             null,
-            xmlNode('p:cNvPr', { id, name: el.name || `Image ${id - 1}` }, cNvPrChildren),
+            xmlNode('p:cNvPr', { id, name: el.name || `Image ${id - 1}`, descr: el.descr || null }, cNvPrChildren),
             xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noChangeAspect: 1 })),
             xmlNode('p:nvPr')
         ),
@@ -1710,7 +1716,7 @@ function buildChartElement(ctx: SerializerContext, el: SerializerElement) {
         null,
         xmlNode('p:nvGraphicFramePr',
         null,
-        xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }),
+        xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}`, descr: el.descr || null }),
         xmlNode('p:cNvGraphicFramePr'),
         xmlNode('p:nvPr')
         ),
@@ -2427,7 +2433,7 @@ function buildTableElement(ctx: SerializerContext, el: SerializerElement): Build
 
     return xmlNode('p:graphicFrame', null,
         xmlNode('p:nvGraphicFramePr', null,
-            xmlNode('p:cNvPr', { id, name: el.name || `Table ${id - 1}` }),
+            xmlNode('p:cNvPr', { id, name: el.name || `Table ${id - 1}`, descr: el.descr || null }),
             xmlNode('p:cNvGraphicFramePr', null, xmlNode('a:graphicFrameLocks', { noGrp: 1 })),
             xmlNode('p:nvPr')
         ),
@@ -2570,7 +2576,7 @@ async function buildGroupElement(ctx: SerializerContext, el: SerializerElement) 
         null,
         xmlNode('p:nvGrpSpPr',
             null,
-            xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }),
+            xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}`, descr: el.descr || null }),
             xmlNode('p:cNvGrpSpPr'),
             xmlNode('p:nvPr')
         ),
@@ -2631,7 +2637,18 @@ async function buildMediaElement(ctx: SerializerContext, el: SerializerElement, 
         null,
         xmlNode('p:nvPicPr',
             null,
-            xmlNode('p:cNvPr', { id, name: el.name || `${kind} ${id}` }),
+            xmlNode('p:cNvPr', {
+                id, name: el.name || `${kind} ${id}`, descr: el.descr || null,
+                jdocLoop: (el as any).loop ? '1' : null,
+                jdocAutoplay: (el as any).autoplay ? '1' : null,
+                jdocCrossSlide: (el as any).crossSlide ? '1' : null,
+                jdocMuted: (el as any).muted ? '1' : null,
+                jdocVolume: (el as any).volume != null ? String((el as any).volume) : null,
+                jdocTrimStart: (el as any).trimStart != null ? String((el as any).trimStart) : null,
+                jdocTrimEnd: (el as any).trimEnd != null ? String((el as any).trimEnd) : null,
+                jdocFadeIn: (el as any).fadeIn != null ? String((el as any).fadeIn) : null,
+                jdocFadeOut: (el as any).fadeOut != null ? String((el as any).fadeOut) : null
+            }),
             xmlNode('p:cNvPicPr'),
             xmlNode('p:nvPr', null, mediaFileNode)
         ),
@@ -3057,7 +3074,7 @@ async function buildDiagramElement(ctx: SerializerContext, el: SerializerElement
         null,
         xmlNode('p:nvGraphicFramePr',
             null,
-            xmlNode('p:cNvPr', { id, name: el.name || `Diagram ${id}` }),
+            xmlNode('p:cNvPr', { id, name: el.name || `Diagram ${id}`, descr: el.descr || null }),
             xmlNode('p:cNvGraphicFramePr'),
             xmlNode('p:nvPr')
         ),

@@ -341,6 +341,12 @@ export interface CommentInfo {
     x?: number;
     /** 批注锚点 y（EMU） */
     y?: number;
+    /** 批注 id（p:cm@id） */
+    id?: string;
+    /** 是否已解决 */
+    resolved?: boolean;
+    /** 回复串 */
+    replies?: { author?: string; text: string; dt?: string }[];
 }
 
 /**
@@ -350,13 +356,18 @@ export interface CommentInfo {
  */
 export function buildCommentsXml(comments: CommentInfo[]) {
     const items = comments
-        .map((c, i) =>
-            `<p:cm authorId="${c.authorId}" dt="${escapeXml(c.dt)}" id="${i}">` +
-            `<p:pos x="${c.x ?? 914400}" y="${c.y ?? 914400}"/>` +
-            `<p:text>${escapeXml(c.text)}</p:text></p:cm>`)
+        .map((c, i) => {
+            const meta = { resolved: !!c.resolved, replies: c.replies || [] };
+            const ext = (c.resolved || (c.replies && c.replies.length))
+                ? `<p:extLst><a:ext uri="{521415D9-36F7-43E2-AB2F-B90AF26B5E84}"><jdoc:comment jdoc:meta="${escapeXml(JSON.stringify(meta))}"/></a:ext></p:extLst>`
+                : '';
+            return `<p:cm authorId="${c.authorId}" dt="${escapeXml(c.dt)}" id="${escapeXml(String(c.id ?? i))}">` +
+                `<p:pos x="${c.x ?? 914400}" y="${c.y ?? 914400}"/>` +
+                `<p:text>${escapeXml(c.text)}</p:text>${ext}</p:cm>`;
+        })
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
-        `<p:cmLst xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}">${items}</p:cmLst>`;
+        `<p:cmLst xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" xmlns:jdoc="http://jdoc.local/comment">${items}</p:cmLst>`;
 }
 
 /**
@@ -409,11 +420,13 @@ export function buildPresentationXml(
     if (opts.sections && opts.sections.length) {
         const items = opts.sections.map((sec, i) => {
             const ids = (sec.slides || [])
-                .map(idx => `<p:sldId id="${256 + idx}"/>`)
+                .map(idx => `<p14:sldId id="${256 + idx}"/>`)
                 .join('');
-            return `<p:section name="${escapeXml(sec.name || `Section ${i + 1}`)}" id="{${sectionGuid(i)}}"><p:sldIdLst>${ids}</p:sldIdLst></p:section>`;
+            return `<p14:section name="${escapeXml(sec.name || `Section ${i + 1}`)}" id="{${sectionGuid(i)}}"><p14:sldIdLst>${ids}</p14:sldIdLst></p14:section>`;
         }).join('');
-        sectionXml = `<p:sectionLst>${items}</p:sectionLst>`;
+        sectionXml = `<p:extLst><p:ext uri="{521415D9-36F7-43E2-AB2F-B90AF26B5E84}">` +
+            `<p14:sectionLst xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main">${items}</p14:sectionLst>` +
+            `</p:ext></p:extLst>`;
     }
 
     // 备注母版：位于 sldMasterIdLst 之后、sldIdLst 之前

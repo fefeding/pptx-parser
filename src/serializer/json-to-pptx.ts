@@ -331,7 +331,10 @@ async function jsonToPptx(presentation: unknown, options: { outputType?: ZipOutp
                 text: c.text,
                 dt: c.dt || new Date().toISOString(),
                 x: c.pos?.x,
-                y: c.pos?.y
+                y: c.pos?.y,
+                id: c.id,
+                resolved: c.resolved,
+                replies: c.replies
             }));
             zip.file(`ppt/comments/comments${slideIndex}.xml`, buildCommentsXml(resolved));
             zip.file(`ppt/comments/_rels/comments${slideIndex}.xml.rels`,

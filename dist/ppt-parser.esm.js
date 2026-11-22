@@ -15427,12 +15427,18 @@ function buildCustomPropsXml(pairs) {
 }
 function buildCommentsXml(comments) {
     const items = comments
-        .map((c, i) => `<p:cm authorId="${c.authorId}" dt="${escapeXml$1(c.dt)}" id="${i}">` +
-        `<p:pos x="${c.x ?? 914400}" y="${c.y ?? 914400}"/>` +
-        `<p:text>${escapeXml$1(c.text)}</p:text></p:cm>`)
+        .map((c, i) => {
+        const meta = { resolved: !!c.resolved, replies: c.replies || [] };
+        const ext = (c.resolved || (c.replies && c.replies.length))
+            ? `<p:extLst><a:ext uri="{521415D9-36F7-43E2-AB2F-B90AF26B5E84}"><jdoc:comment jdoc:meta="${escapeXml$1(JSON.stringify(meta))}"/></a:ext></p:extLst>`
+            : '';
+        return `<p:cm authorId="${c.authorId}" dt="${escapeXml$1(c.dt)}" id="${escapeXml$1(String(c.id ?? i))}">` +
+            `<p:pos x="${c.x ?? 914400}" y="${c.y ?? 914400}"/>` +
+            `<p:text>${escapeXml$1(c.text)}</p:text>${ext}</p:cm>`;
+    })
         .join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
-        `<p:cmLst xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}">${items}</p:cmLst>`;
+        `<p:cmLst xmlns:a="${NS.a}" xmlns:r="${NS.r}" xmlns:p="${NS.p}" xmlns:jdoc="http://jdoc.local/comment">${items}</p:cmLst>`;
 }
 function buildCommentAuthorsXml(authors) {
     const items = authors
@@ -15455,11 +15461,13 @@ function buildPresentationXml(slideSize, slides, opts = {}) {
     if (opts.sections && opts.sections.length) {
         const items = opts.sections.map((sec, i) => {
             const ids = (sec.slides || [])
-                .map(idx => `<p:sldId id="${256 + idx}"/>`)
+                .map(idx => `<p14:sldId id="${256 + idx}"/>`)
                 .join('');
-            return `<p:section name="${escapeXml$1(sec.name || `Section ${i + 1}`)}" id="{${sectionGuid(i)}}"><p:sldIdLst>${ids}</p:sldIdLst></p:section>`;
+            return `<p14:section name="${escapeXml$1(sec.name || `Section ${i + 1}`)}" id="{${sectionGuid(i)}}"><p14:sldIdLst>${ids}</p14:sldIdLst></p14:section>`;
         }).join('');
-        sectionXml = `<p:sectionLst>${items}</p:sectionLst>`;
+        sectionXml = `<p:extLst><p:ext uri="{521415D9-36F7-43E2-AB2F-B90AF26B5E84}">` +
+            `<p14:sectionLst xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main">${items}</p14:sectionLst>` +
+            `</p:ext></p:extLst>`;
     }
     const notesMasterXml = opts.notesMasterRelId
         ? `<p:notesMasterIdLst><p:notesMasterId r:id="${escapeXml$1(opts.notesMasterRelId)}"/></p:notesMasterIdLst>`
@@ -16405,7 +16413,7 @@ async function buildImageElement(ctx, el) {
         if (srect.l || srect.r || srect.t || srect.b)
             srcRectNode = xmlNode('a:srcRect', srect);
     }
-    return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Image ${id - 1}` }, cNvPrChildren), xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noChangeAspect: 1 })), xmlNode('p:nvPr')), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': embedRelId }, ...blipChildren), ...(srcRectNode ? [srcRectNode] : []), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')), ...rawShapeFxNodes(el)));
+    return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Image ${id - 1}`, descr: el.descr || null }, cNvPrChildren), xmlNode('p:cNvPicPr', null, xmlNode('a:picLocks', { noChangeAspect: 1 })), xmlNode('p:nvPr')), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': embedRelId }, ...blipChildren), ...(srcRectNode ? [srcRectNode] : []), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst')), ...rawShapeFxNodes(el)));
 }
 function buildChartElement(ctx, el) {
     const id = assignId(ctx, el);
@@ -16415,7 +16423,7 @@ function buildChartElement(ctx, el) {
     const relId = addRelationship(ctx, REL_TYPES.chart, `../charts/${chartName}`);
     const { xml, workbook } = buildChartXml(el);
     ctx.charts.push({ name: chartName, xml, workbook });
-    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}` }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), buildXfrm(el, 'p:xfrm'), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: NS.c }, xmlNode('c:chart', { 'xmlns:c': NS.c, 'xmlns:r': NS.r, 'r:id': relId }))));
+    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Chart ${chartNum}`, descr: el.descr || null }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), buildXfrm(el, 'p:xfrm'), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: NS.c }, xmlNode('c:chart', { 'xmlns:c': NS.c, 'xmlns:r': NS.r, 'r:id': relId }))));
 }
 async function buildGaugeElement(ctx, el) {
     const w = el.width ?? 200;
@@ -16941,7 +16949,7 @@ function buildTableElement(ctx, el) {
             merged.borders = { ...(merged.borders || {}), diagonal: el.tableDiagonal };
         return buildTableCell(ctx, merged, { border: el.border, borders: el.borders });
     })));
-    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Table ${id - 1}` }), xmlNode('p:cNvGraphicFramePr', null, xmlNode('a:graphicFrameLocks', { noGrp: 1 })), xmlNode('p:nvPr')), xmlNode('p:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: pxToEmu(width), cy: pxToEmu(height) })), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: NS.table }, xmlNode('a:tbl', null, xmlNode('a:tblPr', { firstRow: 1, bandRow: 1 }, xmlNode('a:tableStyleId', null, tableStyleId)), xmlNode('a:tblGrid', null, ...gridCols), ...trNodes))));
+    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Table ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvGraphicFramePr', null, xmlNode('a:graphicFrameLocks', { noGrp: 1 })), xmlNode('p:nvPr')), xmlNode('p:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: pxToEmu(width), cy: pxToEmu(height) })), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: NS.table }, xmlNode('a:tbl', null, xmlNode('a:tblPr', { firstRow: 1, bandRow: 1 }, xmlNode('a:tableStyleId', null, tableStyleId)), xmlNode('a:tblGrid', null, ...gridCols), ...trNodes))));
 }
 function toArray(v) {
     if (v === undefined || v === null)
@@ -17031,7 +17039,7 @@ async function buildGroupElement(ctx, el) {
     const w = pxToEmu(el.width || 0);
     const h = pxToEmu(el.height || 0);
     const grpFillNode = await buildFillNode(ctx, el.fill);
-    return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}` }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', {
+    return xmlNode('p:grpSp', null, xmlNode('p:nvGrpSpPr', null, xmlNode('p:cNvPr', { id, name: el.name || `Group ${id - 1}`, descr: el.descr || null }), xmlNode('p:cNvGrpSpPr'), xmlNode('p:nvPr')), xmlNode('p:grpSpPr', null, xmlNode('a:xfrm', {
         rot: el.rotation ? Math.round(el.rotation * 60000) : undefined,
         flipH: el.flipH ? 1 : undefined,
         flipV: el.flipV ? 1 : undefined
@@ -17064,7 +17072,18 @@ async function buildMediaElement(ctx, el, kind) {
     const mediaFileNode = kind === 'video'
         ? xmlNode('a:videoFile', { 'r:link': embedRelId })
         : xmlNode('a:audioFile', { 'r:link': embedRelId });
-    return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', { id, name: el.name || `${kind} ${id}` }), xmlNode('p:cNvPicPr'), xmlNode('p:nvPr', null, mediaFileNode)), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': posterRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))));
+    return xmlNode('p:pic', null, xmlNode('p:nvPicPr', null, xmlNode('p:cNvPr', {
+        id, name: el.name || `${kind} ${id}`, descr: el.descr || null,
+        jdocLoop: el.loop ? '1' : null,
+        jdocAutoplay: el.autoplay ? '1' : null,
+        jdocCrossSlide: el.crossSlide ? '1' : null,
+        jdocMuted: el.muted ? '1' : null,
+        jdocVolume: el.volume != null ? String(el.volume) : null,
+        jdocTrimStart: el.trimStart != null ? String(el.trimStart) : null,
+        jdocTrimEnd: el.trimEnd != null ? String(el.trimEnd) : null,
+        jdocFadeIn: el.fadeIn != null ? String(el.fadeIn) : null,
+        jdocFadeOut: el.fadeOut != null ? String(el.fadeOut) : null
+    }), xmlNode('p:cNvPicPr'), xmlNode('p:nvPr', null, mediaFileNode)), xmlNode('p:blipFill', null, xmlNode('a:blip', { 'r:embed': posterRelId }), xmlNode('a:stretch', null, xmlNode('a:fillRect'))), xmlNode('p:spPr', null, buildXfrm(el), xmlNode('a:prstGeom', { prst: 'rect' }, xmlNode('a:avLst'))));
 }
 const DGML_NS = 'http://schemas.openxmlformats.org/drawingml/2006/diagram';
 function diagramUniqueId(seed) {
@@ -17395,7 +17414,7 @@ async function buildDiagramElement(ctx, el) {
     const drawingRelId = addRelationship(ctx, REL_TYPES.diagramDrawing, `../diagrams/drawing${n}.xml`);
     ctx.diagrams.push({ index: n, dataXml, layoutXml, colorsXml, quickStyleXml, drawingXml });
     const id = assignId(ctx, el);
-    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Diagram ${id}` }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), xmlNode('p:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: pxToEmu(el.width || 400), cy: pxToEmu(el.height || 300) })), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: DGML_NS }, xmlNode('dgm:relIds', {
+    return xmlNode('p:graphicFrame', null, xmlNode('p:nvGraphicFramePr', null, xmlNode('p:cNvPr', { id, name: el.name || `Diagram ${id}`, descr: el.descr || null }), xmlNode('p:cNvGraphicFramePr'), xmlNode('p:nvPr')), xmlNode('p:xfrm', null, xmlNode('a:off', { x: pxToEmu(el.x || 0), y: pxToEmu(el.y || 0) }), xmlNode('a:ext', { cx: pxToEmu(el.width || 400), cy: pxToEmu(el.height || 300) })), xmlNode('a:graphic', null, xmlNode('a:graphicData', { uri: DGML_NS }, xmlNode('dgm:relIds', {
         'xmlns:dgm': DGML_NS,
         'xmlns:r': NS.r,
         'r:cs': colorsRelId,
@@ -17982,7 +18001,10 @@ async function jsonToPptx(presentation, options = {}) {
                 text: c.text,
                 dt: c.dt || new Date().toISOString(),
                 x: c.pos?.x,
-                y: c.pos?.y
+                y: c.pos?.y,
+                id: c.id,
+                resolved: c.resolved,
+                replies: c.replies
             }));
             zip.file(`ppt/comments/comments${slideIndex}.xml`, buildCommentsXml(resolved));
             zip.file(`ppt/comments/_rels/comments${slideIndex}.xml.rels`, buildRelationshipsXml([{ relId: 'rId1', type: REL_TYPES.commentAuthors, target: '../commentAuthors.xml' }]));
@@ -20732,6 +20754,9 @@ async function extractSlideToStandard(slideData, zip, options = {}) {
         const comments = slideData && slideData.comments;
         if (Array.isArray(comments) && comments.length) {
             slide.comments = comments.map((c) => ({
+                id: c.id,
+                resolved: !!c.resolved,
+                replies: Array.isArray(c.replies) ? c.replies : [],
                 author: c.author,
                 text: c.text || '',
                 dt: c.dt,
@@ -21153,6 +21178,9 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
         const cNvPr = node['p:nvCxnSpPr'] && node['p:nvCxnSpPr']['p:cNvPr'];
         if (cNvPr && cNvPr.attrs && cNvPr.attrs.name)
             connEl.name = String(cNvPr.attrs.name);
+        const connDescr = readAltDescr(node, 'p:nvCxnSpPr');
+        if (connDescr)
+            connEl.descr = connDescr;
         const cNvCxn = node['p:nvCxnSpPr'] && node['p:nvCxnSpPr']['p:cNvCxnSpPr'];
         if (cNvCxn) {
             const st = cNvCxn['a:stCxn'];
@@ -21208,6 +21236,9 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
             textEl.flipV = true;
         if (name)
             textEl.name = String(name);
+        const textDescr = readAltDescr(node, 'p:nvSpPr');
+        if (textDescr)
+            textEl.descr = textDescr;
         if (textDirection)
             textEl.textDirection = textDirection;
         if (inset)
@@ -21378,6 +21409,9 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
         }
         if (name)
             shapeEl.name = String(name);
+        const shapeDescr = readAltDescr(node, 'p:nvSpPr');
+        if (shapeDescr)
+            shapeEl.descr = shapeDescr;
         return shapeEl;
     }
     return null;
@@ -21409,6 +21443,11 @@ function readGraphicFrameName(node) {
     const cNvPr = node && node['p:nvGraphicFramePr'] && node['p:nvGraphicFramePr']['p:cNvPr'];
     const name = cNvPr && cNvPr.attrs && cNvPr.attrs.name;
     return name ? String(name) : undefined;
+}
+function readAltDescr(node, nvKey) {
+    const cNvPr = node && node[nvKey] && node[nvKey]['p:cNvPr'];
+    const descr = cNvPr && cNvPr.attrs && cNvPr.attrs.descr;
+    return descr ? String(descr) : undefined;
 }
 function readInsetsFromAttrs(attrs) {
     if (!attrs)
@@ -21459,6 +21498,9 @@ function tableToElement(tbl, node, themeMap = {}, resObj) {
     const name = readGraphicFrameName(node);
     if (name)
         el.name = name;
+    const frameDescr = readAltDescr(node, 'p:nvGraphicFramePr');
+    if (frameDescr)
+        el.descr = frameDescr;
     const grid = tbl && tbl['a:tblGrid'];
     const colWidths = asArray(grid && grid['a:gridCol'])
         .map((c) => (c && c.attrs && c.attrs.w ? emuToPx(c.attrs.w) : 0));
@@ -22351,6 +22393,9 @@ async function diagramToElement(node, resObj, zip, themeMap = {}, themeContent) 
     const name = readGraphicFrameName(node);
     if (name)
         el.name = name;
+    const frameDescr = readAltDescr(node, 'p:nvGraphicFramePr');
+    if (frameDescr)
+        el.descr = frameDescr;
     if (texts.length)
         el.texts = texts;
     if (part)
@@ -22375,6 +22420,9 @@ async function rawGraphicFrame(node, resObj, zip) {
     };
     if (name)
         el.name = String(name);
+    const rawDescr = readAltDescr(node, 'p:nvGraphicFramePr');
+    if (rawDescr)
+        el.descr = rawDescr;
     el.__raw = { tag: 'p:graphicFrame', node, rels: {}, parts: [] };
     if (zip) {
         try {
@@ -22479,6 +22527,9 @@ async function graphicFrameToChart(node, resObj, zip, themeMap = {}) {
         height: xf ? xf.height : 400,
         series: (chartSemantic && chartSemantic.series) || []
     };
+    const chartDescr = readAltDescr(node, 'p:nvGraphicFramePr');
+    if (chartDescr)
+        chartEl.descr = chartDescr;
     if (!chartSemantic)
         return chartEl;
     const passKeys = [
@@ -22548,6 +22599,26 @@ async function picToImage(node, resObj, zip) {
             mediaEl.rotation = xf.rotation;
         if (name)
             mediaEl.name = String(name);
+        const mediaDescr = readAltDescr(node, 'p:nvPicPr');
+        if (mediaDescr)
+            mediaEl.descr = mediaDescr;
+        const mAttrs = (node['p:nvPicPr'] && node['p:nvPicPr']['p:cNvPr'] && node['p:nvPicPr']['p:cNvPr'].attrs) || {};
+        if (mAttrs.jdocLoop === '1')
+            mediaEl.loop = true;
+        if (mAttrs.jdocAutoplay === '1')
+            mediaEl.autoplay = true;
+        if (mAttrs.jdocCrossSlide === '1')
+            mediaEl.crossSlide = true;
+        if (mAttrs.jdocMuted === '1')
+            mediaEl.muted = true;
+        for (const key of ['volume', 'trimStart', 'trimEnd', 'fadeIn', 'fadeOut']) {
+            const raw = mAttrs[`jdoc${key[0].toUpperCase()}${key.slice(1)}`];
+            if (raw == null || raw === '')
+                continue;
+            const n = Number(raw);
+            if (Number.isFinite(n))
+                mediaEl[key] = n;
+        }
         const pRid = blip && blip.attrs && blip.attrs['r:embed'];
         if (pRid) {
             const pTarget = resObj[String(pRid)] && resObj[String(pRid)].target;
@@ -22606,6 +22677,9 @@ async function picToImage(node, resObj, zip) {
         imgEl.rotation = xf.rotation;
     if (name)
         imgEl.name = String(name);
+    const imgDescr = readAltDescr(node, 'p:nvPicPr');
+    if (imgDescr)
+        imgEl.descr = imgDescr;
     const picSpPr = node['p:spPr'];
     const rawFx = [];
     for (const t of ['a:scene3d', 'a:sp3d', 'a:duotone', 'a:fillOverlay']) {
@@ -22747,9 +22821,71 @@ async function extractEmbeddedFonts(zip) {
         return [];
     }
 }
+async function extractSections(zip, slideFileNames) {
+    try {
+        const presFile = zip.file('ppt/presentation.xml');
+        if (!presFile)
+            return undefined;
+        const pres = await presFile.async('string');
+        const sectionMatch = pres.match(/<(?:p14:|p:)?sectionLst\b[^>]*>([\s\S]*?)<\/(?:p14:|p:)?sectionLst>/);
+        if (!sectionMatch)
+            return undefined;
+        const relMap = {};
+        const relFile = zip.file('ppt/_rels/presentation.xml.rels');
+        if (relFile) {
+            const relText = await relFile.async('string');
+            const relRe = /<Relationship\s+([^>]*?)\/?>/g;
+            let m;
+            while ((m = relRe.exec(relText)) !== null) {
+                const id = (m[1].match(/Id="([^"]*)"/) || [])[1];
+                const target = (m[1].match(/Target="([^"]*)"/) || [])[1];
+                if (id && target)
+                    relMap[id] = target.replace(/^(?:\.\.\/)+/, '').replace(/^ppt\//, '');
+            }
+        }
+        const sldIdToRid = {};
+        const sldRe = /<(?:p14:|p:)?sldId\s+([^>]*?)\/>/g;
+        let s;
+        while ((s = sldRe.exec(pres)) !== null) {
+            const id = (s[1].match(/(?:^|\s)id="([^"]*)"/) || [])[1];
+            const rid = (s[1].match(/r:id="([^"]*)"/) || [])[1];
+            if (id && rid)
+                sldIdToRid[id] = rid;
+        }
+        const norm = (f) => f.replace(/^ppt\//, '').replace(/^\/+/, '');
+        const baseName = (f) => norm(f).split('/').pop().replace(/\.xml$/i, '');
+        const indexOfTarget = (target) => slideFileNames.findIndex((f) => baseName(String(f)) === baseName(target));
+        const sections = [];
+        const secRe = /<(?:p14:|p:)?section\s+([^>]*?)>([\s\S]*?)<\/(?:p14:|p:)?section>/g;
+        let sec;
+        while ((sec = secRe.exec(sectionMatch[1])) !== null) {
+            const nameAttr = (sec[1].match(/\bname="([^"]*)"/) || [])[1] || '';
+            const name = nameAttr
+                .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+            const slides = [];
+            const innerRe = /<(?:p14:|p:)?sldId\s+([^>]*?)\/>/g;
+            let inner;
+            while ((inner = innerRe.exec(sec[2])) !== null) {
+                const id = (inner[1].match(/(?:^|\s)id="([^"]*)"/) || [])[1];
+                const rid = id ? sldIdToRid[id] : undefined;
+                const target = rid ? relMap[rid] : undefined;
+                const idx = target ? indexOfTarget(target) : -1;
+                if (idx >= 0)
+                    slides.push(idx);
+            }
+            sections.push({ name, slides });
+        }
+        return sections.length ? sections : undefined;
+    }
+    catch {
+        return undefined;
+    }
+}
 async function buildStandardDocument(parsedData, zip, options = {}) {
     const theme = await extractTheme(zip);
     const slides = await Promise.all((parsedData.slides || []).map(async (s) => extractSlideToStandard(s.data, zip, { ...options, theme: theme })));
+    const sections = await extractSections(zip, (parsedData.slides || []).map((s) => String(s.fileName || '')));
     const doc = {
         version: '1.0',
         slideSize: parsedData.slideSize,
@@ -22757,6 +22893,8 @@ async function buildStandardDocument(parsedData, zip, options = {}) {
     };
     if (parsedData.metadata)
         doc.metadata = parsedData.metadata;
+    if (sections && sections.length)
+        doc.sections = sections;
     if (parsedData.customProps && Object.keys(parsedData.customProps).length) {
         doc.customProps = parsedData.customProps;
     }
@@ -24406,6 +24544,8 @@ function elementToPptx(el) {
         out.rotation = Math.round(el.rotation * 100) / 100;
     if (el.name)
         out.name = el.name;
+    if (el.descr)
+        out.descr = el.descr;
     if (el.inherited)
         out.inherited = true;
     switch (el.type) {
@@ -24723,6 +24863,10 @@ function elementToPptx(el) {
                 out.extension = el.extension;
             if (el.poster)
                 out.poster = el.poster;
+            for (const key of ['loop', 'autoplay', 'crossSlide', 'muted', 'volume', 'trimStart', 'trimEnd', 'fadeIn', 'fadeOut']) {
+                if (el[key] !== undefined)
+                    out[key] = el[key];
+            }
             return out;
         }
         case 'diagram': {
@@ -24766,6 +24910,9 @@ function slideToPptx(slide) {
         out.advanceTime = slide.advanceTime;
     if (Array.isArray(slide.comments) && slide.comments.length) {
         out.comments = slide.comments.map((c) => ({
+            id: c.id,
+            resolved: !!c.resolved,
+            replies: Array.isArray(c.replies) ? c.replies : [],
             author: c.author || 'Author',
             text: c.text || '',
             dt: c.dt || undefined,
@@ -24840,6 +24987,8 @@ function docToPptx(doc) {
         out.customProps = doc.customProps;
     if (doc.thumbnail)
         out.thumbnail = doc.thumbnail;
+    if (Array.isArray(doc.sections) && doc.sections.length)
+        out.sections = JSON.parse(JSON.stringify(doc.sections));
     if (doc.tableStylesXml)
         out.tableStylesXml = doc.tableStylesXml;
     if (doc.themeXmls && doc.themeXmls.length)
@@ -24989,7 +25138,8 @@ function elementFromPptx(pe) {
         x: Number(pe.x) || 0, y: Number(pe.y) || 0,
         width: pe.width != null ? Number(pe.width) : 100, height: pe.height != null ? Number(pe.height) : 100,
         rotation: Number(pe.rotation) || 0,
-        name: pe.name
+        name: pe.name,
+        descr: pe.descr
     });
     if (pe.inherited) {
         el.inherited = true;
@@ -25300,6 +25450,10 @@ function elementFromPptx(pe) {
             el.src = pe.src || '';
             el.extension = pe.extension || '';
             el.poster = pe.poster || null;
+            for (const key of ['loop', 'autoplay', 'crossSlide', 'muted', 'volume', 'trimStart', 'trimEnd', 'fadeIn', 'fadeOut']) {
+                if (pe[key] !== undefined)
+                    el[key] = pe[key];
+            }
             return el;
         }
         case 'diagram': {
@@ -25366,6 +25520,8 @@ function docFromPptx(pptxDoc, opts = {}) {
         doc.customProps = pptxDoc.customProps;
     if (pptxDoc.thumbnail)
         doc.thumbnail = pptxDoc.thumbnail;
+    if (Array.isArray(pptxDoc.sections))
+        doc.sections = JSON.parse(JSON.stringify(pptxDoc.sections));
     if (doc.metadata && !doc.metadata.title)
         doc.metadata.title = doc.title;
     const th = pptxDoc.theme;
@@ -25406,6 +25562,9 @@ function docFromPptx(pptxDoc, opts = {}) {
             slide.layout = s.layout;
         if (Array.isArray(s.comments) && s.comments.length) {
             slide.comments = s.comments.map((c) => ({
+                id: c.id,
+                resolved: !!c.resolved,
+                replies: Array.isArray(c.replies) ? c.replies : [],
                 author: c.author || 'Author',
                 text: c.text || '',
                 dt: c.dt || '',
@@ -27086,21 +27245,41 @@ function updateDiagramTexts(el, texts) {
     return { texts: next, changed };
 }
 
-function parseComments(xml, authors) {
+function parseComments(xml, authors, rawXml = '') {
     if (!xml || !xml['p:cmLst'])
         return [];
+    const metaById = {};
+    const cmRe = /<p:cm\b([^>]*)>([\s\S]*?)<\/p:cm>/g;
+    let mm;
+    while ((mm = cmRe.exec(rawXml)) !== null) {
+        const id = (mm[1].match(/\sid="([^"]*)"/) || [])[1];
+        const metaMatch = mm[2].match(/jdoc:meta="([^"]*)"/);
+        if (!id || !metaMatch)
+            continue;
+        try {
+            metaById[id] = JSON.parse(metaMatch[1]
+                .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+                .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+        }
+        catch { }
+    }
     const cms = xml['p:cmLst']['p:cm'];
     const arr = Array.isArray(cms) ? cms : (cms ? [cms] : []);
-    return arr.map((cm) => {
+    return arr.map((cm, index) => {
         const attrs = cm.attrs || {};
         const pos = cm['p:pos'];
         const text = cm['p:text'];
+        const id = attrs.id != null ? String(attrs.id) : String(index);
+        const meta = metaById[id] || {};
         return {
+            id,
             author: authors[String(attrs.authorId)] || 'Author',
             text: typeof text === 'string' ? text : (text && text['#text']) || '',
             dt: attrs.dt,
-            x: pos && pos.attrs && pos.attrs.x ? Number(pos.attrs.x) : undefined,
-            y: pos && pos.attrs && pos.attrs.y ? Number(pos.attrs.y) : undefined
+            x: pos && pos.attrs && pos.attrs.x != null ? Number(pos.attrs.x) : undefined,
+            y: pos && pos.attrs && pos.attrs.y != null ? Number(pos.attrs.y) : undefined,
+            resolved: !!meta.resolved,
+            replies: Array.isArray(meta.replies) ? meta.replies : []
         };
     });
 }
@@ -27228,7 +27407,9 @@ async function parsePPTXInternal(zip, msgQueue, settings, chartId, styleTable, d
             const commentEntry = Object.values(resObj).find((e) => e && e.type === 'comments');
             if (commentEntry) {
                 const cXml = await PPTXXmlUtils.readXmlFile(zip, commentEntry.target);
-                slideData.comments = parseComments(cXml, commentAuthors);
+                const cFile = zip.file(commentEntry.target);
+                const cRaw = cFile ? await cFile.async('string') : '';
+                slideData.comments = parseComments(cXml, commentAuthors, cRaw);
             }
         }
         catch {

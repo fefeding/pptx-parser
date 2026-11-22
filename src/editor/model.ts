@@ -766,6 +766,7 @@ export function elementToPptx(el: any): any {
     if (el.id) out.id = el.id;
     if (el.rotation) out.rotation = Math.round(el.rotation * 100) / 100;
     if (el.name) out.name = el.name;
+    if (el.descr) out.descr = el.descr;
     // 版式/母版装饰形状必须原样带回 inherited：jsonToPptx 靠该标记跳过它们，
     // 否则会被写进 slide 的 spTree，与版式装饰重复渲染（导出后同一图形出现两次）。
     if (el.inherited) out.inherited = true;
@@ -1026,6 +1027,9 @@ export function elementToPptx(el: any): any {
             if (el.src) out.src = el.src;
             if (el.extension) out.extension = el.extension;
             if (el.poster) out.poster = el.poster;
+            for (const key of ['loop', 'autoplay', 'crossSlide', 'muted', 'volume', 'trimStart', 'trimEnd', 'fadeIn', 'fadeOut'] as const) {
+                if ((el as any)[key] !== undefined) (out as any)[key] = (el as any)[key];
+            }
             return out;
         }
         case 'diagram': {
@@ -1067,6 +1071,9 @@ export function slideToPptx(slide: any): any {
     // 批注：pos 由 px 转回 EMU（标准 JSON 的批注锚点为 EMU）
     if (Array.isArray(slide.comments) && slide.comments.length) {
         out.comments = slide.comments.map((c: any) => ({
+            id: c.id,
+            resolved: !!c.resolved,
+            replies: Array.isArray(c.replies) ? c.replies : [],
             author: c.author || 'Author',
             text: c.text || '',
             dt: c.dt || undefined,
@@ -1141,6 +1148,8 @@ export function docToPptx(doc: any): any {
     if (doc.customProps) out.customProps = doc.customProps;
     // 缩略图透传
     if (doc.thumbnail) out.thumbnail = doc.thumbnail;
+    // 分节透传（生成端按 p14:sectionLst 写回）
+    if (Array.isArray(doc.sections) && doc.sections.length) out.sections = JSON.parse(JSON.stringify(doc.sections));
     // 多主题/母版/版式无损回退：与 themeXml 同理，导入时保留的原结构直接写回
     if (doc.tableStylesXml) out.tableStylesXml = doc.tableStylesXml;
     if (doc.themeXmls && doc.themeXmls.length) out.themeXmls = doc.themeXmls;
@@ -1281,7 +1290,8 @@ function elementFromPptx(pe: any): any {
         x: Number(pe.x) || 0, y: Number(pe.y) || 0,
         width: pe.width != null ? Number(pe.width) : 100, height: pe.height != null ? Number(pe.height) : 100,
         rotation: Number(pe.rotation) || 0,
-        name: pe.name
+        name: pe.name,
+        descr: pe.descr
     });
     // 版式/母版装饰形状（非占位符，解析端为还原视觉导入并置于底层）：
     // 必须保留 inherited 标记 —— 导出时 jsonToPptx 靠它跳过，否则这些形状会被写进 slide 的
@@ -1605,6 +1615,9 @@ function elementFromPptx(pe: any): any {
             el.src = pe.src || '';
             el.extension = pe.extension || '';
             el.poster = pe.poster || null;
+            for (const key of ['loop', 'autoplay', 'crossSlide', 'muted', 'volume', 'trimStart', 'trimEnd', 'fadeIn', 'fadeOut'] as const) {
+                if ((pe as any)[key] !== undefined) (el as any)[key] = (pe as any)[key];
+            }
             return el;
         }
         case 'diagram': {
@@ -1680,6 +1693,8 @@ export function docFromPptx(pptxDoc: any, opts: { fileName?: string } = {}): any
     if (pptxDoc.metadata) doc.metadata = pptxDoc.metadata;
     if (pptxDoc.customProps) doc.customProps = pptxDoc.customProps;
     if (pptxDoc.thumbnail) doc.thumbnail = pptxDoc.thumbnail;
+    // 分节信息（p14:sectionLst）需要在编辑-保存链路中保留
+    if (Array.isArray(pptxDoc.sections)) doc.sections = JSON.parse(JSON.stringify(pptxDoc.sections));
     // 原文件无 title 元信息时，以文件名兜底并写回 core.xml，保证导出标题一致
     if (doc.metadata && !doc.metadata.title) doc.metadata.title = doc.title;
     // 导入的 PPTX 若携带主题配色（a:theme/a:clrScheme），提前设置为当前主题，确保下方 elementFromPptx
@@ -1724,6 +1739,9 @@ export function docFromPptx(pptxDoc: any, opts: { fileName?: string } = {}): any
         // 批注：pos 由 EMU 转 px（与元素坐标一致），导出时再转回
         if (Array.isArray(s.comments) && s.comments.length) {
             slide.comments = s.comments.map((c: any) => ({
+                id: c.id,
+                resolved: !!c.resolved,
+                replies: Array.isArray(c.replies) ? c.replies : [],
                 author: c.author || 'Author',
                 text: c.text || '',
                 dt: c.dt || '',

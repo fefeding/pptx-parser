@@ -1305,15 +1305,22 @@ function buildChartInfo(el, ctx) {
     };
   });
   const style = {
-    legend: el.legend ? { position: 'right' } : { position: 'none' },
+    legend: el.legend ? { position: el.legendPosition || 'right' } : { position: 'none' },
     title: el.title || '',
     grouping: el.grouping,
     holeSize: el.holeSize,
     smooth: el.smooth,
     marker: el.marker,
-    view3D: el.view3D || undefined
+    view3D: el.view3D || undefined,
+    axisTitles: el.axisTitles || undefined,
+    gridlines: el.gridlines || undefined,
+    numberFormat: el.numberFormat || undefined
   };
-  return { chartId: 'chart_' + el.id, type, data, style, title: el.title || '', theme, dataLabels: !!el.dataLabels };
+  return {
+    chartId: 'chart_' + el.id, type, data, style, theme,
+    title: el.title || '', dataLabels: !!el.dataLabels,
+    trendlines: (el.series || []).map((s: any) => s.trendlines || [])
+  };
 }
 
 /**

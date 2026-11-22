@@ -49,28 +49,51 @@ interface PptxMetadata {
 
 /** 单页批注（来自 ppt/comments/commentsN.xml） */
 interface CommentItem {
+    id?: string;
     author: string;
     text: string;
     dt?: string;
     x?: number;
     y?: number;
+    resolved?: boolean;
+    replies?: { author?: string; text: string; dt?: string }[];
 }
 
 /** 解析 ppt/comments/commentsN.xml 为批注数组（authorId 映射为作者名） */
-function parseComments(xml: any, authors: Record<string, string>): CommentItem[] {
+function parseComments(xml: any, authors: Record<string, string>, rawXml = ''): CommentItem[] {
     if (!xml || !xml['p:cmLst']) return [];
+    // 扩展元数据（解决状态 / 回复）由生成端写在 p:extLst/a:ext/jdoc:comment@jdoc:meta；
+    // 用原文按 cm id 取回，缺失时按旧版扁平批注处理。
+    const metaById: Record<string, any> = {};
+    const cmRe = /<p:cm\b([^>]*)>([\s\S]*?)<\/p:cm>/g;
+    let mm: RegExpExecArray | null;
+    while ((mm = cmRe.exec(rawXml)) !== null) {
+        const id = (mm[1].match(/\sid="([^"]*)"/) || [])[1];
+        const metaMatch = mm[2].match(/jdoc:meta="([^"]*)"/);
+        if (!id || !metaMatch) continue;
+        try {
+            metaById[id] = JSON.parse(metaMatch[1]
+                .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+                .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+        } catch { /* ignore */ }
+    }
     const cms = xml['p:cmLst']['p:cm'];
     const arr = Array.isArray(cms) ? cms : (cms ? [cms] : []);
-    return arr.map((cm: any) => {
+    return arr.map((cm: any, index: number) => {
         const attrs = cm.attrs || {};
         const pos = cm['p:pos'];
         const text = cm['p:text'];
+        const id = attrs.id != null ? String(attrs.id) : String(index);
+        const meta = metaById[id] || {};
         return {
+            id,
             author: authors[String(attrs.authorId)] || 'Author',
             text: typeof text === 'string' ? text : (text && text['#text']) || '',
             dt: attrs.dt,
-            x: pos && pos.attrs && pos.attrs.x ? Number(pos.attrs.x) : undefined,
-            y: pos && pos.attrs && pos.attrs.y ? Number(pos.attrs.y) : undefined
+            x: pos && pos.attrs && pos.attrs.x != null ? Number(pos.attrs.x) : undefined,
+            y: pos && pos.attrs && pos.attrs.y != null ? Number(pos.attrs.y) : undefined,
+            resolved: !!meta.resolved,
+            replies: Array.isArray(meta.replies) ? meta.replies : []
         };
     });
 }
@@ -302,7 +325,9 @@ async function parsePPTXInternal(zip: JSZip, msgQueue: ChartQueueItem[], setting
             const commentEntry = Object.values(resObj).find((e: any) => e && e.type === 'comments');
             if (commentEntry) {
                 const cXml = await PPTXXmlUtils.readXmlFile(zip, commentEntry.target);
-                (slideData as any).comments = parseComments(cXml, commentAuthors);
+                const cFile = zip.file(commentEntry.target);
+                const cRaw = cFile ? await cFile.async('string') : '';
+                (slideData as any).comments = parseComments(cXml, commentAuthors, cRaw);
             }
         } catch {
             // ignore

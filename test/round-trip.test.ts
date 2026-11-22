@@ -10,6 +10,7 @@ const doc: PptxDocument = {
     version: '1.0',
     slideSize: { width: 1280, height: 720 },
     metadata: { title: 'RT', author: 'tester' },
+    sections: [{ name: 'Intro', slides: [0] }],
     slides: [
         {
             background: { type: 'gradient', direction: 'vertical', stops: [{ color: 'FF0000', position: 0 }, { color: '0000FF', position: 1 }] },
@@ -18,10 +19,10 @@ const doc: PptxDocument = {
             elements: [
                 { type: 'text', x: 100, y: 50, width: 400, height: 80, text: '标题', align: 'center', fontSize: 24, bold: true, color: 'FF0000' },
                 { type: 'shape', shapeType: 'roundRect', x: 100, y: 200, width: 200, height: 100, fill: { color: '0000FF' }, line: { color: '333333', width: 2 } },
-                { type: 'image', x: 400, y: 200, width: 120, height: 120, data: PNG_1x1 },
+                { type: 'image', x: 400, y: 200, width: 120, height: 120, data: PNG_1x1, descr: 'A red square' },
                 {
                     type: 'chart', chartType: 'barChart', x: 600, y: 100, width: 500, height: 400,
-                    title: '销量', legend: true, categories: ['Q1', 'Q2'], series: [{ name: 'A', values: [1, 2] }]
+                    title: '销量', legend: true, categories: ['Q1', 'Q2'], series: [{ name: 'A', values: [1, 2] }], descr: 'Sales chart'
                 },
                 {
                     type: 'table', x: 100, y: 350, width: 400, height: 120,
@@ -30,6 +31,12 @@ const doc: PptxDocument = {
                         { height: 60, cells: [{ text: '姓名', fill: 'DDEEFF' }, { text: '分数', fill: 'DDEEFF' }] },
                         { height: 60, cells: [{ text: '张三' }, { text: '95' }] }
                     ]
+                },
+                {
+                    type: 'video', x: 900, y: 500, width: 200, height: 120,
+                    data: 'data:video/mp4;base64,AAAA', extension: 'mp4',
+                    autoplay: true, loop: true, crossSlide: true, muted: false,
+                    volume: 80, trimStart: 1.5, trimEnd: 2.5, fadeIn: 300, fadeOut: 400
                 }
             ]
         }
@@ -44,11 +51,12 @@ describe('pptx round-trip (jsonToPptx -> pptxToStandard)', () => {
         const back = await pptxToStandard(pptx as Uint8Array);
         expect(back.version).toBe('1.0');
         expect(back.metadata?.title).toBe('RT');
+        expect(back.sections).toEqual([{ name: 'Intro', slides: [0] }]);
         expect(back.slides.length).toBe(1);
 
         const els = back.slides[0].elements;
         const types = els.map((e) => e.type).sort();
-        expect(types).toEqual(['chart', 'image', 'shape', 'table', 'text']);
+        expect(types).toEqual(['chart', 'image', 'shape', 'table', 'text', 'video']);
 
         // 背景 round-trip（渐变）
         expect(back.slides[0].background).toMatchObject({ type: 'gradient', direction: 'vertical' });
@@ -71,8 +79,10 @@ describe('pptx round-trip (jsonToPptx -> pptxToStandard)', () => {
 
         const img = els.find((e) => e.type === 'image') as any;
         expect(img.data).toMatch(/^data:image\/png;base64,/);
+        expect(img.descr).toBe('A red square');
 
         const chart = els.find((e) => e.type === 'chart') as any;
+        expect(chart.descr).toBe('Sales chart');
         expect(chart.chartType).toBe('barChart');
         expect(chart.categories).toEqual(['Q1', 'Q2']);
         expect(chart.series[0].values).toEqual([1, 2]);
@@ -85,5 +95,13 @@ describe('pptx round-trip (jsonToPptx -> pptxToStandard)', () => {
         expect(table.rows[0].cells[0].fill).toBe('DDEEFF');
         expect(table.colWidths?.length).toBe(2);
         expect(table.rows[0].height).toBeCloseTo(60, 0);
+
+        const video = els.find((e) => e.type === 'video') as any;
+        expect(video.autoplay).toBe(true);
+        expect(video.loop).toBe(true);
+        expect(video.crossSlide).toBe(true);
+        expect(video.volume).toBe(80);
+        expect(video.trimStart).toBe(1.5);
+        expect(video.fadeIn).toBe(300);
     });
 });

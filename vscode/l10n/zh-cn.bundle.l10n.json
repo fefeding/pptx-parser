@@ -22,5 +22,9 @@
   "extension.target.html": "HTML 网页 (.html)",
   "command.revert": "PPTX：放弃更改并重新加载",
   "command.exportCopy": "PPTX：导出副本…",
-  "command.convert": "PPTX：转换文档格式…"
+  "command.convert": "PPTX：转换文档格式…",
+  "extension.reloadChanged": "“{0}”已在磁盘上修改，是否重新加载？",
+  "extension.reload": "重新加载",
+  "extension.keepCurrent": "保留当前内容",
+  "extension.fileDeleted": "“{0}”已从磁盘删除，请另存以保留更改。"
 }

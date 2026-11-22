@@ -31,6 +31,9 @@ import {
   bytesToBase64,
   animDurationMs,
   updateDiagramTexts,
+  relayoutDiagram,
+  extractDiagramNodes,
+  inferDiagramType,
   FONT_LIST,
   THEMES,
   LAYOUTS,
@@ -76,12 +79,13 @@ import {
   openMediaDialog,
   openShortcuts,
   openConfirm,
+  openPrompt,
   openDiagramTextDialog,
   shapeMenuItems
 } from './dialogs';
 // Same ECharts renderer the preview side uses (option building incl. 3D matches examples/index.html)
 import { chartRenderer } from '@fefeding/ppt-parser/chart-renderer';
-import type { EditorMode, HostToWebview, WebviewToHost } from '../protocol';
+import type { EditorMode, HostToWebview, ViewerConfig, WebviewToHost } from '../protocol';
 
 declare function acquireVsCodeApi(): {
   postMessage(msg: WebviewToHost): void;
@@ -163,13 +167,33 @@ let inspectorEl!: HTMLElement;
 /** Element-list drawer state (persisted): collapsed by default so properties stay in view. */
 const EL_LIST_KEY = 'pptx.inspector.elList';
 let elListOpen = readStore(EL_LIST_KEY) === '1';
+/** Presenter view (notes / timer / next slide) visibility, persisted across sessions. */
+const PRESENTER_KEY = 'pptx.present.notes';
+let presentNotesOpen = readStore(PRESENTER_KEY) === '1';
 /** Slide panel view (persisted): thumbnails by default, outline keeps long decks scannable. */
 const SLIDE_VIEW_KEY = 'pptx.panel.slideView';
 let slideView: 'thumb' | 'outline' = readStore(SLIDE_VIEW_KEY) === 'outline' ? 'outline' : 'thumb';
 let slideTabThumbs!: HTMLElement;
 let slideTabOutline!: HTMLElement;
 let elFilter = '';
+/** Shift-click range anchor for the selection pane (survives inspector rebuilds after each click). */
+let elAnchor = -1;
 let elFilterFocused = false;
+/** Canvas rulers and static centre guides (local view aids, persisted in webview storage). */
+const RULER_KEY = 'pptx.view.ruler';
+const GUIDES_KEY = 'pptx.view.guides';
+let showRuler = readStore(RULER_KEY) === '1';
+let centerGuidesOn = readStore(GUIDES_KEY) === '1';
+let canvasAreaEl!: HTMLElement;
+/** Cross-slide text search state (edit mode searches the model; preview mode searches rendered HTML). */
+type FindHit = { slide: number; elId?: string; snippet: string };
+let findHits: FindHit[] = [];
+let findIndex = 0;
+let findInput!: HTMLInputElement;
+let replaceInput!: HTMLInputElement;
+let findCountEl!: HTMLElement;
+/** Animation brush: animations copied from one element and pasted onto others. */
+let animBrush: any[] | null = null;
 let elFilterNode: HTMLInputElement | null = null;
 /** Selection signature of the last inspector render, used to keep the scroll position across rebuilds. */
 let lastInspSelKey = '';
@@ -181,6 +205,13 @@ let presentEl!: HTMLElement;
 let presentCountEl!: HTMLElement;
 let groupHintEl!: HTMLElement;
 let presentHostEl!: HTMLElement;
+let presentPanelEl!: HTMLElement;
+let presentNotesEl!: HTMLElement;
+let presentNextEl!: HTMLElement;
+let presentTimerEl!: HTMLElement;
+let presentNotesBtn!: HTMLElement;
+let presentStartedAt = 0;
+let presentTimerId: ReturnType<typeof setInterval> | null = null;
 /** Element entrance animations on the current slide that advance on click (sequenced). */
 let presentClickAnims: { node: HTMLElement; kf: any; opts: KeyframeAnimationOptions; cls: string }[] = [];
 let presentClickIdx = 0;
@@ -281,7 +312,31 @@ function buildLayout() {
     slideTabOutline.title = t('panel.tabOutline');
   });
   const spHead = h('div', { class: 'sp-head' }, [spTitle, spTabs, spNewBtn]);
-  const slidesPanel = h('div', { class: 'slides-panel' }, [spHead, slideListEl]);
+  findInput = h('input', { class: 'find-input', type: 'text', placeholder: t('find.placeholder') }) as HTMLInputElement;
+  replaceInput = h('input', { class: 'find-input', type: 'text', placeholder: t('find.replacePlaceholder') }) as HTMLInputElement;
+  findCountEl = h('span', { class: 'find-count' }, ['0/0']);
+  const findBar = h('div', { class: 'find-bar' }, [
+    h('div', { class: 'find-line' }, [
+      findInput,
+      h('button', { class: 'btn', type: 'button', title: t('find.prev'), onclick: () => gotoFind(-1) }, ['↑']),
+      h('button', { class: 'btn', type: 'button', title: t('find.next'), onclick: () => gotoFind(1) }, ['↓']),
+      findCountEl
+    ]),
+    h('div', { class: 'find-line' }, [
+      replaceInput,
+      h('button', { class: 'btn', type: 'button', title: t('find.replaceOne'), onclick: () => replaceFind(false) }, [t('find.replace')]),
+      h('button', { class: 'btn', type: 'button', title: t('find.replaceAll'), onclick: () => replaceFind(true) }, [t('find.replaceAll')])
+    ])
+  ]);
+  findInput.addEventListener('input', () => runFind());
+  findInput.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); gotoFind(e.shiftKey ? -1 : 1); }
+  });
+  localize(() => {
+    findInput.placeholder = t('find.placeholder');
+    replaceInput.placeholder = t('find.replacePlaceholder');
+  });
+  const slidesPanel = h('div', { class: 'slides-panel' }, [spHead, findBar, slideListEl]);
 
   // Canvas: frame + overlay share one scaled coordinate space
   slideHostEl = h('div', { class: 'slide-host slide-frame' });
@@ -334,7 +389,13 @@ function buildLayout() {
     startMarquee(e);
   });
   slideHostEl.addEventListener('dblclick', onCanvasDblClick);
-  const canvasArea = h('div', { class: 'canvas-area' }, [scroll]);
+  canvasAreaEl = h('div', { class: 'canvas-area' }, [
+    h('div', { class: 'ruler ruler-h' }),
+    h('div', { class: 'ruler ruler-v' }),
+    scroll
+  ]);
+  canvasAreaEl.classList.toggle('show-ruler', showRuler);
+  const canvasArea = canvasAreaEl;
   groupHintEl = h('div', { class: 'group-hint', onclick: () => store.setGroupEdit(null) }, [t('group.hint')]);
   localize(() => {
     groupHintEl.title = t('group.exit');
@@ -388,18 +449,49 @@ function buildLayout() {
       stopPresent();
     }
   }, [icon('close', 12), h('span', {}, [t('present.exit')])]);
+  presentNotesBtn = h('button', {
+    class: 'btn present-exit',
+    type: 'button',
+    title: t('present.notesBtn'),
+    onclick: (e: MouseEvent) => { e.stopPropagation(); togglePresenterPanel(); }
+  }, [icon('notes', 12), h('span', {}, [t('present.notesBtn')])]);
+  const presentBlackBtn = h('button', {
+    class: 'btn present-exit',
+    type: 'button',
+    title: t('present.black'),
+    onclick: (e: MouseEvent) => { e.stopPropagation(); presentEl.classList.toggle('present-black'); }
+  }, [icon('hideSlide', 12), h('span', {}, [t('present.black')])]);
   localize(() => {
     presentHint.textContent = t('present.hint');
     presentExitBtn.title = t('present.exit');
     const span = presentExitBtn.querySelector('span:last-child');
     if (span) span.textContent = t('present.exit');
+    presentNotesBtn.title = t('present.notesBtn');
+    const notesSpan = presentNotesBtn.querySelector('span:last-child');
+    if (notesSpan) notesSpan.textContent = t('present.notesBtn');
+    presentBlackBtn.title = t('present.black');
+    const blackSpan = presentBlackBtn.querySelector('span:last-child');
+    if (blackSpan) blackSpan.textContent = t('present.black');
   });
   const presentUi = h('div', { class: 'present-ui', onclick: (e: MouseEvent) => e.stopPropagation() }, [
     presentCountEl,
     presentHint,
+    presentNotesBtn,
+    presentBlackBtn,
     presentExitBtn
   ]);
-  presentEl = h('div', { class: 'present', onclick: presentClick }, [presentHostEl, presentUi]);
+  presentTimerEl = h('span', { class: 'present-timer' }, ['00:00']);
+  presentNotesEl = h('div', { class: 'present-notes-text' });
+  presentNextEl = h('div', { class: 'present-next-text' });
+  presentPanelEl = h('div', { class: 'present-presenter', onclick: (e: MouseEvent) => e.stopPropagation() }, [
+    h('div', { class: 'present-presenter-head' }, [h('strong', {}, [t('present.notes')]), presentTimerEl]),
+    presentNotesEl,
+    h('h4', {}, [t('present.next')]),
+    presentNextEl
+  ]);
+  presentPanelEl.classList.toggle('on', presentNotesOpen);
+  presentNotesBtn.classList.toggle('on', presentNotesOpen);
+  presentEl = h('div', { class: 'present', onclick: presentClick }, [presentHostEl, presentUi, presentPanelEl]);
 
   docInfoEl = h('div', { class: 'doc-info' });
   toastEl = h('div', { class: 'toast' });
@@ -556,6 +648,8 @@ function ribbonState(): RibbonState {
     zoom: state.zoom,
     grid: state.grid,
     snap: store.snap !== false,
+    ruler: showRuler,
+    guides: centerGuidesOn,
     presenting: presentEl.classList.contains('on'),
     slideCount: slideCount(),
     slideIndex: state.current,
@@ -684,8 +778,8 @@ function ribbonCommands(name: string, ...args: any[]): any {
     // The host already holds the latest PPTX bytes, so unsaved edits are included.
     case 'convertFormat': post({ type: 'convert' }); return;
     case 'convertTo':
-      // Ribbon one-click export: forward the chosen target to the host (args[0] = docx|md|html).
-      if (args[0] === 'docx' || args[0] === 'md' || args[0] === 'html') {
+      // Ribbon one-click export: forward the chosen target to the host (args[0] = docx|pdf|md|html).
+      if (args[0] === 'docx' || args[0] === 'pdf' || args[0] === 'md' || args[0] === 'html') {
         post({ type: 'convertTo', target: args[0] });
       }
       return;
@@ -738,6 +832,8 @@ function ribbonCommands(name: string, ...args: any[]): any {
     // --- view helpers ---
     case 'grid': return toggleGrid();
     case 'snap': return toggleSnap();
+    case 'ruler': return toggleRuler();
+    case 'guides': return toggleGuides();
     default:
       if (!edit()) return;
       return undefined;
@@ -955,11 +1051,15 @@ async function serializeDoc(): Promise<Uint8Array> {
  * before anything that needs the up-to-date bytes (presenting, leaving edit mode).
  */
 let syncQueued = false;
+let syncQueuedDirty = false;
 async function syncBytes(dirty: boolean): Promise<void> {
   if (state.syncing) {
     // Queue one follow-up pass instead of dropping it: edits made while a serialization is in
     // flight would otherwise never reach the host, and would silently be missing from the save.
+    // Keep the *latest* intent — e.g. undo-to-original (dirty=false) arriving during a dirty
+    // serialization must not be replayed as a dirty save.
     syncQueued = true;
+    syncQueuedDirty = dirty;
     return;
   }
   state.syncing = true;
@@ -983,7 +1083,7 @@ async function syncBytes(dirty: boolean): Promise<void> {
     state.syncing = false;
     if (syncQueued) {
       syncQueued = false;
-      void syncBytes(dirty);
+      void syncBytes(syncQueuedDirty);
     }
   }
 }
@@ -1624,6 +1724,7 @@ function renderCanvas() {
     const slide = store.slide;
     if (!slide) return;
     renderSlideInto(slideHostEl, slide, store.doc, { grid: state.grid, editingId: store.editingId });
+    slideHostEl.classList.toggle('show-guides', centerGuidesOn);
     buildOverlay();
     applyGroupEditVisual();
   } else {
@@ -2300,6 +2401,249 @@ function syncChrome(): void {
   ribbon.sync(ribbonState());
 }
 
+// ---------- Cross-slide find & replace ----------
+function htmlText(html: string): string {
+  const box = document.createElement('div');
+  box.innerHTML = html || '';
+  return (box.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function runFind(): void {
+  const q = findInput.value.trim().toLowerCase();
+  findHits = [];
+  findIndex = 0;
+  if (!q) { findCountEl.textContent = '0/0'; return; }
+  for (let s = 0; s < slideCount(); s++) {
+    if (state.mode === 'edit') {
+      const slide = store.doc?.slides?.[s];
+      for (const el of slide?.elements || []) {
+        const text = elementText(el);
+        const at = text.toLowerCase().indexOf(q);
+        if (at >= 0) findHits.push({ slide: s, elId: el.id, snippet: text.slice(Math.max(0, at - 20), at + q.length + 40) });
+      }
+    } else {
+      const text = htmlText(state.preview?.slides?.[s] || '');
+      const at = text.toLowerCase().indexOf(q);
+      if (at >= 0) findHits.push({ slide: s, snippet: text.slice(Math.max(0, at - 20), at + q.length + 40) });
+    }
+  }
+  findCountEl.textContent = `${findHits.length ? 1 : 0}/${findHits.length}`;
+}
+
+function gotoFind(dir: number): void {
+  if (!findHits.length) return;
+  findIndex = (findIndex + dir + findHits.length) % findHits.length;
+  const hit = findHits[findIndex];
+  findCountEl.textContent = `${findIndex + 1}/${findHits.length}`;
+  if (hit.slide !== state.current) selectSlide(hit.slide);
+  if (hit.elId && state.mode === 'edit') {
+    store.setSel([hit.elId]);
+    renderSelection();
+    renderInspector(true);
+  }
+}
+
+function replaceFind(all: boolean): void {
+  if (state.mode !== 'edit') return;
+  const q = findInput.value;
+  if (!q) return;
+  const targets = all ? findHits.slice() : findHits.slice(findIndex, findIndex + 1);
+  if (!targets.length) return;
+  runAction(() => store.update((doc: any) => {
+    for (const hit of targets) {
+      const el = actions.findInDoc(doc, hit.elId);
+      if (!el) continue;
+      const replaceIn = (node: any) => {
+        if (typeof node?.text === 'string') node.text = node.text.split(q).join(replaceInput.value);
+      };
+      replaceIn(el);
+      for (const p of el.paragraphs || []) for (const run of p.runs || []) replaceIn(run);
+      for (const child of el.children || []) replaceIn(child);
+    }
+  }));
+  runFind();
+}
+
+// ---------- Review: comments + accessibility ----------
+function renderCommentsPane(): void {
+  if (state.mode !== 'edit') return;
+  inspectorEl.append(h('h4', {}, [t('insp.comments')]));
+  const comments: any[] = Array.isArray(store.slide?.comments) ? store.slide.comments : [];
+  inspectorEl.append(h('div', { class: 'row' }, [
+    btn(t('insp.commentAdd'), t('insp.commentAdd'), async () => {
+      const text = await openPrompt({ message: t('insp.commentText') });
+      if (!text?.trim()) return;
+      runAction(() => store.update((doc: any) => {
+        const slide = doc.slides[store.slideIndex];
+        if (!slide.comments) slide.comments = [];
+        slide.comments.push({ id: String(Date.now()), author: t('insp.commentAuthor'), text: text.trim(), dt: new Date().toISOString(), pos: { x: 120, y: 120 }, replies: [], resolved: false });
+      }));
+    })
+  ]));
+  if (!comments.length) {
+    inspectorEl.append(h('div', { class: 'empty' }, [t('insp.commentEmpty')]));
+    return;
+  }
+  comments.forEach((c: any, i: number) => {
+    const resolved = !!(c as any).resolved;
+    const item = h('div', { class: 'comment-row' + (resolved ? ' resolved' : '') }, [
+      h('div', { class: 'comment-meta' }, [`${c.author || '?'} · ${c.dt || ''}`]),
+      h('div', { class: 'comment-text' }, [String(c.text || '')]),
+      ...(c.replies || []).map((r: any) => h('div', { class: 'comment-reply' }, [
+        `${r.author || t('insp.commentAuthor')}: ${r.text || ''}`
+      ])),
+      h('div', { class: 'row' }, [
+        btn(t('insp.commentReply'), t('insp.commentReply'), async () => {
+          const reply = await openPrompt({ message: t('insp.commentReplyText') });
+          if (!reply?.trim()) return;
+          runAction(() => store.update((doc: any) => {
+            const target = doc.slides[store.slideIndex].comments[i];
+            if (!Array.isArray(target.replies)) target.replies = [];
+            target.replies.push({ author: t('insp.commentAuthor'), text: reply.trim(), dt: new Date().toISOString() });
+          }));
+        }),
+        btn(resolved ? t('insp.commentReopen') : t('insp.commentResolve'), t('insp.commentResolve'), () =>
+          runAction(() => store.update((doc: any) => {
+            const target = doc.slides[store.slideIndex].comments[i];
+            target.resolved = !target.resolved;
+          }))),
+        btn(t('cmd.delete'), t('cmd.delete'), () =>
+          runAction(() => store.update((doc: any) => {
+            doc.slides[store.slideIndex].comments.splice(i, 1);
+          })))
+      ])
+    ]);
+    inspectorEl.append(item);
+  });
+}
+
+function renderAccessibilityPane(): void {
+  if (state.mode !== 'edit') return;
+  const missing: any[] = (store.slide?.elements || []).filter((el: any) => !String(el.descr || '').trim());
+  inspectorEl.append(h('h4', {}, [t('insp.accessibility')]));
+  if (!missing.length) {
+    inspectorEl.append(h('div', { class: 'empty' }, [t('insp.a11yOk')]));
+    return;
+  }
+  inspectorEl.append(h('div', { class: 'empty' }, [t('insp.a11yMissing', missing.length)]));
+  missing.forEach((el: any) => inspectorEl.append(btn(elSnippet(el).name, t('insp.a11ySelect'), () => {
+    store.setSel([el.id]);
+    renderSelection();
+    renderInspector(true);
+  })));
+}
+
+function renderSectionsPane(): void {
+  if (state.mode !== 'edit') return;
+  const sections: any[] = Array.isArray(store.doc?.sections) ? store.doc.sections : [];
+  inspectorEl.append(h('h4', {}, [t('insp.sections')]));
+  inspectorEl.append(h('div', { class: 'row' }, [
+    btn(t('insp.sectionAdd'), t('insp.sectionAdd'), async () => {
+      const name = await openPrompt({ message: t('insp.sectionName') });
+      if (!name?.trim()) return;
+      runAction(() => store.update((doc: any) => {
+        if (!Array.isArray(doc.sections)) doc.sections = [];
+        doc.sections.push({ name: name.trim(), slides: [state.current] });
+      }));
+    })
+  ]));
+  sections.forEach((sec: any, i: number) => {
+    inspectorEl.append(h('div', { class: 'anim-pane-row' }, [
+      h('span', { class: 'anim-pane-name' }, [`${sec.name || t('panel.untitled')} · ${(sec.slides || []).length}`]),
+      btn(t('insp.sectionRename'), t('insp.sectionRename'), async () => {
+        const name = await openPrompt({ message: t('insp.sectionName'), value: sec.name || '' });
+        if (name === null) return;
+        runAction(() => store.update((doc: any) => { doc.sections[i].name = name.trim(); }));
+      }),
+      btn(t('insp.sectionGoto'), t('insp.sectionGoto'), () => {
+        if (sec.slides?.length) selectSlide(sec.slides[0]);
+      }),
+      btn(t('cmd.delete'), t('cmd.delete'), () => runAction(() => store.update((doc: any) => {
+        doc.sections.splice(i, 1);
+      })))
+    ]));
+  });
+}
+
+/** Slide-wide animation pane: reorder, delay, preview and animation brush. */
+function renderAnimationPane() {
+  if (state.mode !== 'edit') return;
+  const anims: any[] = Array.isArray(store.slide?.animations) ? store.slide.animations : [];
+  inspectorEl.append(h('h4', {}, [t('insp.animPane')]));
+  inspectorEl.append(
+    h('div', { class: 'row' }, [
+      btn(t('insp.animPreview'), t('insp.animPreview'), () => {
+        if (state.mode === 'edit' && store.slide) applyEntranceAnimations(slideHostEl, store.slide);
+      }),
+      btn(t('insp.animBrushCopy'), t('insp.animBrushCopy'), () => {
+        const source = store.selected()[0];
+        const list = (store.slide?.animations || []).filter((a: any) => a.target === source?.id);
+        animBrush = list.length ? JSON.parse(JSON.stringify(list)) : null;
+      }),
+      btn(t('insp.animBrushApply'), t('insp.animBrushApply'), () => {
+        if (!animBrush || !animBrush.length) return;
+        runAction(() => store.update((doc: any) => {
+          const slide = doc.slides[store.slideIndex];
+          if (!slide.animations) slide.animations = [];
+          for (const id of store.sel) {
+            for (const src of animBrush!) slide.animations.push({ ...JSON.parse(JSON.stringify(src)), target: id });
+          }
+        }));
+      })
+    ])
+  );
+  if (!anims.length) {
+    inspectorEl.append(h('div', { class: 'empty' }, [t('insp.animPaneEmpty')]));
+    return;
+  }
+  const patchAnim = (index: number, patch: any) => runAction(() => store.update((doc: any) => {
+    const list = doc.slides[store.slideIndex].animations;
+    if (list && list[index]) Object.assign(list[index], patch);
+  }));
+  anims.forEach((a: any, i: number) => {
+    const target = store.findElement(a.target);
+    const tag = target ? elSnippet(target).name : String(a.target || '');
+    const rowEl = h('div', { class: 'anim-pane-row', draggable: 'true' }, [
+      h('span', { class: 'anim-pane-name', title: animLabel(a) }, [`${i + 1}. ${animLabel(a)} · ${tag}`]),
+      h('button', {
+        class: 'btn', type: 'button', title: t('insp.animDelay'),
+        onclick: async () => {
+          const v = await openPrompt({ message: t('insp.animDelay'), value: String(a.delay ?? 0) });
+          if (v !== null && !Number.isNaN(Number(v))) patchAnim(i, { delay: Math.max(0, Math.round(Number(v))) });
+        }
+      }, [`⏱ ${Math.round(a.delay || 0)}ms`]),
+      h('button', { class: 'btn', type: 'button', title: t('cmd.bringForward'), onclick: () =>
+        runAction(() => store.update((doc: any) => {
+          const list = doc.slides[store.slideIndex].animations;
+          if (i > 0) [list[i - 1], list[i]] = [list[i], list[i - 1]];
+        }))
+      }, ['↑']),
+      h('button', { class: 'btn', type: 'button', title: t('cmd.sendBackward'), onclick: () =>
+        runAction(() => store.update((doc: any) => {
+          const list = doc.slides[store.slideIndex].animations;
+          if (i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
+        }))
+      }, ['↓']),
+      h('button', { class: 'btn', type: 'button', title: t('insp.animRemove'), onclick: () => {
+        runAction(() => actions.removeAnimation(i));
+      } }, ['✕'])
+    ]);
+    rowEl.addEventListener('dragstart', (e: DragEvent) => e.dataTransfer?.setData('text/plain', String(i)));
+    rowEl.addEventListener('dragover', (e: DragEvent) => e.preventDefault());
+    rowEl.addEventListener('drop', (e: DragEvent) => {
+      e.preventDefault();
+      const from = Number(e.dataTransfer?.getData('text/plain'));
+      if (!Number.isInteger(from) || from === i) return;
+      runAction(() => store.update((doc: any) => {
+        const list = doc.slides[store.slideIndex].animations;
+        const [moved] = list.splice(from, 1);
+        list.splice(i, 0, moved);
+      }));
+    });
+    inspectorEl.append(rowEl);
+  });
+}
+
 function renderInspector(force = false) {
   if (state.mode !== 'edit') {
     inspectorEl.innerHTML = '';
@@ -2341,13 +2685,14 @@ function renderInspector(force = false) {
       class: 'insp-toggle' + (elListOpen ? ' on' : ''),
       type: 'button',
       'aria-expanded': elListOpen ? 'true' : 'false',
-      title: elListOpen ? t('insp.elCollapse') : t('insp.elExpand')
+      title: `${t('insp.selectionPane')} — ${elListOpen ? t('insp.elCollapse') : t('insp.elExpand')}`
     },
-    [icon('chevron', 12), h('span', {}, [t('insp.elements', els.length)])]
+    [icon('chevron', 12), h('span', {}, [t('insp.selectionPane')])]
   );
   toggle.onclick = () => {
     elListOpen = !elListOpen;
     elFilter = '';
+    elAnchor = -1;
     writeStore(EL_LIST_KEY, elListOpen ? '1' : '0');
     renderInspector();
   };
@@ -2365,62 +2710,132 @@ function renderInspector(force = false) {
   } else {
     renderSlideInspector(slide);
   }
+  renderAnimationPane();
+  renderCommentsPane();
+  renderSectionsPane();
+  renderAccessibilityPane();
   inspectorEl.scrollTop = keepScroll ? prevScroll : 0;
   syncChrome();
 }
 
 /**
- * Element list drawer: name filter (once a slide has more than a handful of elements) plus a scrollable
- * list that keeps the selected entry in view. Rebuilding only the list on filter input keeps the caret
- * in the filter box; a full inspector rebuild restores focus explicitly.
+ * Selection pane: hierarchical element list (groups expanded), multi-select, rename, visibility
+ * and lock toggles. Filter + scroll behaviour of the old element drawer is preserved.
  */
 function renderElDrawer(els: any[]): HTMLElement {
   const drawer = h('div', { class: 'el-drawer' });
   const scroller = h('ul', { class: 'el-list' });
+  const rows: { el: any; depth: number }[] = [];
+  const walk = (list: any[], depth: number) => {
+    for (const el of list || []) {
+      rows.push({ el, depth });
+      if (el.type === 'group' && Array.isArray(el.children)) walk(el.children, depth + 1);
+    }
+  };
+  walk(els, 0);
+  const label = (el: any) => String(el.name || elSnippet(el).name);
+
+  const beginRename = (span: HTMLElement, el: any) => {
+    const input = h('input', { class: 'el-rename', type: 'text', value: label(el) }) as HTMLInputElement;
+    span.replaceWith(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const commit = (save: boolean) => {
+      if (done) return;
+      done = true;
+      const value = input.value.trim();
+      if (save && value && value !== el.name) runAction(() => store.update((doc: any) => {
+        const target = actions.findInDoc(doc, el.id);
+        if (target) target.name = value;
+      }));
+      else paint();
+    };
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('keydown', (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+    });
+    input.addEventListener('blur', () => commit(true));
+  };
+
   const paint = () => {
     scroller.innerHTML = '';
     const q = elFilter.trim().toLowerCase();
-    const shown = q
-      ? els.filter((el) => {
-          const s = elSnippet(el);
-          return (s.name + ' ' + s.type).toLowerCase().includes(q);
-        })
-      : els;
+    const shown = rows.filter(({ el }) => {
+      const s = elSnippet(el);
+      return !q || (label(el) + ' ' + s.name + ' ' + s.type).toLowerCase().includes(q);
+    });
     if (!shown.length) {
       scroller.append(h('li', { class: 'empty' }, [t('insp.elNoMatch')]));
       return;
     }
     let active: HTMLElement | null = null;
-    for (const el of shown) {
+    shown.forEach((row, idx) => {
+      const { el, depth } = row;
       const tag = elSnippet(el);
-      const li = h(
-        'li',
-        {
-          class: store.sel.includes(el.id) ? 'active' : '',
-          title: tag.name,
-          onclick: () => {
+      const li = h('li', {
+        class: store.sel.includes(el.id) ? 'active' : '',
+        style: `padding-left:${8 + depth * 12}px`,
+        title: `${label(el)} · ${tag.type}`,
+        onclick: (ev: MouseEvent) => {
+          if (ev.shiftKey && elAnchor >= 0) {
+            const from = Math.min(elAnchor, idx), to = Math.max(elAnchor, idx);
+            store.setSel(shown.slice(from, to + 1).map((r) => r.el.id));
+          } else if (ev.ctrlKey || ev.metaKey) {
+            const next = store.sel.slice();
+            const pos = next.indexOf(el.id);
+            if (pos >= 0) next.splice(pos, 1); else next.push(el.id);
+            store.setSel(next);
+          } else {
             store.setSel([el.id]);
-            renderSelection();
-            renderInspector();
           }
-        },
-        [h('span', { class: 'name' }, [tag.name]), h('span', { class: 'tag' }, [tag.type])]
+          elAnchor = idx;
+          renderSelection();
+          renderInspector();
+        }
+      });
+      const name = h('span', {
+        class: 'name',
+        title: t('insp.rename'),
+        ondblclick: (ev: MouseEvent) => { ev.stopPropagation(); beginRename(name, el); }
+      }, [label(el)]);
+      const act = (ico: string, title: string, fn: () => void) =>
+        h('button', {
+          class: 'el-act', type: 'button', title,
+          onclick: (ev: MouseEvent) => { ev.stopPropagation(); fn(); }
+        }, [icon(ico, 12)]);
+      li.append(
+        name,
+        h('span', { class: 'el-acts' }, [
+          act(el.hidden ? 'showSlide' : 'hideSlide', el.hidden ? t('cmd.show') : t('cmd.hide'), () =>
+            runAction(() => store.update((doc: any) => {
+              const target = actions.findInDoc(doc, el.id);
+              if (target) target.hidden = !target.hidden;
+            }))),
+          act(el.locked ? 'lock' : 'unlock', el.locked ? t('cmd.unlock') : t('cmd.lock'), () =>
+            runAction(() => store.update((doc: any) => {
+              const target = actions.findInDoc(doc, el.id);
+              if (target) target.locked = !target.locked;
+            }))),
+          h('span', { class: 'tag' }, [tag.type])
+        ])
       );
       if (store.sel.includes(el.id)) active = li;
       scroller.append(li);
-    }
+    });
     if (active) scrollIntoBox(scroller, active);
   };
 
-  if (els.length > 6) {
+  if (rows.length > 6) {
     const input = h('input', { class: 'el-filter', type: 'text', placeholder: t('insp.elFilter') }, []);
     input.value = elFilter;
     input.addEventListener('input', () => {
       elFilter = input.value;
+      elAnchor = -1;
       paint();
     });
-    // A rebuild triggered from elsewhere (an undo, a canvas click…) would drop the caret, so give the
-    // filter box its focus back when it was the active element.
     input.addEventListener('blur', () => {
       if (document.activeElement !== input) elFilterFocused = false;
     });
@@ -2522,6 +2937,22 @@ function changeSlideSize(size: { width: number; height: number }) {
 }
 
 // ---- Slide-level properties ----
+/** Patch a single scheme slot inside raw theme1.xml while keeping the rest of the theme intact. */
+function patchThemeXmlColor(xml: string, slot: string, color: string): string {
+  const re = new RegExp(`(<a:${slot}>)[\\s\\S]*?(<\\/a:${slot}>)`, 'i');
+  if (!re.test(xml)) return xml;
+  return xml.replace(re, `$1<a:srgbClr val="${color.replace(/^#/, '')}"/>$2`);
+}
+
+function updateThemeColor(slot: string, value: string) {
+  runAction(() => store.update((doc: any) => {
+    if (!doc.theme || typeof doc.theme === 'string') doc.theme = { colors: {} };
+    if (!doc.theme.colors) doc.theme.colors = {};
+    doc.theme.colors[slot] = value;
+    if (typeof doc.themeXml === 'string') doc.themeXml = patchThemeXmlColor(doc.themeXml, slot, value);
+  }));
+}
+
 function renderSlideInspector(slide: any) {
   inspectorEl.append(h('h4', {}, [t('insp.slideProps')]));
 
@@ -2548,6 +2979,12 @@ function renderSlideInspector(slide: any) {
       numField(t('insp.height'), ss.height, (v) => changeSlideSize({ width: ss.width, height: Math.round(v) }))
     ])
   );
+  inspectorEl.append(h('h4', {}, [t('insp.themeColors')]));
+  const themeColors: any = (store.doc.theme && typeof store.doc.theme === 'object' && store.doc.theme.colors) || {};
+  for (const slot of ['dk1', 'lt1', 'dk2', 'lt2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6', 'hlink']) {
+    const raw = String(themeColors[slot] || '000000').replace(/^#/, '');
+    inspectorEl.append(colorField(`${slot} · ${data('themeColor', slot, slot)}`, `#${raw}`, (v) => updateThemeColor(slot, v)));
+  }
   const curTrans: any = slide?.transition || {};
   inspectorEl.append(
     selectField(
@@ -2860,6 +3297,24 @@ function renderElementInspector(el: any) {
             update({ fill: { ...fillObj, stops: gradStops([undefined, v]) } })
           )
         );
+        const stops: any[] = fillObj.stops || gradStops();
+        if (!stops.some((s: any) => Number(s.position) > 0 && Number(s.position) < 1)) {
+          inspectorEl.append(h('div', { class: 'row' }, [
+            btn(t('insp.addStop'), t('insp.addStop'), () =>
+              update({ fill: { ...fillObj, stops: [
+                stops[0] || { color: '#4285f4', position: 0 },
+                { color: '#ffffff', position: 0.5 },
+                ...stops.slice(1)
+              ] } })
+            )
+          ]));
+        } else {
+          stops.filter((s: any) => Number(s.position) > 0 && Number(s.position) < 1).forEach((s: any, k: number) =>
+            inspectorEl.append(colorField(`${t('insp.midStop')} ${k + 1}`, s.color, (v) =>
+              update({ fill: { ...fillObj, stops: stops.map((x: any) => x === s ? { ...x, color: v } : x) } })
+            ))
+          );
+        }
       }
       if (fillObj && fillObj.type === 'image') {
         inspectorEl.append(
@@ -2954,6 +3409,45 @@ function renderElementInspector(el: any) {
         h('button', { class: 'btn', type: 'button', onclick: () => editDiagramText(el.id) }, [t('insp.editDiagramText')])
       ])
     );
+    inspectorEl.append(h('h4', {}, [t('insp.diagramStructure')]));
+    const layoutTypes = ['list', 'process', 'hierarchy', 'cycle', 'pyramid', 'matrix', 'venn'];
+    let layout = String(el.layoutType || inferDiagramType(el) || 'process');
+    const layoutSel = selectField(
+      t('insp.diagramLayout'),
+      layoutTypes.map((v) => ({ value: v, label: t(`diagram.layout.${v}`, v) })),
+      layout,
+      (v) => { layout = v; }
+    );
+    inspectorEl.append(layoutSel);
+    const serializeNodes = (nodes: any[], depth = 0): string =>
+      nodes.map((n) => `${'  '.repeat(depth)}${String(n.text || '')}` +
+        (n.children && n.children.length ? `\n${serializeNodes(n.children, depth + 1)}` : '')).join('\n');
+    const nodesIn = h('textarea', { class: 'dlg-data', rows: '8', spellcheck: 'false' }) as HTMLTextAreaElement;
+    nodesIn.value = serializeNodes(extractDiagramNodes(el) || el.nodes || (el.texts || []).map((x: any) => ({ text: x })));
+    inspectorEl.append(h('div', { class: 'empty' }, [t('insp.diagramNodesHint')]));
+    inspectorEl.append(nodesIn);
+    inspectorEl.append(
+      h('div', { class: 'row' }, [
+        btn(t('insp.diagramApplyLayout'), t('insp.diagramApplyLayout'), () => {
+          const roots: any[] = [];
+          const stack: any[] = [];
+          for (const line of nodesIn.value.split(/\r?\n/)) {
+            if (!line.trim()) continue;
+            const depth = Math.floor((line.match(/^\s*/) || [''])[0].replace(/\t/g, '  ').length / 2);
+            const node = { text: line.trim(), children: [] as any[] };
+            if (depth > 0 && stack[depth - 1]) stack[depth - 1].children.push(node);
+            else if (depth === 0) roots.push(node);
+            stack.length = depth;
+            stack.push(node);
+          }
+          if (!roots.length) return;
+          runAction(() => store.update((doc: any) => {
+            const target = actions.findInDoc(doc, el.id);
+            if (target) relayoutDiagram(target, { type: layout as any, nodes: roots });
+          }));
+        })
+      ])
+    );
     inspectorEl.append(h('div', { class: 'empty' }, [t('insp.diagramHint')]));
   } else if (el.type === 'video' || el.type === 'audio') {
     inspectorEl.append(textField(t('insp.name'), el.name || '', (v) => update({ name: v })));
@@ -2963,9 +3457,23 @@ function renderElementInspector(el: any) {
         h('button', { class: 'btn', type: 'button', title: t('insp.replacePoster'), onclick: () => pickPoster(el.id) }, [t('insp.replacePoster')])
       ])
     );
+    inspectorEl.append(h('h4', {}, [t('insp.mediaPlayback')]));
+    inspectorEl.append(checkField(t('insp.mediaAutoplay'), !!el.autoplay, (v) => update({ autoplay: v })));
+    inspectorEl.append(checkField(t('insp.mediaLoop'), !!el.loop, (v) => update({ loop: v })));
+    inspectorEl.append(checkField(t('insp.mediaCrossSlide'), !!el.crossSlide, (v) => update({ crossSlide: v })));
+    inspectorEl.append(checkField(t('insp.mediaMuted'), !!el.muted, (v) => update({ muted: v })));
+    inspectorEl.append(numField(t('insp.mediaVolume'), el.volume ?? 100, (v) => update({ volume: clamp(v, 0, 100) })));
+    inspectorEl.append(numField(t('insp.mediaTrimStart'), el.trimStart ?? 0, (v) => update({ trimStart: Math.max(0, v) })));
+    inspectorEl.append(numField(t('insp.mediaTrimEnd'), el.trimEnd ?? 0, (v) => update({ trimEnd: Math.max(0, v) })));
+    inspectorEl.append(numField(t('insp.mediaFadeIn'), el.fadeIn ?? 0, (v) => update({ fadeIn: Math.max(0, v) })));
+    inspectorEl.append(numField(t('insp.mediaFadeOut'), el.fadeOut ?? 0, (v) => update({ fadeOut: Math.max(0, v) })));
   } else {
     inspectorEl.append(h('div', { class: 'empty' }, [t('insp.typeUnsupported')]));
   }
+
+  // Accessibility metadata (native p:cNvPr@descr on text/shape; other types need library writer support)
+  inspectorEl.append(h('h4', {}, [t('insp.altText')]));
+  inspectorEl.append(textField(t('insp.descr'), String(el.descr || ''), (v) => update({ descr: v })));
 
   // Visual options shared by every element type
   inspectorEl.append(h('h4', {}, [t('insp.appearance')]));
@@ -2980,6 +3488,34 @@ function renderElementInspector(el: any) {
       update({ shadow: v ? { type: 'outer', angle: 45, distance: 4, blur: 8, transparency: 60, color: '#000000' } : null })
     )
   );
+
+  // Advanced line / effects: all fields below are native model fields written back to OOXML.
+  const lineObj: any = el.line && el.line !== 'none' && typeof el.line === 'object' ? el.line : null;
+  if (lineObj) {
+    inspectorEl.append(h('h4', {}, [t('insp.advancedLine')]));
+    const patchLine = (patch: any) => update({ line: { ...lineObj, ...patch } });
+    const dashes = ['solid', 'dash', 'dot', 'dashDot', 'lgDash', 'lgDashDot'];
+    const caps = ['flat', 'rnd', 'sq'];
+    const arrows = ['none', 'triangle', 'stealth', 'diamond', 'arrow', 'open'];
+    inspectorEl.append(selectField(t('insp.lineDash'), dashes.map((v) => ({ value: v, label: data('lineDash', v, v) })), lineObj.dashType || 'solid', (v) => patchLine({ dashType: v })));
+    inspectorEl.append(selectField(t('insp.lineCap'), caps.map((v) => ({ value: v, label: data('lineCap', v, v) })), lineObj.cap || 'flat', (v) => patchLine({ cap: v })));
+    inspectorEl.append(selectField(t('insp.startArrow'), arrows.map((v) => ({ value: v, label: data('arrow', v, v) })), lineObj.startArrow || 'none', (v) => patchLine({ startArrow: v === 'none' ? undefined : v })));
+    inspectorEl.append(selectField(t('insp.endArrow'), arrows.map((v) => ({ value: v, label: data('arrow', v, v) })), lineObj.endArrow || 'none', (v) => patchLine({ endArrow: v === 'none' ? undefined : v })));
+    inspectorEl.append(numField(t('insp.lineTransparency'), lineObj.transparency ?? 0, (v) => patchLine({ transparency: clamp(v, 0, 100) })));
+  }
+  inspectorEl.append(h('h4', {}, [t('insp.advancedEffects')]));
+  inspectorEl.append(checkField(t('insp.glow'), !!el.glow, (v) => update({ glow: v ? { color: '#FFFF00', radius: 8 } : null })));
+  if (el.glow) {
+    inspectorEl.append(colorField(t('insp.glowColor'), el.glow.color || '#FFFF00', (v) => update({ glow: { ...el.glow, color: v } })));
+    inspectorEl.append(numField(t('insp.glowRadius'), el.glow.radius ?? 8, (v) => update({ glow: { ...el.glow, radius: clamp(v, 0, 100) } })));
+  }
+  if (el.shadow) {
+    inspectorEl.append(colorField(t('insp.shadowColor'), el.shadow.color || '#000000', (v) => update({ shadow: { ...el.shadow, color: v } })));
+    inspectorEl.append(numField(t('insp.shadowBlur'), el.shadow.blur ?? 8, (v) => update({ shadow: { ...el.shadow, blur: clamp(v, 0, 100) } })));
+    inspectorEl.append(numField(t('insp.shadowDistance'), el.shadow.distance ?? 4, (v) => update({ shadow: { ...el.shadow, distance: clamp(v, 0, 100) } })));
+    inspectorEl.append(numField(t('insp.shadowAngle'), el.shadow.angle ?? 45, (v) => update({ shadow: { ...el.shadow, angle: v } })));
+    inspectorEl.append(numField(t('insp.shadowTransparency'), el.shadow.transparency ?? 60, (v) => update({ shadow: { ...el.shadow, transparency: clamp(v, 0, 100) } })));
+  }
 
   // Element actions
   inspectorEl.append(h('h4', {}, [t('insp.elementActions')]));
@@ -3394,17 +3930,48 @@ function addMedia(type: 'video' | 'audio', data: string, ext: string) {
 }
 
 // ---------- Grid / Presentation / Document info ----------
+/** Simple inspector button; action wrapping (undo/sync) is the caller's responsibility. */
+function btn(label: string, title: string, fn: () => void): HTMLElement {
+  return h('button', { class: 'btn', type: 'button', title, onclick: () => fn() }, [label]);
+}
+
+function applyViewerConfig(cfg: ViewerConfig) {
+  if (!cfg) return;
+  state.grid = !!cfg.grid;
+  gridEl.className = 'grid-overlay' + (state.grid ? ' on' : '');
+  gridBtn.classList.toggle('on', state.grid);
+  store.setView({ snap: cfg.snap !== false });
+  snapBtn.classList.toggle('on', store.snap !== false);
+  ribbon.sync(ribbonState());
+}
+
 function toggleGrid() {
   state.grid = !state.grid;
   gridEl.className = 'grid-overlay' + (state.grid ? ' on' : '');
   gridBtn.classList.toggle('on', state.grid);
   ribbon.sync(ribbonState());
+  post({ type: 'config', patch: { grid: state.grid } });
 }
 
 function toggleSnap() {
   store.setView({ snap: store.snap === false });
   snapBtn.classList.toggle('on', store.snap !== false);
   ribbon.sync(ribbonState());
+  post({ type: 'config', patch: { snap: store.snap !== false } });
+}
+
+function toggleRuler() {
+  showRuler = !showRuler;
+  writeStore(RULER_KEY, showRuler ? '1' : '0');
+  canvasAreaEl.classList.toggle('show-ruler', showRuler);
+  syncChrome();
+}
+
+function toggleGuides() {
+  centerGuidesOn = !centerGuidesOn;
+  writeStore(GUIDES_KEY, centerGuidesOn ? '1' : '0');
+  renderCanvas();
+  syncChrome();
 }
 function toggleDocInfo() {
   const on = docInfoEl.classList.toggle('on');
@@ -3450,12 +4017,65 @@ function renderDocInfo() {
   docInfoEl.append(h('h4', {}, [t('doc.custom')]), kvTable(source?.customProps));
 }
 
+// ---------- Presenter view (notes / timer / next slide) ----------
+function togglePresenterPanel() {
+  presentNotesOpen = !presentNotesOpen;
+  writeStore(PRESENTER_KEY, presentNotesOpen ? '1' : '0');
+  renderPresenterPanel();
+}
+
+function presenterNotesFor(index: number): string {
+  if (state.mode === 'edit') return String(store.doc?.slides?.[index]?.notes || '');
+  const html = state.present?.slides?.[index] || '';
+  const match = /data-notes="([^"]*)"/.exec(html);
+  if (!match) return '';
+  const decoder = document.createElement('textarea');
+  decoder.innerHTML = match[1];
+  return decoder.value;
+}
+
+function nextSlideSummary(index: number): string {
+  const next = index + 1;
+  if (next >= slideCount()) return t('present.lastSlide');
+  if (state.mode === 'edit') {
+    const els: any[] = store.doc?.slides?.[next]?.elements || [];
+    for (const el of els) {
+      const text = String(el.text || (el.paragraphs || [])
+        .map((p: any) => (p.runs || []).map((r: any) => r.text || '').join(''))
+        .join(' ')).trim();
+      if (text) return text.slice(0, 90);
+    }
+    return t('present.noSummary');
+  }
+  const html = state.present?.slides?.[next] || '';
+  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return text.slice(0, 90) || t('present.noSummary');
+}
+
+function renderPresenterPanel() {
+  if (!presentPanelEl) return;
+  presentPanelEl.classList.toggle('on', presentNotesOpen);
+  presentNotesBtn?.classList.toggle('on', presentNotesOpen);
+  presentNotesEl.textContent = presenterNotesFor(state.current) || t('present.noNotes');
+  presentNextEl.textContent = nextSlideSummary(state.current);
+}
+
+function updatePresentTimer() {
+  if (!presentTimerEl || !presentStartedAt) return;
+  const sec = Math.floor((Date.now() - presentStartedAt) / 1000);
+  presentTimerEl.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+}
+
 /** `fromCurrent` shows the show from the current slide (Shift+F5) instead of the first one. */
 async function startPresent(fromCurrent = false) {
   if (state.mode === 'edit' && store.editingId) commitEditing();
   if (!fromCurrent) state.current = 0;
   if (state.mode === 'edit') store.setSlide(state.current);
   presentEl.className = 'present on';
+  presentStartedAt = Date.now();
+  updatePresentTimer();
+  if (presentTimerId) clearInterval(presentTimerId);
+  presentTimerId = setInterval(updatePresentTimer, 1000);
   await renderPresent();
   renderAll();
 }
@@ -3464,6 +4084,8 @@ async function startPresent(fromCurrent = false) {
 function stopPresent() {
   if (!presentEl.classList.contains('on')) return;
   presentEl.className = 'present';
+  presentEl.classList.remove('present-black');
+  if (presentTimerId) { clearInterval(presentTimerId); presentTimerId = null; }
   disposeStaleCharts();
   renderAll();
 }
@@ -3559,6 +4181,7 @@ async function renderPresent(dir = 1, withTransition = true): Promise<void> {
       });
     });
   });
+  renderPresenterPanel();
 }
 
 /** The current slide's transition (edit mode only; preview has no model). */
@@ -4052,6 +4675,8 @@ function onKeyDown(e: KeyboardEvent) {
   if (presentEl.classList.contains('on')) {
     if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') presentClick();
     else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') presentPrev();
+    else if (e.key.toLowerCase() === 'b') presentEl.classList.toggle('present-black');
+    else if (e.key.toLowerCase() === 'n') togglePresenterPanel();
     return;
   }
   const mod = e.ctrlKey || e.metaKey;
@@ -4181,12 +4806,16 @@ window.addEventListener('message', async (event: MessageEvent<HostToWebview>) =>
         // `<html lang>` already set the locale at startup; honour the host's value as
         // authoritative and refresh every baked-in label if it differs.
         if (msg.locale && setLocale(msg.locale)) applyLocale();
+        applyViewerConfig(msg.config);
         state.version++;
         await renderPreview();
         await applyMode();
         syncChrome();
         break;
       }
+      case 'config':
+        applyViewerConfig(msg.config);
+        break;
       case 'bytes': {
         state.latest = base64ToBytes(msg.bytes);
         state.dirty = msg.dirty;

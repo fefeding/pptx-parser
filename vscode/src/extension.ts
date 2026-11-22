@@ -5,7 +5,7 @@ import { PDFDocument } from 'pdf-lib';
 import { PptxCustomDocument } from './pptx-document';
 import { CONVERT_TARGETS, convertPptxBytes, isPptxPath } from './convert';
 import type { ConvertTargetMeta } from './convert';
-import type { EditorMode, HostToWebview, WebviewToHost } from './protocol';
+import type { EditorMode, HostToWebview, ViewerConfig, WebviewToHost } from './protocol';
 
 const VIEW_TYPE = 'pptx-parser.pptxEditor';
 
@@ -16,6 +16,12 @@ const VIEW_TYPE = 'pptx-parser.pptxEditor';
 function loc(key: string, fallback: string, ...args: string[]): string {
   const value = vscode.l10n.t(key, ...args);
   return !value || value === key ? fallback.replace('{0}', args[0] ?? '') : value;
+}
+
+/** Viewer settings are stored in VS Code configuration so they survive window reloads. */
+function viewerConfig(): ViewerConfig {
+  const cfg = vscode.workspace.getConfiguration('pptxViewer');
+  return { grid: !!cfg.get<boolean>('grid'), snap: cfg.get<boolean>('snap', true) !== false };
 }
 
 function getNonce(): string {
@@ -54,10 +60,24 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
   /** The webview panel of the currently focused document (so title-bar commands can message it). */
   private _activePanel: vscode.WebviewPanel | undefined;
 
-  /** Resolver for a pending "serialize now, before saving" handshake. */
-  private _pendingFlush: (() => void) | null = null;
+  /** Per-panel "serialize now, before saving" handshakes (keyed by panel to avoid cross-document races). */
+  private readonly _pendingFlushes = new Map<vscode.WebviewPanel, { promise: Promise<void>; resolve: () => void }>();
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  /** All open PPTX documents (for external-change detection). */
+  private readonly _openDocs = new Set<PptxCustomDocument>();
+  /** Every open panel, so configuration updates reach background editors too. */
+  private readonly _panels = new Map<PptxCustomDocument, vscode.WebviewPanel>();
+  /** Last time we wrote each document, so our own save doesn't trigger a reload prompt. */
+  private readonly _savedAt = new Map<string, number>();
+
+  constructor(private readonly context: vscode.ExtensionContext) {
+    const watcher = vscode.workspace.createFileSystemWatcher('**/*.pptx');
+    context.subscriptions.push(
+      watcher,
+      watcher.onDidChange((uri) => void this.reloadExternalChange(uri)),
+      watcher.onDidDelete((uri) => void this.handleExternalDelete(uri))
+    );
+  }
 
   async openCustomDocument(
     uri: vscode.Uri,
@@ -65,6 +85,7 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
     _token: vscode.CancellationToken
   ): Promise<PptxCustomDocument> {
     const document = await PptxCustomDocument.create(uri);
+    this._openDocs.add(document);
 
     // Notify the editor when document content changes (for dirty indicator / save prompt)
     document.onDidChange(() => this._onDidChangeCustomDocument.fire({ document }));
@@ -89,12 +110,25 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
     // title-bar / ribbon commands can resolve the active document on the first click.
     this._activeDoc = document;
     this._activePanel = webviewPanel;
+    this._panels.set(document, webviewPanel);
+    this.pushConfig(webviewPanel);
+    webviewPanel.onDidDispose(() => {
+      this._openDocs.delete(document);
+      this._panels.delete(document);
+      // Release any save handshake waiting on this panel so a save never hangs after close.
+      this.resolveFlush(webviewPanel);
+      if (this._activePanel === webviewPanel) {
+        this._activePanel = undefined;
+        this._activeDoc = undefined;
+      }
+    });
 
     webviewPanel.onDidChangeViewState((e) => {
       if (e.webviewPanel.active) {
         this._activeDoc = document;
         this._activePanel = webviewPanel;
         this.syncContext();
+        this.pushConfig(webviewPanel);
       }
     });
 
@@ -108,14 +142,18 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
         bytes: s.bytes,
         title: document.uri.path.split('/').pop() || 'presentation.pptx',
         dirty: document.isDirty,
-        locale: vscode.env.language
+        locale: vscode.env.language,
+        config: viewerConfig()
       });
     };
 
     // Surface the host's real dirty state so the webview's dot matches VS Code's own save/revert.
     // The webview no longer implements saving (VS Code handles Ctrl+S / File › Save), so the
     // authoritative dirty flag lives here and is pushed down on every change.
-    document.onDidSave(() => send({ type: 'saved' }));
+    document.onDidSave(() => {
+      this._savedAt.set(document.uri.fsPath, Date.now());
+      send({ type: 'saved' });
+    });
     document.onDidRevert(() => {
       void sendInit();
       send({ type: 'reverted' });
@@ -136,11 +174,17 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
           case 'sync':
             document.setBytes(message.bytes);
             document.setDirty(message.dirty);
-            this._pendingFlush?.();
+            this.resolveFlush(webviewPanel);
             break;
           case 'flushDone':
-            this._pendingFlush?.();
+            this.resolveFlush(webviewPanel);
             break;
+          case 'config': {
+            const cfg = vscode.workspace.getConfiguration('pptxViewer');
+            if (message.patch.grid !== undefined) await cfg.update('grid', message.patch.grid, vscode.ConfigurationTarget.Global);
+            if (message.patch.snap !== undefined) await cfg.update('snap', message.patch.snap, vscode.ConfigurationTarget.Global);
+            break;
+          }
           case 'save':
             // 走 VS Code 标准保存：它会调用 saveCustomDocument（含保存前的 flush 握手），
             // 并正确清除标题栏的未保存标记。直接 document.save() 会绕过 VS Code，导致
@@ -197,21 +241,37 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
    * added a moment ago is absent after reopening). Ask the webview to flush and wait for its
    * `sync` reply (bounded by a timeout so saving never hangs).
    */
-  private async flushPendingSync(document: PptxCustomDocument): Promise<void> {
-    const panel = this._activeDoc === document ? this._activePanel : undefined;
-    if (!panel) return;
-    await new Promise<void>((resolve) => {
-      const timer = setTimeout(() => {
-        this._pendingFlush = null;
-        resolve();
-      }, 2000);
-      this._pendingFlush = () => {
+  private flushPendingSync(document: PptxCustomDocument): Promise<void> {
+    // Resolve the panel from the document itself — a background editor can be saved too, and
+    // relying on _activeDoc/_activePanel would silently skip its in-flight edits.
+    const panel = this._panels.get(document);
+    if (!panel) return Promise.resolve();
+
+    // Reuse an in-flight handshake for the same panel so concurrent saves cannot clobber each
+    // other's resolver (the old single-slot _pendingFlush dropped the first waiter).
+    const existing = this._pendingFlushes.get(panel);
+    if (existing) return existing.promise;
+
+    let timer: ReturnType<typeof setTimeout>;
+    let resolve!: () => void;
+    const promise = new Promise<void>((r) => {
+      timer = setTimeout(() => this.resolveFlush(panel), 2000);
+      resolve = () => {
         clearTimeout(timer);
-        this._pendingFlush = null;
-        resolve();
+        r();
       };
-      void panel.webview.postMessage({ type: 'flush' } as HostToWebview);
     });
+    this._pendingFlushes.set(panel, { promise, resolve });
+    void panel.webview.postMessage({ type: 'flush' } as HostToWebview);
+    return promise;
+  }
+
+  /** Release the save handshake belonging to a specific panel (no-op when none is pending). */
+  private resolveFlush(panel: vscode.WebviewPanel): void {
+    const entry = this._pendingFlushes.get(panel);
+    if (!entry) return;
+    this._pendingFlushes.delete(panel);
+    entry.resolve();
   }
 
   async saveCustomDocument(document: PptxCustomDocument, _token: vscode.CancellationToken): Promise<void> {
@@ -223,6 +283,9 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
     target: vscode.Uri,
     _token: vscode.CancellationToken
   ): Promise<void> {
+    // VS Code calls this directly for File › Save As (it does not go through the webview 'save'
+    // message), so flush the debounced edits here as well or the copy misses the latest changes.
+    await this.flushPendingSync(document);
     await document.save(target);
   }
   async revertCustomDocument(document: PptxCustomDocument, _token: vscode.CancellationToken): Promise<void> {
@@ -346,6 +409,37 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
     await this.setActiveMode(doc.mode === 'edit' ? 'preview' : 'edit');
   }
 
+  /** Push configuration changes (including changes made in Settings UI) to the active editor. */
+  public pushConfig(target?: vscode.WebviewPanel): void {
+    const config = viewerConfig();
+    const message = { type: 'config', config } as HostToWebview;
+    if (target) { target.webview.postMessage(message); return; }
+    for (const panel of this._panels.values()) panel.webview.postMessage(message);
+  }
+
+  /** A deleted file cannot be reverted from disk; warn but keep the in-memory document. */
+  private async handleExternalDelete(uri: vscode.Uri): Promise<void> {
+    const doc = Array.from(this._openDocs).find((d) => d.uri.fsPath === uri.fsPath);
+    if (!doc) return;
+    const name = uri.fsPath.split(/[\\/]/).pop() || uri.fsPath;
+    void vscode.window.showWarningMessage(loc('extension.fileDeleted', '"{0}" was deleted from disk. Save As to keep your changes.', name));
+  }
+
+  /** Re-read a file changed on disk when the matching editor is open and has no unsaved edits. */
+  private async reloadExternalChange(uri: vscode.Uri): Promise<void> {
+    const key = uri.fsPath;
+    const doc = Array.from(this._openDocs).find((d) => d.uri.fsPath === key);
+    if (!doc || doc.isDirty) return;
+    if (Date.now() - (this._savedAt.get(key) || 0) < 2000) return;
+    const name = key.split(/[\\/]/).pop() || key;
+    const reload = loc('extension.reloadChanged', 'Reload "{0}"? The file changed on disk.', name);
+    const reloadLabel = loc('extension.reload', 'Reload');
+    const keepLabel = loc('extension.keepCurrent', 'Keep current');
+    const choice = await vscode.window.showInformationMessage(reload, reloadLabel, keepLabel);
+    if (choice !== reloadLabel) return;
+    await doc.revert();
+  }
+
   // ---- Document format conversion (PPTX -> docx / pdf / md / html) ----
 
   /**
@@ -394,6 +488,8 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
       async () => {
         try {
           const fromMemory = !!active && target.toString() === active.uri.toString();
+          // Ribbon 导出走内存字节：先做 flush 握手，避免 350ms 防抖内的最新编辑没进快照。
+          if (fromMemory && active) await this.flushPendingSync(active);
           const bytes = fromMemory
             ? Uint8Array.from(Buffer.from(active!.snapshot().bytes, 'base64'))
             : await vscode.workspace.fs.readFile(target);
@@ -471,6 +567,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Seed `pptx:editing` with a concrete boolean so the context key is never undefined.
   void vscode.commands.executeCommand('setContext', 'pptx:editing', false);
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('pptxViewer')) provider.pushConfig();
+    })
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('pptx-parser.revert', () => provider.revertActive()),

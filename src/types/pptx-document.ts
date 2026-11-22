@@ -1077,6 +1077,16 @@ export interface PptxVideoElement extends PptxElementBase {
     extension?: string;
     /** 视频海报/预览图 */
     poster?: { data?: string; src?: string; extension?: string };
+    /** 媒体播放设置（以 jdoc* 扩展属性随 p:cNvPr 往返） */
+    loop?: boolean;
+    autoplay?: boolean;
+    crossSlide?: boolean;
+    muted?: boolean;
+    volume?: number;
+    trimStart?: number;
+    trimEnd?: number;
+    fadeIn?: number;
+    fadeOut?: number;
 }
 
 /** 音频元素（mp3/m4a 等，p:pic + 媒体关系） */
@@ -1091,6 +1101,16 @@ export interface PptxAudioElement extends PptxElementBase {
     extension?: string;
     /** 音频图标/占位图（OOXML 中 a:blip 指向的图，PowerPoint 用它表示音频） */
     poster?: { data?: string; src?: string; extension?: string };
+    /** 媒体播放设置（以 jdoc* 扩展属性随 p:cNvPr 往返） */
+    loop?: boolean;
+    autoplay?: boolean;
+    crossSlide?: boolean;
+    muted?: boolean;
+    volume?: number;
+    trimStart?: number;
+    trimEnd?: number;
+    fadeIn?: number;
+    fadeOut?: number;
 }
 
 /**
@@ -1272,6 +1292,8 @@ export interface PptxSlide {
 
 /** 幻灯片批注（commentsN.xml 的 p:cm） */
 export interface PptxComment {
+    /** 批注 id（p:cm@id） */
+    id?: string;
     /** 作者（用于 commentAuthors；缺省 'Author'） */
     author?: string;
     /** 批注正文 */
@@ -1280,6 +1302,10 @@ export interface PptxComment {
     dt?: string;
     /** 批注锚点位置（EMU）；缺省 1 英寸处 */
     pos?: { x?: number; y?: number };
+    /** 是否已解决（存在 p:extLst 扩展元数据中） */
+    resolved?: boolean;
+    /** 回复串（存在 p:extLst 扩展元数据中） */
+    replies?: { author?: string; text: string; dt?: string }[];
 }
 
 /** 主题配色方案（a:clrScheme 的 12 个色槽） */

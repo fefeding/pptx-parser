@@ -8,6 +8,9 @@
 
 export type EditorMode = 'preview' | 'edit';
 
+/** Viewer settings persisted by the extension host (VS Code configuration). */
+export type ViewerConfig = { grid: boolean; snap: boolean };
+
 /** Webview → Host */
 export type WebviewToHost =
   | { type: 'ready' }
@@ -20,6 +23,8 @@ export type WebviewToHost =
   /** Reply to `flush` when there is nothing to serialize (e.g. preview mode). */
   | { type: 'flushDone' }
   | { type: 'save' }
+  /** Webview changed a persisted viewer setting; the host writes it to VS Code configuration. */
+  | { type: 'config'; patch: Partial<ViewerConfig> }
   | { type: 'saveAs'; bytes: string | null }
   | { type: 'revert' }
   /** Save one rendered slide (PNG, base64) — the host owns file dialogs and the filesystem. */
@@ -34,7 +39,7 @@ export type WebviewToHost =
    * Ribbon one-click export (Word / Markdown / HTML): convert the active document straight to
    * `target` without the format picker. Binary targets return bytes, text targets a string.
    */
-  | { type: 'convertTo'; target: 'docx' | 'md' | 'html' }
+  | { type: 'convertTo'; target: 'docx' | 'pdf' | 'md' | 'html' }
   /** Surface a webview-side problem (parse/serialize failure) in the host UI. */
   | { type: 'error'; message: string };
 
@@ -50,6 +55,8 @@ export type HostToWebview =
     title: string;
     /** True when the document has unsaved changes (drives the webview's dirty dot). */
     dirty: boolean;
+    /** Persisted viewer settings, applied on every init. */
+    config: ViewerConfig;
     /**
      * VS Code display language (e.g. `zh-cn`, `en`). The webview also reads `<html lang>`,
      * which the host fills with the same value; this field is the authoritative fallback.
@@ -57,6 +64,8 @@ export type HostToWebview =
     locale: string;
   }
   | { type: 'bytes'; bytes: string; dirty: boolean }
+  /** VS Code configuration changed outside the editor: re-apply grid/snap in the webview. */
+  | { type: 'config'; config: ViewerConfig }
   /** Push a preview/edit mode change from the editor title bar (host command) into the webview. */
   | { type: 'setMode'; mode: EditorMode }
   | { type: 'saved' }

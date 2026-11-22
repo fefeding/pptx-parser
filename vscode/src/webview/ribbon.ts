@@ -26,6 +26,8 @@ export type RibbonState = {
   zoom: number;
   grid: boolean;
   snap: boolean;
+  ruler: boolean;
+  guides: boolean;
   presenting: boolean;
   slideCount: number;
   slideIndex: number;

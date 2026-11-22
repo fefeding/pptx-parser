@@ -136,7 +136,7 @@ describe('多母版 / 版式 / 占位符（T17）', () => {
 });
 
 describe('文档节（sections）', () => {
-    it('写出 p:sectionLst 并按索引引用幻灯片', async () => {
+    it('写出 p14:sectionLst（p:extLst 包裹）并按索引引用幻灯片', async () => {
         const { text } = await load({
             slides: [{ elements: [] }, { elements: [] }, { elements: [] }],
             sections: [
@@ -146,17 +146,18 @@ describe('文档节（sections）', () => {
         });
 
         const pres = await text('ppt/presentation.xml');
-        expect(pres).toContain('p:sectionLst');
+        expect(pres).toContain('<p:extLst>');
+        expect(pres).toContain('p14:sectionLst');
         expect(pres).toContain('第一章');
         expect(pres).toContain('第二章');
-        // sldId 的数值 id 从 256 起
-        expect(pres).toContain('<p:sldId id="256"/>');
-        expect(pres).toContain('<p:sldId id="258"/>');
+        // 节内 sldId 的数值 id 从 256 起（p14 命名空间）
+        expect(pres).toContain('<p14:sldId id="256"/>');
+        expect(pres).toContain('<p14:sldId id="258"/>');
     });
 
     it('未声明 sections 时不输出 sectionLst', async () => {
         const { text } = await load({ slides: [{ elements: [] }] });
-        expect(await text('ppt/presentation.xml')).not.toContain('p:sectionLst');
+        expect(await text('ppt/presentation.xml')).not.toContain('sectionLst');
     });
 });
 

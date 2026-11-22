@@ -8,7 +8,7 @@ A VSCode extension built on [`@fefeding/ppt-parser`](https://github.com/fefeding
 > `../src` and inlines it into the extension bundle, so the published VSIX is self-contained.
 > Releases are triggered by `vsix-v*` tags in the pptx-parser repo.
 
-![PPTX editor screenshot](media/screenshot.png)
+![PPTX editor screenshot](https://github.com/fefeding/pptx-parser/blob/main/vscode/media/screenshot.png?raw=true)
 
 ## Features
 

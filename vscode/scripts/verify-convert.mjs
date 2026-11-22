@@ -130,12 +130,16 @@ const vscodeStub = {
   Uri: { joinPath: () => fakeUri('/tmp'), file: (p) => fakeUri(p) },
   EventEmitter: class { constructor() { this.event = () => ({ dispose() {} }); } fire() {} dispose() {} },
   ProgressLocation: { Notification: 15 },
+  ConfigurationTarget: { Global: 1, Workspace: 2 },
   env: { language: 'en' },
   workspace: {
     fs: {
       readFile: async () => new Uint8Array(readFileSync(path.join(examples, files[0]))),
       writeFile: async (uri, bytes) => written.push([uri.fsPath, Buffer.from(bytes)])
-    }
+    },
+    getConfiguration: () => ({ get: (key, fallback) => (key === 'snap' ? true : fallback ?? false), update: async () => {} }),
+    createFileSystemWatcher: () => ({ onDidChange() {}, onDidDelete() {}, dispose() {} }),
+    onDidChangeConfiguration: () => ({ dispose() {} })
   },
   l10n: { t: (key) => key }
 };
@@ -163,7 +167,7 @@ try {
 
   // Stage 3: ribbon one-click export (convertTo with an explicit target, no QuickPick).
   assert(capturedProvider, 'custom editor provider was not captured');
-  for (const id of ['docx', 'md', 'html']) {
+  for (const id of ['docx', 'pdf', 'md', 'html']) {
     const meta = CONVERT_TARGETS.find((m) => m.id === id);
     written.length = 0;
     const before = quickPickCalls;
@@ -175,6 +179,7 @@ try {
     const [dest, bytes] = written[0];
     assert(dest.endsWith('.' + meta.ext), `direct ${id}: wrong output name ${dest}`);
     if (id === 'docx') assert(bytes.slice(0, 4).toString('hex') === '504b0304', 'direct docx: not a ZIP');
+    if (id === 'pdf') assert(bytes.slice(0, 5).toString() === '%PDF-', 'direct pdf: missing header');
     if (id === 'md') assert(bytes.toString('utf8').trim().length > 0, 'direct md: empty');
     if (id === 'html') assert(bytes.toString('utf8').includes('jt-slide'), 'direct html: missing slides');
     console.log(`  direct  -> ${id.padEnd(4)} ${String(bytes.length).padStart(9)} bytes  OK (no picker)`);

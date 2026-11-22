@@ -1984,6 +1984,9 @@ export async function extractSlideToStandard(
         const comments = slideData && slideData.comments;
         if (Array.isArray(comments) && comments.length) {
             slide.comments = comments.map((c: any) => ({
+                id: c.id,
+                resolved: !!c.resolved,
+                replies: Array.isArray(c.replies) ? c.replies : [],
                 author: c.author,
                 text: c.text || '',
                 dt: c.dt,
@@ -2439,6 +2442,8 @@ async function nodeToElement(
         if (xf.flipV) connEl.flipV = true;
         const cNvPr = node['p:nvCxnSpPr'] && node['p:nvCxnSpPr']['p:cNvPr'];
         if (cNvPr && cNvPr.attrs && cNvPr.attrs.name) connEl.name = String(cNvPr.attrs.name);
+        const connDescr = readAltDescr(node, 'p:nvCxnSpPr');
+        if (connDescr) connEl.descr = connDescr;
         const cNvCxn = node['p:nvCxnSpPr'] && node['p:nvCxnSpPr']['p:cNvCxnSpPr'];
         if (cNvCxn) {
             const st = cNvCxn['a:stCxn']; const en = cNvCxn['a:endCxn'];
@@ -2485,6 +2490,8 @@ async function nodeToElement(
         if (xf && xf.flipH) textEl.flipH = true;
         if (xf && xf.flipV) textEl.flipV = true;
         if (name) textEl.name = String(name);
+        const textDescr = readAltDescr(node, 'p:nvSpPr');
+        if (textDescr) textEl.descr = textDescr;
         if (textDirection) textEl.textDirection = textDirection;
         if (inset) textEl.inset = inset;
         if (noWrap) textEl.noWrap = noWrap;
@@ -2629,6 +2636,8 @@ async function nodeToElement(
             if (cg) shapeEl.custGeom = cg;
         }
         if (name) shapeEl.name = String(name);
+        const shapeDescr = readAltDescr(node, 'p:nvSpPr');
+        if (shapeDescr) shapeEl.descr = shapeDescr;
         return shapeEl;
     }
 
@@ -2661,6 +2670,13 @@ function readGraphicFrameName(node: any): string | undefined {
     const cNvPr = node && node['p:nvGraphicFramePr'] && node['p:nvGraphicFramePr']['p:cNvPr'];
     const name = cNvPr && cNvPr.attrs && cNvPr.attrs.name;
     return name ? String(name) : undefined;
+}
+
+/** 读取替代文本（p:cNvPr@descr，无障碍字段），各元素 NV 容器键不同。 */
+function readAltDescr(node: any, nvKey: string): string | undefined {
+    const cNvPr = node && node[nvKey] && node[nvKey]['p:cNvPr'];
+    const descr = cNvPr && cNvPr.attrs && cNvPr.attrs.descr;
+    return descr ? String(descr) : undefined;
 }
 
 /** 读取单元格内边距属性（marL/marR/marT/marB），EMU → px */
@@ -2705,6 +2721,8 @@ function tableToElement(tbl: any, node: any, themeMap: Record<string, string> = 
     };
     const name = readGraphicFrameName(node);
     if (name) el.name = name;
+    const frameDescr = readAltDescr(node, 'p:nvGraphicFramePr');
+    if (frameDescr) el.descr = frameDescr;
 
     // 列宽（a:tblGrid/a:gridCol）
     const grid = tbl && tbl['a:tblGrid'];
@@ -3609,6 +3627,8 @@ async function diagramToElement(
     };
     const name = readGraphicFrameName(node);
     if (name) el.name = name;
+    const frameDescr = readAltDescr(node, 'p:nvGraphicFramePr');
+    if (frameDescr) el.descr = frameDescr;
     if (texts.length) el.texts = texts;
     if (part) el.dataPath = part;
     // 缓存绘图形状：与预览端同源的树形布局（节点框 + 连接线）
@@ -3643,6 +3663,8 @@ async function rawGraphicFrame(
         height: xf ? xf.height : 200
     };
     if (name) el.name = String(name);
+    const rawDescr = readAltDescr(node, 'p:nvGraphicFramePr');
+    if (rawDescr) el.descr = rawDescr;
     // 保留原始 graphicFrame 节点，并补全其关系与部件依赖（含 OLE 嵌入的 .bin 二进制），
     // 使导出时能随 __raw 原样回写、引用得以恢复（OLE 嵌入部件不再丢失）。
     (el as any).__raw = { tag: 'p:graphicFrame', node, rels: {}, parts: [] };
@@ -3772,6 +3794,8 @@ async function graphicFrameToChart(
         height: xf ? xf.height : 400,
         series: (chartSemantic && chartSemantic.series) || []
     };
+    const chartDescr = readAltDescr(node, 'p:nvGraphicFramePr');
+    if (chartDescr) chartEl.descr = chartDescr;
     if (!chartSemantic) return chartEl;
 
     // 透传语义层已提取的图表属性（缺失字段保持不写，交由生成端取默认）
@@ -3847,6 +3871,19 @@ async function picToImage(
         else return null;
         if (xf && xf.rotation) mediaEl.rotation = xf.rotation;
         if (name) mediaEl.name = String(name);
+        const mediaDescr = readAltDescr(node, 'p:nvPicPr');
+        if (mediaDescr) mediaEl.descr = mediaDescr;
+        const mAttrs = (node['p:nvPicPr'] && node['p:nvPicPr']['p:cNvPr'] && node['p:nvPicPr']['p:cNvPr'].attrs) || {};
+        if (mAttrs.jdocLoop === '1') mediaEl.loop = true;
+        if (mAttrs.jdocAutoplay === '1') mediaEl.autoplay = true;
+        if (mAttrs.jdocCrossSlide === '1') mediaEl.crossSlide = true;
+        if (mAttrs.jdocMuted === '1') mediaEl.muted = true;
+        for (const key of ['volume', 'trimStart', 'trimEnd', 'fadeIn', 'fadeOut'] as const) {
+            const raw = mAttrs[`jdoc${key[0].toUpperCase()}${key.slice(1)}`];
+            if (raw == null || raw === '') continue;
+            const n = Number(raw);
+            if (Number.isFinite(n)) mediaEl[key] = n;
+        }
 
         // 预览图（poster）：媒体区域的显示帧，走 a:blip@r:embed
         const pRid = blip && blip.attrs && blip.attrs['r:embed'];
@@ -3906,6 +3943,8 @@ async function picToImage(
     }
     if (xf && xf.rotation) imgEl.rotation = xf.rotation;
     if (name) imgEl.name = String(name);
+    const imgDescr = readAltDescr(node, 'p:nvPicPr');
+    if (imgDescr) imgEl.descr = imgDescr;
 
     // 图片 spPr 内的 3D 属性与双色调/填充覆盖（语义层不建模），原样保留以便回写保真。
     // 注意：a:duotone 出现在 spPr 是极少见的非标准写法，此处仍按原始位置保留。
@@ -4050,6 +4089,65 @@ async function extractEmbeddedFonts(zip: JSZip): Promise<PptxFontResource[]> {
     }
 }
 
+/** 回读 presentation.xml 的节（p:sectionLst / p14:sectionLst），把 sldId 映射到幻灯片下标。 */
+async function extractSections(zip: JSZip, slideFileNames: string[]): Promise<any[] | undefined> {
+    try {
+        const presFile = zip.file('ppt/presentation.xml');
+        if (!presFile) return undefined;
+        const pres = await presFile.async('string');
+        const sectionMatch = pres.match(/<(?:p14:|p:)?sectionLst\b[^>]*>([\s\S]*?)<\/(?:p14:|p:)?sectionLst>/);
+        if (!sectionMatch) return undefined;
+
+        const relMap: Record<string, string> = {};
+        const relFile = zip.file('ppt/_rels/presentation.xml.rels');
+        if (relFile) {
+            const relText = await relFile.async('string');
+            const relRe = /<Relationship\s+([^>]*?)\/?>/g;
+            let m: RegExpExecArray | null;
+            while ((m = relRe.exec(relText)) !== null) {
+                const id = (m[1].match(/Id="([^"]*)"/) || [])[1];
+                const target = (m[1].match(/Target="([^"]*)"/) || [])[1];
+                if (id && target) relMap[id] = target.replace(/^(?:\.\.\/)+/, '').replace(/^ppt\//, '');
+            }
+        }
+        const sldIdToRid: Record<string, string> = {};
+        const sldRe = /<(?:p14:|p:)?sldId\s+([^>]*?)\/>/g;
+        let s: RegExpExecArray | null;
+        while ((s = sldRe.exec(pres)) !== null) {
+            const id = (s[1].match(/(?:^|\s)id="([^"]*)"/) || [])[1];
+            const rid = (s[1].match(/r:id="([^"]*)"/) || [])[1];
+            if (id && rid) sldIdToRid[id] = rid;
+        }
+        const norm = (f: string) => f.replace(/^ppt\//, '').replace(/^\/+/, '');
+        const baseName = (f: string) => norm(f).split('/').pop()!.replace(/\.xml$/i, '');
+        const indexOfTarget = (target: string) => slideFileNames.findIndex((f) => baseName(String(f)) === baseName(target));
+
+        const sections: any[] = [];
+        const secRe = /<(?:p14:|p:)?section\s+([^>]*?)>([\s\S]*?)<\/(?:p14:|p:)?section>/g;
+        let sec: RegExpExecArray | null;
+        while ((sec = secRe.exec(sectionMatch[1])) !== null) {
+            const nameAttr = (sec[1].match(/\bname="([^"]*)"/) || [])[1] || '';
+            const name = nameAttr
+                .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+            const slides: number[] = [];
+            const innerRe = /<(?:p14:|p:)?sldId\s+([^>]*?)\/>/g;
+            let inner: RegExpExecArray | null;
+            while ((inner = innerRe.exec(sec[2])) !== null) {
+                const id = (inner[1].match(/(?:^|\s)id="([^"]*)"/) || [])[1];
+                const rid = id ? sldIdToRid[id] : undefined;
+                const target = rid ? relMap[rid] : undefined;
+                const idx = target ? indexOfTarget(target) : -1;
+                if (idx >= 0) slides.push(idx);
+            }
+            sections.push({ name, slides });
+        }
+        return sections.length ? sections : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
 export async function buildStandardDocument(
     parsedData: any,
     zip: JSZip,
@@ -4060,6 +4158,7 @@ export async function buildStandardDocument(
     const slides = await Promise.all(
         (parsedData.slides || []).map(async (s: any) => extractSlideToStandard(s.data, zip, { ...options, theme: theme as any }))
     );
+    const sections = await extractSections(zip, (parsedData.slides || []).map((s: any) => String(s.fileName || '')));
 
     const doc: PptxDocument = {
         version: '1.0',
@@ -4067,6 +4166,7 @@ export async function buildStandardDocument(
         slides
     };
     if (parsedData.metadata) doc.metadata = parsedData.metadata;
+    if (sections && sections.length) doc.sections = sections;
     // 文档自定义属性（解析端已自 docProps/custom.xml 解析）
     if (parsedData.customProps && Object.keys(parsedData.customProps).length) {
         doc.customProps = parsedData.customProps;

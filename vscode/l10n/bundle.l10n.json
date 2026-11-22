@@ -22,5 +22,9 @@
   "extension.target.html": "HTML Web Page (.html)",
   "command.revert": "PPTX: Discard Changes and Reload",
   "command.exportCopy": "PPTX: Export Copy...",
-  "command.convert": "PPTX: Convert Document Format..."
+  "command.convert": "PPTX: Convert Document Format...",
+  "extension.reloadChanged": "Reload \"{0}\"? The file changed on disk.",
+  "extension.reload": "Reload",
+  "extension.keepCurrent": "Keep current",
+  "extension.fileDeleted": "\"{0}\" was deleted from disk. Save As to keep your changes."
 }

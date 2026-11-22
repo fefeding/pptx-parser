@@ -42,6 +42,21 @@
         "priority": "default"
       }
     ],
+    "configuration": {
+      "title": "PPTX Editor",
+      "properties": {
+        "pptxViewer.grid": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the editing grid on the PPTX canvas by default."
+        },
+        "pptxViewer.snap": {
+          "type": "boolean",
+          "default": true,
+          "description": "Snap elements to guides and slide edges while dragging."
+        }
+      }
+    },
     "commands": [
       {
         "command": "pptx-parser.revert",

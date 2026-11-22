@@ -94,4 +94,38 @@ describe('批注 + 自定义属性 解析与渲染', () => {
         expect(html).not.toContain('pptx-custom-props');
         expect(html).not.toContain('pptx-comment');
     });
+
+    it('批注解决状态与回复串可往返', async () => {
+        const pres = presWith();
+        pres.slides[0].comments = [{
+            id: 'cm-1', author: 'Alice', text: '需要修改', dt: '2026-01-01T00:00:00Z',
+            resolved: true, replies: [{ author: 'Bob', text: '已处理', dt: '2026-01-02T00:00:00Z' }]
+        }];
+        const buf: any = await jsonToPptx(pres);
+        const std: any = await pptxToStandard(buf, { mediaProcess: false } as any);
+        const c = std.slides[0].comments[0];
+        expect(c.id).toBe('cm-1');
+        expect(c.resolved).toBe(true);
+        expect(c.replies).toEqual([{ author: 'Bob', text: '已处理', dt: '2026-01-02T00:00:00Z' }]);
+    });
+
+    it('批注元数据不会跨批注串读（第一条无 meta、第二条有）', async () => {
+        const pres = presWith();
+        pres.slides[0].comments = [
+            { id: 'plain', author: 'Alice', text: '普通批注', dt: '2026-01-01T00:00:00Z' },
+            {
+                id: 'with-meta', author: 'Bob', text: '带状态批注',
+                resolved: true, replies: [{ author: 'Carol', text: '回复', dt: '2026-01-02T00:00:00Z' }]
+            }
+        ];
+        const buf: any = await jsonToPptx(pres);
+        const std: any = await pptxToStandard(buf, { mediaProcess: false } as any);
+        const [first, second] = std.slides[0].comments;
+        expect(first.id).toBe('plain');
+        expect(first.resolved).toBe(false);
+        expect(first.replies).toEqual([]);
+        expect(second.id).toBe('with-meta');
+        expect(second.resolved).toBe(true);
+        expect(second.replies).toEqual([{ author: 'Carol', text: '回复', dt: '2026-01-02T00:00:00Z' }]);
+    });
 });
