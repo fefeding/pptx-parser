@@ -28,7 +28,7 @@ import type {
     PptxImageElement, PptxChartElement, PptxParagraph, PptxTextRun, PptxChartSeries,
     PptxTransition, PptxBackground, PptxTableElement, PptxTableRow, PptxTableCell,
     PptxDiagramElement, PptxDiagramShape, PptxRawElement, PptxAnimation, PptxGroupElement, PptxConnectorElement, PptxOleElement, PptxMathElement, TextAlign, VAlign, ChartGrouping,
-    PptxChartType, PptxChartPlot,
+    PptxChartType, PptxChartPlot, PptxTrendline, PptxTrendlineType,
     PptxFillImage, PptxTheme, PptxThemeColorScheme, PptxCustomGeometry, PptxGeometryPath, PptxGeometryCommand, PptxGradientFill,
     PptxFontResource
 } from '../types/pptx-document';
@@ -1418,6 +1418,31 @@ function readGradientFill(gradFill: any, themeMap: Record<string, string> = {}):
         : { type: 'gradient', direction, angle, stops };
 }
 
+/** 回读单条 c:trendline → PptxTrendline */
+function readTrendline(t: any): PptxTrendline | undefined {
+    if (!t) return undefined;
+    const attr = (tag: string): string | undefined => {
+        const n = t[tag];
+        return n && n.attrs ? n.attrs.val : undefined;
+    };
+    const out: PptxTrendline = {};
+    const type = attr('c:trendlineType');
+    if (type) out.type = type as PptxTrendlineType;
+    const name = t['c:name'];
+    const nameVal = typeof name === 'string' ? name : (name && name['#text']);
+    if (nameVal) out.name = String(nameVal);
+    for (const key of ['order', 'period', 'forward', 'backward', 'intercept'] as const) {
+        const raw = attr(`c:${key}`);
+        if (raw != null && raw !== '') {
+            const n = Number(raw);
+            if (Number.isFinite(n)) out[key] = n;
+        }
+    }
+    if (attr('c:dispEq') === '1') out.showEquation = true;
+    if (attr('c:dispRSqr') === '1') out.showRSquared = true;
+    return Object.keys(out).length ? out : undefined;
+}
+
 /** 从 c:chartSpace 反向提取图表语义 */
 export function extractChart(chartXml: any, themeMap: Record<string, string> = {}): Partial<PptxChartElement> | undefined {
     try {
@@ -1524,6 +1549,9 @@ export function extractChart(chartXml: any, themeMap: Record<string, string> = {
                         s.pointColors = pc;
                     }
                 }
+                // 趋势线（c:trendline）：CT_*Ser 中与 dPt 同级，回读供编辑/渲染/再导出使用
+                const trends = asArray(ser['c:trendline']).map(readTrendline).filter(Boolean) as PptxTrendline[];
+                if (trends.length) s.trendlines = trends;
                 series.push(s);
             }
 

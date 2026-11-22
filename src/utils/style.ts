@@ -2705,7 +2705,27 @@ function getFillType(node: XmlNode | undefined) {
             }
         }
     }
-    dataMat.push({ key: colName, values: dataRow, xlabels: rowNames, style: seriesStyle });
+    // 趋势线（c:trendline）：挂到 series 上供 chart-renderer 绘制（与编辑器路径同语义）
+    const trendlines: Array<Record<string, unknown>> = [];
+    eachElement(innerNode["c:trendline"], (tlNode: any) => {
+        const trend: Record<string, unknown> = {};
+        const typeNode = PPTXXmlUtils.getTextByPathList(tlNode as any, ["c:trendlineType", "attrs", "val"]);
+        if (typeNode !== undefined && typeNode !== null) trend.type = typeNode;
+        const nameNode = PPTXXmlUtils.getTextByPathList(tlNode as any, ["c:name"]);
+        if (nameNode !== undefined && nameNode !== null) trend.name = nameNode;
+        for (const key of ["order", "period", "forward", "backward", "intercept"]) {
+            const v = PPTXXmlUtils.getTextByPathList(tlNode as any, [`c:${key}`, "attrs", "val"]);
+            if (v !== undefined && v !== null && v !== "") {
+                const num = Number(v);
+                if (Number.isFinite(num)) trend[key] = num;
+            }
+        }
+        if (PPTXXmlUtils.getTextByPathList(tlNode as any, ["c:dispEq", "attrs", "val"]) === "1") trend.showEquation = true;
+        if (PPTXXmlUtils.getTextByPathList(tlNode as any, ["c:dispRSqr", "attrs", "val"]) === "1") trend.showRSquared = true;
+        if (Object.keys(trend).length) trendlines.push(trend);
+        return "";
+    });
+    dataMat.push({ key: colName, values: dataRow, xlabels: rowNames, style: seriesStyle, ...(trendlines.length ? { trendlines } : {}) });
     return "";
 });
             }

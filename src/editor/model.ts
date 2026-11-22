@@ -1003,6 +1003,10 @@ export function elementToPptx(el: any): any {
                 if (s.pointColors && s.pointColors.some((c: any) => c)) {
                     ser.pointColors = (s.pointColors || []).map(normPointColor);
                 }
+                // 趋势线：编辑器与导出端依赖 c:trendline 语义，逐字段透传避免丢失
+                if (Array.isArray(s.trendlines) && s.trendlines.length) {
+                    ser.trendlines = JSON.parse(JSON.stringify(s.trendlines));
+                }
                 return ser;
             });
             if (el.spaceFill) out.spaceFill = el.spaceFill;
@@ -1585,6 +1589,9 @@ function elementFromPptx(pe: any): any {
                     ]);
                 } else {
                     ser.values = (s.values || s.y || []).map((v: any) => Number(v) || 0);
+                }
+                if (Array.isArray(s.trendlines) && s.trendlines.length) {
+                    ser.trendlines = JSON.parse(JSON.stringify(s.trendlines));
                 }
                 return ser;
             });

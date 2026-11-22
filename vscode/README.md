@@ -106,3 +106,9 @@ holds the runtime defaults, and `l10n/<lang>.json` / `l10n/<lang>.bundle.l10n.js
   editable. SmartArt is retained the same way, with the addition that the **text of its nodes can be
   edited** (double-click the graphic) — the change is written into the diagram parts in place, so the
   original layout and colours stay untouched.
+- **Editor-only metadata**: media playback options (autoplay / loop / cross-slide / mute / volume /
+  trim / fade) and comment **resolved / reply threads** are stored as custom `jdoc*` extension
+  attributes on the underlying OOXML. They round-trip losslessly inside this editor, but PowerPoint
+  does not interpret these extensions — the playback settings will not actually play in PowerPoint,
+  and a comment marked "resolved" here still shows as open there. Alt text (`descr`), by contrast,
+  uses the standard OOXML attribute and is fully interoperable.

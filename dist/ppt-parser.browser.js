@@ -1,5 +1,5 @@
 /**
- * @fefeding/ppt-parser v1.0.33
+ * @fefeding/ppt-parser v1.0.34
  * PPTX文件解析与序列化核心库，纯TS编写，支持解析PPTX为JSON结构、JSON序列化为标准PPTX文件，无框架依赖
  * MIT License
  */
@@ -4844,7 +4844,32 @@ function extractChartData(serNode, warpObj) {
                     }
                 }
             }
-            dataMat.push({ key: colName, values: dataRow, xlabels: rowNames, style: seriesStyle });
+            const trendlines = [];
+            eachElement(innerNode["c:trendline"], (tlNode) => {
+                const trend = {};
+                const typeNode = PPTXXmlUtils.getTextByPathList(tlNode, ["c:trendlineType", "attrs", "val"]);
+                if (typeNode !== undefined && typeNode !== null)
+                    trend.type = typeNode;
+                const nameNode = PPTXXmlUtils.getTextByPathList(tlNode, ["c:name"]);
+                if (nameNode !== undefined && nameNode !== null)
+                    trend.name = nameNode;
+                for (const key of ["order", "period", "forward", "backward", "intercept"]) {
+                    const v = PPTXXmlUtils.getTextByPathList(tlNode, [`c:${key}`, "attrs", "val"]);
+                    if (v !== undefined && v !== null && v !== "") {
+                        const num = Number(v);
+                        if (Number.isFinite(num))
+                            trend[key] = num;
+                    }
+                }
+                if (PPTXXmlUtils.getTextByPathList(tlNode, ["c:dispEq", "attrs", "val"]) === "1")
+                    trend.showEquation = true;
+                if (PPTXXmlUtils.getTextByPathList(tlNode, ["c:dispRSqr", "attrs", "val"]) === "1")
+                    trend.showRSquared = true;
+                if (Object.keys(trend).length)
+                    trendlines.push(trend);
+                return "";
+            });
+            dataMat.push({ key: colName, values: dataRow, xlabels: rowNames, style: seriesStyle, ...(trendlines.length ? { trendlines } : {}) });
             return "";
         });
     }
@@ -21494,6 +21519,35 @@ function readGradientFill(gradFill, themeMap = {}) {
         ? { type: 'gradient', direction, angle, stops, gradientType: 'radial', gradientPath: (path.attrs && path.attrs.path) || 'circle' }
         : { type: 'gradient', direction, angle, stops };
 }
+function readTrendline(t) {
+    if (!t)
+        return undefined;
+    const attr = (tag) => {
+        const n = t[tag];
+        return n && n.attrs ? n.attrs.val : undefined;
+    };
+    const out = {};
+    const type = attr('c:trendlineType');
+    if (type)
+        out.type = type;
+    const name = t['c:name'];
+    const nameVal = typeof name === 'string' ? name : (name && name['#text']);
+    if (nameVal)
+        out.name = String(nameVal);
+    for (const key of ['order', 'period', 'forward', 'backward', 'intercept']) {
+        const raw = attr(`c:${key}`);
+        if (raw != null && raw !== '') {
+            const n = Number(raw);
+            if (Number.isFinite(n))
+                out[key] = n;
+        }
+    }
+    if (attr('c:dispEq') === '1')
+        out.showEquation = true;
+    if (attr('c:dispRSqr') === '1')
+        out.showRSquared = true;
+    return Object.keys(out).length ? out : undefined;
+}
 function extractChart(chartXml, themeMap = {}) {
     try {
         const chartSpace = chartXml && chartXml['c:chartSpace'];
@@ -21600,6 +21654,9 @@ function extractChart(chartXml, themeMap = {}) {
                         s.pointColors = pc;
                     }
                 }
+                const trends = asArray(ser['c:trendline']).map(readTrendline).filter(Boolean);
+                if (trends.length)
+                    s.trendlines = trends;
                 series.push(s);
             }
             const attrOf = (parent, tag) => {
@@ -26071,6 +26128,9 @@ function elementToPptx(el) {
                 if (s.pointColors && s.pointColors.some((c) => c)) {
                     ser.pointColors = (s.pointColors || []).map(normPointColor);
                 }
+                if (Array.isArray(s.trendlines) && s.trendlines.length) {
+                    ser.trendlines = JSON.parse(JSON.stringify(s.trendlines));
+                }
                 return ser;
             });
             if (el.spaceFill)
@@ -26661,6 +26721,9 @@ function elementFromPptx(pe) {
                 }
                 else {
                     ser.values = (s.values || s.y || []).map((v) => Number(v) || 0);
+                }
+                if (Array.isArray(s.trendlines) && s.trendlines.length) {
+                    ser.trendlines = JSON.parse(JSON.stringify(s.trendlines));
                 }
                 return ser;
             });

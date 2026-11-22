@@ -124,6 +124,8 @@
     "watch": "node esbuild.js --watch",
     "dev": "node esbuild.js --watch",
     "verify:convert": "node scripts/verify-convert.mjs",
+    "check:l10n": "node scripts/check-l10n.mjs",
+    "verify": "node scripts/check-l10n.mjs && node scripts/verify-convert.mjs",
     "package": "vsce package",
     "publish": "vsce publish"
   },

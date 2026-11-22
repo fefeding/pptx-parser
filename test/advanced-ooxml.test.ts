@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { jsonToPptx } from '../src/index';
+import { jsonToPptx, pptxToStandard } from '../src/index';
 
 /**
  * 高级 OOXML 能力生成端校验
@@ -216,6 +216,15 @@ describe('高级 OOXML 生成能力', () => {
         expect(chartXml).toContain('<c:dispEq val="1"/>');
         expect(chartXml).toContain('<c:dispRSqr val="1"/>');
         expect(chartXml).toContain('<c:forward val="1"/>');
+
+        // 解析端回读：重新打开后趋势线仍挂在 series 上（渲染/再导出依赖此链路）
+        const std: any = await pptxToStandard(buf, { mediaProcess: false } as any);
+        const trend = std.slides[0].elements[0].series[0].trendlines[0];
+        expect(trend.type).toBe('linear');
+        expect(trend.name).toBe('线性');
+        expect(trend.forward).toBe(1);
+        expect(trend.showEquation).toBe(true);
+        expect(trend.showRSquared).toBe(true);
     });
 
     it('动画：presetClass / presetId / 点击触发', async () => {

@@ -197,6 +197,9 @@ export class ChartRenderer {
 
             // 应用图表区域布局
             option.grid = this.getGridConfig(chartInfo);
+
+            // 趋势线（c:trendline）：作为叠加的 line series 绘制，与导出端 c:trendline 语义一致
+            this.appendTrendlines(chartInfo, option, chartType);
         } else if (isPieChart) {
             // 为饼图添加布局配置
             option.grid = {
@@ -640,6 +643,197 @@ export class ChartRenderer {
 
             return seriesConfig;
         });
+    }
+
+    /**
+     * 追加趋势线系列。chartInfo.trendlines 按 series 下标分组，每组为 c:trendline 数组。
+     * 拟合在最小二乘意义下完成，外推（forward/backward）在类目轴上通过扩展 xAxis 实现。
+     */
+    appendTrendlines(chartInfo, option, echartsType) {
+        const chartData = chartInfo.data;
+        if (!Array.isArray(chartData) || !Array.isArray(option.series)) return;
+        // 两种数据形态：编辑器传按 series 下标分组的 chartInfo.trendlines；
+        // pptxToHtml 路径把 trendlines 直接挂在每条 series 上，这里统一归一为分组数组。
+        const groups = Array.isArray(chartInfo.trendlines)
+            ? chartInfo.trendlines
+            : chartData.map(s => (Array.isArray(s && s.trendlines) ? s.trendlines : []));
+        // 饼图/雷达/蜡烛图无笛卡尔 Y 值语义，不叠加趋势线
+        if (echartsType === 'pie' || echartsType === 'candlestick' || !option.xAxis) return;
+
+        const isValueAxis = option.xAxis.type === 'value';
+        // 先汇总最大前后预测量，统一扩展类目轴（避免逐条扩展造成 series 错位）
+        let back = 0, fwd = 0;
+        for (const list of groups) {
+            if (!Array.isArray(list)) continue;
+            for (const tl of list) {
+                if (!tl || tl.type === 'none') continue;
+                back = Math.max(back, Math.max(0, Number(tl.backward) || 0));
+                fwd = Math.max(fwd, Math.max(0, Number(tl.forward) || 0));
+            }
+        }
+        if (!back && !fwd && !groups.some(l => Array.isArray(l) && l.length)) return;
+
+        if (!isValueAxis && (back || fwd)) {
+            const padBack = Array(back).fill('');
+            const padFwd = Array(fwd).fill('');
+            option.xAxis.data = [...padBack, ...(option.xAxis.data || []), ...padFwd];
+            for (const s of option.series) {
+                if (Array.isArray(s.data)) {
+                    s.data = [...padBack.map(() => null), ...s.data, ...padFwd.map(() => null)];
+                }
+            }
+        }
+
+        groups.forEach((list, index) => {
+            if (!Array.isArray(list) || !list.length) return;
+            const src = chartData[index];
+            if (!src || !Array.isArray(src.values)) return;
+
+            // 拟合点：类目轴用序号 1..n；数值轴用点的实际 x
+            const points = isValueAxis
+                ? src.values.filter(v => v && Number.isFinite(Number(v.x)) && Number.isFinite(Number(v.y)))
+                    .map(v => ({ x: Number(v.x), y: Number(v.y) }))
+                : src.values.map((v, i) => ({ x: i + 1, y: Number(v && v.y) || 0 }))
+                    .filter(p => Number.isFinite(p.y));
+            if (points.length < 2) return;
+
+            const baseColor = option.series[index]?.itemStyle?.color || '#888888';
+            const step = points.length > 1
+                ? Math.abs(points[points.length - 1].x - points[0].x) / (points.length - 1) || 1
+                : 1;
+
+            list.forEach((tl, ti) => {
+                if (!tl || tl.type === 'none') return;
+                const fit = this.fitTrendline(points, tl);
+                if (!fit) return;
+
+                let data;
+                if (isValueAxis) {
+                    const minX = Math.min(...points.map(p => p.x)) - back * step;
+                    const maxX = Math.max(...points.map(p => p.x)) + fwd * step;
+                    const count = points.length + back + fwd;
+                    data = Array.from({ length: count }, (_, i) => {
+                        const x = minX + i * step;
+                        const y = fit(x);
+                        return y == null ? null : [x, y];
+                    });
+                } else {
+                    data = [];
+                    for (let x = 1 - back; x <= points.length + fwd; x++) {
+                        data.push(fit(x));
+                    }
+                }
+
+                option.series.push({
+                    name: tl.name || `${src.key || `Series ${index + 1}`} 趋势线 ${ti + 1}`,
+                    type: 'line',
+                    data,
+                    showSymbol: false,
+                    symbol: 'none',
+                    smooth: tl.type === 'poly',
+                    silent: true,
+                    z: 10,
+                    lineStyle: { color: baseColor, type: 'dashed', width: 2 },
+                    itemStyle: { color: baseColor },
+                    tooltip: { show: false },
+                    animation: false
+                });
+            });
+        });
+    }
+
+    /** 最小二乘拟合，返回 at(x) -> y（无效时返回 null）。 */
+    fitTrendline(points, tl) {
+        const type = tl.type || 'linear';
+        const period = Math.max(2, Math.min(points.length, Number(tl.period) || 2));
+
+        if (type === 'movingAvg') {
+            const byX = new Map();
+            points.forEach((p, i) => {
+                const win = points.slice(Math.max(0, i - period + 1), i + 1);
+                byX.set(p.x, win.reduce((s, q) => s + q.y, 0) / win.length);
+            });
+            const xs = points.map(p => p.x);
+            const minX = Math.min(...xs), maxX = Math.max(...xs);
+            const avg = win => win.reduce((s, q) => s + q.y, 0) / win.length;
+            return (x) => byX.has(x) ? byX.get(x) : avg(x < minX ? points.slice(0, period) : points.slice(-period));
+        }
+
+        // 变换到线性空间：exp/power 对 y 取 ln，log/power 对 x 取 ln
+        let work = points;
+        if (type === 'exp' || type === 'power') {
+            work = points.filter(p => p.y > 0 && (type !== 'power' || p.x > 0))
+                .map(p => ({ x: type === 'power' ? Math.log(p.x) : p.x, y: Math.log(p.y) }));
+        } else if (type === 'log') {
+            work = points.filter(p => p.x > 0).map(p => ({ x: Math.log(p.x), y: p.y }));
+        }
+        if (work.length < 2) return null;
+
+        let predict;
+        if (type === 'poly') {
+            const order = Math.max(1, Math.min(6, Number(tl.order) || 2));
+            const coef = this.polyFit(work, order);
+            if (!coef) return null;
+            predict = (x) => coef.reduce((y, c, k) => y + c * Math.pow(x, k), 0);
+        } else {
+            const lin = this.linearFit(work);
+            if (!lin) return null;
+            predict = (x) => lin.a * x + lin.b;
+        }
+
+        let at;
+        if (type === 'exp') at = (x) => Math.exp(predict(x));
+        else if (type === 'log') at = (x) => predict(Math.log(Math.max(x, 1e-9)));
+        else if (type === 'power') at = (x) => Math.exp(predict(Math.log(Math.max(x, 1e-9))));
+        else at = predict;
+        return (x) => {
+            const v = at(x);
+            return Number.isFinite(v) ? v : null;
+        };
+    }
+
+    linearFit(points) {
+        const n = points.length;
+        let sx = 0, sy = 0, sxx = 0, sxy = 0;
+        for (const p of points) { sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y; }
+        const d = n * sxx - sx * sx;
+        if (!Number.isFinite(d) || Math.abs(d) < 1e-12) return null;
+        const a = (n * sxy - sx * sy) / d;
+        return { a, b: (sy - a * sx) / n };
+    }
+
+    /** 多项式最小二乘：解正规方程（带部分主元的高斯消元），返回系数 [a0..an]。 */
+    polyFit(points, order) {
+        const m = order + 1;
+        const matrix = Array.from({ length: m }, () => Array(m).fill(0));
+        const rhs = Array(m).fill(0);
+        for (const p of points) {
+            const pw = new Array(m);
+            pw[0] = 1;
+            for (let k = 1; k < m; k++) pw[k] = pw[k - 1] * p.x;
+            for (let i = 0; i < m; i++) {
+                rhs[i] += p.y * pw[i];
+                for (let j = 0; j < m; j++) matrix[i][j] += pw[i] * pw[j];
+            }
+        }
+        const aug = matrix.map((row, i) => [...row, rhs[i]]);
+        for (let col = 0; col < m; col++) {
+            let pivot = col;
+            for (let r = col + 1; r < m; r++) {
+                if (Math.abs(aug[r][col]) > Math.abs(aug[pivot][col])) pivot = r;
+            }
+            if (Math.abs(aug[pivot][col]) < 1e-10) return null;
+            [aug[col], aug[pivot]] = [aug[pivot], aug[col]];
+            const pv = aug[col][col];
+            for (let j = col; j <= m; j++) aug[col][j] /= pv;
+            for (let r = 0; r < m; r++) {
+                if (r === col) continue;
+                const factor = aug[r][col];
+                if (!factor) continue;
+                for (let j = col; j <= m; j++) aug[r][j] -= factor * aug[col][j];
+            }
+        }
+        return aug.map(row => row[m]);
     }
 
     /**
