@@ -782,9 +782,7 @@ async function processPicNode(node: XmlNode | undefined, parentNode: XmlNode | u
     }
 
     // 处理音频
-    let audioPlayerFlag = false;
     let audioBlob;
-    let audioObj;
     
     const audioNode = PPTXXmlUtils.getTextByPathList(node, ['p:nvPicPr', 'p:nvPr', 'a:audioFile']);
     
@@ -800,17 +798,6 @@ async function processPicNode(node: XmlNode | undefined, parentNode: XmlNode | u
                 const blobAudio = new Blob([uInt8ArrayAudio]);
                 audioBlob = URL.createObjectURL(blobAudio);
 
-                const cx = parseInt(xfrmNode['a:ext'].attrs.cx) * 20;
-                const cy = parseInt(xfrmNode['a:ext'].attrs.cy);
-                const x = parseInt(xfrmNode['a:off'].attrs.x) / 2.5;
-                const y = parseInt(xfrmNode['a:off'].attrs.y);
-
-                audioObj = {
-                    'a:ext': { attrs: { cx, cy } },
-                    'a:off': { attrs: { x, y } }
-                };
-
-                audioPlayerFlag = true;
                 mediaSupportFlag = true;
                 mediaPicFlag = true;
             }
@@ -852,12 +839,8 @@ async function processPicNode(node: XmlNode | undefined, parentNode: XmlNode | u
         }
     }
 
-    const position = mediaProcess && audioPlayerFlag
-        ? PPTXXmlUtils.getPosition(audioObj, parentNode, undefined, undefined, shapeType)
-        : PPTXXmlUtils.getPosition(scaledXfrmNode || xfrmNode, parentNode, undefined, undefined, shapeType);
-    const size = mediaProcess && audioPlayerFlag
-        ? PPTXXmlUtils.getSize(audioObj, undefined, undefined)
-        : PPTXXmlUtils.getSize(scaledXfrmNode || xfrmNode, undefined, undefined);
+    const position = PPTXXmlUtils.getPosition(scaledXfrmNode || xfrmNode, parentNode, undefined, undefined, shapeType);
+    const size = PPTXXmlUtils.getSize(scaledXfrmNode || xfrmNode, undefined, undefined);
 
     // 提取图片位置信息
     let imgOffX = 0, imgOffY = 0, imgExtCx = 0, imgExtCy = 0;

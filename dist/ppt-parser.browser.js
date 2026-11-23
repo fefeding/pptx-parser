@@ -16237,9 +16237,7 @@ async function processPicNode(node, parentNode, wrapObj, source, shapeType, sett
             }
         }
     }
-    let audioPlayerFlag = false;
     let audioBlob;
-    let audioObj;
     const audioNode = PPTXXmlUtils.getTextByPathList(node, ['p:nvPicPr', 'p:nvPr', 'a:audioFile']);
     if (audioNode !== undefined && mediaProcess) {
         const audioRid = audioNode.attrs['r:link'];
@@ -16251,15 +16249,6 @@ async function processPicNode(node, parentNode, wrapObj, source, shapeType, sett
                 const uInt8ArrayAudio = await audioFileObj.async("arraybuffer");
                 const blobAudio = new Blob([uInt8ArrayAudio]);
                 audioBlob = URL.createObjectURL(blobAudio);
-                const cx = parseInt(xfrmNode['a:ext'].attrs.cx) * 20;
-                const cy = parseInt(xfrmNode['a:ext'].attrs.cy);
-                const x = parseInt(xfrmNode['a:off'].attrs.x) / 2.5;
-                const y = parseInt(xfrmNode['a:off'].attrs.y);
-                audioObj = {
-                    'a:ext': { attrs: { cx, cy } },
-                    'a:off': { attrs: { x, y } }
-                };
-                audioPlayerFlag = true;
                 mediaSupportFlag = true;
                 mediaPicFlag = true;
             }
@@ -16287,12 +16276,8 @@ async function processPicNode(node, parentNode, wrapObj, source, shapeType, sett
             }
         }
     }
-    const position = mediaProcess && audioPlayerFlag
-        ? PPTXXmlUtils.getPosition(audioObj, parentNode, undefined, undefined, shapeType)
-        : PPTXXmlUtils.getPosition(scaledXfrmNode || xfrmNode, parentNode, undefined, undefined, shapeType);
-    const size = mediaProcess && audioPlayerFlag
-        ? PPTXXmlUtils.getSize(audioObj, undefined, undefined)
-        : PPTXXmlUtils.getSize(scaledXfrmNode || xfrmNode, undefined, undefined);
+    const position = PPTXXmlUtils.getPosition(scaledXfrmNode || xfrmNode, parentNode, undefined, undefined, shapeType);
+    const size = PPTXXmlUtils.getSize(scaledXfrmNode || xfrmNode, undefined, undefined);
     let imgOffX = 0, imgOffY = 0, imgExtCx = 0, imgExtCy = 0;
     if (xfrmNode !== undefined) {
         if (xfrmNode['a:off'] && xfrmNode['a:off'].attrs) {
