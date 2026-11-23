@@ -607,6 +607,155 @@ export function presetShapePath(prst: string, w: number, h: number, adj: Adj = {
       const y2 = h * a1 / 100000;
       return { d: `M0,${y2} L${x2},0 L${w},0 L0,${h} z` };
     }
+
+    // ---- 图表标记类（chart + / star / x）：PowerPoint 用它们做数据点标记 ----
+    case 'chartPlus': {
+      const t = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 50000) / 100000;
+      const cx = w / 2, cy = h / 2, bx = w * t, by = h * t;
+      return { d: `M${fmt(bx)},${fmt(cy - by)} `
+        + `L${fmt(bx)},0 L${fmt(w - bx)},0 L${fmt(w - bx)},${fmt(cy - by)} `
+        + `L${fmt(w)},${fmt(cy - by)} L${fmt(w)},${fmt(cy + by)} L${fmt(w - bx)},${fmt(cy + by)} `
+        + `L${fmt(w - bx)},${fmt(h)} L${fmt(bx)},${fmt(h)} L${fmt(bx)},${fmt(cy + by)} `
+        + `L0,${fmt(cy + by)} L0,${fmt(cy - by)} z` };
+    }
+    case 'chartX': {
+      const t = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 50000) / 100000;
+      const by = h * t, bx = w * t, cx = w / 2, cy = h / 2;
+      // 让斜杠中点对齐中心，尖端收在中心附近
+      const k = 0.35;
+      const d = `M0,0 L${fmt(bx)},0 L${fmt(cx)},${fmt(cy - by * k)} L${fmt(w - bx)},0 `
+        + `L${fmt(w)},0 L${fmt(w - bx * (1 - k))},${fmt(cy)} L${fmt(w)},${fmt(h)} `
+        + `L${fmt(w - bx)},${fmt(h)} L${fmt(cx)},${fmt(cy + by * k)} L${fmt(bx)},${fmt(h)} `
+        + `L0,${fmt(h)} L${fmt(bx * (1 - k))},${fmt(cy)} z`;
+      return { d };
+    }
+    case 'chartStar': {
+      const a = clampV(num(adj, 'adj', 19098), 0, 50000) / 50000;
+      const cx = w / 2, cy = h / 2, rx = w / 2, ry = h / 2;
+      const pts: string[] = [];
+      for (let i = 0; i < 10; i++) {
+        const ang = -Math.PI / 2 + i * Math.PI / 5;
+        const r = i % 2 === 0 ? 1 : a;
+        pts.push(`${fmt(cx + rx * r * Math.cos(ang))},${fmt(cy + ry * r * Math.sin(ang))}`);
+      }
+      return { d: 'M' + pts.join(' L') + ' z' };
+    }
+
+    // ---- 标注/书签/制表符类 ----
+    case 'cornerTabs': {
+      const s = clampV(numAny(adj, ['adj', 'adj1'], 16667), 0, 50000) / 100000 * Math.min(w, h);
+      return { d: `M0,0 L${fmt(s)},0 L${fmt(s)},${fmt(s)} L0,${fmt(s)} z `
+        + `M${fmt(w)},0 L${fmt(w)},${fmt(s)} L${fmt(w - s)},${fmt(s)} L${fmt(w - s)},0 z `
+        + `M0,${fmt(h)} L0,${fmt(h - s)} L${fmt(s)},${fmt(h - s)} L${fmt(s)},${fmt(h)} z` };
+    }
+    case 'squareTabs': {
+      const s = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 50000) / 100000 * w;
+      return { d: `M0,0 L${fmt(s)},0 L${fmt(s)},${fmt(h)} L0,${fmt(h)} z `
+        + `M${fmt(w - s)},0 L${fmt(w)},0 L${fmt(w)},${fmt(h)} L${fmt(w - s)},${fmt(h)} z` };
+    }
+    case 'plaqueTabs': {
+      const s = clampV(numAny(adj, ['adj', 'adj1'], 16667), 0, 50000) / 100000 * h;
+      return { d: `M0,0 L${fmt(w)},0 L${fmt(w)},${fmt(h)} L0,${fmt(h)} z `
+        + `M0,${fmt(h / 2 - s / 2)} L${fmt(-s)},${fmt(h / 2)} L0,${fmt(h / 2 + s / 2)} z `
+        + `M${fmt(w)},${fmt(h / 2 - s / 2)} L${fmt(w + s)},${fmt(h / 2)} L${fmt(w)},${fmt(h / 2 + s / 2)} z` };
+    }
+    case 'folderCorner': {
+      const a = clampV(numAny(adj, ['adj', 'adj1'], 16667), 0, 50000) / 100000 * Math.min(w, h);
+      const tabW = w * 0.4, tabH = a;
+      return { d: `M0,0 L${fmt(tabW)},0 L${fmt(tabW + a)},${fmt(tabH)} L${fmt(w)},${fmt(tabH)} `
+        + `L${fmt(w)},${fmt(h)} L0,${fmt(h)} z` };
+    }
+    case 'lineInv': {
+      // 反向线条：从左上到右下的细长反色条，核心是一条穿过矩形的斜带
+      const t = clampV(numAny(adj, ['adj', 'adj1'], 5000), 0, 50000) / 100000;
+      const bw = Math.max(1, w * t);
+      return { d: `M0,0 L${fmt(bw)},0 L${fmt(w)},${fmt(h - bw)} L${fmt(w)},${fmt(h)} `
+        + `L${fmt(w - bw)},${fmt(h)} L0,${fmt(bw)} z` };
+    }
+    case 'nonIsoscelesTrapezoid': {
+      const a1 = clampV(num(adj, 'adj1', 25000), 0, 100000) / 100000;
+      const a2 = clampV(num(adj, 'adj2', 25000), 0, 100000) / 100000;
+      return { d: `M${fmt(w * a1)},0 L${fmt(w)},0 L${fmt(w * (1 - a2))},${fmt(h)} L0,${fmt(h)} z` };
+    }
+
+    // ---- 常用箭头（此前仅在 CSS 近似或预览内联 SVG，编辑器回退不准） ----
+    case 'leftRightUpArrow': {
+      const a1 = clampV(num(adj, 'adj1', 37500), 0, 100000) / 100000;
+      const a2 = clampV(num(adj, 'adj2', 37500), 0, 100000) / 100000;
+      const shaftTop = h * a1, headW = w * a2 / 2;
+      const cx = w / 2;
+      return { d: `M${fmt(cx)},0 L${fmt(cx + headW)},${fmt(headW)} `
+        + `L${fmt(cx + headW * 0.4)},${fmt(headW)} L${fmt(cx + headW * 0.4)},${fmt(shaftTop)} `
+        + `L${fmt(w)},${fmt(shaftTop)} L${fmt(w)},${fmt(h - headW * 0.4)} `
+        + `L${fmt(w - headW)},${fmt(h - headW * 0.4)} L${fmt(w - headW)},${fmt(shaftTop + headW * 0.4)} `
+        + `L${fmt(cx + headW * 0.4)},${fmt(shaftTop + headW * 0.4)} `
+        + `L${fmt(cx + headW * 0.4)},${fmt(h)} L${fmt(cx - headW * 0.4)},${fmt(h)} `
+        + `L${fmt(cx - headW * 0.4)},${fmt(shaftTop + headW * 0.4)} `
+        + `L${fmt(headW)},${fmt(shaftTop + headW * 0.4)} L${fmt(headW)},${fmt(h - headW * 0.4)} `
+        + `L0,${fmt(h - headW * 0.4)} L0,${fmt(shaftTop)} `
+        + `L${fmt(cx - headW * 0.4)},${fmt(shaftTop)} L${fmt(cx - headW * 0.4)},${fmt(headW)} `
+        + `L${fmt(cx - headW)},${fmt(headW)} z` };
+    }
+    case 'leftUpArrow': {
+      const a1 = clampV(num(adj, 'adj1', 50000), 0, 100000) / 100000;
+      const a2 = clampV(num(adj, 'adj2', 50000), 0, 100000) / 100000;
+      const shaft = Math.min(w, h) * a1 / 2, head = Math.min(w, h) * a2 / 2;
+      const x = w * 0.45, y = h * 0.55;
+      return { d: `M0,${fmt(y - head)} L${fmt(x - head)},${fmt(y - head)} `
+        + `L${fmt(x - head)},${fmt(head)} L${fmt(x - shaft)},${fmt(head)} L${fmt(x)},0 `
+        + `L${fmt(x + shaft)},${fmt(head)} L${fmt(x + head)},${fmt(head)} `
+        + `L${fmt(x + head)},${fmt(y - shaft)} L${fmt(w)},${fmt(y - shaft)} `
+        + `L${fmt(w)},${fmt(y + shaft)} L${fmt(x + head)},${fmt(y + shaft)} `
+        + `L${fmt(x + head)},${fmt(h)} L${fmt(x - head)},${fmt(h)} `
+        + `L${fmt(x - head)},${fmt(y + shaft)} L0,${fmt(y + shaft)} z` };
+    }
+    case 'bentArrow': {
+      const a1 = clampV(num(adj, 'adj1', 50000), 0, 100000) / 100000;
+      const a2 = clampV(num(adj, 'adj2', 50000), 0, 100000) / 100000;
+      const bw = Math.min(w, h) * a1 / 2, head = Math.min(w, h) * a2 / 2;
+      return { d: `M0,0 L${fmt(bw)},0 L${fmt(bw)},${fmt(h - bw - head)} `
+        + `L${fmt(w - head)},${fmt(h - bw - head)} L${fmt(w - head)},${fmt(h - bw - 2 * head)} `
+        + `L${fmt(w)},${fmt(h - bw)} L${fmt(w - head)},${fmt(h - bw + head)} `
+        + `L${fmt(w - head)},${fmt(h - bw)} L${fmt(bw)},${fmt(h - bw)} L${fmt(bw)},${fmt(h)} `
+        + `L0,${fmt(h)} z` };
+    }
+    case 'notchedRightArrow': {
+      const a1 = clampV(num(adj, 'adj1', 50000), 0, 100000) / 100000;
+      const a2 = clampV(num(adj, 'adj2', 50000), 0, 100000) / 100000;
+      const a3 = clampV(num(adj, 'adj3', 50000), 0, 100000) / 100000;
+      const shaft = h * a1 / 2, head = h * a2 / 2, notch = head * a3;
+      const bx = w * 0.3;
+      return { d: `M0,${fmt(h / 2 - shaft)} L${fmt(bx)},${fmt(h / 2 - shaft)} `
+        + `L${fmt(bx)},${fmt(h / 2 - head)} L${fmt(w - head)},0 `
+        + `L${fmt(w - head)},${fmt(h / 2 - notch)} L${fmt(w)},${fmt(h / 2)} `
+        + `L${fmt(w - head)},${fmt(h / 2 + notch)} L${fmt(w - head)},${fmt(h)} `
+        + `L${fmt(bx)},${fmt(h / 2 + head)} L${fmt(bx)},${fmt(h / 2 + shaft)} `
+        + `L0,${fmt(h / 2 + shaft)} z` };
+    }
+    case 'homePlate': {
+      const a = clampV(numAny(adj, ['adj', 'adj1'], 50000), 0, 100000) / 100000;
+      const cy = h * a;
+      return { d: `M0,0 L${fmt(w)},0 L${fmt(w)},${fmt(cy)} L${fmt(w / 2)},${fmt(h)} L0,${fmt(cy)} z` };
+    }
+    case 'chevron': {
+      const a = clampV(numAny(adj, ['adj', 'adj1'], 50000), 0, 100000) / 100000;
+      const cx = w * a;
+      return { d: `M0,0 L${fmt(cx)},0 L${fmt(w)},${fmt(h / 2)} L${fmt(cx)},${fmt(h)} `
+        + `L0,${fmt(h)} L${fmt(w - cx)},${fmt(h / 2)} z` };
+    }
+    case 'upDownArrowCallout': {
+      // 上下双向箭头 + 中间标注框
+      const head = Math.min(w, h) * 0.2, boxW = w * 0.7, shaft = w * 0.08;
+      const cx = w / 2, x0 = (w - boxW) / 2;
+      return { d: `M${fmt(cx)},0 L${fmt(cx + head)},${fmt(head)} L${fmt(cx + shaft)},${fmt(head)} `
+        + `L${fmt(cx + shaft)},${fmt(h * 0.32)} L${fmt(x0 + boxW)},${fmt(h * 0.32)} `
+        + `L${fmt(x0 + boxW)},${fmt(h * 0.68)} L${fmt(cx + shaft)},${fmt(h * 0.68)} `
+        + `L${fmt(cx + shaft)},${fmt(h - head)} L${fmt(cx + head)},${fmt(h - head)} L${fmt(cx)},${fmt(h)} `
+        + `L${fmt(cx - head)},${fmt(h - head)} L${fmt(cx - shaft)},${fmt(h - head)} `
+        + `L${fmt(cx - shaft)},${fmt(h * 0.68)} L${fmt(x0)},${fmt(h * 0.68)} `
+        + `L${fmt(x0)},${fmt(h * 0.32)} L${fmt(cx - shaft)},${fmt(h * 0.32)} `
+        + `L${fmt(cx - shaft)},${fmt(head)} L${fmt(cx - head)},${fmt(head)} z` };
+    }
     default:
       return null;
   }

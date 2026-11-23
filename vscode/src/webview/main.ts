@@ -81,6 +81,8 @@ import {
   openConfirm,
   openPrompt,
   openDiagramTextDialog,
+  openMasterViewDialog,
+  openFormulaDialog,
   shapeMenuItems
 } from './dialogs';
 // Same ECharts renderer the preview side uses (option building incl. 3D matches examples/index.html)
@@ -194,6 +196,8 @@ let replaceInput!: HTMLInputElement;
 let findCountEl!: HTMLElement;
 /** Animation brush: animations copied from one element and pasted onto others. */
 let animBrush: any[] | null = null;
+/** Format brush: style fields copied from one element and applied to others (Office-style Copy/Apply). */
+let formatBrush: { type: string; patch: any } | null = null;
 let elFilterNode: HTMLInputElement | null = null;
 /** Selection signature of the last inspector render, used to keep the scroll position across rebuilds. */
 let lastInspSelKey = '';
@@ -694,6 +698,7 @@ function ribbonCommands(name: string, ...args: any[]): any {
     case 'setMode': return setMode(args[0]);
     case 'shortcuts': return openShortcuts();
     case 'docProps': return toggleDocInfo();
+    case 'masterView': return openMasterView();
     case 'present': return startPresent(false);
     case 'presentHere': return startPresent(true);
     case 'endShow': return stopPresent();
@@ -2231,6 +2236,7 @@ function onCanvasDblClick(e: MouseEvent) {
   else if (el.type === 'table') editTable(el.id);
   else if (el.type === 'chart') editChart(el.id);
   else if (el.type === 'diagram') editDiagramText(el.id);
+  else if (el.type === 'math') editFormula(el.id);
   else if (el.type === 'video' || el.type === 'audio') toast(t('toast.mediaNotPlayable'));
   // other element types (line, connector, picture, shape without text) have no inline text
 }
@@ -2240,6 +2246,22 @@ function onCanvasDblClick(e: MouseEvent) {
  * 图示文字同时存在于数据部件（ppt/diagrams/dataN.xml）与缓存绘图部件（drawingN.xml），
  * 只改内存里的 texts 不会写进文件，故交给 parser 的 updateDiagramTexts 同步改写两处部件。
  */
+/** 公式编辑：双击打开 text/OMML 编辑器；text 用于画布与 fallback，omml 用于 PowerPoint 真实公式体。 */
+function editFormula(id: string) {
+  const el = store.findElement(id);
+  if (!el || el.type !== 'math') return;
+  const slideIndex = store.slideIndex;
+  openFormulaDialog({ text: el.text || '', omml: el.omml || '' }, {
+    save: (text, omml) =>
+      runAction(() => store.update((doc: any) => {
+        const target = actions.findInDoc(doc, id, slideIndex);
+        if (!target) return;
+        target.text = text;
+        target.omml = omml;
+      }))
+  });
+}
+
 function editDiagramText(id: string) {
   const el = store.findElement(id);
   if (!el || el.type !== 'diagram') return;
@@ -3136,6 +3158,41 @@ function renderElementInspector(el: any) {
   inspectorEl.append(h('div', { class: 'muted el-kind' }, [t(`el.type.${el.type}`, el.type || t('el.type.element'))]));
 
   const update = (patch: any) => runAction(() => actions.updateElement(el.id, patch));
+
+  // 通用格式刷：从源元素抽取「外观语义」字段（不含 id / 坐标 / 尺寸 / 文本内容），
+  // 应用到目标元素；只复制目标已有的同类字段，避免把文本样式刷到图片上产生怪异结果。
+  const FORMAT_FIELDS = [
+    'fill', 'line', 'effects', 'shadow', 'reflection', 'rotate',
+    'fontSize', 'fontFace', 'color', 'bold', 'italic', 'underline', 'align', 'valign',
+    'lineSpacing', 'spaceBefore', 'spaceAfter', 'indentLeft', 'indentRight',
+    'imageAdjust', 'border', 'headerFill', 'cellFill', 'smooth', 'marker', 'holeSize'
+  ];
+  const copyFormat = () => {
+    const patch: any = {};
+    for (const k of FORMAT_FIELDS) {
+      if (el[k] !== undefined) patch[k] = JSON.parse(JSON.stringify(el[k]));
+    }
+    formatBrush = Object.keys(patch).length ? { type: el.type, patch } : null;
+    renderInspector(true);
+  };
+  const applyFormat = () => {
+    if (!formatBrush) return;
+    const patch: any = {};
+    // 文本专属字段只刷给文本/形状/表格等可含文字的元素，不刷给图片/图表/媒体
+    const textLike = /^(text|shape|table|math)$/.test(String(formatBrush.type));
+    const targetTextLike = /^(text|shape|table|math)$/.test(String(el.type));
+    for (const k of Object.keys(formatBrush.patch)) {
+      const isTextStyle = /^(fontSize|fontFace|color|bold|italic|underline|align|valign|lineSpacing|spaceBefore|spaceAfter|indentLeft|indentRight)$/.test(k);
+      if (isTextStyle && !(textLike && targetTextLike)) continue;
+      patch[k] = JSON.parse(JSON.stringify(formatBrush.patch[k]));
+    }
+    if (Object.keys(patch).length) update(patch);
+  };
+  inspectorEl.append(h('div', { class: 'row' }, [
+    btn(t('insp.fmtBrushCopy'), t('insp.fmtBrushCopy'), copyFormat),
+    btn(t('insp.fmtBrushApply'), t('insp.fmtBrushApply'), applyFormat, 'btn' + (formatBrush ? ' primary' : ''))
+  ]));
+
   const geom = h('div', {});
   geom.append(numField(t('insp.x'), el.x, (v) => update({ x: v })));
   geom.append(numField(t('insp.y'), el.y, (v) => update({ y: v })));
@@ -3362,6 +3419,15 @@ function renderElementInspector(el: any) {
     inspectorEl.append(numField(t('insp.brightness'), adj.brightness ?? 0, (v) => update({ imageAdjust: { ...adj, brightness: clamp(v, -100, 100) } })));
     inspectorEl.append(numField(t('insp.contrast'), adj.contrast ?? 0, (v) => update({ imageAdjust: { ...adj, contrast: clamp(v, -100, 100) } })));
     inspectorEl.append(numField(t('insp.transparency'), adj.transparency ?? 0, (v) => update({ imageAdjust: { ...adj, transparency: clamp(v, 0, 100) } })));
+    // 图片裁剪：模型 crop 存 0~1 比例（生成端 ×100000 写 a:srcRect），UI 用百分比表达
+    const imCrop: any = el.crop || { l: 0, t: 0, r: 0, b: 0 };
+    inspectorEl.append(h('h4', {}, [t('insp.crop')]));
+    const cropPct = (v: any) => Math.round(clamp(Number(v) || 0, 0, 1) * 100);
+    const cropRatio = (v: number) => clamp(v, 0, 100) / 100;
+    inspectorEl.append(numField(t('insp.left'), cropPct(imCrop.l), (v) => update({ crop: { ...imCrop, l: cropRatio(v) } })));
+    inspectorEl.append(numField(t('insp.top'), cropPct(imCrop.t), (v) => update({ crop: { ...imCrop, t: cropRatio(v) } })));
+    inspectorEl.append(numField(t('insp.right'), cropPct(imCrop.r), (v) => update({ crop: { ...imCrop, r: cropRatio(v) } })));
+    inspectorEl.append(numField(t('insp.bottom'), cropPct(imCrop.b), (v) => update({ crop: { ...imCrop, b: cropRatio(v) } })));
   } else if (el.type === 'table') {
     const rowCount = (el.rows || []).length;
     const colCount = Math.max(1, ...(el.rows || []).map((r: any) => (r.cells || []).length));
@@ -3976,6 +4042,61 @@ function toggleGuides() {
 function toggleDocInfo() {
   const on = docInfoEl.classList.toggle('on');
   if (on) renderDocInfo();
+}
+
+/** 母版/版式查看器：解析 __rawXml 做只读展示，背景色通过最小 XML patch 有限编辑。 */
+function openMasterView() {
+  const doc: any = store.doc || {};
+  const masters: any[] = Array.isArray(doc.masters) ? doc.masters : [];
+  const themeXml: string = typeof doc.themeXml === 'string' ? doc.themeXml : '';
+  const themeColors = (doc.theme && doc.theme.colors) || {};
+
+  const bgFromXml = (xml: string): string => {
+    const m = xml && xml.match(/<p:bg[\s\S]*?<a:srgbClr val="([0-9a-fA-F]{6})"/);
+    return m ? '#' + m[1] : '#ffffff';
+  };
+  const setMasterBg = (xml: string, color: string): string => {
+    const hex = color.replace(/^#/, '');
+    const bgXml = `<p:bg><p:bgPr><a:solidFill><a:srgbClr val="${hex}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>`;
+    // 整体替换 <p:bg>…</p:bg>（可能是 bgRef/schemeClr 而非 srgbClr，逐个属性替换会漏），
+    // 没有背景节点时插到 cSld 开始标签之后（p:cSld 内容模型里 bg 必须最先）。
+    if (/<p:bg[\s\S]*?<\/p:bg>/.test(xml)) return xml.replace(/<p:bg[\s\S]*?<\/p:bg>/, bgXml);
+    return xml.replace(/(<p:cSld[^>]*>)/, `$1${bgXml}`);
+  };
+
+  const slots = ['lt1', 'lt2', 'dk1', 'dk2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6'];
+  const themeSlotColors = slots.map((s) => ({
+    name: s,
+    value: /^#[0-9a-f]{6}$/i.test(String(themeColors[s] || '')) ? themeColors[s] : '#cccccc'
+  }));
+
+  openMasterViewDialog({
+    masters: masters.map((m: any, i: number) => {
+      const xml = typeof m.__rawXml === 'string' ? m.__rawXml : '';
+      const nameMatch = xml.match(/<p:cSld[^>]*name="([^"]*)"/);
+      const themeMatch = (m.themeXml || '').match(/<a:theme[^>]*name="([^"]*)"/);
+      const layouts: any[] = Array.isArray(m.layouts) ? m.layouts : [];
+      return {
+        name: nameMatch ? nameMatch[1] : `${t('dlg.master.master')} ${i + 1}`,
+        themeName: themeMatch ? themeMatch[1] : (themeXml ? (themeXml.match(/<a:theme[^>]*name="([^"]*)"/) || [])[1] || '—' : '—'),
+        colors: themeSlotColors,
+        background: bgFromXml(xml),
+        layoutNames: layouts.map((l: any) => {
+          const lm = typeof l.__rawXml === 'string' ? l.__rawXml.match(/<p:cSld[^>]*name="([^"]*)"/) : null;
+          return lm ? lm[1] : t('panel.untitled');
+        }),
+        slideUsage: []
+      };
+    }),
+    themeSlots: themeSlotColors
+  }, {
+    setBackground: (mi, color) => {
+      runAction(() => store.update((d: any) => {
+        const m = d.masters && d.masters[mi];
+        if (m && typeof m.__rawXml === 'string') m.__rawXml = setMasterBg(m.__rawXml, color);
+      }));
+    }
+  });
 }
 
 // Document-property labels come from the dictionary (core.xml field names → meta.* keys).

@@ -10849,6 +10849,146 @@ function presetShapePath(prst, w, h, adj = {}, opts = {}) {
             const y2 = h * a1 / 100000;
             return { d: `M0,${y2} L${x2},0 L${w},0 L0,${h} z` };
         }
+        case 'chartPlus': {
+            const t = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 50000) / 100000;
+            const cx = w / 2, cy = h / 2, bx = w * t, by = h * t;
+            return { d: `M${fmt(bx)},${fmt(cy - by)} `
+                    + `L${fmt(bx)},0 L${fmt(w - bx)},0 L${fmt(w - bx)},${fmt(cy - by)} `
+                    + `L${fmt(w)},${fmt(cy - by)} L${fmt(w)},${fmt(cy + by)} L${fmt(w - bx)},${fmt(cy + by)} `
+                    + `L${fmt(w - bx)},${fmt(h)} L${fmt(bx)},${fmt(h)} L${fmt(bx)},${fmt(cy + by)} `
+                    + `L0,${fmt(cy + by)} L0,${fmt(cy - by)} z` };
+        }
+        case 'chartX': {
+            const t = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 50000) / 100000;
+            const by = h * t, bx = w * t, cx = w / 2, cy = h / 2;
+            const k = 0.35;
+            const d = `M0,0 L${fmt(bx)},0 L${fmt(cx)},${fmt(cy - by * k)} L${fmt(w - bx)},0 `
+                + `L${fmt(w)},0 L${fmt(w - bx * (1 - k))},${fmt(cy)} L${fmt(w)},${fmt(h)} `
+                + `L${fmt(w - bx)},${fmt(h)} L${fmt(cx)},${fmt(cy + by * k)} L${fmt(bx)},${fmt(h)} `
+                + `L0,${fmt(h)} L${fmt(bx * (1 - k))},${fmt(cy)} z`;
+            return { d };
+        }
+        case 'chartStar': {
+            const a = clampV(num(adj, 'adj', 19098), 0, 50000) / 50000;
+            const cx = w / 2, cy = h / 2, rx = w / 2, ry = h / 2;
+            const pts = [];
+            for (let i = 0; i < 10; i++) {
+                const ang = -Math.PI / 2 + i * Math.PI / 5;
+                const r = i % 2 === 0 ? 1 : a;
+                pts.push(`${fmt(cx + rx * r * Math.cos(ang))},${fmt(cy + ry * r * Math.sin(ang))}`);
+            }
+            return { d: 'M' + pts.join(' L') + ' z' };
+        }
+        case 'cornerTabs': {
+            const s = clampV(numAny(adj, ['adj', 'adj1'], 16667), 0, 50000) / 100000 * Math.min(w, h);
+            return { d: `M0,0 L${fmt(s)},0 L${fmt(s)},${fmt(s)} L0,${fmt(s)} z `
+                    + `M${fmt(w)},0 L${fmt(w)},${fmt(s)} L${fmt(w - s)},${fmt(s)} L${fmt(w - s)},0 z `
+                    + `M0,${fmt(h)} L0,${fmt(h - s)} L${fmt(s)},${fmt(h - s)} L${fmt(s)},${fmt(h)} z` };
+        }
+        case 'squareTabs': {
+            const s = clampV(numAny(adj, ['adj', 'adj1'], 25000), 0, 50000) / 100000 * w;
+            return { d: `M0,0 L${fmt(s)},0 L${fmt(s)},${fmt(h)} L0,${fmt(h)} z `
+                    + `M${fmt(w - s)},0 L${fmt(w)},0 L${fmt(w)},${fmt(h)} L${fmt(w - s)},${fmt(h)} z` };
+        }
+        case 'plaqueTabs': {
+            const s = clampV(numAny(adj, ['adj', 'adj1'], 16667), 0, 50000) / 100000 * h;
+            return { d: `M0,0 L${fmt(w)},0 L${fmt(w)},${fmt(h)} L0,${fmt(h)} z `
+                    + `M0,${fmt(h / 2 - s / 2)} L${fmt(-s)},${fmt(h / 2)} L0,${fmt(h / 2 + s / 2)} z `
+                    + `M${fmt(w)},${fmt(h / 2 - s / 2)} L${fmt(w + s)},${fmt(h / 2)} L${fmt(w)},${fmt(h / 2 + s / 2)} z` };
+        }
+        case 'folderCorner': {
+            const a = clampV(numAny(adj, ['adj', 'adj1'], 16667), 0, 50000) / 100000 * Math.min(w, h);
+            const tabW = w * 0.4, tabH = a;
+            return { d: `M0,0 L${fmt(tabW)},0 L${fmt(tabW + a)},${fmt(tabH)} L${fmt(w)},${fmt(tabH)} `
+                    + `L${fmt(w)},${fmt(h)} L0,${fmt(h)} z` };
+        }
+        case 'lineInv': {
+            const t = clampV(numAny(adj, ['adj', 'adj1'], 5000), 0, 50000) / 100000;
+            const bw = Math.max(1, w * t);
+            return { d: `M0,0 L${fmt(bw)},0 L${fmt(w)},${fmt(h - bw)} L${fmt(w)},${fmt(h)} `
+                    + `L${fmt(w - bw)},${fmt(h)} L0,${fmt(bw)} z` };
+        }
+        case 'nonIsoscelesTrapezoid': {
+            const a1 = clampV(num(adj, 'adj1', 25000), 0, 100000) / 100000;
+            const a2 = clampV(num(adj, 'adj2', 25000), 0, 100000) / 100000;
+            return { d: `M${fmt(w * a1)},0 L${fmt(w)},0 L${fmt(w * (1 - a2))},${fmt(h)} L0,${fmt(h)} z` };
+        }
+        case 'leftRightUpArrow': {
+            const a1 = clampV(num(adj, 'adj1', 37500), 0, 100000) / 100000;
+            const a2 = clampV(num(adj, 'adj2', 37500), 0, 100000) / 100000;
+            const shaftTop = h * a1, headW = w * a2 / 2;
+            const cx = w / 2;
+            return { d: `M${fmt(cx)},0 L${fmt(cx + headW)},${fmt(headW)} `
+                    + `L${fmt(cx + headW * 0.4)},${fmt(headW)} L${fmt(cx + headW * 0.4)},${fmt(shaftTop)} `
+                    + `L${fmt(w)},${fmt(shaftTop)} L${fmt(w)},${fmt(h - headW * 0.4)} `
+                    + `L${fmt(w - headW)},${fmt(h - headW * 0.4)} L${fmt(w - headW)},${fmt(shaftTop + headW * 0.4)} `
+                    + `L${fmt(cx + headW * 0.4)},${fmt(shaftTop + headW * 0.4)} `
+                    + `L${fmt(cx + headW * 0.4)},${fmt(h)} L${fmt(cx - headW * 0.4)},${fmt(h)} `
+                    + `L${fmt(cx - headW * 0.4)},${fmt(shaftTop + headW * 0.4)} `
+                    + `L${fmt(headW)},${fmt(shaftTop + headW * 0.4)} L${fmt(headW)},${fmt(h - headW * 0.4)} `
+                    + `L0,${fmt(h - headW * 0.4)} L0,${fmt(shaftTop)} `
+                    + `L${fmt(cx - headW * 0.4)},${fmt(shaftTop)} L${fmt(cx - headW * 0.4)},${fmt(headW)} `
+                    + `L${fmt(cx - headW)},${fmt(headW)} z` };
+        }
+        case 'leftUpArrow': {
+            const a1 = clampV(num(adj, 'adj1', 50000), 0, 100000) / 100000;
+            const a2 = clampV(num(adj, 'adj2', 50000), 0, 100000) / 100000;
+            const shaft = Math.min(w, h) * a1 / 2, head = Math.min(w, h) * a2 / 2;
+            const x = w * 0.45, y = h * 0.55;
+            return { d: `M0,${fmt(y - head)} L${fmt(x - head)},${fmt(y - head)} `
+                    + `L${fmt(x - head)},${fmt(head)} L${fmt(x - shaft)},${fmt(head)} L${fmt(x)},0 `
+                    + `L${fmt(x + shaft)},${fmt(head)} L${fmt(x + head)},${fmt(head)} `
+                    + `L${fmt(x + head)},${fmt(y - shaft)} L${fmt(w)},${fmt(y - shaft)} `
+                    + `L${fmt(w)},${fmt(y + shaft)} L${fmt(x + head)},${fmt(y + shaft)} `
+                    + `L${fmt(x + head)},${fmt(h)} L${fmt(x - head)},${fmt(h)} `
+                    + `L${fmt(x - head)},${fmt(y + shaft)} L0,${fmt(y + shaft)} z` };
+        }
+        case 'bentArrow': {
+            const a1 = clampV(num(adj, 'adj1', 50000), 0, 100000) / 100000;
+            const a2 = clampV(num(adj, 'adj2', 50000), 0, 100000) / 100000;
+            const bw = Math.min(w, h) * a1 / 2, head = Math.min(w, h) * a2 / 2;
+            return { d: `M0,0 L${fmt(bw)},0 L${fmt(bw)},${fmt(h - bw - head)} `
+                    + `L${fmt(w - head)},${fmt(h - bw - head)} L${fmt(w - head)},${fmt(h - bw - 2 * head)} `
+                    + `L${fmt(w)},${fmt(h - bw)} L${fmt(w - head)},${fmt(h - bw + head)} `
+                    + `L${fmt(w - head)},${fmt(h - bw)} L${fmt(bw)},${fmt(h - bw)} L${fmt(bw)},${fmt(h)} `
+                    + `L0,${fmt(h)} z` };
+        }
+        case 'notchedRightArrow': {
+            const a1 = clampV(num(adj, 'adj1', 50000), 0, 100000) / 100000;
+            const a2 = clampV(num(adj, 'adj2', 50000), 0, 100000) / 100000;
+            const a3 = clampV(num(adj, 'adj3', 50000), 0, 100000) / 100000;
+            const shaft = h * a1 / 2, head = h * a2 / 2, notch = head * a3;
+            const bx = w * 0.3;
+            return { d: `M0,${fmt(h / 2 - shaft)} L${fmt(bx)},${fmt(h / 2 - shaft)} `
+                    + `L${fmt(bx)},${fmt(h / 2 - head)} L${fmt(w - head)},0 `
+                    + `L${fmt(w - head)},${fmt(h / 2 - notch)} L${fmt(w)},${fmt(h / 2)} `
+                    + `L${fmt(w - head)},${fmt(h / 2 + notch)} L${fmt(w - head)},${fmt(h)} `
+                    + `L${fmt(bx)},${fmt(h / 2 + head)} L${fmt(bx)},${fmt(h / 2 + shaft)} `
+                    + `L0,${fmt(h / 2 + shaft)} z` };
+        }
+        case 'homePlate': {
+            const a = clampV(numAny(adj, ['adj', 'adj1'], 50000), 0, 100000) / 100000;
+            const cy = h * a;
+            return { d: `M0,0 L${fmt(w)},0 L${fmt(w)},${fmt(cy)} L${fmt(w / 2)},${fmt(h)} L0,${fmt(cy)} z` };
+        }
+        case 'chevron': {
+            const a = clampV(numAny(adj, ['adj', 'adj1'], 50000), 0, 100000) / 100000;
+            const cx = w * a;
+            return { d: `M0,0 L${fmt(cx)},0 L${fmt(w)},${fmt(h / 2)} L${fmt(cx)},${fmt(h)} `
+                    + `L0,${fmt(h)} L${fmt(w - cx)},${fmt(h / 2)} z` };
+        }
+        case 'upDownArrowCallout': {
+            const head = Math.min(w, h) * 0.2, boxW = w * 0.7, shaft = w * 0.08;
+            const cx = w / 2, x0 = (w - boxW) / 2;
+            return { d: `M${fmt(cx)},0 L${fmt(cx + head)},${fmt(head)} L${fmt(cx + shaft)},${fmt(head)} `
+                    + `L${fmt(cx + shaft)},${fmt(h * 0.32)} L${fmt(x0 + boxW)},${fmt(h * 0.32)} `
+                    + `L${fmt(x0 + boxW)},${fmt(h * 0.68)} L${fmt(cx + shaft)},${fmt(h * 0.68)} `
+                    + `L${fmt(cx + shaft)},${fmt(h - head)} L${fmt(cx + head)},${fmt(h - head)} L${fmt(cx)},${fmt(h)} `
+                    + `L${fmt(cx - head)},${fmt(h - head)} L${fmt(cx - shaft)},${fmt(h - head)} `
+                    + `L${fmt(cx - shaft)},${fmt(h * 0.68)} L${fmt(x0)},${fmt(h * 0.68)} `
+                    + `L${fmt(x0)},${fmt(h * 0.32)} L${fmt(cx - shaft)},${fmt(h * 0.32)} `
+                    + `L${fmt(cx - shaft)},${fmt(head)} L${fmt(cx - head)},${fmt(head)} z` };
+        }
         default:
             return null;
     }
@@ -14851,6 +14991,23 @@ const PPTXShapeUtils = (function () {
                 case "plaqueTabs":
                 case "squareTabs":
                 case "upDownArrowCallout": {
+                    const gdNodes = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                    const adjMap = {};
+                    for (const gd of (Array.isArray(gdNodes) ? gdNodes : (gdNodes ? [gdNodes] : []))) {
+                        const nm = gd?.attrs?.name;
+                        const fmla = gd?.attrs?.fmla;
+                        if (nm && typeof fmla === 'string' && fmla.startsWith('val ')) {
+                            const n = Number(fmla.slice(4));
+                            if (Number.isFinite(n))
+                                adjMap[nm] = n;
+                        }
+                    }
+                    const geo = presetShapePath(shapType, w, h, adjMap);
+                    if (geo && geo.d) {
+                        const fillRuleAttr = geo.fillRule ? ` fill-rule='${geo.fillRule}'` : "";
+                        const tf = geo.transform ? ` transform='${geo.transform}'` : "";
+                        result += `<path d='${geo.d}'${fillRuleAttr}${tf} fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
+                    }
                     break;
                 }
                 case undefined:
@@ -20963,20 +21120,20 @@ function inheritedLvlNode(ctx, ph, lvl) {
     if (!ph)
         return undefined;
     const tag = `a:lvl${Math.max(0, Math.min(8, lvl)) + 1}pPr`;
+    const pick = (owner) => (owner && (owner[tag] || owner['a:defPPr'])) || undefined;
     for (const table of [ctx.layout, ctx.master]) {
         const target = findPlaceholder(table, ph);
         const lst = target && target['p:txBody'] && target['p:txBody']['a:lstStyle'];
-        if (lst && lst[tag])
-            return lst[tag];
+        const hit = pick(lst);
+        if (hit)
+            return hit;
     }
     if (ctx.masterTextStyles) {
-        const st = ctx.masterTextStyles[masterTextStyleKey(ph.type)];
-        if (st && st[tag])
-            return st[tag];
+        const hit = pick(ctx.masterTextStyles[masterTextStyleKey(ph.type)]);
+        if (hit)
+            return hit;
     }
-    if (ctx.defaultTextStyle && ctx.defaultTextStyle[tag])
-        return ctx.defaultTextStyle[tag];
-    return undefined;
+    return pick(ctx.defaultTextStyle);
 }
 function inheritedBodyPr(ctx, ph) {
     if (!ph)
@@ -22614,13 +22771,10 @@ async function nodeToElement(key, node, resObj, zip, themeMap = {}, themeContent
             if (paragraphs[0].valign)
                 textEl.valign = paragraphs[0].valign;
         }
-        const isPlaceholder = !!(node['p:nvSpPr'] && node['p:nvSpPr']['p:nvPr'] && node['p:nvSpPr']['p:nvPr']['p:ph']);
-        if (!isPlaceholder) {
-            for (const para of paragraphs) {
-                for (const r of para.runs || []) {
-                    if (r.fontSize === undefined && !r.break)
-                        r.fontSize = 18;
-                }
+        for (const para of paragraphs) {
+            for (const r of para.runs || []) {
+                if (r.fontSize === undefined && !r.break)
+                    r.fontSize = 18;
             }
         }
         const firstRun = paragraphs[0] && paragraphs[0].runs && paragraphs[0].runs[0];
@@ -26182,6 +26336,14 @@ function elementToPptx(el) {
                 out.dataPath = el.dataPath;
             return out;
         }
+        case 'math': {
+            out.type = 'math';
+            if (el.omml)
+                out.omml = el.omml;
+            if (el.text != null)
+                out.text = el.text;
+            return out;
+        }
         default: {
             out.type = 'raw';
             if (el.__raw) {
@@ -26767,6 +26929,14 @@ function elementFromPptx(pe) {
             el.dataPath = pe.dataPath || '';
             if (pe.__raw)
                 el.__raw = pe.__raw;
+            return el;
+        }
+        case 'math': {
+            el.type = 'math';
+            if (pe.omml)
+                el.omml = pe.omml;
+            if (pe.text != null)
+                el.text = pe.text;
             return el;
         }
         default: {

@@ -725,6 +725,114 @@ export function openDiagramTextDialog(
   });
 }
 
+// ---------- master / layout inspector (read-only + limited background/theme editing) ----------
+/**
+ * 母版/版式查看器。库端把原始 slideMasterN.xml / slideLayoutN.xml 以 __rawXml 无损保留，
+ * 这里只做「只读展示 + 背景色/主题色的有限编辑」，不重建母版骨架（PowerPoint 校验严格）。
+ */
+export function openMasterViewDialog(data: {
+  masters: { name: string; themeName: string; colors: { name: string; value: string }[]; background: string; layoutNames: string[]; slideUsage: number[] }[];
+  themeSlots: { name: string; value: string }[];
+}, api: {
+  setBackground: (masterIndex: number, color: string) => void;
+}): void {
+  openDialog(t('dlg.master.title'), (close) => {
+    const body = h('div', { class: 'dlg-master' });
+    if (!data.masters.length) {
+      body.append(h('p', { class: 'dlg-msg' }, [t('dlg.master.empty')]));
+      return [body, row([btn(t('common.close'), close)], 'dlg-actions')];
+    }
+
+    const detail = h('div', { class: 'dlg-master-detail' });
+    const swatches = (list: { name: string; value: string }[], onClick?: (v: string) => void) => {
+      const wrap = h('div', { class: 'dlg-master-swatches' });
+      for (const c of list) {
+        const box = h('span', {
+          class: 'dlg-master-swatch',
+          style: `background:${c.value}`,
+          title: `${c.name} ${c.value}`,
+          ...(onClick ? { onclick: () => onClick(c.value) } : {})
+        }, []);
+        wrap.append(box);
+      }
+      return wrap;
+    };
+
+    const render = (mi: number) => {
+      detail.innerHTML = '';
+      const m = data.masters[mi];
+      detail.append(h('h4', {}, [`${t('dlg.master.master')} ${mi + 1} · ${m.name}`]));
+      detail.append(h('div', { class: 'dlg-line' }, [h('span', {}, [t('dlg.master.theme')]), h('span', {}, [m.themeName])]));
+      detail.append(h('div', { class: 'dlg-line' }, [h('span', {}, [t('dlg.master.background')]), swatches([{ name: 'bg', value: m.background }])]));
+      const bgInput = input('color', /^#[0-9a-f]{6}$/i.test(m.background) ? m.background : '#ffffff');
+      detail.append(h('div', { class: 'dlg-line' }, [
+        h('span', {}, [t('dlg.master.backgroundEdit')]), bgInput,
+        btn(t('common.save'), () => { api.setBackground(mi, bgInput.value); close(); }, 'btn')
+      ]));
+      detail.append(h('h4', {}, [t('dlg.master.layouts')]));
+      detail.append(h('div', { class: 'dlg-master-layouts' }, [h('span', {}, [m.layoutNames.join(' · ') || '—'])]));
+      detail.append(h('h4', {}, [t('dlg.master.colors')]));
+      detail.append(swatches(m.colors));
+    };
+
+    const tabs = h('div', { class: 'dlg-master-tabs' });
+    data.masters.forEach((m, i) => {
+      tabs.append(btn(`${i + 1}: ${m.name}`, () => render(i), 'btn'));
+    });
+    body.append(tabs, detail);
+
+    const themeRow = h('div', { class: 'dlg-line' }, [
+      h('span', {}, [t('dlg.master.themeColors')]),
+      swatches(data.themeSlots)
+    ]);
+    render(0);
+    return [body, themeRow, row([btn(t('common.close'), close)], 'dlg-actions')];
+  });
+}
+
+// ---------- formula (OMML) ----------
+/** 把用户输入的线性/Unicode 公式文本包成最小但合法的 OMML（m:oMathPara/m:oMath）。 */
+function linearTextToOmml(text: string): string {
+  const esc = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:oMath><m:r><m:t>${esc}</m:t></m:r></m:oMath></m:oMathPara>`;
+}
+
+/**
+ * 公式编辑器：显示 OMML 的纯文本形式供直接编辑，并允许高级用户改原始 OMML XML。
+ * 保存时写回 text（画布/fallback 显示）与 omml（PowerPoint 里的真实公式体）。
+ */
+export function openFormulaDialog(
+  formula: { text?: string; omml?: string },
+  api: { save: (text: string, omml: string) => void }
+): void {
+  openDialog(t('dlg.formula.title'), (close) => {
+    const textField = h('textarea', { class: 'dlg-formula-text', rows: '3', placeholder: t('dlg.formula.placeholder') }, []) as HTMLTextAreaElement;
+    textField.value = formula.text || '';
+    const ommlField = h('textarea', { class: 'dlg-formula-omml', rows: '5', spellcheck: 'false' }, []) as HTMLTextAreaElement;
+    ommlField.value = formula.omml || '';
+
+    const regenerate = () => {
+      ommlField.value = linearTextToOmml(textField.value);
+    };
+    const save = () => {
+      const text = textField.value;
+      let omml = ommlField.value.trim();
+      if (!omml && text) omml = linearTextToOmml(text);
+      api.save(text, omml);
+      close();
+    };
+    return [
+      h('p', { class: 'dlg-hint' }, [t('dlg.formula.hint')]),
+      h('label', { class: 'dlg-label' }, [t('dlg.formula.text')]),
+      textField,
+      h('div', { class: 'row' }, [btn(t('dlg.formula.regenerate'), regenerate)]),
+      h('label', { class: 'dlg-label' }, [t('dlg.formula.omml')]),
+      ommlField,
+      row([btn(t('common.cancel'), close), btn(t('common.save'), save, 'btn primary')], 'dlg-actions')
+    ];
+  });
+}
+
 // ---------- media ----------
 export function openMediaDialog(api: { addMedia: (type: 'video' | 'audio', data: string, ext: string) => void }): void {
   openDialog(t('dlg.media.insert'), (close) => {

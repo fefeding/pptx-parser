@@ -67,4 +67,30 @@ describe('预设几何 presetShapePath', () => {
         const thick = presetShapePath('moon', 160, 160, { adj: 10000 })!.d;
         expect(thin).not.toBe(thick);
     });
+
+    it('此前为空 case 的占位符形状与常用箭头都有合法几何', () => {
+        const types = [
+            'chartPlus', 'chartStar', 'chartX', 'cornerTabs', 'folderCorner',
+            'lineInv', 'nonIsoscelesTrapezoid', 'plaqueTabs', 'squareTabs',
+            'upDownArrowCallout', 'leftRightUpArrow', 'leftUpArrow',
+            'bentArrow', 'notchedRightArrow', 'homePlate', 'chevron'
+        ];
+        for (const t of types) {
+            const geo = presetShapePath(t, 200, 120, {});
+            expect(geo, `${t} 应有几何路径`).toBeTruthy();
+            expect(geo!.d.length, `${t} 路径非空`).toBeGreaterThan(10);
+            for (const n of numbersOf(geo!.d)) {
+                expect(Number.isFinite(n), `${t} 坐标有限`).toBe(true);
+            }
+        }
+    });
+
+    it('新增形状响应 adjust 值（chevron / homePlate）', () => {
+        const narrow = presetShapePath('chevron', 200, 120, { adj: 20000 })!.d;
+        const wide = presetShapePath('chevron', 200, 120, { adj: 80000 })!.d;
+        expect(narrow).not.toBe(wide);
+        const shallow = presetShapePath('homePlate', 200, 120, { adj: 20000 })!.d;
+        const deep = presetShapePath('homePlate', 200, 120, { adj: 80000 })!.d;
+        expect(shallow).not.toBe(deep);
+    });
 });

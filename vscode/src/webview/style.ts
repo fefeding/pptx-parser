@@ -428,6 +428,20 @@ button { font-family: inherit; }
 .dlg-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .dlg-col { display: flex; flex-direction: column; gap: 6px; }
 .dlg-block { border: 1px solid var(--border); border-radius: 6px; padding: 6px; margin-bottom: 6px; }
+/* master / layout viewer */
+.dlg-master { display: flex; flex-direction: column; gap: 8px; max-width: 560px; }
+.dlg-master-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.dlg-master-detail h4 { font-size: 12px; margin: 10px 0 4px; color: var(--accent); }
+.dlg-master-detail .dlg-line > span:first-child { width: 84px; }
+.dlg-master-swatches { display: flex; flex-wrap: wrap; gap: 4px; }
+.dlg-master-swatch { display: inline-block; width: 20px; height: 20px; border-radius: 3px; border: 1px solid var(--border); }
+.dlg-master-layouts { font-size: 12px; color: var(--muted); word-break: break-all; }
+/* formula editor */
+.dlg-hint { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+.dlg-label { font-size: 12px; font-weight: 600; margin: 6px 0 2px; }
+.dlg-formula-text, .dlg-formula-omml { width: 100%; box-sizing: border-box; font-family: var(--mono, monospace); font-size: 12px; padding: 6px; resize: vertical; background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; }
+.dlg-formula-omml { max-height: 140px; }
+.el-math { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-family: var(--mono, monospace); font-style: italic; font-size: 20px; color: var(--fg); overflow: hidden; white-space: nowrap; }
 .dlg-split { display: flex; gap: 16px; }
 .dlg-split > div { flex: 1 1 0; min-width: 0; }
 .dlg-in, .dlg-cell {

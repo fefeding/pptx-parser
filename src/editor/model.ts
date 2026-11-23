@@ -1047,6 +1047,12 @@ export function elementToPptx(el: any): any {
             if (el.dataPath) out.dataPath = el.dataPath;
             return out;
         }
+        case 'math': {
+            out.type = 'math';
+            if (el.omml) out.omml = el.omml;
+            if (el.text != null) out.text = el.text;
+            return out;
+        }
         default: {
             out.type = 'raw';
             if (el.__raw) { out.__raw = el.__raw; out.rawFallback = true; }
@@ -1635,6 +1641,12 @@ function elementFromPptx(pe: any): any {
             // 保留原始 SmartArt 部件（data1/colors1/quickStyle1/layout1/drawing1 的整串 XML），
             // 否则序列化器只能从 shapes/texts 生成最小化 diagram 文件，丢失原始配色与布局
             if (pe.__raw) el.__raw = pe.__raw;
+            return el;
+        }
+        case 'math': {
+            el.type = 'math';
+            if (pe.omml) el.omml = pe.omml;
+            if (pe.text != null) el.text = pe.text;
             return el;
         }
         default: {

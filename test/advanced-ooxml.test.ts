@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { jsonToPptx, pptxToStandard } from '../src/index';
+import { docFromPptx, docToPptx } from '../src/editor/index';
 
 /**
  * 高级 OOXML 能力生成端校验
@@ -275,6 +276,22 @@ describe('高级 OOXML 生成能力', () => {
         // OMML 片段必须原样输出（未被 XML 转义）
         expect(xml).toContain('<m:oMathPara>');
         expect(xml).toContain('mc:Fallback');
+
+        // 编辑器模型双向透传：公式不能被降级成 raw（否则双击无法编辑、导出丢失 OMML）
+        const buf: any = await jsonToPptx(oneSlide([
+            { type: 'math', x: 0, y: 0, width: 200, height: 60, omml, text: 'x^2' }
+        ]));
+        const std: any = await pptxToStandard(buf, { mediaProcess: false } as any);
+        const editorDoc: any = docFromPptx(std);
+        const mathEl = editorDoc.slides[0].elements.find((e: any) => e.type === 'math');
+        expect(mathEl).toBeTruthy();
+        expect(mathEl.text).toBe('x^2');
+        expect(mathEl.omml).toMatch(/<m:oMathPara[^>]*>/);
+        expect(mathEl.omml).toContain('<m:sSup');
+        const back: any = docToPptx(editorDoc);
+        const backMath = back.slides[0].elements.find((e: any) => e.type === 'math');
+        expect(backMath.text).toBe('x^2');
+        expect(backMath.omml).toContain('<m:sSup');
     });
 
     it('OLE 对象：p:oleObj + 代理图 p:pic', async () => {

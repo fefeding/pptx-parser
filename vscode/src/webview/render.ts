@@ -1231,6 +1231,12 @@ export function renderElement(el, ctx = {}) {
       node.appendChild(renderDiagramEl(el, ctx));
       break;
     }
+    case 'math': {
+      // 公式：OMML 本体在 omml 字段里无损保留；画布用纯文本/Unicode 形式呈现近似效果
+      const mathBox = h('div', { class: 'el-math' }, [String(el.text || 'ƒ(x)')]);
+      node.appendChild(mathBox);
+      break;
+    }
     case 'group': {
       // relative：子元素坐标已相对组合原点；其余（page/绝对坐标）需减去组合原点
       const rel = el.childrenCoordinates === 'relative';

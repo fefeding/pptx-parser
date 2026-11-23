@@ -447,7 +447,8 @@ export function buildTabs(b: RibbonBuilders, api: RibbonApi): RibbonTab[] {
     b.group(t('grp.window'), [
       [b.miniButton({ ico: 'edit', title: t('cmd.modeEdit'), needs: 'preview', onClick: () => api.cmd('setMode', 'edit') })],
       [b.miniButton({ ico: 'showSlide', title: t('cmd.modePreview'), needs: 'edit', onClick: () => api.cmd('setMode', 'preview') })],
-      [b.miniButton({ ico: 'props', title: t('cmd.docProps'), onClick: () => api.cmd('docProps') })]
+      [b.miniButton({ ico: 'props', title: t('cmd.docProps'), onClick: () => api.cmd('docProps') })],
+      [b.miniButton({ ico: 'props', title: t('cmd.masterView'), onClick: () => api.cmd('masterView') })]
     ]),
     b.group(t('grp.window'), [
       [b.miniButton({ ico: 'grid', title: t('cmd.grid'), needs: 'edit', active: (s) => s.grid, onClick: () => api.cmd('grid') })],

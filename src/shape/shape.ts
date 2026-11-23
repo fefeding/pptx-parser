@@ -4540,7 +4540,23 @@ export const PPTXShapeUtils: ShapeUtilsModule = (function() {
                     case "plaqueTabs":
                     case "squareTabs":
                     case "upDownArrowCallout": {
-                        // 其他占位符形状暂未实现
+                        // 与编辑器端 presetShapePath 共用同一几何（此前这些形状为空 case，预览只留背景 div）
+                        const gdNodes = PPTXXmlUtils.getTextByPathList(node, ["p:spPr", "a:prstGeom", "a:avLst", "a:gd"]);
+                        const adjMap: Record<string, number> = {};
+                        for (const gd of (Array.isArray(gdNodes) ? gdNodes : (gdNodes ? [gdNodes] : []))) {
+                            const nm = gd?.attrs?.name;
+                            const fmla = gd?.attrs?.fmla;
+                            if (nm && typeof fmla === 'string' && fmla.startsWith('val ')) {
+                                const n = Number(fmla.slice(4));
+                                if (Number.isFinite(n)) adjMap[nm] = n;
+                            }
+                        }
+                        const geo = presetShapePath(shapType, w, h, adjMap);
+                        if (geo && geo.d) {
+                            const fillRuleAttr = geo.fillRule ? ` fill-rule='${geo.fillRule}'` : "";
+                            const tf = geo.transform ? ` transform='${geo.transform}'` : "";
+                            result += `<path d='${geo.d}'${fillRuleAttr}${tf} fill='${(!imgFillFlg ? (grndFillFlg ? "url(#linGrd_" + shpId + ")" : fillColor) : "url(#imgPtrn_" + shpId + ")")}' stroke='${border.color}' stroke-width='${border.width}' stroke-dasharray='${border.strokeDasharray}' />`;
+                        }
                         break;
                     }
                     case undefined:

@@ -864,17 +864,20 @@ function masterTextStyleKey(type: string | undefined): 'p:titleStyle' | 'p:bodyS
 function inheritedLvlNode(ctx: PlaceholderCtx, ph: PlaceholderAttrs | undefined, lvl: number): any | undefined {
     if (!ph) return undefined;
     const tag = `a:lvl${Math.max(0, Math.min(8, lvl)) + 1}pPr`;
+    // a:defPPr 是与层级无关的默认段落样式：当该层没有对应 a:lvlNpPr 时按它兜底，
+    // 顺序仍是「本层 lvlN → 本层 defPPr → 下一层」，避免低层级 defPPr 抢在高层级 lvlN 之前。
+    const pick = (owner: any): any | undefined => (owner && (owner[tag] || owner['a:defPPr'])) || undefined;
     for (const table of [ctx.layout, ctx.master]) {
         const target = findPlaceholder(table, ph);
         const lst = target && target['p:txBody'] && target['p:txBody']['a:lstStyle'];
-        if (lst && lst[tag]) return lst[tag];
+        const hit = pick(lst);
+        if (hit) return hit;
     }
     if (ctx.masterTextStyles) {
-        const st = ctx.masterTextStyles[masterTextStyleKey(ph.type)];
-        if (st && st[tag]) return st[tag];
+        const hit = pick(ctx.masterTextStyles[masterTextStyleKey(ph.type)]);
+        if (hit) return hit;
     }
-    if (ctx.defaultTextStyle && ctx.defaultTextStyle[tag]) return ctx.defaultTextStyle[tag];
-    return undefined;
+    return pick(ctx.defaultTextStyle);
 }
 
 /**
@@ -2580,16 +2583,13 @@ async function nodeToElement(
             if (paragraphs[0].align) textEl.align = paragraphs[0].align;
             if ((paragraphs[0] as any).valign) textEl.valign = (paragraphs[0] as any).valign;
         }
-        // 非占位符文本（txBox/普通形状，无 p:nvPr/p:ph）的 OOXML 缺省字号是 18pt：
-        // run 省略 sz 时按 18pt 落到标准文档，否则编辑器会用面板默认 24pt 顶替，
-        // 该 run 与其项目符号都会异常放大（预览端 getFontSize 最终也回退 18pt）。
-        // 占位符文本的缺省字号来自母版/版式 bodyStyle，继承链未实现前保持原样不误填。
-        const isPlaceholder = !!(node['p:nvSpPr'] && node['p:nvSpPr']['p:nvPr'] && node['p:nvSpPr']['p:nvPr']['p:ph']);
-        if (!isPlaceholder) {
-            for (const para of paragraphs) {
-                for (const r of para.runs || []) {
-                    if ((r as any).fontSize === undefined && !(r as any).break) r.fontSize = 18;
-                }
+        // OOXML 缺省字号是 18pt：run 省略 sz 时按 18pt 落到标准文档，否则编辑器会用面板
+        // 默认 24pt 顶替，该 run 与其项目符号都会异常放大（预览端 getFontSize 同样回退 18pt）。
+        // 字号继承链已在 extractTxBody 中完成（占位符 run 由版式/母版 defRPr 填入）；
+        // 这里只对「整条继承链仍没给出字号」的 run 兜底 18pt，占位符与非占位符一视同仁。
+        for (const para of paragraphs) {
+            for (const r of para.runs || []) {
+                if ((r as any).fontSize === undefined && !(r as any).break) r.fontSize = 18;
             }
         }
         // 将首个 run 的统一样式镜像到元素级（jsonToPptx 以元素级为默认，提升 round-trip 保真）
