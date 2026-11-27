@@ -4734,10 +4734,20 @@ function showCtxMenu(x: number, y: number) {
 }
 
 function showSlideCtxMenu(x: number, y: number, idx: number) {
+  const items: MenuItem[] = [];
+  if (state.mode !== 'edit') {
+    // 预览态下幻灯片增删改都会被引擎的 runAction 静默忽略，不能出现在菜单里误导用户。
+    items.push(
+      { label: t('menu.editMode'), icon: 'edit', onClick: () => void setMode('edit') },
+      { type: 'sep' },
+      { label: t('cmd.presentHere'), icon: 'presentHere', onClick: () => { state.current = idx; void startPresent(true); } }
+    );
+    openMenu(items, x, y);
+    return;
+  }
   const count = slideCount();
-  const editing = state.mode === 'edit';
-  const slide = editing ? store.doc.slides[idx] : null;
-  const items: MenuItem[] = [
+  const slide = store.doc.slides[idx];
+  items.push(
     { label: t('menu.slide.newAfter'), icon: 'newSlide', onClick: () => runAction(() => { const n = store.slideCount; actions.addSlide(); actions.moveSlide(n, idx + 1); }) },
     { label: t('menu.slide.duplicate'), icon: 'duplicateSlide', onClick: () => runAction(() => actions.duplicateSlide(idx)) },
     { type: 'sep' },
@@ -4746,7 +4756,7 @@ function showSlideCtxMenu(x: number, y: number, idx: number) {
     { label: slide?.hidden ? t('menu.slide.show') : t('menu.slide.hide'), icon: slide?.hidden ? 'showSlide' : 'hideSlide', onClick: () => runAction(() => actions.toggleSlideHidden(idx)) },
     { type: 'sep' },
     { label: t('menu.slide.delete'), icon: 'deleteSlide', disabled: count <= 1, onClick: () => { state.current = idx; void deleteCurrentSlide(); } }
-  ];
+  );
   openMenu(items, x, y);
 }
 

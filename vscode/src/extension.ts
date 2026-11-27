@@ -111,6 +111,7 @@ class PptxEditorProvider implements vscode.CustomEditorProvider<PptxCustomDocume
     this._activeDoc = document;
     this._activePanel = webviewPanel;
     this._panels.set(document, webviewPanel);
+    this.syncContext();
     this.pushConfig(webviewPanel);
     webviewPanel.onDidDispose(() => {
       this._openDocs.delete(document);

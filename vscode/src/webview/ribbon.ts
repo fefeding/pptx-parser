@@ -348,7 +348,7 @@ export function createRibbon(api: RibbonApi): { root: HTMLElement; sync(s: Ribbo
   // 全部移除，避免和 Export Copy / Revert 之类的文字命令挤在一起。
   const modeGroup = h('div', { class: 'rb-seg', role: 'group', 'aria-label': t('tbar.mode') });
   const modePreview = h('button', { class: 'rb-seg-btn', type: 'button', title: tip('cmd.modePreview') }, [t('tbar.mode.preview')]);
-  const modeEdit = h('button', { class: 'rb-seg-btn', type: 'button', title: tip('cmd.modeEdit') }, [t('tbar.mode.edit')]);
+  const modeEdit = h('button', { class: 'rb-seg-btn rb-mode-edit', type: 'button', title: tip('cmd.modeEdit') }, [t('tbar.mode.edit')]);
   modePreview.onclick = () => api.cmd('setMode', 'preview');
   modeEdit.onclick = () => api.cmd('setMode', 'edit');
   modeGroup.append(modePreview, modeEdit);
@@ -361,6 +361,8 @@ export function createRibbon(api: RibbonApi): { root: HTMLElement; sync(s: Ribbo
   const previewMenuBtn = h('button', { class: 'rb-btn rb-btn-mini rb-preview-menu', type: 'button', title: t('tbar.menu') }, [icon('menu', 16)]);
   previewMenuBtn.onclick = () => {
     const items: MenuItem[] = [
+      { type: 'item', label: t('menu.editMode'), icon: 'edit', onClick: () => api.cmd('setMode', 'edit') },
+      { type: 'sep' },
       { type: 'item', label: t('cmd.present'), icon: 'present', accel: 'F5', onClick: () => api.cmd('present') },
       { type: 'item', label: t('cmd.presentHere'), icon: 'presentHere', accel: 'Shift+F5', onClick: () => api.cmd('presentHere') },
       { type: 'sep' },

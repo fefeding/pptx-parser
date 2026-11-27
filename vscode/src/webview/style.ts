@@ -70,6 +70,11 @@ button { font-family: inherit; }
 .rb-seg-btn:hover:not(.disabled) { background: var(--hover); }
 .rb-seg-btn.on { background: var(--accent-bg); }
 .rb-seg-btn.disabled { opacity: .5; cursor: default; }
+/* 预览态把「编辑」做成醒目的主按钮，进入编辑态不必依赖右键菜单。 */
+.ribbon.rb-preview .rb-seg-btn.rb-mode-edit:not(.disabled) {
+  background: var(--accent-2); color: #fff; font-weight: 600;
+}
+.ribbon.rb-preview .rb-seg-btn.rb-mode-edit:not(.disabled):hover { filter: brightness(1.1); }
 
 /* Tab strip sits inline in the title bar; the active tab is marked by a bottom accent. */
 .rb-tabs { display: flex; align-items: stretch; gap: 1px; flex: 0 1 auto; margin: 0 2px; overflow: hidden; }
